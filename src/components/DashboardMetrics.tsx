@@ -316,9 +316,9 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
   const getMetricLabel = (type: string) => {
     switch (type) {
       case 'missedCalls':
-        return 'Captured Leads'
+        return 'Captured Customers'
       case 'leads':
-        return 'Leads'
+        return 'Customers'
       case 'messages':
         return 'Messages Sent'
       case 'conversations':
@@ -333,9 +333,9 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
   const getEmptyStateText = (type: string) => {
     switch (type) {
       case 'missedCalls':
-        return 'No captured leads yet'
+        return 'No captured customers yet'
       case 'leads':
-        return 'Waiting for first lead'
+        return 'Waiting for first customer'
       case 'messages':
         return 'No conversations yet'
       case 'conversations':
@@ -348,13 +348,13 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
   const getMetricDescription = (type: string) => {
     switch (type) {
       case 'missedCalls':
-        return 'Leads captured from missed calls and customer inquiries'
+        return 'Customers captured from missed calls and customer inquiries'
       case 'leads':
-        return 'Total leads generated from missed calls and customer inquiries'
+        return 'Total customers generated from missed calls and customer inquiries'
       case 'messages':
         return 'Automated and manual text messages sent by ReplyFlow'
       case 'conversations':
-        return 'Leads with ongoing conversations that have not been completed'
+        return 'Customers with ongoing conversations that have not been completed'
       case 'recovery':
         return 'Percentage of missed callers successfully engaged by ReplyFlow'
       default:
@@ -371,7 +371,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
       case 'messages':
         return 'Automated and manual text messages sent by ReplyFlow'
       case 'conversations':
-        return 'Leads with ongoing conversations that have not been completed'
+        return 'Customers with ongoing conversations that have not been completed'
       case 'recovery':
         return 'Percentage of missed callers successfully engaged by ReplyFlow'
       default:

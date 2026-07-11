@@ -139,7 +139,7 @@ export default function LeadEngagementCard({ business }: LeadEngagementCardProps
                     {metrics.repliedLeads}
                   </span>
                   <span className="text-sm text-muted-foreground">
-                    of {metrics.totalLeads} leads
+                    of {metrics.totalLeads} customers
                   </span>
                 </div>
                 {metrics.engagementRate > 0 && (
@@ -161,7 +161,7 @@ export default function LeadEngagementCard({ business }: LeadEngagementCardProps
                 <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               </div>
               <p className="text-lg font-semibold text-foreground">{metrics.totalLeads}</p>
-              <p className="text-xs text-muted-foreground">Total Leads</p>
+              <p className="text-xs text-muted-foreground">Total Customers</p>
             </div>
 
             <div className="text-center p-3 bg-muted/30 rounded-lg">
@@ -179,7 +179,7 @@ export default function LeadEngagementCard({ business }: LeadEngagementCardProps
               {metrics.engagementRate >= 30 
                 ? 'Excellent customer engagement! Your follow-up strategy is working well.'
                 : metrics.engagementRate >= 15
-                ? 'Good customer engagement. Continue following up with leads.'
+                ? 'Good customer engagement. Continue following up with customers.'
                 : 'ReplyFlow is still following up automatically.'
               }
             </p>

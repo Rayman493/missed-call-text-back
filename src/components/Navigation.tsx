@@ -61,7 +61,7 @@ export default function Navigation() {
             : 'text-slate-400 hover:text-white hover:bg-white/[0.07]'
         }`}
       >
-        Leads
+        Customers
         {isActive('/dashboard/leads') && (
           <div className="absolute -bottom-1 left-1/2 h-1 w-5 -translate-x-1/2 rounded-full bg-gradient-to-r from-blue-400 to-cyan-300"></div>
         )}

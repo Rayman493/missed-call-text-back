@@ -155,12 +155,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         photos: true,
         activity: true,
         automation: true,
-        leadHealth: false,
+        customerHealth: false,
         quickActions: true,
         aiIntake: true // Default to collapsed
       }
     }
-    const saved = localStorage.getItem('leadDetailsCollapsedSections')
+    const saved = localStorage.getItem('customerDetailsCollapsedSections')
     if (saved) {
       try {
         return JSON.parse(saved)
@@ -169,7 +169,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           photos: true,
           activity: true,
           automation: true,
-          leadHealth: false,
+          customerHealth: false,
           quickActions: true,
           aiIntake: true
         }
@@ -179,7 +179,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       photos: true,
       activity: true,
       automation: true,
-      leadHealth: false,
+      customerHealth: false,
       quickActions: true,
       aiIntake: true // Default to collapsed
     }
@@ -281,7 +281,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // Persist collapsedSections to localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('leadDetailsCollapsedSections', JSON.stringify(collapsedSections))
+      localStorage.setItem('customerDetailsCollapsedSections', JSON.stringify(collapsedSections))
     }
   }, [collapsedSections])
   
@@ -343,7 +343,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
-  const handleDeleteLead = async () => {
+  const handleDeleteCustomer = async () => {
     if (!lead?.id) return
     setIsDeleting(true)
     try {
@@ -361,16 +361,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       const result = await response.json()
 
       if (!response.ok) {
-        console.error('Failed to delete lead:', result.error)
-        alert(result.error || 'Failed to delete lead')
+        console.error('Failed to delete customer:', result.error)
+        alert(result.error || 'Failed to delete customer')
         return
       }
 
-      // Redirect to leads list on successful deletion
+      // Redirect to customers list on successful deletion
       router.push('/dashboard/leads')
     } catch (error) {
-      console.error('Error deleting lead:', error)
-      alert('Failed to delete lead')
+      console.error('Error deleting customer:', error)
+      alert('Failed to delete customer')
     } finally {
       setIsDeleting(false)
       setShowDeleteModal(false)
@@ -1139,16 +1139,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       // Show success message
       const statusMessages: Record<LeadLifecycleStatus, string> = {
-        new: 'Lead reset to new',
-        active: 'Lead marked as active',
-        scheduled: 'Lead marked as scheduled',
-        payment_requested: 'Lead marked as payment requested',
-        paid: 'Lead marked as paid',
-        completed: 'Lead marked as complete',
-        lost: 'Lead marked as lost',
-        ignored: 'Lead marked as ignored'
+        new: 'Customer reset to new',
+        active: 'Customer marked as active',
+        scheduled: 'Customer marked as scheduled',
+        payment_requested: 'Customer marked as payment requested',
+        paid: 'Customer marked as paid',
+        completed: 'Customer marked as complete',
+        lost: 'Customer marked as lost',
+        ignored: 'Customer marked as ignored'
       }
-      setSuccessMessage(statusMessages[newStatus] || `Lead status updated to ${newStatus}`)
+      setSuccessMessage(statusMessages[newStatus] || `Customer status updated to ${newStatus}`)
       
       // Auto-hide success message after 3 seconds
       setTimeout(() => {
@@ -1161,8 +1161,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
-  // Handle remove lead
-  const handleRemoveLead = async () => {
+  // Handle remove customer
+  const handleRemoveCustomer = async () => {
     setIsRemoving(true)
     try {
       // Get auth token
@@ -1173,7 +1173,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         throw new Error('Not authenticated')
       }
 
-      // Soft delete the lead using DELETE endpoint
+      // Soft delete the customer using DELETE endpoint
       const response = await fetch(`/api/leads/${params.id}`, {
         method: 'DELETE',
         headers: {
@@ -1184,22 +1184,22 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Failed to delete lead')
+        throw new Error(error.error || 'Failed to delete customer')
       }
 
       // Show success message
-      setSuccessMessage('Lead deleted successfully.')
+      setSuccessMessage('Customer deleted successfully.')
       setShowRemoveModal(false)
-      
-      // Redirect to leads list after a short delay
+
+      // Redirect to customers list after a short delay
       setTimeout(() => {
         if (typeof window !== 'undefined') {
           window.location.href = '/dashboard/leads'
         }
       }, 1500)
     } catch (error) {
-      console.error('Error removing lead:', error)
-      setError(error instanceof Error ? error.message : 'Failed to remove lead')
+      console.error('Error removing customer:', error)
+      setError(error instanceof Error ? error.message : 'Failed to remove customer')
     } finally {
       setIsRemoving(false)
     }
@@ -1546,7 +1546,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         
         // Show appropriate error message based on response
         if (result.error === 'Lead not found') {
-          setError('Lead not found. Please refresh the page and try again.')
+          setError('Customer not found. Please refresh the page and try again.')
         } else if (result.error === 'Business not found') {
           setError('Business not found. Please contact support.')
         } else if (result.error?.includes('verification') || result.error?.includes('carrier')) {
@@ -1792,7 +1792,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
 
     return {
-      title: leadReason || `Job for ${leadName || 'Lead'}`,
+      title: leadReason || `Job for ${leadName || 'Customer'}`,
       customer_name: leadName || undefined,
       customer_phone: leadPhone || undefined,
       service_address: leadAddress || undefined,
@@ -1997,10 +1997,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     fetchLeadJobs()
   }
 
-  // Generate comprehensive prefill data from lead and AI intake
+  // Generate comprehensive prefill data from customer and AI intake
   const generateAppointmentPrefill = () => {
     const intake = getLeadAIIntake(leadData)
-    const leadName = intake.customerName || leadData?.name || 'Lead'
+    const leadName = intake.customerName || leadData?.name || 'Customer'
     const leadPhone = formatPhoneNumber(intake.customerPhone || leadData?.caller_phone || '')
     const leadReason = intake.serviceRequested || leadData?.company_name || ''
     const leadDetails = intake.additionalDetails || ''
@@ -2020,12 +2020,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
 
     // Generate title
-    const title = leadReason 
+    const title = leadReason
       ? `${leadReason} - ${leadName}`
       : `Appointment with ${leadName}`
 
     // Generate comprehensive description
-    let description = `Lead: ${leadName}\n`
+    let description = `Customer: ${leadName}\n`
     description += `Phone: ${leadPhone}\n`
     
     if (leadCallbackNumber && leadCallbackNumber !== leadPhone) {
@@ -2047,8 +2047,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     if (leadCallbackTime) {
       description += `Preferred callback time: ${leadCallbackTime}\n`
     }
-    
-    description += `\nLead link: https://replyflowhq.com/dashboard/leads/${params.id}`
+
+    description += `\nCustomer link: https://replyflowhq.com/dashboard/leads/${params.id}`
 
     return {
       title,
@@ -2170,7 +2170,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         
         // Show appropriate error message based on response
         if (result.error === 'Lead not found') {
-          setError('Lead not found. Please refresh the page and try again.')
+          setError('Customer not found. Please refresh the page and try again.')
         } else if (result.error === 'Business not found') {
           setError('Business not found. Please contact support.')
         } else if (result.error?.includes('verification') || result.error?.includes('carrier')) {
@@ -2283,20 +2283,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               className="inline-flex items-center text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
               onClick={() => console.log('[LEAD DETAIL HEADER BACK] clicked -> /dashboard/leads')}
             >
-              ← Back to Leads
+              ← Back to Customers
             </Link>
           </div>
           <div className="bg-card rounded-lg shadow border border-border p-8 text-center">
-            <h1 className="text-2xl font-bold text-foreground mb-2">Lead not found</h1>
+            <h1 className="text-2xl font-bold text-foreground mb-2">Customer not found</h1>
             <p className="text-muted-foreground mb-6">
-              {error || 'The lead you\'re looking for doesn\'t exist or you don\'t have permission to view it.'}
+              {error || 'The customer you\'re looking for doesn\'t exist or you don\'t have permission to view it.'}
             </p>
             <Link
               href="/dashboard/leads"
               className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
               onClick={() => console.log('[LEAD DETAIL HEADER BACK] clicked -> /dashboard/leads')}
             >
-              Return to Leads
+              Return to Customers
             </Link>
           </div>
         </div>
@@ -2339,8 +2339,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <button
                       onClick={() => setShowLeadInfo(!showLeadInfo)}
                       className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
-                      title="Lead information"
-                      aria-label="Lead information"
+                      title="Customer information"
+                      aria-label="Customer information"
                     >
                       <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -2459,7 +2459,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                               </svg>
-                              Restore Lead
+                              Restore Customer
                             </button>
                           )}
                           <div className="border-t border-slate-200 dark:border-slate-700 my-1" />
@@ -2486,7 +2486,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
-                            Delete Lead
+                            Delete Customer
                           </button>
                         </div>
                       </>
@@ -2511,6 +2511,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
                       <span>AI</span>
+                    </div>
+                  )}
+                  {source && (
+                    <div className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-blue-700 font-medium ring-1 ring-blue-200/70 dark:bg-blue-950/30 dark:text-blue-300 dark:ring-blue-900/70">
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                      <span className="capitalize">{source}</span>
                     </div>
                   )}
                 </div>
@@ -2615,7 +2623,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                               </svg>
-                              Restore Lead
+                              Restore Customer
                             </button>
                           )}
                           <button
@@ -2628,7 +2636,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
-                            Delete Lead
+                            Delete Customer
                           </button>
                         </div>
                       </>
@@ -2643,6 +2651,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <span>Last Activity {formatRelativeTime(lead.last_message_at)}</span>
                   )}
                   <span>{messagesArray.length} Messages</span>
+                  {source && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-medium ring-1 ring-blue-200/70 dark:bg-blue-950/30 dark:text-blue-300 dark:ring-blue-900/70">
+                      <span className="capitalize">{source}</span>
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -2767,9 +2780,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <VoicemailSummary leadData={leadData} />
                   )}
 
-                  {/* Lead Health - Simplified */}
+                  {/* Customer Health - Simplified */}
                   <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-3">Lead Health</h3>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-3">Customer Health</h3>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-slate-600 dark:text-slate-400">AI Intake</span>
@@ -2903,7 +2916,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <h3 className="text-base font-semibold text-foreground">Lead Overview</h3>
+                  <h3 className="text-base font-semibold text-foreground">Customer Overview</h3>
                   <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.aiIntake ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
@@ -2983,7 +2996,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           ) : (
             <div className="bg-card/95 border border-border/70 rounded-2xl p-4 shadow-sm ring-1 ring-white/5">
               <div className="flex items-center justify-between mb-1.5">
-                <h3 className="text-sm font-medium text-foreground">Lead Overview</h3>
+                <h3 className="text-sm font-medium text-foreground">Customer Overview</h3>
                 {(followUpSettings?.enabled || (followUpJobs && followUpJobs.length > 0)) && (
                   <button
                     onClick={() => router.push('/dashboard/settings/follow-ups')}
@@ -3168,7 +3181,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             {/* Header */}
             <div className="px-4 pb-4 border-b border-slate-200 dark:border-slate-700">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Lead Details</h3>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Customer Details</h3>
                 <button
                   onClick={() => setShowLeadInfo(false)}
                   className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
@@ -3275,10 +3288,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              Lead Information
+              Customer Information
             </h3>
             
-            {/* Lead Information */}
+            {/* Customer Information */}
             <div className="space-y-4">
               {/* Contact Information */}
               <div className="space-y-3">
@@ -3383,7 +3396,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               Ignore this contact?
             </h2>
             <p className="text-sm text-muted-foreground mb-6">
-              ReplyFlow will stop creating leads, sending automatic messages, and scheduling follow-ups for this number.
+              ReplyFlow will stop creating customers, sending automatic messages, and scheduling follow-ups for this number.
             </p>
             <div className="flex gap-3 justify-end">
               <button
@@ -3411,15 +3424,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
       )}
 
-      {/* Remove Lead Modal */}
+      {/* Remove Customer Modal */}
       {showRemoveModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-card rounded-xl shadow-xl max-w-md w-full p-6">
             <h2 className="text-lg font-semibold text-foreground mb-4">
-              Remove this lead?
+              Remove this customer?
             </h2>
             <p className="text-sm text-muted-foreground mb-6">
-              This will permanently remove this lead and all associated messages. This action cannot be undone.
+              This will permanently remove this customer and all associated messages. This action cannot be undone.
             </p>
             <div className="flex gap-3 justify-end">
               <button
@@ -3429,7 +3442,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 Cancel
               </button>
               <button
-                onClick={handleRemoveLead}
+                onClick={handleRemoveCustomer}
                 disabled={isRemoving}
                 className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50"
               >
@@ -3439,7 +3452,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     Removing...
                   </>
                 ) : (
-                  'Remove Lead'
+                  'Remove Customer'
                 )}
               </button>
             </div>
@@ -4030,11 +4043,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               Cancel
             </button>
             <button
-              onClick={handleDeleteLead}
+              onClick={handleDeleteCustomer}
               disabled={isDeleting}
               className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isDeleting ? 'Deleting...' : 'Delete Lead'}
+              {isDeleting ? 'Deleting...' : 'Delete Customer'}
             </button>
           </div>
         </div>

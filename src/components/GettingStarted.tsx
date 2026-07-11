@@ -587,7 +587,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       {
         id: 'forwarding',
         title: 'Connect your business line',
-        description: 'Customers still call your normal business number. Missed calls are automatically forwarded to ReplyFlow so you never lose the lead.',
+        description: 'Customers still call your normal business number. Missed calls are automatically forwarded to ReplyFlow so you never lose the customer.',
         status: forwardingActionNeeded ? 'action-needed' : (step2Complete ? 'complete' : 'needs-action'),
         details: step2Complete
           ? `Verified • Carrier: ${business?.business_phone_carrier || 'Not set'} • ReplyFlow: ${business?.twilio_phone_number ? formatPhoneNumber(business.twilio_phone_number) : 'Loading...'}`
@@ -682,7 +682,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   const complete = isFullyComplete
   const isOnTestStep = currentOnboardingState === 'testing_needed'
 
-  // Hide the entire onboarding card if onboarding is complete or if the business has captured at least one lead
+  // Hide the entire onboarding card if onboarding is complete or if the business has captured at least one customer
   if (isOnboardingComplete || missedCallCount > 0) {
     return null
   }
@@ -1307,7 +1307,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                 ? 'ReplyFlow is ready to use!'
                 : incompleteItems.some(item => item.status === 'action-needed')
                   ? 'Action needed to complete setup'
-                  : 'Complete setup to start capturing missed calls'
+                  : 'Complete setup to start capturing customers'
               }
             </p>
           </div>

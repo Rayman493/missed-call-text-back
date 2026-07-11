@@ -713,7 +713,7 @@ export default function LeadsPage() {
       <BusinessGuard>
         <div className="min-h-screen bg-[#f8fafc] dark:bg-background flex flex-col relative">
             {/* App Header */}
-            <AppHeader title="Leads" />
+            <AppHeader title="Customers" />
 
           {/* Main Content */}
           <main className="flex-1 pt-4 lg:pt-8 px-4 lg:px-6 pb-6 md:pb-6 relative z-10 overflow-y-auto" style={{ paddingBottom: 'max(8rem+32px, env(safe-area-inset-bottom))' }}>
@@ -739,7 +739,7 @@ export default function LeadsPage() {
                   {/* Lifecycle Summary Cards Preview */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2">
                     <div className="bg-card border border-slate-200 dark:border-border rounded-lg shadow-sm p-1 sm:p-1.5">
-                      <p className="text-[9px] sm:text-[10px] font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-0.5">New Leads</p>
+                      <p className="text-[9px] sm:text-[10px] font-semibold text-slate-600 dark:text-muted-foreground/70 uppercase tracking-wide mb-0.5">New Customers</p>
                       <p className="text-base sm:text-lg font-extrabold text-blue-600 dark:text-blue-400 tracking-tight">—</p>
                     </div>
                     <div className="bg-card border border-slate-200 dark:border-border rounded-lg shadow-sm p-1 sm:p-1.5">
@@ -760,10 +760,10 @@ export default function LeadsPage() {
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-4">
                     <div>
                       <h2 className="text-xl sm:text-2xl sm:text-3xl font-bold text-foreground">
-                        Customer Leads
+                        Customers
                       </h2>
                       <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
-                        No Active Leads
+                        No Active Customers
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -866,9 +866,9 @@ export default function LeadsPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                       </svg>
                     </div>
-                    <p className="text-white font-medium mb-4">Unlock your leads inbox</p>
+                    <p className="text-white font-medium mb-4">Unlock your customers inbox</p>
                     <p className="text-white/80 text-sm mb-6 max-w-md mx-auto">
-                      Start your trial to begin capturing missed-call leads automatically
+                      Start your trial to begin capturing missed-call customers automatically
                     </p>
                     <button
                       onClick={handleStartSubscription}
@@ -898,7 +898,7 @@ export default function LeadsPage() {
                   <>
                     <StatCard
                       value={leadStatusCounts.new}
-                      label="New Leads"
+                      label="New Customers"
                       description={
                         leadStatusCounts.new === 0
                           ? 'Awaiting Contact'
@@ -910,11 +910,11 @@ export default function LeadsPage() {
                     />
                     <StatCard
                       value={leadStatusCounts.active}
-                      label="Active Leads"
+                      label="Active Customers"
                       description={
                         leadStatusCounts.active === 0
                           ? 'No active leads'
-                          : 'Leads being worked on'
+                          : 'Customers being worked on'
                       }
                       icon="💬"
                       iconColor="green"
@@ -922,7 +922,7 @@ export default function LeadsPage() {
                     />
                     <StatCard
                       value={leadStatusCounts.completed}
-                      label="Completed Leads"
+                      label="Completed Customers"
                       description={
                         leadStatusCounts.completed === 0
                           ? 'No completed leads yet'
@@ -949,26 +949,26 @@ export default function LeadsPage() {
               })()}
             </div>
 
-            {/* Leads Header - Simplified */}
+            {/* Customers Header - Simplified */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-3">
               <div>
                 <h2 className="text-xl sm:text-2xl font-semibold text-foreground tracking-tight">
-                  Customer Leads
+                  Customers
                 </h2>
                 <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
                   {statusFilter === 'all'
-                    ? `${leads.filter(l => !l.deleted_at).length} ${leads.filter(l => !l.deleted_at).length === 1 ? 'lead' : 'leads'} total`
-                    : `${leads.filter(l => getLeadLifecycleStatus(l) === statusFilter && (String(statusFilter) === 'deleted' ? l.deleted_at : !l.deleted_at)).length} ${statusFilter} ${leads.filter(l => getLeadLifecycleStatus(l) === statusFilter && (String(statusFilter) === 'deleted' ? l.deleted_at : !l.deleted_at)).length === 1 ? 'lead' : 'leads'}`
+                    ? `${leads.filter(l => !l.deleted_at).length} ${leads.filter(l => !l.deleted_at).length === 1 ? 'customer' : 'customers'} total`
+                    : `${leads.filter(l => getLeadLifecycleStatus(l) === statusFilter && (String(statusFilter) === 'deleted' ? l.deleted_at : !l.deleted_at)).length} ${statusFilter} ${leads.filter(l => getLeadLifecycleStatus(l) === statusFilter && (String(statusFilter) === 'deleted' ? l.deleted_at : !l.deleted_at)).length === 1 ? 'customer' : 'customers'}`
                   }
                 </p>
                 {statusFilter === 'ignored' && (
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Ignored leads are hidden from your main list and can be restored for up to 30 days.
+                    Ignored customers are hidden from your main list and can be restored for up to 30 days.
                   </p>
                 )}
                 {statusFilter === 'deleted' && (
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Deleted leads are hidden from your main list and can be restored for up to 30 days.
+                    Deleted customers are hidden from your main list and can be restored for up to 30 days.
                   </p>
                 )}
               </div>
@@ -1074,7 +1074,7 @@ export default function LeadsPage() {
                 <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-900/30 mb-4">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                 </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">Loading leads</h3>
+                <h3 className="text-lg font-semibold text-foreground mb-2">Loading customers</h3>
                 <p className="text-muted-foreground text-sm">Please wait while we fetch your conversation history...</p>
               </div>
             )}
@@ -1101,7 +1101,7 @@ export default function LeadsPage() {
                           </svg>
                         </div>
                         <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-3">
-                          No active leads
+                          No active customers
                         </h3>
                         <div className="text-muted-foreground mb-4 sm:mb-6 max-w-md mx-auto text-sm sm:text-base">
                           <p>Activate your free trial to begin setting up ReplyFlow and start capturing missed calls automatically.</p>
@@ -1121,7 +1121,7 @@ export default function LeadsPage() {
                           </svg>
                         </div>
                         <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-3">
-                          No active leads
+                          No active customers
                         </h3>
                         <div className="text-muted-foreground mb-4 sm:mb-6 max-w-md mx-auto text-sm sm:text-base">
                           <p>Complete your final missed-call test to activate live monitoring and begin capturing customer conversations automatically.</p>
@@ -1177,19 +1177,19 @@ export default function LeadsPage() {
                               <div className="w-10 h-10 sm:w-14 sm:h-14 bg-green-100 dark:bg-green-900/30 rounded-2xl flex items-center justify-center mx-auto mb-1 sm:mb-2">
                                 <span className="text-lg sm:text-2xl">👤</span>
                               </div>
-                              <p className="text-[10px] sm:text-sm font-medium text-slate-900 dark:text-foreground">Lead Created</p>
+                              <p className="text-[10px] sm:text-sm font-medium text-slate-900 dark:text-foreground">Customer Created</p>
                             </div>
                           </div>
                         </div>
 
                         {/* Header */}
                         <h3 className="text-xl sm:text-3xl font-bold text-slate-900 dark:text-foreground mb-1.5 sm:mb-3">
-                          No Leads Yet
+                          No Customers Yet
                         </h3>
 
                         {/* Description */}
                         <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-base mb-2 sm:mb-8 max-w-md mx-auto">
-                          When someone misses a call to your business number, ReplyFlow will automatically create a lead here.
+                          When someone misses a call to your business number, ReplyFlow will automatically create a customer here.
                         </p>
 
                         {/* Secondary text */}
@@ -1223,7 +1223,7 @@ export default function LeadsPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">Unable to load leads</h3>
+                <h3 className="text-lg font-semibold text-foreground mb-2">Unable to load customers</h3>
                 <div className="text-red-600 dark:text-red-400 mb-6 max-w-md mx-auto">{error}</div>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <button
@@ -1265,9 +1265,9 @@ export default function LeadsPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                         </svg>
                       </div>
-                      <h3 className="text-lg font-semibold text-foreground mb-2">No {statusFilter} leads</h3>
+                      <h3 className="text-lg font-semibold text-foreground mb-2">No {statusFilter} customers</h3>
                       <p className="text-muted-foreground text-sm mb-4">
-                        Try changing the status filter to see other leads
+                        Try changing the status filter to see other customers
                       </p>
                     </div>
                   )
@@ -1295,9 +1295,9 @@ export default function LeadsPage() {
                   return (
                     <div className="flex flex-col items-center">
                       <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
-                        {statusFilter === 'all' 
-                          ? `${filteredLeads.length} ${filteredLeads.length === 1 ? 'lead' : 'leads'}`
-                          : `${filteredLeads.length} ${statusFilter} ${filteredLeads.length === 1 ? 'lead' : 'leads'}`
+                        {statusFilter === 'all'
+                          ? `${filteredLeads.length} ${filteredLeads.length === 1 ? 'customer' : 'customers'}`
+                          : `${filteredLeads.length} ${statusFilter} ${filteredLeads.length === 1 ? 'customer' : 'customers'}`
                         }
                       </p>
                       <div
@@ -1465,7 +1465,7 @@ export default function LeadsPage() {
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                         </svg>
-                                        Restore Lead
+                                        Restore Customer
                                       </button>
                                     )}
                                     {!lead.deleted_at && getLeadLifecycleStatus(lead) !== 'ignored' && (
@@ -1497,7 +1497,7 @@ export default function LeadsPage() {
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                         </svg>
-                                        Restore Lead
+                                        Restore Customer
                                       </button>
                                     )}
                                     {!lead.deleted_at && (
@@ -1514,7 +1514,7 @@ export default function LeadsPage() {
                                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                           </svg>
-                                          Delete Lead
+                                          Delete Customer
                                         </button>
                                       </>
                                     )}
@@ -1717,7 +1717,7 @@ export default function LeadsPage() {
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                             </svg>
-                                            Restore Lead
+                                            Restore Customer
                                           </button>
                                         )}
                                         {!lead.deleted_at && getLeadLifecycleStatus(lead) !== 'ignored' && (
@@ -1749,7 +1749,7 @@ export default function LeadsPage() {
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                             </svg>
-                                            Restore Lead
+                                            Restore Customer
                                           </button>
                                         )}
                                         {!lead.deleted_at && (
@@ -1766,7 +1766,7 @@ export default function LeadsPage() {
                                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                               </svg>
-                                              Delete Lead
+                                              Delete Customer
                                             </button>
                                           </>
                                         )}
@@ -1801,10 +1801,10 @@ export default function LeadsPage() {
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
         <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-700">
           <h3 className="text-lg font-semibold text-white mb-2">
-            Delete Lead?
+            Delete Customer?
           </h3>
           <p className="text-sm text-gray-400 mb-6">
-            This will move the lead to Deleted. Nothing will be permanently removed and you can restore this lead at any time.
+            This will move the customer to Deleted. Nothing will be permanently removed and you can restore this customer at any time.
           </p>
           <div className="flex gap-3 justify-end">
             <button
@@ -1820,7 +1820,7 @@ export default function LeadsPage() {
               onClick={handleDeleteLead}
               className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
             >
-              Delete Lead
+              Delete Customer
             </button>
           </div>
         </div>

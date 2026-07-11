@@ -26,7 +26,7 @@ export const primaryNavItems: NavItem[] = [
   },
   {
     href: '/dashboard/leads',
-    label: 'Leads',
+    label: 'Customers',
     icon: Users,
     isActive: (pathname) => pathname === '/dashboard/leads' || pathname?.startsWith('/dashboard/leads/'),
   },
