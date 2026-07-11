@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { isAdmin } from '@/lib/admin'
+import { LeadService } from '@/lib/services/LeadService'
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden - Business access denied' }, { status: 403 })
     }
 
-    // Create test lead
+    // Create test lead using LeadService
     const testPhoneNumber = `+1555${Math.floor(1000000 + Math.random() * 9000000)}`
     const testContactName = `Test Lead ${new Date().toLocaleTimeString()}`
 
@@ -65,28 +66,21 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString()
     })
 
-    const { data: lead, error: leadError } = await supabase
-      .from('leads')
-      .insert({
-        business_id: businessId,
-        caller_phone: testPhoneNumber,
-        status: 'new',
-        first_contact_at: new Date().toISOString(),
-        last_message_at: new Date().toISOString(),
-        opted_out: false,
-        is_demo: true, // Mark as demo/test lead
-        raw_metadata: {
-          source: 'admin_test',
-          extracted_info: {
-            callerName: testContactName
-          }
+    const lead = await LeadService.createLead({
+      business_id: businessId,
+      caller_phone: testPhoneNumber,
+      status: 'new',
+      source: 'admin_test',
+      raw_metadata: {
+        source: 'admin_test',
+        extracted_info: {
+          callerName: testContactName
         }
-      })
-      .select()
-      .single()
+      }
+    })
 
-    if (leadError || !lead) {
-      console.error('[Admin Test Lead] Error creating lead:', leadError)
+    if (!lead) {
+      console.error('[Admin Test Lead] Error creating lead via LeadService')
       return NextResponse.json({ error: 'Failed to create test lead' }, { status: 500 })
     }
 

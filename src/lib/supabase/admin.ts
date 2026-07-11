@@ -1,6 +1,7 @@
 import 'server-only'
 import { createClient } from '@supabase/supabase-js'
 import { Business, Lead, Message, CallEvent, Conversation, LeadWithMessages } from '../types'
+import { LeadService } from '@/lib/services/LeadService'
 
 // Helper function to validate environment variables (server-side only)
 function getRequiredEnvVar(name: string): string {
@@ -1312,57 +1313,18 @@ export const db = {
       return { leadId: aiCallRecord.lead_id, conversationId: aiCallRecord.conversation_id, isNew: false }
     }
     
-    // Step 3: Lookup existing lead by business_id + caller_phone (for repeat callers)
-    console.log('[CALL INTAKE] Looking up existing lead by business_id + caller_phone')
-    const { data: existingLead } = await supabaseAdmin
-      .from('leads')
-      .select('id, status, last_message_at, last_reply_at, first_contact_at, created_at')
-      .eq('business_id', params.businessId)
-      .eq('caller_phone', normalizedPhone)
-      .maybeSingle()
-
-    let leadId: string | null = null
-    let isNewLead = false
-
-    if (existingLead) {
-      // Check if the lead is recent (within 24 hours) for recent-caller reuse
-      const isRecent = this.isRecentLead(existingLead as Lead)
-      const hoursSinceCreation = (Date.now() - new Date(existingLead.created_at).getTime()) / (1000 * 60 * 60)
-
-      console.log('[RECENT CALLER]', {
-        existingLeadFound: true,
-        leadId: existingLead.id,
-        leadAgeHours: Math.round(hoursSinceCreation * 10) / 10,
-        isRecent,
-        decision: isRecent ? 'REUSE' : 'CREATE_NEW'
-      })
-
-      if (isRecent) {
-        console.log('[RECENT CALLER] Reusing existing lead for recent caller:', existingLead.id)
-        leadId = existingLead.id
-        isNewLead = false
-      } else {
-        console.log('[RECENT CALLER] Creating new lead (existing lead is older than 24 hours)')
-        isNewLead = true
-      }
-    } else {
-      console.log('[RECENT CALLER]', {
-        existingLeadFound: false,
-        decision: 'CREATE_NEW'
-      })
-      isNewLead = true
-    }
-
-    // Step 4: Create new lead if needed (first-time caller or lead older than 24 hours)
-    if (isNewLead) {
-      // DEFENSIVE GUARD: Only create lead if call event exists (prevents phantom leads from status callbacks)
+    // Step 3: Use LeadService to find or create lead (canonical lead creation)
+    console.log('[CALL INTAKE] Using LeadService to find or create lead')
+    
+    // DEFENSIVE GUARD: Only create lead if call event exists (prevents phantom leads from status callbacks)
+    if (params.requireValidCall !== false) {
       const { data: callEventForValidation } = await supabaseAdmin
         .from('call_events')
         .select('id, call_status')
         .eq('twilio_call_sid', params.callSid)
         .maybeSingle()
 
-      if (!callEventForValidation && params.requireValidCall !== false) {
+      if (!callEventForValidation) {
         console.error('[CALL INTAKE] Refusing to create lead - no call event found for CallSid:', params.callSid)
         console.error('[PHANTOM LEAD PREVENTED]', {
           callSid: params.callSid,
@@ -1372,30 +1334,31 @@ export const db = {
         })
         return { leadId: null, conversationId: null, isNew: false }
       }
-
-      console.log('[CALL INTAKE] Creating new lead')
-      const newLead = await this.createLead({
-        business_id: params.businessId,
-        caller_phone: normalizedPhone,
-        status: 'new',
-        raw_metadata: { source: 'call_intake', callSid: params.callSid }
-      }, params.callSid)
-
-      if (!newLead) {
-        console.error('[CALL INTAKE] Failed to create lead')
-        return { leadId: null, conversationId: null, isNew: false }
-      }
-
-      console.log('[LEAD CREATED]', {
-        leadId: newLead.id,
-        businessId: params.businessId,
-        callerPhone: normalizedPhone,
-        callSid: params.callSid,
-        source: 'call_intake',
-        timestamp: new Date().toISOString()
-      })
-      leadId = newLead.id
     }
+
+    const leadResult = await LeadService.findOrCreateLead({
+      business_id: params.businessId,
+      caller_phone: params.callerPhone,
+      status: 'new',
+      source: 'call_intake',
+      raw_metadata: { callSid: params.callSid },
+      callSid: params.callSid,
+      reuseRecentHours: 24 // Reuse leads within 24 hours
+    })
+
+    if (!leadResult.lead) {
+      console.error('[CALL INTAKE] Failed to find or create lead via LeadService')
+      return { leadId: null, conversationId: null, isNew: false }
+    }
+
+    const leadId = leadResult.lead.id
+    const isNewLead = leadResult.isNew
+
+    console.log('[CALL INTAKE] Lead handled via LeadService:', {
+      leadId,
+      isNew: isNewLead,
+      callerPhone: normalizedPhone
+    })
     
     // Step 5: Find or create conversation for this lead using shared helper
     if (!leadId) {

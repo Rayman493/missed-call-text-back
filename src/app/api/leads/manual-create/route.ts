@@ -4,6 +4,7 @@ import { normalizePhoneNumberForStorage } from '@/lib/supabase/admin'
 import { timelineEvents } from '@/lib/event-timeline'
 import { notificationServiceServer } from '@/lib/notifications-server'
 import { createFollowUpJobs } from '@/lib/follow-ups'
+import { LeadService } from '@/lib/services/LeadService'
 
 export async function POST(request: NextRequest) {
   try {
@@ -44,13 +45,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check for existing lead by phone number
-    const { data: existingLead } = await supabaseAdmin
-      .from('leads')
-      .select('id, status')
-      .eq('business_id', businessId)
-      .eq('caller_phone', normalizedPhone)
-      .maybeSingle()
+    // Check for existing lead by phone number using LeadService
+    const existingLead = await LeadService.findLead({
+      business_id: businessId,
+      caller_phone: normalizedPhone
+    })
 
     let leadId: string | null = null
     let isNewLead = false
@@ -70,30 +69,27 @@ export async function POST(request: NextRequest) {
     }
 
     if (isNewLead || !existingLead) {
-      // Create new lead with manual intake data
-      const { data: newLead, error: leadError } = await supabaseAdmin
-        .from('leads')
-        .insert({
-          business_id: businessId,
-          caller_phone: normalizedPhone,
-          status: 'new',
-          raw_metadata: {
-            source: 'manual_entry',
-            extracted_info: {
-              callerName: customerName || null,
-              reasonForCalling: serviceRequested || null,
-              addressOrLocation: address || null,
-              desiredCompletionTime: desiredCompletion || null,
-              preferredCallbackTime: callbackTime || null,
-              importantDetails: notes || null
-            }
+      // Create new lead with manual intake data using LeadService
+      const newLead = await LeadService.createLead({
+        business_id: businessId,
+        caller_phone: normalizedPhone,
+        status: 'new',
+        source: 'manual_entry',
+        raw_metadata: {
+          source: 'manual_entry',
+          extracted_info: {
+            callerName: customerName || null,
+            reasonForCalling: serviceRequested || null,
+            addressOrLocation: address || null,
+            desiredCompletionTime: desiredCompletion || null,
+            preferredCallbackTime: callbackTime || null,
+            importantDetails: notes || null
           }
-        })
-        .select()
-        .single()
+        }
+      })
 
-      if (leadError || !newLead) {
-        console.error('[MANUAL CUSTOMER ENTRY] Failed to create lead:', leadError)
+      if (!newLead) {
+        console.error('[MANUAL CUSTOMER ENTRY] Failed to create lead via LeadService')
         return NextResponse.json(
           { error: 'Failed to create lead' },
           { status: 500 }
@@ -101,16 +97,10 @@ export async function POST(request: NextRequest) {
       }
 
       leadId = newLead.id
-      console.log('[MANUAL CUSTOMER ENTRY] Lead created:', leadId)
+      console.log('[MANUAL CUSTOMER ENTRY] Lead created via LeadService:', leadId)
     } else {
-      // Update existing lead with new manual intake data
-      const { data: currentLead } = await supabaseAdmin
-        .from('leads')
-        .select('raw_metadata')
-        .eq('id', leadId)
-        .single()
-
-      const existingMetadata = currentLead?.raw_metadata || {}
+      // Update existing lead with new manual intake data using LeadService
+      const existingMetadata = existingLead.raw_metadata || {}
       const existingExtractedInfo = existingMetadata.extracted_info || {}
 
       // Merge new manual data with existing data (new data takes precedence)
@@ -124,27 +114,35 @@ export async function POST(request: NextRequest) {
         importantDetails: notes || existingExtractedInfo.importantDetails
       }
 
-      const { error: updateError } = await supabaseAdmin
-        .from('leads')
-        .update({
+      if (!leadId) {
+        console.error('[MANUAL CUSTOMER ENTRY] No lead_id available for update')
+        return NextResponse.json(
+          { error: 'No lead_id available for update' },
+          { status: 500 }
+        )
+      }
+
+      const updatedLead = await LeadService.updateLead({
+        lead_id: leadId,
+        updates: {
           raw_metadata: {
             ...existingMetadata,
             extracted_info: mergedExtractedInfo,
             manual_entry_updated: true,
             manual_entry_updated_at: new Date().toISOString()
           }
-        })
-        .eq('id', leadId)
+        }
+      })
 
-      if (updateError) {
-        console.error('[MANUAL CUSTOMER ENTRY] Failed to update lead:', updateError)
+      if (!updatedLead) {
+        console.error('[MANUAL CUSTOMER ENTRY] Failed to update lead via LeadService')
         return NextResponse.json(
           { error: 'Failed to update lead' },
           { status: 500 }
         )
       }
 
-      console.log('[MANUAL CUSTOMER ENTRY] Lead updated:', leadId)
+      console.log('[MANUAL CUSTOMER ENTRY] Lead updated via LeadService:', leadId)
     }
 
     // Get or create conversation using shared helper with canonical selection

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from '@supabase/supabase-js';
 import { db } from '@/lib/supabase/admin';
+import { LeadService } from '@/lib/services/LeadService';
 
 export async function GET(request: NextRequest) {
   console.log('[API LEADS GET] ========== ROUTE ENTERED ==========')
@@ -224,26 +225,17 @@ export async function POST(request: NextRequest) {
     
     console.log('[API LEADS POST] Normalized phone to E.164:', normalizedPhone)
 
-    // Check if lead already exists for this business and caller_phone
+    // Check if lead already exists for this business and caller_phone using LeadService
     console.log('[API LEADS POST] Looking for existing lead with business_id:', business.id, 'caller_phone:', normalizedPhone)
-    let existingLead, leadError
+    let existingLead
     try {
-      const result = await supabase
-        .from('leads')
-        .select('*')
-        .eq('business_id', business.id)
-        .eq('caller_phone', normalizedPhone)
-        .maybeSingle();
-      existingLead = result.data
-      leadError = result.error
+      existingLead = await LeadService.findLead({
+        business_id: business.id,
+        caller_phone: normalizedPhone
+      })
     } catch (e) {
       console.log('[API LEADS POST] Exception during lead lookup:', e)
       return NextResponse.json({ error: 'Database error during lead lookup', details: String(e) }, { status: 500 });
-    }
-
-    if (leadError) {
-      console.log('[API LEADS POST] Lead lookup error:', leadError)
-      return NextResponse.json({ error: 'Database error during lead lookup', details: leadError.message }, { status: 500 });
     }
 
     console.log('[API LEADS POST] Existing lead lookup result:', existingLead ? 'Found' : 'Not found')
@@ -270,38 +262,32 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Database error during conversation handling', details: String(error) }, { status: 500 });
       }
     } else {
-      // Create new lead
-      const leadPayload = {
-        business_id: business.id,
-        caller_phone: normalizedPhone,
-        status: 'new',
-        raw_metadata: name ? {
-          customerName: name,
-          callerName: name,
-          source: 'manual_payment_request'
-        } : {
-          source: 'manual_payment_request'
-        }
-      }
-      console.log('[API LEADS POST] Creating lead with payload:', leadPayload)
+      // Create new lead using LeadService
+      console.log('[API LEADS POST] Creating lead via LeadService')
       
-      let newLead, createError
+      let newLead
       try {
-        const result = await supabase
-          .from('leads')
-          .insert(leadPayload)
-          .select()
-          .single();
-        newLead = result.data
-        createError = result.error
+        newLead = await LeadService.createLead({
+          business_id: business.id,
+          caller_phone: normalizedPhone,
+          status: 'new',
+          source: 'manual_payment_request',
+          raw_metadata: name ? {
+            customerName: name,
+            callerName: name,
+            source: 'manual_payment_request'
+          } : {
+            source: 'manual_payment_request'
+          }
+        })
       } catch (e) {
         console.log('[API LEADS POST] Exception during lead creation:', e)
         return NextResponse.json({ error: 'Database error during lead creation', details: String(e) }, { status: 500 });
       }
 
-      if (createError) {
-        console.log('[API LEADS POST] Lead creation error:', createError)
-        return NextResponse.json({ error: 'Failed to create lead', details: createError.message }, { status: 500 });
+      if (!newLead) {
+        console.log('[API LEADS POST] Lead creation failed')
+        return NextResponse.json({ error: 'Failed to create lead' }, { status: 500 });
       }
 
       console.log('[API LEADS POST] Lead created:', newLead.id)

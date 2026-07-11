@@ -9,6 +9,7 @@ import { detectCorrection, applyCorrection, generateCorrectionNote, generateMult
 import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 import { extractFromSmsBody, safeMergeSmsExtraction } from '@/lib/voicemail-extraction'
 import { promoteLeadToActiveIfNew } from '@/lib/lead-lifecycle'
+import { LeadService } from '@/lib/services/LeadService'
 
 /**
  * Strip trailing punctuation from name fields only
@@ -353,7 +354,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     }
     
     // Create new lead with status 'contacted' since customer replied
-    console.log(`[SMS Processing] No existing lead, creating new lead`)
+    console.log(`[SMS Processing] No existing lead, creating new lead via LeadService`)
     
     // DEFENSIVE GUARD: Log lead creation attempt with full context
     console.log('[LEAD CREATION ATTEMPT]', {
@@ -366,10 +367,11 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       timestamp: new Date().toISOString()
     })
     
-    lead = await db.createLead({
+    lead = await LeadService.createLead({
       business_id: business.id,
       caller_phone: normalizedCustomerPhone,
       status: 'contacted', // Customer replied, so mark as contacted
+      source: 'sms',
       raw_metadata: { source: 'sms' },
     })
     
