@@ -36,7 +36,9 @@ export default function PersonalVoicemailPage() {
   const fetchVoicemails = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/personal-voicemails')
+      const response = await fetch('/api/personal-voicemails', {
+        credentials: 'include',
+      })
       const data = await response.json()
       
       if (!response.ok) {
@@ -68,6 +70,7 @@ export default function PersonalVoicemailPage() {
       const response = await fetch(`/api/personal-voicemails/${voicemail.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ listened: true }),
       })
       
@@ -91,6 +94,7 @@ export default function PersonalVoicemailPage() {
     try {
       const response = await fetch(`/api/personal-voicemails/${voicemail.id}`, {
         method: 'DELETE',
+        credentials: 'include',
       })
       
       if (response.ok) {
