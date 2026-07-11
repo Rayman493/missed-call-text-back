@@ -13,6 +13,19 @@ if (!OPENAI_API_KEY) {
   process.exit(1);
 }
 
+// ========================================
+// AUDIO RESAMPLER CONFIGURATION
+// ========================================
+// Change this value to tune anti-alias cutoff
+// Lower values = more high-frequency attenuation (softer S sounds)
+// Higher values = more high-frequency preservation (sharper S sounds)
+// Valid range: 0.5 to 1.0 (normalized to target Nyquist)
+// ========================================
+const RESAMPLER_CUTOFF = 0.90;
+
+// Generation version - update when changing cutoff
+const CACHED_AUDIO_GENERATION_VERSION = "resampler-v3-090";
+
 const prompts = {
   ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
   ask_details: "Got it. Can you share any important details the business should know?",
@@ -54,7 +67,7 @@ function windowedSincResample(samples: Float32Array, fromRate: number, toRate: n
 
   // Windowed-sinc filter parameters
   const kernelSize = 16; // Number of samples on each side
-  const cutoff = 0.9; // Cutoff frequency (normalized, < 1.0 to prevent aliasing)
+  const cutoff = RESAMPLER_CUTOFF; // Use canonical constant
   
   // Pre-compute sinc kernel
   const kernel = new Float32Array(kernelSize * 2 + 1);
@@ -67,6 +80,15 @@ function windowedSincResample(samples: Float32Array, fromRate: number, toRate: n
     }
     // Apply Hamming window
     kernel[i + kernelSize] *= 0.54 + 0.46 * Math.cos(Math.PI * i / kernelSize);
+  }
+
+  // Normalize kernel to preserve DC gain (sum of coefficients = 1.0)
+  let kernelSum = 0;
+  for (let i = 0; i < kernel.length; i++) {
+    kernelSum += kernel[i];
+  }
+  for (let i = 0; i < kernel.length; i++) {
+    kernel[i] /= kernelSum;
   }
 
   // Resample using windowed-sinc interpolation
@@ -125,10 +147,12 @@ async function generateCachedAudio() {
   }
   
   const output = `// Cached PCMU audio for Simple Mode prompts
-// Generated with windowed-sinc resampler (v2)
+// Generated with windowed-sinc resampler
+// Cutoff: ${RESAMPLER_CUTOFF}
 // Generation date: ${new Date().toISOString()}
-export const CACHED_AUDIO_GENERATION_VERSION = "resampler-v2";
+export const CACHED_AUDIO_GENERATION_VERSION = "${CACHED_AUDIO_GENERATION_VERSION}";
 export const CACHED_AUDIO_GENERATED_AT = "${new Date().toISOString()}";
+export const RESAMPLER_CUTOFF = ${RESAMPLER_CUTOFF};
 
 export const cachedPromptAudio = {
 ${Object.entries(results).map(([key, value]) => `  ${key}: \`${value}\`,`).join('\n')}
