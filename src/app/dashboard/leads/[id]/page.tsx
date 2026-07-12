@@ -3426,9 +3426,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
         
         {/* Mobile Layout - Conversation-first: Header -> Conversation -> Collapsible Sections */}
-        <div className="lg:hidden flex flex-col h-[calc(100vh-1rem)] space-y-2 pb-[calc(6rem+env(safe-area-inset-bottom))]">
+        <div className="lg:hidden space-y-2 pb-[calc(6rem+env(safe-area-inset-bottom))]">
           {/* Minimal Header */}
-          <div className="flex items-center gap-3 px-2 py-2 flex-shrink-0">
+          <div className="flex items-center gap-3 px-2 py-2">
             <AppBackButton fallbackHref="/dashboard/leads" label="Back" />
             <div className="flex-1 min-w-0">
               <h1 className="text-lg font-semibold text-foreground tracking-tight mb-0.5 truncate">
@@ -3459,7 +3459,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Compact Status Pills */}
-          <div className="flex flex-wrap gap-1.5 px-2 flex-shrink-0">
+          <div className="flex flex-wrap gap-1.5 px-2">
             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-200 ${
               leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
                 ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-200/50 dark:border-green-800/30'
@@ -3500,7 +3500,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Conversation Section - Primary content, conversation-first */}
-          <div className="bg-card/95 border border-border/40 rounded-2xl lg:hidden flex flex-col overflow-hidden shadow-sm flex-1 min-h-0">
+          <div className="bg-card/95 border border-border/40 rounded-2xl lg:hidden flex flex-col overflow-hidden shadow-sm" style={{ minHeight: '420px', height: '60dvh', maxHeight: '680px' }}>
             {/* Mobile Message Thread - Scrollable viewport */}
             <div ref={mobileConversationContainerRef} className="flex-1 min-h-0 overflow-y-auto scroll-smooth overscroll-contain bg-slate-50/40 dark:bg-slate-950/20" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', scrollPaddingBottom: '5rem' }}>
               {/* Inner content wrapper for justify-end */}
