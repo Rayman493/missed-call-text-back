@@ -8,6 +8,8 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('[ADMIN METRICS] START')
+
     const cookieStore = cookies()
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -28,15 +30,69 @@ export async function GET(request: NextRequest) {
 
     const { data: { user }, error: userError } = await supabase.auth.getUser()
 
+    console.log('[ADMIN METRICS] Auth check', {
+      user,
+      userError,
+      userId: user?.id,
+      userEmail: user?.email
+    })
+
     if (userError || !user) {
+      console.log('[ADMIN METRICS] 401 Unauthorized')
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!isAdmin(user.id)) {
+    const isAdminResult = isAdmin(user.id)
+    console.log('[ADMIN METRICS] Admin check', {
+      userId: user.id,
+      isAdminResult,
+      ADMIN_USER_IDS: process.env.ADMIN_USER_IDS
+    })
+
+    if (!isAdminResult) {
+      console.log('[ADMIN METRICS] 403 Forbidden')
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
     }
 
-    console.log('[ADMIN METRICS] Fetching operational metrics')
+    console.log('[ADMIN METRICS] Admin verified, starting queries')
+
+    // DEBUG: First try a simple count query without filters
+    console.log('[ADMIN METRICS] DEBUG: Trying simple count query')
+    const { count: totalCount, error: countError } = await supabaseAdmin
+      .from('businesses')
+      .select('*', { count: 'exact', head: true })
+
+    console.log('[ADMIN METRICS] DEBUG: Total count result', {
+      totalCount,
+      countError,
+      countErrorCode: countError?.code,
+      countErrorMessage: countError?.message
+    })
+
+    // DEBUG: Try count without deleted_at filter
+    console.log('[ADMIN METRICS] DEBUG: Trying count without deleted_at filter')
+    const { count: countNoFilter, error: countNoFilterError } = await supabaseAdmin
+      .from('businesses')
+      .select('*', { count: 'exact', head: true })
+
+    console.log('[ADMIN METRICS] DEBUG: Count no filter result', {
+      countNoFilter,
+      countNoFilterError
+    })
+
+    // DEBUG: Try count with deleted_at IS NULL
+    console.log('[ADMIN METRICS] DEBUG: Trying count with deleted_at IS NULL')
+    const { count: countWithNull, error: countWithNullError } = await supabaseAdmin
+      .from('businesses')
+      .select('*', { count: 'exact', head: true })
+      .is('deleted_at', null)
+
+    console.log('[ADMIN METRICS] DEBUG: Count with NULL result', {
+      countWithNull,
+      countWithNullError,
+      countWithNullErrorCode: countWithNullError?.code,
+      countWithNullErrorMessage: countWithNullError?.message
+    })
 
     // Calculate date ranges
     const now = new Date()
@@ -44,7 +100,15 @@ export async function GET(request: NextRequest) {
     const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000)
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
 
+    console.log('[ADMIN METRICS] Date ranges', {
+      now: now.toISOString(),
+      sevenDaysFromNow: sevenDaysFromNow.toISOString(),
+      threeDaysFromNow: threeDaysFromNow.toISOString(),
+      twentyFourHoursAgo: twentyFourHoursAgo.toISOString()
+    })
+
     // Fetch all metrics in parallel
+    console.log('[ADMIN METRICS] Starting parallel queries')
     const [
       activeBusinessesResult,
       trialsExpiringSoonResult,
@@ -117,6 +181,49 @@ export async function GET(request: NextRequest) {
         .lt('created_at', twentyFourHoursAgo.toISOString())
     ])
 
+    console.log('[ADMIN METRICS] Query results', {
+      activeBusinesses: {
+        count: activeBusinessesResult.count,
+        error: activeBusinessesResult.error,
+        errorCode: activeBusinessesResult.error?.code
+      },
+      trialsExpiringSoon: {
+        count: trialsExpiringSoonResult.count,
+        error: trialsExpiringSoonResult.error,
+        errorCode: trialsExpiringSoonResult.error?.code
+      },
+      onboardingIssues: {
+        count: onboardingIssuesResult.count,
+        error: onboardingIssuesResult.error,
+        errorCode: onboardingIssuesResult.error?.code
+      },
+      provisioningFailures: {
+        count: provisioningFailuresResult.count,
+        error: provisioningFailuresResult.error,
+        errorCode: provisioningFailuresResult.error?.code
+      },
+      aiCallFailures: {
+        count: aiCallFailuresResult.count,
+        error: aiCallFailuresResult.error,
+        errorCode: aiCallFailuresResult.error?.code
+      },
+      smsFailures: {
+        count: smsFailuresResult.count,
+        error: smsFailuresResult.error,
+        errorCode: smsFailuresResult.error?.code
+      },
+      billingIssues: {
+        count: billingIssuesResult.count,
+        error: billingIssuesResult.error,
+        errorCode: billingIssuesResult.error?.code
+      },
+      personalVoicemailFailures: {
+        count: personalVoicemailFailuresResult.count,
+        error: personalVoicemailFailuresResult.error,
+        errorCode: personalVoicemailFailuresResult.error?.code
+      }
+    })
+
     const metrics = {
       activeBusinesses: activeBusinessesResult.count || 0,
       trialsExpiringSoon: {
@@ -156,7 +263,7 @@ export async function GET(request: NextRequest) {
       medium: (aiCallFailuresResult.count || 0) + (smsFailuresResult.count || 0)
     }
 
-    console.log('[ADMIN METRICS] Metrics fetched successfully', {
+    console.log('[ADMIN METRICS] Success', {
       activeBusinesses: metrics.activeBusinesses,
       needsAttention
     })

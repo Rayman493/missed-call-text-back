@@ -93,12 +93,12 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('[ADMIN SEARCH] Admin verified, starting database search')
-    
+
     // After admin is verified, use service role client for unrestricted database access
-    console.log('[ADMIN SEARCH QUERY]', {
+    console.log('[ADMIN SEARCH] DEBUG: Query params', {
       query,
       table: 'businesses',
-      searchFields: ['name', 'business_phone_number', 'twilio_phone_number', 'owner_email'],
+      searchFields: ['business_name', 'business_phone', 'twilio_phone_number'],
       searchPattern: `ilike.%${query}%`,
       limit: 20,
       client: 'service_role'
@@ -108,6 +108,19 @@ export async function GET(request: NextRequest) {
       console.log('[ADMIN SEARCH] Initializing businesses array')
       // Search businesses using service role client for full access
       let businesses: any[] = []
+
+      // DEBUG: Try simple query first without any filters
+      console.log('[ADMIN SEARCH] DEBUG: Trying simple count query')
+      const { count: searchTotalCount, error: searchCountError } = await supabaseAdmin
+        .from('businesses')
+        .select('*', { count: 'exact', head: true })
+
+      console.log('[ADMIN SEARCH] DEBUG: Count result', {
+        searchTotalCount,
+        searchCountError,
+        searchCountErrorCode: searchCountError?.code,
+        searchCountErrorMessage: searchCountError?.message
+      })
 
       console.log('[ADMIN SEARCH] Query 1: Searching businesses by name and phone fields')
       // 1. Search businesses by name and phone fields (only columns that exist in production)
@@ -160,14 +173,18 @@ export async function GET(request: NextRequest) {
         success: !businessError,
         count: businessesByNameOrPhone?.length || 0,
         error: businessError,
-        data: businessesByNameOrPhone
+        errorCode: businessError?.code,
+        errorMessage: businessError?.message,
+        errorDetails: businessError?.details,
+        sampleData: businessesByNameOrPhone?.slice(0, 2)
       })
 
       if (!businessError && businessesByNameOrPhone) {
         console.log('[ADMIN SEARCH] Adding name/phone results to businesses array')
         businesses = businessesByNameOrPhone
         console.log('[ADMIN SEARCH] Businesses array after name/phone search', {
-          count: businesses.length
+          count: businesses.length,
+          businesses: businesses.map(b => ({ id: b.id, name: b.business_name, phone: b.business_phone, deleted_at: b.deleted_at }))
         })
       }
 
