@@ -651,6 +651,7 @@ export default function SchedulePage() {
     <DashboardShell
       title="Schedule"
       contentClassName="flex-1 pt-3 sm:pt-4 lg:pt-8 px-3 sm:px-4 lg:px-5 pb-40 md:pb-8 relative z-10"
+      contentStyle={{ paddingBottom: 'max(80px, calc(80px + env(safe-area-inset-bottom)))' }}
       innerClassName=""
     >
               {/* Loading State */}

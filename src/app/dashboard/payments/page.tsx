@@ -361,6 +361,7 @@ export default function PaymentsPage() {
       title="Payments"
       maxWidthClassName="max-w-7xl mx-auto"
       contentClassName="flex-1 px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24 md:pb-8 relative z-10"
+      contentStyle={{ paddingBottom: 'max(80px, calc(80px + env(safe-area-inset-bottom)))' }}
       innerClassName="space-y-5 sm:space-y-6"
     >
         <PageHeader

@@ -17,6 +17,7 @@ interface DashboardShellProps {
   debugInfo?: any
   className?: string
   contentClassName?: string
+  contentStyle?: React.CSSProperties
   innerClassName?: string
   maxWidthClassName?: string
 }
@@ -28,13 +29,14 @@ function DashboardShellFrame({
   showBottomNavigation = true,
   className = '',
   contentClassName = 'flex-1 pt-3 sm:pt-4 lg:pt-8 px-3 sm:px-4 lg:px-6 pb-24 md:pb-8 relative z-10',
+  contentStyle,
   innerClassName = 'space-y-4 lg:space-y-6',
   maxWidthClassName = 'max-w-[1400px] mx-auto',
 }: Omit<DashboardShellProps, 'withGuards' | 'withErrorBoundary' | 'debugInfo'>) {
   return (
     <div className={`min-h-screen bg-background dark:bg-background flex flex-col relative overflow-x-hidden ${className}`}>
       <AppHeader title={title} showNavigation={showNavigation} />
-      <main className={contentClassName}>
+      <main className={contentClassName} style={contentStyle}>
         <div className={`${maxWidthClassName} ${innerClassName}`}>
           {children}
         </div>

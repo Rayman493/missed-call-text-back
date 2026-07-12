@@ -1020,9 +1020,9 @@ export default function DashboardContent() {
             {/* App Header */}
             <AppHeader showNavigation={true} />
 
-            {/* Main Content - Improved mobile spacing */}
-            <div className="flex-1 pt-3 sm:pt-4 lg:pt-8 px-3 sm:px-4 lg:px-6 pb-20 sm:pb-8 relative z-10">
-              <div className="max-w-[1400px] mx-auto space-y-3 sm:space-y-4 lg:space-y-6">
+            {/* Main Content - Improved mobile spacing with safe-area */}
+            <div className="flex-1 pt-3 sm:pt-4 lg:pt-8 px-3 sm:px-4 lg:px-6 pb-20 sm:pb-8 relative z-10" style={{ paddingBottom: 'max(80px, calc(80px + env(safe-area-inset-bottom)))' }}>
+              <div className="max-w-[1400px] mx-auto space-y-2.5 sm:space-y-4 lg:space-y-6">
 
                 {/* Single Collapsible Setup/Status Card - Consolidates all onboarding/health/status banners */}
                 <SectionErrorBoundary sectionName="SetupStatusCard">

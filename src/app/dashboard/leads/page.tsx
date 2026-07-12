@@ -717,7 +717,7 @@ export default function LeadsPage() {
 
           {/* Main Content */}
           <main className="flex-1 pt-4 lg:pt-8 px-4 lg:px-6 pb-6 md:pb-6 relative z-10 overflow-y-auto" style={{ paddingBottom: 'max(8rem+32px, env(safe-area-inset-bottom))' }}>
-            <div className="max-w-[1400px] mx-auto space-y-4 lg:space-y-6">
+            <div className="max-w-[1400px] mx-auto space-y-3 sm:space-y-4 lg:space-y-6">
             {/* SMS Verification Banner */}
             <SmsVerificationBanner business={business} />
 
@@ -895,11 +895,11 @@ export default function LeadsPage() {
               const leadStatusCounts = calculateLeadStatusCounts(leads)
               return (
                 <>
-            {/* Lifecycle Summary Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 mb-4 sm:mb-6">
+            {/* Lifecycle Summary Cards - Compact on mobile */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-3 mb-2 sm:mb-6">
               <StatCard
                 value={leadStatusCounts.new}
-                label="New Customers"
+                label="New"
                 description={
                   leadStatusCounts.new === 0
                     ? 'Awaiting Contact'
@@ -911,7 +911,7 @@ export default function LeadsPage() {
               />
               <StatCard
                 value={leadStatusCounts.active}
-                label="Active Customers"
+                label="Active"
                 description={
                   leadStatusCounts.active === 0
                     ? 'No active customers'
@@ -923,7 +923,7 @@ export default function LeadsPage() {
               />
               <StatCard
                 value={leadStatusCounts.completed}
-                label="Completed Customers"
+                label="Completed"
                 description={
                   leadStatusCounts.completed === 0
                     ? 'No completed customers yet'
@@ -935,7 +935,7 @@ export default function LeadsPage() {
               />
               <StatCard
                 value={ignoredContactsCount}
-                label="Ignored Contacts"
+                label="Ignored"
                 description={
                   ignoredContactsCount === 0
                     ? 'No Blocked Contacts'
@@ -947,31 +947,32 @@ export default function LeadsPage() {
               />
             </div>
 
-            {/* Customers Header - Premium */}
-            <div className="mb-6">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            {/* Customers Header - Compact on mobile */}
+            <div className="mb-3 sm:mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
                 <div>
-                  <h2 className="text-2xl font-semibold text-foreground tracking-tight">
+                  <h2 className="text-xl sm:text-2xl font-semibold text-foreground tracking-tight">
                     Customers
                   </h2>
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1 hidden sm:block">
                     Manage conversations, requests, jobs and customer history.
                   </p>
                 </div>
                 <button
                   onClick={() => setShowAddCustomerModal(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium rounded-lg transition-colors shadow-sm"
+                  className="inline-flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs sm:text-sm font-medium rounded-lg transition-colors shadow-sm"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
-                  Add Customer
+                  <span className="hidden sm:inline">Add Customer</span>
+                  <span className="sm:hidden">Add</span>
                 </button>
               </div>
             </div>
 
-            {/* Quick Summary Row */}
-            <div className="flex flex-wrap items-center gap-3 mb-6">
+            {/* Quick Summary Row - Hide on mobile to save space */}
+            <div className="hidden sm:flex flex-wrap items-center gap-3 mb-6">
               <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-muted/50 rounded-lg border border-border/50">
                 <span className="text-sm font-medium text-foreground">{leads.filter(l => !l.deleted_at).length}</span>
                 <span className="text-xs text-muted-foreground">Total</span>
@@ -993,8 +994,8 @@ export default function LeadsPage() {
               </div>
             </div>
 
-            {/* Search/Filter Toolbar */}
-            <div className="flex flex-col sm:flex-row gap-3 mb-6">
+            {/* Search/Filter Toolbar - Compact on mobile */}
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-4 sm:mb-6">
               <div className="flex-1">
                 <div className="relative">
                   <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1005,7 +1006,7 @@ export default function LeadsPage() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search customers..."
-                    className="w-full pl-10 pr-4 py-2 bg-background border border-border/50 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all"
+                    className="w-full pl-10 pr-4 py-2 sm:py-2 bg-background border border-border/50 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all"
                   />
                 </div>
               </div>
@@ -1013,13 +1014,13 @@ export default function LeadsPage() {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-4 py-2 bg-background border border-border/50 rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all cursor-pointer"
+                  className="px-3 py-2 sm:px-4 sm:py-2 bg-background border border-border/50 rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all cursor-pointer"
                 >
-                  <option value="all">All Status</option>
+                  <option value="all">All</option>
                   <option value="new">New</option>
                   <option value="active">Active</option>
                   <option value="scheduled">Scheduled</option>
-                  <option value="payment_requested">Payment Requested</option>
+                  <option value="payment_requested">Payment</option>
                   <option value="paid">Paid</option>
                   <option value="completed">Completed</option>
                   <option value="lost">Lost</option>
@@ -1043,14 +1044,14 @@ export default function LeadsPage() {
               </div>
             </div>
 
-            {/* Filter-specific help text */}
+            {/* Filter-specific help text - Hide on mobile */}
             {statusFilter === 'ignored' && (
-              <p className="text-xs text-muted-foreground mb-4">
+              <p className="text-xs text-muted-foreground mb-4 hidden sm:block">
                 Ignored customers are hidden from your main list and can be restored for up to 30 days.
               </p>
             )}
             {statusFilter === 'deleted' && (
-              <p className="text-xs text-muted-foreground mb-4">
+              <p className="text-xs text-muted-foreground mb-4 hidden sm:block">
                 Deleted customers are hidden from your main list and can be restored for up to 30 days.
               </p>
             )}
@@ -1431,20 +1432,20 @@ export default function LeadsPage() {
                           >
                             {/* Status Accent Bar - Subtle left accent */}
                             <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${getLeadStatusAccentColor(getLeadLifecycleStatus(lead))}`}></div>
-                            <div className="p-3.5 pl-4">
-                              {/* Header: Name, Phone, Status */}
-                              <div className="flex items-start justify-between gap-3 mb-2">
+                            <div className="p-2.5 sm:p-3.5 pl-3 sm:pl-4">
+                              {/* Header: Name, Phone, Status - Compact on mobile */}
+                              <div className="flex items-start justify-between gap-2 sm:gap-3 mb-1.5 sm:mb-2">
                                 <div className="flex-1 min-w-0">
-                                  <h3 className={`text-base font-semibold text-foreground mb-0.5 truncate tracking-tight ${isNewCustomer ? 'text-orange-500' : ''}`}>
+                                  <h3 className={`text-sm sm:text-base font-semibold text-foreground mb-0.5 truncate tracking-tight ${isNewCustomer ? 'text-orange-500' : ''}`}>
                                     {getLeadDisplayName(lead)}
                                   </h3>
-                                  <p className="text-xs text-muted-foreground">
+                                  <p className="text-[11px] sm:text-xs text-muted-foreground">
                                     {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}
                                   </p>
                                 </div>
                                 <div onClick={(e) => e.stopPropagation()}>
                                   {lead.deleted_at ? (
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
                                       Deleted
                                     </span>
                                   ) : (
@@ -1457,18 +1458,18 @@ export default function LeadsPage() {
                                 </div>
                               </div>
 
-                              {/* Compact Preview */}
-                              <div className="mb-2 space-y-1">
+                              {/* Compact Preview - Reduced spacing on mobile */}
+                              <div className="mb-1.5 sm:mb-2 space-y-0.5 sm:space-y-1">
                                 {aiData.reason && (
                                   <div>
-                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5 font-medium">Latest Request</p>
-                                    <p className="line-clamp-1 text-sm font-semibold text-foreground leading-relaxed">
+                                    <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5 font-medium hidden sm:block">Latest Request</p>
+                                    <p className="line-clamp-1 text-xs sm:text-sm font-semibold text-foreground leading-relaxed">
                                       {sentenceCase(aiData.reason)}
                                     </p>
                                   </div>
                                 )}
                                 {aiData.urgency && (
-                                  <p className={`text-xs font-medium ${
+                                  <p className={`text-[11px] sm:text-xs font-medium ${
                                     aiData.urgency.toLowerCase() === 'urgent' || aiData.urgency.toLowerCase() === 'high'
                                       ? 'text-red-500 dark:text-red-400'
                                       : 'text-muted-foreground'
@@ -1477,22 +1478,22 @@ export default function LeadsPage() {
                                   </p>
                                 )}
                                 {!aiData.reason && !aiData.urgency && (
-                                  <p className="line-clamp-2 text-xs text-muted-foreground leading-relaxed">
+                                  <p className="line-clamp-1 sm:line-clamp-2 text-[11px] sm:text-xs text-muted-foreground leading-relaxed">
                                     {getCompactSummary(lead)}
                                   </p>
                                 )}
                               </div>
 
-                              {/* Metadata */}
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-1.5 sm:gap-2">
+                              {/* Metadata - Compact on mobile */}
+                              <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+                                <div className="flex items-center gap-1 sm:gap-1.5 sm:gap-2">
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation()
                                       const status = isNewCustomer ? 'new' : getLeadLifecycleStatus(lead)
                                       setStatusFilter(statusFilter === status ? 'all' : status)
                                     }}
-                                    className={`px-2 py-0.5 text-[10px] sm:text-xs font-medium rounded-full transition-all duration-200 ${
+                                    className={`px-1.5 py-0.5 sm:px-2 sm:py-0.5 text-[9px] sm:text-[10px] sm:text-xs font-medium rounded-full transition-all duration-200 ${
                                       isNewCustomer ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20' :
                                       getLeadLifecycleStatus(lead) === 'new' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20' :
                                       getLeadLifecycleStatus(lead) === 'active' ? 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20' :
@@ -1503,40 +1504,40 @@ export default function LeadsPage() {
                                   >
                                     {isNewCustomer ? 'New' : getLeadLifecycleStatus(lead).charAt(0).toUpperCase() + getLeadLifecycleStatus(lead).slice(1)}
                                   </button>
-                                  <span className="text-[11px] text-muted-foreground">
+                                  <span className="text-[10px] sm:text-[11px] text-muted-foreground">
                                     {formatRelativeTime(lead.created_at)}
                                   </span>
                                 </div>
                                 {isNewCustomer && (
-                                  <span className="px-1.5 py-0.5 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[9px] font-semibold rounded-md border border-indigo-500/20">
+                                  <span className="px-1 py-0.5 sm:px-1.5 sm:py-0.5 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[8px] sm:text-[9px] font-semibold rounded-md border border-indigo-500/20">
                                     New
                                   </span>
                                 )}
                               </div>
 
                               {/* Action Buttons - Improved mobile touch targets */}
-                              <div className="flex items-center gap-1.5 pt-2 border-t border-border/30">
+                              <div className="flex items-center gap-1 sm:gap-1.5 pt-1.5 sm:pt-2 border-t border-border/30">
                                 {lead.caller_phone && lead.caller_phone !== '+10000000000' && (
                                   <a
                                     href={`tel:${lead.caller_phone}`}
                                     onClick={(e) => e.stopPropagation()}
-                                    className="flex sm:hidden flex-1 inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-muted hover:bg-muted/80 text-muted-foreground text-xs font-medium rounded-lg transition-colors group-hover:bg-primary/10 group-hover:text-primary whitespace-nowrap"
+                                    className="flex sm:hidden flex-1 inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2 py-1.5 sm:px-2.5 sm:py-1.5 bg-muted hover:bg-muted/80 text-muted-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-colors group-hover:bg-primary/10 group-hover:text-primary whitespace-nowrap"
                                     title="Call"
                                   >
-                                    <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 8V5z" />
                                     </svg>
-                                    Call
+                                    <span className="hidden sm:inline">Call</span>
                                   </a>
                                 )}
-                                <div className="flex-1 inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-all duration-200 cursor-pointer whitespace-nowrap shadow-sm hover:shadow"
+                                <div className="flex-1 inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2 py-1.5 sm:px-2.5 sm:py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-all duration-200 cursor-pointer whitespace-nowrap shadow-sm hover:shadow"
                                   onClick={(e) => {
                                     e.stopPropagation()
                                     router.push(`/dashboard/leads/${lead.id}`)
                                   }}
                                 >
                                   View
-                                  <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                   </svg>
                                 </div>
@@ -1547,10 +1548,10 @@ export default function LeadsPage() {
                                       e.stopPropagation()
                                       setCardOverflowMenu(cardOverflowMenu === lead.id ? null : lead.id)
                                     }}
-                                    className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                                    className="p-1 sm:p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                                     title="More actions"
                                   >
-                                    <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                                     </svg>
                                   </button>

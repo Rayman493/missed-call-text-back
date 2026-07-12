@@ -2161,12 +2161,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const paymentRequests = leadData?.paymentRequests || []
 
     return (
-      <div className="space-y-5">
-        {/* Jobs & Appointments - Collapsible */}
-        <div className="bg-card rounded-xl border border-border/50 p-4">
+      <div className="space-y-3 sm:space-y-5">
+        {/* Jobs & Appointments - Collapsible - Compact on mobile */}
+        <div className="bg-card rounded-xl border border-border/50 p-3 sm:p-4">
           <button
             onClick={() => setCollapsedSections((prev: any) => ({ ...prev, jobs: !prev.jobs }))}
-            className="flex items-center justify-between w-full mb-3 group"
+            className="flex items-center justify-between w-full mb-2 sm:mb-3 group"
           >
             <h3 className="text-sm font-medium text-foreground group-hover:text-foreground/80 transition-colors">Jobs</h3>
             <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.jobs ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2176,27 +2176,28 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {!collapsedSections.jobs && (
             <div className="transition-all duration-200">
               {leadJobs.length === 0 ? (
-                <div className="text-center py-4">
-                  <p className="text-sm text-muted-foreground mb-3">No active jobs yet.</p>
-                  <p className="text-xs text-muted-foreground mb-4">Create a job or schedule an appointment when work begins.</p>
+                <div className="text-center py-2 sm:py-4">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">No active jobs yet.</p>
                   <div className="flex gap-2 justify-center">
                     <button
                       onClick={handleCreateJobClick}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors"
+                      className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-1.5 sm:px-3 sm:py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-colors"
                     >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                       </svg>
-                      Create Job
+                      <span className="hidden sm:inline">Create Job</span>
+                      <span className="sm:hidden">Add</span>
                     </button>
                     <button
                       onClick={handleAppointmentClick}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-muted hover:bg-muted/80 text-foreground text-xs font-medium rounded-lg transition-colors"
+                      className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-1.5 sm:px-3 sm:py-1.5 bg-muted hover:bg-muted/80 text-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-colors"
                     >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
-                      Schedule
+                      <span className="hidden sm:inline">Schedule</span>
+                      <span className="sm:hidden">Appt</span>
                     </button>
                   </div>
                 </div>
@@ -2230,11 +2231,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           )}
         </div>
 
-        {/* Payment Requests - Collapsible */}
-        <div className="bg-card rounded-xl border border-border/50 p-4">
+        {/* Payment Requests - Collapsible - Compact on mobile */}
+        <div className="bg-card rounded-xl border border-border/50 p-3 sm:p-4">
           <button
             onClick={() => setCollapsedSections((prev: any) => ({ ...prev, payments: !prev.payments }))}
-            className="flex items-center justify-between w-full mb-3 group"
+            className="flex items-center justify-between w-full mb-2 sm:mb-3 group"
           >
             <h3 className="text-sm font-medium text-foreground group-hover:text-foreground/80 transition-colors">Payments</h3>
             <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.payments ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2244,18 +2245,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {!collapsedSections.payments && (
             <div className="transition-all duration-200">
               {paymentRequests.length === 0 ? (
-                <div className="text-center py-4">
-                  <p className="text-sm text-muted-foreground mb-3">No payment requests have been sent yet.</p>
-                  <p className="text-xs text-muted-foreground mb-4">Request payment once work is ready to invoice.</p>
+                <div className="text-center py-2 sm:py-4">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">No payment requests yet.</p>
                   <button
                     onClick={() => setShowPaymentModal(true)}
                     disabled={!business || getAvailableProviders(business).length === 0}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-1.5 sm:px-3 sm:py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
-                    Request Payment
+                    <span className="hidden sm:inline">Request Payment</span>
+                    <span className="sm:hidden">Request</span>
                   </button>
                 </div>
               ) : (
@@ -2283,11 +2284,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           )}
         </div>
 
-        {/* Recent Activity - Collapsible */}
-        <div className="bg-card rounded-xl border border-border/50 p-4">
+        {/* Recent Activity - Collapsible - Compact on mobile */}
+        <div className="bg-card rounded-xl border border-border/50 p-3 sm:p-4">
           <button
             onClick={() => setCollapsedSections((prev: any) => ({ ...prev, recentActivity: !prev.recentActivity }))}
-            className="flex items-center justify-between w-full mb-3 group"
+            className="flex items-center justify-between w-full mb-2 sm:mb-3 group"
           >
             <h3 className="text-sm font-medium text-foreground group-hover:text-foreground/80 transition-colors">Recent Activity</h3>
             <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.recentActivity ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2297,11 +2298,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {!collapsedSections.recentActivity && (
             <div className="transition-all duration-200">
               {conversationTimeline.length === 0 ? (
-                <div className="text-center py-4">
-                  <p className="text-sm text-muted-foreground">No activity yet.</p>
+                <div className="text-center py-2 sm:py-4">
+                  <p className="text-xs sm:text-sm text-muted-foreground">No activity yet.</p>
                 </div>
               ) : (
-                <div className="space-y-0 max-h-80 overflow-y-auto pr-1">
+                <div className="space-y-0 max-h-60 sm:max-h-80 overflow-y-auto pr-1">
                   {conversationTimeline.slice(-10).reverse().map((item: any, index: number) => {
                     // Determine event label and icon
                     let eventLabel = ''
@@ -2312,26 +2313,26 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     if (item.type === 'message') {
                       if (item.data?.direction === 'inbound') {
                         eventLabel = 'Customer replied'
-                        eventIcon = <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                        eventIcon = <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                       } else {
-                        eventLabel = 'SMS summary sent'
-                        eventIcon = <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                        eventLabel = 'SMS sent'
+                        eventIcon = <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
                       }
                     } else if (item.type === 'voicemail') {
-                      eventLabel = 'Voicemail received'
-                      eventIcon = <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                      eventLabel = 'Voicemail'
+                      eventIcon = <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
                     } else if (item.type === 'system_event') {
                       const message = item.data?.message || ''
                       if (message.includes('Completed Request') || message.includes('Partial Request') || message.includes('Caller Hung Up')) {
-                        eventLabel = 'AI intake completed'
-                        eventIcon = <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        eventLabel = 'AI intake'
+                        eventIcon = <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         isExpandable = true
                         const aiCallId = item.id.replace('ai-intake-', '')
                         const aiCall = leadData?.aiCallRecords?.find((r: any) => r.id === aiCallId)
                         if (aiCall?.extracted_info) {
                           const extracted = aiCall.extracted_info
                           expandedContent = (
-                            <div className="mt-2 pt-2 border-t border-border/50 space-y-1 text-xs">
+                            <div className="mt-1.5 sm:mt-2 pt-1.5 sm:pt-2 border-t border-border/50 space-y-0.5 sm:space-y-1 text-[10px] sm:text-xs">
                               {extracted.reasonForCalling && (
                                 <div><span className="text-muted-foreground">Service:</span> {extracted.reasonForCalling}</div>
                               )}
@@ -2351,35 +2352,35 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           )
                         }
                       } else if (message.includes('Customer Corrected') || message.includes('Customer Updated')) {
-                        eventLabel = 'Customer updated information'
-                        eventIcon = <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2h2.828l8.586-8.586z" /></svg>
+                        eventLabel = 'Customer updated'
+                        eventIcon = <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2h2.828l8.586-8.586z" /></svg>
                       } else if (message.includes('Follow-Ups Cancelled')) {
                         eventLabel = 'Follow-ups cancelled'
-                        eventIcon = <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        eventIcon = <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                       } else if (message.includes('Customer Sent Photos')) {
-                        eventLabel = 'Customer sent photos'
-                        eventIcon = <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        eventLabel = 'Photos sent'
+                        eventIcon = <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                       } else if (message.includes('Payment Received')) {
                         eventLabel = 'Payment received'
-                        eventIcon = <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        eventIcon = <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                       } else if (message.includes('Payment Requested')) {
                         eventLabel = 'Payment requested'
-                        eventIcon = <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                        eventIcon = <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
                       } else if (message.includes('Lead Marked Complete')) {
-                        eventLabel = 'Lead marked complete'
-                        eventIcon = <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        eventLabel = 'Marked complete'
+                        eventIcon = <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                       } else if (message.includes('added manually')) {
                         eventLabel = 'Customer created'
-                        eventIcon = <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
+                        eventIcon = <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
                       } else {
                         eventLabel = message
-                        eventIcon = <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        eventIcon = <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                       }
                     }
 
                     return (
                       <div key={item.id}>
-                        <div className="flex gap-3 py-3">
+                        <div className="flex gap-2 sm:gap-3 py-1.5 sm:py-3">
                           <div className="mt-0.5 flex-shrink-0">
                             {eventIcon}
                           </div>
@@ -2395,10 +2396,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               }}
                               className="text-left w-full"
                             >
-                              <p className="text-sm font-medium text-foreground break-words hover:text-primary transition-colors">
+                              <p className="text-[11px] sm:text-sm font-medium text-foreground break-words hover:text-primary transition-colors">
                                 {eventLabel}
                               </p>
-                              <p className="text-xs text-muted-foreground mt-0.5">{formatRelativeTime(item.created_at)}</p>
+                              <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">{formatRelativeTime(item.created_at)}</p>
                             </button>
                             {isExpandable && expandedContent && (
                               <div id={`expanded-${item.id}`} className="hidden">
@@ -2832,48 +2833,45 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       {/* Standard App Header */}
       <AppHeader />
 
-      {/* Conversation Sub-Header */}
+      {/* Conversation Sub-Header - Compact on mobile */}
       <div className="bg-white/95 dark:bg-slate-950/95 border-b border-slate-200/80 dark:border-slate-800/80 backdrop-blur-xl">
-        <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-2">
-          {/* Mobile Layout: Enhanced Information Header */}
-          <div className="md:hidden space-y-3">
-            {/* Back to Leads link for mobile */}
-            <div>
-              <AppBackButton fallbackHref="/dashboard/leads" label="Back" />
-            </div>
-            <div className="rounded-2xl border border-slate-200/70 bg-slate-50/80 p-3 shadow-sm dark:border-slate-800/80 dark:bg-slate-900/80">
-              <div className="flex items-start justify-between gap-3">
-                {/* Enhanced Lead Info */}
-                <div className="flex-1 min-w-0">
-                  {/* Row 1: Customer name with actions */}
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <h1 className="font-semibold text-slate-950 dark:text-white text-lg leading-tight break-words min-w-0">
-                      {getLeadDisplayName(leadData || lead)}
-                    </h1>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    {/* Info Button */}
-                    <button
-                      onClick={() => setShowLeadInfo(!showLeadInfo)}
-                      className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
-                      title="Customer information"
-                      aria-label="Customer information"
-                    >
-                      <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </button>
-                    
-                    {/* Mobile Overflow Button */}
-                    <button
-                      onClick={() => setShowMobileOverflow(!showMobileOverflow)}
-                      className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
-                      title="More actions"
-                      aria-label="More actions"
-                    >
-                      <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                      </svg>
-                    </button>
+        <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-2 sm:py-3">
+          {/* Mobile Layout: Compact Information Header */}
+          <div className="md:hidden">
+            <div className="flex items-center justify-between gap-2">
+              {/* Back button + Customer name */}
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <AppBackButton fallbackHref="/dashboard/leads" label="" />
+                <h1 className="font-semibold text-slate-950 dark:text-white text-base leading-tight truncate">
+                  {getLeadDisplayName(leadData || lead)}
+                </h1>
+              </div>
+              
+              {/* Actions */}
+              <div className="flex items-center gap-1 flex-shrink-0">
+                {/* Info Button */}
+                <button
+                  onClick={() => setShowLeadInfo(!showLeadInfo)}
+                  className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
+                  title="Customer information"
+                  aria-label="Customer information"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </button>
+                
+                {/* Mobile Overflow Button */}
+                <button
+                  onClick={() => setShowMobileOverflow(!showMobileOverflow)}
+                  className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
+                  title="More actions"
+                  aria-label="More actions"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                  </svg>
+                </button>
 
                     {/* Mobile Overflow Menu */}
                     {showMobileOverflow && (
@@ -3007,40 +3005,21 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         </div>
                       </>
                     )}
-                  </div>
-                </div>
-                  {/* Row 2: Phone number and metadata */}
-                  <div className="flex flex-wrap items-center gap-2 text-xs leading-relaxed">
-                    <div className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-slate-600 shadow-sm ring-1 ring-slate-200/70 dark:bg-slate-950/60 dark:text-slate-300 dark:ring-slate-800">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 8V5z" />
-                    </svg>
-                    <span className="truncate">{formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}</span>
-                  </div>
-                  <span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 text-slate-500 shadow-sm ring-1 ring-slate-200/70 dark:bg-slate-950/60 dark:text-slate-400 dark:ring-slate-800">{messagesArray.length} msg</span>
-                  {lead?.last_message_at && (
-                    <span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 text-slate-500 shadow-sm ring-1 ring-slate-200/70 dark:bg-slate-950/60 dark:text-slate-400 dark:ring-slate-800">{formatRelativeTime(lead.last_message_at)}</span>
-                  )}
-                  {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && (
-                    <div className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-green-700 font-medium ring-1 ring-green-200/70 dark:bg-green-950/30 dark:text-green-300 dark:ring-green-900/70">
-                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span>AI</span>
-                    </div>
-                  )}
-                  {source && (
-                    <div className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-blue-700 font-medium ring-1 ring-blue-200/70 dark:bg-blue-950/30 dark:text-blue-300 dark:ring-blue-900/70">
-                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                      </svg>
-                      <span className="capitalize">{source}</span>
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
-          </div>
+            
+            {/* Compact metadata row - only show essential info */}
+            <div className="flex items-center gap-2 mt-2 text-[10px] text-muted-foreground">
+              <span>{formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}</span>
+              <span>•</span>
+              <span>{messagesArray.length} msg</span>
+              {lead?.last_message_at && (
+                <>
+                  <span>•</span>
+                  <span>{formatRelativeTime(lead.last_message_at)}</span>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Desktop Layout: Premium Header */}
@@ -3424,42 +3403,73 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </aside>
         </div>
         
-        {/* Mobile Layout */}
-        <div className="lg:hidden space-y-4 pb-[calc(7rem+env(safe-area-inset-bottom))]">
-          {/* Lead Overview Card - Unified AI Intake + Lead Status - Mobile optimized */}
-          {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id ? (
-            <div className="bg-card/95 border border-border/70 rounded-2xl p-4 shadow-sm ring-1 ring-white/5">
-              <div className="flex items-center justify-between gap-3 mb-3">
-                <button
-                  onClick={() => setCollapsedSections((prev: any) => ({ ...prev, aiIntake: !prev.aiIntake }))}
-                  className="flex min-w-0 items-center gap-2 text-left"
-                >
-                  <svg className="w-4 h-4 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+        {/* Mobile Layout - Reordered for mobile reading: Header -> Overview -> Conversation -> Jobs -> Payments -> Activity */}
+        <div className="lg:hidden space-y-2.5 pb-[calc(7rem+env(safe-area-inset-bottom))]">
+          {/* Compact Overview Card - Unified status pills for mobile */}
+          <div className="bg-card/95 border border-border/70 rounded-xl p-3 shadow-sm ring-1 ring-white/5">
+            <div className="flex flex-wrap gap-1.5">
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-200 ${getLeadStatusColor(leadData?.status || lead?.status)} bg-opacity-10`}>
+                {leadData?.status || lead?.status || 'New'}
+              </span>
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-200 ${
+                leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
+                  ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
+                  : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
+                    ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
+                    : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20'
+              }`}>
+                {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
+                  ? 'AI Complete'
+                  : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
+                    ? 'Voicemail Complete'
+                    : 'Intake Incomplete'}
+              </span>
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-200 ${leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50'}`}>
+                {leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'Replied' : 'No Reply'}
+              </span>
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-200 ${
+                followUpJobs && followUpJobs.length > 0
+                  ? followUpJobs.some((job: any) => job.status === 'active' || job.status === 'scheduled')
+                    ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
+                    : followUpJobs.some((job: any) => job.status === 'completed')
+                      ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
+                      : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20'
+                  : followUpSettings?.enabled
+                    ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
+                    : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20'
+              }`}>
+                {followUpJobs && followUpJobs.length > 0
+                  ? followUpJobs.some((job: any) => job.status === 'active' || job.status === 'scheduled')
+                    ? 'Follow-Ups Active'
+                    : followUpJobs.some((job: any) => job.status === 'completed')
+                      ? 'Follow-Ups Complete'
+                      : 'Follow-Ups Paused'
+                  : followUpSettings?.enabled
+                    ? 'Follow-Ups Configured'
+                    : 'Follow-Ups Off'}
+              </span>
+            </div>
+          </div>
+
+          {/* AI Intake - Collapsible, shown below overview */}
+          {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
+            <div className="bg-card/95 border border-border/70 rounded-xl p-3 shadow-sm ring-1 ring-white/5">
+              <button
+                onClick={() => setCollapsedSections((prev: any) => ({ ...prev, aiIntake: !prev.aiIntake }))}
+                className="flex items-center justify-between w-full"
+              >
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <h3 className="text-base font-semibold text-foreground">Customer Overview</h3>
-                  <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.aiIntake ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {(followUpSettings?.enabled || (followUpJobs && followUpJobs.length > 0)) && (
-                  <button
-                    onClick={() => router.push('/dashboard/settings/follow-ups')}
-                    className="px-3 py-1.5 bg-white/80 hover:bg-slate-50 dark:bg-slate-900/80 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-medium rounded-xl transition-colors duration-200 border border-slate-200 dark:border-slate-700/70 shadow-sm"
-                  >
-                    Configure
-                  </button>
-                )}
-              </div>
-              {collapsedSections.aiIntake && (
-                <div className="mt-2 rounded-xl bg-slate-50/80 px-3 py-2 text-sm text-muted-foreground transition-all duration-200 dark:bg-slate-900/60">
-                  <span className="font-semibold text-foreground">{getLeadAIIntake(leadData).customerName || 'Customer'}</span>
-                  <span className="mx-1.5 text-slate-400">•</span>
-                  <span className="leading-relaxed">{getLeadAIIntake(leadData).serviceRequested || 'Service request'}</span>
+                  <span className="text-sm font-semibold text-foreground">AI Intake</span>
                 </div>
-              )}
+                <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.aiIntake ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
               {!collapsedSections.aiIntake && (
-                <div className="mt-3 transition-all duration-200">
+                <div className="mt-3">
                   <AICallDetails
                     leadId={params.id}
                     businessId={business.id}
@@ -3471,141 +3481,38 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   />
                 </div>
               )}
-              <div className="flex flex-wrap gap-1.5 mt-3">
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all duration-200 ${getLeadStatusColor(leadData?.status || lead?.status)} bg-opacity-10`}>
-                  {leadData?.status || lead?.status || 'New'}
-                </span>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all duration-200 ${
-                  leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
-                    ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
-                    : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
-                      ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
-                      : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20'
-                }`}>
-                  {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
-                    ? 'AI Complete'
-                    : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
-                      ? 'Voicemail Complete'
-                      : 'Intake Incomplete'}
-                </span>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all duration-200 ${leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50'}`}>
-                  {leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'Replied' : 'No Reply'}
-                </span>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all duration-200 ${
-                  followUpJobs && followUpJobs.length > 0
-                    ? followUpJobs.some((job: any) => job.status === 'active' || job.status === 'scheduled')
-                      ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
-                      : followUpJobs.some((job: any) => job.status === 'completed')
-                        ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
-                        : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20'
-                    : followUpSettings?.enabled
-                      ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
-                      : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20'
-                }`}>
-                  {followUpJobs && followUpJobs.length > 0
-                    ? followUpJobs.some((job: any) => job.status === 'active' || job.status === 'scheduled')
-                      ? 'Follow-Ups Active'
-                      : followUpJobs.some((job: any) => job.status === 'completed')
-                        ? 'Follow-Ups Complete'
-                        : 'Follow-Ups Paused'
-                    : followUpSettings?.enabled
-                      ? 'Follow-Ups Configured'
-                      : 'Follow-Ups Off'}
-                </span>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-card/95 border border-border/70 rounded-2xl p-4 shadow-sm ring-1 ring-white/5">
-              <div className="flex items-center justify-between mb-1.5">
-                <h3 className="text-sm font-medium text-foreground">Customer Overview</h3>
-                {(followUpSettings?.enabled || (followUpJobs && followUpJobs.length > 0)) && (
-                  <button
-                    onClick={() => router.push('/dashboard/settings/follow-ups')}
-                    className="px-3 py-1.5 bg-white/80 hover:bg-slate-50 dark:bg-slate-900/80 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-medium rounded-xl transition-colors duration-200 border border-slate-200 dark:border-slate-700/70 shadow-sm"
-                  >
-                    Configure
-                  </button>
-                )}
-              </div>
-              <div className="flex flex-wrap gap-1.5 mt-3">
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all duration-200 ${getLeadStatusColor(leadData?.status || lead?.status)} bg-opacity-10`}>
-                  {leadData?.status || lead?.status || 'New'}
-                </span>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all duration-200 ${
-                  leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
-                    ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
-                    : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
-                      ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
-                      : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20'
-                }`}>
-                  {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
-                    ? 'AI Complete'
-                    : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
-                      ? 'Voicemail Complete'
-                      : 'Intake Incomplete'}
-                </span>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all duration-200 ${leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50'}`}>
-                  {leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'Replied' : 'No Reply'}
-                </span>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium transition-all duration-200 ${
-                  followUpJobs && followUpJobs.length > 0
-                    ? followUpJobs.some((job: any) => job.status === 'active' || job.status === 'scheduled')
-                      ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
-                      : followUpJobs.some((job: any) => job.status === 'completed')
-                        ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
-                        : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20'
-                    : followUpSettings?.enabled
-                      ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
-                      : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20'
-                }`}>
-                  {followUpJobs && followUpJobs.length > 0
-                    ? followUpJobs.some((job: any) => job.status === 'active' || job.status === 'scheduled')
-                      ? 'Follow-Ups Active'
-                      : followUpJobs.some((job: any) => job.status === 'completed')
-                        ? 'Follow-Ups Complete'
-                        : 'Follow-Ups Paused'
-                    : followUpSettings?.enabled
-                      ? 'Follow-Ups Configured'
-                      : 'Follow-Ups Off'}
-                </span>
-              </div>
             </div>
           )}
 
-          {renderWorkspaceSection()}
-
-          {/* Conversation Section - Self-contained messaging experience - Mobile optimized */}
-          <div className="bg-card/95 border border-border/70 rounded-2xl lg:hidden flex flex-col overflow-hidden shadow-sm ring-1 ring-white/5" style={{ height: 'min(620px, calc(100svh - 15rem))', minHeight: '520px' }}>
-            <div className="px-4 py-3.5 flex-shrink-0 flex items-center justify-between border-b border-border/30 bg-slate-50/70 dark:bg-slate-950/30">
-              <h3 className="text-base font-semibold text-foreground">Conversation</h3>
+          {/* Conversation Section - Primary content, compact header for mobile */}
+          <div className="bg-card/95 border border-border/70 rounded-xl lg:hidden flex flex-col overflow-hidden shadow-sm ring-1 ring-white/5" style={{ height: 'min(500px, calc(100svh - 14rem))', minHeight: '400px' }}>
+            <div className="px-3 py-2 flex-shrink-0 flex items-center justify-between border-b border-border/30 bg-slate-50/70 dark:bg-slate-950/30">
+              <h3 className="text-sm font-semibold text-foreground">Conversation</h3>
               {!loading && conversationTimeline.length > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  {conversationTimeline.length === 1 ? '1 message' : `${conversationTimeline.length} messages`}
+                <p className="text-[10px] text-muted-foreground">
+                  {conversationTimeline.length === 1 ? '1 msg' : `${conversationTimeline.length} msgs`}
                 </p>
               )}
             </div>
             {/* Mobile Message Thread - Scrollable viewport */}
             <div ref={mobileConversationContainerRef} className="flex-1 min-h-0 overflow-y-auto scroll-smooth overscroll-contain bg-slate-50/40 dark:bg-slate-950/20" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', scrollPaddingBottom: '7rem' }}>
               {/* Inner content wrapper for justify-end */}
-              <div className="min-h-full px-3.5 py-4 flex flex-col justify-end">
+              <div className="min-h-full px-3 py-3 flex flex-col justify-end">
                 {loading ? (
                   <div className="flex items-center justify-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                   </div>
                 ) : conversationTimeline.length === 0 ? (
-                  <div className="flex items-center justify-center h-full py-8 sm:py-12 animate-fadeIn">
+                  <div className="flex items-center justify-center h-full py-8 animate-fadeIn">
                     <div className="text-center max-w-sm">
-                      <div className="w-14 h-14 sm:w-16 sm:h-16 bg-slate-50 dark:bg-slate-900/50 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6 border border-slate-200 dark:border-slate-800">
-                        <svg className="w-7 h-7 sm:w-8 sm:h-8 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="w-12 h-12 bg-slate-50 dark:bg-slate-900/50 rounded-xl flex items-center justify-center mx-auto mb-3 border border-slate-200 dark:border-slate-800">
+                        <svg className="w-6 h-6 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                         </svg>
                       </div>
-                      <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white mb-2 sm:mb-3">Start the conversation</h3>
-                      <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mb-3 sm:mb-4 max-w-xs sm:max-w-sm mx-auto leading-relaxed">
-                        Send your first text message to this customer. Messages will appear here in real time as the conversation grows.
-                      </p>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 max-w-xs mx-auto">
-                        Your message history, customer replies, AI requests, and timeline will automatically build here.
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-2">Start the conversation</h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto leading-relaxed">
+                        Send your first text message to this customer.
                       </p>
                     </div>
                   </div>
@@ -3623,8 +3530,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
             {/* Divider - Softer for natural integration */}
             <div className="border-t border-border/30 flex-shrink-0"></div>
-            {/* Composer - Integrated at bottom with better mobile spacing */}
-            <div className="px-3 py-3 flex-shrink-0 bg-card/98 shadow-[0_-12px_40px_rgba(2,6,23,0.12)]" style={{ paddingBottom: 'max(14px, env(safe-area-inset-bottom))' }}>
+            {/* Composer - Integrated at bottom with better mobile spacing and safe-area for bottom nav */}
+            <div className="px-3 py-3 flex-shrink-0 bg-card/98 shadow-[0_-12px_40px_rgba(2,6,23,0.12)]" style={{ paddingBottom: 'max(90px, calc(80px + env(safe-area-inset-bottom)))' }}>
               {/* Image Previews */}
               {mobileImages.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-2">
