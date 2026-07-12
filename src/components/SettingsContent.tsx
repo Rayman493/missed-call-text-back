@@ -2083,7 +2083,7 @@ export default function SettingsContent() {
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <div>
                     <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Personal Contacts</h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Add your own phone number, friends, family, employees, or other personal callers. Calls from these numbers are routed to your Personal Voicemail instead of your customer workflow.</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Add your own phone number, friends, family, employees, or other personal callers. Calls from these numbers stay out of your customer workflow and their voicemails appear in ReplyFlow's Personal section.</p>
                   </div>
                   <div className="flex items-center gap-2">
                   <button
@@ -2133,7 +2133,7 @@ export default function SettingsContent() {
                 </details>
                 <div className="p-2.5 bg-amber-50/70 dark:bg-amber-900/15 border border-amber-200/70 dark:border-amber-800/60 rounded-lg mb-3">
                   <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
-                    Calls from Personal Contacts never create customers, conversations, follow-ups, jobs, appointments, payment requests, or analytics. They are sent directly to Personal Voicemail.
+                    Personal Contacts never create customers, conversations, follow-ups, jobs, appointments, payment requests, or analytics. Their voicemails appear only in ReplyFlow's Personal section.
                   </p>
                 </div>
                 <div className="space-y-2 sm:space-y-2.5">
@@ -2148,9 +2148,9 @@ export default function SettingsContent() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
                       </div>
-                      <h3 className="text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1">No personal contacts.</h3>
+                      <h3 className="text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1">No personal contacts yet.</h3>
                       <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 max-w-[220px] sm:max-w-[280px] mx-auto leading-relaxed">
-                        Add numbers to route to Personal Voicemail.
+                        Add phone numbers whose voicemails should appear in ReplyFlow's Personal section instead of your customer workflow.
                       </p>
                     </div>
                   ) : (
