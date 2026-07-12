@@ -280,16 +280,16 @@ export default function UserDropdown() {
                 <User className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-white">
+                <p className="truncate text-sm font-semibold text-foreground">
                   {business?.name || 'Business'}
                 </p>
-                <p className="mt-0.5 truncate text-xs text-slate-400">
+                <p className="mt-0.5 truncate text-sm text-muted-foreground">
                   {user?.email || 'No email'}
                 </p>
               </div>
             </div>
 
-            <div className="h-px bg-slate-700" />
+            <div className="h-px bg-border/50" />
 
             {/* Menu items */}
             <div className="px-2 py-1">
@@ -357,11 +357,11 @@ export default function UserDropdown() {
             width: `${dropdownPosition.width}px`
           } : undefined}>
             {/* Business Info Section */}
-            <div className="px-4 py-3 border-b border-slate-700 bg-slate-900">
-              <p className="text-sm font-semibold text-white truncate">
+            <div className="px-4 py-3 border-b border-border/50">
+              <p className="text-sm font-semibold text-foreground truncate">
                 {business?.name || 'Business'}
               </p>
-              <p className="text-xs text-slate-300 truncate mt-0.5">
+              <p className="text-sm text-muted-foreground truncate mt-0.5">
                 {user?.email || 'No email'}
               </p>
             </div>
