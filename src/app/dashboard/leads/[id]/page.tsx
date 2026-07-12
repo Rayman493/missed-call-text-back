@@ -341,7 +341,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         automation: true,
         customerHealth: false,
         quickActions: true,
-        aiIntake: true // Default to collapsed
+        aiIntake: true, // Default to collapsed
+        jobs: false,
+        payments: false,
+        recentActivity: false
       }
     }
     const saved = localStorage.getItem('customerDetailsCollapsedSections')
@@ -355,7 +358,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           automation: true,
           customerHealth: false,
           quickActions: true,
-          aiIntake: true
+          aiIntake: true,
+          jobs: false,
+          payments: false,
+          recentActivity: false
         }
       }
     }
@@ -365,7 +371,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       automation: true,
       customerHealth: false,
       quickActions: true,
-      aiIntake: true // Default to collapsed
+      aiIntake: true, // Default to collapsed
+      jobs: false,
+      payments: false,
+      recentActivity: false
     }
   })
   const [photoModalOpen, setPhotoModalOpen] = useState(false)
@@ -2152,199 +2161,260 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const paymentRequests = leadData?.paymentRequests || []
 
     return (
-      <div className="bg-card rounded-lg border border-border/30 p-5 space-y-6">
-        {/* Jobs & Appointments */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-muted-foreground">Jobs & Appointments</h3>
-            <button
-              onClick={handleCreateJobClick}
-              className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
-            >
-              + Job
-            </button>
-          </div>
-          {leadJobs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No jobs yet.</p>
-          ) : (
-            <div className="space-y-2">
-              {leadJobs.map((job: any) => (
-                <div key={job.id} className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{job.title || 'Job'}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {job.scheduled_date ? new Date(job.scheduled_date).toLocaleDateString() : 'No date scheduled'}
-                      {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
-                    </p>
-                  </div>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 capitalize whitespace-nowrap ml-2">
-                    {job.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+      <div className="space-y-5">
+        {/* Jobs & Appointments - Collapsible */}
+        <div className="bg-card rounded-xl border border-border/50 p-4">
           <button
-            onClick={handleAppointmentClick}
-            className="mt-3 w-full text-center text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+            onClick={() => setCollapsedSections((prev: any) => ({ ...prev, jobs: !prev.jobs }))}
+            className="flex items-center justify-between w-full mb-3 group"
           >
-            {leadJobs.length === 0 ? 'Schedule Appointment' : 'Manage Appointment'}
+            <h3 className="text-sm font-medium text-foreground group-hover:text-foreground/80 transition-colors">Jobs</h3>
+            <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.jobs ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
           </button>
-        </div>
-
-        {/* Payment Requests */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-muted-foreground">Payment Requests</h3>
-            <button
-              onClick={() => setShowPaymentModal(true)}
-              disabled={!business || getAvailableProviders(business).length === 0}
-              className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              + Payment
-            </button>
-          </div>
-          {paymentRequests.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No payment requests yet.</p>
-          ) : (
-            <div className="space-y-2">
-              {paymentRequests.map((pr: any) => (
-                <div key={pr.id} className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground">{formatCurrency(pr.amount_cents / 100)}</p>
-                    <p className="text-xs text-muted-foreground truncate">{pr.description || 'Payment request'}</p>
+          {!collapsedSections.jobs && (
+            <div className="transition-all duration-200">
+              {leadJobs.length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-sm text-muted-foreground mb-3">No active jobs yet.</p>
+                  <p className="text-xs text-muted-foreground mb-4">Create a job or schedule an appointment when work begins.</p>
+                  <div className="flex gap-2 justify-center">
+                    <button
+                      onClick={handleCreateJobClick}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Create Job
+                    </button>
+                    <button
+                      onClick={handleAppointmentClick}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-muted hover:bg-muted/80 text-foreground text-xs font-medium rounded-lg transition-colors"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      Schedule
+                    </button>
                   </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full capitalize whitespace-nowrap ml-2 ${
-                    pr.status === 'paid'
-                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                      : pr.status === 'pending'
-                      ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
-                      : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-                  }`}>
-                    {pr.status}
-                  </span>
                 </div>
-              ))}
+              ) : (
+                <div className="space-y-2">
+                  {leadJobs.slice(0, 3).map((job: any) => (
+                    <div key={job.id} className="flex items-center justify-between p-2.5 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-foreground truncate">{job.title || 'Job'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {job.scheduled_date ? new Date(job.scheduled_date).toLocaleDateString() : 'No date'}
+                          {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
+                        </p>
+                      </div>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize whitespace-nowrap ml-2 border border-border/50">
+                        {job.status}
+                      </span>
+                    </div>
+                  ))}
+                  {leadJobs.length > 3 && (
+                    <button
+                      onClick={handleAppointmentClick}
+                      className="w-full text-center text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                    >
+                      View all {leadJobs.length} jobs
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        {/* Timeline - Event-based */}
-        <div>
-          <h3 className="text-sm font-medium text-muted-foreground mb-3">Timeline</h3>
-          {conversationTimeline.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No activity yet.</p>
-          ) : (
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-              {conversationTimeline.slice(-5).reverse().map((item: any) => {
-                // Determine event label and icon
-                let eventLabel = ''
-                let eventIcon = null
-                let isExpandable = false
-                let expandedContent = null
+        {/* Payment Requests - Collapsible */}
+        <div className="bg-card rounded-xl border border-border/50 p-4">
+          <button
+            onClick={() => setCollapsedSections((prev: any) => ({ ...prev, payments: !prev.payments }))}
+            className="flex items-center justify-between w-full mb-3 group"
+          >
+            <h3 className="text-sm font-medium text-foreground group-hover:text-foreground/80 transition-colors">Payments</h3>
+            <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.payments ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {!collapsedSections.payments && (
+            <div className="transition-all duration-200">
+              {paymentRequests.length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-sm text-muted-foreground mb-3">No payment requests have been sent yet.</p>
+                  <p className="text-xs text-muted-foreground mb-4">Request payment once work is ready to invoice.</p>
+                  <button
+                    onClick={() => setShowPaymentModal(true)}
+                    disabled={!business || getAvailableProviders(business).length === 0}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Request Payment
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {paymentRequests.map((pr: any) => (
+                    <div key={pr.id} className="flex items-center justify-between p-2.5 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-foreground">{formatCurrency(pr.amount_cents / 100)}</p>
+                        <p className="text-xs text-muted-foreground">{pr.created_at ? new Date(pr.created_at).toLocaleDateString() : ''}</p>
+                      </div>
+                      <span className={`text-xs px-2 py-0.5 rounded-full capitalize whitespace-nowrap ml-2 border border-border/50 ${
+                        pr.status === 'paid'
+                          ? 'bg-green-500/10 text-green-600 dark:text-green-400'
+                          : pr.status === 'pending'
+                          ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                          : 'bg-muted text-muted-foreground'
+                      }`}>
+                        {pr.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
-                if (item.type === 'message') {
-                  if (item.data?.direction === 'inbound') {
-                    eventLabel = 'Customer Replied'
-                    eventIcon = <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                  } else {
-                    eventLabel = 'SMS Sent'
-                    eventIcon = <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
-                  }
-                } else if (item.type === 'voicemail') {
-                  eventLabel = 'Voicemail Received'
-                  eventIcon = <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
-                } else if (item.type === 'system_event') {
-                  const message = item.data?.message || ''
-                  if (message.includes('Completed Request') || message.includes('Partial Request') || message.includes('Caller Hung Up')) {
-                    eventLabel = 'AI Intake Completed'
-                    eventIcon = <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    isExpandable = true
-                    // Find the corresponding AI call record for details
-                    const aiCallId = item.id.replace('ai-intake-', '')
-                    const aiCall = leadData?.aiCallRecords?.find((r: any) => r.id === aiCallId)
-                    if (aiCall?.extracted_info) {
-                      const extracted = aiCall.extracted_info
-                      expandedContent = (
-                        <div className="mt-2 pt-2 border-t border-border/50 space-y-1 text-xs">
-                          {extracted.reasonForCalling && (
-                            <div><span className="text-muted-foreground">Service:</span> {extracted.reasonForCalling}</div>
-                          )}
-                          {extracted.addressOrLocation && (
-                            <div><span className="text-muted-foreground">Address:</span> {extracted.addressOrLocation}</div>
-                          )}
-                          {extracted.preferredCallbackTime && (
-                            <div><span className="text-muted-foreground">Callback:</span> {extracted.preferredCallbackTime}</div>
-                          )}
-                          {extracted.desiredCompletionTime && (
-                            <div><span className="text-muted-foreground">Completion:</span> {extracted.desiredCompletionTime}</div>
-                          )}
-                          {extracted.importantDetails && (
-                            <div><span className="text-muted-foreground">Details:</span> {extracted.importantDetails}</div>
-                          )}
-                        </div>
-                      )
+        {/* Recent Activity - Collapsible */}
+        <div className="bg-card rounded-xl border border-border/50 p-4">
+          <button
+            onClick={() => setCollapsedSections((prev: any) => ({ ...prev, recentActivity: !prev.recentActivity }))}
+            className="flex items-center justify-between w-full mb-3 group"
+          >
+            <h3 className="text-sm font-medium text-foreground group-hover:text-foreground/80 transition-colors">Recent Activity</h3>
+            <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.recentActivity ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {!collapsedSections.recentActivity && (
+            <div className="transition-all duration-200">
+              {conversationTimeline.length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-sm text-muted-foreground">No activity yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-0 max-h-80 overflow-y-auto pr-1">
+                  {conversationTimeline.slice(-10).reverse().map((item: any, index: number) => {
+                    // Determine event label and icon
+                    let eventLabel = ''
+                    let eventIcon = null
+                    let isExpandable = false
+                    let expandedContent = null
+
+                    if (item.type === 'message') {
+                      if (item.data?.direction === 'inbound') {
+                        eventLabel = 'Customer replied'
+                        eventIcon = <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                      } else {
+                        eventLabel = 'SMS summary sent'
+                        eventIcon = <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                      }
+                    } else if (item.type === 'voicemail') {
+                      eventLabel = 'Voicemail received'
+                      eventIcon = <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                    } else if (item.type === 'system_event') {
+                      const message = item.data?.message || ''
+                      if (message.includes('Completed Request') || message.includes('Partial Request') || message.includes('Caller Hung Up')) {
+                        eventLabel = 'AI intake completed'
+                        eventIcon = <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        isExpandable = true
+                        const aiCallId = item.id.replace('ai-intake-', '')
+                        const aiCall = leadData?.aiCallRecords?.find((r: any) => r.id === aiCallId)
+                        if (aiCall?.extracted_info) {
+                          const extracted = aiCall.extracted_info
+                          expandedContent = (
+                            <div className="mt-2 pt-2 border-t border-border/50 space-y-1 text-xs">
+                              {extracted.reasonForCalling && (
+                                <div><span className="text-muted-foreground">Service:</span> {extracted.reasonForCalling}</div>
+                              )}
+                              {extracted.addressOrLocation && (
+                                <div><span className="text-muted-foreground">Address:</span> {extracted.addressOrLocation}</div>
+                              )}
+                              {extracted.preferredCallbackTime && (
+                                <div><span className="text-muted-foreground">Callback:</span> {extracted.preferredCallbackTime}</div>
+                              )}
+                              {extracted.desiredCompletionTime && (
+                                <div><span className="text-muted-foreground">Completion:</span> {extracted.desiredCompletionTime}</div>
+                              )}
+                              {extracted.importantDetails && (
+                                <div><span className="text-muted-foreground">Details:</span> {extracted.importantDetails}</div>
+                              )}
+                            </div>
+                          )
+                        }
+                      } else if (message.includes('Customer Corrected') || message.includes('Customer Updated')) {
+                        eventLabel = 'Customer updated information'
+                        eventIcon = <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2h2.828l8.586-8.586z" /></svg>
+                      } else if (message.includes('Follow-Ups Cancelled')) {
+                        eventLabel = 'Follow-ups cancelled'
+                        eventIcon = <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      } else if (message.includes('Customer Sent Photos')) {
+                        eventLabel = 'Customer sent photos'
+                        eventIcon = <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                      } else if (message.includes('Payment Received')) {
+                        eventLabel = 'Payment received'
+                        eventIcon = <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      } else if (message.includes('Payment Requested')) {
+                        eventLabel = 'Payment requested'
+                        eventIcon = <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                      } else if (message.includes('Lead Marked Complete')) {
+                        eventLabel = 'Lead marked complete'
+                        eventIcon = <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      } else if (message.includes('added manually')) {
+                        eventLabel = 'Customer created'
+                        eventIcon = <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
+                      } else {
+                        eventLabel = message
+                        eventIcon = <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      }
                     }
-                  } else if (message.includes('Customer Corrected') || message.includes('Customer Updated')) {
-                    eventLabel = 'Customer Updated Information'
-                    eventIcon = <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2h2.828l8.586-8.586z" /></svg>
-                  } else if (message.includes('Follow-Ups Cancelled')) {
-                    eventLabel = 'Follow-Ups Cancelled'
-                    eventIcon = <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  } else if (message.includes('Customer Sent Photos')) {
-                    eventLabel = 'Customer Sent Photos'
-                    eventIcon = <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                  } else if (message.includes('Payment Received')) {
-                    eventLabel = 'Payment Received'
-                    eventIcon = <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  } else if (message.includes('Payment Requested')) {
-                    eventLabel = 'Payment Requested'
-                    eventIcon = <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
-                  } else if (message.includes('Lead Marked Complete')) {
-                    eventLabel = 'Lead Marked Complete'
-                    eventIcon = <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  } else if (message.includes('added manually')) {
-                    eventLabel = 'Customer Created'
-                    eventIcon = <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
-                  } else {
-                    eventLabel = message
-                    eventIcon = <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  }
-                }
 
-                return (
-                  <div key={item.id} className="flex gap-3 text-sm">
-                    <div className="mt-0.5 flex-shrink-0 text-slate-400">
-                      {eventIcon}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <button
-                        onClick={() => {
-                          // Toggle expansion for expandable events
-                          if (isExpandable) {
-                            // Simple toggle - in a real implementation you'd use state
-                            const element = document.getElementById(`expanded-${item.id}`)
-                            if (element) {
-                              element.classList.toggle('hidden')
-                            }
-                          }
-                        }}
-                        className="text-left w-full"
-                      >
-                        <p className="text-foreground font-medium break-words hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                          {eventLabel}
-                        </p>
-                        <p className="text-xs text-muted-foreground">{formatRelativeTime(item.created_at)}</p>
-                      </button>
-                      {isExpandable && expandedContent && (
-                        <div id={`expanded-${item.id}`} className="hidden">
-                          {expandedContent}
+                    return (
+                      <div key={item.id}>
+                        <div className="flex gap-3 py-3">
+                          <div className="mt-0.5 flex-shrink-0">
+                            {eventIcon}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <button
+                              onClick={() => {
+                                if (isExpandable) {
+                                  const element = document.getElementById(`expanded-${item.id}`)
+                                  if (element) {
+                                    element.classList.toggle('hidden')
+                                  }
+                                }
+                              }}
+                              className="text-left w-full"
+                            >
+                              <p className="text-sm font-medium text-foreground break-words hover:text-primary transition-colors">
+                                {eventLabel}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-0.5">{formatRelativeTime(item.created_at)}</p>
+                            </button>
+                            {isExpandable && expandedContent && (
+                              <div id={`expanded-${item.id}`} className="hidden">
+                                {expandedContent}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
+                        {index < conversationTimeline.slice(-10).reverse().length - 1 && (
+                          <div className="border-t border-border/30"></div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -3211,9 +3281,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           
           {/* Desktop Sidebar - Simplified */}
           <aside className="sticky top-4 overflow-y-auto max-h-[calc(100vh-240px)]" data-sidebar>
-            <div className="space-y-6">
+            <div className="space-y-5">
               {/* Consolidated Information Panel - Simplified */}
-              <div className="bg-card rounded-lg border border-border/30 p-5">
+              <div className="bg-card rounded-xl border border-border/50 p-4">
                 <div className="space-y-5">
                   {/* AI Intake Summary */}
                   {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
@@ -3236,55 +3306,55 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <VoicemailSummary leadData={leadData} />
                   )}
 
-                  {/* Customer Health - Improved with status pills */}
+                  {/* Customer Status - Premium rows */}
                   <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-3">Customer Health</h3>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-slate-600 dark:text-slate-400">AI Intake</span>
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getAIIntakeStatusColor(getAIIntakeStatus(leadData || lead))}`}>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-3">Customer Status</h3>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between py-1">
+                        <span className="text-sm text-foreground font-medium">AI Intake</span>
+                        <span className={`text-sm font-semibold ${getAIIntakeStatusColor(getAIIntakeStatus(leadData || lead)).replace('bg-', 'text-').replace('dark:bg-', 'dark:text-').replace('/30', '').replace('/20', '')}`}>
                           {getAIIntakeStatusLabel(getAIIntakeStatus(leadData || lead))}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-slate-600 dark:text-slate-400">Customer Replied</span>
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                      <div className="flex items-center justify-between py-1">
+                        <span className="text-sm text-foreground font-medium">Customer Replied</span>
+                        <span className={`text-sm font-semibold ${
                           leadData?.raw_metadata?.customer_replied || leadData?.raw_metadata?.replied_after_ai_call || leadData?.raw_metadata?.last_customer_reply_at || followUpJobs.some((j: any) => j.cancelled_reason === 'customer_replied')
-                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                            ? 'text-green-600 dark:text-green-400'
+                            : 'text-muted-foreground'
                         }`}>
                           {leadData?.raw_metadata?.customer_replied || leadData?.raw_metadata?.replied_after_ai_call || leadData?.raw_metadata?.last_customer_reply_at || followUpJobs.some((j: any) => j.cancelled_reason === 'customer_replied') ? 'Yes' : 'No'}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-slate-600 dark:text-slate-400">Corrections</span>
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                      <div className="flex items-center justify-between py-1">
+                        <span className="text-sm text-foreground font-medium">Corrections</span>
+                        <span className={`text-sm font-semibold ${
                           (leadData?.raw_metadata?.corrected_fields && Object.keys(leadData.raw_metadata.corrected_fields).length > 0)
-                            ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                            ? 'text-amber-600 dark:text-amber-400'
+                            : 'text-muted-foreground'
                         }`}>
                           {leadData?.raw_metadata?.corrected_fields ? Object.keys(leadData.raw_metadata.corrected_fields).length : 0}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-slate-600 dark:text-slate-400">Follow-Ups</span>
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                      <div className="flex items-center justify-between py-1">
+                        <span className="text-sm text-foreground font-medium">Follow-Ups</span>
+                        <span className={`text-sm font-semibold ${
                           !followUpSettings || !followUpSettings.followUps || followUpSettings.followUps.length === 0
-                            ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                            ? 'text-muted-foreground'
                             : !followUpSettings.enabled
-                            ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                            ? 'text-muted-foreground'
                             : followUpJobs.some((j: any) => j.status === 'pending')
-                            ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                            ? 'text-amber-600 dark:text-amber-400'
                             : followUpJobs.some((j: any) => j.status === 'sent')
-                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                            : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                            ? 'text-green-600 dark:text-green-400'
+                            : 'text-blue-600 dark:text-blue-400'
                         }`}>
                           {!followUpSettings || !followUpSettings.followUps || followUpSettings.followUps.length === 0
                             ? 'Not Configured'
                             : !followUpSettings.enabled
                             ? 'Disabled'
                             : followUpJobs.some((j: any) => j.status === 'pending')
-                            ? 'Scheduled'
+                            ? 'Active'
                             : followUpJobs.some((j: any) => j.status === 'sent')
                             ? 'Complete'
                             : 'Configured'}
