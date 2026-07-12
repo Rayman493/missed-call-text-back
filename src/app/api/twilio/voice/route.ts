@@ -161,6 +161,15 @@ function generatePersonalVoicemailResponse(businessId: string, callerPhone: stri
   // No AI, no lead, no conversation, no SMS, no follow-ups
   const voicemailMessage = "Thank you for calling. Please leave a message after the tone.";
   
+  // Build properly encoded callback URLs using URLSearchParams
+  const actionUrl = new URL('/api/twilio/personal-voicemail', process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000');
+  actionUrl.searchParams.set('businessId', businessId);
+  actionUrl.searchParams.set('callerPhone', callerPhone);
+  
+  const recordingStatusCallbackUrl = new URL('/api/twilio/recording-status', process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000');
+  recordingStatusCallbackUrl.searchParams.set('businessId', businessId);
+  recordingStatusCallbackUrl.searchParams.set('callerPhone', callerPhone);
+  
   const voicemailTwiml = `
 <Response>
   <Pause length="1"/>
@@ -169,9 +178,9 @@ function generatePersonalVoicemailResponse(businessId: string, callerPhone: stri
     maxLength="60"
     playBeep="true"
     trim="trim-silence"
-    action="/api/twilio/personal-voicemail?businessId=${businessId}&callerPhone=${callerPhone}"
+    action="${actionUrl.toString()}"
     method="POST"
-    recordingStatusCallback="/api/twilio/recording-status?businessId=${businessId}&callerPhone=${callerPhone}"
+    recordingStatusCallback="${recordingStatusCallbackUrl.toString()}"
     recordingStatusCallbackMethod="POST"
   />
   <Hangup/>

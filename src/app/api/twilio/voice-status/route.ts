@@ -11,6 +11,7 @@ import { hasAiSummaryBeenSent } from '@/lib/sms-decision'
 import { dispatchAutomaticCustomerSms } from '@/lib/auto-sms-dispatcher'
 import { isCompleteAIIntake } from '@/lib/ai-intake-completion'
 import { isAutomatedTranscriptSpam } from '@/lib/smart-filtering'
+import { detectPersonalVoicemailFromUrl } from '@/lib/personal-voicemail-detector'
 
 console.log('[VOICE STATUS MODULE LOADED] =========================================');
 console.log('[VOICE STATUS MODULE LOADED] timestamp:', new Date().toISOString());
@@ -37,7 +38,7 @@ function logCallTrace(data: {
 }
 
 // Shared processing function for voice status callbacks
-async function processVoiceStatusCallback(params: any, method: string) {
+async function processVoiceStatusCallback(params: any, method: string, requestUrl?: string) {
   console.log('[VOICE STATUS PROCESS START] =========================================');
   console.log('[VOICE STATUS PROCESS START] method:', method);
   console.log('[VOICE STATUS PROCESS START] timestamp:', new Date().toISOString());
@@ -91,6 +92,27 @@ async function processVoiceStatusCallback(params: any, method: string) {
   if (!rateLimitResult.success) {
     console.warn('[Voice Status] Rate limit exceeded for CallSid:', CallSid);
     return { success: false, reason: 'rate_limit_exceeded' };
+  }
+
+  // === PERSONAL VOICEMAIL DETECTION ===
+  // Check if this is a Personal Voicemail call before any AI processing
+  // Personal Voicemail calls are completely independent of the AI/customer pipeline
+  if (requestUrl) {
+    const personalVoicemailDetection = detectPersonalVoicemailFromUrl(requestUrl);
+    if (personalVoicemailDetection.isPersonalVoicemail) {
+      console.log('[VOICE STATUS PERSONAL VOICEMAIL] =========================================');
+      console.log('[VOICE STATUS PERSONAL VOICEMAIL] Detected personal voicemail call');
+      console.log('[VOICE STATUS PERSONAL VOICEMAIL] CallSid:', CallSid);
+      console.log('[VOICE STATUS PERSONAL VOICEMAIL] businessId:', personalVoicemailDetection.businessId);
+      console.log('[VOICE STATUS PERSONAL VOICEMAIL] callerPhone:', personalVoicemailDetection.callerPhone);
+      console.log('[VOICE STATUS PERSONAL VOICEMAIL] Bypassing all AI processing');
+      console.log('[VOICE STATUS PERSONAL VOICEMAIL] =========================================');
+      
+      // Personal voicemail calls have no AI processing, no leads, no conversations
+      // The recording-status callback handles transcription independently
+      // Nothing to do here - return success immediately
+      return { success: true, reason: 'personal_voicemail_bypass' };
+    }
   }
 
   // Create fresh Supabase client for this request
@@ -1310,8 +1332,8 @@ export async function POST(req: NextRequest) {
       return new Response('Unauthorized', { status: 401 });
     }
 
-    // Call shared processing function
-    await processVoiceStatusCallback(params, 'POST');
+    // Call shared processing function with request URL for personal voicemail detection
+    await processVoiceStatusCallback(params, 'POST', req.url);
 
     return new Response("OK", { status: 200 });
 
@@ -1352,7 +1374,7 @@ export async function GET(req: NextRequest) {
     }
 
     console.log('[VOICE STATUS WEBHOOK GET] Processing callback with shared function');
-    await processVoiceStatusCallback(params, 'GET');
+    await processVoiceStatusCallback(params, 'GET', req.url);
   } else {
     console.log('[VOICE STATUS WEBHOOK GET] Returning OK for non-callback GET request');
   }
