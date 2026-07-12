@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatPhoneNumber, formatRelativeTime } from '@/lib/utils'
-import { Trash2, Check, Phone, Clock } from 'lucide-react'
+import { Trash2, Check, Phone, Clock, Timer } from 'lucide-react'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
 import AppHeader from '@/components/AppHeader'
@@ -136,11 +136,11 @@ export default function PersonalVoicemailPage() {
                   </p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {voicemails.map((voicemail) => (
                     <div
                       key={voicemail.id}
-                      className={`bg-card rounded-lg border border-border p-4 ${
+                      className={`bg-card rounded-xl border border-border p-5 shadow-sm hover:shadow-md transition-shadow duration-200 ${
                         !voicemail.listened_at ? 'border-l-4 border-l-blue-500' : ''
                       }`}
                     >
@@ -148,7 +148,7 @@ export default function PersonalVoicemailPage() {
                       <div className="hidden sm:flex items-center gap-4">
                         {/* Caller Info */}
                         <div className="w-64 flex-shrink-0">
-                          <div className="flex items-center gap-2 mb-1">
+                          <div className="flex items-center gap-2 mb-2">
                             <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                             <span className="font-medium text-foreground">
                               {voicemail.caller_name || formatPhoneNumber(voicemail.caller_phone)}
@@ -164,8 +164,11 @@ export default function PersonalVoicemailPage() {
                               <Clock className="w-3 h-3" />
                               {formatRelativeTime(voicemail.created_at)}
                             </span>
-                            <span>•</span>
-                            <span>{voicemail.duration_seconds}s</span>
+                            <span className="text-muted-foreground/50">•</span>
+                            <span className="flex items-center gap-1">
+                              <Timer className="w-3 h-3" />
+                              {voicemail.duration_seconds}s
+                            </span>
                           </div>
                         </div>
                         
@@ -184,7 +187,7 @@ export default function PersonalVoicemailPage() {
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <button
                             onClick={() => handleDelete(voicemail)}
-                            className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors duration-150"
+                            className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
                             title="Delete"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -211,8 +214,11 @@ export default function PersonalVoicemailPage() {
                             <Clock className="w-3 h-3" />
                             {formatRelativeTime(voicemail.created_at)}
                           </span>
-                          <span>•</span>
-                          <span>{voicemail.duration_seconds}s</span>
+                          <span className="text-muted-foreground/50">•</span>
+                          <span className="flex items-center gap-1">
+                            <Timer className="w-3 h-3" />
+                            {voicemail.duration_seconds}s
+                          </span>
                         </div>
                         
                         {/* Audio Player */}
@@ -232,7 +238,7 @@ export default function PersonalVoicemailPage() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleDelete(voicemail)}
-                            className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors duration-150"
+                            className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
                             title="Delete"
                           >
                             <Trash2 className="w-4 h-4" />

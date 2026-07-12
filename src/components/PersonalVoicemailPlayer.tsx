@@ -292,22 +292,22 @@ export function PersonalVoicemailPlayer({
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0
 
   return (
-    <div className="flex items-center gap-3 flex-1 min-w-0">
+    <div className="flex items-center gap-4 flex-1 min-w-0">
       {/* Play/Pause Button */}
       <button
         onClick={playerState === 'ended' ? handleReplay : togglePlayPause}
         disabled={playerState === 'loading'}
-        className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        className="flex-shrink-0 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 hover:scale-105 active:scale-95 shadow-md hover:shadow-lg"
         aria-label={playerState === 'playing' ? 'Pause voicemail' : playerState === 'ended' ? 'Replay voicemail' : 'Play voicemail'}
       >
         {playerState === 'loading' ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
+          <Loader2 className="w-5 h-5 animate-spin" />
         ) : playerState === 'playing' ? (
-          <Pause className="w-4 h-4" />
+          <Pause className="w-5 h-5" />
         ) : playerState === 'ended' ? (
-          <Play className="w-4 h-4" />
+          <Play className="w-5 h-5" />
         ) : (
-          <Play className="w-4 h-4" />
+          <Play className="w-5 h-5" />
         )}
       </button>
 
@@ -331,7 +331,7 @@ export function PersonalVoicemailPlayer({
               value={currentTime}
               onChange={handleSeek}
               disabled={playerState === 'loading'}
-              className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors duration-200"
               style={{
                 background: `linear-gradient(to right, #2563eb ${progress}%, #e2e8f0 ${progress}%)`,
               }}
@@ -340,7 +340,7 @@ export function PersonalVoicemailPlayer({
           </div>
 
           {/* Time Display */}
-          <div className="flex-shrink-0 text-xs text-muted-foreground font-mono">
+          <div className="flex-shrink-0 text-xs text-muted-foreground font-mono tabular-nums">
             {formatDuration(currentTime)} / {formatDuration(duration)}
           </div>
 
@@ -349,7 +349,7 @@ export function PersonalVoicemailPlayer({
             <button
               ref={volumeButtonRef}
               onClick={() => setIsVolumePopoverOpen(!isVolumePopoverOpen)}
-              className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors duration-150 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="p-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 hover:shadow-md"
               aria-label={isMuted ? 'Unmute voicemail' : 'Mute voicemail'}
             >
               {getVolumeIcon()}
@@ -359,11 +359,11 @@ export function PersonalVoicemailPlayer({
             {isVolumePopoverOpen && (
               <div
                 ref={volumePopoverRef}
-                className="absolute top-full right-0 mt-2 w-32 bg-popover border border-border rounded-lg shadow-lg p-3 z-50"
+                className="absolute top-full right-0 mt-2 w-40 bg-popover border border-border rounded-lg shadow-lg p-4 z-50 animate-in fade-in slide-in-from-top-2 duration-200"
                 role="dialog"
                 aria-label="Volume control"
               >
-                <div className="text-xs font-medium text-foreground mb-2">Volume</div>
+                <div className="text-xs font-medium text-foreground mb-3">Volume</div>
                 <input
                   type="range"
                   min="0"
@@ -371,7 +371,7 @@ export function PersonalVoicemailPlayer({
                   step="0.01"
                   value={isMuted ? 0 : volume}
                   onChange={handleVolumeChange}
-                  className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors duration-200"
                   style={{
                     background: `linear-gradient(to right, #2563eb ${(isMuted ? 0 : volume) * 100}%, #e2e8f0 ${(isMuted ? 0 : volume) * 100}%)`,
                   }}
