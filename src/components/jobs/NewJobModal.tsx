@@ -26,18 +26,18 @@ export default function NewJobModal({
 
   return (
     <>
-      <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-in fade-in duration-200" onClick={onClose} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:p-4" data-scroll-lock-allow>
-        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/90 shadow-[0_1px_0_rgba(255,255,255,0.06),0_28px_90px_rgba(2,6,23,0.65)] backdrop-blur-xl w-full max-w-sm max-h-[80dvh] flex flex-col">
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-300/40 to-transparent" />
+        <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-card shadow-2xl shadow-black/10 dark:shadow-black/30 w-full max-w-sm max-h-[80dvh] flex flex-col animate-in zoom-in-95 duration-200">
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-white/[0.025] flex-shrink-0">
-            <h2 className="text-base font-semibold text-white">{title}</h2>
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border/50 flex-shrink-0">
+            <h2 className="text-base font-semibold text-foreground">{title}</h2>
             <button
               onClick={onClose}
-              className="p-1.5 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
+              className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors flex-shrink-0"
+              aria-label="Close modal"
             >
-              <X className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+              <X className="w-5 h-5" />
             </button>
           </div>
 
@@ -52,14 +52,14 @@ export default function NewJobModal({
             {/* Existing Lead */}
             <button
               onClick={() => { onClose(); onSelectLead() }}
-              className="w-full flex items-start gap-3 p-3 rounded-xl border border-white/10 bg-white/[0.025] hover:border-blue-400/50 hover:bg-blue-500/10 transition-all text-left group active:scale-[0.99]"
+              className="w-full flex items-start gap-3 p-3 rounded-xl border border-border/50 bg-muted/50 hover:border-border hover:bg-muted transition-all text-left group active:scale-[0.98]"
             >
-              <div className="w-8 h-8 rounded-xl bg-blue-500/10 group-hover:bg-blue-500/20 flex items-center justify-center flex-shrink-0 transition-colors ring-1 ring-blue-400/15">
-                <Users className="w-4.5 h-4.5 text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+              <div className="w-8 h-8 rounded-xl bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center flex-shrink-0 transition-colors">
+                <Users className="w-4.5 h-4.5 text-muted-foreground group-hover:text-primary transition-colors" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-white">Select Existing Customer</p>
-                <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                <p className="text-sm font-semibold text-foreground">Select Existing Customer</p>
+                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
                   Choose from your existing customers.
                 </p>
               </div>
@@ -68,14 +68,14 @@ export default function NewJobModal({
             {/* Add New Customer */}
             <button
               onClick={() => { onClose(); onAddCustomer() }}
-              className="w-full flex items-start gap-3 p-3 rounded-xl border border-white/10 bg-white/[0.025] hover:border-blue-400/50 hover:bg-blue-500/10 transition-all text-left group active:scale-[0.99]"
+              className="w-full flex items-start gap-3 p-3 rounded-xl border border-border/50 bg-muted/50 hover:border-border hover:bg-muted transition-all text-left group active:scale-[0.98]"
             >
-              <div className="w-8 h-8 rounded-xl bg-blue-500/10 group-hover:bg-blue-500/20 flex items-center justify-center flex-shrink-0 transition-colors ring-1 ring-blue-400/15">
-                <FileText className="w-4.5 h-4.5 text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+              <div className="w-8 h-8 rounded-xl bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center flex-shrink-0 transition-colors">
+                <FileText className="w-4.5 h-4.5 text-muted-foreground group-hover:text-primary transition-colors" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-white">Add New Customer</p>
-                <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                <p className="text-sm font-semibold text-foreground">Add New Customer</p>
+                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
                   Add a new customer in Customers, then create the job.
                 </p>
               </div>

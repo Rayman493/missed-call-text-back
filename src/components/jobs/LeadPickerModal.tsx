@@ -137,31 +137,31 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect, onAddNew, t
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-in fade-in duration-200" onClick={onClose} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:p-4">
-        <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-md flex flex-col max-h-[80dvh] sm:max-h-[85vh] overflow-hidden">
+        <div className="relative bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-md flex flex-col max-h-[80dvh] sm:max-h-[85vh] overflow-hidden animate-in zoom-in-95 duration-200">
 
           {/* Header */}
-          <div className="flex items-center justify-between p-4 sm:p-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border/50 flex-shrink-0">
             <div>
-              <h2 className="text-base font-semibold text-slate-900 dark:text-foreground">{title || 'Select a Customer'}</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{subtitle || 'Customer info will be prefilled automatically.'}</p>
+              <h2 className="text-base font-semibold text-foreground">{title || 'Select a Customer'}</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">{subtitle || 'Customer info will be prefilled automatically.'}</p>
             </div>
-            <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0">
-              <X className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+            <button onClick={onClose} className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors flex-shrink-0" aria-label="Close modal">
+              <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Search */}
-          <div className="p-3 sm:p-4 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
+          <div className="p-3 sm:p-4 border-b border-border/50 flex-shrink-0">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 placeholder="Search by name, phone, or service..."
-                className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-foreground placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-9 pr-3 py-2 text-sm bg-muted/50 border border-border/50 rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
               />
             </div>
           </div>
@@ -257,17 +257,17 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect, onAddNew, t
 
           {/* Footer count + create new lead */}
           {!isLoading && !error && (
-            <div className="px-4 sm:px-5 py-2 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:pb-2 border-t border-slate-100 dark:border-slate-800 flex-shrink-0 space-y-2">
+            <div className="px-4 sm:px-5 py-2 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:pb-2 border-t border-border/50 flex-shrink-0 space-y-2">
               {onAddNew && (
                 <button
                   onClick={() => { onClose(); onAddNew() }}
-                  className="w-full text-left text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 py-2 px-1 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                  className="w-full text-left text-sm font-medium text-primary hover:text-primary/80 py-2 px-1 rounded-lg hover:bg-primary/10 transition-colors"
                 >
                   + Create New Customer
                 </button>
               )}
               {filtered.length > 0 && (
-                <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                <p className="text-[11px] text-muted-foreground">
                   {query ? `${filtered.length} of ${leads.length} customers` : `${leads.length} customer${leads.length !== 1 ? 's' : ''}`}
                 </p>
               )}

@@ -66,7 +66,7 @@ export default function Modal({ isOpen, onClose, children, title, className = ''
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
       onClick={handleBackdropClick}
     >
       <div
@@ -75,26 +75,23 @@ export default function Modal({ isOpen, onClose, children, title, className = ''
           relative w-full max-w-lg
           max-h-[calc(100dvh-2rem)] md:max-h-[90vh]
           overflow-hidden
-          rounded-2xl border border-white/10
-          bg-slate-900/90
-          shadow-[0_1px_0_rgba(255,255,255,0.06),0_28px_90px_rgba(2,6,23,0.65)]
-          backdrop-blur-xl
-          flex flex-col
+          rounded-2xl border border-border/50
+          bg-card
+          shadow-2xl shadow-black/10 dark:shadow-black/30
+          flex flex-col animate-in zoom-in-95 duration-200
           ${className}
         `}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-300/40 to-transparent" />
-        
         {title && (
-          <div className="flex items-center justify-between p-6 border-b border-white/10 bg-white/[0.025] shrink-0">
-            <h2 className="text-xl font-semibold text-white">{title}</h2>
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border/50 shrink-0">
+            <h2 className="text-lg font-semibold text-foreground">{title}</h2>
             <button
               onClick={onClose}
-              className="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+              className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
               aria-label="Close"
             >
-              <X className="w-6 h-6" />
+              <X className="w-5 h-5" />
             </button>
           </div>
         )}

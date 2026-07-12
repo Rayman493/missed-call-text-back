@@ -49,20 +49,21 @@ export default function DayDetailModal({ isOpen, onClose, date, events, onAddEve
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-slate-900 rounded-xl border border-slate-700/60 shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col animate-in zoom-in-95 duration-200">
+      <div className="bg-card rounded-2xl border border-border/50 shadow-2xl shadow-black/10 dark:shadow-black/30 w-full max-w-md max-h-[80vh] flex flex-col animate-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700/60">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-              <Calendar className="w-4 h-4 text-blue-400" />
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Calendar className="w-4 h-4 text-primary" />
             </div>
-            <h2 className="text-base font-semibold text-white tracking-tight">{formatDate(date)}</h2>
+            <h2 className="text-base font-semibold text-foreground tracking-tight">{formatDate(date)}</h2>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors"
+            className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+            aria-label="Close modal"
           >
-            <X className="w-4 h-4 text-slate-400" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -105,11 +106,11 @@ export default function DayDetailModal({ isOpen, onClose, date, events, onAddEve
 
         {/* Footer */}
         {onAddEvent && (
-          <div className="px-5 py-4 border-t border-slate-700/60">
+          <div className="px-5 py-4 border-t border-border/50">
             <button
               onClick={handleAddEventClick}
               disabled={isAdding}
-              className="w-full px-4 py-2.5 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20"
+              className="w-full px-4 py-2.5 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
             >
               <Plus className="w-4 h-4" />
               <span>{isAdding ? 'Adding...' : 'Add event'}</span>

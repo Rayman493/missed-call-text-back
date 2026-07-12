@@ -267,7 +267,7 @@ export default function UserDropdown() {
             ref={dropdownContentRef}
             role="menu"
             tabIndex={-1}
-            className="fixed z-[1000] overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 shadow-2xl sm:hidden"
+            className="fixed z-[1000] overflow-hidden rounded-2xl border border-border/50 bg-card shadow-2xl shadow-black/10 dark:shadow-black/30 sm:hidden animate-in fade-in slide-in-from-top-2 duration-200"
             style={dropdownPosition ? {
               top: `${dropdownPosition.top}px`,
               left: `${dropdownPosition.left}px`,
@@ -351,7 +351,7 @@ export default function UserDropdown() {
           </div>
 
           {/* Desktop dropdown - portal rendered */}
-          <div ref={desktopDropdownContentRef} className="hidden sm:block fixed z-[1000] bg-slate-950 rounded-xl shadow-xl border border-slate-700 py-2" style={dropdownPosition ? {
+          <div ref={desktopDropdownContentRef} className="hidden sm:block fixed z-[1000] bg-card rounded-xl shadow-xl shadow-black/10 dark:shadow-black/30 border border-border/50 py-2 animate-in fade-in slide-in-from-top-2 duration-200" style={dropdownPosition ? {
             top: `${dropdownPosition.top}px`,
             left: `${dropdownPosition.left}px`,
             width: `${dropdownPosition.width}px`

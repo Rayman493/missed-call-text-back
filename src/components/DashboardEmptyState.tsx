@@ -112,13 +112,13 @@ export default function DashboardEmptyState() {
       {/* Test My Setup Modal */}
       {showTestModal && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200"
           role="dialog"
           aria-modal="true"
           aria-labelledby="test-modal-title"
           onKeyDown={handleKeyDown}
         >
-          <div className="bg-card rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto" tabIndex={-1}>
+          <div className="bg-card rounded-2xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto shadow-2xl shadow-black/10 dark:shadow-black/30 animate-in zoom-in-95 duration-200" tabIndex={-1}>
             <h2 id="test-modal-title" className="text-xl font-bold text-foreground mb-4">
               Test Your Setup
             </h2>
@@ -200,7 +200,7 @@ export default function DashboardEmptyState() {
             {/* Close Button */}
             <button
               onClick={handleCloseTestModal}
-              className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors duration-150 font-medium"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-3 px-4 rounded-lg transition-colors duration-200 font-medium"
             >
               Close
             </button>

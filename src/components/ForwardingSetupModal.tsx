@@ -192,10 +192,10 @@ export default function ForwardingSetupModal() {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-      <div className="bg-card rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl shadow-black/10 dark:shadow-black/30">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+      <div className="bg-card rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl shadow-black/10 dark:shadow-black/30 animate-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="sticky top-0 bg-card border border-border p-5 flex items-center justify-between">
+        <div className="sticky top-0 bg-card border-b border-border/50 px-5 py-4 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold text-foreground mb-1.5">Connect your business phone</h2>
             <p className="text-muted-foreground text-sm">
@@ -207,7 +207,8 @@ export default function ForwardingSetupModal() {
               // Allow user to dismiss modal without marking setup complete
               setIsDismissed(true)
             }}
-            className="text-muted-foreground hover:text-foreground transition-colors"
+            className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+            aria-label="Close modal"
           >
             <X className="w-5 h-5" />
           </button>
@@ -418,13 +419,14 @@ export default function ForwardingSetupModal() {
 
       {/* Quick Guide Modal */}
       {showQuickGuide && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
-          <div className="bg-card rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto">
-            <div className="sticky top-0 bg-card border-b border-border p-4 flex items-center justify-between">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4 animate-in fade-in duration-200">
+          <div className="bg-card rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+            <div className="sticky top-0 bg-card border-b border-border/50 px-5 py-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-foreground">Call Forwarding Quick Guide</h3>
               <button
                 onClick={() => setShowQuickGuide(false)}
-                className="text-muted-foreground hover:text-foreground transition-colors"
+                className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+                aria-label="Close modal"
               >
                 <X className="w-5 h-5" />
               </button>

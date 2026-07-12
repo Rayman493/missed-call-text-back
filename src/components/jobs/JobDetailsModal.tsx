@@ -223,17 +223,17 @@ export default function JobDetailsModal({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] animate-in fade-in duration-200" onClick={onClose} />
       <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-lg max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
           {/* Header */}
-          <div className="flex items-start justify-between p-5 border-b border-slate-200 dark:border-slate-700">
+          <div className="flex items-start justify-between px-5 py-4 border-b border-border/50">
             <div className="flex items-start gap-3 flex-1 min-w-0">
-              <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                <Briefcase className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Briefcase className="w-4 h-4 text-primary" />
               </div>
               <div className="min-w-0">
-                <h2 className="text-base font-semibold text-slate-900 dark:text-foreground leading-snug break-words">{job.title}</h2>
+                <h2 className="text-base font-semibold text-foreground leading-snug break-words">{job.title}</h2>
                 <div className="flex items-center gap-2 mt-1">
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${STATUS_BADGE[job.status]}`}>
                     {currentStatusOption?.label}
@@ -247,8 +247,8 @@ export default function JobDetailsModal({
                 </div>
               </div>
             </div>
-            <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0">
-              <X className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+            <button onClick={onClose} className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors flex-shrink-0" aria-label="Close modal">
+              <X className="w-5 h-5" />
             </button>
           </div>
 
@@ -453,13 +453,13 @@ export default function JobDetailsModal({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between p-5 border-t border-slate-200 dark:border-slate-700">
+          <div className="flex items-center justify-between px-5 py-4 border-t border-border/50">
             {showDeleteConfirm ? (
               <div className="flex items-center gap-2 w-full">
-                <span className="text-xs text-slate-600 dark:text-slate-400 flex-1">Delete this job?</span>
+                <span className="text-xs text-muted-foreground flex-1">Delete this job?</span>
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
-                  className="px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                  className="px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
                 >
                   Cancel
                 </button>
@@ -475,16 +475,16 @@ export default function JobDetailsModal({
               <>
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="p-2 text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                  className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                   title="Delete job"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-5 h-5" />
                 </button>
                 <button
                   onClick={() => { onEdit(job); onClose() }}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm"
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors shadow-sm"
                 >
-                  <Pencil className="w-3.5 h-3.5" />
+                  <Pencil className="w-4 h-4" />
                   Edit
                 </button>
               </>
@@ -511,19 +511,19 @@ export default function JobDetailsModal({
       {/* Cancel Payment Confirmation */}
       {showCancelConfirm && (
         <>
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70]" onClick={() => setShowCancelConfirm(false)} />
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[70] animate-in fade-in duration-200" onClick={() => setShowCancelConfirm(false)} />
           <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-sm">
+            <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-sm animate-in zoom-in-95 duration-200">
               <div className="p-5">
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">Cancel Payment Request?</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
+                <h3 className="text-lg font-semibold text-foreground mb-2">Cancel Payment Request?</h3>
+                <p className="text-sm text-muted-foreground mb-4">
                   This will cancel the payment request for {paymentRequest ? formatCurrency(paymentRequest.amount_cents / 100) : 'this amount'}. This action cannot be undone.
                 </p>
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setShowCancelConfirm(false)}
                     disabled={isCancellingPayment}
-                    className="flex-1 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50"
+                    className="flex-1 px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50"
                   >
                     Keep Request
                   </button>

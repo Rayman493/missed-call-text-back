@@ -124,18 +124,17 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
-      <div className="relative w-full max-w-lg max-h-[calc(100dvh-8rem-env(safe-area-inset-bottom))] md:max-h-[90vh] overflow-hidden rounded-2xl border border-white/10 bg-slate-900/90 shadow-[0_1px_0_rgba(255,255,255,0.06),0_28px_90px_rgba(2,6,23,0.65)] backdrop-blur-xl flex flex-col">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-300/40 to-transparent" />
-        
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="relative w-full max-w-lg max-h-[calc(100dvh-8rem-env(safe-area-inset-bottom))] md:max-h-[90vh] overflow-hidden rounded-2xl border border-border/50 bg-card shadow-2xl shadow-black/10 dark:shadow-black/30 flex flex-col animate-in zoom-in-95 duration-200">
         {/* Sticky Header */}
-        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/10 bg-white/[0.025] flex-shrink-0">
-          <h2 className="text-xl font-semibold text-white">Add Customer</h2>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border/50 flex-shrink-0">
+          <h2 className="text-lg font-semibold text-foreground">Add Customer</h2>
           <button
             onClick={onClose}
-            className="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+            className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+            aria-label="Close modal"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -261,12 +260,12 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
         </div>
 
         {/* Sticky Footer */}
-        <div className="flex gap-3 p-4 sm:p-6 border-t border-white/10 bg-white/[0.025] flex-shrink-0 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-6">
+        <div className="flex gap-3 px-5 py-4 border-t border-border/50 flex-shrink-0 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-4">
           <button
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="flex-1 px-4 py-2.5 border border-white/10 text-slate-300 rounded-lg hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-4 py-2.5 border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
@@ -277,11 +276,11 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
               handleSubmit(e)
             }}
             disabled={isSubmitting}
-            className="premium-button flex-1 px-4 py-2.5 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {isSubmitting ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground"></div>
                 Adding...
               </>
             ) : (

@@ -291,23 +291,24 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
         }
       }}
     >
-      <div className="bg-slate-900 rounded-xl border border-slate-700/60 shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col animate-in zoom-in-95 duration-200">
+      <div className="bg-card rounded-2xl border border-border/50 shadow-2xl shadow-black/10 dark:shadow-black/30 w-full max-w-md max-h-[80vh] flex flex-col animate-in zoom-in-95 duration-200">
         {/* Visually hidden title for accessibility */}
         <h2 id="event-title" className="sr-only">{event.summary}</h2>
         
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700/60">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
           <div className="flex items-center gap-2.5">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${event.isHoliday ? 'bg-emerald-500/10' : 'bg-blue-500/10'}`}>
-              <Calendar className={`w-4 h-4 ${event.isHoliday ? 'text-emerald-400' : 'text-blue-400'}`} />
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${event.isHoliday ? 'bg-emerald-500/10' : 'bg-primary/10'}`}>
+              <Calendar className={`w-4 h-4 ${event.isHoliday ? 'text-emerald-400' : 'text-primary'}`} />
             </div>
-            <h2 className="text-base font-semibold text-white tracking-tight truncate">{event.summary}</h2>
+            <h2 className="text-base font-semibold text-foreground tracking-tight truncate">{event.summary}</h2>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors"
+            className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+            aria-label="Close modal"
           >
-            <X className="w-4 h-4 text-slate-400" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -478,7 +479,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-slate-700/60">
+        <div className="px-5 py-4 border-t border-border/50">
           {error && (
             <div className="mb-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
@@ -488,13 +489,13 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
           
           {showConfirm ? (
             <div className="space-y-2">
-              <p className="text-sm text-slate-300 mb-3">Delete this appointment?</p>
-              <p className="text-xs text-slate-400 mb-3">This will also remove it from Google Calendar.</p>
+              <p className="text-sm text-muted-foreground mb-3">Delete this appointment?</p>
+              <p className="text-xs text-muted-foreground mb-3">This will also remove it from Google Calendar.</p>
               <div className="flex gap-2">
                 <button
                   onClick={handleDeleteCancel}
                   disabled={isDeleting}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
@@ -523,18 +524,18 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                 <button
                   onClick={handleCancelEdit}
                   disabled={isSaving}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveChanges}
                   disabled={isSaving}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-2.5 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {isSaving ? (
                     <>
-                      <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <div className="w-3 h-3 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
                       <span>Saving...</span>
                     </>
                   ) : (
@@ -550,7 +551,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
             <div className="flex gap-2">
               <button
                 onClick={openGoogleCalendar}
-                className="flex-1 px-4 py-2.5 text-sm font-medium bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 border border-slate-700/60"
+                className="flex-1 px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 border border-border/50"
               >
                 <ExternalLink className="w-4 h-4" />
                 <span>Open in Google Calendar</span>
@@ -559,7 +560,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                 <>
                   <button
                     onClick={handleEditClick}
-                    className="flex-1 px-4 py-2.5 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
+                    className="flex-1 px-4 py-2.5 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
                   >
                     <Pencil className="w-4 h-4" />
                     <span>Edit</span>
