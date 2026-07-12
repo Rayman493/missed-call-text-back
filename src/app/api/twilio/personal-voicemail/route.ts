@@ -61,17 +61,23 @@ export async function POST(request: NextRequest) {
       callerPhone: callerPhone,
     });
     
-    // Create personal voicemail record - completely independent of AI pipeline
+    // Create or update personal voicemail record using recording_sid as idempotency key
+    // This prevents duplicate rows when both action and recording-status callbacks arrive
     const { data: voicemail, error: voicemailError } = await supabaseAdmin
       .from('personal_voicemails')
-      .insert({
+      .upsert({
         business_id: businessId,
         caller_phone: normalizePhoneNumberForStorage(From),
         caller_name: null, // Can be enhanced later with CNAM lookup
         recording_url: RecordingUrl,
         recording_sid: RecordingSid,
+        call_sid: CallSid,
         duration_seconds: parseInt(RecordingDuration, 10),
         transcription: null, // Will be added via recording-status callback
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'recording_sid',
+        ignoreDuplicates: false,
       })
       .select()
       .single();

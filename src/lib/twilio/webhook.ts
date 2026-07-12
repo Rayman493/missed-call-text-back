@@ -89,15 +89,13 @@ function getPublicUrl(request: Request, includeQueryString: boolean = true): str
     const configuredUrl = `${configuredBaseUrl}${url.pathname}${queryString}`
     candidates.push(configuredUrl)
     
-    // Candidate 4: Canonical www version of configured URL
-    if (configuredBaseUrl.startsWith('https://')) {
+    // Candidate 4: Canonical www version of configured URL (only if not already www)
+    if (configuredBaseUrl.startsWith('https://') && !configuredBaseUrl.startsWith('https://www.')) {
       const wwwUrl = configuredBaseUrl.replace('https://', 'https://www.')
-      if (wwwUrl !== configuredUrl) {
-        candidates.push(`${wwwUrl}${url.pathname}${queryString}`)
-      }
+      candidates.push(`${wwwUrl}${url.pathname}${queryString}`)
     }
     
-    // Candidate 5: Non-www version of configured URL
+    // Candidate 5: Non-www version of configured URL (only if currently www)
     if (configuredBaseUrl.startsWith('https://www.')) {
       const nonWwwUrl = configuredBaseUrl.replace('https://www.', 'https://')
       candidates.push(`${nonWwwUrl}${url.pathname}${queryString}`)
@@ -123,10 +121,14 @@ function validateTwilioSignatureWithCandidates(
   request: Request
 ): { valid: boolean; usedUrl?: string; validationMode?: string } {
   const isGetRequest = request.method === 'GET'
-  const includeQueryString = isGetRequest
+  const url = new URL(request.url)
+  // Include query string for GET requests AND for POST requests that have query parameters
+  // Twilio signs the full URL including query string for POST callbacks with query params
+  const hasQueryString = url.search.length > 0
+  const includeQueryString = isGetRequest || hasQueryString
   const candidates = getPublicUrl(request, includeQueryString)
   
-  console.log('[TWILIO-WEBHOOK] Validation mode:', isGetRequest ? 'GET (URL with query string, empty params)' : 'POST (URL without query string, body params)')
+  console.log('[TWILIO-WEBHOOK] Validation mode:', isGetRequest ? 'GET (URL with query string, empty params)' : hasQueryString ? 'POST (URL with query string, body params)' : 'POST (URL without query string, body params)')
   console.log('[TWILIO-WEBHOOK] Request method:', request.method)
   console.log('[TWILIO-WEBHOOK] Signature candidates:', candidates.length)
   console.log('[TWILIO-WEBHOOK] Param keys count:', Object.keys(params).length)

@@ -6,6 +6,7 @@ import { formatRelativeTime, formatPhoneNumber, sentenceCase } from '@/lib/utils
 import { MessageCircle, ChevronDown, ChevronUp, Pencil, X, Check, Loader2, User, FileText, MapPin, Calendar, Phone } from 'lucide-react'
 import { normalizeExtractedInfo, getLeadAIIntake, getAIIntakeStatus } from '@/lib/ai-field-mapping'
 import { normalizeAITranscript } from '@/lib/transcript-normalization'
+import { normalizeAICallRecord, getHistoryCardTitle, getOutcomeColor as getRecordOutcomeColor, getIntakeBadgeLabel, type NormalizedIntake } from '@/lib/ai-call-record-normalizer'
 
 interface AICallRecord {
   id: string
@@ -202,6 +203,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
   // Get the currently selected AI call record (latest by default)
   const aiCallRecord = aiCallRecords.find(r => r.id === selectedRecordId) || aiCallRecords[0] || null
+  
+  // Normalize all records for consistent display
+  const normalizedRecords = aiCallRecords.map(normalizeAICallRecord)
+  const selectedRecord = normalizedRecords.find(r => r.id === selectedRecordId) || normalizedRecords[0] || null
+  const isLatest = selectedRecord?.id === normalizedRecords[0]?.id
 
   const calculateCallDuration = () => {
     if (!aiCallRecord?.transcript || aiCallRecord.transcript.length < 2) return 'Unknown'
@@ -223,23 +229,6 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
     const seconds = durationSeconds % 60
     
     return `${minutes}m ${seconds}s`
-  }
-
-  const getOutcomeColor = (outcome: string) => {
-    switch (outcome) {
-      case 'completed_intake':
-      case 'completed':
-        return 'text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20'
-      case 'partial_intake':
-        return 'text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/20'
-      case 'caller_hung_up':
-        return 'text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-900/20'
-      case 'ai_failed':
-      case 'voicemail_fallback':
-        return 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20'
-      default:
-        return 'text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-900/20'
-    }
   }
 
   if (loading) {
@@ -268,28 +257,20 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
     )
   }
 
-  // Prefer canonical lead-level intake fields; fall back to the record's extracted_info
-  const leadIntake = leadData ? getLeadAIIntake(leadData) : null
-  const extractedInfo = leadIntake
-    ? {
-        callerName: leadIntake.customerName || undefined,
-        reasonForCalling: leadIntake.serviceRequested || undefined,
-        importantDetails: leadIntake.additionalDetails || undefined,
-        desiredCompletionTime: leadIntake.desiredCompletion || undefined,
-        addressOrLocation: leadIntake.serviceAddress || undefined,
-        preferredCallbackTime: leadIntake.callbackTime || undefined,
-        summary: normalizeExtractedInfo(aiCallRecord.extracted_info || {}).summary,
-      }
-    : normalizeExtractedInfo(aiCallRecord.extracted_info || {})
+  // Use the selected normalized record for display
+  // This ensures clicking different history cards updates all displayed fields
+  const extractedInfo = selectedRecord ? {
+    callerName: selectedRecord.customerName || undefined,
+    reasonForCalling: selectedRecord.serviceRequested || undefined,
+    importantDetails: selectedRecord.additionalDetails || undefined,
+    desiredCompletionTime: selectedRecord.desiredCompletion || undefined,
+    addressOrLocation: selectedRecord.serviceAddress || undefined,
+    preferredCallbackTime: selectedRecord.callbackTime || undefined,
+  } : {}
+  
   const correctedFields = leadData?.raw_metadata?.corrected_fields
-
-  const aiIntakeStatus = getAIIntakeStatus({ aiCallRecords: [aiCallRecord] })
-  const effectiveOutcome = aiCallRecord.outcome
-  const intakeBadgeLabel = aiIntakeStatus === 'complete'
-    ? 'Current Request'
-    : aiIntakeStatus === 'partial'
-      ? 'Partial Request'
-      : effectiveOutcome.replace('_', ' ').toUpperCase()
+  const effectiveOutcome = selectedRecord?.outcome || aiCallRecord?.outcome || ''
+  const intakeBadgeLabel = selectedRecord ? getIntakeBadgeLabel(selectedRecord, isLatest) : 'Request'
 
   return (
     <div className="space-y-4">
@@ -317,39 +298,29 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           </button>
           
           {previousIntakesExpanded && (
-            <div className="px-4 pb-4 pt-2 border-t border-border/50">
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {aiCallRecords.map((record) => (
+            <div className="px-4 pb-3 pt-2 border-t border-border/50">
+              <div className={`space-y-1.5 ${normalizedRecords.length > 5 ? 'max-h-64 overflow-y-auto' : ''}`}>
+                {normalizedRecords.map((record) => (
                   <button
                     key={record.id}
                     onClick={() => setSelectedRecordId(record.id)}
-                    className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all ${
+                    className={`w-full text-left px-3 py-2 rounded-lg border transition-all ${
                       selectedRecordId === record.id
                         ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
                         : 'bg-slate-50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900/50'
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center justify-between mb-0.5">
                       <span className="text-xs font-medium text-foreground line-clamp-1">
-                        {record.extracted_info?.reasonForCalling || 'Request'}
+                        {getHistoryCardTitle(record)}
                       </span>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${getOutcomeColor(record.outcome)}`}>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${getRecordOutcomeColor(record.outcome)}`}>
                         {record.outcome.replace('_', ' ').toUpperCase()}
                       </span>
                     </div>
-                    <div className="text-[11px] text-muted-foreground mb-1">
-                      {formatRelativeTime(record.created_at)}
+                    <div className="text-[11px] text-muted-foreground">
+                      {formatRelativeTime(record.receivedAt)}
                     </div>
-                    {(record.extracted_info?.desiredCompletionTime || record.extracted_info?.preferredCallbackTime) && (
-                      <div className="text-[10px] text-muted-foreground flex flex-wrap gap-1">
-                        {record.extracted_info?.desiredCompletionTime && (
-                          <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded">{record.extracted_info.desiredCompletionTime}</span>
-                        )}
-                        {record.extracted_info?.preferredCallbackTime && (
-                          <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded">{record.extracted_info.preferredCallbackTime}</span>
-                        )}
-                      </div>
-                    )}
                   </button>
                 ))}
               </div>
@@ -423,7 +394,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
             <div className="px-4 pb-4 pt-2">
               {/* AI Status Badge and Edit Controls */}
               <div className="flex items-center justify-between mb-3">
-                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getOutcomeColor(effectiveOutcome)}`}>
+                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getRecordOutcomeColor(effectiveOutcome)}`}>
                   {intakeBadgeLabel}
                 </span>
                 {isEditMode ? (
@@ -456,7 +427,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
               {/* Received timestamp */}
               <div className="mb-4 text-xs text-muted-foreground">
-                Received {formatRelativeTime(aiCallRecord.created_at)}
+                {isLatest ? 'Current Request' : `Received ${formatRelativeTime(selectedRecord?.receivedAt || aiCallRecord.created_at)}`}
               </div>
 
               {/* Save error */}
@@ -651,7 +622,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
         <div className="space-y-4">
           {/* AI Status Badge and Edit Controls */}
           <div className="flex items-center justify-between mb-4">
-            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getOutcomeColor(effectiveOutcome)}`}>
+            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getRecordOutcomeColor(effectiveOutcome)}`}>
               {intakeBadgeLabel}
             </span>
             {isEditMode ? (
@@ -883,7 +854,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
       )}
 
       {/* Full AI Conversation Transcript - Collapsible */}
-      {aiCallRecord?.transcript && aiCallRecord.transcript.length > 0 && (
+      {selectedRecord?.transcript && selectedRecord.transcript.length > 0 && (
         <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
           <button
             onClick={() => setFullTranscriptExpanded(!fullTranscriptExpanded)}
@@ -904,7 +875,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
             <div className="px-4 pb-4 pt-2 border-t border-border/50">
               <div className="space-y-3 max-h-96 overflow-y-auto">
                 {(() => {
-                  const messages = normalizeAITranscript(aiCallRecord.transcript);
+                  const messages = normalizeAITranscript(selectedRecord.transcript);
                   if (messages.length === 0) {
                     return (
                       <div className="text-sm text-muted-foreground py-4 text-center">
