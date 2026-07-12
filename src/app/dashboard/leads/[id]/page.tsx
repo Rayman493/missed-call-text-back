@@ -110,6 +110,139 @@ function getLeadStatusAccentColor(status: string): string {
   }
 }
 
+// Canonical status rank for monotonicity enforcement
+// Higher rank = more final state. Status can only move to higher ranks.
+const STATUS_RANK: Record<string, number> = {
+  'pending': 0,
+  'sending': 1,
+  'accepted': 2,
+  'queued': 3,
+  'sent': 4,
+  'delivered': 5,
+  // Terminal failure states (highest rank to prevent downgrade)
+  'undelivered': 6,
+  'failed': 7,
+  'not_sent': 8
+}
+
+/**
+ * Get monotonic status - prevents status downgrades
+ * If newStatus has lower rank than currentStatus, keep currentStatus
+ */
+function getMonotonicStatus(currentStatus: string, newStatus: string): string {
+  const currentRank = STATUS_RANK[currentStatus] ?? 0
+  const newRank = STATUS_RANK[newStatus] ?? 0
+  
+  // Only upgrade if new status has higher or equal rank
+  if (newRank >= currentRank) {
+    return newStatus
+  }
+  
+  // Keep current status if new status would downgrade
+  console.log('[MONOTONIC STATUS] Preventing downgrade:', {
+    currentStatus,
+    newStatus,
+    currentRank,
+    newRank
+  })
+  return currentStatus
+}
+
+/**
+ * Canonical message merge function
+ * - Matches by database ID, clientTempId, or Twilio SID
+ * - Enforces status monotonicity
+ * - Prevents duplicates
+ * - Preserves chronological ordering
+ */
+function mergeMessageWithMonotonicity(existingMessages: any[], incomingMessage: any): any[] {
+  const messageMap = new Map<string, any>()
+  
+  // Add existing messages first
+  existingMessages.forEach(msg => {
+    messageMap.set(msg.id, msg)
+  })
+  
+  // Find existing message by multiple correlation keys
+  let existingMessage: any = null
+  let matchKey: string = ''
+  
+  // 1. Match by exact database ID
+  if (incomingMessage.id && messageMap.has(incomingMessage.id)) {
+    existingMessage = messageMap.get(incomingMessage.id)
+    matchKey = 'id'
+  }
+  // 2. Match by clientTempId (for optimistic message reconciliation)
+  else if (incomingMessage.clientTempId) {
+    for (const [id, msg] of Array.from(messageMap.entries())) {
+      if (msg.clientTempId === incomingMessage.clientTempId) {
+        existingMessage = msg
+        matchKey = 'clientTempId'
+        break
+      }
+    }
+  }
+  // 3. Match by Twilio SID (for status updates)
+  else if (incomingMessage.twilio_sid) {
+    for (const [id, msg] of Array.from(messageMap.entries())) {
+      if (msg.twilio_sid === incomingMessage.twilio_sid) {
+        existingMessage = msg
+        matchKey = 'twilio_sid'
+        break
+      }
+    }
+  }
+  
+  if (existingMessage) {
+    // Merge with monotonic status
+    const mergedMessage = {
+      ...existingMessage,
+      ...incomingMessage,
+      status: getMonotonicStatus(existingMessage.status, incomingMessage.status)
+    }
+    
+    // If matched by clientTempId but incoming has real ID, update the map key
+    if (matchKey === 'clientTempId' && incomingMessage.id && incomingMessage.id !== existingMessage.id) {
+      messageMap.delete(existingMessage.id)
+      messageMap.set(incomingMessage.id, mergedMessage)
+      console.log('[MERGE] Replaced optimistic message with persisted message:', {
+        clientTempId: incomingMessage.clientTempId,
+        oldId: existingMessage.id,
+        newId: incomingMessage.id
+      })
+    } else {
+      messageMap.set(existingMessage.id, mergedMessage)
+      console.log('[MERGE] Updated existing message:', {
+        matchKey,
+        messageId: existingMessage.id,
+        oldStatus: existingMessage.status,
+        newStatus: mergedMessage.status
+      })
+    }
+  } else {
+    // New message - add to map
+    messageMap.set(incomingMessage.id, incomingMessage)
+    console.log('[MERGE] Added new message:', {
+      messageId: incomingMessage.id,
+      status: incomingMessage.status
+    })
+  }
+  
+  // Convert back to array and sort chronologically
+  const merged = Array.from(messageMap.values())
+  return merged.sort((a: any, b: any) => {
+    const timeDiff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    if (timeDiff !== 0) return timeDiff
+    
+    // Tie-breaker: inbound before outbound if same timestamp
+    if (a.direction === 'inbound' && b.direction === 'outbound') return -1
+    if (a.direction === 'outbound' && b.direction === 'inbound') return 1
+    
+    // Final tie-breaker: id ascending
+    return a.id.localeCompare(b.id)
+  })
+}
+
 async function getLeadDetails(leadId: string) {
   const supabase = createBrowserClient()
   const { data: { session } } = await supabase.auth.getSession()
@@ -200,6 +333,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null)
   const currentLeadIdRef = useRef<string | null>(null)
   const supabase = createBrowserClient()
+  
+  // Fallback refresh for stuck messages
+  const stuckMessageCheckIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // ALL hooks must must be declared here before any conditional returns
   // Auto-scroll to newest message with jump button logic
@@ -488,33 +624,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // Merge messages by ID to prevent overwriting local state with stale data
   // Always re-sort by chronological timestamp with tie-breakers
   const mergeMessagesById = (existingMessages: any[], newMessages: any[]) => {
-    const messageMap = new Map()
+    let merged = existingMessages
     
-    // Add existing messages first (preserve local state)
-    existingMessages.forEach(msg => {
-      messageMap.set(msg.id, msg)
-    })
-    
-    // Merge/overwrite with new messages (use latest data)
+    // Merge each new message using the canonical merge function
     newMessages.forEach(msg => {
-      messageMap.set(msg.id, msg)
+      merged = mergeMessageWithMonotonicity(merged, msg)
     })
     
-    const merged = Array.from(messageMap.values())
     console.log('[Merge] Final merged messages count:', merged.length)
-    
-    // Sort by created_at ascending, then inbound before outbound if same timestamp, then id ascending
-    return merged.sort((a: any, b: any) => {
-      const timeDiff = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      if (timeDiff !== 0) return timeDiff
-      
-      // Tie-breaker: inbound before outbound if same timestamp
-      if (a.direction === 'inbound' && b.direction === 'outbound') return -1
-      if (a.direction === 'outbound' && b.direction === 'inbound') return 1
-      
-      // Final tie-breaker: id ascending
-      return a.id.localeCompare(b.id)
-    })
+    return merged
   }
 
   // Combine real messages with optimistic message, but avoid duplicates and maintain stable ordering
@@ -522,32 +640,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const messages = leadData?.messages || []
     if (!optimisticMessage) return messages
     
-    // Check for duplicates using multiple strategies
-    const hasDuplicate = messages.some((msg: any) => {
-      // 1. Match by exact ID (if optimistic has real ID)
-      if (optimisticMessage.id === msg.id) return true
-      
-      // 2. Match by clientTempId (most reliable)
-      if (optimisticMessage.clientTempId && msg.clientTempId === optimisticMessage.clientTempId) return true
-      
-      // 3. Match by content + direction + timing (fallback for older messages)
-      if (msg.body === optimisticMessage.body && 
-          msg.direction === optimisticMessage.direction &&
-          Math.abs(new Date(msg.created_at).getTime() - new Date(optimisticMessage.created_at).getTime()) < 10000) {
-        return true
-      }
-      
-      return false
+    // Use canonical merge function to handle optimistic message reconciliation
+    const merged = mergeMessageWithMonotonicity(messages, optimisticMessage)
+    
+    console.log('[OPTIMISTIC MERGE] Combined messages:', {
+      realCount: messages.length,
+      hasOptimistic: !!optimisticMessage,
+      mergedCount: merged.length
     })
     
-    // If duplicate found, don't add optimistic message
-    if (hasDuplicate) return messages
-    
-    // Otherwise, add optimistic message and sort by created_at to maintain stable ordering
-    const combined = [...messages, optimisticMessage]
-    return combined.sort((a: any, b: any) => 
-      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-    )
+    return merged
   }, [leadData?.messages, optimisticMessage])
 
   // Create combined timeline with messages and voicemail recordings
@@ -1292,6 +1394,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     if (realtimeChannelRef.current) {
       supabase.removeChannel(realtimeChannelRef.current)
     }
+    
+    // Clear any existing stuck message check interval
+    if (stuckMessageCheckIntervalRef.current) {
+      clearInterval(stuckMessageCheckIntervalRef.current)
+      stuckMessageCheckIntervalRef.current = null
+    }
 
     // Set up new subscription
     const channel = supabase
@@ -1319,26 +1427,28 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 return prev
               }
               
-              const existingMessage = prev.messages?.find((msg: any) => msg.id === newMessage.id)
-              if (existingMessage) {
-                console.log('[REALTIME MESSAGE INSERT] Message already exists, skipping:', newMessage.id)
-                return prev
-              }
+              const currentMessages = prev.messages || []
+              const mergedMessages = mergeMessageWithMonotonicity(currentMessages, newMessage)
               
-              const updatedMessages = [...(prev.messages || []), newMessage]
-                .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-              
-              console.log('[REALTIME MESSAGE INSERT] Adding message to state:', {
+              console.log('[REALTIME MESSAGE INSERT] Merged message into state:', {
                 messageId: newMessage.id,
-                previousCount: prev.messages?.length || 0,
-                newCount: updatedMessages.length
+                previousCount: currentMessages.length,
+                newCount: mergedMessages.length
               })
               
-              setTimeout(() => scrollToBottom('smooth'), 100)
+              // Only scroll if this is a new message (not an optimistic reconciliation)
+              const isNewMessage = !currentMessages.some((msg: any) => 
+                msg.id === newMessage.id || 
+                (msg.clientTempId && msg.clientTempId === newMessage.clientTempId)
+              )
+              
+              if (isNewMessage) {
+                setTimeout(() => scrollToBottom('smooth'), 100)
+              }
               
               return {
                 ...prev,
-                messages: updatedMessages,
+                messages: mergedMessages,
                 last_message_at: newMessage.created_at
               }
             })
@@ -1350,16 +1460,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 return prev
               }
               
-              const updatedMessages = prev.messages?.map((msg: any) => 
-                msg.id === updatedMessage.id ? { ...msg, ...updatedMessage } : msg
-              )
+              const currentMessages = prev.messages || []
+              const mergedMessages = mergeMessageWithMonotonicity(currentMessages, updatedMessage)
               
-              console.log('[REALTIME MESSAGE UPDATE] Updating message in state:', {
+              console.log('[REALTIME MESSAGE UPDATE] Merged message update into state:', {
                 messageId: updatedMessage.id,
-                found: prev.messages?.some((msg: any) => msg.id === updatedMessage.id)
+                previousCount: currentMessages.length,
+                newCount: mergedMessages.length
               })
               
-              return { ...prev, messages: updatedMessages }
+              return { ...prev, messages: mergedMessages }
             })
           }
         }
@@ -1438,16 +1548,60 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         }
       )
       .subscribe((status: any) => {
+        console.log('[REALTIME CONNECTION]', {
+          leadId,
+          status,
+          timestamp: new Date().toISOString()
+        })
+        
         if (status === 'SUBSCRIBED') {
-          console.log('[Realtime] Subscribed to lead:', leadId)
+          console.log('[REALTIME] Successfully subscribed to lead:', leadId)
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('[Realtime] Channel error for lead:', leadId)
+          console.error('[REALTIME] Channel error for lead:', leadId, '- attempting recovery')
+          // Attempt recovery after a short delay
+          setTimeout(() => {
+            console.log('[REALTIME RECOVERY] Refreshing conversation data after channel error')
+            handleRefresh()
+          }, 2000)
         } else if (status === 'CLOSED') {
-          console.log('[Realtime] Channel closed for lead:', leadId)
+          console.log('[REALTIME] Channel closed for lead:', leadId, '- attempting recovery')
+          // Attempt recovery after a short delay
+          setTimeout(() => {
+            console.log('[REALTIME RECOVERY] Refreshing conversation data after channel close')
+            handleRefresh()
+          }, 2000)
+        } else if (status === 'TIMED_OUT') {
+          console.warn('[REALTIME] Channel timed out for lead:', leadId, '- attempting recovery')
+          // Attempt recovery after a short delay
+          setTimeout(() => {
+            console.log('[REALTIME RECOVERY] Refreshing conversation data after channel timeout')
+            handleRefresh()
+          }, 2000)
         }
       })
 
     realtimeChannelRef.current = channel
+
+    // Start stuck message check interval (every 30 seconds)
+    stuckMessageCheckIntervalRef.current = setInterval(() => {
+      const messages = leadData?.messages || []
+      const stuckMessages = messages.filter((msg: any) => {
+        // Check for messages stuck in "sending" for more than 30 seconds
+        if (msg.status === 'sending' || msg.status === 'pending') {
+          const messageAge = Date.now() - new Date(msg.created_at).getTime()
+          return messageAge > 30000 // 30 seconds
+        }
+        return false
+      })
+      
+      if (stuckMessages.length > 0) {
+        console.log('[STUCK MESSAGE CHECK] Found stuck messages, refreshing:', {
+          count: stuckMessages.length,
+          messageIds: stuckMessages.map((m: any) => m.id)
+        })
+        handleRefresh()
+      }
+    }, 30000) // Check every 30 seconds
 
     // Cleanup on unmount or lead ID change
     return () => {
@@ -1455,6 +1609,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         supabase.removeChannel(realtimeChannelRef.current)
         realtimeChannelRef.current = null
         currentLeadIdRef.current = null
+      }
+      if (stuckMessageCheckIntervalRef.current) {
+        clearInterval(stuckMessageCheckIntervalRef.current)
+        stuckMessageCheckIntervalRef.current = null
       }
     }
   }, [leadData?.id, supabase])
