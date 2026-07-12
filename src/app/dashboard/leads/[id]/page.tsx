@@ -3016,14 +3016,21 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 </div>
               ) : conversationTimeline.length === 0 ? (
-                <div className="text-center py-12 animate-fadeIn">
-                  <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                    </svg>
+                <div className="flex items-center justify-center h-full py-12 animate-fadeIn">
+                  <div className="text-center max-w-md">
+                    <div className="w-16 h-16 bg-slate-50 dark:bg-slate-900/50 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-slate-200 dark:border-slate-800">
+                      <svg className="w-8 h-8 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-3">Start the conversation</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 max-w-sm mx-auto leading-relaxed">
+                      Send your first text message to this customer. Messages will appear here in real time as the conversation grows.
+                    </p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 max-w-xs mx-auto">
+                      Your message history, customer replies, AI requests, and timeline will automatically build here.
+                    </p>
                   </div>
-                  <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-2">No Messages Yet</h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">Send a message to start the conversation with this customer.</p>
                 </div>
               ) : (
                 <DesktopConversationMessageList
@@ -3370,14 +3377,21 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                   </div>
                 ) : conversationTimeline.length === 0 ? (
-                  <div className="text-center py-8 sm:py-12 animate-fadeIn">
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 rounded-xl flex items-center justify-center mx-auto mb-3 sm:mb-4 border border-blue-200 dark:border-blue-800">
-                      <svg className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
+                  <div className="flex items-center justify-center h-full py-8 sm:py-12 animate-fadeIn">
+                    <div className="text-center max-w-sm">
+                      <div className="w-14 h-14 sm:w-16 sm:h-16 bg-slate-50 dark:bg-slate-900/50 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6 border border-slate-200 dark:border-slate-800">
+                        <svg className="w-7 h-7 sm:w-8 sm:h-8 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                      </div>
+                      <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white mb-2 sm:mb-3">Start the conversation</h3>
+                      <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mb-3 sm:mb-4 max-w-xs sm:max-w-sm mx-auto leading-relaxed">
+                        Send your first text message to this customer. Messages will appear here in real time as the conversation grows.
+                      </p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 max-w-xs mx-auto">
+                        Your message history, customer replies, AI requests, and timeline will automatically build here.
+                      </p>
                     </div>
-                    <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white mb-1 sm:mb-2">No Messages Yet</h3>
-                    <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 max-w-md mx-auto">Send a message to start the conversation with this customer.</p>
                   </div>
                 ) : (
                   <MobileConversationMessageList
