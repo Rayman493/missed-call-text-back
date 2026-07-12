@@ -3385,32 +3385,34 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
         
         {/* Mobile Layout - Conversation-first: Header -> Conversation -> Collapsible Sections */}
-        <div className="lg:hidden space-y-2 pb-[calc(6rem+env(safe-area-inset-bottom))]">
-          {/* Compact Header with Status Chips */}
-          <div className="bg-card/95 border border-border/50 rounded-xl p-2.5 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-foreground">{getLeadDisplayName(leadData)}</span>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-200 ${getLeadStatusColor(leadData?.status || lead?.status)} bg-opacity-10`}>
-                  {leadData?.status || lead?.status || 'New'}
-                </span>
+        <div className="lg:hidden space-y-3 pb-[calc(6rem+env(safe-area-inset-bottom))]">
+          {/* Premium Header with better hierarchy */}
+          <div className="bg-card/95 border border-border/40 rounded-2xl p-4 shadow-sm">
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-lg font-semibold text-foreground tracking-tight mb-1">
+                  {getLeadDisplayName(leadData)}
+                </h1>
+                <p className="text-sm text-muted-foreground font-normal">
+                  {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
+                </p>
               </div>
               <button
                 onClick={() => setShowMobileOverflow(!showMobileOverflow)}
-                className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-xl transition-all duration-200 ml-3 flex-shrink-0"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                 </svg>
               </button>
             </div>
-            <div className="flex flex-wrap gap-1">
-              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-200 ${
+            <div className="flex flex-wrap gap-2">
+              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
                 leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
-                  ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
+                  ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-200/50 dark:border-green-800/30'
                   : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
-                    ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
-                    : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20'
+                    ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-200/50 dark:border-green-800/30'
+                    : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20 border border-slate-200/50 dark:border-slate-800/30'
               }`}>
                 {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
                   ? 'AI Answered'
@@ -3418,19 +3420,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     ? 'Voicemail Saved'
                     : 'Waiting for Call'}
               </span>
-              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-200 ${leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50'}`}>
+              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-200 ${leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200/50 dark:border-blue-800/30' : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20 border border-slate-200/50 dark:border-slate-800/30'}`}>
                 {leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'Customer Replied' : 'Awaiting Reply'}
               </span>
-              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-200 ${
+              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
                 followUpJobs && followUpJobs.length > 0
                   ? followUpJobs.some((job: any) => job.status === 'active' || job.status === 'scheduled')
-                    ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
+                    ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200/50 dark:border-blue-800/30'
                     : followUpJobs.some((job: any) => job.status === 'completed')
-                      ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
-                      : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20'
+                      ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-200/50 dark:border-green-800/30'
+                      : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20 border border-slate-200/50 dark:border-slate-800/30'
                   : followUpSettings?.enabled
-                    ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20'
-                    : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20'
+                    ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-200/50 dark:border-green-800/30'
+                    : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20 border border-slate-200/50 dark:border-slate-800/30'
               }`}>
                 {followUpJobs && followUpJobs.length > 0
                   ? followUpJobs.some((job: any) => job.status === 'active' || job.status === 'scheduled')
@@ -3446,12 +3448,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Conversation Section - Primary content, conversation-first */}
-          <div className="bg-card/95 border border-border/50 rounded-xl lg:hidden flex flex-col overflow-hidden shadow-sm" style={{ height: 'min(600px, calc(100svh - 10rem))', minHeight: '500px' }}>
-            <div className="px-2.5 py-1.5 flex-shrink-0 flex items-center justify-between border-b border-border/30 bg-slate-50/70 dark:bg-slate-950/30">
-              <h3 className="text-xs font-semibold text-foreground">Conversation</h3>
+          <div className="bg-card/95 border border-border/40 rounded-2xl lg:hidden flex flex-col overflow-hidden shadow-sm flex-1 min-h-0">
+            <div className="px-4 py-3 flex-shrink-0 flex items-center justify-between border-b border-border/30 bg-slate-50/50 dark:bg-slate-950/30">
+              <h3 className="text-sm font-semibold text-foreground">Conversation</h3>
               {!loading && conversationTimeline.length > 0 && (
-                <p className="text-[9px] text-muted-foreground">
-                  {conversationTimeline.length === 1 ? '1 msg' : `${conversationTimeline.length} msgs`}
+                <p className="text-xs text-muted-foreground">
+                  {conversationTimeline.length} message{conversationTimeline.length !== 1 ? 's' : ''}
                 </p>
               )}
             </div>
@@ -3492,7 +3494,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             {/* Divider - Softer for natural integration */}
             <div className="border-t border-border/30 flex-shrink-0"></div>
             {/* Composer - Integrated at bottom with better mobile spacing and safe-area for bottom nav */}
-            <div className="px-2.5 py-2 flex-shrink-0 bg-card/98 shadow-[0_-12px_40px_rgba(2,6,23,0.12)]" style={{ paddingBottom: 'max(90px, calc(80px + env(safe-area-inset-bottom)))' }}>
+            <div className="px-3 py-3 flex-shrink-0 bg-card/98 shadow-[0_-8px_30px_rgba(2,6,23,0.08)]" style={{ paddingBottom: 'max(90px, calc(80px + env(safe-area-inset-bottom)))' }}>
               {/* Image Previews */}
               {mobileImages.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-2">
@@ -3501,7 +3503,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <img
                         src={URL.createObjectURL(file)}
                         alt="Preview"
-                        className="w-16 h-16 object-cover rounded-lg border border-slate-700 transition-opacity duration-200"
+                        className="w-16 h-16 object-cover rounded-lg border border-slate-200/50 dark:border-slate-700/50 transition-opacity duration-200"
                       />
                       <button
                         onClick={() => removeMobileImage(index)}
@@ -3516,11 +3518,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   ))}
                 </div>
               )}
-              <div className="flex gap-1.5 items-end rounded-2xl border border-slate-200/70 bg-white/85 p-1.5 shadow-sm dark:border-slate-700/70 dark:bg-slate-950/70">
+              <div className="flex gap-2 items-end rounded-2xl border border-slate-200/50 bg-white/90 p-2 shadow-sm dark:border-slate-700/50 dark:bg-slate-950/90 backdrop-blur-sm">
                 <button
                   type="button"
                   onClick={() => mobileFileInputRef.current?.click()}
-                  className="p-2 text-slate-400 hover:text-slate-200 transition-colors duration-200 flex-shrink-0 h-10 flex items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors duration-200 flex-shrink-0 h-10 flex items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"
                   disabled={sending}
                 >
                   <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3540,13 +3542,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyDown={handleMobileKeyDown}
                   placeholder="Type a message..."
-                  className="flex-1 min-h-[40px] max-h-[100px] px-3 py-2 bg-transparent border-0 rounded-xl text-sm text-slate-950 dark:text-white placeholder-slate-500 resize-none focus:outline-none focus:ring-0 transition-all duration-200 leading-relaxed"
+                  className="flex-1 min-h-[40px] max-h-[100px] px-3 py-2 bg-transparent border-0 rounded-xl text-sm text-slate-950 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 resize-none focus:outline-none focus:ring-0 transition-all duration-200 leading-relaxed"
                   rows={1}
                 />
                 <button
                   onClick={() => handleSendMessage(mobileImages.length > 0 ? mobileImages : undefined)}
                   disabled={(!message.trim() && mobileImages.length === 0) || sending}
-                  className="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 text-white text-sm font-medium rounded-xl transition-all duration-200 flex items-center gap-1.5 flex-shrink-0 h-10 shadow-sm active:scale-95"
+                  className="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white text-sm font-medium rounded-xl transition-all duration-200 flex items-center gap-1.5 flex-shrink-0 h-10 shadow-sm active:scale-95 disabled:active:scale-100"
                 >
                   {sending ? (
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>

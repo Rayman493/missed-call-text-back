@@ -178,7 +178,7 @@ export default function MobileConversationMessageList({
         return (
           <div
             key={getMessageKey(msg)}
-            className={`flex items-start gap-2.5 ${msg.media && msg.media.length > 0 ? 'mb-3' : 'mb-2.5'} ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
+            className={`flex items-start gap-2 ${msg.media && msg.media.length > 0 ? 'mb-3' : 'mb-2'} ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
           >
             {/* Avatar - Only show customer avatar for inbound messages */}
             {shouldShowAvatar && isInbound && (
@@ -186,24 +186,24 @@ export default function MobileConversationMessageList({
                 👤
               </div>
             )}
-            
+
             {/* Message Content */}
-            <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} ${isAISummary ? 'max-w-[86%]' : 'max-w-[78%] sm:max-w-[68%]'} ${!isInbound && !shouldShowAvatar ? 'ml-11' : ''}`}>
+            <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} ${isAISummary ? 'max-w-[86%]' : 'max-w-[80%] sm:max-w-[72%]'} ${!isInbound && !shouldShowAvatar ? 'ml-10' : ''}`}>
               {/* Message Bubble - Modern messaging app styling */}
               <div
                 className={`rounded-2xl shadow-sm transition-colors duration-200 overflow-hidden ${
                   isAISummary
                     ? 'bg-transparent border-0 shadow-none'
                     : isInbound
-                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-md border border-slate-200/80 dark:border-slate-700/70'
+                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-bl-md border border-slate-200/60 dark:border-slate-700/60'
                     : isOptimistic && isSending
-                    ? 'bg-blue-600 text-white rounded-br-md opacity-90 border border-blue-700/80'
-                    : 'bg-blue-600 text-white rounded-br-md hover:bg-blue-700 border border-blue-700/80'
+                    ? 'bg-blue-600 text-white rounded-br-md opacity-90 border border-blue-700/60'
+                    : 'bg-blue-600 text-white rounded-br-md hover:bg-blue-700 border border-blue-700/60'
                 }`}
               >
-                <div className={`${isAISummary ? 'p-0' : msg.media && msg.media.length > 0 ? 'p-1.5' : isOutbound ? 'px-3 py-2' : 'px-3 py-2 sm:px-3.5 sm:py-2.5'}`}>
+                <div className={`${isAISummary ? 'p-0' : msg.media && msg.media.length > 0 ? 'p-1.5' : 'px-3 py-2'}`}>
                   {msg.body && !isAISummary && (
-                    <p 
+                    <p
                       className="text-sm leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap min-w-0 max-w-full"
                       style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
                     >
@@ -225,31 +225,31 @@ export default function MobileConversationMessageList({
               </div>
 
               {/* Message Status/Timestamp - Beneath bubble, aligned with bubble */}
-              <div className={`mt-1 flex items-center gap-1.5 ${isOutbound ? 'justify-end' : 'justify-start'}`}>
+              <div className={`mt-0.5 flex items-center gap-1.5 ${isOutbound ? 'justify-end' : 'justify-start'}`}>
                 {isOutbound && (
                   <>
                     {msg.status === 'delivered' && (
                       <>
-                        <span className="text-[10px] text-muted-foreground/70">Delivered</span>
-                        <span className="text-[10px] text-muted-foreground/70">•</span>
+                        <span className="text-[10px] text-muted-foreground/60">Delivered</span>
+                        <span className="text-[10px] text-muted-foreground/60">•</span>
                       </>
                     )}
                     {msg.status === 'sent' && (
                       <>
-                        <span className="text-[10px] text-muted-foreground/70">Sent</span>
-                        <span className="text-[10px] text-muted-foreground/70">•</span>
+                        <span className="text-[10px] text-muted-foreground/60">Sent</span>
+                        <span className="text-[10px] text-muted-foreground/60">•</span>
                       </>
                     )}
                     {msg.status === 'failed' && (
                       <>
-                        <span className="text-[10px] text-red-500/80">Failed</span>
-                        <span className="text-[10px] text-muted-foreground/70">•</span>
+                        <span className="text-[10px] text-red-500/70">Failed</span>
+                        <span className="text-[10px] text-muted-foreground/60">•</span>
                       </>
                     )}
                     {isOptimistic && (
                       <>
-                        <span className="text-[10px] text-blue-500/80">Sending</span>
-                        <span className="text-[10px] text-muted-foreground/70">•</span>
+                        <span className="text-[10px] text-blue-500/70">Sending</span>
+                        <span className="text-[10px] text-muted-foreground/60">•</span>
                       </>
                     )}
                   </>

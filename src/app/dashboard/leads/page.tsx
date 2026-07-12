@@ -1254,11 +1254,6 @@ export default function LeadsPage() {
                                 {formatRelativeTime(lead.created_at)}
                               </span>
                             </div>
-                            {isNewCustomer && (
-                              <span className="px-1.5 py-0.5 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[9px] font-semibold rounded-md border border-indigo-500/20">
-                                New
-                              </span>
-                            )}
                           </div>
 
                           {/* Action Buttons - Improved mobile touch targets */}
