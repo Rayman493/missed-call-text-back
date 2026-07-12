@@ -3006,18 +3006,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Desktop Layout: Premium Header */}
           <div className="hidden md:block">
             {/* Back to Leads */}
-            <div className="mb-3">
+            <div className="mb-4">
               <AppBackButton fallbackHref="/dashboard/leads" label="Back" />
             </div>
 
-            {/* Premium Three-Column Header */}
-            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,auto)] gap-6 items-start">
+            {/* Simplified Two-Column Header */}
+            <div className="flex items-start justify-between gap-6">
               {/* LEFT: Customer Info */}
-              <div className="min-w-0">
-                <h1 className="text-2xl font-semibold text-foreground tracking-tight mb-1">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-2xl font-semibold text-foreground tracking-tight mb-2">
                   {getLeadDisplayName(leadData || lead)}
                 </h1>
-                <p className="text-sm text-muted-foreground mb-1.5">
+                <p className="text-sm text-muted-foreground mb-2">
                   {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
                 </p>
                 <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
@@ -3027,31 +3027,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </div>
               </div>
 
-              {/* CENTER: Current Request Card */}
-              <div className="min-w-[240px] max-w-[320px]">
-                <div className="bg-muted/30 rounded-lg border border-border/40 p-3">
-                  <p className="text-[11px] font-medium text-muted-foreground mb-1.5">Current Request</p>
-                  {(() => {
-                    const intake = getLeadAIIntake(leadData || lead)
-                    const hasIntake = intake.serviceRequested || leadData?.aiCallRecords?.length > 0
-                    if (!hasIntake) {
-                      return <p className="text-sm text-muted-foreground">No request captured yet.</p>
-                    }
-                    return (
-                      <>
-                        <p className="text-sm font-semibold text-foreground mb-1">{intake.serviceRequested || 'Service request'}</p>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          {intake.desiredCompletion && <span>{intake.desiredCompletion}</span>}
-                          {intake.callbackTime && <span>• {intake.callbackTime}</span>}
-                        </div>
-                      </>
-                    )
-                  })()}
-                </div>
-              </div>
-
               {/* RIGHT: Status and Actions */}
-              <div className="flex items-start gap-3">
+              <div className="flex items-center gap-3 flex-shrink-0">
                 {/* Status Pill */}
                 <div className="flex-shrink-0">
                   <LeadStatusDropdown
@@ -3060,12 +3037,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     size="sm"
                   />
                 </div>
-                
+
                 {/* Primary Actions */}
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleCreateJobClick}
-                    className="inline-flex h-8 items-center gap-1.5 px-3 rounded-lg text-foreground hover:bg-muted transition-colors text-xs font-medium"
+                    className="inline-flex h-9 items-center gap-1.5 px-3 rounded-lg text-foreground hover:bg-muted transition-colors text-xs font-medium"
                     title="Create job"
                   >
                     <ClipboardPlus className="w-3.5 h-3.5 stroke-[1.8]" />
@@ -3073,7 +3050,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </button>
                   <button
                     onClick={handleAppointmentClick}
-                    className="inline-flex h-8 items-center gap-1.5 px-3 rounded-lg text-foreground hover:bg-muted transition-colors text-xs font-medium"
+                    className="inline-flex h-9 items-center gap-1.5 px-3 rounded-lg text-foreground hover:bg-muted transition-colors text-xs font-medium"
                     title="Schedule appointment"
                   >
                     <CalendarDays className="w-3.5 h-3.5 stroke-[1.8]" />
@@ -3082,18 +3059,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <button
                     onClick={() => setShowPaymentModal(true)}
                     disabled={!business || getAvailableProviders(business).length === 0}
-                    className="inline-flex h-8 items-center gap-1.5 px-3 rounded-lg text-foreground hover:bg-muted transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex h-9 items-center gap-1.5 px-3 rounded-lg text-foreground hover:bg-muted transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                     title={!business || getAvailableProviders(business).length === 0 ? 'Configure a payment method in Settings to request payments' : 'Request payment'}
                   >
                     <CreditCard className="w-3.5 h-3.5 stroke-[1.8]" />
                     <span className="leading-none">Request Payment</span>
                   </button>
-                  
+
                   {/* Desktop Overflow Button */}
                   <button
                     ref={overflowButtonRef}
                     onClick={() => setShowOverflowMenu(!showOverflowMenu)}
-                    className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                    className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
                     aria-label="More actions"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3108,12 +3085,57 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         onClick={() => setShowOverflowMenu(false)}
                       />
                       <div
-                        className="fixed z-[9999] bg-card border border-border/50 rounded-lg shadow-lg py-1 min-w-[160px]"
+                        className="fixed z-[9999] bg-card border border-border/50 rounded-lg shadow-lg py-1 min-w-[180px]"
                         style={{
                           top: `${overflowMenuPosition.top}px`,
                           left: `${overflowMenuPosition.left}px`
                         }}
                       >
+                        <button
+                          onClick={() => {
+                            handleCreateJobClick()
+                            setShowOverflowMenu(false)
+                          }}
+                          className="w-full px-3 py-2 text-left text-xs text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors"
+                        >
+                          <ClipboardPlus className="w-3.5 h-3.5 stroke-[1.8]" />
+                          Create Job
+                        </button>
+                        <button
+                          onClick={() => {
+                            handleAppointmentClick()
+                            setShowOverflowMenu(false)
+                          }}
+                          className="w-full px-3 py-2 text-left text-xs text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors"
+                        >
+                          <CalendarDays className="w-3.5 h-3.5 stroke-[1.8]" />
+                          Schedule
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowPaymentModal(true)
+                            setShowOverflowMenu(false)
+                          }}
+                          disabled={!business || getAvailableProviders(business).length === 0}
+                          className="w-full px-3 py-2 text-left text-xs text-foreground hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2.5 transition-colors"
+                        >
+                          <CreditCard className="w-3.5 h-3.5 stroke-[1.8]" />
+                          Request Payment
+                        </button>
+                        <div className="border-t border-border/50 my-1" />
+                        <button
+                          onClick={() => {
+                            setMobileInternalNotesExpanded(true)
+                            setShowLeadInfo(true)
+                            setShowOverflowMenu(false)
+                          }}
+                          className="w-full px-3 py-2 text-left text-xs text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          Internal Notes
+                        </button>
                         <button
                           onClick={() => {
                             handleRefresh()
@@ -3132,18 +3154,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           </svg>
                           Refresh
                         </button>
-                        <button
-                          onClick={() => {
-                            setShowRemoveModal(true)
-                            setShowOverflowMenu(false)
-                          }}
-                          className="w-full px-3 py-2 text-left text-xs text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                          Remove
-                        </button>
+                        <div className="border-t border-border/50 my-1" />
                         {getLeadLifecycleStatus(leadData || lead) !== 'ignored' && (
                           <button
                             onClick={() => {
@@ -3155,7 +3166,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                             </svg>
-                            Mark as Ignored
+                            Mark Ignored
                           </button>
                         )}
                         {getLeadLifecycleStatus(leadData || lead) === 'ignored' && (
@@ -3172,7 +3183,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             Restore Customer
                           </button>
                         )}
-                        <div className="border-t border-border/50 my-1" />
+                        <button
+                          onClick={() => {
+                            setShowRemoveModal(true)
+                            setShowOverflowMenu(false)
+                          }}
+                          className="w-full px-3 py-2 text-left text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2.5 transition-colors"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                          Remove
+                        </button>
                         <button
                           onClick={() => {
                             setShowDeleteModal(true)
@@ -3181,7 +3203,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           className="w-full px-3 py-2 text-left text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2.5 transition-colors"
                         >
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862 2 2 0 011-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
                           Delete Customer
                         </button>
@@ -3205,11 +3227,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       <div className="flex-1 max-w-7xl mx-auto w-full px-6 lg:px-8 py-2">
         
         {/* Desktop Layout */}
-        <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_380px] gap-8 items-start">
+        <div className="hidden lg:grid lg:grid-cols-[minmax(0,2.5fr)_340px] gap-10 items-start">
           {/* Desktop Conversation Section - Independent Scroll */}
-          <section className="flex flex-col min-h-0 h-[calc(100vh-240px)]">
+          <section className="flex flex-col min-h-0 h-[calc(100vh-260px)]">
             {/* Desktop Message Thread - Scrollable */}
-            <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-3 py-2 min-h-0 custom-scrollbar" style={{ minHeight: '200px' }}>
+            <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-4 py-3 min-h-0 custom-scrollbar" style={{ minHeight: '200px' }}>
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
@@ -3244,7 +3266,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Desktop Message Composer - Fixed to Bottom */}
-            <div className="shrink-0 pt-2">
+            <div className="shrink-0 pt-3">
               <ConversationComposer
                 message={message}
                 setMessage={setMessage}
@@ -3256,17 +3278,33 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               />
             </div>
           </section>
-          
+
           {/* Desktop Sidebar - Simplified */}
-          <aside className="sticky top-4 overflow-y-auto max-h-[calc(100vh-240px)]" data-sidebar>
-            <div className="space-y-5">
+          <aside className="sticky top-4 overflow-y-auto max-h-[calc(100vh-260px)]" data-sidebar>
+            <div className="space-y-4">
               {/* Consolidated Information Panel - Simplified */}
-              <div className="bg-card rounded-xl border border-border/50 p-4">
+              <div className="bg-card rounded-xl border border-border/40 p-5">
                 <div className="space-y-5">
                   {/* AI Intake Summary */}
                   {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
                     <div>
-                      <h3 className="text-sm font-medium text-muted-foreground mb-3">AI Intake</h3>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-4">AI Intake</h3>
+                      {(() => {
+                        const intake = getLeadAIIntake(leadData || lead)
+                        const hasIntake = intake.serviceRequested || leadData?.aiCallRecords?.length > 0
+                        if (hasIntake && (intake.serviceRequested || intake.desiredCompletion || intake.callbackTime)) {
+                          return (
+                            <div className="mb-4 p-3 bg-muted/30 rounded-lg border border-border/30">
+                              <p className="text-[11px] font-medium text-muted-foreground mb-2">Current Request</p>
+                              <p className="text-sm font-semibold text-foreground mb-1">{intake.serviceRequested || 'Service request'}</p>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                {intake.desiredCompletion && <span>{intake.desiredCompletion}</span>}
+                                {intake.callbackTime && <span>• {intake.callbackTime}</span>}
+                              </div>
+                            </div>
+                          )
+                        }
+                      })()}
                       <AICallDetails
                         leadId={params.id}
                         businessId={business.id}
@@ -3378,10 +3416,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   )}
                 </div>
               </div>
-
-              {renderWorkspaceSection()}
             </div>
           </aside>
+
+          {/* Workspace Section - Below conversation for desktop */}
+          <div className="hidden lg:block lg:col-span-2 mt-8">
+            {renderWorkspaceSection()}
+          </div>
         </div>
         
         {/* Mobile Layout - Conversation-first: Header -> Conversation -> Collapsible Sections */}
