@@ -92,43 +92,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
     }
 
-    console.log('[ADMIN SEARCH] Admin verified, starting database search')
-
-    // After admin is verified, use service role client for unrestricted database access
-    console.log('[ADMIN SEARCH] DEBUG: Query params', {
-      query,
-      table: 'businesses',
-      searchFields: ['business_name', 'business_phone', 'twilio_phone_number'],
-      searchPattern: `ilike.%${query}%`,
-      limit: 20,
-      client: 'service_role'
-    })
+    console.log('[ADMIN SEARCH] Admin verified, starting search for:', query)
 
     try {
-      console.log('[ADMIN SEARCH] Initializing businesses array')
-      // Search businesses using service role client for full access
       let businesses: any[] = []
 
-      // DEBUG: Try simple query first without any filters
-      console.log('[ADMIN SEARCH] DEBUG: Trying simple count query')
-      const { count: searchTotalCount, error: searchCountError } = await supabaseAdmin
-        .from('businesses')
-        .select('*', { count: 'exact', head: true })
-
-      console.log('[ADMIN SEARCH] DEBUG: Count result', {
-        searchTotalCount,
-        searchCountError,
-        searchCountErrorCode: searchCountError?.code,
-        searchCountErrorMessage: searchCountError?.message
-      })
-
-      console.log('[ADMIN SEARCH] Query 1: Searching businesses by name and phone fields')
-      // 1. Search businesses by name and phone fields (only columns that exist in production)
+      // Search businesses by name and phone fields - using real production schema
       let baseQuery = supabaseAdmin
         .from('businesses')
         .select('*')
-        .or(`business_name.ilike.%${query}%,business_phone.ilike.%${query}%,twilio_phone_number.ilike.%${query}%`)
-        .is('deleted_at', null)
+        .or(`name.ilike.%${query}%,business_phone_number.ilike.%${query}%,twilio_phone_number.ilike.%${query}%`)
 
       // Apply filter if specified
       if (filter !== 'all') {
@@ -169,113 +142,52 @@ export async function GET(request: NextRequest) {
 
       const { data: businessesByNameOrPhone, error: businessError } = await baseQuery.limit(20)
 
-      console.log('[ADMIN SEARCH] Query 1 result', {
-        success: !businessError,
-        count: businessesByNameOrPhone?.length || 0,
-        error: businessError,
-        errorCode: businessError?.code,
-        errorMessage: businessError?.message,
-        errorDetails: businessError?.details,
-        sampleData: businessesByNameOrPhone?.slice(0, 2)
-      })
-
       if (!businessError && businessesByNameOrPhone) {
-        console.log('[ADMIN SEARCH] Adding name/phone results to businesses array')
         businesses = businessesByNameOrPhone
-        console.log('[ADMIN SEARCH] Businesses array after name/phone search', {
-          count: businesses.length,
-          businesses: businesses.map(b => ({ id: b.id, name: b.business_name, phone: b.business_phone, deleted_at: b.deleted_at }))
-        })
       }
 
-      console.log('[ADMIN SEARCH] Query 2: Getting users from auth.users')
-      // 2. Search by owner email using auth.users (admin-only access via service role)
+      // Search by owner email using auth.users (admin-only access via service role)
       const { data: usersData, error: usersError } = await supabaseAdmin.auth.admin.listUsers()
-      
-      console.log('[ADMIN SEARCH] Query 2 result', {
-        success: !usersError,
-        userCount: usersData?.users?.length || 0,
-        error: usersError
-      })
-      
+
       if (!usersError && usersData) {
-        console.log('[ADMIN SEARCH] Filtering users by email', { query })
-        const matchingUsers = usersData.users.filter(user => 
+        const matchingUsers = usersData.users.filter(user =>
           user.email && user.email.toLowerCase().includes(query.toLowerCase())
         )
-        
-        console.log('[ADMIN SEARCH] Matching users found', {
-          count: matchingUsers.length,
-          users: matchingUsers.map(u => ({ id: u.id, email: u.email }))
-        })
-        
+
         // Get businesses owned by matching users
         if (matchingUsers.length > 0) {
-          console.log('[ADMIN SEARCH] Query 3: Getting businesses by user_ids')
           const userIds = matchingUsers.map(u => u.id)
-          console.log('[ADMIN SEARCH] User IDs for business lookup', { userIds })
-          
+
           const { data: businessesByEmail, error: emailBusinessError } = await supabaseAdmin
             .from('businesses')
             .select('*')
             .in('user_id', userIds)
             .limit(20)
-          
-          console.log('[ADMIN SEARCH] Query 3 result', {
-            success: !emailBusinessError,
-            count: businessesByEmail?.length || 0,
-            error: emailBusinessError,
-            data: businessesByEmail
-          })
-          
+
           if (!emailBusinessError && businessesByEmail) {
-            console.log('[ADMIN SEARCH] Merging email search results')
             // Merge results, avoiding duplicates
-            console.log('[ADMIN SEARCH] Existing business IDs before merge', {
-              ids: businesses.map(b => b.id)
-            })
             const existingIds = new Set(businesses.map(b => b.id))
-            console.log('[ADMIN SEARCH] Existing IDs set created', {
-              size: existingIds.size
-            })
-            
+
             for (const business of businessesByEmail) {
-              console.log('[ADMIN SEARCH] Checking business for merge', {
-                id: business.id,
-                alreadyExists: existingIds.has(business.id)
-              })
               if (!existingIds.has(business.id)) {
                 businesses.push(business)
                 existingIds.add(business.id)
-                console.log('[ADMIN SEARCH] Added business', { id: business.id })
               }
             }
-            console.log('[ADMIN SEARCH] Businesses array after merge', {
-              count: businesses.length
-            })
           }
         }
       }
 
-      console.log('[ADMIN SEARCH] Limiting results to 20')
       // Limit final results to 20
       businesses = businesses.slice(0, 20)
 
-      console.log('[ADMIN SEARCH RESULT]', {
-        success: true,
-        count: businesses.length,
-        businesses: businesses,
-        searchMethod: 'combined'
-      })
-
       if (businessError) {
-        console.error('[Admin API] Search businesses error:', businessError)
+        console.error('[ADMIN SEARCH] Error:', businessError.code, businessError.message)
       }
 
-      console.log('[ADMIN SEARCH] Serializing response')
-      const response = NextResponse.json({ success: true, businesses })
-      console.log('[ADMIN SEARCH] Response created successfully')
-      return response
+      console.log('[ADMIN SEARCH] Found:', businesses.length, 'businesses')
+
+      return NextResponse.json({ success: true, businesses })
     } catch (searchError: any) {
       console.error('[ADMIN SEARCH ERROR]', {
         message: searchError.message,

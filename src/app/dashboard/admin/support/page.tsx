@@ -834,14 +834,14 @@ export default function AdminSupportPage() {
                         <div className="flex items-center justify-between">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <p className="font-medium text-slate-900 dark:text-foreground truncate">{business.business_name}</p>
+                              <p className="font-medium text-slate-900 dark:text-foreground truncate">{(business as any).name}</p>
                               {issues.length > 0 && (
                                 <span className="flex-shrink-0 px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-xs font-medium rounded-full">
                                   {issues.length} issue{issues.length > 1 ? 's' : ''}
                                 </span>
                               )}
                             </div>
-                            <p className="text-sm text-slate-600 dark:text-slate-400">{business.business_phone}</p>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">{(business as any).business_phone_number}</p>
                             {issues.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-1">
                                 {issues.map((issue, idx) => (
@@ -887,14 +887,14 @@ export default function AdminSupportPage() {
                           <div className="flex items-center justify-between">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <p className="font-medium text-slate-900 dark:text-foreground truncate">{business.business_name}</p>
+                                <p className="font-medium text-slate-900 dark:text-foreground truncate">{(business as any).name}</p>
                                 {issues.length > 0 && (
                                   <span className="flex-shrink-0 px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-xs font-medium rounded-full">
                                     {issues.length} issue{issues.length > 1 ? 's' : ''}
                                   </span>
                                 )}
                               </div>
-                              <p className="text-sm text-slate-600 dark:text-slate-400">{business.business_phone}</p>
+                              <p className="text-sm text-slate-600 dark:text-slate-400">{(business as any).business_phone_number}</p>
                               <p className="text-xs text-slate-500 dark:text-slate-500">
                                 Created {new Date(business.created_at).toLocaleDateString()}
                               </p>
