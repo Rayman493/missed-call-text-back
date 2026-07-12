@@ -86,6 +86,10 @@ export default function AdminSupportPage() {
   const [selectedFilter, setSelectedFilter] = useState<string>('all')
   const [showFilters, setShowFilters] = useState(false)
 
+  // Business detail state
+  const [businessDetail, setBusinessDetail] = useState<any>(null)
+  const [businessDetailLoading, setBusinessDetailLoading] = useState(false)
+
   useEffect(() => {
     const checkAdmin = async () => {
       if (!user?.id) return
@@ -155,9 +159,25 @@ export default function AdminSupportPage() {
     }
   }
 
-  const handleSelectBusiness = (business: Business) => {
+  const handleSelectBusiness = async (business: Business) => {
     setSelectedBusiness(business)
     setActionResult(null)
+    setBusinessDetailLoading(true)
+
+    try {
+      const response = await fetch(`/api/admin/business-detail?businessId=${business.id}`)
+      const data = await response.json()
+
+      if (data.success) {
+        setBusinessDetail(data.detail)
+      } else {
+        console.error('[ADMIN SUPPORT PAGE] Failed to fetch business detail:', data.error)
+      }
+    } catch (error) {
+      console.error('[ADMIN SUPPORT PAGE] Error fetching business detail:', error)
+    } finally {
+      setBusinessDetailLoading(false)
+    }
   }
 
   const handleAdminAction = async (action: string, businessId: string) => {
@@ -320,6 +340,87 @@ export default function AdminSupportPage() {
     }
 
     return issues
+  }
+
+  const getBusinessHealthState = (business: Business, detail: any) => {
+    const issues = getBusinessIssueIndicator(business)
+    const hasCriticalIssues = business.provisioning_status === 'failed' || business.subscription_status === 'past_due'
+    const hasHighIssues = issues.some(i => i.includes('Trial Expiring') || i.includes('Onboarding Incomplete'))
+
+    if (hasCriticalIssues) {
+      return { state: 'Critical', color: 'red', issues }
+    } else if (hasHighIssues || issues.length > 0) {
+      return { state: 'Needs Attention', color: 'amber', issues }
+    } else {
+      return { state: 'Healthy', color: 'green', issues: [] }
+    }
+  }
+
+  const getRecommendedAction = (business: Business, detail: any) => {
+    const health = getBusinessHealthState(business, detail)
+    const issues = health.issues
+
+    if (issues.length === 0) {
+      return {
+        title: 'No action needed',
+        description: 'This account is operating normally.',
+        action: null,
+        actionLabel: null
+      }
+    }
+
+    // Prioritize critical issues
+    if (business.provisioning_status === 'failed') {
+      return {
+        title: 'Retry Number Provisioning',
+        description: 'The Twilio number provisioning failed. This prevents the business from receiving calls or messages.',
+        action: 'retry_provisioning',
+        actionLabel: 'Retry Provisioning'
+      }
+    }
+
+    if (business.subscription_status === 'past_due') {
+      return {
+        title: 'Resolve Past-Due Billing',
+        description: 'The subscription is past due. Access may be restricted until billing is resolved.',
+        action: 'view_stripe_portal',
+        actionLabel: 'Open Billing Portal'
+      }
+    }
+
+    if (issues.includes('Forwarding Not Verified')) {
+      return {
+        title: 'Complete Forwarding Setup',
+        description: 'Call forwarding has not been verified. The business cannot receive calls until forwarding is confirmed.',
+        action: null,
+        actionLabel: 'Contact Customer'
+      }
+    }
+
+    if (issues.includes('Onboarding Incomplete')) {
+      return {
+        title: 'Complete Onboarding',
+        description: 'Onboarding has been incomplete for over 24 hours. The business may need guidance.',
+        action: null,
+        actionLabel: 'Send Setup Guidance'
+      }
+    }
+
+    if (issues.some(i => i.includes('Trial Expiring'))) {
+      return {
+        title: 'Trial Expiring Soon',
+        description: 'The trial period is ending. The business may need to upgrade or extend access.',
+        action: null,
+        actionLabel: 'Contact Customer'
+      }
+    }
+
+    return {
+      title: 'Review Issues',
+      description: `This business has ${issues.length} issue(s) that need attention.`,
+      action: null,
+      actionLabel: null
+    }
   }
 
   const handleProtect = async () => {
@@ -749,248 +850,395 @@ export default function AdminSupportPage() {
 
             {/* Business Details */}
             {selectedBusiness && (
-              <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-4">
-                  Business Details
-                </h2>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">Business Name</p>
-                    <p className="text-sm text-slate-900 dark:text-foreground">{selectedBusiness.business_name}</p>
+              <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl shadow-sm overflow-hidden">
+                {businessDetailLoading ? (
+                  <div className="p-6 text-center">
+                    <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent border-solid animate-spin rounded-full mx-auto mb-4"></div>
+                    <p className="text-slate-600 dark:text-slate-400">Loading business details...</p>
                   </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">Business Type</p>
-                    <p className="text-sm text-slate-900 dark:text-foreground">{selectedBusiness.business_type}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">Business Phone</p>
-                    <p className="text-sm text-slate-900 dark:text-foreground">{selectedBusiness.business_phone}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">ReplyFlow Phone</p>
-                    <p className="text-sm text-slate-900 dark:text-foreground">{selectedBusiness.twilio_phone_number || 'Not set'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">Twilio Phone SID</p>
-                    <p className="text-sm text-slate-900 dark:text-foreground font-mono">{selectedBusiness.twilio_phone_number_sid || 'Not set'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">Messaging Service SID</p>
-                    <p className="text-sm text-slate-900 dark:text-foreground font-mono">{selectedBusiness.messaging_service_sid || 'Not set'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">A2P Status</p>
-                    <p className="text-sm text-slate-900 dark:text-foreground">{selectedBusiness.a2p_status || 'Not set'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">Onboarding Status</p>
-                    <p className="text-sm text-slate-900 dark:text-foreground">{selectedBusiness.onboarding_status}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">Forwarding Verified</p>
-                    <p className="text-sm text-slate-900 dark:text-foreground">{selectedBusiness.forwarding_verified ? 'Yes' : 'No'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">Subscription Status</p>
-                    <p className="text-sm text-slate-900 dark:text-foreground">{selectedBusiness.subscription_status}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">Trial End Date</p>
-                    <p className="text-sm text-slate-900 dark:text-foreground">{selectedBusiness.trial_end_date || 'Not set'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">Period End</p>
-                    <p className="text-sm text-slate-900 dark:text-foreground">{selectedBusiness.current_period_end || 'Not set'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">Stripe Customer ID</p>
-                    <p className="text-sm text-slate-900 dark:text-foreground font-mono">{selectedBusiness.stripe_customer_id || 'Not set'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">Stripe Subscription ID</p>
-                    <p className="text-sm text-slate-900 dark:text-foreground font-mono">{selectedBusiness.stripe_subscription_id || 'Not set'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">Provisioning Status</p>
-                    <p className="text-sm text-slate-900 dark:text-foreground">{selectedBusiness.provisioning_status || 'Not set'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">Call Forwarding</p>
-                    <p className="text-sm text-slate-900 dark:text-foreground">{selectedBusiness.call_forwarding_enabled ? 'Enabled' : 'Disabled'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">Manual Access</p>
-                    <p className="text-sm text-slate-900 dark:text-foreground font-medium">{getManualAccessStatusText(selectedBusiness)}</p>
-                  </div>
-                  {selectedBusiness.manual_access_enabled && (
-                    <>
-                      <div>
-                        <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">Manual Access Reason</p>
-                        <p className="text-sm text-slate-900 dark:text-foreground">{selectedBusiness.manual_access_reason || 'Not specified'}</p>
-                      </div>
-                      {selectedBusiness.manual_access_note && (
+                ) : (
+                  <>
+                    {/* Support Summary */}
+                    <div className="p-6 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30">
+                      <div className="flex items-start justify-between mb-4">
                         <div>
-                          <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">Manual Access Note</p>
-                          <p className="text-sm text-slate-900 dark:text-foreground">{selectedBusiness.manual_access_note}</p>
+                          <h2 className="text-xl font-semibold text-slate-900 dark:text-foreground mb-1">
+                            {selectedBusiness.business_name}
+                          </h2>
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
+                            {businessDetail?.business?.owner_email || 'Owner email not available'}
+                          </p>
                         </div>
-                      )}
-                    </>
-                  )}
-                  {selectedBusiness.twilio_phone_number && (
-                    <>
-                      <div>
-                        <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">Twilio Release Status</p>
-                        <p className="text-sm text-slate-900 dark:text-foreground font-medium">
-                          {selectedBusiness.twilio_release_status === 'scheduled' && selectedBusiness.twilio_release_at
-                            ? `Release scheduled for ${new Date(selectedBusiness.twilio_release_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`
-                            : selectedBusiness.twilio_release_status === 'released' && selectedBusiness.twilio_released_at
-                            ? `Released on ${new Date(selectedBusiness.twilio_released_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`
-                            : selectedBusiness.twilio_release_status === 'retained'
-                            ? 'Retained'
-                            : selectedBusiness.twilio_release_status === 'reactivated'
-                            ? 'Reactivated'
-                            : 'Not scheduled'
-                          }
-                        </p>
+                        <div className="flex items-center gap-2">
+                          {(() => {
+                            const health = getBusinessHealthState(selectedBusiness, businessDetail)
+                            const colors = {
+                              red: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+                              amber: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
+                              green: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                            }
+                            return (
+                              <span className={`px-3 py-1 rounded-full text-sm font-medium ${colors[health.color as keyof typeof colors]}`}>
+                                {health.state}
+                              </span>
+                            )
+                          })()}
+                        </div>
                       </div>
-                      {selectedBusiness.twilio_release_reason && (
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
                         <div>
-                          <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">Release Reason</p>
-                          <p className="text-sm text-slate-900 dark:text-foreground">{selectedBusiness.twilio_release_reason}</p>
+                          <p className="text-slate-500 dark:text-slate-500">Account Age</p>
+                          <p className="text-slate-900 dark:text-foreground">
+                            {new Date(selectedBusiness.created_at).toLocaleDateString()}
+                          </p>
                         </div>
-                      )}
-                    </>
-                  )}
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-500 mb-1">Protected Status</p>
-                    <div className="flex items-center gap-2">
-                      {selectedBusiness.is_protected_account ? (
-                        <>
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                            Protected
-                          </span>
-                          {selectedBusiness.protected_reason && (
-                            <p className="text-sm text-slate-600 dark:text-slate-400">({selectedBusiness.protected_reason})</p>
-                          )}
-                        </>
-                      ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">
-                          Not Protected
-                        </span>
+                        <div>
+                          <p className="text-slate-500 dark:text-slate-500">Subscription</p>
+                          <p className="text-slate-900 dark:text-foreground capitalize">
+                            {selectedBusiness.subscription_status}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-slate-500 dark:text-slate-500">Trial/Period End</p>
+                          <p className="text-slate-900 dark:text-foreground">
+                            {selectedBusiness.trial_end_date
+                              ? new Date(selectedBusiness.trial_end_date).toLocaleDateString()
+                              : selectedBusiness.current_period_end
+                              ? new Date(selectedBusiness.current_period_end).toLocaleDateString()
+                              : 'Not set'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-slate-500 dark:text-slate-500">Issues</p>
+                          <p className="text-slate-900 dark:text-foreground">
+                            {getBusinessIssueIndicator(selectedBusiness).length} detected
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Recommended Action */}
+                    <div className="p-6 border-b border-slate-200 dark:border-slate-700">
+                      {(() => {
+                        const recommendation = getRecommendedAction(selectedBusiness, businessDetail)
+                        return (
+                          <div className={`rounded-lg p-4 ${
+                            recommendation.action ? 'bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800' : 'bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800'
+                          }`}>
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1">
+                                  {recommendation.title}
+                                </h3>
+                                <p className="text-sm text-slate-600 dark:text-slate-400">
+                                  {recommendation.description}
+                                </p>
+                              </div>
+                              {recommendation.action && (
+                                <button
+                                  onClick={() => handleAdminAction(recommendation.action, selectedBusiness.id)}
+                                  disabled={actionLoading}
+                                  className="ml-4 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                  {recommendation.actionLabel}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })()}
+                    </div>
+
+                    {/* Operational Sections */}
+                    <div className="p-6 space-y-6">
+                      {/* Account Section */}
+                      <div>
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-3 uppercase tracking-wide">
+                          Account
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-500">Business ID</p>
+                            <p className="text-slate-900 dark:text-foreground font-mono text-xs">
+                              {selectedBusiness.id.slice(0, 8)}...
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-500">User ID</p>
+                            <p className="text-slate-900 dark:text-foreground font-mono text-xs">
+                              {selectedBusiness.user_id.slice(0, 8)}...
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-500">Created</p>
+                            <p className="text-slate-900 dark:text-foreground">
+                              {new Date(selectedBusiness.created_at).toLocaleString()}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-500">Onboarding Status</p>
+                            <p className="text-slate-900 dark:text-foreground capitalize">
+                              {selectedBusiness.onboarding_status}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-500">Business Type</p>
+                            <p className="text-slate-900 dark:text-foreground">
+                              {selectedBusiness.business_type}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-500">Protected</p>
+                            <p className="text-slate-900 dark:text-foreground">
+                              {selectedBusiness.is_protected_account ? `Yes (${selectedBusiness.protected_reason})` : 'No'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Billing Section */}
+                      <div>
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-3 uppercase tracking-wide">
+                          Billing
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-500">Status</p>
+                            <p className="text-slate-900 dark:text-foreground capitalize">
+                              {selectedBusiness.subscription_status}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-500">Customer ID</p>
+                            <p className="text-slate-900 dark:text-foreground font-mono text-xs">
+                              {selectedBusiness.stripe_customer_id?.slice(0, 8) || 'Not set'}...
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-500">Subscription ID</p>
+                            <p className="text-slate-900 dark:text-foreground font-mono text-xs">
+                              {selectedBusiness.stripe_subscription_id?.slice(0, 8) || 'Not set'}...
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-500">Trial End</p>
+                            <p className="text-slate-900 dark:text-foreground">
+                              {selectedBusiness.trial_end_date ? new Date(selectedBusiness.trial_end_date).toLocaleDateString() : 'Not set'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-500">Period End</p>
+                            <p className="text-slate-900 dark:text-foreground">
+                              {selectedBusiness.current_period_end ? new Date(selectedBusiness.current_period_end).toLocaleDateString() : 'Not set'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-500">Manual Access</p>
+                            <p className="text-slate-900 dark:text-foreground">
+                              {getManualAccessStatusText(selectedBusiness)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Phone & Provisioning Section */}
+                      <div>
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-3 uppercase tracking-wide">
+                          Phone & Provisioning
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-500">Business Phone</p>
+                            <p className="text-slate-900 dark:text-foreground">
+                              {selectedBusiness.business_phone}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-500">ReplyFlow Number</p>
+                            <p className="text-slate-900 dark:text-foreground">
+                              {selectedBusiness.twilio_phone_number || 'Not set'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-500">Provisioning Status</p>
+                            <p className="text-slate-900 dark:text-foreground capitalize">
+                              {selectedBusiness.provisioning_status || 'Not set'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-500">A2P Status</p>
+                            <p className="text-slate-900 dark:text-foreground">
+                              {selectedBusiness.a2p_status || 'Not set'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-500">Call Forwarding</p>
+                            <p className="text-slate-900 dark:text-foreground">
+                              {selectedBusiness.call_forwarding_enabled ? 'Enabled' : 'Disabled'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-500">Twilio Phone SID</p>
+                            <p className="text-slate-900 dark:text-foreground font-mono text-xs">
+                              {selectedBusiness.twilio_phone_number_sid?.slice(0, 8) || 'Not set'}...
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* AI Voice Section */}
+                      <div>
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-3 uppercase tracking-wide">
+                          AI Voice
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-500">Latest Call</p>
+                            <p className="text-slate-900 dark:text-foreground">
+                              {businessDetail?.aiCall?.created_at ? new Date(businessDetail.aiCall.created_at).toLocaleString() : 'No calls'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-500">Latest Outcome</p>
+                            <p className="text-slate-900 dark:text-foreground capitalize">
+                              {businessDetail?.aiCall?.ai_call_status || 'N/A'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-500">Recent Failures (24h)</p>
+                            <p className="text-slate-900 dark:text-foreground">
+                              {businessDetail?.aiFailureCount || 0}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Messaging Section */}
+                      <div>
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-3 uppercase tracking-wide">
+                          Messaging
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-500">Latest SMS</p>
+                            <p className="text-slate-900 dark:text-foreground">
+                              {businessDetail?.sms?.created_at ? new Date(businessDetail.sms.created_at).toLocaleString() : 'No messages'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-500">Latest Status</p>
+                            <p className="text-slate-900 dark:text-foreground capitalize">
+                              {businessDetail?.sms?.status || 'N/A'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500 dark:text-slate-500">Recent Failures (24h)</p>
+                            <p className="text-slate-900 dark:text-foreground">
+                              {businessDetail?.smsFailureCount || 0}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Recent Events Section */}
+                      {businessDetail?.recentEvents && businessDetail.recentEvents.length > 0 && (
+                        <div>
+                          <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-3 uppercase tracking-wide">
+                            Recent Events
+                          </h3>
+                          <div className="space-y-2 max-h-48 overflow-y-auto">
+                            {businessDetail.recentEvents.slice(0, 10).map((event: any, idx: number) => (
+                              <div key={idx} className="text-sm p-2 bg-slate-50 dark:bg-slate-800/50 rounded border border-slate-200 dark:border-slate-700">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-slate-900 dark:text-foreground">{event.event_type || 'Event'}</span>
+                                  <span className="text-slate-500 dark:text-slate-500 text-xs">
+                                    {new Date(event.created_at).toLocaleString()}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </div>
-                  </div>
-                </div>
 
-                {/* Admin Actions */}
-                <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-4">
-                    Admin Actions
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    <button
-                      onClick={() => {
-                        setManualAccessAction(selectedBusiness.manual_access_enabled ? 'revoke' : 'grant')
-                        setShowManualAccessModal(true)
-                      }}
-                      disabled={actionLoading}
-                      className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {selectedBusiness.manual_access_enabled ? 'Revoke Manual Access' : 'Grant Manual Access'}
-                    </button>
-                    <button
-                      onClick={() => handleAdminAction('retry_provisioning', selectedBusiness.id)}
-                      disabled={actionLoading}
-                      className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      Retry Provisioning
-                    </button>
-                    <button
-                      onClick={() => handleAdminAction('reconcile_messaging_service', selectedBusiness.id)}
-                      disabled={actionLoading}
-                      className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      Reconcile Messaging Service
-                    </button>
-                    <button
-                      onClick={() => handleAdminAction('mark_forwarding_verified', selectedBusiness.id)}
-                      disabled={actionLoading}
-                      className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      Mark Forwarding Verified
-                    </button>
-                    <button
-                      onClick={() => handleAdminAction('reset_onboarding', selectedBusiness.id)}
-                      disabled={actionLoading}
-                      className="px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      Reset Onboarding
-                    </button>
-                    <button
-                      onClick={() => handleAdminAction('refresh_subscription', selectedBusiness.id)}
-                      disabled={actionLoading}
-                      className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      Refresh Subscription
-                    </button>
-                    <button
-                      onClick={() => handleAdminAction('view_stripe_portal', selectedBusiness.id)}
-                      disabled={actionLoading}
-                      className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      View Stripe Portal
-                    </button>
-                    <button
-                      onClick={() => {
-                        setProtectAction(selectedBusiness.is_protected_account ? 'unprotect' : 'protect')
-                        setShowProtectModal(true)
-                      }}
-                      disabled={actionLoading}
-                      className={`px-4 py-2 text-white text-sm font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
-                        selectedBusiness.is_protected_account
-                          ? 'bg-red-600 hover:bg-red-700'
-                          : 'bg-green-600 hover:bg-green-700'
-                      }`}
-                    >
-                      {selectedBusiness.is_protected_account ? 'Unprotect Account' : 'Protect Account'}
-                    </button>
-                    {selectedBusiness.twilio_phone_number && selectedBusiness.twilio_release_status === 'scheduled' && (
-                      <>
+                    {/* Admin Actions */}
+                    <div className="p-6 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30">
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-3 uppercase tracking-wide">
+                        Quick Actions
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
                         <button
-                          onClick={() => handleAdminAction('cancel_twilio_release', selectedBusiness.id)}
+                          onClick={() => handleAdminAction('retry_provisioning', selectedBusiness.id)}
                           disabled={actionLoading}
-                          className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
-                          Cancel Number Release
+                          Retry Provisioning
                         </button>
                         <button
-                          onClick={() => handleAdminAction('extend_grace_period', selectedBusiness.id)}
+                          onClick={() => handleAdminAction('refresh_subscription', selectedBusiness.id)}
                           disabled={actionLoading}
-                          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
-                          Extend Grace Period (30 days)
+                          Refresh Subscription
                         </button>
-                      </>
-                    )}
-                    {selectedBusiness.twilio_phone_number && !selectedBusiness.twilio_release_status && (
-                      <button
-                        onClick={() => handleAdminAction('release_twilio_number_now', selectedBusiness.id)}
-                        disabled={actionLoading}
-                        className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      >
-                        Release Number Now
-                      </button>
-                    )}
-                    <button
-                      onClick={handleOpenDeleteModal}
-                      disabled={actionLoading || selectedBusiness.is_protected_account === true}
-                      className="px-4 py-2 bg-red-700 text-white text-sm font-medium rounded-lg hover:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      Delete Test Business Data
-                    </button>
-                  </div>
-                </div>
+                        <button
+                          onClick={() => handleAdminAction('view_stripe_portal', selectedBusiness.id)}
+                          disabled={actionLoading}
+                          className="px-3 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Stripe Portal
+                        </button>
+                        <button
+                          onClick={() => {
+                            setManualAccessAction(selectedBusiness.manual_access_enabled ? 'revoke' : 'grant')
+                            setShowManualAccessModal(true)
+                          }}
+                          disabled={actionLoading}
+                          className="px-3 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {selectedBusiness.manual_access_enabled ? 'Revoke Access' : 'Grant Access'}
+                        </button>
+                        <button
+                          onClick={() => handleAdminAction('reconcile_messaging_service', selectedBusiness.id)}
+                          disabled={actionLoading}
+                          className="px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Reconcile Messaging
+                        </button>
+                        <button
+                          onClick={() => handleAdminAction('mark_forwarding_verified', selectedBusiness.id)}
+                          disabled={actionLoading}
+                          className="px-3 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Mark Forwarding Verified
+                        </button>
+                        <button
+                          onClick={() => {
+                            setProtectAction(selectedBusiness.is_protected_account ? 'unprotect' : 'protect')
+                            setShowProtectModal(true)
+                          }}
+                          disabled={actionLoading}
+                          className={`px-3 py-2 text-white text-sm font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
+                            selectedBusiness.is_protected_account
+                              ? 'bg-red-600 hover:bg-red-700'
+                              : 'bg-green-600 hover:bg-green-700'
+                          }`}
+                        >
+                          {selectedBusiness.is_protected_account ? 'Unprotect' : 'Protect'}
+                        </button>
+                        <button
+                          onClick={handleOpenDeleteModal}
+                          disabled={actionLoading || selectedBusiness.is_protected_account === true}
+                          className="px-3 py-2 bg-red-700 text-white text-sm font-medium rounded-lg hover:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Delete Test Data
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
