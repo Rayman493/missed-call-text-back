@@ -155,7 +155,7 @@ function generateIgnoredContactResponse(): string {
 }
 
 // Helper to generate personal voicemail recording for ignored contacts
-function generatePersonalVoicemailResponse(): string {
+function generatePersonalVoicemailResponse(businessId: string, callerPhone: string): string {
   // Answer and record voicemail for ignored/personal callers
   // Stores in personal_voicemails table - completely separate from customer system
   // No AI, no lead, no conversation, no SMS, no follow-ups
@@ -169,9 +169,9 @@ function generatePersonalVoicemailResponse(): string {
     maxLength="60"
     playBeep="true"
     trim="trim-silence"
-    action="/api/twilio/personal-voicemail"
+    action="/api/twilio/personal-voicemail?businessId=${businessId}&callerPhone=${callerPhone}"
     method="POST"
-    recordingStatusCallback="/api/twilio/recording-status"
+    recordingStatusCallback="/api/twilio/recording-status?businessId=${businessId}&callerPhone=${callerPhone}"
     recordingStatusCallbackMethod="POST"
   />
   <Hangup/>
@@ -569,7 +569,7 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
       // Return personal voicemail recording
       // Records voicemail to personal_voicemails table - completely separate from customer system
       // No AI, no lead, no conversation, no SMS, no follow-ups
-      const twiml = generatePersonalVoicemailResponse()
+      const twiml = generatePersonalVoicemailResponse(business.id, normalizedFrom)
       console.log('[AI POC DEPLOYMENT MARKER] version=3105ffc path=ignored-contact-personal-voicemail')
       console.log('[AI POC FINAL TWIML]', twiml)
       console.log('[VOICE PATH] IGNORED_CONTACT_PERSONAL_VOICEMAIL')

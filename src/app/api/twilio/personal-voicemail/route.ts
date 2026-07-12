@@ -8,6 +8,7 @@ import { formatPhoneNumber } from '@/lib/utils';
 // POST /api/twilio/personal-voicemail - Handle personal voicemail recording from ignored contacts
 // This is completely separate from the customer system
 // No lead, no conversation, no AI, no SMS, no follow-ups
+// No dependency on call_events, leads, or AI intake pipeline
 export async function POST(request: NextRequest) {
   console.log('[PERSONAL VOICEMAIL WEBHOOK] Starting personal voicemail processing');
   
@@ -16,12 +17,19 @@ export async function POST(request: NextRequest) {
     const contentType = request.headers.get('content-type') || '';
     const params = Object.fromEntries(new URLSearchParams(rawBody));
     
+    // Extract URL parameters for business_id and caller_phone
+    const url = new URL(request.url);
+    const businessId = url.searchParams.get('businessId');
+    const callerPhone = url.searchParams.get('callerPhone');
+    
     console.log('[PERSONAL VOICEMAIL WEBHOOK] Params:', {
       CallSid: params.CallSid,
       From: params.From,
       RecordingUrl: params.RecordingUrl,
       RecordingSid: params.RecordingSid,
       RecordingDuration: params.RecordingDuration,
+      businessId: businessId,
+      callerPhone: callerPhone,
     });
     
     // Validate Twilio signature
@@ -42,28 +50,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
     
-    // Find business by looking up the call event
-    const { data: callEvent, error: callEventError } = await supabaseAdmin
-      .from('call_events')
-      .select('business_id, caller_phone')
-      .eq('twilio_call_sid', CallSid)
-      .single();
-    
-    if (callEventError || !callEvent) {
-      console.error('[PERSONAL VOICEMAIL WEBHOOK] Call event not found:', callEventError);
-      return NextResponse.json({ error: 'Call event not found' }, { status: 404 });
+    if (!businessId || !callerPhone) {
+      console.error('[PERSONAL VOICEMAIL WEBHOOK] Missing URL parameters (businessId or callerPhone)');
+      return NextResponse.json({ error: 'Missing URL parameters' }, { status: 400 });
     }
     
-    console.log('[PERSONAL VOICEMAIL WEBHOOK] Found call event:', {
-      businessId: callEvent.business_id,
-      callerPhone: callEvent.caller_phone,
+    console.log('[PERSONAL VOICEMAIL WEBHOOK] Using URL parameters:', {
+      businessId: businessId,
+      callerPhone: callerPhone,
     });
     
-    // Create personal voicemail record
+    // Create personal voicemail record - completely independent of AI pipeline
     const { data: voicemail, error: voicemailError } = await supabaseAdmin
       .from('personal_voicemails')
       .insert({
-        business_id: callEvent.business_id,
+        business_id: businessId,
         caller_phone: normalizePhoneNumberForStorage(From),
         caller_name: null, // Can be enhanced later with CNAM lookup
         recording_url: RecordingUrl,

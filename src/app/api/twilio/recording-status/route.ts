@@ -25,6 +25,11 @@ export async function POST(request: NextRequest) {
     // Parse form data using URLSearchParams
     const params = new URLSearchParams(rawBody);
     
+    // Extract URL parameters for personal voicemail detection
+    const url = new URL(request.url);
+    const businessId = url.searchParams.get('businessId');
+    const callerPhone = url.searchParams.get('callerPhone');
+    
     // Defensive logging
     console.log('[RECORDING STATUS] Request details:', {
       rawBodyLength: rawBody.length,
@@ -32,7 +37,9 @@ export async function POST(request: NextRequest) {
       RecordingSid: params.get('RecordingSid'),
       RecordingUrl: params.get('RecordingUrl') ? '[URL_PRESENT]' : '[URL_MISSING]',
       CallSid: params.get('CallSid'),
-      AccountSid: params.get('AccountSid') ? '[PRESENT]' : '[MISSING]'
+      AccountSid: params.get('AccountSid') ? '[PRESENT]' : '[MISSING]',
+      businessId: businessId ? '[PRESENT]' : '[MISSING]',
+      callerPhone: callerPhone ? '[PRESENT]' : '[MISSING]'
     });
     
     // Convert params to object for signature validation
@@ -70,6 +77,53 @@ export async function POST(request: NextRequest) {
       return new NextResponse('Missing RecordingSid', { status: 400 });
     }
 
+    // === PERSONAL VOICEMAIL PATH ===
+    // If URL parameters are present, this is a personal voicemail from ignored contacts
+    // Handle completely independently of AI intake pipeline
+    if (businessId && callerPhone) {
+      console.log('[PERSONAL VOICEMAIL RECORDING STATUS] =========================================');
+      console.log('[PERSONAL VOICEMAIL RECORDING STATUS] businessId:', businessId);
+      console.log('[PERSONAL VOICEMAIL RECORDING STATUS] callerPhone:', callerPhone);
+      console.log('[PERSONAL VOICEMAIL RECORDING STATUS] recordingSid:', recordingSid);
+      console.log('[PERSONAL VOICEMAIL RECORDING STATUS] recordingStatus:', recordingStatus);
+      console.log('[PERSONAL VOICEMAIL RECORDING STATUS] =========================================');
+
+      try {
+        // Update personal voicemail record with transcription when available
+        if (recordingStatus === 'completed' && recordingUrl) {
+          console.log('[PERSONAL VOICEMAIL RECORDING STATUS] Starting transcription');
+          
+          try {
+            const transcriptionResult = await transcribeVoicemail(recordingUrl, recordingSid);
+            
+            if (transcriptionResult && transcriptionResult.transcript) {
+              console.log('[PERSONAL VOICEMAIL RECORDING STATUS] Transcription successful');
+              
+              await supabaseAdmin
+                .from('personal_voicemails')
+                .update({
+                  transcription: transcriptionResult.transcript,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('recording_sid', recordingSid);
+              
+              console.log('[PERSONAL VOICEMAIL RECORDING STATUS] Transcription saved');
+            }
+          } catch (transcriptionError) {
+            console.error('[PERSONAL VOICEMAIL RECORDING STATUS] Transcription error:', transcriptionError);
+            // Don't fail the callback on transcription errors
+          }
+        }
+
+        console.log('[PERSONAL VOICEMAIL RECORDING STATUS] Complete');
+        return new NextResponse('OK', { status: 200 });
+      } catch (error) {
+        console.error('[PERSONAL VOICEMAIL RECORDING STATUS] Error:', error);
+        return new NextResponse('OK', { status: 200 });
+      }
+    }
+
+    // === NORMAL AI INTAKE PATH ===
     // Check if this recording is from an ignored contact
     console.log('[IGNORED CONTACT RECORDING STATUS CHECK]', {
       recordingSid,
