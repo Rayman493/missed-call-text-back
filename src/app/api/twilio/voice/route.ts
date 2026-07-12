@@ -15,6 +15,8 @@ import { createAISession, updateAISession } from '@/lib/ai-call-assistant/sessio
 import { isIgnoredContact } from '@/lib/ignored-contacts';
 import { notificationServiceServer } from '@/lib/notifications-server';
 import { markForwardingVerified } from '@/lib/forwarding-verification';
+import { buildCallbackUrl } from '@/lib/public-origin';
+import { classifyCallSid } from '@/lib/call-pipeline-classification';
 
 // Constants for repeat caller behavior
 const AUTO_REPLY_REPEAT_WINDOW_MINUTES = 30;
@@ -161,14 +163,16 @@ function generatePersonalVoicemailResponse(businessId: string, callerPhone: stri
   // No AI, no lead, no conversation, no SMS, no follow-ups
   const voicemailMessage = "Thank you for calling. Please leave a message after the tone.";
   
-  // Build properly encoded callback URLs using URLSearchParams
-  const actionUrl = new URL('/api/twilio/personal-voicemail', process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000');
-  actionUrl.searchParams.set('businessId', businessId);
-  actionUrl.searchParams.set('callerPhone', callerPhone);
+  // Build properly encoded callback URLs using canonical public origin helper
+  const actionUrl = buildCallbackUrl('/api/twilio/personal-voicemail', {
+    businessId,
+    callerPhone
+  });
   
-  const recordingStatusCallbackUrl = new URL('/api/twilio/recording-status', process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000');
-  recordingStatusCallbackUrl.searchParams.set('businessId', businessId);
-  recordingStatusCallbackUrl.searchParams.set('callerPhone', callerPhone);
+  const recordingStatusCallbackUrl = buildCallbackUrl('/api/twilio/recording-status', {
+    businessId,
+    callerPhone
+  });
   
   const voicemailTwiml = `
 <Response>
@@ -178,9 +182,9 @@ function generatePersonalVoicemailResponse(businessId: string, callerPhone: stri
     maxLength="60"
     playBeep="true"
     trim="trim-silence"
-    action="${actionUrl.toString()}"
+    action="${actionUrl}"
     method="POST"
-    recordingStatusCallback="${recordingStatusCallbackUrl.toString()}"
+    recordingStatusCallback="${recordingStatusCallbackUrl}"
     recordingStatusCallbackMethod="POST"
   />
   <Hangup/>
@@ -574,6 +578,16 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
         callSid: CallSid,
         businessId: business.id
       })
+
+      // Classify CallSid as personal_voicemail for durable routing across all callbacks
+      // This enables voice-status bypass without URL query parameters
+      try {
+        await classifyCallSid(CallSid, business.id, normalizedFrom, 'personal_voicemail');
+        console.log('[CALL CLASSIFICATION] Classified CallSid as personal_voicemail:', CallSid.substring(0, 8));
+      } catch (error) {
+        console.error('[CALL CLASSIFICATION] Failed to classify CallSid:', error);
+        // Continue anyway - TwiML will still work, but voice-status bypass may fail
+      }
 
       // Return personal voicemail recording
       // Records voicemail to personal_voicemails table - completely separate from customer system

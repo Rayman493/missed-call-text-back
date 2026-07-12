@@ -11,7 +11,7 @@ import { hasAiSummaryBeenSent } from '@/lib/sms-decision'
 import { dispatchAutomaticCustomerSms } from '@/lib/auto-sms-dispatcher'
 import { isCompleteAIIntake } from '@/lib/ai-intake-completion'
 import { isAutomatedTranscriptSpam } from '@/lib/smart-filtering'
-import { detectPersonalVoicemailFromUrl } from '@/lib/personal-voicemail-detector'
+import { isPersonalVoicemailCall } from '@/lib/call-pipeline-classification'
 
 console.log('[VOICE STATUS MODULE LOADED] =========================================');
 console.log('[VOICE STATUS MODULE LOADED] timestamp:', new Date().toISOString());
@@ -97,22 +97,20 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
   // === PERSONAL VOICEMAIL DETECTION ===
   // Check if this is a Personal Voicemail call before any AI processing
   // Personal Voicemail calls are completely independent of the AI/customer pipeline
-  if (requestUrl) {
-    const personalVoicemailDetection = detectPersonalVoicemailFromUrl(requestUrl);
-    if (personalVoicemailDetection.isPersonalVoicemail) {
-      console.log('[VOICE STATUS PERSONAL VOICEMAIL] =========================================');
-      console.log('[VOICE STATUS PERSONAL VOICEMAIL] Detected personal voicemail call');
-      console.log('[VOICE STATUS PERSONAL VOICEMAIL] CallSid:', CallSid);
-      console.log('[VOICE STATUS PERSONAL VOICEMAIL] businessId:', personalVoicemailDetection.businessId);
-      console.log('[VOICE STATUS PERSONAL VOICEMAIL] callerPhone:', personalVoicemailDetection.callerPhone);
-      console.log('[VOICE STATUS PERSONAL VOICEMAIL] Bypassing all AI processing');
-      console.log('[VOICE STATUS PERSONAL VOICEMAIL] =========================================');
-      
-      // Personal voicemail calls have no AI processing, no leads, no conversations
-      // The recording-status callback handles transcription independently
-      // Nothing to do here - return success immediately
-      return { success: true, reason: 'personal_voicemail_bypass' };
-    }
+  // Use CallSid classification for durable routing (not URL query parameters)
+  const isPersonalVoicemail = await isPersonalVoicemailCall(CallSid);
+  if (isPersonalVoicemail) {
+    console.log('[VOICE STATUS PERSONAL VOICEMAIL] =========================================');
+    console.log('[VOICE STATUS PERSONAL VOICEMAIL] Detected personal voicemail call via CallSid classification');
+    console.log('[VOICE STATUS PERSONAL VOICEMAIL] CallSid:', CallSid);
+    console.log('[VOICE STATUS PERSONAL VOICEMAIL] Bypassing all AI processing');
+    console.log('[VOICE STATUS PERSONAL VOICEMAIL] No AI record lookup, no lead creation, no SMS, no follow-ups');
+    console.log('[VOICE STATUS PERSONAL VOICEMAIL] =========================================');
+    
+    // Personal voicemail calls have no AI processing, no leads, no conversations
+    // The recording-status callback handles transcription independently
+    // Nothing to do here - return success immediately
+    return { success: true, reason: 'personal_voicemail_bypass' };
   }
 
   // Create fresh Supabase client for this request
