@@ -36,6 +36,7 @@ export async function sendSms(
     reason?: string;
     isOffboarding?: boolean; // Flag to bypass number readiness check for offboarding/system SMS
     skipBusinessAvailabilityAppend?: boolean; // Flag to skip appending business availability notes (for appointment confirmations)
+    clientMessageId?: string; // Client-generated UUID for optimistic message correlation
   }
 ): Promise<{ sid: string | null; messageId: string | null }> {
   console.log('[SMS TRACE sendSms ENTRY]', {
@@ -631,7 +632,7 @@ export async function sendSms(
       console.log('[SMS TRACE sendSms STEP_12A_COMPLETE]', { messageId, insertError: !!insertError });
     } else {
       // Insert into messages table for lead/conversation messages
-      console.log('[SMS TRACE sendSms STEP_12B_INSERTING_MESSAGE]', { lead_id: options?.lead_id, conversation_id: options?.conversation_id });
+      console.log('[SMS TRACE sendSms STEP_12B_INSERTING_MESSAGE]', { lead_id: options?.lead_id, conversation_id: options?.conversation_id, clientMessageId: options?.clientMessageId });
       const { data: insertedMessage, error: insertError } = await supabase
         .from('messages')
         .insert({
@@ -649,8 +650,9 @@ export async function sendSms(
           error_message: twilioErrorMessage,
           created_at: new Date().toISOString(),
           is_manual: options?.isManual || false,
+          client_message_id: options?.clientMessageId || null, // Persist client-generated ID for correlation
         })
-        .select('id')
+        .select('id, client_message_id')
         .single();
 
       if (insertError) {
@@ -774,6 +776,7 @@ export async function sendMms(
     lead_id?: string;
     conversation_id?: string;
     isManual?: boolean; // Flag to distinguish manual user messages from automated
+    clientMessageId?: string; // Client-generated UUID for optimistic message correlation
   }
 ): Promise<{ sid: string | null; messageId: string | null }> {
   message = appendBusinessAvailabilityNote(message, business);
@@ -907,8 +910,9 @@ export async function sendMms(
         is_manual: options?.isManual || false,
         media_count: mediaUrls.length,
         message_type: !message && mediaUrls.length > 0 ? 'image' : message && mediaUrls.length > 0 ? 'mixed' : 'text',
+        client_message_id: options?.clientMessageId || null, // Persist client-generated ID for correlation
       })
-      .select('id')
+      .select('id, client_message_id')
       .single();
 
     if (insertError) {

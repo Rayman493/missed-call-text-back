@@ -201,7 +201,7 @@ function getMonotonicStatus(currentStatus: string, newStatus: string): string {
 
 /**
  * Canonical message merge function
- * - Matches by database ID, clientTempId, or Twilio SID
+ * - Matches by database ID, clientMessageId, or Twilio SID
  * - Enforces status monotonicity
  * - Prevents duplicates
  * - Preserves chronological ordering
@@ -223,22 +223,22 @@ function mergeMessageWithMonotonicity(existingMessages: any[], incomingMessage: 
     existingMessage = messageMap.get(incomingMessage.id)
     matchKey = 'id'
   }
-  // 2. Match by clientTempId (for optimistic message reconciliation)
-  else if (incomingMessage.clientTempId) {
+  // 2. Match by clientMessageId (for optimistic message reconciliation)
+  else if (incomingMessage.clientMessageId) {
     for (const [id, msg] of Array.from(messageMap.entries())) {
-      if (msg.clientTempId === incomingMessage.clientTempId) {
+      if (msg.clientMessageId === incomingMessage.clientMessageId) {
         existingMessage = msg
-        matchKey = 'clientTempId'
+        matchKey = 'clientMessageId'
         break
       }
     }
   }
   // 3. Match by Twilio SID (for status updates)
-  else if (incomingMessage.twilio_sid) {
+  else if (incomingMessage.twilio_message_sid) {
     for (const [id, msg] of Array.from(messageMap.entries())) {
-      if (msg.twilio_sid === incomingMessage.twilio_sid) {
+      if (msg.twilio_message_sid === incomingMessage.twilio_message_sid) {
         existingMessage = msg
-        matchKey = 'twilio_sid'
+        matchKey = 'twilio_message_sid'
         break
       }
     }
@@ -252,12 +252,13 @@ function mergeMessageWithMonotonicity(existingMessages: any[], incomingMessage: 
       status: getMonotonicStatus(existingMessage.status, incomingMessage.status)
     }
     
-    // If matched by clientTempId but incoming has real ID, update the map key
-    if (matchKey === 'clientTempId' && incomingMessage.id && incomingMessage.id !== existingMessage.id) {
+    // If matched by clientMessageId but incoming has real ID, update the map key
+    if (matchKey === 'clientMessageId' && incomingMessage.id && incomingMessage.id !== existingMessage.id) {
       messageMap.delete(existingMessage.id)
       messageMap.set(incomingMessage.id, mergedMessage)
       console.log('[MERGE] Replaced optimistic message with persisted message:', {
-        clientTempId: incomingMessage.clientTempId,
+        matchKey,
+        clientMessageId: incomingMessage.clientMessageId,
         oldId: existingMessage.id,
         newId: incomingMessage.id
       })
@@ -1502,8 +1503,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             const newMessage = payload.new
             console.log('[REALTIME INSERT] Incoming message payload:', {
               messageId: newMessage.id,
-              clientTempId: newMessage.clientTempId,
-              twilioSid: newMessage.twilio_sid,
+              clientMessageId: newMessage.client_message_id,
+              twilioSid: newMessage.twilio_message_sid,
               status: newMessage.status,
               body: newMessage.body?.substring(0, 30),
               created_at: newMessage.created_at
@@ -1518,7 +1519,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               const currentMessages = prev.messages || []
               console.log('[REALTIME INSERT] Current messages in state:', {
                 count: currentMessages.length,
-                messageIds: currentMessages.map((m: any) => ({ id: m.id, clientTempId: m.clientTempId, status: m.status }))
+                messageIds: currentMessages.map((m: any) => ({ id: m.id, clientMessageId: m.clientMessageId, status: m.status }))
               })
               
               const mergedMessages = mergeMessageWithMonotonicity(currentMessages, newMessage)
@@ -1528,19 +1529,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 previousCount: currentMessages.length,
                 newCount: mergedMessages.length,
                 status: newMessage.status,
-                wasReconciled: mergedMessages.length === currentMessages.length
+                wasReconciled: mergedMessages.length === currentMessages.length,
+                matchType: mergedMessages.length === currentMessages.length ? 'clientMessageId' : 'new'
               })
               
               // Only scroll if this is a new message (not an optimistic reconciliation)
               const isNewMessage = !currentMessages.some((msg: any) => 
                 msg.id === newMessage.id || 
-                (msg.clientTempId && msg.clientTempId === newMessage.clientTempId)
+                (msg.clientMessageId && msg.clientMessageId === newMessage.client_message_id)
               )
               
               console.log('[REALTIME INSERT] Is new message check:', {
                 isNewMessage,
                 hasMatchingId: currentMessages.some((m: any) => m.id === newMessage.id),
-                hasMatchingClientTempId: currentMessages.some((m: any) => m.clientTempId === newMessage.clientTempId)
+                hasMatchingClientMessageId: currentMessages.some((m: any) => m.clientMessageId === newMessage.client_message_id)
               })
               
               if (isNewMessage) {
@@ -1748,14 +1750,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     if (!message.trim() && !mediaFiles) return
     if (sending) return
 
-    // Create stable client temp ID
-    const clientTempId = crypto.randomUUID()
+    // Create stable client message ID for correlation
+    const clientMessageId = crypto.randomUUID()
+    
+    console.log('[OPTIMISTIC CREATION] Creating optimistic message:', {
+      temporaryId: clientMessageId,
+      clientMessageId,
+      body: message.trim().substring(0, 30)
+    })
     
     // Only create optimistic message for text-only SMS (skip for MMS)
     if (!isMMS) {
       const optimisticMsg = {
-        id: clientTempId,
-        clientTempId,
+        id: clientMessageId,
+        clientMessageId,
         direction: 'outbound',
         body: message.trim(),
         status: 'sending',
@@ -1780,7 +1788,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         const formData = new FormData()
         formData.append('leadId', params.id)
         formData.append('message', message.trim())
-        formData.append('clientTempId', clientTempId)
+        formData.append('clientMessageId', clientMessageId)
         
         mediaFiles.forEach((file, index) => {
           formData.append(`media_${index}`, file)
@@ -1809,10 +1817,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           body: JSON.stringify({ 
             leadId: params.id, 
             message: message.trim(),
-            clientTempId
+            clientMessageId
           })
         })
       }
+
+      console.log('[API REQUEST] Sent message with clientMessageId:', {
+        clientMessageId,
+        body: message.trim().substring(0, 30)
+      })
 
       const result = await response.json()
 
@@ -1841,20 +1854,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         return
       }
 
-      // Update optimistic message with real message data using clientTempId (SMS only)
-      if (!isMMS && result.clientTempId === clientTempId && result.message) {
+      // Update optimistic message with real message data using clientMessageId (SMS only)
+      if (!isMMS && result.clientMessageId === clientMessageId && result.message) {
         console.log('[SEND RECONCILIATION] API returned persisted message:', {
           messageId: result.message.id,
           status: result.message.status,
-          twilioSid: result.message.twilio_sid,
-          clientTempId: result.message.clientTempId,
+          twilioSid: result.message.twilio_message_sid,
+          clientMessageId: result.message.client_message_id,
           body: result.message.body?.substring(0, 30)
         })
         
-        // Add clientTempId to the persisted message for proper reconciliation
-        const persistedMessageWithTempId = {
+        // Add clientMessageId to the persisted message for proper reconciliation
+        const persistedMessageWithClientId = {
           ...result.message,
-          clientTempId: result.clientTempId || clientTempId
+          clientMessageId: result.message.client_message_id || clientMessageId
         }
         
         // Immediately merge the persisted message into local state using canonical merge
@@ -1865,10 +1878,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           const currentMessages = prev.messages || []
           console.log('[SEND RECONCILIATION] Current messages before merge:', {
             count: currentMessages.length,
-            messageIds: currentMessages.map((m: any) => ({ id: m.id, clientTempId: m.clientTempId, status: m.status }))
+            messageIds: currentMessages.map((m: any) => ({ id: m.id, clientMessageId: m.clientMessageId, status: m.status }))
           })
           
-          const mergedMessages = mergeMessageWithMonotonicity(currentMessages, persistedMessageWithTempId)
+          const mergedMessages = mergeMessageWithMonotonicity(currentMessages, persistedMessageWithClientId)
           
           console.log('[SEND RECONCILIATION] Merged persisted message into state:', {
             messageId: result.message.id,

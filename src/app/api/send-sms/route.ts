@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     const contentType = request.headers.get('content-type') || ''
     let leadId: string
     let message: string
-    let clientTempId: string
+    let clientMessageId: string
     let mediaFiles: File[] = []
 
     if (contentType.includes('multipart/form-data')) {
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
       const formData = await request.formData()
       leadId = formData.get('leadId') as string
       message = formData.get('message') as string
-      clientTempId = formData.get('clientTempId') as string
+      clientMessageId = formData.get('clientMessageId') as string
 
       // Extract media files
       for (let i = 0; i < 10; i++) {
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
       const body = await request.json()
       leadId = body.leadId
       message = body.message
-      clientTempId = body.clientTempId
+      clientMessageId = body.clientMessageId
     }
 
     if (!leadId) {
@@ -106,7 +106,7 @@ export async function POST(request: Request) {
       leadId,
       messageLength: sanitizedMessage.length,
       mediaCount: mediaFiles.length,
-      clientTempId
+      clientMessageId
     })
 
     // Fetch lead details
@@ -276,6 +276,7 @@ export async function POST(request: Request) {
         lead_id: lead.id,
         conversation_id: conversation.id,
         isManual: true, // Mark as manual user message to bypass duplicate check
+        clientMessageId: clientMessageId, // Pass client-generated ID for correlation
       });
       messageSid = result?.sid || null
       messageId = result?.messageId || null
@@ -285,6 +286,7 @@ export async function POST(request: Request) {
         lead_id: lead.id,
         conversation_id: conversation.id,
         isManual: true, // Mark as manual user message to bypass duplicate check
+        clientMessageId: clientMessageId, // Pass client-generated ID for correlation
       });
       messageSid = result?.sid || null
       messageId = result?.messageId || null
@@ -302,7 +304,7 @@ export async function POST(request: Request) {
       messageSid,
       leadId,
       conversationId: conversation.id,
-      clientTempId,
+      clientMessageId,
       mediaCount: mediaUrls.length
     })
 
@@ -373,6 +375,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
+      clientMessageId: clientMessageId,
       message: {
         id: messageId,
         lead_id: leadId,
@@ -389,7 +392,8 @@ export async function POST(request: Request) {
         is_manual: true,
         media_count: mediaUrls.length,
         message_type: !sanitizedMessage && mediaUrls.length > 0 ? 'image' : sanitizedMessage && mediaUrls.length > 0 ? 'mixed' : 'text',
-        message_media: mediaItems
+        message_media: mediaItems,
+        client_message_id: clientMessageId, // Return client-generated ID for correlation
       },
       mediaItems
     });
