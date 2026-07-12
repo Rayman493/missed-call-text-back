@@ -9,6 +9,21 @@ function extractRecordingSid(url: string): string | null {
   return match ? match[1] : null
 }
 
+// Stable key helper for message bubbles to prevent remounts during reconciliation
+// Prefers database ID when available, otherwise clientMessageId, otherwise fallback
+function getMessageKey(msg: any): string {
+  // If it's a real database ID (not a UUID), use it
+  if (msg.id && !msg.id.includes('-')) {
+    return msg.id
+  }
+  // If it has a clientMessageId, use that for optimistic messages
+  if (msg.clientMessageId) {
+    return msg.clientMessageId
+  }
+  // Fallback to the id (could be UUID for optimistic messages)
+  return msg.id || 'unknown'
+}
+
 interface DesktopConversationMessageListProps {
   messagesArray: any[]
   conversationTimeline: any[]
@@ -115,7 +130,7 @@ export default function DesktopConversationMessageList({
         
         return (
           <div
-            key={msg.id}
+            key={getMessageKey(msg)}
             className={`flex items-start gap-3.5 ${msg.media && msg.media.length > 0 ? 'mb-6' : 'mb-4'} ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
           >
             {/* Avatar - Only show customer avatar for inbound messages */}

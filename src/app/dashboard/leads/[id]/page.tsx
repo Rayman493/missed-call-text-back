@@ -318,7 +318,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
-  const [optimisticMessage, setOptimisticMessage] = useState<any>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [showMoreActions, setShowMoreActions] = useState(false)
   const [showMobileOverflow, setShowMobileOverflow] = useState(false)
@@ -688,26 +687,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     return merged
   }
 
-  // Combine real messages with optimistic message, but avoid duplicates and maintain stable ordering
-  const allMessages = useMemo(() => {
-    const messages = leadData?.messages || []
-    if (!optimisticMessage) return messages
-    
-    // Use canonical merge function to handle optimistic message reconciliation
-    const merged = mergeMessageWithMonotonicity(messages, optimisticMessage)
-    
-    console.log('[OPTIMISTIC MERGE] Combined messages:', {
-      realCount: messages.length,
-      hasOptimistic: !!optimisticMessage,
-      mergedCount: merged.length
-    })
-    
-    return merged
-  }, [leadData?.messages, optimisticMessage])
-
   // Create combined timeline with messages and voicemail recordings
   const conversationTimeline = useMemo(() => {
-    const messages = allMessages || []
+    const messages = leadData?.messages || []
     const voicemails = leadData?.voicemailRecordings || []
     const systemEvents: any[] = []
     
@@ -902,9 +884,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     })
 
     return timeline
-  }, [allMessages, leadData?.voicemailRecordings, leadData?.aiCallRecords, leadData?.raw_metadata, leadData?.followUpJobs, leadData?.status, leadData?.last_activity_at, leadData?.created_at, leadData?.id])
+  }, [leadData?.messages, leadData?.voicemailRecordings, leadData?.aiCallRecords, leadData?.raw_metadata, leadData?.followUpJobs, leadData?.status, leadData?.last_activity_at, leadData?.created_at, leadData?.id])
   
-  const messagesArray = allMessages || []
+  const messagesArray = leadData?.messages || []
   const latestMessage = messagesArray.length > 0 ? messagesArray[messagesArray.length - 1] : null
   const latestMessageStatus = latestMessage?.status || 'No messages'
 
@@ -1760,6 +1742,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     })
     
     // Only create optimistic message for text-only SMS (skip for MMS)
+    // Merge it directly into leadData.messages to prevent duplicate flash
     if (!isMMS) {
       const optimisticMsg = {
         id: clientMessageId,
@@ -1770,7 +1753,26 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         created_at: new Date().toISOString(),
         isOptimistic: true
       }
-      setOptimisticMessage(optimisticMsg)
+      
+      // Atomic: merge optimistic message directly into messages array
+      // This prevents duplicate flash by having single source of truth
+      setLeadData((prev: any) => {
+        if (!prev) return prev
+        
+        const currentMessages = prev.messages || []
+        const mergedMessages = mergeMessageWithMonotonicity(currentMessages, optimisticMsg)
+        
+        console.log('[OPTIMISTIC MERGE] Added optimistic message to state:', {
+          clientMessageId,
+          previousCount: currentMessages.length,
+          newCount: mergedMessages.length
+        })
+        
+        return {
+          ...prev,
+          messages: mergedMessages
+        }
+      })
     }
     
     setSending(true)
@@ -1832,11 +1834,28 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       if (!response.ok) {
         // Update optimistic message to failed state (SMS only)
         if (!isMMS) {
-          setOptimisticMessage((prev: any) => ({
-            ...prev,
-            status: 'failed',
-            error_message: result.error || 'We couldn\'t send this message'
-          }))
+          setLeadData((prev: any) => {
+            if (!prev) return prev
+            
+            const currentMessages = prev.messages || []
+            const failedMessage = {
+              id: clientMessageId,
+              clientMessageId,
+              direction: 'outbound',
+              body: message.trim(),
+              status: 'failed',
+              error_message: result.error || 'We couldn\'t send this message',
+              created_at: new Date().toISOString(),
+              isOptimistic: true
+            }
+            
+            const mergedMessages = mergeMessageWithMonotonicity(currentMessages, failedMessage)
+            
+            return {
+              ...prev,
+              messages: mergedMessages
+            }
+          })
         }
         
         // Show appropriate error message based on response
@@ -1870,8 +1889,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           clientMessageId: result.message.client_message_id || clientMessageId
         }
         
-        // Immediately merge the persisted message into local state using canonical merge
-        // This replaces the optimistic message with the real database row
+        // Atomic update: merge persisted message AND clear optimistic in single setState
+        // This prevents the duplicate flash by ensuring both happen together
         setLeadData((prev: any) => {
           if (!prev) return prev
           
@@ -1896,9 +1915,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             messages: mergedMessages
           }
         })
-        
-        // Clear optimistic message immediately after merge
-        setOptimisticMessage(null)
         
         // Fallback: if message still shows Sending after 3 seconds, refresh
         setTimeout(() => {
@@ -1944,11 +1960,28 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     } catch (err) {
       // Update optimistic message to failed state (SMS only)
       if (!isMMS) {
-        setOptimisticMessage((prev: any) => ({
-          ...prev,
-          status: 'failed',
-          error_message: 'Network error occurred'
-        }))
+        setLeadData((prev: any) => {
+          if (!prev) return prev
+          
+          const currentMessages = prev.messages || []
+          const failedMessage = {
+            id: clientMessageId,
+            clientMessageId,
+            direction: 'outbound',
+            body: message.trim(),
+            status: 'failed',
+            error_message: 'Network error occurred',
+            created_at: new Date().toISOString(),
+            isOptimistic: true
+          }
+          
+          const mergedMessages = mergeMessageWithMonotonicity(currentMessages, failedMessage)
+          
+          return {
+            ...prev,
+            messages: mergedMessages
+          }
+        })
       }
       setError('Failed to send message')
     } finally {
@@ -2424,20 +2457,30 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     setSending(true)
     setError('')
 
-    // Generate a new clientTempId for this retry attempt if not provided
-    const retryClientTempId = clientTempId || crypto.randomUUID()
+    // Generate a new clientMessageId for this retry attempt if not provided
+    const retryClientMessageId = clientTempId || crypto.randomUUID()
 
-    // If retrying an optimistic message, update its status
-    if (optimisticMessage?.id === messageId || optimisticMessage?.clientTempId === clientTempId) {
-      setOptimisticMessage((prev: any) => {
-        if (prev?.id === messageId || prev?.clientTempId === clientTempId) {
-          return {
-            ...prev,
-            clientTempId: retryClientTempId,
-            status: 'sending'
+    // If retrying an optimistic message, update its status in the messages array
+    if (messageId || clientTempId) {
+      setLeadData((prev: any) => {
+        if (!prev) return prev
+        
+        const currentMessages = prev.messages || []
+        const updatedMessages = currentMessages.map((msg: any) => {
+          if (msg.id === messageId || msg.clientMessageId === clientTempId) {
+            return {
+              ...msg,
+              clientMessageId: retryClientMessageId,
+              status: 'sending'
+            }
           }
+          return msg
+        })
+        
+        return {
+          ...prev,
+          messages: updatedMessages
         }
-        return prev
       })
     }
 
@@ -2455,24 +2498,34 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         body: JSON.stringify({ 
           leadId: params.id, 
           message: messageBody,
-          clientTempId: retryClientTempId
+          clientMessageId: retryClientMessageId
         })
       })
 
       const result = await response.json()
 
       if (!response.ok) {
-        // Update optimistic message back to failed
-        if (optimisticMessage?.id === messageId || optimisticMessage?.clientTempId === clientTempId) {
-          setOptimisticMessage((prev: any) => {
-            if (prev?.id === messageId || prev?.clientTempId === clientTempId) {
-              return {
-                ...prev,
-                status: 'failed',
-                error_message: result.error || 'Failed to send message'
+        // Update message back to failed
+        if (messageId || clientTempId) {
+          setLeadData((prev: any) => {
+            if (!prev) return prev
+            
+            const currentMessages = prev.messages || []
+            const updatedMessages = currentMessages.map((msg: any) => {
+              if (msg.id === messageId || msg.clientMessageId === clientTempId) {
+                return {
+                  ...msg,
+                  status: 'failed',
+                  error_message: result.error || 'Failed to send message'
+                }
               }
+              return msg
+            })
+            
+            return {
+              ...prev,
+              messages: updatedMessages
             }
-            return prev
           })
         }
         
@@ -2489,62 +2542,51 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         return
       }
 
-      // Update optimistic message with real message data using clientTempId
-      if (result.clientTempId === retryClientTempId && result.message) {
+      // Update message with real message data using clientMessageId
+      if (result.clientMessageId === retryClientMessageId && result.message) {
         console.log('[Retry] API returned message id:', result.message.id, 'status:', result.message.status)
         
-        setOptimisticMessage((prev: any) => {
-          // Only update if this is the same message
-          if (prev?.clientTempId === retryClientTempId) {
-            const updatedMessage = {
-              ...prev,
-              id: result.message.id,
-              status: result.message.status || 'sent',
-              isOptimistic: false,
-              // Keep other properties from the real message
-              ...result.message
-            }
-            
-            console.log('[Retry] Updated optimistic message:', updatedMessage.id, updatedMessage.status)
-            return updatedMessage
+        // Merge the returned message into local state
+        setLeadData((prev: any) => {
+          if (!prev) return prev
+          
+          const currentMessages = prev.messages || []
+          const persistedMessageWithClientId = {
+            ...result.message,
+            clientMessageId: result.message.client_message_id || retryClientMessageId
           }
-          return prev
+          const mergedMessages = mergeMessageWithMonotonicity(currentMessages, persistedMessageWithClientId)
+          
+          console.log('[Retry] Messages after local update:', mergedMessages.length)
+          
+          return {
+            ...prev,
+            messages: mergedMessages
+          }
         })
-        
-        // Merge the returned message into local state to prevent disappearing
-        setTimeout(() => {
-          setLeadData((prev: any) => {
-            if (!prev) return prev
-            
-            const currentMessages = prev.messages || []
-            const mergedMessages = mergeMessagesById(currentMessages, [result.message])
-            
-            console.log('[Retry] Messages after local update:', mergedMessages.length)
-            
-            return {
-              ...prev,
-              messages: mergedMessages
-            }
-          })
-        }, 100)
-        
-        // Clear optimistic message after it's merged into local state
-        setTimeout(() => {
-          setOptimisticMessage(null)
-        }, 500)
       }
     } catch (err) {
-      // Update optimistic message back to failed
-      if (optimisticMessage?.id === messageId || optimisticMessage?.clientTempId === clientTempId) {
-        setOptimisticMessage((prev: any) => {
-          if (prev?.id === messageId || prev?.clientTempId === clientTempId) {
-            return {
-              ...prev,
-              status: 'failed',
-              error_message: 'Network error occurred'
+      // Update message back to failed on network error
+      if (messageId || clientTempId) {
+        setLeadData((prev: any) => {
+          if (!prev) return prev
+          
+          const currentMessages = prev.messages || []
+          const updatedMessages = currentMessages.map((msg: any) => {
+            if (msg.id === messageId || msg.clientMessageId === clientTempId) {
+              return {
+                ...msg,
+                status: 'failed',
+                error_message: 'Network error occurred'
+              }
             }
+            return msg
+          })
+          
+          return {
+            ...prev,
+            messages: updatedMessages
           }
-          return prev
         })
       }
       setError('Failed to send message')
