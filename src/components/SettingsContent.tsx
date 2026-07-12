@@ -111,7 +111,6 @@ export default function SettingsContent() {
   const [isDisconnectingCalendar, setIsDisconnectingCalendar] = useState(false)
   const [calendarEmail, setCalendarEmail] = useState<string | null>(null)
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
-  const [isCalendarDisconnectConfirmOpen, setIsCalendarDisconnectConfirmOpen] = useState(false)
 
   // Business phone number cooldown state
   const [phoneCooldown, setPhoneCooldown] = useState<{ inCooldown: boolean; nextAvailableDate: string | null } | null>(null)
@@ -122,7 +121,7 @@ export default function SettingsContent() {
 
   const supabase = createBrowserClient()
 
-  useBodyScrollLock(showAddModal || showDeleteModal || showChangePasswordModal || isCalendarDisconnectConfirmOpen)
+  useBodyScrollLock(showAddModal || showDeleteModal || showChangePasswordModal)
 
   // Time input refs for better UX
   const openTimeInputRef = useRef<HTMLInputElement>(null)
@@ -382,10 +381,6 @@ export default function SettingsContent() {
 
   // Remove ignored contact
   const removeIgnoredContact = async (contactId: string) => {
-    if (!confirm('Remove this contact from your Personal Contacts list? This will allow ReplyFlow to capture missed calls from this number again.')) {
-      return
-    }
-
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
@@ -574,11 +569,6 @@ export default function SettingsContent() {
   }
 
   const handleDisconnectCalendar = async () => {
-    setIsCalendarDisconnectConfirmOpen(true)
-  }
-
-  const handleDisconnectCalendarConfirmed = async () => {
-    setIsCalendarDisconnectConfirmOpen(false)
     setIsDisconnectingCalendar(true)
     try {
       const response = await fetch('/api/google/calendar/disconnect', {
@@ -2796,19 +2786,6 @@ export default function SettingsContent() {
             isOpen={showImportModal}
             onClose={() => setShowImportModal(false)}
             onImportSuccess={handleImportSuccess}
-          />
-
-          {/* Calendar Disconnect Confirmation Modal */}
-          <ConfirmModal
-            isOpen={isCalendarDisconnectConfirmOpen}
-            onClose={() => setIsCalendarDisconnectConfirmOpen(false)}
-            onConfirm={handleDisconnectCalendarConfirmed}
-            title="Disconnect Google Calendar?"
-            description="Your Google Calendar will stop syncing with ReplyFlow. This will NOT delete any events already on your calendar. You can reconnect at any time."
-            confirmText="Disconnect"
-            cancelText="Cancel"
-            isDestructive={true}
-            isLoading={isDisconnectingCalendar}
           />
 
           {/* Toast Container */}

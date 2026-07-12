@@ -201,8 +201,6 @@ export default function LeadsPage() {
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const { checkoutMode, isLoading: eligibilityLoading } = useTrialEligibility()
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false)
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [leadToDelete, setLeadToDelete] = useState<string | null>(null)
   const [deletedFilter, setDeletedFilter] = useState(false)
 
   // Handle query parameters for return flow
@@ -445,17 +443,8 @@ export default function LeadsPage() {
     }
   }
 
-  // Handle delete lead confirmation
-  const handleDeleteLeadClick = (leadId: string) => {
-    setLeadToDelete(leadId)
-    setShowDeleteModal(true)
-    setCardOverflowMenu(null)
-  }
-
   // Handle delete lead
-  const handleDeleteLead = async () => {
-    if (!leadToDelete) return
-
+  const handleDeleteLead = async (leadId: string) => {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
@@ -464,7 +453,7 @@ export default function LeadsPage() {
         throw new Error('Not authenticated')
       }
 
-      const response = await fetch(`/api/leads/${leadToDelete}`, {
+      const response = await fetch(`/api/leads/${leadId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -479,13 +468,12 @@ export default function LeadsPage() {
 
       // Update local state
       setLeads(prev => prev.map(lead =>
-        lead.id === leadToDelete
+        lead.id === leadId
           ? { ...lead, deleted_at: new Date().toISOString(), deleted_by: user?.id, deletion_reason: 'user_deleted' }
           : lead
       ))
 
-      setShowDeleteModal(false)
-      setLeadToDelete(null)
+      setCardOverflowMenu(null)
     } catch (error) {
       console.error('Error deleting lead:', error)
       alert('Failed to delete customer. Please try again.')
@@ -1380,7 +1368,7 @@ export default function LeadsPage() {
                                           onClick={(e) => {
                                             e.preventDefault()
                                             e.stopPropagation()
-                                            handleDeleteLeadClick(lead.id)
+                                            handleDeleteLead(lead.id)
                                           }}
                                           className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 font-medium transition-colors"
                                         >
@@ -1621,7 +1609,7 @@ export default function LeadsPage() {
                                               onClick={(e) => {
                                                 e.preventDefault()
                                                 e.stopPropagation()
-                                                handleDeleteLeadClick(lead.id)
+                                                handleDeleteLead(lead.id)
                                               }}
                                               className="w-full px-4 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 flex items-center gap-2 font-medium"
                                             >
@@ -1659,35 +1647,6 @@ export default function LeadsPage() {
       onClose={() => setShowAddCustomerModal(false)}
       returnTo={returnTo || undefined}
     />
-    {showDeleteModal && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-        <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-700">
-          <h3 className="text-lg font-semibold text-white mb-2">
-            Delete Customer?
-          </h3>
-          <p className="text-sm text-gray-400 mb-6">
-            This will move the customer to Deleted. Nothing will be permanently removed and you can restore this customer at any time.
-          </p>
-          <div className="flex gap-3 justify-end">
-            <button
-              onClick={() => {
-                setShowDeleteModal(false)
-                setLeadToDelete(null)
-              }}
-              className="px-4 py-2 text-sm font-medium text-gray-300 hover:bg-slate-700 rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleDeleteLead}
-              className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
-            >
-              Delete Customer
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
     </DashboardErrorBoundary>
   )
 }

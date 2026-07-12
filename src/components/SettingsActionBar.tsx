@@ -92,9 +92,7 @@ export default function SettingsActionBar({
   }
 
   const handleDiscard = () => {
-    if (window.confirm('Are you sure you want to discard all unsaved changes?')) {
-      onDiscard()
-    }
+    onDiscard()
   }
 
   // Only render the sticky save bar if there are unsaved changes or save feedback is visible

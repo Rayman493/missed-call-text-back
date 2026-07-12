@@ -95,8 +95,6 @@ export default function PaymentsPage() {
   const [paymentProvider, setPaymentProvider] = useState<'stripe' | 'venmo' | 'paypal'>('stripe')
   const [isCreatingPayment, setIsCreatingPayment] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
-  const [showCancelModal, setShowCancelModal] = useState(false)
-  const [paymentToCancel, setPaymentToCancel] = useState<PaymentRequest | null>(null)
   const [isCancelling, setIsCancelling] = useState(false)
   useBodyScrollLock(showPaymentModal)
 
@@ -314,9 +312,7 @@ export default function PaymentsPage() {
     }
   }
 
-  const handleCancelPayment = async () => {
-    if (!paymentToCancel) return
-
+  const handleCancelPayment = async (payment: PaymentRequest) => {
     setIsCancelling(true)
     setError('')
 
@@ -329,7 +325,7 @@ export default function PaymentsPage() {
         throw new Error('Not authenticated')
       }
 
-      const response = await fetch(`/api/payments/${paymentToCancel.id}/cancel`, {
+      const response = await fetch(`/api/payments/${payment.id}/cancel`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -342,8 +338,6 @@ export default function PaymentsPage() {
         throw new Error(error.error || 'Failed to cancel payment request')
       }
 
-      setShowCancelModal(false)
-      setPaymentToCancel(null)
       setSuccessMessage('Payment request canceled successfully')
       
       // Refresh payments
@@ -513,11 +507,9 @@ export default function PaymentsPage() {
                         )}
                         {payment.status === 'pending' && (
                           <button
-                            onClick={() => {
-                              setPaymentToCancel(payment)
-                              setShowCancelModal(true)
-                            }}
-                            className="p-1.5 text-red-400 hover:text-red-300"
+                            onClick={() => handleCancelPayment(payment)}
+                            disabled={isCancelling}
+                            className="p-1.5 text-red-400 hover:text-red-300 disabled:opacity-50"
                             title="Cancel payment request"
                           >
                             <X className="h-4 w-4" />
@@ -640,11 +632,9 @@ export default function PaymentsPage() {
                               )}
                               {payment.status === 'pending' && (
                                 <button
-                                  onClick={() => {
-                                    setPaymentToCancel(payment)
-                                    setShowCancelModal(true)
-                                  }}
-                                  className="text-red-400 hover:text-red-300 p-1"
+                                  onClick={() => handleCancelPayment(payment)}
+                                  disabled={isCancelling}
+                                  className="text-red-400 hover:text-red-300 p-1 disabled:opacity-50"
                                   title="Cancel payment request"
                                 >
                                   <X className="h-3.5 w-3.5" />
@@ -885,48 +875,6 @@ export default function PaymentsPage() {
           onClose={() => setIsAddCustomerModalOpen(false)}
           onLeadCreated={handleLeadCreated}
         />
-
-        {/* Cancel Payment Confirmation Modal */}
-        {showCancelModal && paymentToCancel && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-xl shadow-xl max-w-md w-full border border-slate-700">
-              <div className="px-4 py-4 sm:px-6 sm:py-5">
-                <h3 className="text-lg font-semibold text-white mb-2">Cancel Payment Request?</h3>
-                <p className="text-sm text-gray-400 mb-3">
-                  The customer will no longer be able to pay through the ReplyFlow link.
-                </p>
-                {paymentToCancel.payment_provider === 'venmo' || paymentToCancel.payment_provider === 'paypal' ? (
-                  <p className="text-xs text-yellow-400 mb-4">
-                    Note: For Venmo/PayPal, direct provider pages cannot be revoked, but the ReplyFlow payment link will stop working.
-                  </p>
-                ) : null}
-                <div className="flex items-center gap-2 text-sm text-gray-300 mb-4">
-                  <span className="text-gray-400">Amount:</span>
-                  <span className="font-semibold text-white">{formatCurrency(paymentToCancel.amount_cents / 100)}</span>
-                </div>
-              </div>
-              <div className="flex gap-2.5 justify-end px-4 py-3 sm:px-6 sm:py-4 border-t border-slate-700">
-                <button
-                  onClick={() => {
-                    setShowCancelModal(false)
-                    setPaymentToCancel(null)
-                  }}
-                  disabled={isCancelling}
-                  className="px-4 py-2 text-sm font-medium text-gray-300 hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Keep Request
-                </button>
-                <button
-                  onClick={handleCancelPayment}
-                  disabled={isCancelling}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isCancelling ? 'Canceling...' : 'Cancel Request'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
     </DashboardShell>
   )
 }

@@ -1068,10 +1068,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // State for appointment confirmation
   const [showAppointmentSelection, setShowAppointmentSelection] = useState(false)
   const [isSendingConfirmation, setIsSendingConfirmation] = useState(false)
-  const [showResendConfirm, setShowResendConfirm] = useState(false)
   const [confirmationError, setConfirmationError] = useState<string | null>(null)
   const [leadJobs, setLeadJobs] = useState<any[]>([])
-  const [selectedJobForConfirmation, setSelectedJobForConfirmation] = useState<any>(null)
   const [appointmentDate, setAppointmentDate] = useState('')
   const [appointmentTime, setAppointmentTime] = useState('')
   const [appointmentNote, setAppointmentNote] = useState('')
@@ -1181,7 +1179,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       await fetchLeadJobs()
       setSuccessMessage(successText)
       setShowAppointmentSelection(false)
-      setShowResendConfirm(false)
     } catch (error: any) {
       setConfirmationError(error.message || 'Failed to send confirmation')
     } finally {
@@ -1197,11 +1194,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     if (futureAppointments.length === 1) {
       const job = futureAppointments[0]
-      if (job.confirmation_sms_sent_at) {
-        setShowResendConfirm(true)
-      } else {
-        handleSendConfirmation(job.id)
-      }
+      handleSendConfirmation(job.id)
     } else {
       setShowAppointmentSelection(true)
     }
@@ -4524,12 +4517,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <button
                 key={job.id}
                 onClick={() => {
-                  if (job.confirmation_sms_sent_at) {
-                    setShowResendConfirm(true)
-                    setSelectedJobForConfirmation(job)
-                  } else {
-                    handleSendConfirmation(job.id)
-                  }
+                  handleSendConfirmation(job.id)
                   setShowAppointmentSelection(false)
                 }}
                 className="w-full text-left p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
@@ -4559,76 +4547,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
             >
               Cancel
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
-
-    {/* Resend Confirmation Modal */}
-    {showResendConfirm && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-            Resend Confirmation
-          </h3>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
-            A confirmation has already been sent for this appointment. Send it again?
-          </p>
-          <div className="flex gap-3 justify-end">
-            <button
-              onClick={() => {
-                setShowResendConfirm(false)
-                setSelectedJobForConfirmation(null)
-              }}
-              disabled={isSendingConfirmation}
-              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => {
-                if (selectedJobForConfirmation) {
-                  handleSendConfirmation(selectedJobForConfirmation.id)
-                }
-              }}
-              disabled={isSendingConfirmation}
-              className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
-            >
-              {isSendingConfirmation ? 'Sending...' : 'Resend Confirmation'}
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
-
-    {/* Delete Confirmation Modal */}
-    {showDeleteModal && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-            Delete lead?
-          </h3>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
-            This will remove the lead from your active workspace and move it to Deleted.
-          </p>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
-            The lead, conversation, messages, payments, and notes will be preserved and can be restored for up to 30 days.
-          </p>
-          <div className="flex gap-3 justify-end">
-            <button
-              onClick={() => setShowDeleteModal(false)}
-              disabled={isDeleting}
-              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleDeleteCustomer}
-              disabled={isDeleting}
-              className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isDeleting ? 'Deleting...' : 'Delete Customer'}
             </button>
           </div>
         </div>

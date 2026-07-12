@@ -80,10 +80,6 @@ export default function SchedulePage() {
   const [isJobDetailsOpen, setIsJobDetailsOpen] = useState(false)
   const [editingJob, setEditingJob] = useState<Job | null>(null)
   
-  // Calendar confirmation modals
-  const [isConnectConfirmOpen, setIsConnectConfirmOpen] = useState(false)
-  const [isDisconnectConfirmOpen, setIsDisconnectConfirmOpen] = useState(false)
-  
   // Overflow menu state
   const [isCalendarOverflowOpen, setIsCalendarOverflowOpen] = useState(false)
   const calendarOverflowRef = useRef<HTMLDivElement>(null)
@@ -195,20 +191,10 @@ export default function SchedulePage() {
   }
 
   const handleConnectCalendarWithExplanation = async () => {
-    setIsConnectConfirmOpen(true)
-  }
-
-  const handleConnectCalendarConfirmed = async () => {
-    setIsConnectConfirmOpen(false)
     handleConnectCalendar()
   }
 
   const handleDisconnectCalendar = async () => {
-    setIsDisconnectConfirmOpen(true)
-  }
-
-  const handleDisconnectCalendarConfirmed = async () => {
-    setIsDisconnectConfirmOpen(false)
     setIsDisconnecting(true)
     try {
       const response = await fetch('/api/google/calendar/disconnect', {
@@ -1242,31 +1228,6 @@ export default function SchedulePage() {
                       }}
                     />
                   )}
-
-                  {/* Calendar Connect Confirmation Modal */}
-                  <ConfirmModal
-                    isOpen={isConnectConfirmOpen}
-                    onClose={() => setIsConnectConfirmOpen(false)}
-                    onConfirm={handleConnectCalendarConfirmed}
-                    title="Connect Google Calendar"
-                    description="Connect Google Calendar to keep your ReplyFlow schedule in sync. ReplyFlow can view your calendar and create, update, or remove calendar events for jobs and appointments you manage in ReplyFlow."
-                    confirmText="Connect"
-                    cancelText="Cancel"
-                    isDestructive={false}
-                  />
-
-                  {/* Calendar Disconnect Confirmation Modal */}
-                  <ConfirmModal
-                    isOpen={isDisconnectConfirmOpen}
-                    onClose={() => setIsDisconnectConfirmOpen(false)}
-                    onConfirm={handleDisconnectCalendarConfirmed}
-                    title="Disconnect Google Calendar?"
-                    description="Your Google Calendar will stop syncing with ReplyFlow. This will NOT delete any events already on your calendar. You can reconnect at any time."
-                    confirmText="Disconnect"
-                    cancelText="Cancel"
-                    isDestructive={true}
-                    isLoading={isDisconnecting}
-                  />
 
                   </div>{/* end right column */}
                   </div>{/* end 2-col grid */}
