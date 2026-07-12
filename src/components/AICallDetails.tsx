@@ -286,9 +286,9 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
   const aiIntakeStatus = getAIIntakeStatus({ aiCallRecords: [aiCallRecord] })
   const effectiveOutcome = aiCallRecord.outcome
   const intakeBadgeLabel = aiIntakeStatus === 'complete'
-    ? 'Completed Intake'
+    ? 'Current Request'
     : aiIntakeStatus === 'partial'
-      ? 'Partial Intake'
+      ? 'Partial Request'
       : effectiveOutcome.replace('_', ' ').toUpperCase()
 
   return (
@@ -331,15 +331,25 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs font-medium text-foreground line-clamp-1">
-                        {record.extracted_info?.reasonForCalling || 'Unknown request'}
+                        {record.extracted_info?.reasonForCalling || 'Request'}
                       </span>
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${getOutcomeColor(record.outcome)}`}>
                         {record.outcome.replace('_', ' ').toUpperCase()}
                       </span>
                     </div>
-                    <div className="text-[11px] text-muted-foreground">
+                    <div className="text-[11px] text-muted-foreground mb-1">
                       {formatRelativeTime(record.created_at)}
                     </div>
+                    {(record.extracted_info?.desiredCompletionTime || record.extracted_info?.preferredCallbackTime) && (
+                      <div className="text-[10px] text-muted-foreground flex flex-wrap gap-1">
+                        {record.extracted_info?.desiredCompletionTime && (
+                          <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded">{record.extracted_info.desiredCompletionTime}</span>
+                        )}
+                        {record.extracted_info?.preferredCallbackTime && (
+                          <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded">{record.extracted_info.preferredCallbackTime}</span>
+                        )}
+                      </div>
+                    )}
                   </button>
                 ))}
               </div>
@@ -412,7 +422,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           {summaryExpanded && (
             <div className="px-4 pb-4 pt-2">
               {/* AI Status Badge and Edit Controls */}
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-3">
                 <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getOutcomeColor(effectiveOutcome)}`}>
                   {intakeBadgeLabel}
                 </span>
@@ -442,6 +452,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                     Collapse
                   </button>
                 )}
+              </div>
+
+              {/* Received timestamp */}
+              <div className="mb-4 text-xs text-muted-foreground">
+                Received {formatRelativeTime(aiCallRecord.created_at)}
               </div>
 
               {/* Save error */}
@@ -879,7 +894,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 <MessageCircle className="w-4 h-4 text-slate-600 dark:text-slate-400" />
               </div>
               <span className="text-sm font-semibold text-foreground">
-                View Full AI Conversation
+                View AI Conversation
               </span>
             </div>
             <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${fullTranscriptExpanded ? 'rotate-180' : 'rotate-0'}`} />

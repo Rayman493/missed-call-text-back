@@ -1333,37 +1333,26 @@ export default function LeadsPage() {
                             </div>
                           </div>
 
-                          {/* Compact Preview */}
-                          <div className="mb-2.5 space-y-1 flex-1">
+                          {/* Compact Preview - Simplified Hierarchy */}
+                          <div className="mb-2.5 space-y-1.5 flex-1">
                             {aiData.reason && (
-                              <div className="flex items-start gap-1.5">
-                                <Wrench className="w-3 h-3 text-slate-400 flex-shrink-0 mt-0.5" />
-                                <p className="line-clamp-1 text-xs text-slate-300 leading-relaxed">
+                              <div>
+                                <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-0.5">Latest Request</p>
+                                <p className="line-clamp-1 text-xs font-medium text-slate-200 leading-relaxed">
                                   {sentenceCase(aiData.reason)}
                                 </p>
                               </div>
                             )}
-                            {aiData.details && (
-                              <div className="flex items-start gap-1.5">
-                                <FileText className="w-3 h-3 text-slate-400 flex-shrink-0 mt-0.5" />
-                                <p className="line-clamp-2 text-xs text-slate-300 leading-relaxed">
-                                  {sentenceCase(aiData.details)}
-                                </p>
-                              </div>
-                            )}
                             {aiData.urgency && (
-                              <div className="flex items-center gap-1.5">
-                                <Clock className="w-3 h-3 text-slate-400 flex-shrink-0" />
-                                <span className={`text-xs font-medium ${
-                                  aiData.urgency.toLowerCase() === 'urgent' || aiData.urgency.toLowerCase() === 'high'
-                                    ? 'text-red-400'
-                                    : 'text-slate-300'
-                                }`}>
-                                  {sentenceCase(aiData.urgency)}
-                                </span>
-                              </div>
+                              <p className={`text-xs font-medium ${
+                                aiData.urgency.toLowerCase() === 'urgent' || aiData.urgency.toLowerCase() === 'high'
+                                  ? 'text-red-400'
+                                  : 'text-slate-300'
+                              }`}>
+                                {sentenceCase(aiData.urgency)}
+                              </p>
                             )}
-                            {!aiData.reason && !aiData.details && !aiData.urgency && (
+                            {!aiData.reason && !aiData.urgency && (
                               <p className="line-clamp-2 text-xs text-slate-300 leading-relaxed">
                                 {getCompactSummary(lead)}
                               </p>
