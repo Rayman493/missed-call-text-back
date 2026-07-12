@@ -628,7 +628,7 @@ export default function SetupStatusCard({
 
             {/* Step 2: Complete or Current */}
             <div className={`border rounded-xl overflow-hidden transition-all duration-200 ${
-              hasConfirmedForwardingInstructions
+              business?.forwarding_verified === true
                 ? 'bg-muted/30 border-border/50'
                 : cardState === 'needs-forwarding'
                   ? 'bg-primary/5 border-l-4 border-l-primary border-y border-r border-border/50 shadow-sm'
@@ -643,7 +643,7 @@ export default function SetupStatusCard({
                 }}
                 className="w-full flex items-center gap-3 p-3 sm:p-4 hover:bg-muted/50 transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
               >
-                {hasConfirmedForwardingInstructions ? (
+                {business?.forwarding_verified === true ? (
                   <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
                     <svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -655,14 +655,14 @@ export default function SetupStatusCard({
                   </div>
                 )}
                 <span className="text-foreground text-sm font-medium flex-1 text-left">
-                  {hasConfirmedForwardingInstructions ? 'Step 2 — Forwarding' : 'Set up forwarding'}
+                  {business?.forwarding_verified === true ? 'Step 2 — Call forwarding configured' : 'Set up forwarding'}
                 </span>
-                {cardState === 'needs-forwarding' && !hasConfirmedForwardingInstructions && (
+                {cardState === 'needs-forwarding' && business?.forwarding_verified !== true && (
                   <span className="inline-flex items-center px-2 py-0.5 bg-primary/20 text-primary text-xs font-semibold rounded-full border border-primary/30 flex-shrink-0">
                     Current
                   </span>
                 )}
-                <ChevronDown className={`w-4 h-4 transition-transform ${cardState === 'needs-forwarding' && !hasConfirmedForwardingInstructions ? 'text-primary' : 'text-muted-foreground'} ${expandedStep === 2 ? 'rotate-180' : ''} flex-shrink-0`} />
+                <ChevronDown className={`w-4 h-4 transition-transform ${cardState === 'needs-forwarding' && business?.forwarding_verified !== true ? 'text-primary' : 'text-muted-foreground'} ${expandedStep === 2 ? 'rotate-180' : ''} flex-shrink-0`} />
               </button>
               {expandedStep === 2 && (
                 <div className="p-3 sm:p-4 pt-0 border-t border-border/50">
@@ -737,7 +737,7 @@ export default function SetupStatusCard({
                     ? 'text-foreground text-sm font-semibold'
                     : 'text-foreground text-sm font-medium'
                 }`}>
-                  {hasCompletedTestCall ? 'Step 3 — Test call' : cardState === 'needs-verification' ? 'Test Your Setup' : 'Step 3 — Test call'}
+                  {hasCompletedTestCall ? 'Step 3 — Test call completed' : cardState === 'needs-verification' ? 'Test Your Setup' : 'Step 3 — Test call'}
                 </span>
                 {cardState === 'needs-verification' && !hasCompletedTestCall && (
                   <span className="inline-flex items-center px-2 py-0.5 bg-muted/60 text-muted-foreground text-xs font-medium rounded-md border border-border/50 flex-shrink-0">
