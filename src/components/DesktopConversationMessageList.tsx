@@ -152,10 +152,10 @@ export default function DesktopConversationMessageList({
                     : 'bg-blue-600 text-white rounded-br-md hover:bg-blue-700 border border-blue-700/80'
                 }`}
               >
-                <div className={`${msg.media && msg.media.length > 0 ? 'p-2' : 'px-5 py-3'}`}>
+                <div className={`${msg.media && msg.media.length > 0 ? 'p-2' : isOutbound ? 'px-4 py-2.5' : 'px-5 py-3'}`}>
                   {msg.body && (
                     <p 
-                      className="text-[15px] leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap min-w-0 max-w-full"
+                      className={`${isOutbound ? 'text-[14px]' : 'text-[15px]'} leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap min-w-0 max-w-full`}
                       style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
                     >
                       {msg.body}

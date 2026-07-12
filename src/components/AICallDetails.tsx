@@ -304,21 +304,36 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                   <button
                     key={record.id}
                     onClick={() => setSelectedRecordId(record.id)}
-                    className={`w-full text-left px-3 py-2 rounded-lg border transition-all ${
+                    className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all ${
                       selectedRecordId === record.id
                         ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
                         : 'bg-slate-50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900/50'
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-0.5">
-                      <span className="text-xs font-medium text-foreground line-clamp-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-semibold text-foreground line-clamp-1">
                         {getHistoryCardTitle(record)}
                       </span>
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${getRecordOutcomeColor(record.outcome)}`}>
                         {record.outcome.replace('_', ' ').toUpperCase()}
                       </span>
                     </div>
-                    <div className="text-[11px] text-muted-foreground">
+                    {/* Metadata: Desired completion and callback */}
+                    <div className="space-y-0.5 mb-1">
+                      {record.desiredCompletion && (
+                        <div className="text-[11px] text-muted-foreground flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          <span className="line-clamp-1">{record.desiredCompletion}</span>
+                        </div>
+                      )}
+                      {record.callbackTime && (
+                        <div className="text-[11px] text-muted-foreground flex items-center gap-1">
+                          <Phone className="w-3 h-3" />
+                          <span className="line-clamp-1">{record.callbackTime}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">
                       {formatRelativeTime(record.receivedAt)}
                     </div>
                   </button>
@@ -531,14 +546,14 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           ) : null}
 
           {/* Compact Row: Location, Callback, Urgency */}
-          <div className="bg-card rounded-xl p-3.5 border border-border/50">
-            <div className="grid grid-cols-3 gap-2.5">
+          <div className="bg-card rounded-xl p-4 border border-border/50">
+            <div className="grid grid-cols-3 gap-3">
               {/* Location */}
               {isEditMode || (extractedInfo?.addressOrLocation || correctedFields?.address) ? (
-                <div className="min-h-[58px] space-y-2 rounded-lg bg-slate-50/60 dark:bg-slate-900/30 border border-slate-200/60 dark:border-slate-800/60 p-2.5">
+                <div className="min-h-[64px] space-y-2.5 rounded-lg bg-slate-50/60 dark:bg-slate-900/30 border border-slate-200/60 dark:border-slate-800/60 p-3">
                   <div className="flex items-center justify-between gap-1">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <MapPin className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400 flex-shrink-0" />
+                      <MapPin className="w-4 h-4 text-slate-600 dark:text-slate-400 flex-shrink-0" />
                       <span className="text-[10px] font-semibold text-muted-foreground tracking-wide whitespace-nowrap">Location</span>
                     </div>
                     {manualFields.has('addressOrLocation') && !isEditMode && (
@@ -562,10 +577,10 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               ) : null}
 
               {/* Callback Time */}
-              <div className="min-h-[58px] space-y-2 rounded-lg bg-slate-50/60 dark:bg-slate-900/30 border border-slate-200/60 dark:border-slate-800/60 p-2.5">
+              <div className="min-h-[64px] space-y-2.5 rounded-lg bg-slate-50/60 dark:bg-slate-900/30 border border-slate-200/60 dark:border-slate-800/60 p-3">
                 <div className="flex items-center justify-between gap-1">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <Phone className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400 flex-shrink-0" />
+                    <Phone className="w-4 h-4 text-slate-600 dark:text-slate-400 flex-shrink-0" />
                     <span className="text-[10px] font-semibold text-muted-foreground tracking-wide whitespace-nowrap">Callback</span>
                   </div>
                   {manualFields.has('preferredCallbackTime') && !isEditMode && (
@@ -588,10 +603,10 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               </div>
 
               {/* Desired Completion Time */}
-              <div className="min-h-[58px] space-y-2 rounded-lg bg-slate-50/60 dark:bg-slate-900/30 border border-slate-200/60 dark:border-slate-800/60 p-2.5">
+              <div className="min-h-[64px] space-y-2.5 rounded-lg bg-slate-50/60 dark:bg-slate-900/30 border border-slate-200/60 dark:border-slate-800/60 p-3">
                 <div className="flex items-center justify-between gap-1">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <Calendar className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400 flex-shrink-0" />
+                    <Calendar className="w-4 h-4 text-slate-600 dark:text-slate-400 flex-shrink-0" />
                     <span className="text-[10px] font-semibold text-muted-foreground tracking-wide whitespace-nowrap">Completion</span>
                   </div>
                   {manualFields.has('desiredCompletionTime') && !isEditMode && (
@@ -865,7 +880,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 <MessageCircle className="w-4 h-4 text-slate-600 dark:text-slate-400" />
               </div>
               <span className="text-sm font-semibold text-foreground">
-                View AI Conversation
+                Call Transcript
               </span>
             </div>
             <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${fullTranscriptExpanded ? 'rotate-180' : 'rotate-0'}`} />

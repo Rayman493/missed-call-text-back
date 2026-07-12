@@ -201,7 +201,7 @@ export default function MobileConversationMessageList({
                     : 'bg-blue-600 text-white rounded-br-md hover:bg-blue-700 border border-blue-700/80'
                 }`}
               >
-                <div className={`${isAISummary ? 'p-0' : msg.media && msg.media.length > 0 ? 'p-1.5' : 'px-3 py-2 sm:px-3.5 sm:py-2.5'}`}>
+                <div className={`${isAISummary ? 'p-0' : msg.media && msg.media.length > 0 ? 'p-1.5' : isOutbound ? 'px-3 py-2' : 'px-3 py-2 sm:px-3.5 sm:py-2.5'}`}>
                   {msg.body && !isAISummary && (
                     <p 
                       className="text-sm leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap min-w-0 max-w-full"

@@ -2229,26 +2229,122 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           )}
         </div>
 
-        {/* Timeline */}
+        {/* Timeline - Event-based */}
         <div>
           <h3 className="text-sm font-medium text-muted-foreground mb-3">Timeline</h3>
           {conversationTimeline.length === 0 ? (
             <p className="text-sm text-muted-foreground">No activity yet.</p>
           ) : (
-            <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
-              {conversationTimeline.slice(-5).reverse().map((item: any) => (
-                <div key={item.id} className="flex gap-3 text-sm">
-                  <div className="w-2 h-2 mt-1.5 rounded-full bg-blue-500 flex-shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-foreground break-words">
-                      {item.type === 'message'
-                        ? (item.data?.message_body || item.data?.body || 'Message')
-                        : (item.data?.message || 'Event')}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{formatRelativeTime(item.created_at)}</p>
+            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+              {conversationTimeline.slice(-5).reverse().map((item: any) => {
+                // Determine event label and icon
+                let eventLabel = ''
+                let eventIcon = null
+                let isExpandable = false
+                let expandedContent = null
+
+                if (item.type === 'message') {
+                  if (item.data?.direction === 'inbound') {
+                    eventLabel = 'Customer Replied'
+                    eventIcon = <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                  } else {
+                    eventLabel = 'SMS Sent'
+                    eventIcon = <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                  }
+                } else if (item.type === 'voicemail') {
+                  eventLabel = 'Voicemail Received'
+                  eventIcon = <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                } else if (item.type === 'system_event') {
+                  const message = item.data?.message || ''
+                  if (message.includes('Completed Request') || message.includes('Partial Request') || message.includes('Caller Hung Up')) {
+                    eventLabel = 'AI Intake Completed'
+                    eventIcon = <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    isExpandable = true
+                    // Find the corresponding AI call record for details
+                    const aiCallId = item.id.replace('ai-intake-', '')
+                    const aiCall = leadData?.aiCallRecords?.find((r: any) => r.id === aiCallId)
+                    if (aiCall?.extracted_info) {
+                      const extracted = aiCall.extracted_info
+                      expandedContent = (
+                        <div className="mt-2 pt-2 border-t border-border/50 space-y-1 text-xs">
+                          {extracted.reasonForCalling && (
+                            <div><span className="text-muted-foreground">Service:</span> {extracted.reasonForCalling}</div>
+                          )}
+                          {extracted.addressOrLocation && (
+                            <div><span className="text-muted-foreground">Address:</span> {extracted.addressOrLocation}</div>
+                          )}
+                          {extracted.preferredCallbackTime && (
+                            <div><span className="text-muted-foreground">Callback:</span> {extracted.preferredCallbackTime}</div>
+                          )}
+                          {extracted.desiredCompletionTime && (
+                            <div><span className="text-muted-foreground">Completion:</span> {extracted.desiredCompletionTime}</div>
+                          )}
+                          {extracted.importantDetails && (
+                            <div><span className="text-muted-foreground">Details:</span> {extracted.importantDetails}</div>
+                          )}
+                        </div>
+                      )
+                    }
+                  } else if (message.includes('Customer Corrected') || message.includes('Customer Updated')) {
+                    eventLabel = 'Customer Updated Information'
+                    eventIcon = <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2h2.828l8.586-8.586z" /></svg>
+                  } else if (message.includes('Follow-Ups Cancelled')) {
+                    eventLabel = 'Follow-Ups Cancelled'
+                    eventIcon = <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  } else if (message.includes('Customer Sent Photos')) {
+                    eventLabel = 'Customer Sent Photos'
+                    eventIcon = <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  } else if (message.includes('Payment Received')) {
+                    eventLabel = 'Payment Received'
+                    eventIcon = <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  } else if (message.includes('Payment Requested')) {
+                    eventLabel = 'Payment Requested'
+                    eventIcon = <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                  } else if (message.includes('Lead Marked Complete')) {
+                    eventLabel = 'Lead Marked Complete'
+                    eventIcon = <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  } else if (message.includes('added manually')) {
+                    eventLabel = 'Customer Created'
+                    eventIcon = <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
+                  } else {
+                    eventLabel = message
+                    eventIcon = <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  }
+                }
+
+                return (
+                  <div key={item.id} className="flex gap-3 text-sm">
+                    <div className="mt-0.5 flex-shrink-0 text-slate-400">
+                      {eventIcon}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <button
+                        onClick={() => {
+                          // Toggle expansion for expandable events
+                          if (isExpandable) {
+                            // Simple toggle - in a real implementation you'd use state
+                            const element = document.getElementById(`expanded-${item.id}`)
+                            if (element) {
+                              element.classList.toggle('hidden')
+                            }
+                          }
+                        }}
+                        className="text-left w-full"
+                      >
+                        <p className="text-foreground font-medium break-words hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                          {eventLabel}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{formatRelativeTime(item.created_at)}</p>
+                      </button>
+                      {isExpandable && expandedContent && (
+                        <div id={`expanded-${item.id}`} className="hidden">
+                          {expandedContent}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
@@ -3135,12 +3231,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     </div>
                   )}
 
-                  {/* Voicemail Summary - Show when voicemail extraction exists but no AI Intake */}
+                  {/* Customer Summary - Show only for manual customers (no AI intake) */}
                   {!(leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id) && (
                     <VoicemailSummary leadData={leadData} />
                   )}
 
-                  {/* Customer Health - Simplified */}
+                  {/* Customer Health - Improved with status pills */}
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground mb-3">Customer Health</h3>
                     <div className="space-y-2">
@@ -3152,69 +3248,46 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-slate-600 dark:text-slate-400">Customer Replied</span>
-                        <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                          {leadData?.raw_metadata?.customer_replied || leadData?.raw_metadata?.replied_after_ai_call || leadData?.raw_metadata?.last_customer_reply_at || followUpJobs.some((j: any) => j.cancelled_reason === 'customer_replied') ? (
-                            <>
-                              <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                              </svg>
-                              Yes
-                            </>
-                          ) : (
-                            <>
-                              <svg className="w-4 h-4 text-slate-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                              </svg>
-                              No
-                            </>
-                          )}
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                          leadData?.raw_metadata?.customer_replied || leadData?.raw_metadata?.replied_after_ai_call || leadData?.raw_metadata?.last_customer_reply_at || followUpJobs.some((j: any) => j.cancelled_reason === 'customer_replied')
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                        }`}>
+                          {leadData?.raw_metadata?.customer_replied || leadData?.raw_metadata?.replied_after_ai_call || leadData?.raw_metadata?.last_customer_reply_at || followUpJobs.some((j: any) => j.cancelled_reason === 'customer_replied') ? 'Yes' : 'No'}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-slate-600 dark:text-slate-400">Corrections</span>
-                        <span className="text-sm font-medium text-foreground">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                          (leadData?.raw_metadata?.corrected_fields && Object.keys(leadData.raw_metadata.corrected_fields).length > 0)
+                            ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                        }`}>
                           {leadData?.raw_metadata?.corrected_fields ? Object.keys(leadData.raw_metadata.corrected_fields).length : 0}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-slate-600 dark:text-slate-400">Follow-Ups</span>
-                        <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                          {!followUpSettings || !followUpSettings.followUps || followUpSettings.followUps.length === 0 ? (
-                            <>
-                              <svg className="w-4 h-4 text-slate-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                              </svg>
-                              Not Configured
-                            </>
-                          ) : !followUpSettings.enabled ? (
-                            <>
-                              <svg className="w-4 h-4 text-slate-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                              </svg>
-                              Disabled
-                            </>
-                          ) : followUpJobs.some((j: any) => j.status === 'pending') ? (
-                            <>
-                              <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                              </svg>
-                              Scheduled
-                            </>
-                          ) : followUpJobs.some((j: any) => j.status === 'sent') ? (
-                            <>
-                              <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                              </svg>
-                              Complete
-                            </>
-                          ) : (
-                            <>
-                              <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                              </svg>
-                              Configured
-                            </>
-                          )}
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                          !followUpSettings || !followUpSettings.followUps || followUpSettings.followUps.length === 0
+                            ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                            : !followUpSettings.enabled
+                            ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                            : followUpJobs.some((j: any) => j.status === 'pending')
+                            ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                            : followUpJobs.some((j: any) => j.status === 'sent')
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                            : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                        }`}>
+                          {!followUpSettings || !followUpSettings.followUps || followUpSettings.followUps.length === 0
+                            ? 'Not Configured'
+                            : !followUpSettings.enabled
+                            ? 'Disabled'
+                            : followUpJobs.some((j: any) => j.status === 'pending')
+                            ? 'Scheduled'
+                            : followUpJobs.some((j: any) => j.status === 'sent')
+                            ? 'Complete'
+                            : 'Configured'}
                         </span>
                       </div>
                     </div>
