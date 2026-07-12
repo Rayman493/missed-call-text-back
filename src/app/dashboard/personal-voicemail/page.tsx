@@ -147,7 +147,7 @@ export default function PersonalVoicemailPage() {
                       {/* Desktop Layout */}
                       <div className="hidden sm:flex items-center gap-4">
                         {/* Caller Info */}
-                        <div className="flex-1 min-w-0">
+                        <div className="w-64 flex-shrink-0">
                           <div className="flex items-center gap-2 mb-1">
                             <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                             <span className="font-medium text-foreground">

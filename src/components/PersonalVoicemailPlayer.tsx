@@ -226,7 +226,7 @@ export function PersonalVoicemailPlayer({
               step="0.1"
               value={currentTime}
               onChange={handleSeek}
-              disabled={playerState === 'loading' || playerState === 'idle'}
+              disabled={playerState === 'loading'}
               className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
                 background: `linear-gradient(to right, #2563eb ${progress}%, #e2e8f0 ${progress}%)`,
