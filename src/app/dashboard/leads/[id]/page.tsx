@@ -3426,88 +3426,91 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
         
         {/* Mobile Layout - Conversation-first: Header -> Conversation -> Collapsible Sections */}
-        <div className="lg:hidden space-y-3 pb-[calc(6rem+env(safe-area-inset-bottom))]">
-          {/* Premium Header with better hierarchy */}
-          <div className="bg-card/95 border border-border/40 rounded-2xl p-4 shadow-sm">
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex-1 min-w-0">
-                <h1 className="text-lg font-semibold text-foreground tracking-tight mb-1">
-                  {getLeadDisplayName(leadData)}
-                </h1>
+        <div className="lg:hidden space-y-2 pb-[calc(6rem+env(safe-area-inset-bottom))]">
+          {/* Minimal Header */}
+          <div className="flex items-center gap-3 px-2 py-2">
+            <AppBackButton fallbackHref="/dashboard/leads" label="Back" />
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg font-semibold text-foreground tracking-tight mb-0.5 truncate">
+                {getLeadDisplayName(leadData)}
+              </h1>
+              <div className="flex items-center gap-2">
                 <p className="text-sm text-muted-foreground font-normal">
                   {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
                 </p>
+                {!loading && conversationTimeline.length > 0 && (
+                  <>
+                    <span className="text-muted-foreground/50">•</span>
+                    <p className="text-xs text-muted-foreground">
+                      {conversationTimeline.length} message{conversationTimeline.length !== 1 ? 's' : ''}
+                    </p>
+                  </>
+                )}
               </div>
-              <button
-                onClick={() => setShowMobileOverflow(!showMobileOverflow)}
-                className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-xl transition-all duration-200 ml-3 flex-shrink-0"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                </svg>
-              </button>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
-                leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
+            <button
+              onClick={() => setShowMobileOverflow(!showMobileOverflow)}
+              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-xl transition-all duration-200 flex-shrink-0"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Compact Status Pills */}
+          <div className="flex flex-wrap gap-1.5 px-2">
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-200 ${
+              leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
+                ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-200/50 dark:border-green-800/30'
+                : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
                   ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-200/50 dark:border-green-800/30'
-                  : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
+                  : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20 border border-slate-200/50 dark:border-slate-800/30'
+            }`}>
+              {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
+                ? 'AI Answered'
+                : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
+                  ? 'Voicemail Saved'
+                  : 'Waiting for Call'}
+            </span>
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-200 ${leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200/50 dark:border-blue-800/30' : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20 border border-slate-200/50 dark:border-slate-800/30'}`}>
+              {leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'Customer Replied' : 'Awaiting Reply'}
+            </span>
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-200 ${
+              followUpJobs && followUpJobs.length > 0
+                ? followUpJobs.some((job: any) => job.status === 'active' || job.status === 'scheduled')
+                  ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200/50 dark:border-blue-800/30'
+                  : followUpJobs.some((job: any) => job.status === 'completed')
                     ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-200/50 dark:border-green-800/30'
                     : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20 border border-slate-200/50 dark:border-slate-800/30'
-              }`}>
-                {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
-                  ? 'AI Answered'
-                  : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
-                    ? 'Voicemail Saved'
-                    : 'Waiting for Call'}
-              </span>
-              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-200 ${leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200/50 dark:border-blue-800/30' : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20 border border-slate-200/50 dark:border-slate-800/30'}`}>
-                {leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'Customer Replied' : 'Awaiting Reply'}
-              </span>
-              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
-                followUpJobs && followUpJobs.length > 0
-                  ? followUpJobs.some((job: any) => job.status === 'active' || job.status === 'scheduled')
-                    ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200/50 dark:border-blue-800/30'
-                    : followUpJobs.some((job: any) => job.status === 'completed')
-                      ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-200/50 dark:border-green-800/30'
-                      : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20 border border-slate-200/50 dark:border-slate-800/30'
-                  : followUpSettings?.enabled
-                    ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-200/50 dark:border-green-800/30'
-                    : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20 border border-slate-200/50 dark:border-slate-800/30'
-              }`}>
-                {followUpJobs && followUpJobs.length > 0
-                  ? followUpJobs.some((job: any) => job.status === 'active' || job.status === 'scheduled')
-                    ? 'Follow-Up Scheduled'
-                    : followUpJobs.some((job: any) => job.status === 'completed')
-                      ? 'Follow-Up Sent'
-                      : 'Follow-Up Paused'
-                  : followUpSettings?.enabled
-                    ? 'Follow-Ups Ready'
-                    : 'Follow-Ups Off'}
-              </span>
-            </div>
+                : followUpSettings?.enabled
+                  ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-200/50 dark:border-green-800/30'
+                  : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20 border border-slate-200/50 dark:border-slate-800/30'
+            }`}>
+              {followUpJobs && followUpJobs.length > 0
+                ? followUpJobs.some((job: any) => job.status === 'active' || job.status === 'scheduled')
+                  ? 'Follow-Up Scheduled'
+                  : followUpJobs.some((job: any) => job.status === 'completed')
+                    ? 'Follow-Up Sent'
+                    : 'Follow-Up Paused'
+                : followUpSettings?.enabled
+                  ? 'Follow-Ups Ready'
+                  : 'Follow-Ups Off'}
+            </span>
           </div>
 
           {/* Conversation Section - Primary content, conversation-first */}
           <div className="bg-card/95 border border-border/40 rounded-2xl lg:hidden flex flex-col overflow-hidden shadow-sm flex-1 min-h-0">
-            <div className="px-4 py-3 flex-shrink-0 flex items-center justify-between border-b border-border/30 bg-slate-50/50 dark:bg-slate-950/30">
-              <h3 className="text-sm font-semibold text-foreground">Conversation</h3>
-              {!loading && conversationTimeline.length > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  {conversationTimeline.length} message{conversationTimeline.length !== 1 ? 's' : ''}
-                </p>
-              )}
-            </div>
             {/* Mobile Message Thread - Scrollable viewport */}
             <div ref={mobileConversationContainerRef} className="flex-1 min-h-0 overflow-y-auto scroll-smooth overscroll-contain bg-slate-50/40 dark:bg-slate-950/20" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', scrollPaddingBottom: '5rem' }}>
               {/* Inner content wrapper for justify-end */}
-              <div className="min-h-full px-2 py-2 flex flex-col justify-end">
+              <div className="min-h-full px-2 py-1 flex flex-col justify-end">
                 {loading ? (
-                  <div className="flex items-center justify-center py-12">
+                  <div className="flex items-center justify-center py-8">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                   </div>
                 ) : conversationTimeline.length === 0 ? (
-                  <div className="flex items-center justify-center h-full py-8 animate-fadeIn">
+                  <div className="flex items-center justify-center h-full py-6 animate-fadeIn">
                     <div className="text-center max-w-sm">
                       <div className="w-12 h-12 bg-slate-50 dark:bg-slate-900/50 rounded-xl flex items-center justify-center mx-auto mb-3 border border-slate-200 dark:border-slate-800">
                         <svg className="w-6 h-6 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
