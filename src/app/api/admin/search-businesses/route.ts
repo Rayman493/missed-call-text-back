@@ -9,11 +9,12 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     console.log('[ADMIN SEARCH] Starting search handler')
-    
+
     const searchParams = request.nextUrl.searchParams
     const query = searchParams.get('query')
+    const filter = searchParams.get('filter') || 'all'
 
-    console.log('[ADMIN SEARCH] Query parameter extracted', { query })
+    console.log('[ADMIN SEARCH] Query parameter extracted', { query, filter })
 
     if (!query) {
       return NextResponse.json({ success: false, error: 'Query parameter required' }, { status: 400 })
@@ -110,11 +111,49 @@ export async function GET(request: NextRequest) {
 
       console.log('[ADMIN SEARCH] Query 1: Searching businesses by name and phone fields')
       // 1. Search businesses by name and phone fields (only columns that exist in production)
-      const { data: businessesByNameOrPhone, error: businessError } = await supabaseAdmin
+      let baseQuery = supabaseAdmin
         .from('businesses')
         .select('*')
         .or(`name.ilike.%${query}%,business_phone_number.ilike.%${query}%,twilio_phone_number.ilike.%${query}%`)
-        .limit(20)
+
+      // Apply filter if specified
+      if (filter !== 'all') {
+        const now = new Date()
+        const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+        const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+
+        switch (filter) {
+          case 'active':
+            baseQuery = baseQuery.in('subscription_status', ['active', 'trialing'])
+            break
+          case 'trialing':
+            baseQuery = baseQuery.eq('subscription_status', 'trialing')
+            break
+          case 'past_due':
+            baseQuery = baseQuery.eq('subscription_status', 'past_due')
+            break
+          case 'cancelled':
+            baseQuery = baseQuery.eq('subscription_status', 'cancelled')
+            break
+          case 'onboarding_incomplete':
+            baseQuery = baseQuery.not('onboarding_status', 'in', '(completed,forwarding_verified)')
+            break
+          case 'provisioning_failed':
+            baseQuery = baseQuery.eq('provisioning_status', 'failed')
+            break
+          case 'forwarding_not_verified':
+            baseQuery = baseQuery.eq('forwarding_verified', false)
+            break
+          case 'trials_expiring_soon':
+            baseQuery = baseQuery
+              .eq('subscription_status', 'trialing')
+              .lte('trial_end_date', sevenDaysFromNow.toISOString())
+              .gte('trial_end_date', now.toISOString())
+            break
+        }
+      }
+
+      const { data: businessesByNameOrPhone, error: businessError } = await baseQuery.limit(20)
 
       console.log('[ADMIN SEARCH] Query 1 result', {
         success: !businessError,

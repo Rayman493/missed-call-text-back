@@ -78,22 +78,30 @@ export default function AdminSupportPage() {
   const [deleteConfirmation, setDeleteConfirmation] = useState('')
   const [deleteLoading, setDeleteLoading] = useState(false)
 
+  // Metrics state
+  const [metrics, setMetrics] = useState<any>(null)
+  const [metricsLoading, setMetricsLoading] = useState(true)
+
+  // Filter state
+  const [selectedFilter, setSelectedFilter] = useState<string>('all')
+  const [showFilters, setShowFilters] = useState(false)
+
   useEffect(() => {
     const checkAdmin = async () => {
       if (!user?.id) return
-      
+
       try {
         const response = await fetch('/api/admin/check-status')
         const data = await response.json()
-        
+
         console.log('[ADMIN SUPPORT PAGE] Admin check result:', data)
-        
+
         if (!data.isAdmin) {
           console.log('[ADMIN SUPPORT PAGE] User is not admin, redirecting to dashboard')
           router.push('/dashboard')
           return
         }
-        
+
         setIsAdmin(true)
         setLoading(false)
       } catch (error) {
@@ -105,14 +113,36 @@ export default function AdminSupportPage() {
     checkAdmin()
   }, [user, router])
 
+  useEffect(() => {
+    const fetchMetrics = async () => {
+      if (!isAdmin) return
+
+      try {
+        const response = await fetch('/api/admin/metrics')
+        const data = await response.json()
+
+        if (data.success) {
+          setMetrics(data.metrics)
+        }
+      } catch (error) {
+        console.error('[ADMIN SUPPORT PAGE] Failed to fetch metrics:', error)
+      } finally {
+        setMetricsLoading(false)
+      }
+    }
+
+    fetchMetrics()
+  }, [isAdmin])
+
   const handleSearch = async () => {
     if (!searchQuery.trim()) return
-    
+
     setSearchLoading(true)
     try {
-      const response = await fetch(`/api/admin/search-businesses?query=${encodeURIComponent(searchQuery)}`)
+      const filterParam = selectedFilter !== 'all' ? `&filter=${selectedFilter}` : ''
+      const response = await fetch(`/api/admin/search-businesses?query=${encodeURIComponent(searchQuery)}${filterParam}`)
       const data = await response.json()
-      
+
       if (data.success) {
         setSearchResults(data.businesses || [])
       } else {
@@ -258,6 +288,38 @@ export default function AdminSupportPage() {
       day: 'numeric'
     })
     return `Until ${formattedDate}`
+  }
+
+  const getBusinessIssueIndicator = (business: Business) => {
+    const issues: string[] = []
+
+    if (business.provisioning_status === 'failed') {
+      issues.push('Provisioning Failed')
+    }
+    if (business.subscription_status === 'past_due') {
+      issues.push('Past Due')
+    }
+    if (business.subscription_status === 'trialing' && business.trial_end_date) {
+      const trialEnd = new Date(business.trial_end_date)
+      const now = new Date()
+      const daysUntilExpiry = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      if (daysUntilExpiry <= 7) {
+        issues.push(`Trial Expiring (${daysUntilExpiry}d)`)
+      }
+    }
+    if (!business.forwarding_verified && business.onboarding_status !== 'not_started') {
+      issues.push('Forwarding Not Verified')
+    }
+    if (!business.onboarding_status || !['completed', 'forwarding_verified'].includes(business.onboarding_status)) {
+      const created = new Date(business.created_at)
+      const now = new Date()
+      const hoursSinceCreation = (now.getTime() - created.getTime()) / (1000 * 60 * 60)
+      if (hoursSinceCreation > 24) {
+        issues.push('Onboarding Incomplete')
+      }
+    }
+
+    return issues
   }
 
   const handleProtect = async () => {
@@ -462,11 +524,156 @@ export default function AdminSupportPage() {
               </span>
             </div>
 
+            {/* Metrics Dashboard */}
+            {!metricsLoading && metrics && (
+              <div className="space-y-6">
+                {/* Needs Attention Section */}
+                {(metrics.provisioningFailures?.count > 0 ||
+                  metrics.billingIssues?.count > 0 ||
+                  metrics.trialsExpiringSoon?.count > 0 ||
+                  metrics.onboardingIssues?.count > 0) && (
+                  <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-xl p-4">
+                    <h2 className="text-lg font-semibold text-red-900 dark:text-red-100 mb-3">
+                      Needs Attention
+                    </h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {metrics.provisioningFailures?.count > 0 && (
+                        <div className="bg-white dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                          <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                            {metrics.provisioningFailures.count}
+                          </p>
+                          <p className="text-sm text-red-700 dark:text-red-300">Provisioning Failed</p>
+                        </div>
+                      )}
+                      {metrics.billingIssues?.count > 0 && (
+                        <div className="bg-white dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                          <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                            {metrics.billingIssues.count}
+                          </p>
+                          <p className="text-sm text-red-700 dark:text-red-300">Billing Issues</p>
+                        </div>
+                      )}
+                      {metrics.trialsExpiringSoon?.count > 0 && (
+                        <div className="bg-white dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                          <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+                            {metrics.trialsExpiringSoon.count}
+                          </p>
+                          <p className="text-sm text-amber-700 dark:text-amber-300">Trials Expiring Soon</p>
+                        </div>
+                      )}
+                      {metrics.onboardingIssues?.count > 0 && (
+                        <div className="bg-white dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                          <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+                            {metrics.onboardingIssues.count}
+                          </p>
+                          <p className="text-sm text-amber-700 dark:text-amber-300">Onboarding Issues</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Metrics Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl p-4 shadow-sm">
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Active Businesses</p>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-foreground">
+                      {metrics.activeBusinesses}
+                    </p>
+                  </div>
+                  <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl p-4 shadow-sm">
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Trials Expiring (7d)</p>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-foreground">
+                      {metrics.trialsExpiringSoon?.count || 0}
+                    </p>
+                  </div>
+                  <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl p-4 shadow-sm">
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Onboarding Issues</p>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-foreground">
+                      {metrics.onboardingIssues?.count || 0}
+                    </p>
+                  </div>
+                  <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl p-4 shadow-sm">
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Provisioning Failures</p>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-foreground">
+                      {metrics.provisioningFailures?.count || 0}
+                    </p>
+                  </div>
+                  <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl p-4 shadow-sm">
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">AI Call Failures (24h)</p>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-foreground">
+                      {metrics.aiCallFailures?.count || 0}
+                    </p>
+                  </div>
+                  <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl p-4 shadow-sm">
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">SMS Failures (24h)</p>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-foreground">
+                      {metrics.smsFailures?.count || 0}
+                    </p>
+                  </div>
+                  <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl p-4 shadow-sm">
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Billing Issues</p>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-foreground">
+                      {metrics.billingIssues?.count || 0}
+                    </p>
+                  </div>
+                  <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl p-4 shadow-sm">
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Voicemail Failures</p>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-foreground">
+                      {metrics.personalVoicemailFailures?.count || 0}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Search Section */}
             <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-4">
-                Search Businesses
-              </h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">
+                  Search Businesses
+                </h2>
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                >
+                  {showFilters ? 'Hide Filters' : 'Show Filters'}
+                </button>
+              </div>
+
+              {showFilters && (
+                <div className="mb-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    Filter by Status
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { value: 'all', label: 'All' },
+                      { value: 'active', label: 'Active' },
+                      { value: 'trialing', label: 'Trialing' },
+                      { value: 'past_due', label: 'Past Due' },
+                      { value: 'cancelled', label: 'Cancelled' },
+                      { value: 'onboarding_incomplete', label: 'Onboarding Incomplete' },
+                      { value: 'provisioning_failed', label: 'Provisioning Failed' },
+                      { value: 'forwarding_not_verified', label: 'Forwarding Not Verified' },
+                      { value: 'trials_expiring_soon', label: 'Trials Expiring Soon' }
+                    ].map((filter) => (
+                      <button
+                        key={filter.value}
+                        onClick={() => setSelectedFilter(filter.value)}
+                        className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                          selectedFilter === filter.value
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600'
+                        }`}
+                      >
+                        {filter.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-3">
                 <input
                   type="text"
@@ -490,24 +697,43 @@ export default function AdminSupportPage() {
                   <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">
                     Results ({searchResults.length})
                   </h3>
-                  {searchResults.map((business) => (
-                    <div
-                      key={business.id}
-                      onClick={() => handleSelectBusiness(business)}
-                      className="p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-slate-900 dark:text-foreground">{business.business_name}</p>
-                          <p className="text-sm text-slate-600 dark:text-slate-400">{business.business_phone}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs text-slate-500 dark:text-slate-500">{business.subscription_status}</p>
-                          <p className="text-xs text-slate-500 dark:text-slate-500">{business.onboarding_status}</p>
+                  {searchResults.map((business) => {
+                    const issues = getBusinessIssueIndicator(business)
+                    return (
+                      <div
+                        key={business.id}
+                        onClick={() => handleSelectBusiness(business)}
+                        className="p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-slate-900 dark:text-foreground truncate">{business.business_name}</p>
+                              {issues.length > 0 && (
+                                <span className="flex-shrink-0 px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-xs font-medium rounded-full">
+                                  {issues.length} issue{issues.length > 1 ? 's' : ''}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">{business.business_phone}</p>
+                            {issues.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {issues.map((issue, idx) => (
+                                  <span key={idx} className="text-xs text-red-600 dark:text-red-400">
+                                    • {issue}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div className="text-right ml-4">
+                            <p className="text-xs text-slate-500 dark:text-slate-500 capitalize">{business.subscription_status}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-500 capitalize">{business.onboarding_status}</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </div>
