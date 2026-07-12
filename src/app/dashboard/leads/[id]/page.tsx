@@ -126,12 +126,63 @@ const STATUS_RANK: Record<string, number> = {
 }
 
 /**
- * Get monotonic status - prevents status downgrades
- * If newStatus has lower rank than currentStatus, keep currentStatus
+ * Get monotonic status - prevents status downgrades with explicit terminal-state rules
+ * 
+ * Terminal-state rules:
+ * - Delivered cannot downgrade to any other status
+ * - Failed cannot replace Delivered
+ * - Delivered cannot replace a confirmed terminal failure
+ * - Queued cannot replace Sent
+ * - Sent cannot replace Delivered
  */
 function getMonotonicStatus(currentStatus: string, newStatus: string): string {
   const currentRank = STATUS_RANK[currentStatus] ?? 0
   const newRank = STATUS_RANK[newStatus] ?? 0
+  
+  // Terminal state: Delivered cannot downgrade
+  if (currentStatus === 'delivered') {
+    console.log('[MONOTONIC STATUS] Delivered is terminal - preventing downgrade:', {
+      currentStatus,
+      newStatus
+    })
+    return currentStatus
+  }
+  
+  // Terminal state: Failed cannot replace Delivered
+  if (currentStatus === 'delivered' && (newStatus === 'failed' || newStatus === 'undelivered' || newStatus === 'not_sent')) {
+    console.log('[MONOTONIC STATUS] Failed cannot replace Delivered:', {
+      currentStatus,
+      newStatus
+    })
+    return currentStatus
+  }
+  
+  // Terminal state: Delivered cannot replace a confirmed terminal failure
+  if ((currentStatus === 'failed' || currentStatus === 'undelivered' || currentStatus === 'not_sent') && newStatus === 'delivered') {
+    console.log('[MONOTONIC STATUS] Delivered cannot replace terminal failure:', {
+      currentStatus,
+      newStatus
+    })
+    return currentStatus
+  }
+  
+  // Queued cannot replace Sent
+  if (currentStatus === 'sent' && newStatus === 'queued') {
+    console.log('[MONOTONIC STATUS] Queued cannot replace Sent:', {
+      currentStatus,
+      newStatus
+    })
+    return currentStatus
+  }
+  
+  // Sent cannot replace Delivered
+  if (currentStatus === 'delivered' && newStatus === 'sent') {
+    console.log('[MONOTONIC STATUS] Sent cannot replace Delivered:', {
+      currentStatus,
+      newStatus
+    })
+    return currentStatus
+  }
   
   // Only upgrade if new status has higher or equal rank
   if (newRank >= currentRank) {
@@ -332,7 +383,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // Realtime subscription management
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null)
   const currentLeadIdRef = useRef<string | null>(null)
-  const supabase = createBrowserClient()
+  const supabaseRef = useRef(createBrowserClient())
+  const supabase = supabaseRef.current
   
   // Fallback refresh for stuck messages
   const stuckMessageCheckIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -1382,16 +1434,28 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // Realtime subscription for messages, leads, and payment requests
   useEffect(() => {
     const leadId = leadData?.id
+    const conversationId = leadData?.conversation_id || leadData?.conversationId
     if (!leadId || !supabase) return
 
+    console.log('[REALTIME SUBSCRIPTION SETUP]', {
+      leadId,
+      conversationId,
+      channelName: `lead-detail:${leadId}`,
+      timestamp: new Date().toISOString()
+    })
+
     // Only recreate subscription if lead ID actually changed (navigation to different lead)
-    if (currentLeadIdRef.current === leadId) return
+    if (currentLeadIdRef.current === leadId) {
+      console.log('[REALTIME SUBSCRIPTION] Skipping - lead ID unchanged:', leadId)
+      return
+    }
     
     // Update ref with new lead ID
     currentLeadIdRef.current = leadId
 
     // Clean up existing subscription
     if (realtimeChannelRef.current) {
+      console.log('[REALTIME SUBSCRIPTION] Cleaning up existing channel')
       supabase.removeChannel(realtimeChannelRef.current)
     }
     
@@ -1415,10 +1479,25 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         (payload: any) => {
           console.log('[REALTIME MESSAGE EVENT]', {
             leadId,
+            conversationId,
             eventType: payload.eventType,
             messageId: payload.new?.id,
-            messageBody: payload.new?.body?.substring(0, 50)
+            messageLeadId: payload.new?.lead_id,
+            messageConversationId: payload.new?.conversation_id,
+            messageStatus: payload.new?.status,
+            timestamp: new Date().toISOString()
           })
+          
+          // Validate filter match
+          if (payload.new?.lead_id !== leadId) {
+            console.warn('[REALTIME MESSAGE EVENT] Filter mismatch - ignoring:', {
+              expectedLeadId: leadId,
+              actualLeadId: payload.new?.lead_id,
+              messageId: payload.new?.id
+            })
+            return
+          }
+          
           if (payload.eventType === 'INSERT') {
             const newMessage = payload.new
             setLeadData((prev: any) => {
@@ -1433,7 +1512,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               console.log('[REALTIME MESSAGE INSERT] Merged message into state:', {
                 messageId: newMessage.id,
                 previousCount: currentMessages.length,
-                newCount: mergedMessages.length
+                newCount: mergedMessages.length,
+                status: newMessage.status
               })
               
               // Only scroll if this is a new message (not an optimistic reconciliation)
@@ -1466,7 +1546,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               console.log('[REALTIME MESSAGE UPDATE] Merged message update into state:', {
                 messageId: updatedMessage.id,
                 previousCount: currentMessages.length,
-                newCount: mergedMessages.length
+                newCount: mergedMessages.length,
+                oldStatus: currentMessages.find((m: any) => m.id === updatedMessage.id)?.status,
+                newStatus: updatedMessage.status
               })
               
               return { ...prev, messages: mergedMessages }
@@ -1582,30 +1664,44 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     realtimeChannelRef.current = channel
 
-    // Start stuck message check interval (every 30 seconds)
+    // Start stuck message check interval (bounded recovery - only check twice)
+    let checkCount = 0
+    const maxChecks = 2
     stuckMessageCheckIntervalRef.current = setInterval(() => {
+      checkCount++
+      
       const messages = leadData?.messages || []
       const stuckMessages = messages.filter((msg: any) => {
-        // Check for messages stuck in "sending" for more than 30 seconds
+        // Check for messages stuck in "sending" for more than 10 seconds
         if (msg.status === 'sending' || msg.status === 'pending') {
           const messageAge = Date.now() - new Date(msg.created_at).getTime()
-          return messageAge > 30000 // 30 seconds
+          return messageAge > 10000 // 10 seconds
         }
         return false
       })
       
-      if (stuckMessages.length > 0) {
+      if (stuckMessages.length > 0 && checkCount <= maxChecks) {
         console.log('[STUCK MESSAGE CHECK] Found stuck messages, refreshing:', {
           count: stuckMessages.length,
-          messageIds: stuckMessages.map((m: any) => m.id)
+          messageIds: stuckMessages.map((m: any) => m.id),
+          checkCount,
+          maxChecks
         })
         handleRefresh()
+      } else if (checkCount > maxChecks) {
+        // Stop checking after max checks to avoid infinite polling
+        console.log('[STUCK MESSAGE CHECK] Max checks reached, stopping interval')
+        if (stuckMessageCheckIntervalRef.current) {
+          clearInterval(stuckMessageCheckIntervalRef.current)
+          stuckMessageCheckIntervalRef.current = null
+        }
       }
-    }, 30000) // Check every 30 seconds
+    }, 10000) // Check every 10 seconds
 
     // Cleanup on unmount or lead ID change
     return () => {
       if (realtimeChannelRef.current) {
+        console.log('[REALTIME SUBSCRIPTION CLEANUP] Removing channel')
         supabase.removeChannel(realtimeChannelRef.current)
         realtimeChannelRef.current = null
         currentLeadIdRef.current = null
@@ -1615,7 +1711,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         stuckMessageCheckIntervalRef.current = null
       }
     }
-  }, [leadData?.id, supabase])
+  }, [leadData?.id]) // Only depend on leadId, not supabase (which is now a ref)
 
   const handleSendMessage = async (e?: React.FormEvent | File[]) => {
     // Prevent form submission and page refresh
@@ -1726,45 +1822,51 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       // Update optimistic message with real message data using clientTempId (SMS only)
       if (!isMMS && result.clientTempId === clientTempId && result.message) {
-        console.log('[Send] SMS - Messages before send:', leadData?.messages?.length || 0)
-        console.log('[Send] SMS - API returned message id:', result.message.id, 'status:', result.message.status)
-        
-        setOptimisticMessage((prev: any) => {
-          // Only update if this is the same message
-          if (prev?.clientTempId === clientTempId) {
-            const updatedMessage = {
-              ...prev,
-              id: result.message.id,
-              status: result.message.status || 'sent',
-              isOptimistic: false,
-              // Keep other properties from the real message
-              ...result.message
-            }
-            
-            return updatedMessage
-          }
-          return prev
+        console.log('[SEND RECONCILIATION] API returned persisted message:', {
+          messageId: result.message.id,
+          status: result.message.status,
+          twilioSid: result.message.twilio_sid,
+          clientTempId
         })
         
-        // Merge the returned message into local state to prevent disappearing
+        // Immediately merge the persisted message into local state
+        // This replaces the optimistic message with the real database row
+        setLeadData((prev: any) => {
+          if (!prev) return prev
+          
+          const currentMessages = prev.messages || []
+          const mergedMessages = mergeMessagesById(currentMessages, [result.message])
+          
+          console.log('[SEND RECONCILIATION] Merged persisted message into state:', {
+            messageId: result.message.id,
+            previousCount: currentMessages.length,
+            newCount: mergedMessages.length,
+            finalStatus: result.message.status
+          })
+          
+          return {
+            ...prev,
+            messages: mergedMessages
+          }
+        })
+        
+        // Clear optimistic message immediately after merge
+        setOptimisticMessage(null)
+        
+        // Fallback: if message still shows Sending after 3 seconds, refresh
         setTimeout(() => {
           setLeadData((prev: any) => {
             if (!prev) return prev
             
-            const currentMessages = prev.messages || []
-            const mergedMessages = mergeMessagesById(currentMessages, [result.message])
-            
-            return {
-              ...prev,
-              messages: mergedMessages
+            const message = prev.messages?.find((m: any) => m.id === result.message.id)
+            if (message && (message.status === 'sending' || message.status === 'pending')) {
+              console.log('[SEND RECONCILIATION FALLBACK] Message still Sending after 3 seconds, refreshing:', result.message.id)
+              handleRefresh()
             }
+            
+            return prev
           })
-        }, 100)
-        
-        // Clear optimistic message after it's merged into local state
-        setTimeout(() => {
-          setOptimisticMessage(null)
-        }, 500)
+        }, 3000)
       }
 
       // For MMS, call refreshConversationData to get complete message with media
@@ -1785,14 +1887,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         }, 100)
       }
 
-      // Clear input and set success
+      // Clear input - no success banner, bubble status is the confirmation
       setMessage('')
-      setSuccessMessage('Message sent successfully')
-      
-      // Auto-hide success message after 3 seconds
-      setTimeout(() => {
-        setSuccessMessage('')
-      }, 3000)
       
       // Scroll to bottom to show the new message
       setTimeout(() => {
