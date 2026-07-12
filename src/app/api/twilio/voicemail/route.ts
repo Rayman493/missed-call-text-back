@@ -5,6 +5,7 @@ import { requireTwilioAuth } from '@/lib/twilio/webhook';
 import { notificationServiceServer } from '@/lib/notifications-server';
 import { markForwardingVerified } from '@/lib/forwarding-verification';
 import { isIgnoredContact } from '@/lib/ignored-contacts';
+import VoiceResponse from 'twilio/lib/twiml/VoiceResponse';
 
 // CALL TRACE logging function
 function logCallTrace(data: {
@@ -207,14 +208,12 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Return success without any automation
-      const thankYouTwiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Say voice="alice">Thank you. Goodbye.</Say>
-  <Hangup/>
-</Response>`;
+      // Return success without any automation using VoiceResponse builder
+      const response = new VoiceResponse()
+      response.say({ voice: 'alice' }, 'Thank you. Goodbye.')
+      response.hangup()
       
-      return new NextResponse(thankYouTwiml, {
+      return new NextResponse(response.toString(), {
         status: 200,
         headers: {
           "Content-Type": "text/xml",
@@ -348,13 +347,11 @@ export async function POST(request: NextRequest) {
           result: lead
         });
         // FAIL-SAFE: Return 200 with TwiML instead of 500 to prevent "server unreachable"
-        const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Say voice="alice">Thank you. Goodbye.</Say>
-  <Hangup/>
-</Response>`;
+        const response = new VoiceResponse()
+        response.say({ voice: 'alice' }, 'Thank you. Goodbye.')
+        response.hangup()
         console.log('[VOICEMAIL] Returning 200 despite lead creation failure');
-        return new NextResponse(errorTwiml, {
+        return new NextResponse(response.toString(), {
           status: 200,
           headers: {
             "Content-Type": "text/xml",
@@ -418,13 +415,11 @@ export async function POST(request: NextRequest) {
       if (!conversation) {
         console.error('[VOICEMAIL] Failed to create conversation');
         // FAIL-SAFE: Return 200 with TwiML instead of 500 to prevent "server unreachable"
-        const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Say voice="alice">Thank you. Goodbye.</Say>
-  <Hangup/>
-</Response>`;
+        const response = new VoiceResponse()
+        response.say({ voice: 'alice' }, 'Thank you. Goodbye.')
+        response.hangup()
         console.log('[VOICEMAIL] Returning 200 despite conversation creation failure');
-        return new NextResponse(errorTwiml, {
+        return new NextResponse(response.toString(), {
           status: 200,
           headers: {
             "Content-Type": "text/xml",
@@ -473,13 +468,11 @@ export async function POST(request: NextRequest) {
     if (voicemailError) {
       console.error('[VOICEMAIL RECORDING] Failed to save voicemail recording:', voicemailError);
       // FAIL-SAFE: Return 200 with TwiML instead of 500 to prevent "server unreachable"
-      const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Say voice="alice">Thank you. Goodbye.</Say>
-  <Hangup/>
-</Response>`;
+      const response = new VoiceResponse()
+      response.say({ voice: 'alice' }, 'Thank you. Goodbye.')
+      response.hangup()
       console.log('[VOICEMAIL] Returning 200 despite voicemail save failure');
-      return new NextResponse(errorTwiml, {
+      return new NextResponse(response.toString(), {
         status: 200,
         headers: {
           "Content-Type": "text/xml",
@@ -526,17 +519,15 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString()
     });
 
-    // Return thank you TwiML
-    const thankYouTwiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Say voice="alice">Thank you. Goodbye.</Say>
-  <Hangup/>
-</Response>`;
+    // Return thank you TwiML using VoiceResponse builder
+    const response = new VoiceResponse()
+    response.say({ voice: 'alice' }, 'Thank you. Goodbye.')
+    response.hangup()
 
     console.log('[MISSED CALL TIMING] voicemail processing completed successfully');
     console.log('[VOICEMAIL INGEST COMPLETE]', { leadId: lead.id, conversationId: conversation.id, voicemailId: voicemail.id, businessId: business.id });
     console.log('[VOICEMAIL TWIML RESPONSE SENT]');
-    return new NextResponse(thankYouTwiml, {
+    return new NextResponse(response.toString(), {
       status: 200,
       headers: {
         "Content-Type": "text/xml",
@@ -551,13 +542,11 @@ export async function POST(request: NextRequest) {
       name: error instanceof Error ? error.name : 'Unknown'
     });
     // FAIL-SAFE: Always return 200 with TwiML, never 500 to prevent "server unreachable"
-    const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Say voice="alice">Thank you. Goodbye.</Say>
-  <Hangup/>
-</Response>`;
+    const response = new VoiceResponse()
+    response.say({ voice: 'alice' }, 'Thank you. Goodbye.')
+    response.hangup()
     console.log('[VOICEMAIL] Returning 200 despite unexpected error to prevent "server unreachable"');
-    return new NextResponse(errorTwiml, {
+    return new NextResponse(response.toString(), {
       status: 200,
       headers: {
         "Content-Type": "text/xml",

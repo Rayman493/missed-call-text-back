@@ -17,6 +17,7 @@ import { notificationServiceServer } from '@/lib/notifications-server';
 import { markForwardingVerified } from '@/lib/forwarding-verification';
 import { buildCallbackUrl } from '@/lib/public-origin';
 import { classifyCallSid } from '@/lib/call-pipeline-classification';
+import VoiceResponse from 'twilio/lib/twiml/VoiceResponse';
 
 // Constants for repeat caller behavior
 const AUTO_REPLY_REPEAT_WINDOW_MINUTES = 30;
@@ -103,22 +104,22 @@ function generateVoiceGreeting(): string {
   // Note: Transcription is now fetched via REST API in recording-status callback
   // instead of using Twilio's transcribeCallback (account-level restrictions prevent callbacks)
   
-  const voicemailTwiml = `
-    <Pause length="1"/>
-    <Say voice="alice">${voicemailMessage}</Say>
-    <Record
-      maxLength="60"
-      playBeep="true"
-      trim="trim-silence"
-      action="/api/twilio/voicemail"
-      method="POST"
-      recordingStatusCallback="/api/twilio/recording-status"
-      recordingStatusCallbackMethod="POST"
-    />
-    <Hangup/>
-  `.trim();
+  // Use Twilio's VoiceResponse builder for automatic XML escaping
+  const response = new VoiceResponse();
+  response.pause({ length: 1 });
+  response.say({ voice: "alice" }, voicemailMessage);
+  response.record({
+    maxLength: 60,
+    playBeep: true,
+    trim: "trim-silence",
+    action: "/api/twilio/voicemail",
+    method: "POST",
+    recordingStatusCallback: "/api/twilio/recording-status",
+    recordingStatusCallbackMethod: "POST",
+  });
+  response.hangup();
   
-  return voicemailTwiml;
+  return response.toString();
 }
 
 // Helper to generate voicemail with pre-recorded greeting
@@ -126,34 +127,30 @@ function generateVoicemailWithRecordedGreeting(customGreetingUrl: string): strin
   // Note: Transcription is now fetched via REST API in recording-status callback
   // instead of using Twilio's transcribeCallback (account-level restrictions prevent callbacks)
   
-  const voicemailTwiml = `
-    <Play>${customGreetingUrl}</Play>
-    <Record
-      maxLength="60"
-      playBeep="true"
-      trim="trim-silence"
-      action="/api/twilio/voicemail"
-      method="POST"
-      recordingStatusCallback="/api/twilio/recording-status"
-      recordingStatusCallbackMethod="POST"
-    />
-    <Hangup/>
-  `.trim();
+  // Use Twilio's VoiceResponse builder for automatic XML escaping
+  const response = new VoiceResponse();
+  response.play(customGreetingUrl);
+  response.record({
+    maxLength: 60,
+    playBeep: true,
+    trim: "trim-silence",
+    action: "/api/twilio/voicemail",
+    method: "POST",
+    recordingStatusCallback: "/api/twilio/recording-status",
+    recordingStatusCallbackMethod: "POST",
+  });
+  response.hangup();
   
-  return voicemailTwiml;
+  return response.toString();
 }
 
 // Helper to generate clean hangup for spam/blocked calls
 function generateIgnoredContactResponse(): string {
   // Silent hangup - no message, no voicemail
   // Used for spam filtering and blocked calls
-  const responseTwiml = `
-<Response>
-  <Hangup/>
-</Response>
-`.trim();
-  
-  return responseTwiml;
+  const response = new VoiceResponse();
+  response.hangup();
+  return response.toString();
 }
 
 // Helper to generate personal voicemail recording for ignored contacts
@@ -174,24 +171,22 @@ function generatePersonalVoicemailResponse(businessId: string, callerPhone: stri
     callerPhone
   });
   
-  const voicemailTwiml = `
-<Response>
-  <Pause length="1"/>
-  <Say voice="alice">${voicemailMessage}</Say>
-  <Record
-    maxLength="60"
-    playBeep="true"
-    trim="trim-silence"
-    action="${actionUrl}"
-    method="POST"
-    recordingStatusCallback="${recordingStatusCallbackUrl}"
-    recordingStatusCallbackMethod="POST"
-  />
-  <Hangup/>
-</Response>
-`.trim();
+  // Use Twilio's VoiceResponse builder for automatic XML escaping
+  const response = new VoiceResponse();
+  response.pause({ length: 1 });
+  response.say({ voice: "alice" }, voicemailMessage);
+  response.record({
+    maxLength: 60,
+    playBeep: true,
+    trim: "trim-silence",
+    action: actionUrl,
+    method: "POST",
+    recordingStatusCallback: recordingStatusCallbackUrl,
+    recordingStatusCallbackMethod: "POST",
+  });
+  response.hangup();
   
-  return voicemailTwiml;
+  return response.toString();
 }
 
 // Helper to generate complete TwiML response with fallback structure

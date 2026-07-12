@@ -3,6 +3,7 @@ import { requireTwilioAuth } from '@/lib/twilio/webhook'
 import { db } from '@/lib/supabase/admin'
 import { checkAllGuards } from '@/lib/ai-call-assistant/config'
 import { createAISession, failAISession } from '@/lib/ai-call-assistant/session'
+import VoiceResponse from 'twilio/lib/twiml/VoiceResponse'
 
 /**
  * AI Assistant POC Start Route (Phase 1A)
@@ -102,21 +103,17 @@ async function handlePOCStart(request: NextRequest, method: string) {
 
     console.log('[AI POC START] fly websocket url:', flyWsUrl)
 
-    // Return TwiML with Media Stream to Fly.io
-    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Connect>
-    <Stream url="${flyWsUrl}">
-      <Parameter name="session_id" value="${session.id}" />
-      <Parameter name="business_id" value="${business.business.id}" />
-      <Parameter name="call_sid" value="${CallSid}" />
-    </Stream>
-  </Connect>
-</Response>`
+    // Return TwiML with Media Stream to Fly.io using VoiceResponse builder
+    const response = new VoiceResponse()
+    const connect = response.connect()
+    const stream = connect.stream({ url: flyWsUrl })
+    stream.parameter({ name: 'session_id', value: session.id })
+    stream.parameter({ name: 'business_id', value: business.business.id })
+    stream.parameter({ name: 'call_sid', value: CallSid })
 
     console.log('[AI POC START] returning TwiML')
 
-    return new NextResponse(twiml, {
+    return new NextResponse(response.toString(), {
       status: 200,
       headers: {
         'Content-Type': 'text/xml',
@@ -144,12 +141,11 @@ export async function POST(request: NextRequest) {
 function generateFallbackTwiML(reason: string): NextResponse {
   console.log('[AI POC] Generating fallback TwiML', { reason })
 
-  const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Redirect>/api/twilio/voice</Redirect>
-</Response>`
+  // Use Twilio's VoiceResponse builder for automatic XML escaping
+  const response = new VoiceResponse()
+  response.redirect('/api/twilio/voice')
 
-  return new NextResponse(twiml, {
+  return new NextResponse(response.toString(), {
     status: 200,
     headers: {
       'Content-Type': 'text/xml',

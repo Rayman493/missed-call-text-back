@@ -5,6 +5,7 @@ import { normalizePhoneNumber } from '@/lib/twilio'
 import { checkAllGuards } from '@/lib/ai-call-assistant/config'
 import { createAISession, failAISession } from '@/lib/ai-call-assistant/session'
 import { getGreeting, detectBusinessCategory, getEffectiveBusinessType } from '@/lib/ai-call-assistant/prompts'
+import VoiceResponse from 'twilio/lib/twiml/VoiceResponse'
 
 /**
  * AI Call Assistant Start Route (Phase 0 - QA Only)
@@ -153,12 +154,11 @@ export async function POST(request: NextRequest) {
 function generateFallbackTwiML(reason: string): NextResponse {
   console.log('[AI CALL ASSISTANT] Generating fallback TwiML', { reason })
 
-  const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Redirect>/api/twilio/voice</Redirect>
-</Response>`
+  // Use Twilio's VoiceResponse builder for automatic XML escaping
+  const response = new VoiceResponse()
+  response.redirect('/api/twilio/voice')
 
-  return new NextResponse(twiml, {
+  return new NextResponse(response.toString(), {
     status: 200,
     headers: {
       'Content-Type': 'text/xml',

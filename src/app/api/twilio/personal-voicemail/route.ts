@@ -4,6 +4,7 @@ import { normalizePhoneNumberForStorage } from '@/lib/supabase/admin';
 import { requireTwilioAuth } from '@/lib/twilio/webhook';
 import { notificationServiceServer } from '@/lib/notifications-server';
 import { formatPhoneNumber } from '@/lib/utils';
+import VoiceResponse from 'twilio/lib/twiml/VoiceResponse';
 
 // POST /api/twilio/personal-voicemail - Handle personal voicemail recording from ignored contacts
 // This is completely separate from the customer system
@@ -102,9 +103,10 @@ export async function POST(request: NextRequest) {
       // Don't fail the webhook if notification fails
     }
     
-    // Return empty TwiML to hang up
-    const twiml = `<Response><Hangup/></Response>`;
-    return new NextResponse(twiml, {
+    // Return empty TwiML to hang up using VoiceResponse builder
+    const response = new VoiceResponse()
+    response.hangup()
+    return new NextResponse(response.toString(), {
       status: 200,
       headers: { "Content-Type": "text/xml" },
     });
