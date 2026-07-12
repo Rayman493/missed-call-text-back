@@ -1102,7 +1102,7 @@ export default function SettingsContent() {
 
               {/* Settings Navigation Tabs */}
               <div className="py-1">
-                <nav ref={settingsTabsNavRef} className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
+                <nav ref={settingsTabsNavRef} className="flex items-center gap-1 overflow-x-auto custom-scrollbar-horizontal">
                   <button
                     ref={(element) => { sectionTabRefs.current.general = element }}
                     onClick={() => handleSectionClick('general')}

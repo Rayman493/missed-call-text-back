@@ -433,3 +433,49 @@ html.light select:-moz-autofill:focus {
 .custom-scrollbar {
   scrollbar-gutter: stable;
 }
+
+/* Horizontal scrollbar variant for tab navigation */
+.custom-scrollbar-horizontal {
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.4) transparent;
+}
+
+/* WebKit browsers (Chrome, Edge, Safari) - horizontal */
+.custom-scrollbar-horizontal::-webkit-scrollbar {
+  height: 6px;
+}
+
+.custom-scrollbar-horizontal::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 4px;
+}
+
+.custom-scrollbar-horizontal::-webkit-scrollbar-thumb {
+  background-color: rgba(100, 116, 139, 0.4);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.custom-scrollbar-horizontal::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(100, 116, 139, 0.6);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+/* Hide scrollbar on mobile/touch devices while keeping functionality */
+@media (hover: none) and (pointer: coarse) {
+  .custom-scrollbar-horizontal {
+    scrollbar-width: none;
+  }
+  
+  .custom-scrollbar-horizontal::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .custom-scrollbar-horizontal {
+    -ms-overflow-style: none;
+  }
+}
