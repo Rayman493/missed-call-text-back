@@ -96,14 +96,14 @@ export default function DashboardEmptyState() {
         {canShowTestSetup && (
           <button
             onClick={handleTestSetup}
-            className="bg-blue-600 text-white py-2.5 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-150 font-medium text-sm"
+            className="bg-blue-600 text-white py-2.5 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium text-sm"
           >
             Test Your Setup
           </button>
         )}
         <button
           onClick={handleViewInstructions}
-          className="bg-slate-800 text-foreground py-2.5 px-4 rounded-lg hover:bg-slate-700 transition-colors duration-150 font-medium text-sm"
+          className="bg-slate-800 text-foreground py-2.5 px-4 rounded-lg hover:bg-slate-700 transition-colors duration-200 font-medium text-sm"
         >
           View Setup Instructions
         </button>

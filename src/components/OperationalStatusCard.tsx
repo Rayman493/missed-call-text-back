@@ -142,7 +142,7 @@ export default function OperationalStatusCard({
   }
 
   return (
-    <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+    <div className="bg-card border border-border rounded-xl p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
         {healthStatus === 'healthy' ? (

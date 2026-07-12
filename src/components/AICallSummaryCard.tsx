@@ -196,7 +196,7 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
   const isNoIntakeOutcome = aiCallRecord.outcome === 'early_hangup' || aiCallRecord.outcome === 'no_speech'
 
   return (
-    <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+    <div className="bg-card border border-border rounded-xl p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-2.5">
           <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">

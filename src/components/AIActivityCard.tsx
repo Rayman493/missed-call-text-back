@@ -129,7 +129,7 @@ export default function AIActivityCard({ business }: AIActivityCardProps) {
   ]
 
   return (
-    <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+    <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
       <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-4">AI Activity</h3>
       <div className="space-y-3">
         {stats.map((stat, index) => {

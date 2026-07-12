@@ -518,7 +518,7 @@ export default function SetupStatusCard({
   // Render collapsed state (after setup is complete)
   if (!isExpanded && (cardState === 'setup-complete' || cardState === 'healthy')) {
     return (
-      <div className="bg-card text-card-foreground rounded-2xl shadow-xl border border-border/50 ring-1 ring-border/50">
+      <div className="bg-card text-card-foreground rounded-2xl shadow-xl border border-border/50 ring-1 ring-border/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
         <div className="flex items-center justify-between gap-4 p-4 sm:p-5">
           <div className="flex items-center gap-3 flex-1">
             <div className="flex-shrink-0">

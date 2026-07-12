@@ -96,7 +96,7 @@ export default function ReplyFlowPerformanceCard() {
   }
 
   return (
-    <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-5 sm:p-6">
+    <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-700/50 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 p-5 sm:p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-base sm:text-lg font-semibold text-foreground">
           ReplyFlow Performance

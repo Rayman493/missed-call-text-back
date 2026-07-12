@@ -89,7 +89,7 @@ export default function EmptyStateGuidance({
   const content = getContent()
 
   return (
-    <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-border/50 rounded-2xl p-6 sm:p-8">
+    <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-border/50 rounded-2xl p-6 sm:p-8 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
       <div className="text-center mb-6">
         <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
           <Phone className="w-8 h-8 text-primary" />

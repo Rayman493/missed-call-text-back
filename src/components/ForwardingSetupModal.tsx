@@ -283,7 +283,7 @@ export default function ForwardingSetupModal() {
           {/* Forwarding Instructions - dedicated dial code card */}
           {selectedCarrier && (
             <div 
-              className={`space-y-5 transition-all duration-300 ease-out ${
+              className={`space-y-5 transition-all duration-200 ease-out ${
                 isExpanded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'
               }`}
             >

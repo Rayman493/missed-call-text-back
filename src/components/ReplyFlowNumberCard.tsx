@@ -29,7 +29,7 @@ export default function ReplyFlowNumberCard({ business, onTestNumber, testSmsLoa
 
   if (!hasNumber) {
     return (
-      <div className="bg-card rounded-xl shadow-sm border border-border p-6 hover:border-border transition">
+      <div className="bg-card rounded-xl shadow-sm border border-border p-6 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
         <div className="flex items-start">
           <div className="flex-shrink-0">
             <span className="text-2xl">⏳</span>
@@ -48,7 +48,7 @@ export default function ReplyFlowNumberCard({ business, onTestNumber, testSmsLoa
   }
 
   return (
-    <div className="bg-card rounded-xl shadow-sm border border-border p-6 hover:border-border transition">
+    <div className="bg-card rounded-xl shadow-sm border border-border p-6 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-lg font-semibold text-foreground mb-1">

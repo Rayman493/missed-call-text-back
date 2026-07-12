@@ -49,7 +49,7 @@ export default function CallForwardingCard({ business }: CallForwardingCardProps
 
   return (
     <>
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:border-gray-300 dark:hover:border-gray-600 transition">
+      <div className="bg-white dark:bg-card rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             Connect Your Business Number

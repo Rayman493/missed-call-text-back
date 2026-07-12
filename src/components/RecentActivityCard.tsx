@@ -159,7 +159,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
   }
 
   return (
-    <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-3 sm:p-4 shadow-sm hover:shadow-md transition-all duration-200">
+    <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-3 sm:p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
       <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-3">Activity Timeline</h3>
 
       {activities.length === 0 ? (

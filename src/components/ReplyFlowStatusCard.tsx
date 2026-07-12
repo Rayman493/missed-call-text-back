@@ -77,7 +77,7 @@ export default function ReplyFlowStatusCard({ business, hasLeads = false, hasCon
   const statusLines = getStatusLines(onboardingState.state)
 
   return (
-    <div className="bg-card rounded-xl border border-border p-4 shadow-sm">
+    <div className="bg-card rounded-xl border border-border p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-foreground">ReplyFlow Status</h3>
         <div className="flex items-center gap-1.5">

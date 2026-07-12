@@ -281,7 +281,7 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
   }, {} as Record<string, AttentionItem[]>)
 
   return (
-    <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-3 sm:p-4 shadow-sm hover:shadow-md transition-all duration-200">
+    <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-3 sm:p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-base font-semibold text-slate-900 dark:text-foreground">Needs Attention</h3>
         {totalCount > 0 && (

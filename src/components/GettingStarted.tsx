@@ -964,7 +964,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   const progressPct = totalSteps === 0 ? 0 : Math.round((doneSteps / totalSteps) * 100)
 
   return (
-    <div className={`rounded-2xl border-2 ${isOnboardingComplete && !isExpanded ? 'p-4 sm:p-5' : 'p-4 sm:p-6'} ${!complete ? 'border-border bg-card shadow-sm hover:shadow-md' : 'border-green-200/60 dark:border-green-800/60 bg-green-50/30 dark:bg-green-900/20'} transition-all duration-300`}>
+    <div className={`rounded-2xl border-2 ${isOnboardingComplete && !isExpanded ? 'p-4 sm:p-5' : 'p-4 sm:p-6'} ${!complete ? 'border-border bg-card shadow-sm hover:shadow-md hover:-translate-y-0.5' : 'border-green-200/60 dark:border-green-800/60 bg-green-50/30 dark:bg-green-900/20'} transition-all duration-200`}>
       {/* Header with title and status */}
       <div className="flex items-start justify-between mb-3">
         <div className="min-w-0 flex-1">
@@ -981,7 +981,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                 aria-label="Toggle setup checklist"
               >
                 <svg
-                  className={`w-4 h-4 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+                  className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"

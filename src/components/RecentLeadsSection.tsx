@@ -367,7 +367,7 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
                   return (
                     <div key={lead.id} className="block">
                       <Link href={`/dashboard/leads/${lead.id}`}>
-                        <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg p-2 sm:p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200 cursor-pointer">
+                        <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg p-2 sm:p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-200 cursor-pointer">
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1.5 mb-0.5">

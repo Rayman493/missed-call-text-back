@@ -360,7 +360,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
               className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 transition-colors"
             >
               <svg
-                className="w-4 h-4 transition-transform duration-300"
+                className="w-4 h-4 transition-transform duration-200"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -376,7 +376,7 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
 
   // Full expanded state (for issues/warnings or when manually expanded)
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 transition-all duration-300 mb-8 ${healthy ? 'border-green-200 dark:border-green-800' : ''}`}>
+    <div className={`bg-white dark:bg-card rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 mb-8 ${healthy ? 'border-green-200 dark:border-green-800' : ''}`}>
       <div className={`${healthy ? 'p-3' : isMobile ? 'p-4 sm:p-4' : 'p-4'}`}>
         <div className={`flex items-center ${isMobile ? 'flex-col sm:flex-row sm:items-center gap-4' : 'justify-between'}`}>
           <div className={`flex items-center ${isMobile ? 'w-full' : 'gap-3'}`}>

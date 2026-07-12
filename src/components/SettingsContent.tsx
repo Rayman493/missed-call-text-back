@@ -1581,7 +1581,7 @@ export default function SettingsContent() {
                   </div>
 
                   {/* Out of Office Mode */}
-                  <div className={`overflow-hidden rounded-xl border transition-all duration-300 ${
+                  <div className={`overflow-hidden rounded-xl border transition-all duration-200 ${
                     formBusiness.out_of_office_enabled
                       ? 'border-blue-200/70 bg-blue-50/50 shadow-sm dark:border-blue-900/40 dark:bg-blue-950/10'
                       : 'border-slate-200/60 bg-slate-50/80 dark:border-slate-700/40 dark:bg-slate-800/40'

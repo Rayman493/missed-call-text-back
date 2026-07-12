@@ -34,11 +34,11 @@ export default function StatCard({
     rounded-2xl
     p-3 sm:p-4 md:p-5
     h-full
-    transition-all duration-300
-    hover:-translate-y-[2px]
+    transition-all duration-200
+    hover:-translate-y-0.5
     hover:border-blue-400/30
     hover:bg-slate-900/75
-    hover:shadow-[0_1px_0_rgba(255,255,255,0.07),0_26px_76px_rgba(37,99,235,0.12)]
+    hover:shadow-md
   `
 
   // Interactive hover states

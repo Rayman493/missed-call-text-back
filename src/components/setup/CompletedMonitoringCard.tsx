@@ -13,7 +13,7 @@ export default function CompletedMonitoringCard({
   lastActivity 
 }: CompletedMonitoringCardProps) {
   return (
-    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 rounded-xl p-4 sm:p-5">
+    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
       {/* Header with live status */}
       <div className="flex items-center gap-3 mb-3">
         {/* Live indicator */}

@@ -30,7 +30,7 @@ export default function FAQAccordion({ items }: FAQAccordionProps) {
       {items.map((item, index) => (
         <div
           key={index}
-          className="border border-border rounded-lg overflow-hidden bg-card"
+          className="border border-border rounded-lg overflow-hidden bg-card shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
         >
           <button
             onClick={() => toggleItem(index)}
@@ -66,7 +66,7 @@ export default function FAQAccordion({ items }: FAQAccordionProps) {
             id={`faq-answer-${index}`}
             role="region"
             aria-labelledby={`faq-question-${index}`}
-            className={`overflow-hidden transition-all duration-300 ease-in-out ${
+            className={`overflow-hidden transition-all duration-200 ease-in-out ${
               openIndex === index ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
             }`}
           >
