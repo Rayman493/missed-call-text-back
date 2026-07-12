@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Play, Pause, Loader2, AlertCircle } from 'lucide-react'
+import { Play, Pause, Loader2, AlertCircle, VolumeX, Volume1, Volume2 } from 'lucide-react'
 
 interface PersonalVoicemailPlayerProps {
   voicemailId: string
@@ -34,10 +34,78 @@ export function PersonalVoicemailPlayer({
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(storedDuration)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [volume, setVolume] = useState(1)
+  const [isMuted, setIsMuted] = useState(false)
+  const [previousVolume, setPreviousVolume] = useState(1)
+  const [isVolumePopoverOpen, setIsVolumePopoverOpen] = useState(false)
   
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const markReadTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const volumeButtonRef = useRef<HTMLButtonElement | null>(null)
+  const volumePopoverRef = useRef<HTMLDivElement | null>(null)
   const isCurrentPlayer = globalPlayingId === voicemailId
+
+  // Load volume from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedVolume = localStorage.getItem('replyflow-personal-voicemail-volume')
+      if (savedVolume !== null) {
+        const parsedVolume = parseFloat(savedVolume)
+        if (!isNaN(parsedVolume) && parsedVolume >= 0 && parsedVolume <= 1) {
+          setVolume(parsedVolume)
+          setPreviousVolume(parsedVolume)
+        }
+      }
+    } catch (error) {
+      console.error('[PersonalVoicemailPlayer] Error loading volume from localStorage:', error)
+    }
+  }, [])
+
+  // Save volume to localStorage when it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('replyflow-personal-voicemail-volume', volume.toString())
+    } catch (error) {
+      console.error('[PersonalVoicemailPlayer] Error saving volume to localStorage:', error)
+    }
+  }, [volume])
+
+  // Apply volume to audio element
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = isMuted ? 0 : volume
+    }
+  }, [volume, isMuted])
+
+  // Close volume popover on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        volumePopoverRef.current &&
+        !volumePopoverRef.current.contains(event.target as Node) &&
+        volumeButtonRef.current &&
+        !volumeButtonRef.current.contains(event.target as Node)
+      ) {
+        setIsVolumePopoverOpen(false)
+      }
+    }
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isVolumePopoverOpen) {
+        setIsVolumePopoverOpen(false)
+      }
+    }
+
+    if (isVolumePopoverOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      document.addEventListener('keydown', handleEscape)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [isVolumePopoverOpen])
 
   // Format duration helper
   const formatDuration = (seconds: number) => {
@@ -185,6 +253,42 @@ export function PersonalVoicemailPlayer({
     }
   }, [play])
 
+  // Toggle mute/unmute
+  const toggleMute = useCallback(() => {
+    if (isMuted) {
+      // Unmute: restore previous volume
+      setIsMuted(false)
+      setVolume(previousVolume > 0 ? previousVolume : 1)
+    } else {
+      // Mute: store current volume and set to 0
+      setPreviousVolume(volume)
+      setIsMuted(true)
+    }
+  }, [isMuted, volume, previousVolume])
+
+  // Handle volume change
+  const handleVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = parseFloat(e.target.value)
+    setVolume(newVolume)
+    if (newVolume > 0) {
+      setIsMuted(false)
+      setPreviousVolume(newVolume)
+    } else {
+      setIsMuted(true)
+    }
+  }, [])
+
+  // Get volume icon based on state
+  const getVolumeIcon = () => {
+    if (isMuted || volume === 0) {
+      return <VolumeX className="w-4 h-4" />
+    } else if (volume < 0.5) {
+      return <Volume1 className="w-4 h-4" />
+    } else {
+      return <Volume2 className="w-4 h-4" />
+    }
+  }
+
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0
 
   return (
@@ -238,6 +342,43 @@ export function PersonalVoicemailPlayer({
           {/* Time Display */}
           <div className="flex-shrink-0 text-xs text-muted-foreground font-mono">
             {formatDuration(currentTime)} / {formatDuration(duration)}
+          </div>
+
+          {/* Volume Control */}
+          <div className="relative flex-shrink-0">
+            <button
+              ref={volumeButtonRef}
+              onClick={() => setIsVolumePopoverOpen(!isVolumePopoverOpen)}
+              className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors duration-150 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              aria-label={isMuted ? 'Unmute voicemail' : 'Mute voicemail'}
+            >
+              {getVolumeIcon()}
+            </button>
+
+            {/* Volume Popover */}
+            {isVolumePopoverOpen && (
+              <div
+                ref={volumePopoverRef}
+                className="absolute top-full right-0 mt-2 w-32 bg-popover border border-border rounded-lg shadow-lg p-3 z-50"
+                role="dialog"
+                aria-label="Volume control"
+              >
+                <div className="text-xs font-medium text-foreground mb-2">Volume</div>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={isMuted ? 0 : volume}
+                  onChange={handleVolumeChange}
+                  className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  style={{
+                    background: `linear-gradient(to right, #2563eb ${(isMuted ? 0 : volume) * 100}%, #e2e8f0 ${(isMuted ? 0 : volume) * 100}%)`,
+                  }}
+                  aria-label="Voicemail volume"
+                />
+              </div>
+            )}
           </div>
         </>
       )}
