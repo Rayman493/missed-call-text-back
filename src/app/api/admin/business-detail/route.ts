@@ -72,6 +72,7 @@ export async function GET(request: NextRequest) {
       .select('id, phone_number, ai_call_status, ai_call_sid, ai_call_duration, ai_call_completed_at, ai_call_error, created_at')
       .eq('business_id', businessId)
       .not('ai_call_status', 'is', null)
+      .is('deleted_at', null)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
@@ -83,6 +84,7 @@ export async function GET(request: NextRequest) {
       .select('id', { count: 'exact', head: true })
       .eq('business_id', businessId)
       .not('ai_call_status', 'in', '(completed,pending)')
+      .is('deleted_at', null)
       .gte('created_at', twentyFourHoursAgo)
 
     // Fetch latest outbound SMS
@@ -91,6 +93,7 @@ export async function GET(request: NextRequest) {
       .select('id, direction, status, twilio_message_sid, created_at')
       .eq('business_id', businessId)
       .eq('direction', 'outbound')
+      .is('deleted_at', null)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
@@ -101,6 +104,7 @@ export async function GET(request: NextRequest) {
       .select('id', { count: 'exact', head: true })
       .eq('business_id', businessId)
       .in('status', ['failed', 'undelivered'])
+      .is('deleted_at', null)
       .gte('created_at', twentyFourHoursAgo)
 
     // Fetch latest personal voicemail
@@ -108,6 +112,7 @@ export async function GET(request: NextRequest) {
       .from('personal_voicemails')
       .select('id, recording_sid, transcription_status, recording_status, processing_error, duration_seconds, created_at')
       .eq('business_id', businessId)
+      .is('deleted_at', null)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
@@ -119,15 +124,23 @@ export async function GET(request: NextRequest) {
       .eq('business_id', businessId)
       .is('transcription_text', null)
       .is('processing_error', null)
+      .is('deleted_at', null)
       .lt('created_at', twentyFourHoursAgo)
 
-    // Fetch recent events (last 10)
-    const { data: recentEvents } = await supabaseAdmin
-      .from('business_events')
-      .select('*')
-      .eq('business_id', businessId)
-      .order('created_at', { ascending: false })
-      .limit(10)
+    // Fetch recent events (last 10) - note: business_events may not have deleted_at
+    let recentEvents = []
+    try {
+      const { data: events } = await supabaseAdmin
+        .from('business_events')
+        .select('*')
+        .eq('business_id', businessId)
+        .order('created_at', { ascending: false })
+        .limit(10)
+      recentEvents = events || []
+    } catch (error) {
+      console.log('[ADMIN BUSINESS DETAIL] business_events table may not exist:', error)
+      recentEvents = []
+    }
 
     const detailData = {
       business: {

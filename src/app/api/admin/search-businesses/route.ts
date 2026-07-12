@@ -114,7 +114,8 @@ export async function GET(request: NextRequest) {
       let baseQuery = supabaseAdmin
         .from('businesses')
         .select('*')
-        .or(`name.ilike.%${query}%,business_phone_number.ilike.%${query}%,twilio_phone_number.ilike.%${query}%`)
+        .or(`business_name.ilike.%${query}%,business_phone.ilike.%${query}%,twilio_phone_number.ilike.%${query}%`)
+        .is('deleted_at', null)
 
       // Apply filter if specified
       if (filter !== 'all') {

@@ -90,6 +90,10 @@ export default function AdminSupportPage() {
   const [businessDetail, setBusinessDetail] = useState<any>(null)
   const [businessDetailLoading, setBusinessDetailLoading] = useState(false)
 
+  // Recent businesses state
+  const [recentBusinesses, setRecentBusinesses] = useState<any[]>([])
+  const [recentBusinessesLoading, setRecentBusinessesLoading] = useState(true)
+
   useEffect(() => {
     const checkAdmin = async () => {
       if (!user?.id) return
@@ -136,6 +140,27 @@ export default function AdminSupportPage() {
     }
 
     fetchMetrics()
+  }, [isAdmin])
+
+  useEffect(() => {
+    const fetchRecentBusinesses = async () => {
+      if (!isAdmin) return
+
+      try {
+        const response = await fetch('/api/admin/recent-businesses')
+        const data = await response.json()
+
+        if (data.success) {
+          setRecentBusinesses(data.businesses || [])
+        }
+      } catch (error) {
+        console.error('[ADMIN SUPPORT PAGE] Failed to fetch recent businesses:', error)
+      } finally {
+        setRecentBusinessesLoading(false)
+      }
+    }
+
+    fetchRecentBusinesses()
   }, [isAdmin])
 
   const handleSearch = async () => {
@@ -796,7 +821,7 @@ export default function AdminSupportPage() {
               {searchResults.length > 0 && (
                 <div className="mt-4 space-y-2">
                   <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Results ({searchResults.length})
+                    Search Results ({searchResults.length})
                   </h3>
                   {searchResults.map((business) => {
                     const issues = getBusinessIssueIndicator(business)
@@ -838,6 +863,67 @@ export default function AdminSupportPage() {
                 </div>
               )}
             </div>
+
+            {/* Recent Businesses Section */}
+            {searchResults.length === 0 && (
+              <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl p-6 shadow-sm">
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-4">
+                  Recent Businesses
+                </h2>
+                {recentBusinessesLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="w-6 h-6 border-4 border-blue-600 border-t-transparent border-solid animate-spin rounded-full"></div>
+                  </div>
+                ) : recentBusinesses.length > 0 ? (
+                  <div className="space-y-2">
+                    {recentBusinesses.map((business) => {
+                      const issues = getBusinessIssueIndicator(business)
+                      return (
+                        <div
+                          key={business.id}
+                          onClick={() => handleSelectBusiness(business)}
+                          className="p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium text-slate-900 dark:text-foreground truncate">{business.business_name}</p>
+                                {issues.length > 0 && (
+                                  <span className="flex-shrink-0 px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-xs font-medium rounded-full">
+                                    {issues.length} issue{issues.length > 1 ? 's' : ''}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-sm text-slate-600 dark:text-slate-400">{business.business_phone}</p>
+                              <p className="text-xs text-slate-500 dark:text-slate-500">
+                                Created {new Date(business.created_at).toLocaleDateString()}
+                              </p>
+                              {issues.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {issues.map((issue, idx) => (
+                                    <span key={idx} className="text-xs text-red-600 dark:text-red-400">
+                                      • {issue}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-right ml-4">
+                              <p className="text-xs text-slate-500 dark:text-slate-500 capitalize">{business.subscription_status}</p>
+                              <p className="text-xs text-slate-500 dark:text-slate-500 capitalize">{business.onboarding_status}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                    No businesses found
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Action Result */}
             {actionResult && (

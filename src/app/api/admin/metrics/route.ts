@@ -55,36 +55,36 @@ export async function GET(request: NextRequest) {
       billingIssuesResult,
       personalVoicemailFailuresResult
     ] = await Promise.all([
-      // Active Businesses
+      // Active Businesses (deleted_at IS NULL means active)
       supabaseAdmin
         .from('businesses')
         .select('id', { count: 'exact', head: true })
         .in('subscription_status', ['active', 'trialing'])
-        .not('deleted_at', 'is', null),
+        .is('deleted_at', null),
 
       // Trials Expiring in 7 Days
       supabaseAdmin
         .from('businesses')
-        .select('id, name, trial_end_date', { count: 'exact' })
+        .select('id, business_name, trial_end_date', { count: 'exact' })
         .eq('subscription_status', 'trialing')
-        .not('deleted_at', 'is', null)
+        .is('deleted_at', null)
         .lte('trial_end_date', sevenDaysFromNow.toISOString())
         .gte('trial_end_date', now.toISOString()),
 
       // Onboarding Issues (incomplete after 24 hours)
       supabaseAdmin
         .from('businesses')
-        .select('id, name, created_at, onboarding_status', { count: 'exact' })
+        .select('id, business_name, created_at, onboarding_status', { count: 'exact' })
         .not('onboarding_status', 'in', '(completed,forwarding_verified)')
-        .not('deleted_at', 'is', null)
+        .is('deleted_at', null)
         .lt('created_at', twentyFourHoursAgo.toISOString()),
 
       // Provisioning Failures
       supabaseAdmin
         .from('businesses')
-        .select('id, name, provisioning_status', { count: 'exact' })
+        .select('id, business_name, provisioning_status', { count: 'exact' })
         .eq('provisioning_status', 'failed')
-        .not('deleted_at', 'is', null),
+        .is('deleted_at', null),
 
       // AI Call Failures in 24 Hours
       supabaseAdmin
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
         .select('id, phone_number, created_at', { count: 'exact' })
         .not('ai_call_status', 'in', '(completed,pending)')
         .gte('created_at', twentyFourHoursAgo.toISOString())
-        .not('deleted_at', 'is', null),
+        .is('deleted_at', null),
 
       // SMS Failures in 24 Hours
       supabaseAdmin
@@ -104,9 +104,9 @@ export async function GET(request: NextRequest) {
       // Billing Issues (past_due or incomplete setup)
       supabaseAdmin
         .from('businesses')
-        .select('id, name, subscription_status, trial_end_date', { count: 'exact' })
+        .select('id, business_name, subscription_status, trial_end_date', { count: 'exact' })
         .or('subscription_status.eq.past_due,and(subscription_status.eq.trialing,trial_end_date.lt.' + threeDaysFromNow.toISOString() + ')')
-        .not('deleted_at', 'is', null),
+        .is('deleted_at', null),
 
       // Personal Voicemail Failures (stuck processing)
       supabaseAdmin
