@@ -109,9 +109,10 @@ export async function POST(request: NextRequest) {
       // Don't fail the webhook if notification fails
     }
     
-    // Return empty TwiML to hang up using VoiceResponse builder
-    const response = new VoiceResponse()
-    response.hangup()
+    // Return TwiML with confirmation message and hangup
+    const response = new VoiceResponse();
+    response.say({ voice: "alice" }, "Thank you. Your message has been saved.");
+    response.hangup();
     return new NextResponse(response.toString(), {
       status: 200,
       headers: { "Content-Type": "text/xml" },

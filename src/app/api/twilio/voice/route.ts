@@ -176,9 +176,11 @@ function generatePersonalVoicemailResponse(businessId: string, callerPhone: stri
   response.pause({ length: 1 });
   response.say({ voice: "alice" }, voicemailMessage);
   response.record({
-    maxLength: 60,
+    maxLength: 120,
+    timeout: 7,
     playBeep: true,
     trim: "trim-silence",
+    finishOnKey: "#",
     action: actionUrl,
     method: "POST",
     recordingStatusCallback: recordingStatusCallbackUrl,
