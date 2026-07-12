@@ -422,13 +422,13 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
             <div className="text-sm sm:text-base font-medium text-slate-600 dark:text-slate-400">
               Recovery Rate
             </div>
-            <span className="inline-flex items-center cursor-help" title="Percentage of customers that replied to your messages">
+            <span className="inline-flex items-center cursor-help" title="Percentage of captured customers who replied to your messages">
               <HelpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-400 transition-colors" />
             </span>
           </div>
           {metrics.recoveryRate === 0 && (
             <div className="text-xs sm:text-sm text-slate-400 dark:text-slate-500">
-              No recovered customers yet
+              ReplyFlow will start tracking recovery as customers reply
             </div>
           )}
         </div>
@@ -452,13 +452,13 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
             <div className="text-sm sm:text-base font-medium text-slate-600 dark:text-slate-400">
               Captured Customers
             </div>
-            <span className="inline-flex items-center cursor-help" title="Customers captured by ReplyFlow from missed calls and customer inquiries">
+            <span className="inline-flex items-center cursor-help" title="Missed calls and customer inquiries captured by ReplyFlow">
               <HelpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-400 transition-colors" />
             </span>
           </div>
           {metrics.missedCallsCaptured === 0 && (
             <div className="text-xs sm:text-sm text-slate-400 dark:text-slate-500">
-              No captured customers yet
+              ReplyFlow will capture missed calls when forwarding is active
             </div>
           )}
         </div>
@@ -482,13 +482,13 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
             <div className="text-sm sm:text-base font-medium text-slate-600 dark:text-slate-400">
               Messages Sent
             </div>
-            <span className="inline-flex items-center cursor-help" title="Automated and manual messages sent to customers">
+            <span className="inline-flex items-center cursor-help" title="AI and manual messages sent to customers">
               <HelpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-400 transition-colors" />
             </span>
           </div>
           {metrics.messagesSent === 0 && (
             <div className="text-xs sm:text-sm text-slate-400 dark:text-slate-500">
-              No messages sent yet
+              Messages will be sent automatically when customers are captured
             </div>
           )}
         </div>
@@ -512,13 +512,13 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
             <div className="text-sm sm:text-base font-medium text-slate-600 dark:text-slate-400">
               Customer Replies
             </div>
-            <span className="inline-flex items-center cursor-help" title="Inbound messages received from leads">
+            <span className="inline-flex items-center cursor-help" title="Customers who replied to your messages">
               <HelpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-400 transition-colors" />
             </span>
           </div>
           {metrics.customerReplies === 0 && (
             <div className="text-xs sm:text-sm text-slate-400 dark:text-slate-500">
-              No customer replies yet
+              Customer replies will appear here as conversations continue
             </div>
           )}
         </div>

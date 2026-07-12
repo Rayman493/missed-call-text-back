@@ -367,9 +367,9 @@ export default function SetupStatusCard({
                     )}
                   </div>
                   <div>
-                    <span className="text-white text-sm font-medium">Dedicated Number</span>
+                    <span className="text-white text-sm font-medium">ReplyFlow Number</span>
                     <span className={`text-xs block ${hasNumber ? 'text-green-200' : isProvisioning ? 'text-yellow-200' : 'text-gray-300'}`}>
-                      {hasNumber ? 'Ready' : isProvisioning ? 'Provisioning' : 'Pending'}
+                      {hasNumber ? 'Connected' : isProvisioning ? 'Connecting' : 'Pending'}
                     </span>
                   </div>
                 </div>
@@ -392,7 +392,7 @@ export default function SetupStatusCard({
                   <div>
                     <span className="text-white text-sm font-medium">Call Forwarding</span>
                     <span className={`text-xs block ${forwardingActuallyVerified ? 'text-green-200' : 'text-gray-300'}`}>
-                      {forwardingActuallyVerified ? 'Verified' : 'Configure'}
+                      {forwardingActuallyVerified ? 'Active' : 'Set Up'}
                     </span>
                   </div>
                 </div>
@@ -422,9 +422,9 @@ export default function SetupStatusCard({
                     )}
                   </div>
                   <div>
-                    <span className="text-white text-sm font-medium">Verify Test Call</span>
+                    <span className="text-white text-sm font-medium">Test Your Setup</span>
                     <span className={`text-xs block ${hasCompletedTestCall ? 'text-green-200' : 'text-gray-300'}`}>
-                      {hasCompletedTestCall ? 'Verified' : 'Pending'}
+                      {hasCompletedTestCall ? 'Complete' : 'Not Started'}
                     </span>
                   </div>
                 </div>
@@ -655,7 +655,7 @@ export default function SetupStatusCard({
                   </div>
                 )}
                 <span className="text-foreground text-sm font-medium flex-1 text-left">
-                  {business?.forwarding_verified === true ? 'Step 2 — Call forwarding configured' : 'Set up forwarding'}
+                  {business?.forwarding_verified === true ? 'Step 2 — Call forwarding active' : 'Set up forwarding'}
                 </span>
                 {cardState === 'needs-forwarding' && business?.forwarding_verified !== true && (
                   <span className="inline-flex items-center px-2 py-0.5 bg-primary/20 text-primary text-xs font-semibold rounded-full border border-primary/30 flex-shrink-0">
@@ -668,7 +668,7 @@ export default function SetupStatusCard({
                 <div className="p-3 sm:p-4 pt-0 border-t border-border/50">
                   <div className="space-y-2">
                     <p className="text-muted-foreground text-sm">
-                      Forward missed calls to your ReplyFlow number.
+                      Forward missed calls to your ReplyFlow number so we can answer them.
                     </p>
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between py-1">
@@ -737,7 +737,7 @@ export default function SetupStatusCard({
                     ? 'text-foreground text-sm font-semibold'
                     : 'text-foreground text-sm font-medium'
                 }`}>
-                  {hasCompletedTestCall ? 'Step 3 — Test call completed' : cardState === 'needs-verification' ? 'Test Your Setup' : 'Step 3 — Test call'}
+                  {hasCompletedTestCall ? 'Step 3 — Setup verified' : cardState === 'needs-verification' ? 'Test Your Setup' : 'Step 3 — Verify setup'}
                 </span>
                 {cardState === 'needs-verification' && !hasCompletedTestCall && (
                   <span className="inline-flex items-center px-2 py-0.5 bg-muted/60 text-muted-foreground text-xs font-medium rounded-md border border-border/50 flex-shrink-0">

@@ -2177,7 +2177,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <div className="transition-all duration-200">
               {leadJobs.length === 0 ? (
                 <div className="text-center py-2 sm:py-4">
-                  <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">No active jobs yet.</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">No jobs scheduled for this customer yet.</p>
                   <div className="flex gap-2 justify-center">
                     <button
                       onClick={handleCreateJobClick}
@@ -2186,7 +2186,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                       </svg>
-                      <span className="hidden sm:inline">Create Job</span>
+                      <span className="hidden sm:inline">Add Job</span>
                       <span className="sm:hidden">Add</span>
                     </button>
                     <button
@@ -2196,7 +2196,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
-                      <span className="hidden sm:inline">Schedule</span>
+                      <span className="hidden sm:inline">Schedule Appointment</span>
                       <span className="sm:hidden">Appt</span>
                     </button>
                   </div>
@@ -2246,7 +2246,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <div className="transition-all duration-200">
               {paymentRequests.length === 0 ? (
                 <div className="text-center py-2 sm:py-4">
-                  <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">No payment requests yet.</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">You haven't requested payment from this customer yet.</p>
                   <button
                     onClick={() => setShowPaymentModal(true)}
                     disabled={!business || getAvailableProviders(business).length === 0}
@@ -2274,7 +2274,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
                           : 'bg-muted text-muted-foreground'
                       }`}>
-                        {pr.status}
+                        {pr.status === 'paid' ? 'Paid' : pr.status === 'pending' ? 'Awaiting Payment' : pr.status}
                       </span>
                     </div>
                   ))}
@@ -3419,13 +3419,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20'
               }`}>
                 {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
-                  ? 'AI Complete'
+                  ? 'AI Answered'
                   : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
-                    ? 'Voicemail Complete'
-                    : 'Intake Incomplete'}
+                    ? 'Voicemail Saved'
+                    : 'Waiting for Call'}
               </span>
               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-200 ${leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50'}`}>
-                {leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'Replied' : 'No Reply'}
+                {leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'Customer Replied' : 'Awaiting Reply'}
               </span>
               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-200 ${
                 followUpJobs && followUpJobs.length > 0
@@ -3440,12 +3440,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               }`}>
                 {followUpJobs && followUpJobs.length > 0
                   ? followUpJobs.some((job: any) => job.status === 'active' || job.status === 'scheduled')
-                    ? 'Follow-Ups Active'
+                    ? 'Follow-Up Scheduled'
                     : followUpJobs.some((job: any) => job.status === 'completed')
-                      ? 'Follow-Ups Complete'
-                      : 'Follow-Ups Paused'
+                      ? 'Follow-Up Sent'
+                      : 'Follow-Up Paused'
                   : followUpSettings?.enabled
-                    ? 'Follow-Ups Configured'
+                    ? 'Follow-Ups Ready'
                     : 'Follow-Ups Off'}
               </span>
             </div>

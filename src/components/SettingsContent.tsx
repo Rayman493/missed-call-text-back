@@ -407,17 +407,17 @@ export default function SettingsContent() {
 
       // Update local state
       setIgnoredContacts(prev => prev.filter(contact => contact.id !== contactId))
-      showToast('Contact removed from Personal Contacts list', 'success')
+      showToast('Contact removed successfully', 'success')
     } catch (error) {
       console.error('Error removing personal contact:', error)
-      showToast('Failed to remove personal contact', 'error')
+      showToast('Could not remove contact. Please try again.', 'error')
     }
   }
 
   // Add ignored contact
   const handleAddIgnoredContact = async () => {
     if (!phoneNumber.trim()) {
-      showToast('Phone number is required', 'error')
+      showToast('Please enter a phone number', 'error')
       return
     }
 
@@ -445,7 +445,7 @@ export default function SettingsContent() {
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Failed to add personal contact')
+        throw new Error(error.error || 'Could not add contact')
       }
 
       // Update local state
@@ -457,10 +457,10 @@ export default function SettingsContent() {
       setLabel('')
       setShowAddModal(false)
       
-      showToast('Contact added', 'success')
+      showToast('Contact added successfully', 'success')
     } catch (error) {
       console.error('Error adding personal contact:', error)
-      showToast(error instanceof Error ? error.message : 'Failed to add personal contact', 'error')
+      showToast(error instanceof Error ? error.message : 'Could not add contact. Please try again.', 'error')
     } finally {
       setIsAdding(false)
     }
@@ -500,7 +500,7 @@ export default function SettingsContent() {
       }
 
       // Success
-      showToast('Password updated successfully', 'success')
+      showToast('Password updated', 'success')
       setShowChangePasswordModal(false)
       setNewPassword('')
       setConfirmNewPassword('')
@@ -1239,8 +1239,8 @@ export default function SettingsContent() {
                         <div className="space-y-2">
                           <p className="text-xs text-slate-500 dark:text-slate-400">
                             {business?.forwarding_verified
-                              ? 'Phone forwarding is verified.'
-                              : 'Changing your phone number requires re-verifying forwarding.'}
+                              ? 'Call forwarding is active and working.'
+                              : 'Changing your phone number will require re-activating call forwarding.'}
                           </p>
                           <details className="group rounded-md border border-slate-200/60 dark:border-slate-700/50 bg-slate-50/70 dark:bg-slate-800/30 px-3 py-2">
                             <summary className="cursor-pointer list-none text-xs font-medium text-slate-700 dark:text-slate-300">
@@ -1248,8 +1248,8 @@ export default function SettingsContent() {
                               <span className="hidden group-open:inline">▾ Number guidance</span>
                             </summary>
                             <div className="mt-2 space-y-1.5 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                              <p>A dedicated business number gives the cleanest experience.</p>
-                              <p>Personal business phones are supported. Use Ignored Contacts to keep personal callers separate from your customer workflow. Their voicemails will be saved separately in Personal Voicemail.</p>
+                              <p>A dedicated business number works best for ReplyFlow.</p>
+                              <p>Personal phones are supported too. Use Ignored Contacts to keep personal calls separate from customer calls. Personal voicemails are saved separately.</p>
                             </div>
                           </details>
                         </div>
@@ -1289,7 +1289,7 @@ export default function SettingsContent() {
                 <div className="flex items-center justify-between mb-2">
                   <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground">Text Message Settings</h2>
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">Customize missed-call replies.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">Customize automatic replies to missed calls.</p>
                 <div className="space-y-3">
                   <div>
                     <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
@@ -1865,7 +1865,7 @@ export default function SettingsContent() {
                         )}
                       </div>
                       <p className="text-xs text-slate-600 dark:text-slate-400">
-                        View appointments alongside ReplyFlow jobs.
+                        See your calendar appointments alongside your ReplyFlow jobs.
                       </p>
                       {calendarConnected && calendarEmail && (
                         <p className="text-xs text-slate-500 dark:text-slate-500 mt-1.5">
@@ -1942,7 +1942,7 @@ export default function SettingsContent() {
                           )}
                         </div>
                         <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                          Accept secure card payments.
+                          Accept secure credit card payments from customers.
                         </p>
                       </div>
                       {!isConnectingStripe && (
