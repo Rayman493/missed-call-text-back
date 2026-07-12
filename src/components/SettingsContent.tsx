@@ -373,7 +373,7 @@ export default function SettingsContent() {
       console.error('[Settings] Error fetching ignored contacts:', error)
       // Only show toast for non-authentication errors
       if (error instanceof Error && !error.message.includes('Not authenticated') && !error.message.includes('Unauthorized')) {
-        showToast('Failed to fetch ignored contacts', 'error')
+        showToast('Failed to fetch personal contacts', 'error')
       }
     } finally {
       setIsLoadingIgnored(false)
@@ -382,7 +382,7 @@ export default function SettingsContent() {
 
   // Remove ignored contact
   const removeIgnoredContact = async (contactId: string) => {
-    if (!confirm('Remove this contact from your ignore list? This will allow ReplyFlow to capture missed calls from this number again.')) {
+    if (!confirm('Remove this contact from your Personal Contacts list? This will allow ReplyFlow to capture missed calls from this number again.')) {
       return
     }
 
@@ -402,15 +402,15 @@ export default function SettingsContent() {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to remove ignored contact')
+        throw new Error('Failed to remove personal contact')
       }
 
       // Update local state
       setIgnoredContacts(prev => prev.filter(contact => contact.id !== contactId))
-      showToast('Contact removed from ignore list', 'success')
+      showToast('Contact removed from Personal Contacts list', 'success')
     } catch (error) {
-      console.error('Error removing ignored contact:', error)
-      showToast('Failed to remove ignored contact', 'error')
+      console.error('Error removing personal contact:', error)
+      showToast('Failed to remove personal contact', 'error')
     }
   }
 
@@ -445,7 +445,7 @@ export default function SettingsContent() {
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Failed to add ignored contact')
+        throw new Error(error.error || 'Failed to add personal contact')
       }
 
       // Update local state
@@ -459,8 +459,8 @@ export default function SettingsContent() {
       
       showToast('Contact added', 'success')
     } catch (error) {
-      console.error('Error adding ignored contact:', error)
-      showToast(error instanceof Error ? error.message : 'Failed to add ignored contact', 'error')
+      console.error('Error adding personal contact:', error)
+      showToast(error instanceof Error ? error.message : 'Failed to add personal contact', 'error')
     } finally {
       setIsAdding(false)
     }
@@ -2078,12 +2078,12 @@ export default function SettingsContent() {
                 </div>
               </div>
 
-              {/* Ignored Contacts Section */}
+              {/* Personal Contacts Section */}
               <div id="contacts" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[200px]">
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <div>
-                    <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Ignored Contacts</h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Add personal callers, friends, family, or other numbers that should stay out of ReplyFlow's customer workflow.</p>
+                    <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Personal Contacts</h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Add your own phone number, friends, family, employees, or other personal callers. Calls from these numbers are routed to your Personal Voicemail instead of your customer workflow.</p>
                   </div>
                   <div className="flex items-center gap-2">
                   <button
@@ -2108,8 +2108,8 @@ export default function SettingsContent() {
                 </div>
                 <details className="group rounded-md border border-blue-200/60 dark:border-blue-800/60 bg-blue-50/50 dark:bg-blue-900/10 px-3 py-2 mb-2">
                   <summary className="cursor-pointer list-none text-xs font-medium text-blue-800 dark:text-blue-200">
-                    <span className="group-open:hidden">▸ What happens to ignored callers</span>
-                    <span className="hidden group-open:inline">▾ What happens to ignored callers</span>
+                    <span className="group-open:hidden">▸ What happens to personal contacts</span>
+                    <span className="hidden group-open:inline">▾ What happens to personal contacts</span>
                   </summary>
                   <div className="mt-2 space-y-1.5 text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
                     <p>If one of these callers reaches ReplyFlow after a missed call, their voicemail will be saved separately in Personal Voicemail. ReplyFlow will not create a customer, send an automatic text, or schedule follow-ups.</p>
@@ -2117,8 +2117,8 @@ export default function SettingsContent() {
                 </details>
                 <details className="group rounded-md border border-slate-200/60 dark:border-slate-700/60 bg-slate-50/60 dark:bg-slate-800/30 px-3 py-2 mb-3">
                   <summary className="cursor-pointer list-none text-xs font-medium text-slate-700 dark:text-slate-300">
-                    <span className="group-open:hidden">▸ When to use ignored contacts</span>
-                    <span className="hidden group-open:inline">▾ When to use ignored contacts</span>
+                    <span className="group-open:hidden">▸ When to use personal contacts</span>
+                    <span className="hidden group-open:inline">▾ When to use personal contacts</span>
                   </summary>
                   <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                     <div>
@@ -2131,6 +2131,11 @@ export default function SettingsContent() {
                     </div>
                   </div>
                 </details>
+                <div className="p-2.5 bg-amber-50/70 dark:bg-amber-900/15 border border-amber-200/70 dark:border-amber-800/60 rounded-lg mb-3">
+                  <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
+                    Calls from Personal Contacts never create customers, conversations, follow-ups, jobs, appointments, payment requests, or analytics. They are sent directly to Personal Voicemail.
+                  </p>
+                </div>
                 <div className="space-y-2 sm:space-y-2.5">
                   {isLoadingIgnored ? (
                     <div className="flex items-center justify-center py-4 sm:py-6">
@@ -2143,9 +2148,9 @@ export default function SettingsContent() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
                       </div>
-                      <h3 className="text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1">No ignored contacts.</h3>
+                      <h3 className="text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1">No personal contacts.</h3>
                       <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 max-w-[220px] sm:max-w-[280px] mx-auto leading-relaxed">
-                        Add numbers to ignore from missed call capture.
+                        Add numbers to route to Personal Voicemail.
                       </p>
                     </div>
                   ) : (
@@ -2627,16 +2632,16 @@ export default function SettingsContent() {
             </div>
           )}
 
-          {/* Add Ignored Contact Modal */}
+          {/* Add Personal Contact Modal */}
           {showAddModal && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[80] p-4 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-4">
               <div className="bg-card rounded-lg max-w-md w-full max-h-[calc(100dvh-7rem-env(safe-area-inset-bottom))] sm:max-h-[85vh] flex flex-col overflow-hidden">
                 <div className="flex-shrink-0 p-4 sm:p-6 border-b border-border/60">
                   <h2 className="text-xl font-bold text-slate-900 dark:text-foreground mb-4">
-                    Add Ignored Contact
+                    Add Personal Contact
                   </h2>
                   <p className="text-sm text-slate-600 dark:text-muted-foreground">
-                    Add people here when you never want ReplyFlow to respond to their missed calls. Friends, family, schools, doctors, and other personal contacts are common examples. When an ignored contact calls, ReplyFlow stays out of the conversation (no AI Voice, no automated texts, no lead, no follow-ups—just a simple voicemail). You can remove contacts from this list at any time.
+                    Add people here when you never want ReplyFlow to respond to their missed calls. Friends, family, schools, doctors, and other personal contacts are common examples. When a personal contact calls, ReplyFlow stays out of the conversation (no AI Voice, no automated texts, no lead, no follow-ups—just a simple voicemail). You can remove contacts from this list at any time.
                   </p>
                 </div>
                 <div data-scroll-lock-allow className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3">
