@@ -2178,28 +2178,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               {leadJobs.length === 0 ? (
                 <div className="text-center py-2 sm:py-4">
                   <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">No jobs scheduled for this customer yet.</p>
-                  <div className="flex gap-2 justify-center">
-                    <button
-                      onClick={handleCreateJobClick}
-                      className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-1.5 sm:px-3 sm:py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-colors"
-                    >
-                      <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                      <span className="hidden sm:inline">Add Job</span>
-                      <span className="sm:hidden">Add</span>
-                    </button>
-                    <button
-                      onClick={handleAppointmentClick}
-                      className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-1.5 sm:px-3 sm:py-1.5 bg-muted hover:bg-muted/80 text-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-colors"
-                    >
-                      <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <span className="hidden sm:inline">Schedule Appointment</span>
-                      <span className="sm:hidden">Appt</span>
-                    </button>
-                  </div>
+                  <button
+                    onClick={handleCreateJobClick}
+                    className="inline-flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-colors"
+                  >
+                    <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span className="hidden sm:inline">Add Job</span>
+                    <span className="sm:hidden">Add Job</span>
+                  </button>
                 </div>
               ) : (
                 <div className="space-y-2">

@@ -348,10 +348,10 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
             {!isOnboardingExpanded && (
               <div className="space-y-1.5 sm:space-y-2">
                 <p className="text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground">
-                  No recent customers
+                  Waiting for your first missed call
                 </p>
                 <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400">
-                  Recent customers will appear here automatically after missed calls.
+                  ReplyFlow will capture missed calls automatically and display them here.
                 </p>
               </div>
             )}

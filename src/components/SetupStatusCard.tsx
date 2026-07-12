@@ -491,8 +491,8 @@ export default function SetupStatusCard({
               </div>
             </div>
             <div className="flex-1">
-              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Setup Complete</h1>
-              <p className="text-slate-400 text-base sm:text-lg">ReplyFlow is now fully configured and ready to capture future missed calls automatically.</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">First customer captured</h1>
+              <p className="text-slate-400 text-base sm:text-lg">ReplyFlow captured your first missed call and is ready to help.</p>
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
@@ -527,8 +527,8 @@ export default function SetupStatusCard({
               </div>
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-base sm:text-lg font-semibold text-foreground">Setup Complete</h3>
-              <p className="text-muted-foreground text-sm">Your forwarding test passed and ReplyFlow is ready.</p>
+              <h3 className="text-base sm:text-lg font-semibold text-foreground">ReplyFlow is protecting your business</h3>
+              <p className="text-muted-foreground text-sm">Missed calls will be captured automatically.</p>
             </div>
           </div>
           <button
