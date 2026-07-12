@@ -37,9 +37,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch personal voicemails (not deleted)
+    // Exclude raw recording_url from response for security
     const { data: voicemails, error: voicemailsError } = await supabaseAdmin
       .from('personal_voicemails')
-      .select('*')
+      .select('id, business_id, caller_phone, caller_name, recording_sid, duration_seconds, transcription, listened_at, deleted_at, created_at, updated_at')
       .eq('business_id', business.id)
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
@@ -49,7 +50,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch voicemails' }, { status: 500 });
     }
 
-    return NextResponse.json({ voicemails });
+    // Add audio proxy URL to each voicemail
+    const voicemailsWithProxyUrl = voicemails.map(v => ({
+      ...v,
+      audioProxyUrl: `/api/personal-voicemails/${v.id}/audio`,
+    }));
+
+    return NextResponse.json({ voicemails: voicemailsWithProxyUrl });
   } catch (error) {
     console.error('[Personal Voicemails GET] Exception:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

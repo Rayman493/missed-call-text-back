@@ -69,7 +69,9 @@ export async function PATCH(
       return NextResponse.json({ error: 'Voicemail not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ voicemail });
+    // Exclude raw recording_url from response for security
+    const { recording_url, ...safeVoicemail } = voicemail;
+    return NextResponse.json({ voicemail: safeVoicemail });
   } catch (error) {
     console.error('[Personal Voicemail PATCH] Exception:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

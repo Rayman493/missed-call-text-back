@@ -16,7 +16,6 @@ interface PersonalVoicemail {
   business_id: string
   caller_phone: string
   caller_name: string | null
-  recording_url: string
   recording_sid: string
   duration_seconds: number
   transcription: string | null
@@ -24,6 +23,7 @@ interface PersonalVoicemail {
   deleted_at: string | null
   created_at: string
   updated_at: string
+  audioProxyUrl: string
 }
 
 export default function PersonalVoicemailPage() {
@@ -60,8 +60,13 @@ export default function PersonalVoicemailPage() {
 
   const handlePlay = (voicemail: PersonalVoicemail) => {
     setPlayingId(voicemail.id)
-    const audio = new Audio(voicemail.recording_url)
+    const audio = new Audio(`/api/personal-voicemails/${voicemail.id}/audio`)
     audio.onended = () => setPlayingId(null)
+    audio.onerror = () => {
+      console.error('[Personal Voicemail] Audio playback failed')
+      setPlayingId(null)
+      alert('Unable to play this voicemail. Please try again later.')
+    }
     audio.play()
   }
 
