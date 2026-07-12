@@ -75,28 +75,28 @@ export default function AIIntakeSummaryMessage({ body }: AIIntakeSummaryMessageP
   const { service, address, completionTime, callTime, details } = parseAISummary(body)
 
   return (
-    <div className="max-w-full space-y-2.5 overflow-hidden rounded-2xl bg-blue-50/95 p-3 text-left ring-1 ring-blue-200/70 dark:bg-blue-950/30 dark:ring-blue-800/60">
-      <div className="break-words text-sm font-semibold leading-snug text-blue-950 dark:text-blue-100">
+    <div className="max-w-full space-y-2 overflow-hidden rounded-xl bg-slate-50/80 p-2.5 text-left border border-slate-200/60 dark:bg-slate-800/50 dark:border-slate-700/60">
+      <div className="break-words text-sm font-semibold leading-snug text-foreground">
         {service}
       </div>
 
       {(address || completionTime || callTime) && (
-        <div className="space-y-1.5 text-[11px] leading-relaxed text-blue-800 dark:text-blue-200">
+        <div className="space-y-1 text-[11px] leading-relaxed text-muted-foreground">
           {address && (
             <div className="flex items-start gap-1.5 min-w-0">
-              <MapPin className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+              <MapPin className="mt-0.5 h-3 w-3 flex-shrink-0" />
               <span className="min-w-0 break-words">{address}</span>
             </div>
           )}
           {completionTime && (
             <div className="flex items-start gap-1.5 min-w-0">
-              <Calendar className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+              <Calendar className="mt-0.5 h-3 w-3 flex-shrink-0" />
               <span className="min-w-0 break-words">{completionTime}</span>
             </div>
           )}
           {callTime && (
             <div className="flex items-start gap-1.5 min-w-0">
-              <Phone className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+              <Phone className="mt-0.5 h-3 w-3 flex-shrink-0" />
               <span className="min-w-0 break-words">{callTime}</span>
             </div>
           )}
@@ -104,7 +104,7 @@ export default function AIIntakeSummaryMessage({ body }: AIIntakeSummaryMessageP
       )}
 
       {details && (
-        <div className="break-words border-t border-blue-200/60 pt-2 text-[11px] leading-relaxed text-blue-700 dark:border-blue-800/50 dark:text-blue-300">
+        <div className="break-words border-t border-slate-200/60 pt-1.5 text-[11px] leading-relaxed text-muted-foreground dark:border-slate-700/60">
           {details}
         </div>
       )}

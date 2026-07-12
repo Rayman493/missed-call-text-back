@@ -23,9 +23,9 @@ export default function LeadStatusDropdown({
   const buttonRef = useRef<HTMLButtonElement>(null)
 
   const sizeClasses = {
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2 text-sm',
-    lg: 'px-5 py-2.5 text-base'
+    sm: 'px-2.5 py-1.5 text-xs',
+    md: 'px-3 py-1.5 text-xs',
+    lg: 'px-3.5 py-2 text-sm'
   }
 
   // Calculate dropdown position when opened
@@ -156,7 +156,7 @@ export default function LeadStatusDropdown({
             />
             
             {/* Dropdown */}
-            <div 
+            <div
               className="fixed z-[51] bg-card border border-border/50 rounded-lg shadow-xl shadow-black/10 dark:shadow-black/30 min-w-[160px] overflow-hidden max-h-[400px] overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200"
               style={{
                 top: `${dropdownPosition.top}px`,
@@ -169,15 +169,15 @@ export default function LeadStatusDropdown({
                   key={status}
                   onClick={(e) => handleStatusOptionClick(e, status)}
                   disabled={isUpdating}
-                  className="w-full px-4 py-2.5 text-left hover:bg-muted/50 transition-colors flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
                   role="menuitem"
                 >
-                  <span className="text-sm">{getStatusIcon(status)}</span>
+                  <span className="text-xs">{getStatusIcon(status)}</span>
                   <div className="flex-1">
-                    <div className="text-sm font-medium text-foreground">
+                    <div className="text-xs font-medium text-foreground">
                       {getLeadStatusLabel(status)}
                     </div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-[10px] text-muted-foreground">
                       {getStatusDescription(status)}
                     </div>
                   </div>

@@ -192,16 +192,16 @@ export default function ConversationComposer({
           onDrop={handleDrop}
           className="relative"
         >
-          <div className="flex items-center gap-2.5 bg-card border border-border/60 rounded-xl p-2.5 shadow-sm hover:shadow-md transition-shadow duration-200">
+          <div className="flex items-center gap-2 bg-card border border-border/40 rounded-2xl p-2 shadow-sm hover:shadow-md transition-shadow duration-200 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500/30">
             {/* Image Upload Button */}
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200 flex-shrink-0 rounded-lg h-10 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200 flex-shrink-0 rounded-lg h-9 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2"
               disabled={sending}
               aria-label="Attach image"
             >
-              <ImageIcon className="w-5 h-5" />
+              <ImageIcon className="w-4.5 h-4.5" />
             </button>
           <input
             ref={fileInputRef}
@@ -217,43 +217,43 @@ export default function ConversationComposer({
               value={message}
               onChange={handleTextareaChange}
               onKeyDown={handleKeyDown}
-              placeholder="Send a text message..."
-              className={`flex-1 px-2.5 py-2 bg-transparent text-foreground resize-none focus:outline-none text-sm leading-relaxed h-10 ${
+              placeholder="Type a message..."
+              className={`flex-1 px-2.5 py-2 bg-transparent text-foreground resize-none focus:outline-none text-sm leading-relaxed h-9 ${
                 isAtMaxHeight ? 'overflow-y-auto' : 'overflow-y-hidden'
               }`}
               rows={1}
-              style={{ minHeight: '40px', maxHeight: '120px' }}
+              style={{ minHeight: '36px', maxHeight: '120px' }}
               disabled={sending}
             />
             <button
               type="button"
               onClick={handleSend}
               disabled={sending || !hasContent}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-500 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition-all duration-200 shadow-sm hover:shadow flex items-center gap-2 flex-shrink-0 h-10 disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-500 disabled:cursor-not-allowed text-white rounded-xl font-semibold transition-all duration-200 shadow-sm hover:shadow flex items-center gap-1.5 flex-shrink-0 h-9 disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2"
             >
             {sending ? (
               <>
-                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018 8v4h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                <span className="hidden sm:inline">Sending...</span>
+                <span className="hidden sm:inline text-xs">Sending</span>
               </>
             ) : (
               <>
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                 </svg>
-                <span>Send</span>
+                <span className="text-xs">Send</span>
               </>
             )}
             </button>
           </div>
         </div>
-        <div className="flex justify-start px-1 pt-1.5">
-          <div className="text-xs text-muted-foreground/60">
-            <span className="hidden sm:inline">Enter → Send</span>
-            <span className="hidden sm:inline ml-3">Shift+Enter → New Line</span>
+        <div className="flex justify-start px-1 pt-1">
+          <div className="text-[11px] text-muted-foreground/50">
+            <span className="hidden sm:inline">Enter to send</span>
+            <span className="hidden sm:inline ml-2">Shift+Enter for new line</span>
           </div>
         </div>
       </div>

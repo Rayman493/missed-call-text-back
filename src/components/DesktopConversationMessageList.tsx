@@ -131,7 +131,7 @@ export default function DesktopConversationMessageList({
         return (
           <div
             key={getMessageKey(msg)}
-            className={`flex items-start gap-3.5 ${msg.media && msg.media.length > 0 ? 'mb-6' : 'mb-4'} ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
+            className={`flex items-start gap-3 ${msg.media && msg.media.length > 0 ? 'mb-5' : 'mb-4'} ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
           >
             {/* Avatar - Only show customer avatar for inbound messages */}
             {shouldShowAvatar && isInbound && (
@@ -152,7 +152,7 @@ export default function DesktopConversationMessageList({
                     : 'bg-blue-600 text-white rounded-br-md hover:bg-blue-700 border border-blue-700/80'
                 }`}
               >
-                <div className={`${msg.media && msg.media.length > 0 ? 'p-2' : isOutbound ? 'px-4 py-2.5' : 'px-5 py-3'}`}>
+                <div className={`${msg.media && msg.media.length > 0 ? 'p-2' : isOutbound ? 'px-4 py-2.5' : 'px-4 py-2.5'}`}>
                   {msg.body && (
                     <p 
                       className={`${isOutbound ? 'text-[14px]' : 'text-[15px]'} leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap min-w-0 max-w-full`}
@@ -173,7 +173,7 @@ export default function DesktopConversationMessageList({
               </div>
               
               {/* Message Status/Timestamp - Beneath bubble, aligned with bubble */}
-              <div className={`mt-1.5 flex items-center gap-1.5 ${isOutbound ? 'justify-end' : 'justify-start'}`}>
+              <div className={`mt-1 flex items-center gap-1.5 ${isOutbound ? 'justify-end' : 'justify-start'}`}>
                 {isOutbound && (
                   <>
                     {msg.status === 'delivered' && (

@@ -279,7 +279,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
         <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
           <button
             onClick={() => setPreviousIntakesExpanded(!previousIntakesExpanded)}
-            className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-muted/50 transition-colors"
+            className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-muted/50 transition-colors duration-200"
           >
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
@@ -294,7 +294,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 </span>
               </div>
             </div>
-            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${previousIntakesExpanded ? 'rotate-180' : 'rotate-0'}`} />
+            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${previousIntakesExpanded ? 'rotate-180' : 'rotate-0'}`} />
           </button>
           
           {previousIntakesExpanded && (
@@ -304,7 +304,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                   <button
                     key={record.id}
                     onClick={() => setSelectedRecordId(record.id)}
-                    className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all ${
+                    className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all duration-200 ${
                       selectedRecordId === record.id
                         ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
                         : 'bg-slate-50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900/50'
@@ -350,7 +350,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           <div className="px-4 py-3.5 flex items-center justify-between">
             <button
               onClick={() => setSummaryExpanded(!summaryExpanded)}
-              className="flex items-center gap-2.5 hover:bg-muted/50 transition-colors"
+              className="flex items-center gap-2.5 hover:bg-muted/50 transition-colors duration-200"
             >
               <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
                 <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -401,7 +401,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                   <Pencil className="w-3.5 h-3.5" />
                 </button>
               )}
-              <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${summaryExpanded ? 'rotate-180' : 'rotate-0'}`} />
+              <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${summaryExpanded ? 'rotate-180' : 'rotate-0'}`} />
             </div>
           </div>
           
@@ -453,13 +453,13 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               )}
 
               {/* Structured Information */}
-              <div className="space-y-3.5">
+              <div className="space-y-3">
           {/* Customer Information - Prominent */}
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-3.5 border border-blue-100 dark:border-blue-800">
+          <div className="bg-slate-50/60 dark:bg-slate-900/30 rounded-xl p-3 border border-slate-200/60 dark:border-slate-800/60">
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-2">
-                <User className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                <span className="text-[10px] font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider">Name</span>
+                <User className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Name</span>
               </div>
               {manualFields.has('callerName') && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-medium">Manual</span>
@@ -474,18 +474,18 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 placeholder="Customer name"
               />
             ) : (
-              <span className="text-base font-bold text-foreground">
+              <span className="text-base font-semibold text-foreground">
                 {extractedInfo?.callerName || 'Not Provided'}
               </span>
             )}
           </div>
 
           {/* Service Requested - Prominent */}
-          <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-3.5 border border-purple-100 dark:border-purple-800">
+          <div className="bg-slate-50/60 dark:bg-slate-900/30 rounded-xl p-3 border border-slate-200/60 dark:border-slate-800/60">
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-2">
-                <FileText className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                <span className="text-[10px] font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wider">Reason</span>
+                <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Reason</span>
               </div>
               {manualFields.has('reasonForCalling') && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-medium">Manual</span>
@@ -495,7 +495,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               <textarea
                 value={editValues.reasonForCalling}
                 onChange={(e) => setEditValues({ ...editValues, reasonForCalling: e.target.value })}
-                className="w-full min-h-[72px] px-2 py-1.5 text-sm font-medium text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 resize-y"
+                className="w-full min-h-[72px] px-2 py-1.5 text-sm font-medium text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 resize-y"
                 rows={3}
                 placeholder="Service requested"
               />
@@ -546,14 +546,14 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           ) : null}
 
           {/* Compact Row: Location, Callback, Urgency */}
-          <div className="bg-card rounded-xl p-4 border border-border/50">
+          <div className="bg-slate-50/60 dark:bg-slate-900/30 rounded-xl p-3 border border-slate-200/60 dark:border-slate-800/60">
             <div className="grid grid-cols-3 gap-3">
               {/* Location */}
               {isEditMode || (extractedInfo?.addressOrLocation || correctedFields?.address) ? (
-                <div className="min-h-[64px] space-y-2.5 rounded-lg bg-slate-50/60 dark:bg-slate-900/30 border border-slate-200/60 dark:border-slate-800/60 p-3">
+                <div className="min-h-[64px] space-y-2">
                   <div className="flex items-center justify-between gap-1">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <MapPin className="w-4 h-4 text-slate-600 dark:text-slate-400 flex-shrink-0" />
+                      <MapPin className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
                       <span className="text-[10px] font-semibold text-muted-foreground tracking-wide whitespace-nowrap">Location</span>
                     </div>
                     {manualFields.has('addressOrLocation') && !isEditMode && (
@@ -577,10 +577,10 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               ) : null}
 
               {/* Callback Time */}
-              <div className="min-h-[64px] space-y-2.5 rounded-lg bg-slate-50/60 dark:bg-slate-900/30 border border-slate-200/60 dark:border-slate-800/60 p-3">
+              <div className="min-h-[64px] space-y-2">
                 <div className="flex items-center justify-between gap-1">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <Phone className="w-4 h-4 text-slate-600 dark:text-slate-400 flex-shrink-0" />
+                    <Phone className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
                     <span className="text-[10px] font-semibold text-muted-foreground tracking-wide whitespace-nowrap">Callback</span>
                   </div>
                   {manualFields.has('preferredCallbackTime') && !isEditMode && (
@@ -603,10 +603,10 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               </div>
 
               {/* Desired Completion Time */}
-              <div className="min-h-[64px] space-y-2.5 rounded-lg bg-slate-50/60 dark:bg-slate-900/30 border border-slate-200/60 dark:border-slate-800/60 p-3">
+              <div className="min-h-[64px] space-y-2">
                 <div className="flex items-center justify-between gap-1">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <Calendar className="w-4 h-4 text-slate-600 dark:text-slate-400 flex-shrink-0" />
+                    <Calendar className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
                     <span className="text-[10px] font-semibold text-muted-foreground tracking-wide whitespace-nowrap">Completion</span>
                   </div>
                   {manualFields.has('desiredCompletionTime') && !isEditMode && (
@@ -689,11 +689,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
           {/* Structured Information */}
           {/* Customer Information - Prominent */}
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 border border-blue-100 dark:border-blue-800">
-            <div className="flex items-center justify-between mb-2">
+          <div className="bg-slate-50/60 dark:bg-slate-900/30 rounded-xl p-3 border border-slate-200/60 dark:border-slate-800/60">
+            <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-2.5">
                 <span className="w-4 h-4 text-base leading-none">👤</span>
-                <span className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider">Name</span>
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Name</span>
               </div>
               {manualFields.has('callerName') && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-medium">Manual</span>
@@ -704,22 +704,22 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 type="text"
                 value={editValues.callerName}
                 onChange={(e) => setEditValues({ ...editValues, callerName: e.target.value })}
-                className="w-full px-2 py-1.5 text-base font-medium text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-2 py-1.5 text-base font-medium text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
                 placeholder="Customer name"
               />
             ) : (
-              <span className="text-lg font-bold text-foreground">
+              <span className="text-base font-semibold text-foreground">
                 {extractedInfo?.callerName || 'Not Provided'}
               </span>
             )}
           </div>
 
           {/* Service Requested - Prominent */}
-          <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-4 border border-purple-100 dark:border-purple-800">
-            <div className="flex items-center justify-between mb-2">
+          <div className="bg-slate-50/60 dark:bg-slate-900/30 rounded-xl p-3 border border-slate-200/60 dark:border-slate-800/60">
+            <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-2.5">
                 <span className="w-4 h-4 text-base leading-none">🛠️</span>
-                <span className="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wider">Reason</span>
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Reason</span>
               </div>
               {manualFields.has('reasonForCalling') && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-medium">Manual</span>
@@ -729,7 +729,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               <textarea
                 value={editValues.reasonForCalling}
                 onChange={(e) => setEditValues({ ...editValues, reasonForCalling: e.target.value })}
-                className="w-full min-h-[80px] px-2 py-1.5 text-base font-medium text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 resize-y"
+                className="w-full min-h-[80px] px-2 py-1.5 text-base font-medium text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 resize-y"
                 rows={3}
                 placeholder="Service requested"
               />
@@ -754,7 +754,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 {!isEditMode && ((correctedFields?.details?.length > 200 || (extractedInfo?.importantDetails?.length || 0) > 200)) && (
                   <button
                     onClick={() => setDetailsExpanded(!detailsExpanded)}
-                    className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors duration-200"
                   >
                     {detailsExpanded ? 'Show Less' : 'Show More'}
                   </button>
@@ -870,10 +870,10 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
       {/* Full AI Conversation Transcript - Collapsible */}
       {selectedRecord?.transcript && selectedRecord.transcript.length > 0 && (
-        <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-card border border-border/50 rounded-xl shadow-sm overflow-hidden">
           <button
             onClick={() => setFullTranscriptExpanded(!fullTranscriptExpanded)}
-            className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-muted/50 transition-colors"
+            className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
           >
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
@@ -883,12 +883,12 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 Call Transcript
               </span>
             </div>
-            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${fullTranscriptExpanded ? 'rotate-180' : 'rotate-0'}`} />
+            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${fullTranscriptExpanded ? 'rotate-180' : 'rotate-0'}`} />
           </button>
-          
+
           {fullTranscriptExpanded && (
             <div className="px-4 pb-4 pt-2 border-t border-border/50">
-              <div className="space-y-3 max-h-96 overflow-y-auto">
+              <div className="space-y-2.5 max-h-96 overflow-y-auto">
                 {(() => {
                   const messages = normalizeAITranscript(selectedRecord.transcript);
                   if (messages.length === 0) {
@@ -901,25 +901,25 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                   return messages.map((message, index) => (
                     <div
                       key={message.id || index}
-                      className={`flex gap-3 ${message.role === 'assistant' ? 'justify-start' : 'justify-end'}`}
+                      className={`flex gap-2.5 ${message.role === 'assistant' ? 'justify-start' : 'justify-end'}`}
                     >
                       {message.role === 'assistant' && (
-                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
-                          <span className="text-sm">🤖</span>
+                        <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs">🤖</span>
                         </div>
                       )}
                       <div
-                        className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
+                        className={`max-w-[85%] rounded-xl px-3 py-2 ${
                           message.role === 'assistant'
-                            ? 'bg-slate-100 dark:bg-slate-800 text-foreground'
+                            ? 'bg-slate-50 dark:bg-slate-900/50 text-foreground border border-slate-200/60 dark:border-slate-800/60'
                             : 'bg-blue-600 text-white'
                         }`}
                       >
                         <p className="text-sm leading-relaxed">{message.content}</p>
                       </div>
                       {message.role !== 'assistant' && (
-                        <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
-                          <span className="text-sm">👤</span>
+                        <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs">👤</span>
                         </div>
                       )}
                     </div>

@@ -178,7 +178,7 @@ export default function MobileConversationMessageList({
         return (
           <div
             key={getMessageKey(msg)}
-            className={`flex items-start gap-2.5 ${msg.media && msg.media.length > 0 ? 'mb-3.5' : 'mb-3'} ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
+            className={`flex items-start gap-2.5 ${msg.media && msg.media.length > 0 ? 'mb-3' : 'mb-2.5'} ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
           >
             {/* Avatar - Only show customer avatar for inbound messages */}
             {shouldShowAvatar && isInbound && (

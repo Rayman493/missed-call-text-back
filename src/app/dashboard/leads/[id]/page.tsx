@@ -2907,9 +2907,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               setShowMobileOverflow(false)
                             }}
                             disabled={!business || getAvailableProviders(business).length === 0}
-                            className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            className="w-full px-3 py-2 text-left text-xs text-foreground hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2.5"
                           >
-                            <CreditCard className="w-4 h-4 stroke-[1.8]" />
+                            <CreditCard className="w-3.5 h-3.5 stroke-[1.8]" />
                             Request Payment
                           </button>
                           <button
@@ -2917,9 +2917,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               setShowRemoveModal(true)
                               setShowMobileOverflow(false)
                             }}
-                            className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                            className="w-full px-3 py-2 text-left text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2.5"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                             Remove
@@ -2929,9 +2929,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               setMobileInternalNotesExpanded(!mobileInternalNotesExpanded)
                               setShowMobileOverflow(false)
                             }}
-                            className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
+                            className="w-full px-3 py-2 text-left text-xs text-foreground hover:bg-muted/50 flex items-center gap-2.5"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2h2.828l8.586-8.586z" />
                             </svg>
                             Internal Notes
@@ -2942,9 +2942,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                 handleStatusUpdate('ignored')
                                 setShowMobileOverflow(false)
                               }}
-                              className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                              className="w-full px-3 py-2 text-left text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2.5"
                             >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                               </svg>
                               Mark as Ignored
@@ -2956,24 +2956,24 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                 handleStatusUpdate('active')
                                 setShowMobileOverflow(false)
                               }}
-                              className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
+                              className="w-full px-3 py-2 text-left text-xs text-foreground hover:bg-muted/50 flex items-center gap-2.5"
                             >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                               </svg>
                               Restore Customer
                             </button>
                           )}
-                          <div className="border-t border-slate-200 dark:border-slate-700 my-1" />
+                          <div className="border-t border-border/50 my-1" />
                           <button
                             onClick={() => {
                               handleRefresh()
                               setShowMobileOverflow(false)
                             }}
                             disabled={refreshing}
-                            className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            className="w-full px-3 py-2 text-left text-xs text-foreground hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2.5"
                           >
-                            <svg className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
                             Refresh
@@ -2983,9 +2983,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               setShowDeleteModal(true)
                               setShowMobileOverflow(false)
                             }}
-                            className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                            className="w-full px-3 py-2 text-left text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2.5"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
                             Delete Customer
@@ -3013,7 +3013,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Desktop Layout: Premium Header */}
           <div className="hidden md:block">
             {/* Back to Leads */}
-            <div className="mb-4">
+            <div className="mb-3">
               <AppBackButton fallbackHref="/dashboard/leads" label="Back" />
             </div>
 
@@ -3024,10 +3024,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <h1 className="text-2xl font-semibold text-foreground tracking-tight mb-1">
                   {getLeadDisplayName(leadData || lead)}
                 </h1>
-                <p className="text-sm text-muted-foreground mb-2">
+                <p className="text-sm text-muted-foreground mb-1.5">
                   {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
                 </p>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
                   <span>Customer since {formatRelativeTime(lead?.created_at)}</span>
                   <span>•</span>
                   <span>{messagesArray.length} message{messagesArray.length !== 1 ? 's' : ''}</span>
@@ -3036,8 +3036,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
               {/* CENTER: Current Request Card */}
               <div className="min-w-[240px] max-w-[320px]">
-                <div className="bg-muted/50 rounded-xl border border-border/50 p-4">
-                  <p className="text-xs font-medium text-muted-foreground mb-2">Current Request</p>
+                <div className="bg-muted/30 rounded-lg border border-border/40 p-3">
+                  <p className="text-[11px] font-medium text-muted-foreground mb-1.5">Current Request</p>
                   {(() => {
                     const intake = getLeadAIIntake(leadData || lead)
                     const hasIntake = intake.serviceRequested || leadData?.aiCallRecords?.length > 0
@@ -3115,7 +3115,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         onClick={() => setShowOverflowMenu(false)}
                       />
                       <div
-                        className="fixed z-[9999] bg-card border border-border/50 rounded-xl shadow-lg py-1 min-w-[160px]"
+                        className="fixed z-[9999] bg-card border border-border/50 rounded-lg shadow-lg py-1 min-w-[160px]"
                         style={{
                           top: `${overflowMenuPosition.top}px`,
                           left: `${overflowMenuPosition.left}px`
@@ -3127,10 +3127,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             setShowOverflowMenu(false)
                           }}
                           disabled={refreshing}
-                          className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+                          className="w-full px-3 py-2 text-left text-xs text-foreground hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2.5 transition-colors"
                         >
                           <svg
-                            className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`}
+                            className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`}
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -3144,9 +3144,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             setShowRemoveModal(true)
                             setShowOverflowMenu(false)
                           }}
-                          className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted flex items-center gap-2 transition-colors"
+                          className="w-full px-3 py-2 text-left text-xs text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                           </svg>
                           Remove
@@ -3157,9 +3157,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               handleStatusUpdate('ignored')
                               setShowOverflowMenu(false)
                             }}
-                            className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted flex items-center gap-2 transition-colors"
+                            className="w-full px-3 py-2 text-left text-xs text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                             </svg>
                             Mark as Ignored
@@ -3171,9 +3171,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               handleStatusUpdate('active')
                               setShowOverflowMenu(false)
                             }}
-                            className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted flex items-center gap-2 transition-colors"
+                            className="w-full px-3 py-2 text-left text-xs text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
                             Restore Customer
@@ -3185,9 +3185,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             setShowDeleteModal(true)
                             setShowOverflowMenu(false)
                           }}
-                          className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors"
+                          className="w-full px-3 py-2 text-left text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2.5 transition-colors"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
                           Delete Customer
@@ -3392,9 +3392,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
         
         {/* Mobile Layout - Conversation-first: Header -> Conversation -> Collapsible Sections */}
-        <div className="lg:hidden space-y-2 pb-[calc(7rem+env(safe-area-inset-bottom))]">
+        <div className="lg:hidden space-y-2 pb-[calc(6rem+env(safe-area-inset-bottom))]">
           {/* Compact Header with Status Chips */}
-          <div className="bg-card/95 border border-border/70 rounded-xl p-2.5 shadow-sm ring-1 ring-white/5">
+          <div className="bg-card/95 border border-border/50 rounded-xl p-2.5 shadow-sm">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold text-foreground">{getLeadDisplayName(leadData)}</span>
@@ -3453,7 +3453,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Conversation Section - Primary content, conversation-first */}
-          <div className="bg-card/95 border border-border/70 rounded-xl lg:hidden flex flex-col overflow-hidden shadow-sm ring-1 ring-white/5" style={{ height: 'min(600px, calc(100svh - 10rem))', minHeight: '500px' }}>
+          <div className="bg-card/95 border border-border/50 rounded-xl lg:hidden flex flex-col overflow-hidden shadow-sm" style={{ height: 'min(600px, calc(100svh - 10rem))', minHeight: '500px' }}>
             <div className="px-2.5 py-1.5 flex-shrink-0 flex items-center justify-between border-b border-border/30 bg-slate-50/70 dark:bg-slate-950/30">
               <h3 className="text-xs font-semibold text-foreground">Conversation</h3>
               {!loading && conversationTimeline.length > 0 && (
@@ -3463,7 +3463,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               )}
             </div>
             {/* Mobile Message Thread - Scrollable viewport */}
-            <div ref={mobileConversationContainerRef} className="flex-1 min-h-0 overflow-y-auto scroll-smooth overscroll-contain bg-slate-50/40 dark:bg-slate-950/20" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', scrollPaddingBottom: '6rem' }}>
+            <div ref={mobileConversationContainerRef} className="flex-1 min-h-0 overflow-y-auto scroll-smooth overscroll-contain bg-slate-50/40 dark:bg-slate-950/20" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', scrollPaddingBottom: '5rem' }}>
               {/* Inner content wrapper for justify-end */}
               <div className="min-h-full px-2 py-2 flex flex-col justify-end">
                 {loading ? (
