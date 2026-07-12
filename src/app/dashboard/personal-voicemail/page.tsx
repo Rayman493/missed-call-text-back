@@ -3,13 +3,14 @@
 import React, { useState, useEffect } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatPhoneNumber, formatRelativeTime } from '@/lib/utils'
-import { Play, Trash2, Check, Phone, Clock } from 'lucide-react'
+import { Trash2, Check, Phone, Clock } from 'lucide-react'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
 import AppHeader from '@/components/AppHeader'
 import Navigation from '@/components/Navigation'
 import BottomNavigation from '@/components/BottomNavigation'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import { PersonalVoicemailPlayer } from '@/components/PersonalVoicemailPlayer'
 
 interface PersonalVoicemail {
   id: string
@@ -30,7 +31,7 @@ export default function PersonalVoicemailPage() {
   const [voicemails, setVoicemails] = useState<PersonalVoicemail[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [playingId, setPlayingId] = useState<string | null>(null)
+  const [globalPlayingId, setGlobalPlayingId] = useState<string | null>(null)
   const supabase = createBrowserClient()
 
   const fetchVoicemails = async () => {
@@ -58,18 +59,6 @@ export default function PersonalVoicemailPage() {
     fetchVoicemails()
   }, [])
 
-  const handlePlay = (voicemail: PersonalVoicemail) => {
-    setPlayingId(voicemail.id)
-    const audio = new Audio(`/api/personal-voicemails/${voicemail.id}/audio`)
-    audio.onended = () => setPlayingId(null)
-    audio.onerror = () => {
-      console.error('[Personal Voicemail] Audio playback failed')
-      setPlayingId(null)
-      alert('Unable to play this voicemail. Please try again later.')
-    }
-    audio.play()
-  }
-
   const handleMarkListened = async (voicemail: PersonalVoicemail) => {
     try {
       const response = await fetch(`/api/personal-voicemails/${voicemail.id}`, {
@@ -96,6 +85,11 @@ export default function PersonalVoicemailPage() {
   const handleDelete = async (voicemail: PersonalVoicemail) => {
     if (!confirm('Delete this voicemail?')) return
     
+    // Stop playback if deleting the active voicemail
+    if (globalPlayingId === voicemail.id) {
+      setGlobalPlayingId(null)
+    }
+    
     try {
       const response = await fetch(`/api/personal-voicemails/${voicemail.id}`, {
         method: 'DELETE',
@@ -108,12 +102,6 @@ export default function PersonalVoicemailPage() {
     } catch (err) {
       console.error('[Personal Voicemail] Error deleting:', err)
     }
-  }
-
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
   return (
@@ -156,7 +144,9 @@ export default function PersonalVoicemailPage() {
                         !voicemail.listened_at ? 'border-l-4 border-l-blue-500' : ''
                       }`}
                     >
-                      <div className="flex items-start justify-between gap-4">
+                      {/* Desktop Layout */}
+                      <div className="hidden sm:flex items-center gap-4">
+                        {/* Caller Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -169,36 +159,77 @@ export default function PersonalVoicemailPage() {
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <Clock className="w-3 h-3" />
                               {formatRelativeTime(voicemail.created_at)}
                             </span>
                             <span>•</span>
-                            <span>{formatDuration(voicemail.duration_seconds)}</span>
+                            <span>{voicemail.duration_seconds}s</span>
                           </div>
                         </div>
                         
+                        {/* Audio Player */}
+                        <PersonalVoicemailPlayer
+                          voicemailId={voicemail.id}
+                          audioProxyUrl={voicemail.audioProxyUrl}
+                          storedDuration={voicemail.duration_seconds}
+                          isUnread={!voicemail.listened_at}
+                          onMarkRead={() => handleMarkListened(voicemail)}
+                          globalPlayingId={globalPlayingId}
+                          onSetGlobalPlayingId={setGlobalPlayingId}
+                        />
+                        
+                        {/* Actions */}
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <button
-                            onClick={() => handlePlay(voicemail)}
-                            disabled={playingId === voicemail.id}
-                            className="p-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
-                            title="Play"
+                            onClick={() => handleDelete(voicemail)}
+                            className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors duration-150"
+                            title="Delete"
                           >
-                            <Play className="w-4 h-4" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
-                          
+                        </div>
+                      </div>
+
+                      {/* Mobile Layout */}
+                      <div className="sm:hidden">
+                        {/* Caller Info */}
+                        <div className="flex items-center gap-2 mb-3">
+                          <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                          <span className="font-medium text-foreground">
+                            {voicemail.caller_name || formatPhoneNumber(voicemail.caller_phone)}
+                          </span>
                           {!voicemail.listened_at && (
-                            <button
-                              onClick={() => handleMarkListened(voicemail)}
-                              className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors duration-150"
-                              title="Mark as listened"
-                            >
-                              <Check className="w-4 h-4" />
-                            </button>
+                            <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full">
+                              New
+                            </span>
                           )}
-                          
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {formatRelativeTime(voicemail.created_at)}
+                          </span>
+                          <span>•</span>
+                          <span>{voicemail.duration_seconds}s</span>
+                        </div>
+                        
+                        {/* Audio Player */}
+                        <div className="mb-3">
+                          <PersonalVoicemailPlayer
+                            voicemailId={voicemail.id}
+                            audioProxyUrl={voicemail.audioProxyUrl}
+                            storedDuration={voicemail.duration_seconds}
+                            isUnread={!voicemail.listened_at}
+                            onMarkRead={() => handleMarkListened(voicemail)}
+                            globalPlayingId={globalPlayingId}
+                            onSetGlobalPlayingId={setGlobalPlayingId}
+                          />
+                        </div>
+                        
+                        {/* Actions */}
+                        <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleDelete(voicemail)}
                             className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors duration-150"
