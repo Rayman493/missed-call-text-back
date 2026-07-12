@@ -558,34 +558,35 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     
     // Add AI Intake events - show ALL AI call records as separate timeline events
     if (leadData?.aiCallRecords && leadData.aiCallRecords.length > 0) {
-      leadData.aiCallRecords.forEach((aiCall: any, index: number) => {
+      leadData.aiCallRecords.forEach((aiCall: any) => {
         const outcome = aiCall.outcome
         const intakeStatus = getAIIntakeStatus({ aiCallRecords: [aiCall] })
+        const serviceRequested = aiCall.extracted_info?.reasonForCalling || aiCall.extracted_info?.serviceRequested || 'Unknown request'
         
         // Determine message based on actual outcome
-        let intakeMessage = 'AI Intake Completed'
-        if (intakeStatus === 'partial') {
-          intakeMessage = 'AI Intake Partial'
+        let intakeMessage = ''
+        if (intakeStatus === 'complete') {
+          intakeMessage = `Completed Request: ${serviceRequested}`
+        } else if (intakeStatus === 'partial') {
+          intakeMessage = `Partial Request: ${serviceRequested}`
         } else if (outcome === 'early_hangup') {
-          intakeMessage = 'Caller Hung Up Early'
+          intakeMessage = `Caller Hung Up: ${serviceRequested}`
         } else if (outcome === 'no_speech') {
           intakeMessage = 'No Speech Detected'
         } else if (outcome === 'ai_connection_failed') {
           intakeMessage = 'AI Connection Failed'
+        } else {
+          intakeMessage = `Request: ${serviceRequested}`
         }
-        
-        // Add "Latest" label for the most recent intake
-        const isLatest = index === 0
-        const messageLabel = isLatest ? `${intakeMessage} (Latest)` : intakeMessage
         
         systemEvents.push({
           type: 'system_event',
           id: `ai-intake-${aiCall.id}`,
           created_at: aiCall.created_at,
           data: {
-            message: messageLabel,
+            message: intakeMessage,
             timestamp: aiCall.created_at,
-            isDivider: isLatest // Add divider for latest intake
+            isDivider: false
           }
         })
       })

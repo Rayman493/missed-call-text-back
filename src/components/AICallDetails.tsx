@@ -293,7 +293,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
   return (
     <div className="space-y-4">
-      {/* Previous Intakes - Show when multiple records exist */}
+      {/* Request History - Show when multiple records exist */}
       {aiCallRecords.length > 1 && (
         <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
           <button
@@ -306,10 +306,10 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               </div>
               <div>
                 <span className="text-sm font-semibold text-foreground">
-                  Previous Intakes
+                  Request History
                 </span>
                 <span className="ml-2 text-xs text-muted-foreground">
-                  ({aiCallRecords.length} total)
+                  ({aiCallRecords.length})
                 </span>
               </div>
             </div>
@@ -319,7 +319,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           {previousIntakesExpanded && (
             <div className="px-4 pb-4 pt-2 border-t border-border/50">
               <div className="space-y-2 max-h-64 overflow-y-auto">
-                {aiCallRecords.map((record, index) => (
+                {aiCallRecords.map((record) => (
                   <button
                     key={record.id}
                     onClick={() => setSelectedRecordId(record.id)}
@@ -330,8 +330,8 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium text-foreground">
-                        {index === 0 ? 'Latest Intake' : `Intake #${aiCallRecords.length - index}`}
+                      <span className="text-xs font-medium text-foreground line-clamp-1">
+                        {record.extracted_info?.reasonForCalling || 'Unknown request'}
                       </span>
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${getOutcomeColor(record.outcome)}`}>
                         {record.outcome.replace('_', ' ').toUpperCase()}
@@ -340,11 +340,6 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                     <div className="text-[11px] text-muted-foreground">
                       {formatRelativeTime(record.created_at)}
                     </div>
-                    {record.extracted_info?.callerName && (
-                      <div className="text-[11px] text-foreground mt-1">
-                        {record.extracted_info.callerName}
-                      </div>
-                    )}
                   </button>
                 ))}
               </div>
@@ -367,7 +362,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 </svg>
               </div>
               <span className="text-sm font-semibold text-foreground">
-                {aiCallRecords.length > 1 ? 'Selected Intake Details' : 'AI Intake Summary'}
+                Current Request
               </span>
             </button>
             <div className="flex items-center gap-2">
