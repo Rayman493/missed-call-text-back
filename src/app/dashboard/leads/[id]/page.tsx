@@ -1500,6 +1500,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           
           if (payload.eventType === 'INSERT') {
             const newMessage = payload.new
+            console.log('[REALTIME INSERT] Incoming message payload:', {
+              messageId: newMessage.id,
+              clientTempId: newMessage.clientTempId,
+              twilioSid: newMessage.twilio_sid,
+              status: newMessage.status,
+              body: newMessage.body?.substring(0, 30),
+              created_at: newMessage.created_at
+            })
+            
             setLeadData((prev: any) => {
               if (!prev) {
                 console.log('[REALTIME MESSAGE INSERT] No prev leadData, skipping')
@@ -1507,13 +1516,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               }
               
               const currentMessages = prev.messages || []
+              console.log('[REALTIME INSERT] Current messages in state:', {
+                count: currentMessages.length,
+                messageIds: currentMessages.map((m: any) => ({ id: m.id, clientTempId: m.clientTempId, status: m.status }))
+              })
+              
               const mergedMessages = mergeMessageWithMonotonicity(currentMessages, newMessage)
               
               console.log('[REALTIME MESSAGE INSERT] Merged message into state:', {
                 messageId: newMessage.id,
                 previousCount: currentMessages.length,
                 newCount: mergedMessages.length,
-                status: newMessage.status
+                status: newMessage.status,
+                wasReconciled: mergedMessages.length === currentMessages.length
               })
               
               // Only scroll if this is a new message (not an optimistic reconciliation)
@@ -1521,6 +1536,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 msg.id === newMessage.id || 
                 (msg.clientTempId && msg.clientTempId === newMessage.clientTempId)
               )
+              
+              console.log('[REALTIME INSERT] Is new message check:', {
+                isNewMessage,
+                hasMatchingId: currentMessages.some((m: any) => m.id === newMessage.id),
+                hasMatchingClientTempId: currentMessages.some((m: any) => m.clientTempId === newMessage.clientTempId)
+              })
               
               if (isNewMessage) {
                 setTimeout(() => scrollToBottom('smooth'), 100)
@@ -1826,22 +1847,35 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           messageId: result.message.id,
           status: result.message.status,
           twilioSid: result.message.twilio_sid,
-          clientTempId
+          clientTempId: result.message.clientTempId,
+          body: result.message.body?.substring(0, 30)
         })
         
-        // Immediately merge the persisted message into local state
+        // Add clientTempId to the persisted message for proper reconciliation
+        const persistedMessageWithTempId = {
+          ...result.message,
+          clientTempId: result.clientTempId || clientTempId
+        }
+        
+        // Immediately merge the persisted message into local state using canonical merge
         // This replaces the optimistic message with the real database row
         setLeadData((prev: any) => {
           if (!prev) return prev
           
           const currentMessages = prev.messages || []
-          const mergedMessages = mergeMessagesById(currentMessages, [result.message])
+          console.log('[SEND RECONCILIATION] Current messages before merge:', {
+            count: currentMessages.length,
+            messageIds: currentMessages.map((m: any) => ({ id: m.id, clientTempId: m.clientTempId, status: m.status }))
+          })
+          
+          const mergedMessages = mergeMessageWithMonotonicity(currentMessages, persistedMessageWithTempId)
           
           console.log('[SEND RECONCILIATION] Merged persisted message into state:', {
             messageId: result.message.id,
             previousCount: currentMessages.length,
             newCount: mergedMessages.length,
-            finalStatus: result.message.status
+            finalStatus: result.message.status,
+            wasReconciled: mergedMessages.length === currentMessages.length
           })
           
           return {
