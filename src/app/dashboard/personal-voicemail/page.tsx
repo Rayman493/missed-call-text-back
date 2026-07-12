@@ -83,8 +83,6 @@ export default function PersonalVoicemailPage() {
   }
 
   const handleDelete = async (voicemail: PersonalVoicemail) => {
-    if (!confirm('Delete this voicemail?')) return
-    
     // Stop playback if deleting the active voicemail
     if (globalPlayingId === voicemail.id) {
       setGlobalPlayingId(null)
@@ -128,7 +126,7 @@ export default function PersonalVoicemailPage() {
                   <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
                 </div>
               ) : voicemails.length === 0 ? (
-                <div className="bg-card rounded-lg border border-border p-8 text-center">
+                <div className="bg-card rounded-lg border border-border p-8 sm:p-12 text-center">
                   <Phone className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-foreground mb-2">No personal voicemails yet</h3>
                   <p className="text-sm text-muted-foreground">
@@ -187,7 +185,7 @@ export default function PersonalVoicemailPage() {
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <button
                             onClick={() => handleDelete(voicemail)}
-                            className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+                            className="px-3 py-2 rounded-lg bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
                             title="Delete"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -238,7 +236,7 @@ export default function PersonalVoicemailPage() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleDelete(voicemail)}
-                            className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+                            className="px-3 py-2 rounded-lg bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
                             title="Delete"
                           >
                             <Trash2 className="w-4 h-4" />

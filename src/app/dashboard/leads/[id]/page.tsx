@@ -3212,7 +3212,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-3 py-2 min-h-0 custom-scrollbar" style={{ minHeight: '200px' }}>
               {loading ? (
                 <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                 </div>
               ) : conversationTimeline.length === 0 ? (
                 <div className="flex items-center justify-center h-full py-12 animate-fadeIn">
