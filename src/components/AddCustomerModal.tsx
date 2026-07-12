@@ -265,7 +265,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="flex-1 px-4 py-2.5 border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-4 py-2.5 border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
@@ -276,7 +276,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
               handleSubmit(e)
             }}
             disabled={isSubmitting}
-            className="flex-1 px-4 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {isSubmitting ? (
               <>

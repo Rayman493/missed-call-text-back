@@ -297,7 +297,7 @@ export default function ImportContactsModal({ isOpen, onClose, onImportSuccess }
               <button
                 onClick={handlePreview}
                 disabled={isPreviewing}
-                className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
               >
                 {isPreviewing ? 'Previewing...' : 'Preview'}
               </button>
@@ -420,7 +420,7 @@ export default function ImportContactsModal({ isOpen, onClose, onImportSuccess }
               <button
                 onClick={handleImport}
                 disabled={isImporting || !preview?.some(c => c.selected && c.status === 'valid')}
-                className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
               >
                 {isImporting ? 'Importing...' : `Import ${preview?.filter(c => c.selected && c.status === 'valid').length || 0} Contacts`}
               </button>

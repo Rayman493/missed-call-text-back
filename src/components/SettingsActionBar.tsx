@@ -131,7 +131,7 @@ export default function SettingsActionBar({
               <button
                 onClick={handleDiscard}
                 disabled={isSaving || saveSuccess}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-all hover:bg-slate-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 sm:px-4 sm:text-sm"
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-all duration-200 hover:bg-slate-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 sm:px-4 sm:text-sm"
               >
                 {showMobileBar ? 'Discard' : 'Discard'}
               </button>
@@ -139,7 +139,7 @@ export default function SettingsActionBar({
               <button
                 onClick={handleSave}
                 disabled={isSaving || saveSuccess}
-                className={`inline-flex min-w-[104px] items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-white shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2 focus:ring-offset-background active:scale-[0.98] disabled:cursor-not-allowed sm:min-w-[128px] sm:px-4 sm:text-sm ${
+                className={`inline-flex min-w-[104px] items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-white shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2 focus:ring-offset-background active:scale-[0.98] disabled:cursor-not-allowed sm:min-w-[128px] sm:px-4 sm:text-sm ${
                   saveSuccess
                     ? 'bg-emerald-600'
                     : 'bg-blue-600 hover:bg-blue-500 hover:shadow-[0_8px_24px_rgba(37,99,235,0.28)] disabled:bg-blue-500/70'
