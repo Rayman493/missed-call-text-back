@@ -9,6 +9,7 @@ import Footer from '@/components/Footer'
 import PasswordInput from '@/components/PasswordInput'
 import BrandIcon from '@/components/BrandIcon'
 import RoutingDebugBanner from '@/components/RoutingDebugBanner'
+import { mapAuthError, type AuthErrorDisplay } from '@/lib/auth-error-mapper'
 
 // Footer with theme support for auth pages
 function AuthFooter() {
@@ -63,6 +64,7 @@ function AuthContent() {
   const [businessPhone, setBusinessPhone] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [errorDisplay, setErrorDisplay] = useState<AuthErrorDisplay | null>(null)
   const [existingAccount, setExistingAccount] = useState(false)
   const [debugError, setDebugError] = useState<any>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -119,6 +121,7 @@ function AuthContent() {
     // Clear error when switching modes
     if (mode === 'signin') {
       setError('')
+      setErrorDisplay(null)
       setExistingAccount(false)
       setDebugError(null)
     }
@@ -134,6 +137,7 @@ function AuthContent() {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setErrorDisplay(null)
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -157,7 +161,8 @@ function AuthContent() {
       const { data: { session: persistedSession } } = await supabase.auth.getSession()
 
       if (!persistedSession) {
-        setError('Sign in successful but session not saved. Please try again.')
+        const mappedError = mapAuthError({ message: 'Session not saved' })
+        setErrorDisplay(mappedError)
         subscription.unsubscribe()
         return
       }
@@ -218,7 +223,8 @@ function AuthContent() {
       await new Promise(resolve => setTimeout(resolve, 800))
       router.push(redirectTarget)
     } catch (err: any) {
-      setError(err.message || 'Unable to sign in. Please check your email and password and try again.')
+      const mappedError = mapAuthError(err)
+      setErrorDisplay(mappedError)
     } finally {
       setLoading(false)
     }
@@ -570,61 +576,70 @@ function AuthContent() {
             <p className="text-sm text-slate-400 mb-4 sm:mb-6">Create your account to get started</p>
           )}
           
-          {error && (
-            <div className="bg-amber-900/20 border border-amber-800 rounded-2xl p-4 mb-6">
-              <div className="flex items-start gap-3 mb-3">
-                <svg className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          {errorDisplay && (
+            <div 
+              className="bg-red-950/30 border border-red-900/50 rounded-lg p-3 mb-4"
+              role="alert"
+              aria-live="polite"
+            >
+              <div className="flex items-start gap-2">
+                <svg className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-amber-100 mb-1">
-                    {existingAccount ? 'Account Already Exists' : 'Authentication Error'}
+                  <p className="text-sm font-medium text-red-200 mb-0.5">
+                    {errorDisplay.heading}
                   </p>
-                  <p className="text-sm text-amber-200/80">
-                    {existingAccount 
-                      ? 'An account with this email address already exists. Please sign in to continue or use a different email address.'
-                      : error}
+                  <p className="text-xs text-red-300/80">
+                    {errorDisplay.body}
                   </p>
                 </div>
               </div>
-              {existingAccount && !isSignIn && (
-                <div className="space-y-2 pt-2 border-t border-amber-800/50">
-                  <button
-                    onClick={() => {
-                      setError('')
-                      setExistingAccount(false)
-                      router.push(`/auth?mode=signin&email=${encodeURIComponent(email)}`)
-                    }}
-                    className="w-full h-11 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm hover:shadow-md transition-all font-semibold text-sm"
-                  >
-                    Sign In
-                  </button>
-                  <button
-                    onClick={() => {
-                      setExistingAccount(false)
-                      setError('')
-                    }}
-                    className="w-full text-sm text-amber-200/70 hover:text-amber-100 underline"
-                  >
-                    Use a different email
-                  </button>
+            </div>
+          )}
+
+          {existingAccount && (
+            <div 
+              className="bg-amber-950/30 border border-amber-900/50 rounded-lg p-3 mb-4"
+              role="alert"
+              aria-live="polite"
+            >
+              <div className="flex items-start gap-2">
+                <svg className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-amber-200 mb-0.5">
+                    Account Already Exists
+                  </p>
+                  <p className="text-xs text-amber-300/80 mb-2">
+                    An account with this email address already exists. Please sign in to continue or use a different email address.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setError('')
+                        setErrorDisplay(null)
+                        setExistingAccount(false)
+                        router.push(`/auth?mode=signin&email=${encodeURIComponent(email)}`)
+                      }}
+                      className="text-xs bg-blue-600 text-white py-1.5 px-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors font-medium"
+                    >
+                      Sign In
+                    </button>
+                    <button
+                      onClick={() => {
+                        setExistingAccount(false)
+                        setError('')
+                        setErrorDisplay(null)
+                      }}
+                      className="text-xs text-amber-300/70 hover:text-amber-200 underline"
+                    >
+                      Use a different email
+                    </button>
+                  </div>
                 </div>
-              )}
-              {/* Debug info only in development */}
-              {debugError && process.env.NODE_ENV === 'development' && (
-                <div className="mt-3 pt-3 border-t border-amber-800/50">
-                  <details className="text-xs text-amber-400/50 font-mono">
-                    <summary className="cursor-pointer hover:text-amber-400/70">Debug Info (dev only)</summary>
-                    <div className="mt-2 space-y-1 pl-2">
-                      <div>Message: {debugError.message}</div>
-                      <div>Status: {debugError.status}</div>
-                      <div>Code: {debugError.code}</div>
-                      <div>HasUser: {debugError.hasUser ? 'YES' : 'NO'}</div>
-                      <div>HasSession: {debugError.hasSession ? 'YES' : 'NO'}</div>
-                    </div>
-                  </details>
-                </div>
-              )}
+              </div>
             </div>
           )}
 
@@ -641,7 +656,10 @@ function AuthContent() {
                     ref={emailRef}
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value)
+                      setErrorDisplay(null)
+                    }}
                     required
                     autoComplete="email"
                     name="email"
@@ -658,7 +676,10 @@ function AuthContent() {
                     id="password"
                     name="password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value)
+                      setErrorDisplay(null)
+                    }}
                     required
                     autoComplete="new-password"
                     className="w-full px-4 py-3 border border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
@@ -793,7 +814,10 @@ function AuthContent() {
                     ref={emailRef}
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value)
+                      setErrorDisplay(null)
+                    }}
                     required
                     autoComplete="email"
                     name="email"
@@ -810,7 +834,10 @@ function AuthContent() {
                     id="password"
                     name="password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value)
+                      setErrorDisplay(null)
+                    }}
                     required
                     autoComplete="current-password"
                     className="w-full px-4 py-3 border border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80"
