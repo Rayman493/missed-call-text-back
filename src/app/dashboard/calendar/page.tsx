@@ -636,22 +636,11 @@ export default function SchedulePage() {
                 </div>
               ) : (
                 <>
-                  {/* Today's Schedule + Main Content: 2-col on lg+, stacked on mobile */}
+                  {/* Mobile-first: Calendar first, then Today's Schedule. Desktop: Today's Schedule sticky on left */}
                   <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[300px_1fr] gap-3 lg:gap-5 items-start">
 
-                  {/* LEFT: Today's Schedule — sticky on desktop */}
-                  <div className="lg:sticky lg:top-4 order-1">
-                    <TodaySchedule
-                      jobs={jobs}
-                      isLoading={isLoadingJobs}
-                      onJobClick={(job) => { setSelectedJob(job); setIsJobDetailsOpen(true) }}
-                      onNewJob={openNewJob}
-                      onStatusChange={handleJobStatusChange}
-                    />
-                  </div>
-
-                  {/* RIGHT: Tab toggle + Calendar / Jobs content */}
-                  <div className="order-2 min-w-0">
+                  {/* RIGHT (mobile-first): Tab toggle + Calendar / Jobs content */}
+                  <div className="order-1 lg:order-2 min-w-0">
 
                   {/* Schedule Tab Toggle */}
                   <div className="hidden md:flex mb-3">
@@ -916,26 +905,29 @@ export default function SchedulePage() {
                       </div>
 
                       {/* Mobile: Compact Metrics - single summary */}
-                      <div className="md:hidden mb-4">
-                        <div className="flex items-center gap-2 p-2.5 bg-slate-900/50 border border-slate-700/50 rounded-xl">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                          <p className="text-xs text-slate-300">
-                            <span className="font-semibold text-foreground">{getThisMonthCounts().appointments} appointments</span>
-                            <span className="text-slate-400 mx-1">•</span>
-                            <span className="font-semibold text-foreground">{getThisMonthCounts().jobs} jobs</span>
-                            <span className="text-slate-400 ml-1">this month</span>
-                          </p>
+                      <div className="md:hidden mb-3">
+                        <div className="flex items-center justify-around gap-2 p-2 bg-slate-900/50 border border-slate-700/50 rounded-lg">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                            <span className="text-xs font-medium text-foreground">{getThisMonthCounts().appointments}</span>
+                            <span className="text-[10px] text-slate-400">appointments</span>
+                          </div>
+                          <div className="w-px h-4 bg-slate-700"></div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-medium text-foreground">{getThisMonthCounts().jobs}</span>
+                            <span className="text-[10px] text-slate-400">jobs</span>
+                          </div>
                         </div>
                       </div>
 
                       {/* Calendar Header - mobile only */}
-                      <div className="flex md:hidden items-center justify-between gap-3 mb-4 p-2.5 bg-slate-900/40 border border-slate-700/40 rounded-xl">
+                      <div className="flex md:hidden items-center justify-between gap-2 mb-3 p-2 bg-slate-900/40 border border-slate-700/40 rounded-lg">
                         <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 bg-green-500 rounded-full"></div>
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                           <div>
-                            <p className="text-xs sm:text-sm font-semibold text-foreground">Google Calendar</p>
-                            {calendarEmail && (
-                              <p className="text-[10px] sm:text-xs text-slate-400">{calendarEmail}</p>
+                            <p className="text-xs font-medium text-foreground">Google Calendar</p>
+                            {lastSyncTime && (
+                              <p className="text-[9px] text-slate-400">Connected • {formatTimeAgo(lastSyncTime)}</p>
                             )}
                           </div>
                         </div>
@@ -1064,6 +1056,17 @@ export default function SchedulePage() {
                           <Plus className="w-4 h-4" />
                           New Appointment
                         </button>
+                      </div>
+
+                      {/* Mobile: Today's Schedule - appears after calendar */}
+                      <div className="lg:hidden mt-6">
+                        <TodaySchedule
+                          jobs={jobs}
+                          isLoading={isLoadingJobs}
+                          onJobClick={(job) => { setSelectedJob(job); setIsJobDetailsOpen(true) }}
+                          onNewJob={openNewJob}
+                          onStatusChange={handleJobStatusChange}
+                        />
                       </div>
                     </div>
                   )}

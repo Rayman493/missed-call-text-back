@@ -25,7 +25,7 @@ export default function CalendarDayCell({
     <div
       onClick={onClick}
       className={`
-        min-h-[54px] sm:min-h-[64px] md:min-h-[86px] p-1 sm:p-1.5 md:p-2.5 rounded-lg border transition-all duration-150 cursor-pointer active:scale-95
+        min-h-[48px] sm:min-h-[64px] md:min-h-[86px] p-1 sm:p-1.5 md:p-2.5 rounded-lg border transition-all duration-150 cursor-pointer active:scale-95
         ${isCurrentMonth
           ? isWeekend
             ? 'bg-slate-50 dark:bg-slate-900/50 border-slate-200/70 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800/70'
@@ -37,7 +37,7 @@ export default function CalendarDayCell({
           : ''
         }
         ${isSelected
-          ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 dark:border-blue-400 shadow-md'
+          ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 dark:border-blue-400 shadow-md shadow-blue-500/10'
           : ''
         }
       `}
@@ -46,12 +46,12 @@ export default function CalendarDayCell({
         <span
           className={`
             text-[10px] md:text-sm font-medium
-            ${isCurrentMonth 
-              ? 'text-slate-900 dark:text-foreground' 
+            ${isCurrentMonth
+              ? 'text-slate-900 dark:text-foreground'
               : 'text-slate-400 dark:text-slate-600'
             }
-            ${isToday 
-              ? 'bg-blue-500 text-white w-4 h-4 md:w-6 md:h-6 rounded-full flex items-center justify-center' 
+            ${isToday
+              ? 'bg-blue-500 text-white w-4 h-4 md:w-6 md:h-6 rounded-full flex items-center justify-center'
               : ''
             }
           `}

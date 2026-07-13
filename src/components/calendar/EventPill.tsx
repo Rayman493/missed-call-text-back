@@ -71,7 +71,7 @@ export default function EventPill({ title, time, endTime, onClick, isHoliday = f
     <div
       onClick={onClick}
       className={`
-        px-1.5 py-1 md:px-2 md:py-1.5 rounded-md cursor-pointer transition-colors duration-150 group flex items-center gap-1.5 active:scale-95
+        px-1 py-0.5 md:px-2 md:py-1.5 rounded-md cursor-pointer transition-colors duration-150 group flex items-center gap-1 active:scale-95
         ${colors.bg}
       `}
     >
@@ -81,10 +81,10 @@ export default function EventPill({ title, time, endTime, onClick, isHoliday = f
       `} />
       <div className="flex-1 min-w-0">
         <div className={`
-          text-[10px] md:text-[12px] font-medium truncate leading-tight
+          text-[9px] sm:text-[10px] md:text-[12px] font-medium truncate leading-tight
           ${colors.text}
         `}>
-          {title}
+          {title.length > 6 ? `${title.slice(0, 6)}...` : title}
         </div>
         {source && source !== 'primary' && (
           <div className={`
