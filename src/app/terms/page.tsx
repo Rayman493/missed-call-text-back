@@ -36,11 +36,11 @@ export default function TermsPage() {
 
       {/* Terms Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="lg:grid lg:grid-cols-[280px_1fr] lg:gap-12">
+        <div className="lg:grid lg:grid-cols-[280px_1fr] lg:gap-12 lg:items-start">
           {/* Table of Contents - Desktop Only */}
-          <aside className="hidden lg:block">
-            <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto">
-              <div className="bg-card rounded-xl shadow-md border border-border p-6">
+          <aside className="hidden lg:block lg:self-start">
+            <div className="sticky top-24 max-h-[calc(100dvh-8rem)] overflow-y-auto">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-6">
                 <h3 className="text-base font-semibold text-foreground mb-5">
                   Contents
                 </h3>
