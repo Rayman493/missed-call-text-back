@@ -38,12 +38,39 @@ export function PersonalVoicemailPlayer({
   const [isMuted, setIsMuted] = useState(false)
   const [previousVolume, setPreviousVolume] = useState(1)
   const [isVolumePopoverOpen, setIsVolumePopoverOpen] = useState(false)
+  const [isSeeking, setIsSeeking] = useState(false)
   
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const markReadTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const volumeButtonRef = useRef<HTMLButtonElement | null>(null)
   const volumePopoverRef = useRef<HTMLDivElement | null>(null)
+  const progressAnimationFrameRef = useRef<number | null>(null)
   const isCurrentPlayer = globalPlayingId === voicemailId
+
+  // Smooth progress update loop using requestAnimationFrame
+  const updateProgress = useCallback(() => {
+    if (audioRef.current && playerState === 'playing' && !isSeeking) {
+      setCurrentTime(audioRef.current.currentTime)
+      progressAnimationFrameRef.current = requestAnimationFrame(updateProgress)
+    }
+  }, [playerState, isSeeking])
+
+  // Start/stop progress animation based on player state
+  useEffect(() => {
+    if (playerState === 'playing' && !isSeeking) {
+      progressAnimationFrameRef.current = requestAnimationFrame(updateProgress)
+    } else {
+      if (progressAnimationFrameRef.current) {
+        cancelAnimationFrame(progressAnimationFrameRef.current)
+        progressAnimationFrameRef.current = null
+      }
+    }
+    return () => {
+      if (progressAnimationFrameRef.current) {
+        cancelAnimationFrame(progressAnimationFrameRef.current)
+      }
+    }
+  }, [playerState, isSeeking, updateProgress])
 
   // Load volume from localStorage on mount
   useEffect(() => {
@@ -125,14 +152,22 @@ export function PersonalVoicemailPlayer({
     audioRef.current = audio
     
     audio.addEventListener('loadedmetadata', () => {
-      // Prefer storedDuration over audio.duration for consistency
-      // Use audio.duration only if storedDuration is not available or invalid
-      const canonicalDuration = (storedDuration && storedDuration > 0) ? storedDuration : (audio.duration || 0)
+      // Use audio.duration for accurate playback duration
+      // Fall back to storedDuration only if audio.duration is invalid
+      const canonicalDuration = (audio.duration && audio.duration > 0) ? audio.duration : (storedDuration || 0)
       setDuration(canonicalDuration)
+      console.log('[PersonalVoicemailPlayer] Duration determined:', {
+        audioDuration: audio.duration,
+        storedDuration,
+        canonicalDuration
+      })
     })
     
     audio.addEventListener('timeupdate', () => {
-      setCurrentTime(audio.currentTime)
+      // Only update from timeupdate if not using animation loop (fallback)
+      if (!progressAnimationFrameRef.current) {
+        setCurrentTime(audio.currentTime)
+      }
     })
     
     audio.addEventListener('ended', () => {
@@ -157,6 +192,12 @@ export function PersonalVoicemailPlayer({
     
     audio.addEventListener('playing', () => {
       setPlayerState('playing')
+    })
+    
+    // Sync progress when seeking completes
+    audio.addEventListener('seeked', () => {
+      setCurrentTime(audio.currentTime)
+      setIsSeeking(false)
     })
   }, [audioProxyUrl, storedDuration, playerState, onSetGlobalPlayingId, onPlaybackEnd, onError])
 
@@ -206,6 +247,9 @@ export function PersonalVoicemailPlayer({
         clearTimeout(markReadTimeoutRef.current)
         markReadTimeoutRef.current = null
       }
+      
+      // Update current time one last time when pausing
+      setCurrentTime(audioRef.current.currentTime)
     }
   }, [onSetGlobalPlayingId])
 
@@ -219,11 +263,20 @@ export function PersonalVoicemailPlayer({
   }, [isCurrentPlayer, playerState, play, pause])
 
   // Seek to position
+  const handleSeekStart = useCallback(() => {
+    setIsSeeking(true)
+  }, [])
+
   const handleSeek = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const seekTime = parseFloat(e.target.value)
+    setCurrentTime(seekTime)
+  }, [])
+
+  const handleSeekEnd = useCallback((e: React.MouseEvent<HTMLInputElement> | React.TouchEvent<HTMLInputElement>) => {
+    const target = e.currentTarget as HTMLInputElement
+    const seekTime = parseFloat(target.value)
     if (audioRef.current) {
       audioRef.current.currentTime = seekTime
-      setCurrentTime(seekTime)
     }
   }, [])
 
@@ -243,6 +296,9 @@ export function PersonalVoicemailPlayer({
       }
       if (markReadTimeoutRef.current) {
         clearTimeout(markReadTimeoutRef.current)
+      }
+      if (progressAnimationFrameRef.current) {
+        cancelAnimationFrame(progressAnimationFrameRef.current)
       }
     }
   }, [])
@@ -330,9 +386,13 @@ export function PersonalVoicemailPlayer({
               type="range"
               min="0"
               max={duration}
-              step="0.1"
+              step="0.01"
               value={currentTime}
+              onMouseDown={handleSeekStart}
               onChange={handleSeek}
+              onMouseUp={handleSeekEnd}
+              onTouchStart={handleSeekStart}
+              onTouchEnd={handleSeekEnd}
               disabled={playerState === 'loading'}
               className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors duration-200"
               style={{
