@@ -185,7 +185,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
   return (
     <>
       {/* Bottom Navigation Bar - Mobile Only - Improved touch targets */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 pb-safe md:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 pb-safe lg:hidden">
         <div className="mx-auto max-w-7xl px-2 pb-2 sm:px-4" style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
           <div className="flex h-16 items-center justify-around rounded-3xl border border-white/10 bg-slate-950/88 px-1 shadow-[0_1px_0_rgba(255,255,255,0.07),0_-20px_70px_rgba(2,6,23,0.62)] backdrop-blur-2xl">
             {primaryNavItems.map((item) => {
@@ -231,7 +231,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
       {isMoreMenuOpen && typeof document !== 'undefined' && createPortal(
         <div
           ref={dropdownRef}
-          className="fixed z-[1000] w-56 overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 shadow-2xl md:hidden"
+          className="fixed z-[1000] w-56 overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 shadow-2xl lg:hidden"
           style={dropdownPosition ? {
             top: `${dropdownPosition.top}px`,
             left: `${dropdownPosition.left}px`
@@ -268,7 +268,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
       )}
 
       {isAssistantOpen && (
-        <div className="fixed inset-0 z-[100] flex items-end justify-center p-3 md:hidden">
+        <div className="fixed inset-0 z-[100] flex items-end justify-center p-3 lg:hidden">
           <div className="absolute inset-0 bg-black/55" onClick={() => setIsAssistantOpen(false)} />
           <div className="relative mb-20 w-full max-w-lg">
             <ReplyFlowAssistant
