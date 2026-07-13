@@ -167,7 +167,7 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect, onAddNew, t
           </div>
 
           {/* Lead list */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto overscroll-contain" data-scroll-lock-allow style={{ WebkitOverflowScrolling: 'touch' }}>
             {isLoading ? (
               <div className="flex items-center justify-center py-10 gap-2 text-slate-400">
                 <Loader2 className="w-5 h-5 animate-spin" />

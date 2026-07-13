@@ -141,8 +141,8 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
         </div>
 
         {/* Scrollable Form Body */}
-        <div className="overflow-y-auto flex-1 overflow-x-hidden">
-          <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+        <div className="overflow-y-auto flex-1 overflow-x-hidden overscroll-contain" data-scroll-lock-allow style={{ WebkitOverflowScrolling: 'touch' }}>
+          <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-3 sm:space-y-4 pb-4">
             {/* Required Fields */}
             <div className="space-y-3 sm:space-y-4">
               <div>
