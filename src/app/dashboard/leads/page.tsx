@@ -699,7 +699,7 @@ export default function LeadsPage() {
     <DashboardErrorBoundary>
       <AuthGuard>
       <BusinessGuard>
-        <div className="min-h-screen bg-[#f8fafc] dark:bg-background flex flex-col relative">
+        <div className="min-h-screen bg-background flex flex-col relative">
             {/* App Header */}
             <AppHeader title="Customers" />
 
