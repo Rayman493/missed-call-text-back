@@ -88,6 +88,12 @@ export default function PrivacyPage() {
                   Third-Party Providers
                 </a>
                 <a
+                  href="#google-api-services"
+                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
+                >
+                  Google API Services
+                </a>
+                <a
                   href="#your-rights"
                   className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
                 >
@@ -431,6 +437,69 @@ export default function PrivacyPage() {
                   <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                     <p className="text-sm text-blue-800 dark:text-blue-200">
                       <strong>Data Protection:</strong> All third-party providers are evaluated for security and compliance. We only share the minimum data necessary for service delivery.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Google API Services */}
+          <section id="google-api-services" className="scroll-mt-24">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="p-8">
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
+                  Google API Services
+                </h2>
+                <div className="prose prose-gray dark:prose-invert max-w-none">
+                  <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                    ReplyFlowHQ LLC integrates with Google Calendar to provide calendar synchronization and scheduling features for authenticated users.
+                  </p>
+                  <div className="mt-6 space-y-4">
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        <strong>Explicit Authorization</strong> - ReplyFlow only accesses Google Calendar after explicit user authorization through OAuth
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        <strong>Limited Scope</strong> - Google Calendar information is used only to provide calendar synchronization and scheduling features requested by the authenticated user
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        <strong>No Selling</strong> - Google Calendar information is never sold
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        <strong>No Advertising</strong> - Google Calendar information is never used for advertising
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        <strong>User Control</strong> - Users may disconnect Google Calendar from ReplyFlow at any time
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                      <strong>Google API Services User Data Policy:</strong> ReplyFlow's use and transfer of information received from Google APIs will adhere to the Google API Services User Data Policy, including the Limited Use requirements.
                     </p>
                   </div>
                 </div>
