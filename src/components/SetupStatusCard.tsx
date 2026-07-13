@@ -894,11 +894,27 @@ export default function SetupStatusCard({
       {isAssistantOpen && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center p-3 md:hidden">
           <div className="absolute inset-0 bg-black/55" onClick={() => setIsAssistantOpen(false)} />
-          <div className="relative mb-20 w-full max-w-lg">
-            <ReplyFlowAssistant
-              context={{ currentPage: 'dashboard' }}
-              onClose={() => setIsAssistantOpen(false)}
-            />
+          <div className="relative w-full max-w-lg max-h-[calc(100dvh-5rem-env(safe-area-inset-bottom))] flex flex-col">
+            <div className="bg-white dark:bg-slate-800 rounded-t-2xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-5rem-env(safe-area-inset-bottom))]">
+              <ReplyFlowAssistant
+                context={{ currentPage: 'dashboard' }}
+                onClose={() => setIsAssistantOpen(false)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isAssistantOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 hidden md:block">
+          <div className="absolute inset-0 bg-black/55" onClick={() => setIsAssistantOpen(false)} />
+          <div className="relative w-full max-w-lg max-h-[85vh] flex flex-col">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden max-h-[85vh]">
+              <ReplyFlowAssistant
+                context={{ currentPage: 'dashboard' }}
+                onClose={() => setIsAssistantOpen(false)}
+              />
+            </div>
           </div>
         </div>
       )}
