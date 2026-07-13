@@ -23,6 +23,7 @@ import JobDetailsModal from '@/components/jobs/JobDetailsModal'
 import TodaySchedule from '@/components/jobs/TodaySchedule'
 import NewJobModal from '@/components/jobs/NewJobModal'
 import LeadPickerModal from '@/components/jobs/LeadPickerModal'
+import AddCustomerModal from '@/components/AddCustomerModal'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import type { Job, JobStatus, JobPrefill } from '@/components/jobs/JobComposer'
 
@@ -56,6 +57,13 @@ export default function SchedulePage() {
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [isLoadingEvents, setIsLoadingEvents] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
+  const [isChangingMonth, setIsChangingMonth] = useState(false)
+  const [eventsCache, setEventsCache] = useState<Map<string, CalendarEvent[]>>(new Map())
+  const [currentMonthKey, setCurrentMonthKey] = useState(() => {
+    const now = new Date()
+    return `${now.getFullYear()}-${now.getMonth()}`
+  })
+  const [monthLoadError, setMonthLoadError] = useState<string | null>(null)
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
   const [isDayDetailOpen, setIsDayDetailOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
@@ -77,6 +85,8 @@ export default function SchedulePage() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
   const [isJobDetailsOpen, setIsJobDetailsOpen] = useState(false)
   const [editingJob, setEditingJob] = useState<Job | null>(null)
+  const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false)
+  const [newlyCreatedLeadId, setNewlyCreatedLeadId] = useState<string | null>(null)
   
   // Overflow menu state
   const [isCalendarOverflowOpen, setIsCalendarOverflowOpen] = useState(false)
@@ -371,8 +381,10 @@ export default function SchedulePage() {
     }
   }
 
-  const fetchEvents = async () => {
+  const fetchEvents = async (monthKey?: string) => {
+    const targetMonthKey = monthKey || currentMonthKey
     setIsLoadingEvents(true)
+    setMonthLoadError(null)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
@@ -431,8 +443,12 @@ export default function SchedulePage() {
       ) as CalendarEvent[]
       
       setEvents(uniqueEvents)
+      
+      // Cache the events for this month
+      setEventsCache(prev => new Map(prev).set(targetMonthKey, uniqueEvents))
     } catch (error) {
       console.error('[GOOGLE CALENDAR SYNC ERROR] Events error', error)
+      setMonthLoadError('We couldn\'t load your calendar events. Please try again.')
       showToast('We couldn\'t load your calendar events. Please try again.', 'error')
     } finally {
       setIsLoadingEvents(false)
@@ -503,12 +519,12 @@ export default function SchedulePage() {
     }
   }, [business])
 
-  // Fetch events when month changes
+  // Fetch events when month changes (only for initial load or sync)
   useEffect(() => {
-    if (calendarConnected && !isLoading) {
+    if (calendarConnected && !isLoading && !isChangingMonth && events.length === 0) {
       fetchEvents()
     }
-  }, [currentMonth])
+  }, [calendarConnected, isLoading, currentMonthKey])
 
   const formatDate = (dateStr: string | undefined) => {
     if (!dateStr) return ''
@@ -558,21 +574,64 @@ export default function SchedulePage() {
   }
 
   const goToPreviousMonth = () => {
+    if (isChangingMonth) return
+    
+    setIsChangingMonth(true)
     setCurrentMonth(prev => {
       const newMonth = new Date(prev.getFullYear(), prev.getMonth() - 1, 1)
+      const newMonthKey = `${newMonth.getFullYear()}-${newMonth.getMonth()}`
+      setCurrentMonthKey(newMonthKey)
+      
+      // Check if events are cached
+      const cachedEvents = eventsCache.get(newMonthKey)
+      if (cachedEvents) {
+        setEvents(cachedEvents)
+        setIsChangingMonth(false)
+      } else {
+        fetchEvents(newMonthKey).finally(() => setIsChangingMonth(false))
+      }
+      
       return newMonth
     })
   }
 
   const goToNextMonth = () => {
+    if (isChangingMonth) return
+    
+    setIsChangingMonth(true)
     setCurrentMonth(prev => {
       const newMonth = new Date(prev.getFullYear(), prev.getMonth() + 1, 1)
+      const newMonthKey = `${newMonth.getFullYear()}-${newMonth.getMonth()}`
+      setCurrentMonthKey(newMonthKey)
+      
+      // Check if events are cached
+      const cachedEvents = eventsCache.get(newMonthKey)
+      if (cachedEvents) {
+        setEvents(cachedEvents)
+        setIsChangingMonth(false)
+      } else {
+        fetchEvents(newMonthKey).finally(() => setIsChangingMonth(false))
+      }
+      
       return newMonth
     })
   }
 
   const goToToday = () => {
-    setCurrentMonth(new Date(new Date().getFullYear(), new Date().getMonth(), 1))
+    const now = new Date()
+    const newMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    const newMonthKey = `${newMonth.getFullYear()}-${newMonth.getMonth()}`
+    
+    setCurrentMonth(newMonth)
+    setCurrentMonthKey(newMonthKey)
+    
+    // Check if events are cached
+    const cachedEvents = eventsCache.get(newMonthKey)
+    if (cachedEvents) {
+      setEvents(cachedEvents)
+    } else {
+      fetchEvents(newMonthKey)
+    }
   }
 
   // Filter events to only show those in the visible month
@@ -794,52 +853,60 @@ export default function SchedulePage() {
                               <MoreVertical className="w-4 h-4" />
                             </button>
                             {isCalendarOverflowOpen && (
-                              <div
-                                ref={calendarOverflowRef}
-                                className="absolute right-0 top-full mt-1 w-48 bg-slate-900 border border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden"
-                              >
-                                <div className="py-1">
+                              <>
+                                <div
+                                  className="fixed inset-0 z-[50]"
+                                  onClick={() => setIsCalendarOverflowOpen(false)}
+                                />
+                                <div
+                                  ref={calendarOverflowRef}
+                                  className="absolute right-0 top-full mt-1 z-[50] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1 min-w-[160px] max-w-[220px]"
+                                >
                                   <button
                                     onClick={() => {
                                       setIsCalendarOverflowOpen(false)
                                       handleSync()
                                     }}
                                     disabled={isSyncing || isDisconnecting}
-                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
                                     {isSyncing ? (
                                       <>
-                                        <div className="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                                        <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                                         <span>Syncing...</span>
                                       </>
                                     ) : (
                                       <>
-                                        <RefreshCw className="w-3.5 h-3.5" />
+                                        <RefreshCw className="w-4 h-4 text-muted-foreground" />
                                         <span>Sync</span>
                                       </>
                                     )}
                                   </button>
+                                  <div className="border-t border-border/40 my-1"></div>
                                   <button
                                     onClick={() => {
                                       setIsCalendarOverflowOpen(false)
                                       handleDisconnectCalendar()
                                     }}
                                     disabled={isDisconnecting || isSyncing}
-                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full px-3 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2.5 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
                                     {isDisconnecting ? (
                                       <>
-                                        <div className="w-3 h-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                                        <div className="w-4 h-4 border-2 border-red-600 dark:border-red-400 border-t-transparent rounded-full animate-spin" />
                                         <span>Disconnecting...</span>
                                       </>
                                     ) : (
                                       <>
-                                        <span>Disconnect Google Calendar</span>
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                        <span>Disconnect</span>
                                       </>
                                     )}
                                   </button>
                                 </div>
-                              </div>
+                              </>
                             )}
                           </div>
                           <button
@@ -940,53 +1007,61 @@ export default function SchedulePage() {
                             <MoreVertical className="w-4 h-4" />
                           </button>
                           {isCalendarOverflowOpen && (
-                            <div
-                              ref={calendarOverflowRef}
-                              className="absolute right-0 top-full mt-1 w-48 bg-slate-900 border border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden"
-                            >
-                              <div className="py-1">
-                                <button
-                                  onClick={() => {
-                                    setIsCalendarOverflowOpen(false)
-                                    handleSync()
-                                  }}
-                                  disabled={isSyncing || isDisconnecting}
-                                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                              <>
+                                <div
+                                  className="fixed inset-0 z-[50]"
+                                  onClick={() => setIsCalendarOverflowOpen(false)}
+                                />
+                                <div
+                                  ref={calendarOverflowRef}
+                                  className="absolute right-0 top-full mt-1 z-[50] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1 min-w-[160px] max-w-[220px]"
                                 >
-                                  {isSyncing ? (
-                                    <>
-                                      <div className="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-                                      <span>Syncing...</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <RefreshCw className="w-3.5 h-3.5" />
-                                      <span>Sync</span>
-                                    </>
-                                  )}
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setIsCalendarOverflowOpen(false)
-                                    handleDisconnectCalendar()
-                                  }}
-                                  disabled={isDisconnecting || isSyncing}
-                                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  {isDisconnecting ? (
-                                    <>
-                                      <div className="w-3 h-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
-                                      <span>Disconnecting...</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                        <span>Disconnect Google Calendar</span>
+                                  <button
+                                    onClick={() => {
+                                      setIsCalendarOverflowOpen(false)
+                                      handleSync()
+                                    }}
+                                    disabled={isSyncing || isDisconnecting}
+                                    className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {isSyncing ? (
+                                      <>
+                                        <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                                        <span>Syncing...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <RefreshCw className="w-4 h-4 text-muted-foreground" />
+                                        <span>Sync</span>
                                       </>
                                     )}
-                                </button>
-                              </div>
-                            </div>
-                          )}
+                                  </button>
+                                  <div className="border-t border-border/40 my-1"></div>
+                                  <button
+                                    onClick={() => {
+                                      setIsCalendarOverflowOpen(false)
+                                      handleDisconnectCalendar()
+                                    }}
+                                    disabled={isDisconnecting || isSyncing}
+                                    className="w-full px-3 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2.5 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {isDisconnecting ? (
+                                      <>
+                                        <div className="w-4 h-4 border-2 border-red-600 dark:border-red-400 border-t-transparent rounded-full animate-spin" />
+                                        <span>Disconnecting...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                        <span>Disconnect</span>
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
+                              </>
+                            )}
                         </div>
                       </div>
 
@@ -1110,6 +1185,7 @@ export default function SchedulePage() {
                     isOpen={isNewJobModalOpen}
                     onClose={() => setIsNewJobModalOpen(false)}
                     onSelectLead={() => setIsLeadPickerOpen(true)}
+                    onCreateCustomer={() => setIsAddCustomerModalOpen(true)}
                   />
 
                   {/* Lead Picker Modal */}
@@ -1133,6 +1209,23 @@ export default function SchedulePage() {
                     editJob={editingJob || undefined}
                     prefill={jobPrefill}
                     defaultDate={newJobDefaultDate}
+                  />
+
+                  {/* Add Customer Modal */}
+                  <AddCustomerModal
+                    isOpen={isAddCustomerModalOpen}
+                    onClose={() => setIsAddCustomerModalOpen(false)}
+                    onLeadCreated={(leadId) => {
+                      setNewlyCreatedLeadId(leadId)
+                      setIsAddCustomerModalOpen(false)
+                      // Open job composer with the newly created customer pre-selected
+                      setJobPrefill({
+                        lead_id: leadId,
+                        customer_name: undefined,
+                        customer_phone: undefined
+                      })
+                      setIsJobComposerOpen(true)
+                    }}
                   />
 
                   {/* Job Details Modal */}

@@ -8,6 +8,7 @@ interface NewJobModalProps {
   isOpen: boolean
   onClose: () => void
   onSelectLead: () => void
+  onCreateCustomer: () => void
   title?: string
   prompt?: string
 }
@@ -16,6 +17,7 @@ export default function NewJobModal({
   isOpen,
   onClose,
   onSelectLead,
+  onCreateCustomer,
   title = 'Create Job',
   prompt = 'Choose a customer for this job',
 }: NewJobModalProps) {
@@ -65,10 +67,9 @@ export default function NewJobModal({
             </button>
 
             {/* Create New Customer - Secondary Action */}
-            <Link
-              href="/dashboard/leads"
-              onClick={onClose}
-              className="w-full flex items-center justify-between gap-3 p-3 rounded-xl border border-border/30 bg-muted/30 hover:border-border hover:bg-muted transition-all group active:scale-[0.98]"
+            <button
+              onClick={() => { onClose(); onCreateCustomer() }}
+              className="w-full flex items-start gap-3 p-3 rounded-xl border border-border/30 bg-muted/30 hover:border-border hover:bg-muted transition-all group active:scale-[0.98]"
             >
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 group-hover:bg-slate-200 dark:group-hover:bg-slate-700 flex items-center justify-center flex-shrink-0 transition-colors">
@@ -77,12 +78,11 @@ export default function NewJobModal({
                 <div>
                   <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">Create a New Customer</p>
                   <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 leading-relaxed">
-                    Go to Customers first, then return to schedule the job.
+                    Add a customer now, then continue creating the job.
                   </p>
                 </div>
               </div>
-              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 flex-shrink-0 transition-colors" />
-            </Link>
+            </button>
             </div>
           </div>
         </div>
