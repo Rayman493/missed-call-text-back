@@ -333,7 +333,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         automation: true,
         customerHealth: false,
         quickActions: true,
-        aiIntake: true, // Default to collapsed
+        aiIntake: false, // Default to expanded - show current request immediately
         jobs: true, // Default to collapsed for conversation-first
         payments: true, // Default to collapsed for conversation-first
         recentActivity: true // Default to collapsed for conversation-first
@@ -350,7 +350,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           automation: true,
           customerHealth: false,
           quickActions: true,
-          aiIntake: true,
+          aiIntake: false, // Default to expanded - show current request immediately
           jobs: true,
           payments: true,
           recentActivity: true
@@ -363,7 +363,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       automation: true,
       customerHealth: false,
       quickActions: true,
-      aiIntake: true, // Default to collapsed
+      aiIntake: false, // Default to expanded - show current request immediately
       jobs: true, // Default to collapsed for conversation-first
       payments: true, // Default to collapsed for conversation-first
       recentActivity: true // Default to collapsed for conversation-first
