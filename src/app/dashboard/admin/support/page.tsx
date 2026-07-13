@@ -335,7 +335,7 @@ export default function AdminSupportPage() {
     return `Until ${formattedDate}`
   }
 
-  const getBusinessIssueIndicator = (business: Business) => {
+  const getBusinessIssueIndicator = (business: Business, detail: any) => {
     const issues: string[] = []
 
     if (business.provisioning_status === 'failed') {
@@ -352,8 +352,15 @@ export default function AdminSupportPage() {
         issues.push(`Trial Expiring (${daysUntilExpiry}d)`)
       }
     }
-    if (!business.forwarding_verified && business.onboarding_status !== 'not_started') {
+    // Use operational verification for forwarding status
+    if (business.forwarding_verified && detail?.operational?.forwardingOperational === false) {
+      issues.push('Forwarding Not Working (Flagged)')
+    } else if (!business.forwarding_verified && business.onboarding_status !== 'not_started') {
       issues.push('Forwarding Not Verified')
+    }
+    // Use operational verification for Twilio status
+    if (business.twilio_phone_number && business.provisioning_status === 'completed' && detail?.operational?.twilioOperational === false) {
+      issues.push('Twilio Not Working (Flagged)')
     }
     if (!business.onboarding_status || !['completed', 'forwarding_verified'].includes(business.onboarding_status)) {
       const created = new Date(business.created_at)
@@ -368,7 +375,7 @@ export default function AdminSupportPage() {
   }
 
   const getBusinessHealthState = (business: Business, detail: any) => {
-    const issues = getBusinessIssueIndicator(business)
+    const issues = getBusinessIssueIndicator(business, detail)
     const hasCriticalIssues = business.provisioning_status === 'failed' || business.subscription_status === 'past_due'
     const hasHighIssues = issues.some(i => i.includes('Trial Expiring') || i.includes('Onboarding Incomplete'))
 
@@ -391,6 +398,25 @@ export default function AdminSupportPage() {
         description: 'This account is operating normally.',
         action: null,
         actionLabel: null
+      }
+    }
+
+    // Prioritize operational issues over stored field issues
+    if (detail?.operational?.forwardingOperational === false) {
+      return {
+        title: 'Investigate Forwarding Issue',
+        description: 'Forwarding is marked verified but no successful AI calls in 7 days. Forwarding may be broken despite the flag.',
+        action: null,
+        actionLabel: 'Contact Customer'
+      }
+    }
+
+    if (detail?.operational?.twilioOperational === false) {
+      return {
+        title: 'Investigate Twilio Issue',
+        description: 'Twilio number is provisioned but no successful SMS in 7 days. Messaging may be broken despite the flag.',
+        action: 'reconcile_messaging_service',
+        actionLabel: 'Reconcile Messaging'
       }
     }
 
@@ -824,7 +850,7 @@ export default function AdminSupportPage() {
                     Search Results ({searchResults.length})
                   </h3>
                   {searchResults.map((business) => {
-                    const issues = getBusinessIssueIndicator(business)
+                    const issues = getBusinessIssueIndicator(business, null)
                     return (
                       <div
                         key={business.id}
@@ -877,7 +903,7 @@ export default function AdminSupportPage() {
                 ) : recentBusinesses.length > 0 ? (
                   <div className="space-y-2">
                     {recentBusinesses.map((business) => {
-                      const issues = getBusinessIssueIndicator(business)
+                      const issues = getBusinessIssueIndicator(business, null)
                       return (
                         <div
                           key={business.id}
@@ -998,7 +1024,7 @@ export default function AdminSupportPage() {
                         <div>
                           <p className="text-slate-500 dark:text-slate-500">Issues</p>
                           <p className="text-slate-900 dark:text-foreground">
-                            {getBusinessIssueIndicator(selectedBusiness).length} detected
+                            {getBusinessIssueIndicator(selectedBusiness, businessDetail).length} detected
                           </p>
                         </div>
                       </div>

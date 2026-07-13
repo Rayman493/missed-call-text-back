@@ -136,6 +136,37 @@ export async function GET(request: NextRequest) {
       recentEvents = []
     }
 
+    // Operational verification: Check if forwarding is actually working
+    let forwardingOperational = false
+    if (business.forwarding_verified) {
+      // Check for recent successful AI calls (indicates forwarding is working)
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+      const { count: successfulAICalls } = await supabaseAdmin
+        .from('leads')
+        .select('id', { count: 'exact', head: true })
+        .eq('business_id', businessId)
+        .eq('ai_call_status', 'completed')
+        .gte('created_at', sevenDaysAgo)
+
+      forwardingOperational = (successfulAICalls || 0) > 0
+    }
+
+    // Operational verification: Check if Twilio number is actually provisioned
+    let twilioOperational = false
+    if (business.twilio_phone_number && business.provisioning_status === 'completed') {
+      // Check for recent successful SMS (indicates Twilio is working)
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+      const { count: successfulSMS } = await supabaseAdmin
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('business_id', businessId)
+        .eq('direction', 'outbound')
+        .in('status', ['sent', 'delivered'])
+        .gte('created_at', sevenDaysAgo)
+
+      twilioOperational = (successfulSMS || 0) > 0
+    }
+
     const detailData = {
       business: {
         ...business,
@@ -147,7 +178,11 @@ export async function GET(request: NextRequest) {
       smsFailureCount: smsFailureCount || 0,
       voicemail: latestVoicemail,
       voicemailFailureCount: voicemailFailureCount || 0,
-      recentEvents: recentEvents || []
+      recentEvents: recentEvents || [],
+      operational: {
+        forwardingOperational,
+        twilioOperational
+      }
     }
 
     console.log('[ADMIN BUSINESS DETAIL] Detail fetched successfully')
