@@ -2762,18 +2762,23 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       {/* Standard App Header */}
       <AppHeader />
 
-      {/* Conversation Sub-Header - Compact on mobile */}
-      <div className="bg-white/95 dark:bg-slate-950/95 border-b border-slate-200/80 dark:border-slate-800/80 backdrop-blur-xl">
-        <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-2 sm:py-3">
+      {/* Customer Identity Header - Distinct from global navigation */}
+      <div className="bg-muted/30 border-b border-border/50">
+        <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
           {/* Mobile Layout: Compact Information Header */}
           <div className="md:hidden">
             <div className="flex items-center justify-between gap-2">
               {/* Back button + Customer name */}
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <AppBackButton fallbackHref="/dashboard/leads" label="" />
-                <h1 className="font-semibold text-slate-950 dark:text-white text-base leading-tight truncate">
-                  {getLeadDisplayName(leadData || lead)}
-                </h1>
+                <div className="min-w-0">
+                  <h1 className="font-semibold text-foreground text-base leading-tight truncate">
+                    {getLeadDisplayName(leadData || lead)}
+                  </h1>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
+                  </p>
+                </div>
               </div>
               
               {/* Actions */}
@@ -2951,18 +2956,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           </div>
 
-          {/* Desktop Layout: Premium Header */}
+          {/* Desktop Layout: Premium Profile Header */}
           <div className="hidden md:block">
             {/* Back to Leads */}
-            <div className="mb-4">
-              <AppBackButton fallbackHref="/dashboard/leads" label="Back" />
+            <div className="mb-3">
+              <AppBackButton fallbackHref="/dashboard/leads" label="Back to Customers" />
             </div>
 
             {/* Simplified Two-Column Header */}
             <div className="flex items-start justify-between gap-6">
               {/* LEFT: Customer Info */}
               <div className="min-w-0 flex-1">
-                <h1 className="text-2xl font-semibold text-foreground tracking-tight mb-2">
+                <h1 className="text-2xl font-bold text-foreground tracking-tight mb-1">
                   {getLeadDisplayName(leadData || lead)}
                 </h1>
                 <p className="text-sm text-muted-foreground mb-2">
@@ -3202,18 +3207,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </div>
               ) : conversationTimeline.length === 0 ? (
                 <div className="flex items-center justify-center h-full py-12 animate-fadeIn">
-                  <div className="text-center max-w-md">
-                    <div className="w-16 h-16 bg-slate-50 dark:bg-slate-900/50 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-slate-200 dark:border-slate-800">
-                      <svg className="w-8 h-8 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="text-center max-w-md px-4">
+                    <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-border/50">
+                      <svg className="w-8 h-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
                     </div>
-                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-3">Start the conversation</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 max-w-sm mx-auto leading-relaxed">
-                      Send your first text message to this customer. Messages will appear here in real time as the conversation grows.
-                    </p>
-                    <p className="text-xs text-slate-400 dark:text-slate-500 max-w-xs mx-auto">
-                      Your message history, customer replies, AI requests, and timeline will automatically build here.
+                    <h3 className="text-lg font-semibold text-foreground mb-3">Ready to start a conversation</h3>
+                    <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
+                      Send a message below to contact this customer. Future messages and automatic follow-ups will appear here.
                     </p>
                   </div>
                 </div>
@@ -3425,15 +3427,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </div>
                 ) : conversationTimeline.length === 0 ? (
                   <div className="flex items-center justify-center h-full py-6 animate-fadeIn">
-                    <div className="text-center max-w-sm">
-                      <div className="w-12 h-12 bg-slate-50 dark:bg-slate-900/50 rounded-xl flex items-center justify-center mx-auto mb-3 border border-slate-200 dark:border-slate-800">
-                        <svg className="w-6 h-6 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="text-center max-w-sm px-4">
+                      <div className="w-12 h-12 bg-muted/50 rounded-xl flex items-center justify-center mx-auto mb-3 border border-border/50">
+                        <svg className="w-6 h-6 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                         </svg>
                       </div>
-                      <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-2">Start the conversation</h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto leading-relaxed">
-                        Send your first text message to this customer.
+                      <h3 className="text-sm font-semibold text-foreground mb-2">Ready to start a conversation</h3>
+                      <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
+                        Send a message below to contact this customer. Future messages and automatic follow-ups will appear here.
                       </p>
                     </div>
                   </div>
