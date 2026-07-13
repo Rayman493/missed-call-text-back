@@ -319,7 +319,7 @@ export default function PrivacyPage() {
                   </div>
                   <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                     <p className="text-sm text-blue-800 dark:text-blue-200">
-                      <strong>Account Closure:</strong> Upon account closure, data will be retained according to our privacy policy and applicable legal requirements. You may request data deletion by contacting privacy@replyflowhq.com.
+                      <strong>Account Closure:</strong> Upon account closure, data will be retained according to our privacy policy and applicable legal requirements. You may request data deletion by contacting support@replyflowhq.com.
                     </p>
                   </div>
                 </div>
@@ -509,12 +509,12 @@ export default function PrivacyPage() {
                       <div>
                         <p className="font-semibold text-blue-900 dark:text-blue-100">Privacy & Security</p>
                         <a 
-                          href="https://mail.google.com/mail/?view=cm&fs=1&to=privacy@replyflowhq.com" 
+                          href="https://mail.google.com/mail/?view=cm&fs=1&to=support@replyflowhq.com" 
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
                         >
-                          privacy@replyflowhq.com
+                          support@replyflowhq.com
                         </a>
                       </div>
                     </div>
