@@ -10,15 +10,15 @@ function extractRecordingSid(url: string): string | null {
 }
 
 // Stable key helper for message bubbles to prevent remounts during reconciliation
-// Prefers database ID when available, otherwise clientMessageId, otherwise fallback
+// Prefers clientMessageId to maintain stability during optimistic-to-persisted transition
 function getMessageKey(msg: any): string {
+  // If it has a clientMessageId, use that for optimistic messages (prevents key changes during reconciliation)
+  if (msg.clientMessageId) {
+    return msg.clientMessageId
+  }
   // If it's a real database ID (not a UUID), use it
   if (msg.id && !msg.id.includes('-')) {
     return msg.id
-  }
-  // If it has a clientMessageId, use that for optimistic messages
-  if (msg.clientMessageId) {
-    return msg.clientMessageId
   }
   // Fallback to the id (could be UUID for optimistic messages)
   return msg.id || 'unknown'

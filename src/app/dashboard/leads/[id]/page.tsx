@@ -208,25 +208,6 @@ function getMonotonicStatus(currentStatus: string, newStatus: string): string {
  * - Preserves chronological ordering
  */
 function mergeMessageWithMonotonicity(existingMessages: any[], incomingMessage: any, source: string = 'unknown'): any[] {
-  console.log('[MERGE START]', {
-    source,
-    incoming: {
-      id: incomingMessage.id,
-      clientMessageId: incomingMessage.clientMessageId || incomingMessage.client_message_id,
-      twilioMessageSid: incomingMessage.twilio_message_sid,
-      direction: incomingMessage.direction,
-      status: incomingMessage.status,
-      preview: (incomingMessage.body || incomingMessage.message_body || '').substring(0, 20),
-      createdAt: incomingMessage.created_at
-    },
-    existingCount: existingMessages.length,
-    existingIds: existingMessages.map(m => ({
-      id: m.id,
-      clientMessageId: m.clientMessageId || m.client_message_id,
-      twilioMessageSid: m.twilio_message_sid
-    }))
-  })
-
   const messageMap = new Map<string, any>()
   
   // Add existing messages first
@@ -281,31 +262,12 @@ function mergeMessageWithMonotonicity(existingMessages: any[], incomingMessage: 
     if (matchKey === 'clientMessageId' && incomingMessage.id && incomingMessage.id !== existingMessage.id) {
       messageMap.delete(existingMessage.id)
       messageMap.set(incomingMessage.id, mergedMessage)
-      console.log('[MERGE] Replaced optimistic message with persisted message:', {
-        source,
-        matchKey,
-        clientMessageId: incomingClientMessageId,
-        oldId: existingMessage.id,
-        newId: incomingMessage.id
-      })
     } else {
       messageMap.set(existingMessage.id, mergedMessage)
-      console.log('[MERGE] Updated existing message:', {
-        source,
-        matchKey,
-        messageId: existingMessage.id,
-        oldStatus: existingMessage.status,
-        newStatus: mergedMessage.status
-      })
     }
   } else {
     // New message - add to map
     messageMap.set(incomingMessage.id, incomingMessage)
-    console.log('[MERGE] Added new message:', {
-      source,
-      messageId: incomingMessage.id,
-      status: incomingMessage.status
-    })
   }
   
   // Convert back to array and sort chronologically
@@ -320,17 +282,6 @@ function mergeMessageWithMonotonicity(existingMessages: any[], incomingMessage: 
     
     // Final tie-breaker: id ascending
     return a.id.localeCompare(b.id)
-  })
-
-  console.log('[MERGE END]', {
-    source,
-    resultCount: sorted.length,
-    resultIds: sorted.map(m => ({
-      id: m.id,
-      clientMessageId: m.clientMessageId || m.client_message_id,
-      status: m.status,
-      preview: (m.body || m.message_body || '').substring(0, 20)
-    }))
   })
 
   return sorted
@@ -726,12 +677,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   // Merge messages by ID to prevent overwriting local state with stale data
   // Always re-sort by chronological timestamp with tie-breakers
   const mergeMessagesById = (existingMessages: any[], newMessages: any[], source: string = 'mergeMessagesById') => {
-    console.log('[MERGE MESSAGES BY ID START]', {
-      source,
-      existingCount: existingMessages.length,
-      newCount: newMessages.length
-    })
-    
     let merged = existingMessages
     
     // Merge each new message using the canonical merge function
@@ -739,10 +684,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       merged = mergeMessageWithMonotonicity(merged, msg, `${source}[${index}]`)
     })
     
-    console.log('[MERGE MESSAGES BY ID END]', {
-      source,
-      finalCount: merged.length
-    })
     return merged
   }
 
