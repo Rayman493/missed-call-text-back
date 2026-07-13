@@ -10,7 +10,7 @@ import HomepageErrorBoundary from '@/components/HomepageErrorBoundary'
 import HomepageInteractiveDemo from '@/components/HomepageInteractiveDemo'
 import HomepageAuthRedirect from '@/components/HomepageAuthRedirect'
 import HomepageCTA from '@/components/HomepageCTA'
-import { motion } from 'framer-motion'
+import ScrollAnimation from '@/components/ScrollAnimation'
 
 // Structured Data for Google Search
 function StructuredData() {
@@ -111,200 +111,205 @@ export default async function Home() {
 
       {/* Hero Section - SAFE VERSION WITHOUT FRAMER-MOTION */}
       <HomepageErrorBoundary>
-        <section className="relative flex flex-col items-center justify-center py-16 sm:py-20 md:py-28 lg:py-32 text-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-background dark:via-muted dark:to-background overflow-hidden">
-          {/* Premium background effects */}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/50 to-transparent dark:from-transparent dark:via-muted/30 dark:to-transparent"></div>
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-blue-500/5 dark:bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
-          <div className="absolute top-20 right-0 w-[400px] h-[400px] bg-blue-400/5 dark:bg-blue-400/10 rounded-full blur-3xl pointer-events-none"></div>
-          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-400/5 dark:bg-indigo-400/10 rounded-full blur-3xl pointer-events-none"></div>
-          
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 sm:space-y-10 md:space-y-12 relative z-10">
-            <div className="flex flex-col items-center text-center gap-y-8 sm:gap-y-10">
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] sm:leading-[1.15] text-slate-900 dark:text-foreground">
-                Never Miss a Lead Again
-              </h1>
-              <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-slate-700 dark:text-slate-300 max-w-2xl sm:max-w-3xl leading-relaxed sm:leading-relaxed md:leading-relaxed lg:leading-relaxed">
-                AI Voice answers forwarded missed calls, collects caller information, and helps you turn missed calls into customers — all while you focus on running your business.
-              </p>
+        <ScrollAnimation>
+          <section className="relative flex flex-col items-center justify-center py-16 sm:py-20 md:py-28 lg:py-32 text-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-background dark:via-muted dark:to-background overflow-hidden">
+            {/* Premium background effects */}
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/50 to-transparent dark:from-transparent dark:via-muted/30 dark:to-transparent"></div>
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-blue-500/5 dark:bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="absolute top-20 right-0 w-[400px] h-[400px] bg-blue-400/5 dark:bg-blue-400/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-400/5 dark:bg-indigo-400/10 rounded-full blur-3xl pointer-events-none"></div>
 
-              <div className="flex flex-col items-center gap-y-3 sm:gap-y-4">
-                {/* Primary CTA */}
-                <HomepageCTA variant="hero" />
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 sm:space-y-10 md:space-y-12 relative z-10">
+              <div className="flex flex-col items-center text-center gap-y-8 sm:gap-y-10">
+                <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] sm:leading-[1.15] text-slate-900 dark:text-foreground">
+                  Never Miss a Lead Again
+                </h1>
+                <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-slate-700 dark:text-slate-300 max-w-2xl sm:max-w-3xl leading-relaxed sm:leading-relaxed md:leading-relaxed lg:leading-relaxed">
+                  AI Voice answers forwarded missed calls, collects caller information, and helps you turn missed calls into customers — all while you focus on running your business.
+                </p>
 
-                {/* Trust Indicators - Desktop */}
-                <div className="hidden sm:block">
-                  <div className="flex items-center justify-center gap-8 sm:gap-12">
-                    <div className="flex items-center justify-center gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-400">
-                      <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span className="leading-none font-medium">Capture More Leads</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-400">
-                      <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span className="leading-none font-medium">No Contracts</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-400">
-                      <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span className="leading-none font-medium">Keep Your Existing Number</span>
+                <div className="flex flex-col items-center gap-y-3 sm:gap-y-4">
+                  {/* Primary CTA */}
+                  <HomepageCTA variant="hero" />
+
+                  {/* Trust Indicators - Desktop */}
+                  <div className="hidden sm:block">
+                    <div className="flex items-center justify-center gap-8 sm:gap-12">
+                      <div className="flex items-center justify-center gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-400">
+                        <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span className="leading-none font-medium">Capture More Leads</span>
+                      </div>
+                      <div className="flex items-center justify-center gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-400">
+                        <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span className="leading-none font-medium">No Contracts</span>
+                      </div>
+                      <div className="flex items-center justify-center gap-2 text-sm sm:text-base text-slate-700 dark:text-slate-400">
+                        <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span className="leading-none font-medium">Keep Your Existing Number</span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Trust Indicators - Mobile */}
-                <div className="sm:hidden">
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="flex items-center justify-center gap-2 text-sm text-slate-700 dark:text-slate-400">
-                      <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span className="leading-none font-medium">Capture More Leads</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-2 text-sm text-slate-700 dark:text-slate-400">
-                      <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span className="leading-none font-medium">No Contracts</span>
-                    </div>
-                    <div className="flex items-center justify-center gap-2 text-sm text-slate-700 dark:text-slate-400">
-                      <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span className="leading-none font-medium">Keep Your Existing Number</span>
+                  {/* Trust Indicators - Mobile */}
+                  <div className="sm:hidden">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="flex items-center justify-center gap-2 text-sm text-slate-700 dark:text-slate-400">
+                        <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span className="leading-none font-medium">Capture More Leads</span>
+                      </div>
+                      <div className="flex items-center justify-center gap-2 text-sm text-slate-700 dark:text-slate-400">
+                        <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span className="leading-none font-medium">No Contracts</span>
+                      </div>
+                      <div className="flex items-center justify-center gap-2 text-sm text-slate-700 dark:text-slate-400">
+                        <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span className="leading-none font-medium">Keep Your Existing Number</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        </ScrollAnimation>
       </HomepageErrorBoundary>
 
       {/* Product Preview */}
       <HomepageErrorBoundary>
-        <section className="bg-white dark:bg-background py-12 sm:py-16 md:py-20 border-t border-slate-200 dark:border-slate-800">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="relative">
-              {/* Product Mockup Card */}
-              <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden">
-                {/* Mockup Header */}
-                <div className="bg-slate-900 dark:bg-slate-950 px-4 sm:px-6 py-3 flex items-center gap-2">
-                  <div className="flex gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-red-500" />
-                    <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                    <div className="w-3 h-3 rounded-full bg-green-500" />
+        <ScrollAnimation>
+          <section className="bg-white dark:bg-background py-12 sm:py-16 md:py-20 border-t border-slate-200 dark:border-slate-800">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="relative">
+                {/* Product Mockup Card */}
+                <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden">
+                  {/* Mockup Header */}
+                  <div className="bg-slate-900 dark:bg-slate-950 px-4 sm:px-6 py-3 flex items-center gap-2">
+                    <div className="flex gap-1.5">
+                      <div className="w-3 h-3 rounded-full bg-red-500" />
+                      <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                      <div className="w-3 h-3 rounded-full bg-green-500" />
+                    </div>
                   </div>
-                </div>
-                
-                {/* Mockup Content */}
-                <div className="p-4 sm:p-6 md:p-8">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
-                    {/* Step 1: Missed Call */}
-                    <div className="bg-white dark:bg-slate-800 rounded-xl p-4 sm:p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                          <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M5 3a2 2 0 00-2 2v1c0 8.284 6.716 15 15 15h1a2 2 0 002-2v-3.28a1 1 0 00-.684-.948l-4.493-1.498a1 1 0 00-1.21.502l-1.13 2.257a11.042 11.042 0 01-5.516-5.517l2.257-1.128a1 1 0 00.502-1.21L9.228 3.683A1 1 0 008.279 3H5z" />
-                          </svg>
+                  
+                  {/* Mockup Content */}
+                  <div className="p-4 sm:p-6 md:p-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
+                      {/* Step 1: Missed Call */}
+                      <div className="bg-white dark:bg-slate-800 rounded-xl p-4 sm:p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                            <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M5 3a2 2 0 00-2 2v1c0 8.284 6.716 15 15 15h1a2 2 0 002-2v-3.28a1 1 0 00-.684-.948l-4.493-1.498a1 1 0 00-1.21.502l-1.13 2.257a11.042 11.042 0 01-5.516-5.517l2.257-1.128a1 1 0 00.502-1.21L9.228 3.683A1 1 0 008.279 3H5z" />
+                            </svg>
+                          </div>
+                          <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Step 1</span>
                         </div>
-                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Step 1</span>
+                        <div className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">Missed Call</div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400">Customer calls your business number</div>
+                        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+                          <div className="text-xs text-slate-500 dark:text-slate-500">+1 (555) 123-4567</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-500 mt-1">2 min ago</div>
+                        </div>
                       </div>
-                      <div className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">Missed Call</div>
-                      <div className="text-xs text-slate-600 dark:text-slate-400">Customer calls your business number</div>
-                      <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
-                        <div className="text-xs text-slate-500 dark:text-slate-500">+1 (555) 123-4567</div>
-                        <div className="text-xs text-slate-500 dark:text-slate-500 mt-1">2 min ago</div>
-                      </div>
-                    </div>
 
-                    {/* Step 2: AI Answers */}
-                    <div className="bg-white dark:bg-slate-800 rounded-xl p-4 sm:p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                          <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                          </svg>
+                      {/* Step 2: AI Answers */}
+                      <div className="bg-white dark:bg-slate-800 rounded-xl p-4 sm:p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                            <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                            </svg>
+                          </div>
+                          <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Step 2</span>
                         </div>
-                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Step 2</span>
-                      </div>
-                      <div className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">AI Voice Answers</div>
-                      <div className="text-xs text-slate-600 dark:text-slate-400">"Hi, thanks for calling. How can I help you today?"</div>
-                      <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                          <div className="text-xs text-slate-500 dark:text-slate-500">Recording...</div>
+                        <div className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">AI Voice Answers</div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400">"Hi, thanks for calling. How can I help you today?"</div>
+                        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                            <div className="text-xs text-slate-500 dark:text-slate-500">Recording...</div>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Step 3: Lead Captured */}
-                    <div className="bg-white dark:bg-slate-800 rounded-xl p-4 sm:p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                          <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
+                      {/* Step 3: Lead Captured */}
+                      <div className="bg-white dark:bg-slate-800 rounded-xl p-4 sm:p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                            <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                          <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Step 3</span>
                         </div>
-                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Step 3</span>
+                        <div className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">Lead Captured</div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400">Name: John Smith</div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Service: Plumbing Repair</div>
+                        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+                          <div className="text-xs text-green-600 dark:text-green-400 font-medium">✓ Information saved</div>
+                        </div>
                       </div>
-                      <div className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">Lead Captured</div>
-                      <div className="text-xs text-slate-600 dark:text-slate-400">Name: John Smith</div>
-                      <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Service: Plumbing Repair</div>
-                      <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
-                        <div className="text-xs text-green-600 dark:text-green-400 font-medium">✓ Information saved</div>
-                      </div>
-                    </div>
 
-                    {/* Step 4: Job Scheduled */}
-                    <div className="bg-white dark:bg-slate-800 rounded-xl p-4 sm:p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                          <svg className="w-4 h-4 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
+                      {/* Step 4: Job Scheduled */}
+                      <div className="bg-white dark:bg-slate-800 rounded-xl p-4 sm:p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                            <svg className="w-4 h-4 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                          <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Step 4</span>
                         </div>
-                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Step 4</span>
+                        <div className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">Job Scheduled</div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400">Tomorrow, 2:00 PM</div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Plumbing Repair</div>
+                        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+                          <div className="text-xs text-purple-600 dark:text-purple-400 font-medium">✓ Confirmed</div>
+                        </div>
                       </div>
-                      <div className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">Job Scheduled</div>
-                      <div className="text-xs text-slate-600 dark:text-slate-400">Tomorrow, 2:00 PM</div>
-                      <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Plumbing Repair</div>
-                      <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
-                        <div className="text-xs text-purple-600 dark:text-purple-400 font-medium">✓ Confirmed</div>
-                      </div>
-                    </div>
 
-                    {/* Step 5: Payment Requested */}
-                    <div className="bg-white dark:bg-slate-800 rounded-xl p-4 sm:p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                          <svg className="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
+                      {/* Step 5: Payment Requested */}
+                      <div className="bg-white dark:bg-slate-800 rounded-xl p-4 sm:p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                            <svg className="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                          <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Step 5</span>
                         </div>
-                        <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Step 5</span>
-                      </div>
-                      <div className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">Payment Requested</div>
-                      <div className="text-xs text-slate-600 dark:text-slate-400">$425 Plumbing Repair</div>
-                      <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Text message sent</div>
-                      <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
-                        <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">✓ Awaiting payment</div>
+                        <div className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">Payment Requested</div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400">$425 Plumbing Repair</div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Text message sent</div>
+                        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+                          <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">✓ Awaiting payment</div>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        </ScrollAnimation>
       </HomepageErrorBoundary>
 
       {/* How It Works */}
       <HomepageErrorBoundary>
-        <section className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-4 sm:py-5 md:py-7 border-t border-slate-200 dark:border-border">
+        <ScrollAnimation>
+          <section className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-4 sm:py-5 md:py-7 border-t border-slate-200 dark:border-border">
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center mb-3 sm:mb-4 md:mb-5">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-2 sm:mb-3">
@@ -498,11 +503,13 @@ export default async function Home() {
             </div>
           </div>
         </section>
+        </ScrollAnimation>
       </HomepageErrorBoundary>
 
       {/* Lead Capture Callout */}
       <HomepageErrorBoundary>
-        <section className="bg-white dark:bg-background py-3 sm:py-4 md:py-5 border-t border-slate-200 dark:border-slate-800">
+        <ScrollAnimation>
+          <section className="bg-white dark:bg-background py-3 sm:py-4 md:py-5 border-t border-slate-200 dark:border-slate-800">
           <div className="max-w-4xl mx-auto px-6 lg:px-8">
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-3 sm:p-4 text-center">
               <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-foreground mb-1 sm:mb-1.5">
@@ -525,6 +532,7 @@ export default async function Home() {
             </div>
           </div>
         </section>
+        </ScrollAnimation>
       </HomepageErrorBoundary>
 
 
@@ -535,7 +543,8 @@ export default async function Home() {
 
       {/* Features Section */}
       <HomepageErrorBoundary>
-        <section id="features-section" className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-7 sm:py-9 md:py-12 border-t border-slate-200 dark:border-border">
+        <ScrollAnimation>
+          <section id="features-section" className="bg-gradient-to-b from-slate-50 to-white dark:from-muted dark:to-background py-7 sm:py-9 md:py-12 border-t border-slate-200 dark:border-border">
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center mb-6 sm:mb-8 md:mb-10">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-2 sm:mb-3">
@@ -611,11 +620,13 @@ export default async function Home() {
             </div>
           </div>
         </section>
+        </ScrollAnimation>
       </HomepageErrorBoundary>
 
       {/* Why Businesses Choose ReplyFlow - Trust Section */}
       <HomepageErrorBoundary>
-        <section className="bg-white dark:bg-background py-10 sm:py-14 md:py-16 border-t border-slate-200 dark:border-slate-800">
+        <ScrollAnimation>
+          <section className="bg-white dark:bg-background py-10 sm:py-14 md:py-16 border-t border-slate-200 dark:border-slate-800">
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center mb-8 sm:mb-10 md:mb-12">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-3 sm:mb-4">
@@ -813,12 +824,14 @@ export default async function Home() {
             </div>
           </div>
         </section>
+        </ScrollAnimation>
       </HomepageErrorBoundary>
 
       
       {/* Final CTA Section */}
       <HomepageErrorBoundary>
-        <section className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 py-10 sm:py-14 md:py-16 border-t border-blue-200 dark:border-blue-800">
+        <ScrollAnimation>
+          <section className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 py-10 sm:py-14 md:py-16 border-t border-blue-200 dark:border-blue-800">
           <div className="max-w-5xl mx-auto px-6 lg:px-8 text-center">
             <div>
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 dark:text-foreground mb-4 sm:mb-5 md:mb-6">
@@ -832,6 +845,7 @@ export default async function Home() {
             </div>
           </div>
         </section>
+        </ScrollAnimation>
       </HomepageErrorBoundary>
       <Footer />
       </PageBackground>
