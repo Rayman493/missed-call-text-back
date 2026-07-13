@@ -23,7 +23,6 @@ import JobDetailsModal from '@/components/jobs/JobDetailsModal'
 import TodaySchedule from '@/components/jobs/TodaySchedule'
 import NewJobModal from '@/components/jobs/NewJobModal'
 import LeadPickerModal from '@/components/jobs/LeadPickerModal'
-import AddCustomerModal from '@/components/AddCustomerModal'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import type { Job, JobStatus, JobPrefill } from '@/components/jobs/JobComposer'
 
@@ -73,7 +72,6 @@ export default function SchedulePage() {
   const [newJobWorkflowPrompt, setNewJobWorkflowPrompt] = useState('Select a customer to create a job for')
   const [newJobDefaultDate, setNewJobDefaultDate] = useState<Date | undefined>(undefined)
   const [isLeadPickerOpen, setIsLeadPickerOpen] = useState(false)
-  const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false)
   const [isJobComposerOpen, setIsJobComposerOpen] = useState(false)
   const [jobPrefill, setJobPrefill] = useState<JobPrefill | undefined>(undefined)
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
@@ -492,40 +490,6 @@ export default function SchedulePage() {
   const handleJobDeleted = (job: Job) => {
     setJobs(prev => prev.filter(j => j.id !== job.id))
     showToast('Job deleted', 'success')
-  }
-
-  const handleLeadCreated = async (leadId: string) => {
-    try {
-      const response = await fetch(`/api/lead-details?id=${leadId}`, { credentials: 'include' })
-      const data = await response.json()
-      if (!data.ok || !data.lead) {
-        throw new Error(data.error || 'Failed to load customer details')
-      }
-      const lead = data.lead
-      const conversationId = data.conversation?.id || lead.conversation_id || null
-      const intake = getLeadAIIntake(lead)
-      const noteParts = [
-        intake.additionalDetails,
-        intake.desiredCompletion ? `Desired completion: ${intake.desiredCompletion}` : null,
-        intake.callbackTime ? `Best callback time: ${intake.callbackTime}` : null,
-      ].filter(Boolean)
-
-      const prefill: JobPrefill = {
-        customer_name: intake.customerName || undefined,
-        customer_phone: intake.customerPhone || lead.caller_phone || undefined,
-        service_address: intake.serviceAddress || undefined,
-        title: intake.serviceRequested || undefined,
-        notes: noteParts.length > 0 ? noteParts.join('\n\n') : undefined,
-        lead_id: lead.id,
-        conversation_id: conversationId || undefined,
-      }
-      setJobPrefill(prefill)
-      setIsAddCustomerModalOpen(false)
-      setIsJobComposerOpen(true)
-    } catch (error) {
-      console.error('Error loading lead details after creation:', error)
-      showToast('Failed to load customer details. Please try again.', 'error')
-    }
   }
 
   const getJobsForDay = (date: Date): Job[] => {
@@ -1136,14 +1100,13 @@ export default function SchedulePage() {
                     </div>
                   )}
 
-                  {/* Lead Selection / Creation Modal */}
+                  {/* Lead Selection Modal */}
                   <NewJobModal
                     title={newJobWorkflowTitle}
                     prompt={newJobWorkflowPrompt}
                     isOpen={isNewJobModalOpen}
                     onClose={() => setIsNewJobModalOpen(false)}
                     onSelectLead={() => setIsLeadPickerOpen(true)}
-                    onAddCustomer={() => setIsAddCustomerModalOpen(true)}
                   />
 
                   {/* Lead Picker Modal */}
@@ -1157,14 +1120,6 @@ export default function SchedulePage() {
                       setIsLeadPickerOpen(false)
                       setIsJobComposerOpen(true)
                     }}
-                    onAddNew={() => setIsAddCustomerModalOpen(true)}
-                  />
-
-                  {/* Add Customer Modal */}
-                  <AddCustomerModal
-                    isOpen={isAddCustomerModalOpen}
-                    onClose={() => setIsAddCustomerModalOpen(false)}
-                    onLeadCreated={handleLeadCreated}
                   />
 
                   {/* Job Composer Modal */}

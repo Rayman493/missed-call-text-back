@@ -1,13 +1,13 @@
 'use client'
 
-import { X, FileText, Users } from 'lucide-react'
+import { X, Users, ArrowRight } from 'lucide-react'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import Link from 'next/link'
 
 interface NewJobModalProps {
   isOpen: boolean
   onClose: () => void
   onSelectLead: () => void
-  onAddCustomer: () => void
   title?: string
   prompt?: string
 }
@@ -16,7 +16,6 @@ export default function NewJobModal({
   isOpen,
   onClose,
   onSelectLead,
-  onAddCustomer,
   title = 'Create Job',
   prompt = 'Select a customer to create a job for',
 }: NewJobModalProps) {
@@ -48,8 +47,8 @@ export default function NewJobModal({
             </div>
 
             {/* Options */}
-            <div className="px-4 pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))] space-y-2">
-            {/* Existing Lead */}
+            <div className="px-4 pt-2 pb-4 space-y-3">
+            {/* Existing Lead - Primary Action */}
             <button
               onClick={() => { onClose(); onSelectLead() }}
               className="w-full flex items-start gap-3 p-3 rounded-xl border border-border/50 bg-muted/50 hover:border-border hover:bg-muted transition-all text-left group active:scale-[0.98]"
@@ -60,26 +59,37 @@ export default function NewJobModal({
               <div>
                 <p className="text-sm font-semibold text-foreground">Select Existing Customer</p>
                 <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                  Choose from your existing customers.
+                  Choose from customers already in ReplyFlow.
                 </p>
               </div>
             </button>
 
-            {/* Add New Customer */}
-            <button
-              onClick={() => { onClose(); onAddCustomer() }}
-              className="w-full flex items-start gap-3 p-3 rounded-xl border border-border/50 bg-muted/50 hover:border-border hover:bg-muted transition-all text-left group active:scale-[0.98]"
+            {/* Flow Explanation */}
+            <div className="px-1 py-2">
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                Jobs are scheduled for customers already in ReplyFlow. Create the customer from the Customers page first, then return here to schedule their job.
+              </p>
+            </div>
+
+            {/* Go to Customers - Secondary Action */}
+            <Link
+              href="/dashboard/leads"
+              onClick={onClose}
+              className="w-full flex items-center justify-between gap-3 p-3 rounded-xl border border-border/30 bg-muted/30 hover:border-border hover:bg-muted transition-all group active:scale-[0.98]"
             >
-              <div className="w-8 h-8 rounded-xl bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center flex-shrink-0 transition-colors">
-                <FileText className="w-4.5 h-4.5 text-muted-foreground group-hover:text-primary transition-colors" />
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 group-hover:bg-slate-200 dark:group-hover:bg-slate-700 flex items-center justify-center flex-shrink-0 transition-colors">
+                  <Users className="w-4 h-4 text-slate-500 dark:text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">Need to create a customer first?</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 leading-relaxed">
+                    Customers are created from the Customers page before jobs are scheduled.
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">Add New Customer</p>
-                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                  Add a new customer in Customers, then create the job.
-                </p>
-              </div>
-            </button>
+              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 flex-shrink-0 transition-colors" />
+            </Link>
             </div>
           </div>
         </div>
