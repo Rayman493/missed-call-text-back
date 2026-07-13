@@ -1257,12 +1257,12 @@ export default function LeadsPage() {
                           </div>
 
                           {/* Action Buttons - Improved mobile touch targets */}
-                          <div className="flex items-center gap-2 pt-2.5 border-t border-border/30 mt-auto">
+                          <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-2 pt-2.5 border-t border-border/30 mt-auto">
                             {lead.caller_phone && lead.caller_phone !== '+10000000000' && (
                               <a
                                 href={`tel:${lead.caller_phone}`}
                                 onClick={(e) => e.stopPropagation()}
-                                className="flex sm:hidden flex-1 inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-muted hover:bg-muted/80 text-muted-foreground text-xs font-medium rounded-lg transition-colors group-hover:bg-primary/10 group-hover:text-primary whitespace-nowrap"
+                                className="flex sm:hidden inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-muted hover:bg-muted/80 text-muted-foreground text-xs font-medium rounded-lg transition-colors group-hover:bg-primary/10 group-hover:text-primary whitespace-nowrap"
                                 title="Call"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1271,7 +1271,7 @@ export default function LeadsPage() {
                                 Call
                               </a>
                             )}
-                            <div className="flex-1 sm:flex-1 inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-all duration-200 cursor-pointer whitespace-nowrap shadow-sm hover:shadow"
+                            <div className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-all duration-200 cursor-pointer whitespace-nowrap shadow-sm hover:shadow"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 router.push(`/dashboard/leads/${lead.id}`)
@@ -1499,12 +1499,12 @@ export default function LeadsPage() {
                               </div>
 
                               {/* Action Buttons - Improved mobile touch targets */}
-                              <div className="flex items-center gap-1 sm:gap-1.5 pt-1.5 sm:pt-2 border-t border-border/30">
+                              <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-1 sm:gap-1.5 pt-1.5 sm:pt-2 border-t border-border/30">
                                 {lead.caller_phone && lead.caller_phone !== '+10000000000' && (
                                   <a
                                     href={`tel:${lead.caller_phone}`}
                                     onClick={(e) => e.stopPropagation()}
-                                    className="flex sm:hidden flex-1 inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2 py-1.5 sm:px-2.5 sm:py-1.5 bg-muted hover:bg-muted/80 text-muted-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-colors group-hover:bg-primary/10 group-hover:text-primary whitespace-nowrap"
+                                    className="flex sm:hidden inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2 py-1.5 sm:px-2.5 sm:py-1.5 bg-muted hover:bg-muted/80 text-muted-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-colors group-hover:bg-primary/10 group-hover:text-primary whitespace-nowrap"
                                     title="Call"
                                   >
                                     <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1513,7 +1513,7 @@ export default function LeadsPage() {
                                     <span className="hidden sm:inline">Call</span>
                                   </a>
                                 )}
-                                <div className="flex-1 inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2 py-1.5 sm:px-2.5 sm:py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-all duration-200 cursor-pointer whitespace-nowrap shadow-sm hover:shadow"
+                                <div className="inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2 py-1.5 sm:px-2.5 sm:py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-all duration-200 cursor-pointer whitespace-nowrap shadow-sm hover:shadow"
                                   onClick={(e) => {
                                     e.stopPropagation()
                                     router.push(`/dashboard/leads/${lead.id}`)
