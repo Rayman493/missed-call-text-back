@@ -5,6 +5,7 @@ import Footer from '@/components/Footer'
 import PageBackground from '@/components/PageBackground'
 import DocumentationHero from '@/components/DocumentationHero'
 import DocumentationLayout from '@/components/DocumentationLayout'
+import DocumentationSidebar from '@/components/DocumentationSidebar'
 
 export const metadata: Metadata = {
   title: 'ReplyFlowHQ Compliance | Automated Missed-Call Text Response',
@@ -12,81 +13,19 @@ export const metadata: Metadata = {
 }
 
 export default function CompliancePage() {
-  const sidebar = (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-6">
-      <h3 className="text-base font-semibold text-foreground mb-5">
-        Contents
-      </h3>
-      <nav className="space-y-3" aria-label="Table of contents">
-        <a
-          href="#messaging-use-case"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          Messaging Use Case
-        </a>
-        <a
-          href="#missed-call-workflow"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          Missed-Call Response Workflow
-        </a>
-        <a
-          href="#consent-disclosures"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          Consent & Disclosures
-        </a>
-        <a
-          href="#opt-in-process"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          Opt-In Process
-        </a>
-        <a
-          href="#stop-help"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          STOP/HELP Compliance
-        </a>
-        <a
-          href="#data-privacy"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          Data Privacy
-        </a>
-        <a
-          href="#ai-voicemail"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          AI Voice Compliance
-        </a>
-        <a
-          href="#call-recording"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          Call Recording Notice
-        </a>
-        <a
-          href="#voice-sms"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          Voice + SMS Compliance
-        </a>
-        <a
-          href="#business-responsibilities"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          ReplyFlowHQ LLC Responsibilities
-        </a>
-        <a
-          href="#contact-support"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          Contact Support
-        </a>
-      </nav>
-    </div>
-  )
+  const sections = [
+    { id: 'messaging-use-case', label: 'Messaging Use Case' },
+    { id: 'missed-call-workflow', label: 'Missed-Call Response Workflow' },
+    { id: 'consent-disclosures', label: 'Consent & Disclosures' },
+    { id: 'opt-in-process', label: 'Opt-In Process' },
+    { id: 'stop-help', label: 'STOP/HELP Compliance' },
+    { id: 'data-privacy', label: 'Data Privacy' },
+    { id: 'ai-voicemail', label: 'AI Voice Compliance' },
+    { id: 'call-recording', label: 'Call Recording Notice' },
+    { id: 'voice-sms', label: 'Voice + SMS Compliance' },
+    { id: 'business-responsibilities', label: 'ReplyFlowHQ LLC Responsibilities' },
+    { id: 'contact-support', label: 'Contact Support' },
+  ]
 
   return (
     <PageBackground>
@@ -111,7 +50,7 @@ export default function CompliancePage() {
       />
 
       {/* Compliance Content */}
-      <DocumentationLayout sidebar={sidebar}>
+      <DocumentationLayout sidebar={<DocumentationSidebar sections={sections} />}>
           
           {/* Messaging Use Case */}
           <section id="messaging-use-case" className="scroll-mt-24">

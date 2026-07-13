@@ -1,10 +1,10 @@
 import { Metadata } from 'next'
-import Link from 'next/link'
 import SSRSafeNavbar from '@/components/SSRSafeNavbar'
 import Footer from '@/components/Footer'
 import PageBackground from '@/components/PageBackground'
 import DocumentationHero from '@/components/DocumentationHero'
 import DocumentationLayout from '@/components/DocumentationLayout'
+import DocumentationSidebar from '@/components/DocumentationSidebar'
 
 export const metadata: Metadata = {
   title: 'ReplyFlowHQ Privacy Policy | Data Protection & Security',
@@ -12,75 +12,18 @@ export const metadata: Metadata = {
 }
 
 export default function PrivacyPage() {
-  const sidebar = (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-6">
-      <h3 className="text-base font-semibold text-foreground mb-5">
-        Contents
-      </h3>
-      <nav className="space-y-3" aria-label="Table of contents">
-        <a
-          href="#introduction"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          Our Commitment to Privacy
-        </a>
-        <a
-          href="#information-we-collect"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          Information We Collect
-        </a>
-        <a
-          href="#how-we-use-information"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          How We Use Information
-        </a>
-        <a
-          href="#voice-ai-services"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          Voice & AI Services
-        </a>
-        <a
-          href="#data-security"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          Data Security
-        </a>
-        <a
-          href="#data-retention"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          Data Retention
-        </a>
-        <a
-          href="#third-party-providers"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          Third-Party Providers
-        </a>
-        <a
-          href="#google-api-services"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          Google API Services
-        </a>
-        <a
-          href="#your-rights"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          Your Privacy Rights
-        </a>
-        <a
-          href="#contact-information"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          Contact Us
-        </a>
-      </nav>
-    </div>
-  )
+  const sections = [
+    { id: 'introduction', label: 'Our Commitment to Privacy' },
+    { id: 'information-we-collect', label: 'Information We Collect' },
+    { id: 'how-we-use-information', label: 'How We Use Information' },
+    { id: 'voice-ai-services', label: 'Voice & AI Services' },
+    { id: 'data-security', label: 'Data Security' },
+    { id: 'data-retention', label: 'Data Retention' },
+    { id: 'third-party-providers', label: 'Third-Party Providers' },
+    { id: 'google-api-services', label: 'Google API Services' },
+    { id: 'your-rights', label: 'Your Privacy Rights' },
+    { id: 'contact-information', label: 'Contact Us' },
+  ]
 
   return (
     <PageBackground>
@@ -106,7 +49,7 @@ export default function PrivacyPage() {
       />
 
       {/* Privacy Content */}
-      <DocumentationLayout sidebar={sidebar}>
+      <DocumentationLayout sidebar={<DocumentationSidebar sections={sections} />}>
           
           {/* Introduction */}
           <section id="introduction" className="scroll-mt-24">

@@ -5,6 +5,7 @@ import Footer from '@/components/Footer'
 import PageBackground from '@/components/PageBackground'
 import DocumentationHero from '@/components/DocumentationHero'
 import DocumentationLayout from '@/components/DocumentationLayout'
+import DocumentationSidebar from '@/components/DocumentationSidebar'
 
 export const metadata: Metadata = {
   title: 'ReplyFlowHQ Terms of Service | Automated Missed-Call Text Response',
@@ -12,81 +13,19 @@ export const metadata: Metadata = {
 }
 
 export default function TermsPage() {
-  const sidebar = (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-6">
-      <h3 className="text-base font-semibold text-foreground mb-5">
-        Contents
-      </h3>
-      <nav className="space-y-3" aria-label="Table of contents">
-        <a
-          href="#service-agreement"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          Service Agreement
-        </a>
-        <a
-          href="#service-description"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          Service Description
-        </a>
-        <a
-          href="#user-responsibilities"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          User Responsibilities
-        </a>
-        <a
-          href="#prohibited-uses"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          Prohibited Uses
-        </a>
-        <a
-          href="#ai-communications"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          AI-Assisted Communications
-        </a>
-        <a
-          href="#payment-terms"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          Payment Terms
-        </a>
-        <a
-          href="#service-termination"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          Service Termination
-        </a>
-        <a
-          href="#limitation-of-liability"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          Liability
-        </a>
-        <a
-          href="#service-availability"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          Service Availability
-        </a>
-        <a
-          href="#sms-terms"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          SMS Terms
-        </a>
-        <a
-          href="#contact-information"
-          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-        >
-          Contact Information
-        </a>
-      </nav>
-    </div>
-  )
+  const sections = [
+    { id: 'service-agreement', label: 'Service Agreement' },
+    { id: 'service-description', label: 'Service Description' },
+    { id: 'user-responsibilities', label: 'User Responsibilities' },
+    { id: 'prohibited-uses', label: 'Prohibited Uses' },
+    { id: 'ai-communications', label: 'AI-Assisted Communications' },
+    { id: 'payment-terms', label: 'Payment Terms' },
+    { id: 'service-termination', label: 'Service Termination' },
+    { id: 'limitation-of-liability', label: 'Liability' },
+    { id: 'service-availability', label: 'Service Availability' },
+    { id: 'sms-terms', label: 'SMS Terms' },
+    { id: 'contact-information', label: 'Contact Information' },
+  ]
 
   return (
     <PageBackground>
@@ -112,7 +51,7 @@ export default function TermsPage() {
       />
 
       {/* Terms Content */}
-      <DocumentationLayout sidebar={sidebar}>
+      <DocumentationLayout sidebar={<DocumentationSidebar sections={sections} />}>
           
           {/* Agreement */}
           <section id="service-agreement" className="scroll-mt-24">
