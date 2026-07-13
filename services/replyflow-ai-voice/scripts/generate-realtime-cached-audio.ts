@@ -37,7 +37,7 @@ const prompts = {
   ask_location: "All right. Just a couple more questions. Where will this take place?",
   ask_completion_time: "When are you hoping this will be done?",
   ask_callback_time: "Okay. Last question—what's the best time for the business to call you back?",
-  complete: "Okay. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
+  complete: "Okay. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a good day."
 };
 
 // System instruction for verbatim prompt reading

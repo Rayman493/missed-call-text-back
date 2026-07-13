@@ -497,8 +497,8 @@ console.log('[CALL SID CLEANUP] Started periodic cleanup interval (every 5 minut
 
 // Final closing voice and text configuration
 const FINAL_CLOSE_TWILIO_VOICE = "Polly.Joanna-Neural"; // Natural neural voice (emergency fallback)
-const FINAL_CLOSE_SENTENCE = "Perfect. Thank you for calling. I'll pass this information along to the business and they will get back to you soon. Have a great day.";
-const FINAL_CLOSE_BRIDGE_PHRASE = "Perfect."; // Short bridge phrase from AI voice before redirect
+const FINAL_CLOSE_SENTENCE = "Okay. Thank you for calling. I'll pass this information along to the business and they will get back to you soon. Have a good day.";
+const FINAL_CLOSE_BRIDGE_PHRASE = "Okay."; // Short bridge phrase from AI voice before redirect
 
 // OpenAI final close timing
 const FINAL_CLOSE_OPENAI_HANGUP_DELAY_MS = 9000; // 9 seconds fixed delay after OpenAI final sentence

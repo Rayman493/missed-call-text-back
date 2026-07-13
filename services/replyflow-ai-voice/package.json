@@ -7,7 +7,9 @@
     "build": "tsc --outDir dist --target ES2020 --module commonjs --skipLibCheck --noEmitOnError false",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "validate:audio-cache": "ts-node scripts/validate-cached-audio.ts",
+    "generate:cached-audio": "ts-node scripts/generate-realtime-cached-audio.ts"
   },
   "keywords": [
     "twilio",
