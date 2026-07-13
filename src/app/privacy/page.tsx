@@ -453,7 +453,7 @@ export default function PrivacyPage() {
                 </h2>
                 <div className="prose prose-gray dark:prose-invert max-w-none">
                   <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                    ReplyFlowHQ LLC offers optional Google Calendar integration. When you choose to connect your Google Calendar, we synchronize calendar data to support scheduling features.
+                    ReplyFlow can securely connect to your Google Calendar to keep your appointments synchronized. Calendar access is only granted after you choose to connect your Google account.
                   </p>
                   <div className="mt-6 space-y-4">
                     <div className="flex items-start gap-3">
@@ -462,8 +462,8 @@ export default function PrivacyPage() {
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
                       </div>
-                      <p className="text-gray-600 dark:text-gray-400">
-                        <strong>Explicit Authorization</strong> - ReplyFlow accesses your Google Calendar only after you explicitly authorize the connection through OAuth
+                      <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">Explicit Authorization</span> — ReplyFlow accesses your Google Calendar only after you explicitly authorize the connection through OAuth
                       </p>
                     </div>
                     <div className="flex items-start gap-3">
@@ -472,8 +472,8 @@ export default function PrivacyPage() {
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
                       </div>
-                      <p className="text-gray-600 dark:text-gray-400">
-                        <strong>Purpose-Limited Access</strong> - Google Calendar information is used only for calendar synchronization and scheduling features you request
+                      <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">Purpose-Limited Use</span> — Google Calendar information is used only for calendar synchronization and scheduling features you request
                       </p>
                     </div>
                     <div className="flex items-start gap-3">
@@ -482,8 +482,8 @@ export default function PrivacyPage() {
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
                       </div>
-                      <p className="text-gray-600 dark:text-gray-400">
-                        <strong>Never Sold or Used for Advertising</strong> - Google Calendar information is never sold and never used for advertising purposes
+                      <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">Never Sold</span> — Google Calendar information is never sold and never used for advertising purposes
                       </p>
                     </div>
                     <div className="flex items-start gap-3">
@@ -492,14 +492,14 @@ export default function PrivacyPage() {
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
                       </div>
-                      <p className="text-gray-600 dark:text-gray-400">
-                        <strong>User Control</strong> - You may disconnect Google Calendar from ReplyFlow at any time
+                      <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">User Control</span> — You may disconnect Google Calendar from ReplyFlow at any time
                       </p>
                     </div>
                   </div>
                   <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                    <p className="text-sm text-blue-800 dark:text-blue-200">
-                      <strong>Google API Services User Data Policy:</strong> ReplyFlow's use and transfer of information received from Google APIs will adhere to the Google API Services User Data Policy, including the Limited Use requirements.
+                    <p className="text-sm text-blue-800 dark:text-blue-200 leading-relaxed">
+                      <span className="font-semibold text-blue-900 dark:text-blue-100">Google API Services Compliance:</span> ReplyFlow's use and transfer of information received from Google APIs will adhere to the Google API Services User Data Policy, including the Limited Use requirements.
                     </p>
                   </div>
                 </div>
