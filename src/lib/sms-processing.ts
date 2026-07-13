@@ -143,8 +143,11 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
   const optInKeywords = ['START', 'UNSTOP']
   const isOptIn = optInKeywords.some(keyword => originalBody === keyword)
 
-  // Handle opt-out and opt-in keywords before normal message processing
-  if (isOptOut || isOptIn) {
+  // Check for HELP keyword (case-insensitive)
+  const isHelp = originalBody === 'HELP'
+
+  // Handle opt-out, opt-in, and HELP keywords before normal message processing
+  if (isOptOut || isOptIn || isHelp) {
 
     // Try to find existing lead across all businesses with this phone number
     const leadResult = await db.findLeadByPhoneAcrossBusinesses(normalizedCustomerPhone, normalizedToPhone)
@@ -153,36 +156,39 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       const business = leadResult.business
       const lead = leadResult.lead
       
-      console.log('[OPT-OUT/IN LEAD FOUND]', {
+      console.log('[OPT-OUT/IN/HELP LEAD FOUND]', {
         leadId: lead.id,
         businessId: business.id,
         currentOptedOut: lead.opted_out,
-        action: isOptOut ? 'OPT_OUT' : 'OPT_IN'
+        action: isOptOut ? 'OPT_OUT' : (isOptIn ? 'OPT_IN' : 'HELP')
       })
 
-      // Update lead's opted_out status
-      const newOptedOutStatus = isOptOut
-      const updatedLead = await db.updateLead(lead.id, {
-        opted_out: newOptedOutStatus,
-        raw_metadata: {
-          ...(lead.raw_metadata || {}),
-          last_opt_change_at: now,
-          last_opt_change_type: isOptOut ? 'opt_out' : 'opt_in',
-          last_opt_change_body: body
-        }
-      })
-
-      if (updatedLead) {
-        console.log('[OPT-OUT/IN STATUS UPDATED]', {
-          leadId: lead.id,
-          previousStatus: lead.opted_out,
-          newStatus: newOptedOutStatus
+      // For HELP, don't update lead status, just store the message
+      if (!isHelp) {
+        // Update lead's opted_out status for opt-out/opt-in
+        const newOptedOutStatus = isOptOut
+        const updatedLead = await db.updateLead(lead.id, {
+          opted_out: newOptedOutStatus,
+          raw_metadata: {
+            ...(lead.raw_metadata || {}),
+            last_opt_change_at: now,
+            last_opt_change_type: isOptOut ? 'opt_out' : 'opt_in',
+            last_opt_change_body: body
+          }
         })
-      } else {
-        console.error('[OPT-OUT/IN UPDATE FAILED]', { leadId: lead.id })
+
+        if (updatedLead) {
+          console.log('[OPT-OUT/IN STATUS UPDATED]', {
+            leadId: lead.id,
+            previousStatus: lead.opted_out,
+            newStatus: newOptedOutStatus
+          })
+        } else {
+          console.error('[OPT-OUT/IN UPDATE FAILED]', { leadId: lead.id })
+        }
       }
 
-      // Store the opt-out/opt-in message in conversation history
+      // Store the opt-out/opt-in/HELP message in conversation history
       const conversationResult = await ConversationService.findOrCreateConversation({
         lead_id: lead.id,
         business_id: business.id,
@@ -206,10 +212,10 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
           media_count: 0,
           created_at: new Date().toISOString(),
         })
-        console.log('[OPT-OUT/IN MESSAGE STORED]', { conversationId: conversation.id })
+        console.log('[OPT-OUT/IN/HELP MESSAGE STORED]', { conversationId: conversation.id })
       }
 
-      // Cancel pending follow-up jobs for ANY customer reply (opt-out or opt-in)
+      // Cancel pending follow-up jobs for ANY customer reply (opt-out, opt-in, or help)
       // Any customer engagement indicates the lead is active and follow-ups should stop
       await db.cancelPendingFollowUpJobsForLead(lead.id, isOptOut ? 'opted_out' : 'customer_replied')
       console.log('[FOLLOW-UPS CANCELED]', { 
@@ -217,10 +223,15 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         reason: isOptOut ? 'opted_out' : 'customer_replied'
       })
 
-      // Return compliant confirmation message
-      const confirmationMessage = isOptOut
-        ? "You've opted out of messages. Reply START to opt back in."
-        : "You've opted back in to messages. Reply STOP to opt out."
+      // Return compliant response message
+      let confirmationMessage: string
+      if (isHelp) {
+        confirmationMessage = "For help, contact us at support@replyflowhq.com"
+      } else if (isOptOut) {
+        confirmationMessage = "You've opted out of messages. Reply START to opt back in."
+      } else {
+        confirmationMessage = "You've opted back in to messages. Reply STOP to opt out."
+      }
 
       return {
         success: true,
@@ -231,16 +242,21 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
 </Response>`
       }
     } else {
-      console.log('[OPT-OUT/IN LEAD NOT FOUND]', {
+      console.log('[OPT-OUT/IN/HELP LEAD NOT FOUND]', {
         from: normalizedCustomerPhone,
         to: normalizedToPhone,
-        action: isOptOut ? 'OPT_OUT' : 'OPT_IN'
+        action: isOptOut ? 'OPT_OUT' : (isOptIn ? 'OPT_IN' : 'HELP')
       })
 
       // No lead found, but still return confirmation message for compliance
-      const confirmationMessage = isOptOut
-        ? "You've opted out of messages. Reply START to opt back in."
-        : "You've opted back in to messages. Reply STOP to opt out."
+      let confirmationMessage: string
+      if (isHelp) {
+        confirmationMessage = "For help, contact us at support@replyflowhq.com"
+      } else if (isOptOut) {
+        confirmationMessage = "You've opted out of messages. Reply START to opt back in."
+      } else {
+        confirmationMessage = "You've opted back in to messages. Reply STOP to opt out."
+      }
 
       return {
         success: true,

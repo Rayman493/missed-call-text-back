@@ -379,7 +379,7 @@ export default async function Home() {
                   </svg>
                 </div>
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1.5">Customer Gets a Text</h3>
-                <p className="text-xs text-slate-700 dark:text-slate-400">A confirmation text is sent automatically</p>
+                <p className="text-xs text-slate-700 dark:text-slate-400">A summary text is sent automatically</p>
               </div>
               
               {/* Arrow */}
