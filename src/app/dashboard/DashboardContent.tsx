@@ -1131,29 +1131,6 @@ export default function DashboardContent() {
                       </div>
                     </SectionErrorBoundary>
 
-                    {/* Payments Shortcut Card - Simplified with mobile padding */}
-                    <SectionErrorBoundary sectionName="PaymentsShortcutCard">
-                      <Link href="/dashboard/payments" className="block">
-                        <div className="bg-slate-50/60 dark:bg-slate-800/40 border border-slate-200/40 dark:border-slate-700/40 rounded-lg p-3 sm:p-4 hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-colors cursor-pointer">
-                          <div className="flex items-center justify-between gap-3 sm:gap-4">
-                            <div className="flex-1">
-                              <h3 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 sm:gap-2">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                                </svg>
-                                Payments
-                              </h3>
-                              <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mt-0.5 sm:mt-1">
-                                Manage payment requests and view transaction history
-                              </p>
-                            </div>
-                            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
-                          </div>
-                        </div>
-                      </Link>
-                    </SectionErrorBoundary>
 
                     {/* Beta Feedback Card - Simplified with mobile padding */}
                     <SectionErrorBoundary sectionName="BetaFeedbackCard">
@@ -1161,7 +1138,7 @@ export default function DashboardContent() {
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                           <div className="flex-1">
                             <h3 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 sm:gap-2">
-                              💬 Beta Feedback
+                              💬 Feedback
                             </h3>
                             <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mt-0.5 sm:mt-1">
                               Found a bug or have an idea? We'd love to hear your feedback.
@@ -1367,32 +1344,6 @@ export default function DashboardContent() {
             />
 
 
-            {/* Footer */}
-            <SectionErrorBoundary sectionName="Footer">
-              {(() => {
-                return null
-              })()}
-              <footer className="border-t border-border/50 bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/40 mt-6">
-                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="text-xs text-muted-foreground/60">
-                      © {new Date().getFullYear()} ReplyFlow. All rights reserved.
-                    </div>
-                    <div className="flex items-center gap-6 text-xs">
-                      <a href="/privacy" className="text-muted-foreground/60 hover:text-foreground/80 transition-colors">
-                        Privacy
-                      </a>
-                      <a href="/terms" className="text-muted-foreground/60 hover:text-foreground/80 transition-colors">
-                        Terms
-                      </a>
-                      <a href="/compliance" className="text-muted-foreground/60 hover:text-foreground/80 transition-colors">
-                        Compliance
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              </footer>
-            </SectionErrorBoundary>
           </div>
         </BusinessGuard>
       </AuthGuard>
