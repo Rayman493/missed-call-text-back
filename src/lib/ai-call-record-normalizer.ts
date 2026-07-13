@@ -56,7 +56,7 @@ export function getHistoryCardTitle(record: NormalizedIntake): string {
       ? record.additionalDetails.substring(0, 50) + '...'
       : record.additionalDetails
   }
-  return 'Request details unavailable'
+  return 'General inquiry'
 }
 
 /**

@@ -274,77 +274,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
   return (
     <div className="space-y-4">
-      {/* Request History - Show when multiple records exist */}
-      {aiCallRecords.length > 1 && (
-        <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
-          <button
-            onClick={() => setPreviousIntakesExpanded(!previousIntakesExpanded)}
-            className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-muted/50 transition-colors duration-200"
-          >
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                <MessageCircle className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-              </div>
-              <div>
-                <span className="text-sm font-semibold text-foreground">
-                  Request History
-                </span>
-                <span className="ml-2 text-xs text-muted-foreground">
-                  ({aiCallRecords.length})
-                </span>
-              </div>
-            </div>
-            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${previousIntakesExpanded ? 'rotate-180' : 'rotate-0'}`} />
-          </button>
-          
-          {previousIntakesExpanded && (
-            <div className="px-4 pb-3 pt-2 border-t border-border/50">
-              <div className={`space-y-1.5 ${normalizedRecords.length > 5 ? 'max-h-64 overflow-y-auto' : ''}`}>
-                {normalizedRecords.map((record) => (
-                  <button
-                    key={record.id}
-                    onClick={() => setSelectedRecordId(record.id)}
-                    className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all duration-200 ${
-                      selectedRecordId === record.id
-                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
-                        : 'bg-slate-50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900/50'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-semibold text-foreground line-clamp-1">
-                        {getHistoryCardTitle(record)}
-                      </span>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${getRecordOutcomeColor(record.outcome)}`}>
-                        {record.outcome.replace('_', ' ').toUpperCase()}
-                      </span>
-                    </div>
-                    {/* Metadata: Desired completion and callback */}
-                    <div className="space-y-0.5 mb-1">
-                      {record.desiredCompletion && (
-                        <div className="text-[11px] text-muted-foreground flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          <span className="line-clamp-1">{record.desiredCompletion}</span>
-                        </div>
-                      )}
-                      {record.callbackTime && (
-                        <div className="text-[11px] text-muted-foreground flex items-center gap-1">
-                          <Phone className="w-3 h-3" />
-                          <span className="line-clamp-1">{record.callbackTime}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-[10px] text-muted-foreground">
-                      {formatRelativeTime(record.receivedAt)}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* AI Summary Card - Compact and Collapsible */}
+      {/* AI Summary Card - Compact and Collapsible - Current Request */}
       {collapsible ? (
         <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
           <div className="px-4 py-3.5 flex items-center justify-between">
@@ -925,6 +855,76 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                     </div>
                   ));
                 })()}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Request History - Show when multiple records exist - Moved to end */}
+      {aiCallRecords.length > 1 && (
+        <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+          <button
+            onClick={() => setPreviousIntakesExpanded(!previousIntakesExpanded)}
+            className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-muted/50 transition-colors duration-200"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                <MessageCircle className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+              </div>
+              <div>
+                <span className="text-sm font-semibold text-foreground">
+                  Request History
+                </span>
+                <span className="ml-2 text-xs text-muted-foreground">
+                  ({aiCallRecords.length})
+                </span>
+              </div>
+            </div>
+            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${previousIntakesExpanded ? 'rotate-180' : 'rotate-0'}`} />
+          </button>
+          
+          {previousIntakesExpanded && (
+            <div className="px-4 pb-3 pt-2 border-t border-border/50">
+              <div className={`space-y-1.5 ${normalizedRecords.length > 5 ? 'max-h-64 overflow-y-auto' : ''}`}>
+                {normalizedRecords.map((record) => (
+                  <button
+                    key={record.id}
+                    onClick={() => setSelectedRecordId(record.id)}
+                    className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all duration-200 ${
+                      selectedRecordId === record.id
+                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                        : 'bg-slate-50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900/50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-semibold text-foreground line-clamp-1">
+                        {getHistoryCardTitle(record)}
+                      </span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${getRecordOutcomeColor(record.outcome)}`}>
+                        {record.outcome.replace('_', ' ').toUpperCase()}
+                      </span>
+                    </div>
+                    {/* Metadata: Desired completion and callback */}
+                    <div className="space-y-0.5 mb-1">
+                      {record.desiredCompletion && (
+                        <div className="text-[11px] text-muted-foreground flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          <span className="line-clamp-1">{record.desiredCompletion}</span>
+                        </div>
+                      )}
+                      {record.callbackTime && (
+                        <div className="text-[11px] text-muted-foreground flex items-center gap-1">
+                          <Phone className="w-3 h-3" />
+                          <span className="line-clamp-1">{record.callbackTime}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">
+                      {formatRelativeTime(record.receivedAt)}
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
           )}
