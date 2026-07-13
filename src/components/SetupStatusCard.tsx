@@ -518,17 +518,17 @@ export default function SetupStatusCard({
   // Render collapsed state (after setup is complete)
   if (!isExpanded && (cardState === 'setup-complete' || cardState === 'healthy')) {
     return (
-      <div className="bg-card text-card-foreground rounded-2xl shadow-xl border border-border/50 ring-1 ring-border/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
-        <div className="flex items-center justify-between gap-4 p-4 sm:p-5">
-          <div className="flex items-center gap-3 flex-1">
+      <div className="bg-card text-card-foreground rounded-xl shadow-lg border border-border/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+        <div className="flex items-center justify-between gap-3 p-3 sm:p-3.5">
+          <div className="flex items-center gap-2.5 flex-1">
             <div className="flex-shrink-0">
-              <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
-                <CheckCircle className="w-5 h-5 text-green-500" />
+              <div className="w-8 h-8 bg-green-500/15 rounded-lg flex items-center justify-center">
+                <CheckCircle className="w-4 h-4 text-green-500" />
               </div>
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-base sm:text-lg font-semibold text-foreground">ReplyFlow is protecting your business</h3>
-              <p className="text-muted-foreground text-sm">Missed calls will be captured automatically.</p>
+              <h3 className="text-sm sm:text-base font-semibold text-foreground leading-tight">ReplyFlow is protecting your business</h3>
+              <p className="text-muted-foreground text-xs mt-0.5 leading-tight">Missed calls will be captured automatically.</p>
             </div>
           </div>
           <button
@@ -539,10 +539,10 @@ export default function SetupStatusCard({
               setUserHasToggled(true)
               setIsExpanded(true)
             }}
-            className="flex items-center gap-2 px-3 py-2 bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground text-sm font-medium rounded-lg transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground text-xs sm:text-sm font-medium rounded-lg transition-colors cursor-pointer flex-shrink-0"
           >
             View Details
-            <ChevronDown className="w-4 h-4" />
+            <ChevronDown className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
