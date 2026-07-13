@@ -3373,39 +3373,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
         </div>
         
-        {/* Mobile Layout - Conversation-first: Header -> Conversation -> Collapsible Sections */}
+        {/* Mobile Layout - Conversation-first: Conversation -> Collapsible Sections */}
         <div className="lg:hidden space-y-2 pb-[calc(6rem+env(safe-area-inset-bottom))]">
-          {/* Minimal Header */}
-          <div className="flex items-center gap-3 px-2 py-2">
-            <AppBackButton fallbackHref="/dashboard/leads" label="Back" />
-            <div className="flex-1 min-w-0">
-              <h1 className="text-lg font-semibold text-foreground tracking-tight mb-0.5 truncate">
-                {getLeadDisplayName(leadData)}
-              </h1>
-              <div className="flex items-center gap-2">
-                <p className="text-sm text-muted-foreground font-normal">
-                  {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
-                </p>
-                {!loading && conversationTimeline.length > 0 && (
-                  <>
-                    <span className="text-muted-foreground/50">•</span>
-                    <p className="text-xs text-muted-foreground">
-                      {conversationTimeline.length} message{conversationTimeline.length !== 1 ? 's' : ''}
-                    </p>
-                  </>
-                )}
-              </div>
-            </div>
-            <button
-              onClick={() => setShowMobileOverflow(!showMobileOverflow)}
-              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-xl transition-all duration-200 flex-shrink-0"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-              </svg>
-            </button>
-          </div>
-
           {/* Compact Status Pills */}
           <div className="flex flex-wrap gap-1.5 px-2">
             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-200 ${
@@ -3448,7 +3417,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Conversation Section - Primary content, conversation-first */}
-          <div className="bg-card/95 border border-border/40 rounded-2xl lg:hidden flex flex-col overflow-hidden shadow-sm" style={{ minHeight: '420px', height: '60dvh', maxHeight: '680px' }}>
+          <div className="bg-card border border-border/60 rounded-2xl lg:hidden flex flex-col overflow-hidden shadow-md" style={{ minHeight: '420px', height: '60dvh', maxHeight: '680px' }}>
             {/* Mobile Message Thread - Scrollable viewport */}
             <div ref={mobileConversationContainerRef} className="flex-1 min-h-0 overflow-y-auto scroll-smooth overscroll-contain bg-slate-50/40 dark:bg-slate-950/20" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', scrollPaddingBottom: '5rem' }}>
               {/* Inner content wrapper for justify-end */}
@@ -3486,7 +3455,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             {/* Divider - Softer for natural integration */}
             <div className="border-t border-border/30 flex-shrink-0"></div>
             {/* Composer - Integrated at bottom with better mobile spacing and safe-area for bottom nav */}
-            <div className="px-3 py-3 flex-shrink-0 bg-card/98 shadow-[0_-8px_30px_rgba(2,6,23,0.08)]" style={{ paddingBottom: 'max(90px, calc(80px + env(safe-area-inset-bottom)))' }}>
+            <div className="px-3 py-3 flex-shrink-0 bg-card/98 shadow-[0_-8px_30px_rgba(2,6,23,0.08)]" style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}>
               {/* Image Previews */}
               {mobileImages.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-2">
@@ -3560,7 +3529,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Collapsible Sections - Below conversation */}
           {/* AI Intake - Collapsible */}
           {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
-            <div className="bg-card/95 border border-border/70 rounded-xl p-2.5 shadow-sm ring-1 ring-white/5">
+            <div className="bg-muted/30 border border-border/40 rounded-xl p-2.5 shadow-sm">
               <button
                 onClick={() => setCollapsedSections((prev: any) => ({ ...prev, aiIntake: !prev.aiIntake }))}
                 className="flex items-center justify-between w-full"
@@ -3592,7 +3561,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           )}
 
           {/* Jobs - Collapsible */}
-          <div className="bg-card/95 border border-border/70 rounded-xl p-2.5 shadow-sm ring-1 ring-white/5">
+          <div className="bg-muted/30 border border-border/40 rounded-xl p-2.5 shadow-sm">
             <button
               onClick={() => setCollapsedSections((prev: any) => ({ ...prev, jobs: !prev.jobs }))}
               className="flex items-center justify-between w-full"
@@ -3642,7 +3611,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Payments - Collapsible */}
-          <div className="bg-card/95 border border-border/70 rounded-xl p-2.5 shadow-sm ring-1 ring-white/5">
+          <div className="bg-muted/30 border border-border/40 rounded-xl p-2.5 shadow-sm">
             <button
               onClick={() => setCollapsedSections((prev: any) => ({ ...prev, payments: !prev.payments }))}
               className="flex items-center justify-between w-full"
@@ -3691,7 +3660,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Timeline - Collapsible */}
-          <div className="bg-card/95 border border-border/70 rounded-xl p-2.5 shadow-sm ring-1 ring-white/5">
+          <div className="bg-muted/30 border border-border/40 rounded-xl p-2.5 shadow-sm">
             <button
               onClick={() => setCollapsedSections((prev: any) => ({ ...prev, recentActivity: !prev.recentActivity }))}
               className="flex items-center justify-between w-full"
