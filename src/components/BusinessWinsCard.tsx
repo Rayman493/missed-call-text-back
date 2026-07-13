@@ -278,27 +278,28 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
     const eventTime = new Date(timestamp)
     const diffInDays = Math.floor((now.getTime() - eventTime.getTime()) / (1000 * 60 * 60 * 24))
     
-    if (diffInDays === 0) return 'today'
-    if (diffInDays === 1) return 'yesterday'
-    if (diffInDays < 7) return `${diffInDays} days ago`
-    return `${Math.floor(diffInDays / 7)} weeks ago`
+    if (diffInDays === 0) return 'Earned today'
+    if (diffInDays === 1) return 'Earned yesterday'
+    if (diffInDays < 7) return `Earned ${diffInDays} days ago`
+    if (diffInDays < 30) return `Earned ${Math.floor(diffInDays / 7)} week${Math.floor(diffInDays / 7) > 1 ? 's' : ''} ago`
+    return eventTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   }
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-3 sm:p-4 shadow-sm">
+      <div className="bg-card text-card-foreground rounded-xl border border-border/50 shadow-sm p-3 sm:p-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-base font-semibold text-slate-900 dark:text-foreground">Achievements</h3>
-          <div className="text-xs text-slate-500 dark:text-slate-400">Loading...</div>
+          <h3 className="text-sm sm:text-base font-semibold text-foreground">Achievements</h3>
+          <div className="text-xs text-muted-foreground">Loading...</div>
         </div>
-        <div className="space-y-3">
+        <div className="space-y-2">
           {[1, 2].map(i => (
             <div key={i} className="animate-pulse">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full"></div>
+                <div className="w-8 h-8 bg-muted rounded-lg"></div>
                 <div className="flex-1">
-                  <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4 mb-2"></div>
-                  <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-1/2"></div>
+                  <div className="h-3.5 bg-muted rounded w-3/4 mb-1.5"></div>
+                  <div className="h-3 bg-muted rounded w-1/2"></div>
                 </div>
               </div>
             </div>
@@ -308,40 +309,59 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
     )
   }
 
-  if (achievements.length < 2) {
-    return null // Hide section entirely if fewer than 2 achievements
+  if (achievements.length === 0) {
+    return (
+      <div className="bg-card text-card-foreground rounded-xl border border-border/50 shadow-sm p-3 sm:p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm sm:text-base font-semibold text-foreground">Achievements</h3>
+          <div className="text-xs text-muted-foreground">0 earned</div>
+        </div>
+        <div className="flex flex-col items-center justify-center py-6 text-center">
+          <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-muted-foreground/50 mb-2" />
+          <p className="text-sm text-muted-foreground">Your first achievement is waiting</p>
+          <p className="text-xs text-muted-foreground/70 mt-1 max-w-[200px]">
+            Milestones will appear as you begin capturing customers
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-3 sm:p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-1.5">
-          <span className="text-sm">🏆</span>
-          <h3 className="text-base font-semibold text-slate-900 dark:text-foreground">Achievements</h3>
+    <div className="bg-card text-card-foreground rounded-xl border border-border/50 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 p-3 sm:p-4">
+      <div className="flex items-center justify-between mb-2.5">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-amber-500/10 dark:bg-amber-500/15 rounded-lg flex items-center justify-center">
+            <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 dark:text-amber-500" />
+          </div>
+          <h3 className="text-sm sm:text-base font-semibold text-foreground">Achievements</h3>
         </div>
-        <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+        <div className="text-xs text-muted-foreground font-medium">
           {achievements.length} earned
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-        {achievements.slice(0, 4).map((achievement) => (
-          <div key={achievement.id} className="flex items-start gap-1.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-lg p-2">
-            <div className="flex-shrink-0 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center mt-0.5">
-              <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+      <div className="space-y-1.5">
+        {achievements.slice(0, 5).map((achievement, index) => (
+          <div 
+            key={achievement.id} 
+            className="flex items-start gap-2.5 bg-muted/30 dark:bg-muted/20 border border-border/40 rounded-lg p-2 sm:p-2.5 hover:bg-muted/50 dark:hover:bg-muted/30 transition-colors"
+          >
+            <div className="flex-shrink-0 w-6 h-6 bg-emerald-500/15 dark:bg-emerald-500/20 rounded-md flex items-center justify-center mt-0.5">
+              <svg className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
               </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] sm:text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
+              <p className="text-xs sm:text-sm font-medium text-foreground truncate leading-tight">
                 {achievement.title}
               </p>
-              <p className="text-[9px] text-slate-500 dark:text-slate-400 truncate">
+              <p className="text-[10px] sm:text-xs text-muted-foreground truncate mt-0.5 leading-tight">
                 {achievement.description}
               </p>
               {achievement.earnedAt && (
-                <p className="text-[9px] text-green-600 dark:text-green-400 mt-0.5 font-medium">
-                  ✓ {formatRelativeTime(achievement.earnedAt)}
+                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 font-medium leading-tight">
+                  {formatRelativeTime(achievement.earnedAt)}
                 </p>
               )}
             </div>
@@ -349,10 +369,10 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
         ))}
       </div>
 
-      {achievements.length > 4 && (
-        <div className="mt-1.5 text-center">
-          <p className="text-[9px] text-slate-500 dark:text-slate-400 font-medium">
-            +{achievements.length - 4} more
+      {achievements.length > 5 && (
+        <div className="mt-2 text-center">
+          <p className="text-[10px] sm:text-xs text-muted-foreground font-medium">
+            +{achievements.length - 5} more milestone{achievements.length - 5 > 1 ? 's' : ''}
           </p>
         </div>
       )}
