@@ -1288,9 +1288,10 @@ export const db = {
       }
     }
     
-    // Step 2: Check ai_call_sessions for existing lead_id/conversation_id
+    // Step 2: Check ai_call_records for existing lead_id/conversation_id
+    // FIXED: Changed from ai_call_sessions to ai_call_records (correct table name)
     const { data: aiCallRecord } = await supabaseAdmin
-      .from('ai_call_sessions')
+      .from('ai_call_records')
       .select('lead_id, conversation_id')
       .eq('call_sid', params.callSid)
       .maybeSingle()

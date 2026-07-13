@@ -133,47 +133,68 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
     businessId: null
   })
 
-  // Check for AI call record with retry logic to handle race condition
-  console.log('[AI RECORD LOOKUP TABLE]', {
-    table: 'ai_call_records',
-    callSid: CallSid
-  })
+  // EARLY TERMINAL-STATUS CLASSIFICATION: Skip AI retry for calls that never reached AI
+  // Terminal statuses with 0 duration indicate the call never connected to the AI service
+  const isTerminalStatus = ['busy', 'no-answer', 'failed', 'canceled'].includes(CallStatus)
+  const isZeroDuration = !Duration || Duration === '0' || parseInt(Duration) === 0
+  const callNeverReachedAI = isTerminalStatus && isZeroDuration
 
   let aiCallRecord = null
   // Give the AI service more time to finalize the simple-mode completion
   // (lead upsert, conversation creation, ai_call_record insert, lead metadata update, SMS send).
-  // Increased delays to total 29 seconds to account for AI completion + SMS sending.
-  const retryDelays = [0, 1000, 2000, 3000, 5000, 8000, 10000]
+  // Reduced delays to total 5 seconds for calls that could have reached AI
+  const retryDelays = [0, 500, 1000, 2000, 1500]
 
-  for (let i = 0; i < retryDelays.length; i++) {
-    const delay = retryDelays[i]
-    if (delay > 0) {
-      console.log('[AI RECORD LOOKUP RETRY]', {
-        callSid: CallSid,
-        attempt: i + 1,
-        delay: delay
-      })
-      await new Promise(resolve => setTimeout(resolve, delay))
-    }
+  if (callNeverReachedAI) {
+    console.log('[EARLY TERMINAL STATUS] =========================================');
+    console.log('[EARLY TERMINAL STATUS] Call never reached AI - skipping retry loop');
+    console.log('[EARLY TERMINAL STATUS] CallSid:', CallSid);
+    console.log('[EARLY TERMINAL STATUS] CallStatus:', CallStatus);
+    console.log('[EARLY TERMINAL STATUS] Duration:', Duration);
+    console.log('[EARLY TERMINAL STATUS] Timestamp:', new Date().toISOString());
+    console.log('[EARLY TERMINAL STATUS] =========================================');
+    
+    // Skip the AI retry loop entirely for calls that never reached AI
+    // This prevents the 29-second delay for busy/no-answer/failed calls
+    // aiCallRecord remains null
+  } else {
+    // Check for AI call record with retry logic to handle race condition
+    // Only retry for calls that could have reached AI (completed calls with duration > 0)
+    console.log('[AI RECORD LOOKUP TABLE]', {
+      table: 'ai_call_records',
+      callSid: CallSid
+    })
 
-    const { data: record } = await supabase
-      .from('ai_call_records')
-      .select('id, lead_id, conversation_id, caller_phone, call_sid, business_id, outcome, extracted_info, summary')
-      .eq('call_sid', CallSid)
-      .maybeSingle()
-
-    if (record) {
-      aiCallRecord = record
-      if (i > 0) {
-        console.log('[AI RECORD FOUND AFTER RETRY]', {
+    for (let i = 0; i < retryDelays.length; i++) {
+      const delay = retryDelays[i]
+      if (delay > 0) {
+        console.log('[AI RECORD LOOKUP RETRY]', {
           callSid: CallSid,
           attempt: i + 1,
-          totalDelay: delay,
-          aiCallRecordId: aiCallRecord.id,
-          outcome: aiCallRecord.outcome
+          delay: delay
         })
+        await new Promise(resolve => setTimeout(resolve, delay))
       }
-      break
+
+      const { data: record } = await supabase
+        .from('ai_call_records')
+        .select('id, lead_id, conversation_id, caller_phone, call_sid, business_id, outcome, extracted_info, summary')
+        .eq('call_sid', CallSid)
+        .maybeSingle()
+
+      if (record) {
+        aiCallRecord = record
+        if (i > 0) {
+          console.log('[AI RECORD FOUND AFTER RETRY]', {
+            callSid: CallSid,
+            attempt: i + 1,
+            totalDelay: delay,
+            aiCallRecordId: aiCallRecord.id,
+            outcome: aiCallRecord.outcome
+          })
+        }
+        break
+      }
     }
   }
 

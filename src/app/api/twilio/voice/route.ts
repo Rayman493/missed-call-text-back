@@ -495,7 +495,7 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
       .select('*')
       .eq('business_id', business.id)
       .eq('forwarding_confirmed', false)
-      .single();
+      .maybeSingle();
     
     if (offboardingRecord && !offboardingError) {
       console.log('[OFFBOARDING FALLBACK]');
