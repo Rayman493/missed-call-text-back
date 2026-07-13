@@ -25,10 +25,11 @@ export function normalizeVenmoUsername(username: string | null | undefined): str
 }
 
 /**
- * Generate Venmo payment link with optional amount and note
- * Uses Venmo Universal Links: https://venmo.com/pay?recipients={username}&amount={amount}&note={note}&txn=pay
- * Universal Links work on both mobile (opens app if installed) and desktop (opens web)
- * This replaces the deprecated venmo:// deep link scheme which is undocumented and unreliable
+ * Generate Venmo payment link
+ * Uses canonical Venmo profile URL: https://venmo.com/u/{username}
+ * Prefilled parameters (amount, note) are NOT supported by Venmo in production
+ * Real-device testing shows Universal Links with parameters redirect to homepage
+ * This provides a reliable handoff to the merchant's Venmo profile
  */
 export function generateVenmoLink(
   username: string | null | undefined,
@@ -45,43 +46,16 @@ export function generateVenmoLink(
     };
   }
 
-  try {
-    // Use Venmo Universal Link format
-    // Works on mobile (opens app if installed) and desktop (opens web payment flow)
-    const universalLink = new URL('https://venmo.com/pay');
-    universalLink.searchParams.set('recipients', normalized);
-    universalLink.searchParams.set('txn', 'pay'); // 'pay' for payment, 'charge' for request
-    
-    // Add amount if provided (convert cents to dollars)
-    if (amountCents && amountCents > 0) {
-      const amountDollars = (amountCents / 100).toFixed(2);
-      universalLink.searchParams.set('amount', amountDollars);
-    }
-    
-    // Add note if provided (URL encode automatically)
-    if (note) {
-      universalLink.searchParams.set('note', note);
-    }
-    
-    const finalUrl = universalLink.toString();
-    console.log('[VENMO LINK] Generated Universal Link:', finalUrl);
-    
-    return {
-      link: finalUrl,
-      provider: 'venmo'
-    };
-  } catch (error) {
-    console.error('[VENMO LINK] Failed to generate Universal Link, falling back to profile link:', error);
-    // Fallback to simple profile link
-    const finalUrl = `https://venmo.com/u/${normalized}`;
-    console.log('[VENMO LINK] Generated profile fallback:', finalUrl);
-    
-    return {
-      link: finalUrl,
-      provider: 'venmo',
-      error: 'Failed to generate Universal Link, using profile link'
-    };
-  }
+  // Use canonical Venmo profile URL
+  // Prefilled parameters (amount, note, txn) are not supported in production
+  // Real-device testing shows these cause redirects to homepage
+  const finalUrl = `https://venmo.com/u/${normalized}`;
+  console.log('[VENMO LINK] Generated profile URL:', finalUrl);
+  
+  return {
+    link: finalUrl,
+    provider: 'venmo'
+  };
 }
 
 /**
