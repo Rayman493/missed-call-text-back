@@ -135,9 +135,29 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      console.error('[Jobs API] POST error:', error)
+      console.error('[JOBS CREATE] Failed to create job:', {
+        businessId: business.id,
+        lead_id,
+        title: title.trim(),
+        scheduledDate: scheduled_date,
+        scheduledTime: scheduled_time,
+        error: error.message,
+        code: error.code
+      })
       return NextResponse.json({ error: 'Failed to create job' }, { status: 500 })
     }
+
+    console.log('[JOBS CREATE] Job created successfully:', {
+      jobId: job.id,
+      businessId: business.id,
+      lead_id,
+      conversationId: conversation_id,
+      title: job.title,
+      scheduledDate: job.scheduled_date,
+      scheduledTime: job.scheduled_time,
+      status: job.status,
+      source: job.source
+    })
 
     // Auto-create Google Calendar event if job has date/time
     let googleCalendarEventId = null
@@ -232,14 +252,35 @@ export async function POST(request: NextRequest) {
               .update({ google_calendar_event_id: createdEvent.id })
               .eq('id', job.id)
 
-            console.log('[Jobs API] Google Calendar event created:', createdEvent.id)
+            console.log('[JOBS CALENDAR SYNC] Google Calendar event created successfully:', {
+              jobId: job.id,
+              businessId: business.id,
+              googleCalendarEventId: createdEvent.id,
+              title: title.trim(),
+              scheduledDate: scheduled_date,
+              scheduledTime: scheduled_time
+            })
           } else {
-            console.error('[Jobs API] Failed to create Google Calendar event:', response.status)
+            console.error('[JOBS CALENDAR SYNC] Failed to create Google Calendar event:', {
+              jobId: job.id,
+              businessId: business.id,
+              title: title.trim(),
+              scheduledDate: scheduled_date,
+              scheduledTime: scheduled_time,
+              responseStatus: response.status
+            })
             // Don't fail the job creation if calendar sync fails
           }
         }
       } catch (calendarError) {
-        console.error('[Jobs API] Error creating Google Calendar event:', calendarError)
+        console.error('[JOBS CALENDAR SYNC] Exception creating Google Calendar event:', {
+          jobId: job.id,
+          businessId: business.id,
+          title: title.trim(),
+          scheduledDate: scheduled_date,
+          scheduledTime: scheduled_time,
+          error: calendarError instanceof Error ? calendarError.message : String(calendarError)
+        })
         // Don't fail the job creation if calendar sync fails
       }
     }
