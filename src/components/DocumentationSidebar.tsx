@@ -13,6 +13,7 @@ export default function DocumentationSidebar({ sections }: DocumentationSidebarP
   const [activeId, setActiveId] = useState<string>('')
   const [isSticky, setIsSticky] = useState(false)
   const sidebarRef = useRef<HTMLDivElement>(null)
+  const rafRef = useRef<number>()
 
   useEffect(() => {
     // IntersectionObserver for active section tracking
@@ -23,11 +24,17 @@ export default function DocumentationSidebar({ sections }: DocumentationSidebarP
     }
 
     const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          setActiveId(entry.target.id)
-        }
-      })
+      // Find the intersecting section closest to the activation line
+      const intersectingEntries = entries.filter(entry => entry.isIntersecting)
+      if (intersectingEntries.length > 0) {
+        // Sort by distance from top of viewport (closest to activation line wins)
+        intersectingEntries.sort((a, b) => {
+          const aRect = a.boundingClientRect
+          const bRect = b.boundingClientRect
+          return Math.abs(aRect.top) - Math.abs(bRect.top)
+        })
+        setActiveId(intersectingEntries[0].target.id)
+      }
     }, observerOptions)
 
     // Observe all sections
@@ -56,9 +63,34 @@ export default function DocumentationSidebar({ sections }: DocumentationSidebarP
       stickyObserver.observe(sentinel)
     }
 
+    // Bottom-of-page fallback for final section
+    const handleScroll = () => {
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current)
+      }
+      
+      rafRef.current = requestAnimationFrame(() => {
+        const tolerance = 32 // 32px tolerance for browser rounding and footer height
+        const isAtBottom = 
+          window.innerHeight + window.scrollY >= 
+          document.documentElement.scrollHeight - tolerance
+        
+        if (isAtBottom && sections.length > 0) {
+          // Set final section as active when at bottom of page
+          setActiveId(sections[sections.length - 1].id)
+        }
+      })
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+
     return () => {
       observer.disconnect()
       stickyObserver.disconnect()
+      window.removeEventListener('scroll', handleScroll)
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current)
+      }
     }
   }, [sections])
 
