@@ -3033,128 +3033,144 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         onClick={() => setShowOverflowMenu(false)}
                       />
                       <div
-                        className="fixed z-[9999] bg-card border border-border/50 rounded-lg shadow-lg py-1 min-w-[180px]"
+                        className="fixed z-[9999] bg-card border border-border/50 rounded-xl shadow-2xl py-1.5 min-w-[200px] overflow-hidden"
                         style={{
                           top: `${overflowMenuPosition.top}px`,
                           left: `${overflowMenuPosition.left}px`
                         }}
                       >
-                        <button
-                          onClick={() => {
-                            handleCreateJobClick()
-                            setShowOverflowMenu(false)
-                          }}
-                          className="w-full px-3 py-2 text-left text-xs text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors"
-                        >
-                          <ClipboardPlus className="w-3.5 h-3.5 stroke-[1.8]" />
-                          Create Job
-                        </button>
-                        <button
-                          onClick={() => {
-                            handleAppointmentClick()
-                            setShowOverflowMenu(false)
-                          }}
-                          className="w-full px-3 py-2 text-left text-xs text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors"
-                        >
-                          <CalendarDays className="w-3.5 h-3.5 stroke-[1.8]" />
-                          Schedule
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowPaymentModal(true)
-                            setShowOverflowMenu(false)
-                          }}
-                          disabled={!business || getAvailableProviders(business).length === 0}
-                          className="w-full px-3 py-2 text-left text-xs text-foreground hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2.5 transition-colors"
-                        >
-                          <CreditCard className="w-3.5 h-3.5 stroke-[1.8]" />
-                          Request Payment
-                        </button>
-                        <div className="border-t border-border/50 my-1" />
-                        <button
-                          onClick={() => {
-                            setMobileInternalNotesExpanded(true)
-                            setShowLeadInfo(true)
-                            setShowOverflowMenu(false)
-                          }}
-                          className="w-full px-3 py-2 text-left text-xs text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                          Internal Notes
-                        </button>
-                        <button
-                          onClick={() => {
-                            handleRefresh()
-                            setShowOverflowMenu(false)
-                          }}
-                          disabled={refreshing}
-                          className="w-full px-3 py-2 text-left text-xs text-foreground hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2.5 transition-colors"
-                        >
-                          <svg
-                            className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`}
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                          </svg>
-                          Refresh
-                        </button>
-                        <div className="border-t border-border/50 my-1" />
-                        {getLeadLifecycleStatus(leadData || lead) !== 'ignored' && (
+                        {/* Conversation Actions Group */}
+                        <div className="px-1.5 py-1">
+                          <div className="px-2.5 py-1.5 text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider">
+                            Conversation Actions
+                          </div>
                           <button
                             onClick={() => {
-                              handleStatusUpdate('ignored')
+                              handleCreateJobClick()
                               setShowOverflowMenu(false)
                             }}
-                            className="w-full px-3 py-2 text-left text-xs text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors"
+                            className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-3 transition-colors rounded-lg"
                           >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                            </svg>
-                            Mark Ignored
+                            <ClipboardPlus className="w-4 h-4 stroke-[1.8]" />
+                            Create Job
                           </button>
-                        )}
-                        {getLeadLifecycleStatus(leadData || lead) === 'ignored' && (
                           <button
                             onClick={() => {
-                              handleStatusUpdate('active')
+                              handleAppointmentClick()
                               setShowOverflowMenu(false)
                             }}
-                            className="w-full px-3 py-2 text-left text-xs text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors"
+                            className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-3 transition-colors rounded-lg"
                           >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <CalendarDays className="w-4 h-4 stroke-[1.8]" />
+                            Schedule
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowPaymentModal(true)
+                              setShowOverflowMenu(false)
+                            }}
+                            disabled={!business || getAvailableProviders(business).length === 0}
+                            className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 transition-colors rounded-lg"
+                          >
+                            <CreditCard className="w-4 h-4 stroke-[1.8]" />
+                            Request Payment
+                          </button>
+                        </div>
+
+                        <div className="border-t border-border/50 my-1" />
+
+                        {/* Tools Group */}
+                        <div className="px-1.5 py-1">
+                          <button
+                            onClick={() => {
+                              setMobileInternalNotesExpanded(true)
+                              setShowLeadInfo(true)
+                              setShowOverflowMenu(false)
+                            }}
+                            className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-3 transition-colors rounded-lg"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Internal Notes
+                          </button>
+                          <button
+                            onClick={() => {
+                              handleRefresh()
+                              setShowOverflowMenu(false)
+                            }}
+                            disabled={refreshing}
+                            className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 transition-colors rounded-lg"
+                          >
+                            <svg
+                              className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
-                            Restore Customer
+                            Refresh
                           </button>
-                        )}
-                        <button
-                          onClick={() => {
-                            setShowRemoveModal(true)
-                            setShowOverflowMenu(false)
-                          }}
-                          className="w-full px-3 py-2 text-left text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2.5 transition-colors"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                          Remove
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowDeleteModal(true)
-                            setShowOverflowMenu(false)
-                          }}
-                          className="w-full px-3 py-2 text-left text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2.5 transition-colors"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862 2 2 0 011-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                          Delete Customer
-                        </button>
+                        </div>
+
+                        <div className="border-t border-border/50 my-1" />
+
+                        {/* Customer Actions Group */}
+                        <div className="px-1.5 py-1">
+                          {getLeadLifecycleStatus(leadData || lead) !== 'ignored' && (
+                            <button
+                              onClick={() => {
+                                handleStatusUpdate('ignored')
+                                setShowOverflowMenu(false)
+                              }}
+                              className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-3 transition-colors rounded-lg"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                              </svg>
+                              Mark Ignored
+                            </button>
+                          )}
+                          {getLeadLifecycleStatus(leadData || lead) === 'ignored' && (
+                            <button
+                              onClick={() => {
+                                handleStatusUpdate('active')
+                                setShowOverflowMenu(false)
+                              }}
+                              className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-3 transition-colors rounded-lg"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                              Restore Customer
+                            </button>
+                          )}
+                          <button
+                            onClick={() => {
+                              setShowRemoveModal(true)
+                              setShowOverflowMenu(false)
+                            }}
+                            className="w-full px-3 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 transition-colors rounded-lg"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Remove
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowDeleteModal(true)
+                              setShowOverflowMenu(false)
+                            }}
+                            className="w-full px-3 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 transition-colors rounded-lg"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862 2 2 0 011-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Delete Customer
+                          </button>
+                        </div>
                       </div>
                     </>
                   , document.body)}

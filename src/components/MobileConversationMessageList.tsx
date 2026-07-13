@@ -55,7 +55,7 @@ export default function MobileConversationMessageList({
   }, [messagesArray.length, previousMessageCount])
 
   return (
-    <div className="space-y-3" data-mobile-layout data-active-conversation-list>
+    <div className="space-y-2.5" data-mobile-layout data-active-conversation-list>
       {conversationTimeline.map((item: any, index: number) => {
         // Handle system events
         if (item.type === 'system_event') {
@@ -178,17 +178,10 @@ export default function MobileConversationMessageList({
         return (
           <div
             key={getMessageKey(msg)}
-            className={`flex items-start gap-2 ${msg.media && msg.media.length > 0 ? 'mb-3' : 'mb-2'} ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
+            className={`flex items-start gap-2 ${msg.media && msg.media.length > 0 ? 'mb-2.5' : 'mb-2'} ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
           >
-            {/* Avatar - Only show customer avatar for inbound messages */}
-            {shouldShowAvatar && isInbound && (
-              <div className={`flex-shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-medium shadow-sm ${msg.media && msg.media.length > 0 ? 'w-7 h-7 text-[10px]' : 'w-8 h-8 text-xs'}`}>
-                👤
-              </div>
-            )}
-
             {/* Message Content */}
-            <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} ${isAISummary ? 'max-w-[86%]' : 'max-w-[80%] sm:max-w-[72%]'} ${!isInbound && !shouldShowAvatar ? 'ml-10' : ''}`}>
+            <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} ${isAISummary ? 'max-w-[86%]' : 'max-w-[80%] sm:max-w-[72%]'}`}>
               {/* Message Bubble - Modern messaging app styling */}
               <div
                 className={`rounded-2xl shadow-sm transition-colors duration-200 overflow-hidden ${
@@ -201,7 +194,7 @@ export default function MobileConversationMessageList({
                     : 'bg-blue-600 text-white rounded-br-md hover:bg-blue-700 border border-blue-700/60'
                 }`}
               >
-                <div className={`${isAISummary ? 'p-0' : msg.media && msg.media.length > 0 ? 'p-1.5' : 'px-3 py-2'}`}>
+                <div className={`${isAISummary ? 'p-0' : msg.media && msg.media.length > 0 ? 'p-1.5' : 'px-3 py-2.5'}`}>
                   {msg.body && !isAISummary && (
                     <p
                       className="text-sm leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap min-w-0 max-w-full"

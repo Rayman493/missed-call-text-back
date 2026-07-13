@@ -52,7 +52,7 @@ export default function DesktopConversationMessageList({
   }, [messagesArray.length, previousMessageCount])
 
   return (
-    <div className="space-y-6 pb-24" data-desktop-layout data-active-conversation-list>
+    <div className="space-y-4 pb-24" data-desktop-layout data-active-conversation-list>
       {conversationTimeline.map((item: any, index: number) => {
         // Handle system events
         if (item.type === 'system_event') {
@@ -131,17 +131,10 @@ export default function DesktopConversationMessageList({
         return (
           <div
             key={getMessageKey(msg)}
-            className={`flex items-start gap-3 ${msg.media && msg.media.length > 0 ? 'mb-5' : 'mb-4'} ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
+            className={`flex items-start gap-3 ${msg.media && msg.media.length > 0 ? 'mb-4' : 'mb-3'} ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
           >
-            {/* Avatar - Only show customer avatar for inbound messages */}
-            {shouldShowAvatar && isInbound && (
-              <div className={`flex-shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-medium shadow-sm ${msg.media && msg.media.length > 0 ? 'w-8 h-8 text-xs' : 'w-10 h-10 text-sm'}`}>
-                👤
-              </div>
-            )}
-            
             {/* Message Content */}
-            <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} ${isOutbound ? 'max-w-[75%]' : 'max-w-[85%]'} ${!isInbound && !shouldShowAvatar ? 'ml-11' : ''}`}>
+            <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} ${isOutbound ? 'max-w-[75%]' : 'max-w-[85%]'}`}>
               {/* Message Bubble - Desktop styling */}
               <div
                 className={`rounded-2xl shadow-sm transition-colors duration-200 overflow-hidden ${
@@ -152,7 +145,7 @@ export default function DesktopConversationMessageList({
                     : 'bg-blue-600 text-white rounded-br-md hover:bg-blue-700 border border-blue-700/80'
                 }`}
               >
-                <div className={`${msg.media && msg.media.length > 0 ? 'p-2' : isOutbound ? 'px-4 py-2.5' : 'px-4 py-2.5'}`}>
+                <div className={`${msg.media && msg.media.length > 0 ? 'p-2' : 'px-4 py-3'}`}>
                   {msg.body && (
                     <p 
                       className={`${isOutbound ? 'text-[14px]' : 'text-[15px]'} leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap min-w-0 max-w-full`}
