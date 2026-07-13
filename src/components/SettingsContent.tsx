@@ -1167,6 +1167,13 @@ export default function SettingsContent() {
 
             {/* Settings Sections */}
             <div className="space-y-3 sm:space-y-4 pb-32">
+              {/* Group: Getting Started */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
+                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Getting Started</h3>
+                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
+              </div>
+
               {/* Business Info Section */}
               <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[200px]">
                 <div className="mb-4">
@@ -1257,6 +1264,13 @@ export default function SettingsContent() {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Group: Daily Operations */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
+                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Daily Operations</h3>
+                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
               </div>
 
               {/* Telecom-dependent settings: only shown after the user starts a trial/subscription. */}
@@ -1830,6 +1844,13 @@ export default function SettingsContent() {
                 </div>
               </div>
 
+              {/* Group: Integrations */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
+                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Integrations</h3>
+                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
+              </div>
+
               {/* Integrations Section */}
               <div id="integrations" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[200px]">
                 <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Integrations</h2>
@@ -2068,6 +2089,13 @@ export default function SettingsContent() {
                 </div>
               </div>
 
+              {/* Group: Personal */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
+                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Personal</h3>
+                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
+              </div>
+
               {/* Personal Contacts Section */}
               <div id="contacts" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[200px]">
                 <div className="flex items-center justify-between gap-3 mb-3">
@@ -2188,6 +2216,13 @@ export default function SettingsContent() {
 
                             </>
               )}
+
+              {/* Group: Account */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
+                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Account</h3>
+                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
+              </div>
 
               {/* Account Section - Merged Profile and Account Access */}
               <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 scroll-mt-[200px]">
