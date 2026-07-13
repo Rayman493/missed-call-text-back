@@ -4,6 +4,7 @@ import SSRSafeNavbar from '@/components/SSRSafeNavbar'
 import Footer from '@/components/Footer'
 import PageBackground from '@/components/PageBackground'
 import DocumentationHero from '@/components/DocumentationHero'
+import DocumentationLayout from '@/components/DocumentationLayout'
 
 export const metadata: Metadata = {
   title: 'ReplyFlowHQ Privacy Policy | Data Protection & Security',
@@ -11,6 +12,76 @@ export const metadata: Metadata = {
 }
 
 export default function PrivacyPage() {
+  const sidebar = (
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-6">
+      <h3 className="text-base font-semibold text-foreground mb-5">
+        Contents
+      </h3>
+      <nav className="space-y-3" aria-label="Table of contents">
+        <a
+          href="#introduction"
+          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
+        >
+          Our Commitment to Privacy
+        </a>
+        <a
+          href="#information-we-collect"
+          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
+        >
+          Information We Collect
+        </a>
+        <a
+          href="#how-we-use-information"
+          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
+        >
+          How We Use Information
+        </a>
+        <a
+          href="#voice-ai-services"
+          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
+        >
+          Voice & AI Services
+        </a>
+        <a
+          href="#data-security"
+          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
+        >
+          Data Security
+        </a>
+        <a
+          href="#data-retention"
+          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
+        >
+          Data Retention
+        </a>
+        <a
+          href="#third-party-providers"
+          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
+        >
+          Third-Party Providers
+        </a>
+        <a
+          href="#google-api-services"
+          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
+        >
+          Google API Services
+        </a>
+        <a
+          href="#your-rights"
+          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
+        >
+          Your Privacy Rights
+        </a>
+        <a
+          href="#contact-information"
+          className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
+        >
+          Contact Us
+        </a>
+      </nav>
+    </div>
+  )
+
   return (
     <PageBackground>
       <SSRSafeNavbar forceDark={true} />
@@ -35,83 +106,7 @@ export default function PrivacyPage() {
       />
 
       {/* Privacy Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="lg:grid lg:grid-cols-[280px_1fr] lg:gap-12 lg:items-start">
-          {/* Table of Contents - Desktop Only */}
-          <aside className="hidden lg:block lg:self-start">
-            <div className="sticky top-24 max-h-[calc(100dvh-8rem)] overflow-y-auto">
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 p-6">
-                <h3 className="text-base font-semibold text-foreground mb-5">
-                  Contents
-                </h3>
-                <nav className="space-y-3" aria-label="Table of contents">
-                <a
-                  href="#introduction"
-                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-                >
-                  Our Commitment to Privacy
-                </a>
-                <a
-                  href="#information-we-collect"
-                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-                >
-                  Information We Collect
-                </a>
-                <a
-                  href="#how-we-use-information"
-                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-                >
-                  How We Use Information
-                </a>
-                <a
-                  href="#voice-ai-services"
-                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-                >
-                  Voice & AI Services
-                </a>
-                <a
-                  href="#data-security"
-                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-                >
-                  Data Security
-                </a>
-                <a
-                  href="#data-retention"
-                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-                >
-                  Data Retention
-                </a>
-                <a
-                  href="#third-party-providers"
-                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-                >
-                  Third-Party Providers
-                </a>
-                <a
-                  href="#google-api-services"
-                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-                >
-                  Google API Services
-                </a>
-                <a
-                  href="#your-rights"
-                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-                >
-                  Your Privacy Rights
-                </a>
-                <a
-                  href="#contact-information"
-                  className="block text-base text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors py-1 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg px-2"
-                >
-                  Contact Us
-                </a>
-              </nav>
-              </div>
-            </div>
-          </aside>
-
-          {/* Main Content */}
-          <div className="lg:max-w-3xl space-y-12">
+      <DocumentationLayout sidebar={sidebar}>
           
           {/* Introduction */}
           <section id="introduction" className="scroll-mt-24">
@@ -607,9 +602,7 @@ export default function PrivacyPage() {
             </div>
           </section>
 
-          </div>
-        </div>
-      </div>
+      </DocumentationLayout>
       <Footer />
     </PageBackground>
   )

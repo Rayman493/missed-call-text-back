@@ -31,10 +31,10 @@ export default function DocumentationHero({
 }: DocumentationHeroProps) {
   return (
     <div className="bg-card border-b border-border">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
         {/* Back to Home Link */}
         {showBackLink && (
-          <div className="mb-4">
+          <div className="mb-3">
             <Link
               href="/"
               className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200 group"
@@ -53,34 +53,34 @@ export default function DocumentationHero({
         )}
 
         {/* Documentation Tabs */}
-        <div className="flex justify-center mb-8">
+        <div className="flex justify-center mb-6">
           <LegalNavigation activePage={activePage} />
         </div>
       </div>
 
       {/* Hero Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 sm:pb-16">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 sm:pb-8">
         <div className="text-center">
           {/* Icon */}
           {icon && (
-            <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full ${iconColors[iconColor]} mb-6`}>
+            <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full ${iconColors[iconColor]} mb-4`}>
               {icon}
             </div>
           )}
 
           {/* Title */}
-          <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-6">
+          <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
             {title}
           </h1>
 
           {/* Subtitle */}
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
             {subtitle}
           </p>
 
           {/* Last Updated */}
           {lastUpdated && (
-            <p className="text-sm text-muted-foreground mt-4">
+            <p className="text-sm text-muted-foreground mt-3">
               Last updated: {lastUpdated}
             </p>
           )}
