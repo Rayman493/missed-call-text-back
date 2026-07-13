@@ -39,9 +39,9 @@ export default function PrivacyPage() {
         <div className="lg:grid lg:grid-cols-[280px_1fr] lg:gap-12">
           {/* Table of Contents - Desktop Only */}
           <aside className="hidden lg:block">
-            <div className="sticky top-8">
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 p-6">
-                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-5">
+            <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto">
+              <div className="bg-card rounded-xl shadow-md border border-border p-6">
+                <h3 className="text-base font-semibold text-foreground mb-5">
                   Contents
                 </h3>
                 <nav className="space-y-3" aria-label="Table of contents">
@@ -105,10 +105,10 @@ export default function PrivacyPage() {
           </aside>
 
           {/* Main Content */}
-          <div className="space-y-12">
+          <div className="lg:max-w-3xl space-y-12">
           
           {/* Introduction */}
-          <section id="introduction">
+          <section id="introduction" className="scroll-mt-24">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
@@ -131,7 +131,7 @@ export default function PrivacyPage() {
           </section>
 
           {/* Information We Collect */}
-          <section id="information-we-collect">
+          <section id="information-we-collect" className="scroll-mt-24">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
@@ -183,7 +183,7 @@ export default function PrivacyPage() {
           </section>
 
           {/* How We Use Information */}
-          <section id="how-we-use-information">
+          <section id="how-we-use-information" className="scroll-mt-24">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
@@ -282,7 +282,7 @@ export default function PrivacyPage() {
           </section>
 
           {/* Data Security */}
-          <section id="data-security">
+          <section id="data-security" className="scroll-mt-24">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
@@ -352,7 +352,7 @@ export default function PrivacyPage() {
           </section>
 
           {/* Data Retention */}
-          <section id="data-retention">
+          <section id="data-retention" className="scroll-mt-24">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
@@ -384,7 +384,7 @@ export default function PrivacyPage() {
           </section>
 
           {/* Third-Party Service Providers */}
-          <section id="third-party-providers">
+          <section id="third-party-providers" className="scroll-mt-24">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
@@ -439,7 +439,7 @@ export default function PrivacyPage() {
           </section>
 
           {/* Your Rights */}
-          <section id="your-rights">
+          <section id="your-rights" className="scroll-mt-24">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
@@ -481,7 +481,7 @@ export default function PrivacyPage() {
           </section>
 
           {/* Contact Information */}
-          <section id="contact-information">
+          <section id="contact-information" className="scroll-mt-24">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">

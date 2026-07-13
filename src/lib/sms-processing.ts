@@ -215,13 +215,20 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
         console.log('[OPT-OUT/IN/HELP MESSAGE STORED]', { conversationId: conversation.id })
       }
 
-      // Cancel pending follow-up jobs for ANY customer reply (opt-out, opt-in, or help)
-      // Any customer engagement indicates the lead is active and follow-ups should stop
-      await db.cancelPendingFollowUpJobsForLead(lead.id, isOptOut ? 'opted_out' : 'customer_replied')
-      console.log('[FOLLOW-UPS CANCELED]', { 
-        leadId: lead.id, 
-        reason: isOptOut ? 'opted_out' : 'customer_replied'
-      })
+      // Cancel pending follow-up jobs for opt-out and opt-in only
+      // HELP is a compliance keyword for support and should not cancel business follow-ups
+      if (!isHelp) {
+        await db.cancelPendingFollowUpJobsForLead(lead.id, isOptOut ? 'opted_out' : 'customer_replied')
+        console.log('[FOLLOW-UPS CANCELED]', { 
+          leadId: lead.id, 
+          reason: isOptOut ? 'opted_out' : 'customer_replied'
+        })
+      } else {
+        console.log('[FOLLOW-UPS NOT CANCELED]', { 
+          leadId: lead.id, 
+          reason: 'help_keyword_does_not_cancel_followups'
+        })
+      }
 
       // Return compliant response message
       let confirmationMessage: string

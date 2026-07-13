@@ -39,9 +39,9 @@ export default function TermsPage() {
         <div className="lg:grid lg:grid-cols-[280px_1fr] lg:gap-12">
           {/* Table of Contents - Desktop Only */}
           <aside className="hidden lg:block">
-            <div className="sticky top-8">
+            <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto">
               <div className="bg-card rounded-xl shadow-md border border-border p-6">
-                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-5">
+                <h3 className="text-base font-semibold text-foreground mb-5">
                   Contents
                 </h3>
                 <nav className="space-y-3" aria-label="Table of contents">
@@ -117,10 +117,10 @@ export default function TermsPage() {
           </aside>
 
           {/* Main Content */}
-          <div className="space-y-12">
+          <div className="lg:max-w-3xl space-y-12">
           
           {/* Agreement */}
-          <section id="service-agreement">
+          <section id="service-agreement" className="scroll-mt-24">
             <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-foreground mb-6">
@@ -142,7 +142,7 @@ export default function TermsPage() {
           </section>
 
           {/* Service Description */}
-          <section id="service-description">
+          <section id="service-description" className="scroll-mt-24">
             <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-foreground mb-6">
@@ -198,7 +198,7 @@ export default function TermsPage() {
           </section>
 
           {/* User Responsibilities */}
-          <section id="user-responsibilities">
+          <section id="user-responsibilities" className="scroll-mt-24">
             <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-foreground mb-6">
@@ -256,7 +256,7 @@ export default function TermsPage() {
           </section>
 
           {/* Prohibited Uses */}
-          <section id="prohibited-uses">
+          <section id="prohibited-uses" className="scroll-mt-24">
             <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-foreground mb-6">
@@ -314,7 +314,7 @@ export default function TermsPage() {
           </section>
 
           {/* AI-Assisted Communications */}
-          <section id="ai-communications">
+          <section id="ai-communications" className="scroll-mt-24">
             <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-foreground mb-6">
@@ -367,7 +367,7 @@ export default function TermsPage() {
           </section>
 
           {/* Payment Terms */}
-          <section id="payment-terms">
+          <section id="payment-terms" className="scroll-mt-24">
             <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-foreground mb-6">
@@ -411,7 +411,7 @@ export default function TermsPage() {
           </section>
 
           {/* Termination */}
-          <section id="service-termination">
+          <section id="service-termination" className="scroll-mt-24">
             <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-foreground mb-6">
@@ -444,7 +444,7 @@ export default function TermsPage() {
           </section>
 
           {/* Limitation of Liability */}
-          <section id="limitation-of-liability">
+          <section id="limitation-of-liability" className="scroll-mt-24">
             <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-foreground mb-6">
@@ -486,7 +486,7 @@ export default function TermsPage() {
           </section>
 
           {/* Service Availability */}
-          <section id="service-availability">
+          <section id="service-availability" className="scroll-mt-24">
             <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-foreground mb-6">
@@ -510,7 +510,7 @@ export default function TermsPage() {
           </section>
 
           {/* SMS Messaging Terms */}
-          <section id="sms-terms">
+          <section id="sms-terms" className="scroll-mt-24">
             <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-foreground mb-6">
@@ -581,7 +581,7 @@ export default function TermsPage() {
           </section>
 
           {/* Contact Information */}
-          <section id="contact-information">
+          <section id="contact-information" className="scroll-mt-24">
             <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-foreground mb-6">

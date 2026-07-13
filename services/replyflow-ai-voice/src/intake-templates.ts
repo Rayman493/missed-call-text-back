@@ -55,35 +55,35 @@ export type IntakeStage =
 export const AI_INTAKE_TEMPLATES: Record<IntakeTemplate, Record<IntakeStage, string>> = {
   on_site: {
     ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
-    ask_details: "Got it. Can you share any important details the business should know?",
-    ask_location_or_context: "Thanks. Just a couple more questions. Where will this take place?",
+    ask_details: "Okay. Can you share any important details the business should know?",
+    ask_location_or_context: "All right. Just a couple more questions. Where will this take place?",
     ask_timing: "When are you hoping this will be done?",
-    ask_callback_time: "Perfect. Last question—what's the best time for the business to call you back?",
-    complete: "Perfect. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
+    ask_callback_time: "Okay. Last question—what's the best time for the business to call you back?",
+    complete: "Okay. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
   },
   appointment: {
     ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
-    ask_details: "Got it. Can you share any important details the business should know?",
-    ask_location_or_context: "Thanks. Just a couple more questions. Where will this take place?",
+    ask_details: "Okay. Can you share any important details the business should know?",
+    ask_location_or_context: "All right. Just a couple more questions. Where will this take place?",
     ask_timing: "When are you hoping this will be done?",
-    ask_callback_time: "Perfect. Last question—what's the best time for the business to call you back?",
-    complete: "Perfect. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
+    ask_callback_time: "Okay. Last question—what's the best time for the business to call you back?",
+    complete: "Okay. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
   },
   lessons: {
     ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
-    ask_details: "Got it. Can you share any important details the business should know?",
-    ask_location_or_context: "Thanks. Just a couple more questions. Where will this take place?",
+    ask_details: "Okay. Can you share any important details the business should know?",
+    ask_location_or_context: "All right. Just a couple more questions. Where will this take place?",
     ask_timing: "When are you hoping this will be done?",
-    ask_callback_time: "Perfect. Last question—what's the best time for the business to call you back?",
-    complete: "Perfect. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
+    ask_callback_time: "Okay. Last question—what's the best time for the business to call you back?",
+    complete: "Okay. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
   },
   professional: {
     ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
-    ask_details: "Got it. Can you share any important details the business should know?",
-    ask_location_or_context: "Thanks. Just a couple more questions. Where will this take place?",
+    ask_details: "Okay. Can you share any important details the business should know?",
+    ask_location_or_context: "All right. Just a couple more questions. Where will this take place?",
     ask_timing: "When are you hoping this will be done?",
-    ask_callback_time: "Perfect. Last question—what's the best time for the business to call you back?",
-    complete: "Perfect. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
+    ask_callback_time: "Okay. Last question—what's the best time for the business to call you back?",
+    complete: "Okay. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
   }
 }
 
@@ -103,11 +103,11 @@ export function getIntakeStageText(template: IntakeTemplate, stage: IntakeStage)
  */
 const LEGACY_FALLBACK_PROMPTS: Record<IntakeStage, string> = {
   ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
-  ask_details: "Got it. Can you share any important details the business should know?",
-  ask_location_or_context: "Thanks. Just a couple more questions. Where will this take place?",
+  ask_details: "Okay. Can you share any important details the business should know?",
+  ask_location_or_context: "All right. Just a couple more questions. Where will this take place?",
   ask_timing: "When are you hoping this will be done?",
-  ask_callback_time: "Perfect. Last question—what's the best time for the business to call you back?",
-  complete: "Perfect. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
+  ask_callback_time: "Okay. Last question—what's the best time for the business to call you back?",
+  complete: "Okay. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
 }
 
 /**

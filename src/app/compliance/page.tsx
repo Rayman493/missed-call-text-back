@@ -38,9 +38,9 @@ export default function CompliancePage() {
         <div className="lg:grid lg:grid-cols-[280px_1fr] lg:gap-12">
           {/* Table of Contents - Desktop Only */}
           <aside className="hidden lg:block">
-            <div className="sticky top-8">
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 p-6">
-                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-5">
+            <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto">
+              <div className="bg-card rounded-xl shadow-md border border-border p-6">
+                <h3 className="text-base font-semibold text-foreground mb-5">
                   Contents
                 </h3>
                 <nav className="space-y-3" aria-label="Table of contents">
@@ -116,10 +116,10 @@ export default function CompliancePage() {
           </aside>
 
           {/* Main Content */}
-          <div className="space-y-12">
+          <div className="lg:max-w-3xl space-y-12">
           
           {/* Messaging Use Case */}
-          <section id="messaging-use-case">
+          <section id="messaging-use-case" className="scroll-mt-24">
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
@@ -156,7 +156,7 @@ export default function CompliancePage() {
           </section>
 
           {/* Missed-Call Workflow */}
-          <section id="missed-call-workflow">
+          <section id="missed-call-workflow" className="scroll-mt-24">
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
@@ -406,7 +406,7 @@ export default function CompliancePage() {
           </section>
 
           {/* How Customers Opt In */}
-          <section id="how-customers-opt-in">
+          <section id="how-customers-opt-in" className="scroll-mt-24">
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
@@ -461,7 +461,7 @@ export default function CompliancePage() {
           </section>
 
           {/* STOP/HELP Compliance */}
-          <section id="stop-help">
+          <section id="stop-help" className="scroll-mt-24">
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
@@ -513,7 +513,7 @@ export default function CompliancePage() {
           </section>
 
           {/* Data Privacy */}
-          <section id="data-privacy">
+          <section id="data-privacy" className="scroll-mt-24">
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
@@ -563,7 +563,7 @@ export default function CompliancePage() {
           </section>
 
           {/* AI Voice Compliance */}
-          <section id="ai-voicemail">
+          <section id="ai-voicemail" className="scroll-mt-24">
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
@@ -649,7 +649,7 @@ export default function CompliancePage() {
           </section>
 
           {/* Voice + SMS Compliance */}
-          <section id="voice-sms">
+          <section id="voice-sms" className="scroll-mt-24">
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">
@@ -765,7 +765,7 @@ export default function CompliancePage() {
           </section>
 
           {/* Contact Support */}
-          <section id="contact-support">
+          <section id="contact-support" className="scroll-mt-24">
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="p-8">
                 <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">

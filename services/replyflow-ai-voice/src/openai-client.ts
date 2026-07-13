@@ -15,12 +15,12 @@ console.log('[OPENAI] import statement:', 'import WebSocket from "ws"');
 
 // Approved assistant utterances per stage - strict allowlist
 const APPROVED_UTTERANCES: Record<string, string> = {
-  ask_name_reason: "Hi, I'm the assistant for the business. Can you please tell me your name and what you're calling about today?",
-  ask_details: "Thanks. Can you share any important details the business should know?",
-  ask_location_or_context: "Thanks. What location should the business know about?",
-  ask_timing: "Got it. When would you like this completed or scheduled?",
-  ask_callback_time: "Thanks. What is the best time for the business to call you back?",
-  complete: "Perfect. Thank you for calling. I'll pass this information along to the business and they will get back to you soon. Have a great day."
+  ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
+  ask_details: "Okay. Can you share any important details the business should know?",
+  ask_location_or_context: "All right. Just a couple more questions. Where will this take place?",
+  ask_timing: "When are you hoping this will be done?",
+  ask_callback_time: "Okay. Last question—what's the best time for the business to call you back?",
+  complete: "Okay. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
 };
 
 export interface OpenAIConfig {
@@ -309,7 +309,7 @@ export class OpenAIRealtimeClient {
               type: 'server_vad',
               threshold: 0.5,
               prefix_padding_ms: 300,
-              silence_duration_ms: 1400,
+              silence_duration_ms: 1800,
               create_response: false,
             },
           },
