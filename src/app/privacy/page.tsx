@@ -36,9 +36,9 @@ export default function PrivacyPage() {
 
       {/* Privacy Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="lg:grid lg:grid-cols-4 lg:gap-12">
+        <div className="lg:grid lg:grid-cols-[280px_1fr] lg:gap-12">
           {/* Table of Contents - Desktop Only */}
-          <aside className="hidden lg:block lg:col-span-[1.25]">
+          <aside className="hidden lg:block">
             <div className="sticky top-8">
               <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 p-6">
                 <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-5">
@@ -105,7 +105,7 @@ export default function PrivacyPage() {
           </aside>
 
           {/* Main Content */}
-          <div className="lg:col-span-3 space-y-12">
+          <div className="space-y-12">
           
           {/* Introduction */}
           <section id="introduction">

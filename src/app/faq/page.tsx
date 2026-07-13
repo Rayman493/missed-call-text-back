@@ -173,10 +173,10 @@ export default function FAQPage() {
                   <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl p-4">
                     <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">Still fully supported: Personal business phones</h3>
                     <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
-                      If you use one phone for both business and personal calls, ReplyFlow still works well. You can use Ignored Contacts to keep known personal callers out of the normal ReplyFlow customer workflow.
+                      If you use one phone for both business and personal calls, ReplyFlow still works well. You can use Personal Contacts to keep known personal callers out of the normal ReplyFlow customer workflow.
                     </p>
                     <p className="text-sm text-blue-800 dark:text-blue-200">
-                      If an ignored caller reaches ReplyFlow after a missed call, their voicemail will be saved separately in Personal Voicemail. ReplyFlow will not create a customer, send an automatic text, or schedule follow-ups.
+                      If a personal contact reaches ReplyFlow after a missed call, their voicemail will be saved separately. ReplyFlow will not create a customer, send an automatic text, or schedule follow-ups.
                     </p>
                   </div>
                 </div>
@@ -202,7 +202,7 @@ export default function FAQPage() {
                 </p>
                 <div className="mt-4 space-y-4">
                   <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl p-4">
-                    <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">Leave a number off your Ignored Contacts list</h3>
+                    <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">Leave a number off your Personal Contacts list</h3>
                     <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
                       ReplyFlow will treat the missed call like any potential customer:
                     </p>
@@ -213,7 +213,7 @@ export default function FAQPage() {
                     </ul>
                   </div>
                   <div className="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-2xl p-4">
-                    <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-2">Add a number to Ignored Contacts</h3>
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-2">Add a number to Personal Contacts</h3>
                     <p className="text-sm text-slate-700 dark:text-slate-300 mb-2">
                       ReplyFlow stays out of the customer workflow:
                     </p>
@@ -222,17 +222,17 @@ export default function FAQPage() {
                       <li>No automated text messages</li>
                       <li>No AI Voice intake</li>
                       <li>No follow-ups are scheduled</li>
-                      <li>If they reach ReplyFlow, their voicemail is saved separately in Personal Voicemail</li>
+                      <li>If they reach ReplyFlow, their voicemail is saved separately</li>
                     </ul>
                   </div>
                 </div>
                 <p className="text-muted-foreground mt-4">
-                  This flexibility makes it easy to keep business calls inside ReplyFlow while allowing personal contacts to bypass automation. You can add or remove numbers from your Ignored Contacts list at any time in Settings.
+                  This flexibility makes it easy to keep business calls inside ReplyFlow while allowing personal contacts to bypass automation. You can add or remove numbers from your Personal Contacts list at any time in Settings.
                 </p>
                 <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-2xl">
                   <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-2">Why does this work this way?</h3>
                   <p className="text-sm text-slate-700 dark:text-slate-300">
-                    ReplyFlow identifies callers by their incoming phone number. It can't automatically know whether a missed call is from a customer, a friend, or a family member. Ignored Contacts gives you complete control over which phone numbers ReplyFlow should handle and which ones it should leave alone.
+                    ReplyFlow identifies callers by their incoming phone number. It can't automatically know whether a missed call is from a customer, a friend, or a family member. Personal Contacts gives you complete control over which phone numbers ReplyFlow should handle and which ones it should leave alone.
                   </p>
                 </div>
               </div>
@@ -596,127 +596,6 @@ export default function FAQPage() {
                 <p className="text-muted-foreground mt-4">
                   We typically respond within 24 hours during business days.
                 </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Beta Tester FAQ */}
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl shadow-sm border border-blue-200 dark:border-blue-800 overflow-hidden">
-            <div className="p-8">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold">β</span>
-                </div>
-                <h2 className="text-2xl font-semibold text-foreground">
-                  Beta Tester FAQ
-                </h2>
-              </div>
-              <p className="text-muted-foreground mb-6">
-                Quick answers for beta testers setting up ReplyFlow for the first time.
-              </p>
-
-              <div className="space-y-6">
-                {/* Forwarding */}
-                <div>
-                  <h3 className="text-lg font-semibold text-foreground mb-2">Call Forwarding</h3>
-                  <div className="space-y-3">
-                    <div className="bg-white dark:bg-slate-800 rounded-lg p-4">
-                      <p className="font-medium text-foreground mb-1">Which number do I forward?</p>
-                      <p className="text-sm text-muted-foreground">Forward YOUR BUSINESS NUMBER to the ReplyFlow number. Do not forward the ReplyFlow number to your business number.</p>
-                    </div>
-                    <div className="bg-white dark:bg-slate-800 rounded-lg p-4">
-                      <p className="font-medium text-foreground mb-1">How long does forwarding take to activate?</p>
-                      <p className="text-sm text-muted-foreground">Call forwarding typically activates within 5-10 minutes after you dial the carrier code.</p>
-                    </div>
-                    <div className="bg-white dark:bg-slate-800 rounded-lg p-4">
-                      <p className="font-medium text-foreground mb-1">What if my carrier isn't listed?</p>
-                      <p className="text-sm text-muted-foreground">Select "Other" and contact your carrier for their call forwarding instructions. VoIP systems (RingCentral, 8x8) use web settings instead of dial codes.</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Test Calls */}
-                <div>
-                  <h3 className="text-lg font-semibold text-foreground mb-2">Test Calls</h3>
-                  <div className="space-y-3">
-                    <div className="bg-white dark:bg-slate-800 rounded-lg p-4">
-                      <p className="font-medium text-foreground mb-1">Why can't I use my business phone to test?</p>
-                      <p className="text-sm text-muted-foreground">Call forwarding doesn't work from the same phone being forwarded. You must call from a different phone.</p>
-                    </div>
-                    <div className="bg-white dark:bg-slate-800 rounded-lg p-4">
-                      <p className="font-medium text-foreground mb-1">Should I answer the test call?</p>
-                      <p className="text-sm text-muted-foreground">No. Let the call ring unanswered so it forwards to ReplyFlow. If you answer, forwarding won't trigger.</p>
-                    </div>
-                    <div className="bg-white dark:bg-slate-800 rounded-lg p-4">
-                      <p className="font-medium text-foreground mb-1">What should I hear during the test?</p>
-                      <p className="text-sm text-muted-foreground">You should hear AI Voice answer. If you hear your normal voicemail, forwarding may not be enabled correctly.</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* SMS Timing */}
-                <div>
-                  <h3 className="text-lg font-semibold text-foreground mb-2">SMS Timing</h3>
-                  <div className="space-y-3">
-                    <div className="bg-white dark:bg-slate-800 rounded-lg p-4">
-                      <p className="font-medium text-foreground mb-1">How long until I receive the auto-reply?</p>
-                      <p className="text-sm text-muted-foreground">SMS typically arrives within 1-2 minutes after the missed call. Some carriers may take longer.</p>
-                    </div>
-                    <div className="bg-white dark:bg-slate-800 rounded-lg p-4">
-                      <p className="font-medium text-foreground mb-1">What if I don't receive the text?</p>
-                      <p className="text-sm text-muted-foreground">Wait 2-3 minutes and try the test call again. Verify your phone can receive SMS from short codes. Some corporate phones block SMS.</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Photos */}
-                <div>
-                  <h3 className="text-lg font-semibold text-foreground mb-2">Photos (MMS)</h3>
-                  <div className="space-y-3">
-                    <div className="bg-white dark:bg-slate-800 rounded-lg p-4">
-                      <p className="font-medium text-foreground mb-1">Can customers send photos?</p>
-                      <p className="text-sm text-muted-foreground">Yes. Customers can send photos via MMS and they'll appear in your conversation threads with thumbnails.</p>
-                    </div>
-                    <div className="bg-white dark:bg-slate-800 rounded-lg p-4">
-                      <p className="font-medium text-foreground mb-1">What file types are supported?</p>
-                      <p className="text-sm text-muted-foreground">JPG, PNG, WEBP, and most common image formats are supported. Photos are stored securely and displayed in your dashboard.</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Google Calendar */}
-                <div>
-                  <h3 className="text-lg font-semibold text-foreground mb-2">Google Calendar</h3>
-                  <div className="space-y-3">
-                    <div className="bg-white dark:bg-slate-800 rounded-lg p-4">
-                      <p className="font-medium text-foreground mb-1">Is Google Calendar required?</p>
-                      <p className="text-sm text-muted-foreground">No. Google Calendar is optional and only needed if you want to sync appointments with your calendar.</p>
-                    </div>
-                    <div className="bg-white dark:bg-slate-800 rounded-lg p-4">
-                      <p className="font-medium text-foreground mb-1">How do I connect Google Calendar?</p>
-                      <p className="text-sm text-muted-foreground">Go to Dashboard → Calendar → Connect Google Calendar. You'll authorize ReplyFlow to access your calendar events.</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Trial Billing */}
-                <div>
-                  <h3 className="text-lg font-semibold text-foreground mb-2">Trial Billing</h3>
-                  <div className="space-y-3">
-                    <div className="bg-white dark:bg-slate-800 rounded-lg p-4">
-                      <p className="font-medium text-foreground mb-1">Will I be charged during the trial?</p>
-                      <p className="text-sm text-muted-foreground">No. The trial is free with no charge. You'll only be charged after the trial ends if you choose to continue.</p>
-                    </div>
-                    <div className="bg-white dark:bg-slate-800 rounded-lg p-4">
-                      <p className="font-medium text-foreground mb-1">How do I cancel before the trial ends?</p>
-                      <p className="text-sm text-muted-foreground">Go to Dashboard → Settings → Subscription and click "Cancel Subscription." No charges will be made.</p>
-                    </div>
-                    <div className="bg-white dark:bg-slate-800 rounded-lg p-4">
-                      <p className="font-medium text-foreground mb-1">What payment methods are accepted?</p>
-                      <p className="text-sm text-muted-foreground">Stripe accepts all major credit cards (Visa, MasterCard, American Express, Discover). Corporate cards may require additional verification.</p>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>

@@ -198,9 +198,6 @@ export default async function Home() {
                     <div className="w-3 h-3 rounded-full bg-yellow-500" />
                     <div className="w-3 h-3 rounded-full bg-green-500" />
                   </div>
-                  <div className="flex-1 flex justify-center">
-                    <div className="text-xs sm:text-sm text-slate-400 font-medium">ReplyFlow Dashboard</div>
-                  </div>
                 </div>
                 
                 {/* Mockup Content */}
