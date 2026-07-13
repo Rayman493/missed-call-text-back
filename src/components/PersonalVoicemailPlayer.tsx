@@ -125,7 +125,10 @@ export function PersonalVoicemailPlayer({
     audioRef.current = audio
     
     audio.addEventListener('loadedmetadata', () => {
-      setDuration(audio.duration || storedDuration)
+      // Prefer storedDuration over audio.duration for consistency
+      // Use audio.duration only if storedDuration is not available or invalid
+      const canonicalDuration = (storedDuration && storedDuration > 0) ? storedDuration : (audio.duration || 0)
+      setDuration(canonicalDuration)
     })
     
     audio.addEventListener('timeupdate', () => {

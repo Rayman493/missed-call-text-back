@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatPhoneNumber, formatRelativeTime } from '@/lib/utils'
-import { Trash2, Check, Phone, Clock, Timer } from 'lucide-react'
+import { Trash2, Check, Phone, Clock, MoreVertical } from 'lucide-react'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
 import AppHeader from '@/components/AppHeader'
@@ -11,6 +11,13 @@ import Navigation from '@/components/Navigation'
 import BottomNavigation from '@/components/BottomNavigation'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import { PersonalVoicemailPlayer } from '@/components/PersonalVoicemailPlayer'
+
+// Format duration helper - consistent with PersonalVoicemailPlayer
+function formatDuration(seconds: number): string {
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.floor(seconds % 60)
+  return `${mins}:${secs.toString().padStart(2, '0')}`
+}
 
 interface PersonalVoicemail {
   id: string
@@ -32,6 +39,7 @@ export default function PersonalVoicemailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [globalPlayingId, setGlobalPlayingId] = useState<string | null>(null)
+  const [overflowMenuId, setOverflowMenuId] = useState<string | null>(null)
   const supabase = createBrowserClient()
 
   const fetchVoicemails = async () => {
@@ -143,33 +151,68 @@ export default function PersonalVoicemailPage() {
                       }`}
                     >
                       {/* Desktop Layout */}
-                      <div className="hidden sm:flex items-center gap-4">
-                        {/* Caller Info */}
-                        <div className="w-64 flex-shrink-0">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                            <span className="font-medium text-foreground">
-                              {voicemail.caller_name || formatPhoneNumber(voicemail.caller_phone)}
-                            </span>
-                            {!voicemail.listened_at && (
-                              <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full">
-                                New
+                      <div className="hidden sm:block">
+                        {/* Card Header with Overflow Menu */}
+                        <div className="flex items-start justify-between mb-3">
+                          {/* Caller Info */}
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                              <span className="font-medium text-foreground">
+                                {voicemail.caller_name || formatPhoneNumber(voicemail.caller_phone)}
                               </span>
+                              {!voicemail.listened_at && (
+                                <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full">
+                                  New
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {formatRelativeTime(voicemail.created_at)}
+                              </span>
+                              <span className="text-muted-foreground/50">•</span>
+                              <span className="flex items-center gap-1">
+                                {formatDuration(voicemail.duration_seconds)}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Overflow Menu */}
+                          <div className="relative">
+                            <button
+                              onClick={() => setOverflowMenuId(overflowMenuId === voicemail.id ? null : voicemail.id)}
+                              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+                              title="Voicemail actions"
+                              aria-label="Voicemail actions"
+                            >
+                              <MoreVertical className="w-4 h-4" />
+                            </button>
+                            {overflowMenuId === voicemail.id && (
+                              <>
+                                <div
+                                  className="fixed inset-0 z-[9999]"
+                                  onClick={() => setOverflowMenuId(null)}
+                                />
+                                <div className="absolute right-0 mt-2 w-48 bg-popover border border-border rounded-lg shadow-lg z-[10000] overflow-hidden">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleDelete(voicemail)
+                                      setOverflowMenuId(null)
+                                    }}
+                                    className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                    Delete voicemail
+                                  </button>
+                                </div>
+                              </>
                             )}
                           </div>
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {formatRelativeTime(voicemail.created_at)}
-                            </span>
-                            <span className="text-muted-foreground/50">•</span>
-                            <span className="flex items-center gap-1">
-                              <Timer className="w-3 h-3" />
-                              {voicemail.duration_seconds}s
-                            </span>
-                          </div>
                         </div>
-                        
+
                         {/* Audio Player */}
                         <PersonalVoicemailPlayer
                           voicemailId={voicemail.id}
@@ -180,68 +223,81 @@ export default function PersonalVoicemailPage() {
                           globalPlayingId={globalPlayingId}
                           onSetGlobalPlayingId={setGlobalPlayingId}
                         />
-                        
-                        {/* Actions */}
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <button
-                            onClick={() => handleDelete(voicemail)}
-                            className="px-3 py-2 rounded-lg bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
                       </div>
 
                       {/* Mobile Layout */}
                       <div className="sm:hidden">
-                        {/* Caller Info */}
-                        <div className="flex items-center gap-2 mb-3">
-                          <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                          <span className="font-medium text-foreground">
-                            {voicemail.caller_name || formatPhoneNumber(voicemail.caller_phone)}
-                          </span>
-                          {!voicemail.listened_at && (
-                            <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full">
-                              New
-                            </span>
-                          )}
+                        {/* Card Header with Overflow Menu */}
+                        <div className="flex items-start justify-between mb-3">
+                          {/* Caller Info */}
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                              <span className="font-medium text-foreground">
+                                {voicemail.caller_name || formatPhoneNumber(voicemail.caller_phone)}
+                              </span>
+                              {!voicemail.listened_at && (
+                                <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full">
+                                  New
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {formatRelativeTime(voicemail.created_at)}
+                              </span>
+                              <span className="text-muted-foreground/50">•</span>
+                              <span className="flex items-center gap-1">
+                                {formatDuration(voicemail.duration_seconds)}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Overflow Menu */}
+                          <div className="relative">
+                            <button
+                              onClick={() => setOverflowMenuId(overflowMenuId === voicemail.id ? null : voicemail.id)}
+                              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+                              title="Voicemail actions"
+                              aria-label="Voicemail actions"
+                            >
+                              <MoreVertical className="w-4 h-4" />
+                            </button>
+                            {overflowMenuId === voicemail.id && (
+                              <>
+                                <div
+                                  className="fixed inset-0 z-[9999]"
+                                  onClick={() => setOverflowMenuId(null)}
+                                />
+                                <div className="absolute right-0 mt-2 w-48 bg-popover border border-border rounded-lg shadow-lg z-[10000] overflow-hidden">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleDelete(voicemail)
+                                      setOverflowMenuId(null)
+                                    }}
+                                    className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                    Delete voicemail
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {formatRelativeTime(voicemail.created_at)}
-                          </span>
-                          <span className="text-muted-foreground/50">•</span>
-                          <span className="flex items-center gap-1">
-                            <Timer className="w-3 h-3" />
-                            {voicemail.duration_seconds}s
-                          </span>
-                        </div>
-                        
+
                         {/* Audio Player */}
-                        <div className="mb-3">
-                          <PersonalVoicemailPlayer
-                            voicemailId={voicemail.id}
-                            audioProxyUrl={voicemail.audioProxyUrl}
-                            storedDuration={voicemail.duration_seconds}
-                            isUnread={!voicemail.listened_at}
-                            onMarkRead={() => handleMarkListened(voicemail)}
-                            globalPlayingId={globalPlayingId}
-                            onSetGlobalPlayingId={setGlobalPlayingId}
-                          />
-                        </div>
-                        
-                        {/* Actions */}
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleDelete(voicemail)}
-                            className="px-3 py-2 rounded-lg bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                        <PersonalVoicemailPlayer
+                          voicemailId={voicemail.id}
+                          audioProxyUrl={voicemail.audioProxyUrl}
+                          storedDuration={voicemail.duration_seconds}
+                          isUnread={!voicemail.listened_at}
+                          onMarkRead={() => handleMarkListened(voicemail)}
+                          globalPlayingId={globalPlayingId}
+                          onSetGlobalPlayingId={setGlobalPlayingId}
+                        />
                       </div>
                     </div>
                   ))}
