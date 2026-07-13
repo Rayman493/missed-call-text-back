@@ -14,37 +14,9 @@ export default function DocumentationSidebar({ sections }: DocumentationSidebarP
   const [isSticky, setIsSticky] = useState(false)
   const sidebarRef = useRef<HTMLDivElement>(null)
   const rafRef = useRef<number>()
+  const isProgrammaticScrollRef = useRef(false)
 
   useEffect(() => {
-    // IntersectionObserver for active section tracking
-    const observerOptions = {
-      root: null,
-      rootMargin: '-20% 0px -70% 0px', // Trigger when section is in middle of viewport
-      threshold: 0
-    }
-
-    const observer = new IntersectionObserver((entries) => {
-      // Find the intersecting section closest to the activation line
-      const intersectingEntries = entries.filter(entry => entry.isIntersecting)
-      if (intersectingEntries.length > 0) {
-        // Sort by distance from top of viewport (closest to activation line wins)
-        intersectingEntries.sort((a, b) => {
-          const aRect = a.boundingClientRect
-          const bRect = b.boundingClientRect
-          return Math.abs(aRect.top) - Math.abs(bRect.top)
-        })
-        setActiveId(intersectingEntries[0].target.id)
-      }
-    }, observerOptions)
-
-    // Observe all sections
-    sections.forEach((section) => {
-      const element = document.getElementById(section.id)
-      if (element) {
-        observer.observe(element)
-      }
-    })
-
     // Sticky state detection
     const stickyObserver = new IntersectionObserver(
       ([entry]) => {
@@ -63,21 +35,55 @@ export default function DocumentationSidebar({ sections }: DocumentationSidebarP
       stickyObserver.observe(sentinel)
     }
 
-    // Bottom-of-page fallback for final section
+    // Active section tracking based on heading positions
     const handleScroll = () => {
       if (rafRef.current) {
         cancelAnimationFrame(rafRef.current)
       }
       
       rafRef.current = requestAnimationFrame(() => {
-        const tolerance = 32 // 32px tolerance for browser rounding and footer height
+        // Skip if programmatic scroll is in progress
+        if (isProgrammaticScrollRef.current) {
+          return
+        }
+
+        const activationLinePercent = 0.3 // 30% from top of viewport
+        const activationLine = window.innerHeight * activationLinePercent
+        const bottomTolerance = 32 // 32px tolerance for bottom-of-page detection
+
+        // Check if at bottom of page
         const isAtBottom = 
           window.innerHeight + window.scrollY >= 
-          document.documentElement.scrollHeight - tolerance
-        
+          document.documentElement.scrollHeight - bottomTolerance
+
         if (isAtBottom && sections.length > 0) {
           // Set final section as active when at bottom of page
           setActiveId(sections[sections.length - 1].id)
+          return
+        }
+
+        // Find the last section whose heading is at or above the activation line
+        let activeSectionId = ''
+        
+        for (let i = sections.length - 1; i >= 0; i--) {
+          const element = document.getElementById(sections[i].id)
+          if (element) {
+            const rect = element.getBoundingClientRect()
+            // Check if the section heading is at or above the activation line
+            if (rect.top <= activationLine) {
+              activeSectionId = sections[i].id
+              break
+            }
+          }
+        }
+
+        // If no section is at or above the line, select the first section
+        if (!activeSectionId && sections.length > 0) {
+          activeSectionId = sections[0].id
+        }
+
+        if (activeSectionId) {
+          setActiveId(activeSectionId)
         }
       })
     }
@@ -85,7 +91,6 @@ export default function DocumentationSidebar({ sections }: DocumentationSidebarP
     window.addEventListener('scroll', handleScroll, { passive: true })
 
     return () => {
-      observer.disconnect()
       stickyObserver.disconnect()
       window.removeEventListener('scroll', handleScroll)
       if (rafRef.current) {
@@ -97,8 +102,13 @@ export default function DocumentationSidebar({ sections }: DocumentationSidebarP
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     e.preventDefault()
     setActiveId(id)
+    
     const element = document.getElementById(id)
     if (element) {
+      // Set programmatic scroll guard
+      isProgrammaticScrollRef.current = true
+      setActiveId(id)
+      
       const offset = 96 // top-24 = 96px
       const elementPosition = element.getBoundingClientRect().top
       const offsetPosition = elementPosition + window.pageYOffset - offset
@@ -107,6 +117,11 @@ export default function DocumentationSidebar({ sections }: DocumentationSidebarP
         top: offsetPosition,
         behavior: 'smooth'
       })
+
+      // Clear programmatic scroll guard after animation completes
+      setTimeout(() => {
+        isProgrammaticScrollRef.current = false
+      }, 1000) // 1 second should be enough for smooth scroll
     }
   }
 
