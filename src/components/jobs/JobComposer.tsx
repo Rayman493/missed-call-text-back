@@ -16,6 +16,8 @@ export interface JobPrefill {
   conversation_id?: string
   scheduled_date?: string
   scheduled_time?: string
+  requested_completion_label?: string
+  callback_preference_label?: string
 }
 
 export interface Job {
@@ -95,8 +97,8 @@ export default function JobComposer({
       setCustomerPhone(prefill?.customer_phone || '')
       setServiceAddress(prefill?.service_address || '')
       setNotes(prefill?.notes || '')
-      setScheduledDate(defaultDate ? defaultDate.toISOString().split('T')[0] : '')
-      setScheduledTime('')
+      setScheduledDate(prefill?.scheduled_date || (defaultDate ? defaultDate.toISOString().split('T')[0] : ''))
+      setScheduledTime(prefill?.scheduled_time || '')
       setStatus('scheduled')
     }
   }, [isOpen, editJob, prefill, defaultDate])
@@ -258,6 +260,27 @@ export default function JobComposer({
                 />
               </div>
             </div>
+
+            {/* Customer Preference Context */}
+            {(prefill?.requested_completion_label || prefill?.callback_preference_label) && (
+              <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700 p-3">
+                <p className="text-[10px] font-medium text-slate-600 dark:text-slate-400 mb-2 uppercase tracking-wide">
+                  Customer preference
+                </p>
+                {prefill?.requested_completion_label && (
+                  <div className="mb-1.5 last:mb-0">
+                    <p className="text-[10px] text-slate-500 dark:text-slate-500 mb-0.5">Requested completion</p>
+                    <p className="text-xs text-slate-700 dark:text-slate-300">{prefill.requested_completion_label}</p>
+                  </div>
+                )}
+                {prefill?.callback_preference_label && (
+                  <div>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-500 mb-0.5">Preferred callback</p>
+                    <p className="text-xs text-slate-700 dark:text-slate-300">{prefill.callback_preference_label}</p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Date + Time */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">

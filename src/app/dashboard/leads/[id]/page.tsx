@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber, formatRelativeTime, formatCurrency, getLeadStatusColor, getLeadDisplayName } from '@/lib/utils'
 import { getLeadAIIntake, getAIIntakeStatus, getAIIntakeStatusLabel, getAIIntakeStatusColor } from '@/lib/ai-field-mapping'
+import { deriveJobSchedulingPrefill } from '@/lib/job-scheduling-prefill'
 import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel, LeadLifecycleStatus } from '@/lib/lead-lifecycle'
 import { copyToClipboard } from '@/lib/clipboard'
 import { calculateLeadTiming, getCustomerInfoForCopy, getAISummaryForCopy } from '@/lib/lead-timing'
@@ -2125,14 +2126,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     if (intake.additionalDetails) {
       noteSections.push(`Additional Details\n• ${intake.additionalDetails}`)
     }
-    
-    if (intake.desiredCompletion) {
-      noteSections.push(`Desired Completion\n• ${intake.desiredCompletion}`)
-    }
-    
-    if (intake.callbackTime) {
-      noteSections.push(`Best Callback Time\n• ${intake.callbackTime}`)
-    }
+
+    // Derive scheduling prefill from AI intake
+    const schedulingPrefill = deriveJobSchedulingPrefill(
+      intake.desiredCompletion,
+      intake.callbackTime
+    )
 
     return {
       title: leadReason || `Job for ${leadName || 'Customer'}`,
@@ -2142,6 +2141,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       notes: noteSections.length > 0 ? noteSections.join('\n\n') : undefined,
       lead_id: params.id,
       conversation_id: leadData?.conversation_id || undefined,
+      scheduled_date: schedulingPrefill.date,
+      scheduled_time: schedulingPrefill.time,
+      requested_completion_label: schedulingPrefill.requestedCompletionLabel,
+      callback_preference_label: schedulingPrefill.callbackPreferenceLabel,
     }
   }
 
