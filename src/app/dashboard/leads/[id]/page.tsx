@@ -3417,7 +3417,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Conversation Section - Primary content, conversation-first */}
-          <div className="bg-card border border-border/60 rounded-2xl lg:hidden flex flex-col overflow-hidden shadow-md" style={{ minHeight: '420px', height: '60dvh', maxHeight: '680px' }}>
+          <div className="bg-card border border-border/60 rounded-2xl lg:hidden flex flex-col overflow-hidden shadow-md" style={{ minHeight: '420px', height: '60dvh' }}>
             {/* Mobile Message Thread - Scrollable viewport */}
             <div ref={mobileConversationContainerRef} className="flex-1 min-h-0 overflow-y-auto scroll-smooth overscroll-contain bg-slate-50/40 dark:bg-slate-950/20" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', scrollPaddingBottom: '5rem' }}>
               {/* Inner content wrapper for justify-end */}
