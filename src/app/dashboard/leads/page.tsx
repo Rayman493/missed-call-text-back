@@ -704,7 +704,7 @@ export default function LeadsPage() {
             <AppHeader title="Customers" />
 
           {/* Main Content */}
-          <main className="flex-1 pt-4 lg:pt-8 px-4 lg:px-6 pb-6 md:pb-6 relative z-10 overflow-y-auto" style={{ paddingBottom: 'max(8rem+32px, env(safe-area-inset-bottom))' }}>
+          <main className="flex-1 pt-4 lg:pt-8 px-4 lg:px-6 pb-6 md:pb-6 relative z-10 overflow-y-auto" style={{ paddingBottom: 'max(80px, calc(80px + env(safe-area-inset-bottom)))' }}>
             <div className="max-w-[1400px] mx-auto space-y-3 sm:space-y-4 lg:space-y-6">
             {/* SMS Verification Banner */}
             <SmsVerificationBanner business={business} />
@@ -1386,7 +1386,7 @@ export default function LeadsPage() {
                 } else {
                   // Multiple customers: grid layout
                   return (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4 md:pb-0" style={{ paddingBottom: 'max(4rem, env(safe-area-inset-bottom))' }}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4 md:pb-0">
                       {filteredLeads.map((lead: any, index: number) => {
                         const latestMessage = lead.messages && lead.messages.length > 0
                           ? lead.messages.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]

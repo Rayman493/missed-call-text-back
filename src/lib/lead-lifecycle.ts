@@ -15,31 +15,31 @@ export interface LeadLifecycleConfig {
 export const LEAD_LIFECYCLE_CONFIG: Record<LeadLifecycleStatus, LeadLifecycleConfig> = {
   new: {
     color: 'text-blue-700 dark:text-blue-300',
-    bgColor: 'bg-blue-100 dark:bg-blue-900/30',
+    bgColor: 'bg-blue-100 dark:bg-blue-950/40',
     label: 'New',
     description: 'Recently received missed call'
   },
   active: {
     color: 'text-green-700 dark:text-green-300',
-    bgColor: 'bg-green-100 dark:bg-green-900/30',
+    bgColor: 'bg-green-100 dark:bg-green-950/40',
     label: 'Active',
     description: 'Conversation in progress'
   },
   scheduled: {
     color: 'text-purple-700 dark:text-purple-300',
-    bgColor: 'bg-purple-100 dark:bg-purple-900/30',
+    bgColor: 'bg-purple-100 dark:bg-purple-950/40',
     label: 'Scheduled',
     description: 'Appointment scheduled'
   },
   payment_requested: {
     color: 'text-amber-700 dark:text-amber-300',
-    bgColor: 'bg-amber-100 dark:bg-amber-900/30',
+    bgColor: 'bg-amber-100 dark:bg-amber-950/40',
     label: 'Payment Requested',
     description: 'Payment request sent'
   },
   paid: {
     color: 'text-emerald-700 dark:text-emerald-300',
-    bgColor: 'bg-emerald-100 dark:bg-emerald-900/30',
+    bgColor: 'bg-emerald-100 dark:bg-emerald-950/40',
     label: 'Paid',
     description: 'Payment received'
   },
@@ -51,13 +51,13 @@ export const LEAD_LIFECYCLE_CONFIG: Record<LeadLifecycleStatus, LeadLifecycleCon
   },
   lost: {
     color: 'text-red-700 dark:text-red-300',
-    bgColor: 'bg-red-100 dark:bg-red-900/30',
+    bgColor: 'bg-red-100 dark:bg-red-950/40',
     label: 'Lost',
     description: 'Customer lost'
   },
   ignored: {
     color: 'text-red-700 dark:text-red-300',
-    bgColor: 'bg-red-100 dark:bg-red-900/30',
+    bgColor: 'bg-red-100 dark:bg-red-950/40',
     label: 'Ignored',
     description: 'Customer ignored'
   }
