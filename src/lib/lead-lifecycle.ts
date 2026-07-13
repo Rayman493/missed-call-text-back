@@ -44,8 +44,8 @@ export const LEAD_LIFECYCLE_CONFIG: Record<LeadLifecycleStatus, LeadLifecycleCon
     description: 'Payment received'
   },
   completed: {
-    color: 'text-slate-600 dark:text-muted-foreground',
-    bgColor: 'bg-slate-100 dark:bg-muted',
+    color: 'text-slate-600 dark:text-slate-300',
+    bgColor: 'bg-slate-200 dark:bg-slate-800',
     label: 'Completed',
     description: 'Handled and resolved'
   },

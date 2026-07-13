@@ -17,7 +17,7 @@ export default function NewJobModal({
   onClose,
   onSelectLead,
   title = 'Create Job',
-  prompt = 'Select a customer to create a job for',
+  prompt = 'Choose a customer for this job',
 }: NewJobModalProps) {
   useBodyScrollLock(isOpen)
 
@@ -59,19 +59,12 @@ export default function NewJobModal({
               <div>
                 <p className="text-sm font-semibold text-foreground">Select Existing Customer</p>
                 <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                  Choose from customers already in ReplyFlow.
+                  Choose a customer already in ReplyFlow.
                 </p>
               </div>
             </button>
 
-            {/* Flow Explanation */}
-            <div className="px-1 py-2">
-              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                Jobs are scheduled for customers already in ReplyFlow. Create the customer from the Customers page first, then return here to schedule their job.
-              </p>
-            </div>
-
-            {/* Go to Customers - Secondary Action */}
+            {/* Create New Customer - Secondary Action */}
             <Link
               href="/dashboard/leads"
               onClick={onClose}
@@ -82,9 +75,9 @@ export default function NewJobModal({
                   <Users className="w-4 h-4 text-slate-500 dark:text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">Need to create a customer first?</p>
+                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">Create a New Customer</p>
                   <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 leading-relaxed">
-                    Customers are created from the Customers page before jobs are scheduled.
+                    Go to Customers first, then return to schedule the job.
                   </p>
                 </div>
               </div>
