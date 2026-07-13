@@ -202,22 +202,59 @@ export default function AnalyticsContent() {
         const estimatedLeadsSaved = inboundMessages + aiIntakesCompleted
 
         // Calculate daily trends for the last 7 days
-        const sevenDaysAgoForTrends = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        // Use business timezone if available, otherwise fallback to UTC
+        const businessTimezone = business.business_hours_timezone || 'UTC'
+        
+        // Helper function to get local date string in business timezone
+        const getLocalDateString = (isoString: string, timezone: string): string => {
+          const date = new Date(isoString)
+          return date.toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric',
+            timeZone: timezone
+          })
+        }
+
+        // Helper function to check if date is within 7-day range in business timezone
+        const isWithinSevenDays = (isoString: string, timezone: string): boolean => {
+          const now = new Date()
+          const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+          const date = new Date(isoString)
+          
+          // Get start of today in business timezone
+          const todayInTz = new Date(now.toLocaleString('en-US', { timeZone: timezone }))
+          todayInTz.setHours(0, 0, 0, 0)
+          
+          // Get start of seven days ago in business timezone
+          const sevenDaysAgoInTz = new Date(sevenDaysAgo.toLocaleString('en-US', { timeZone: timezone }))
+          sevenDaysAgoInTz.setHours(0, 0, 0, 0)
+          
+          // Get date in business timezone
+          const dateInTz = new Date(date.toLocaleString('en-US', { timeZone: timezone }))
+          dateInTz.setHours(0, 0, 0, 0)
+          
+          return dateInTz >= sevenDaysAgoInTz && dateInTz <= todayInTz
+        }
+
         const dailyLeads: Record<string, number> = {}
         const dailyReplies: Record<string, number> = {}
 
+        // Initialize all 7 days with zero values
         for (let i = 6; i >= 0; i--) {
           const date = new Date()
           date.setDate(date.getDate() - i)
-          const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+          const dateStr = date.toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric',
+            timeZone: businessTimezone
+          })
           dailyLeads[dateStr] = 0
           dailyReplies[dateStr] = 0
         }
 
         leadsArray.forEach((lead: any) => {
-          const date = new Date(lead.created_at)
-          if (date >= sevenDaysAgoForTrends) {
-            const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+          if (isWithinSevenDays(lead.created_at, businessTimezone)) {
+            const dateStr = getLocalDateString(lead.created_at, businessTimezone)
             dailyLeads[dateStr] = (dailyLeads[dateStr] || 0) + 1
           }
         })
@@ -227,9 +264,8 @@ export default function AnalyticsContent() {
           const isDirectionInbound = message.direction === 'inbound' || message.direction?.startsWith?.('inbound')
           const isToBusinessPhone = message.to_phone === businessPhone
           if (isDirectionInbound || isToBusinessPhone) {
-            const date = new Date(message.created_at)
-            if (date >= sevenDaysAgoForTrends) {
-              const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            if (isWithinSevenDays(message.created_at, businessTimezone)) {
+              const dateStr = getLocalDateString(message.created_at, businessTimezone)
               dailyReplies[dateStr] = (dailyReplies[dateStr] || 0) + 1
             }
           }
@@ -517,7 +553,7 @@ export default function AnalyticsContent() {
                         <TrendingUp className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                         Lead Activity Trend (7 Days)
                       </h3>
-                      <SimpleBarChart data={leadTrend} color="blue" />
+                      <SimpleBarChart data={leadTrend} color="blue" label="Lead Activity Trend" />
                     </div>
 
                     {/* Customer Reply Trend */}
@@ -526,7 +562,7 @@ export default function AnalyticsContent() {
                         <MessageSquare className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                         Customer Reply Trend (7 Days)
                       </h3>
-                      <SimpleBarChart data={replyTrend} color="green" />
+                      <SimpleBarChart data={replyTrend} color="green" label="Customer Reply Trend" />
                     </div>
                   </div>
                 </>
@@ -569,18 +605,30 @@ function PercentageCard({ label, value }: { label: string; value: number }) {
   )
 }
 
-function SimpleBarChart({ data, color }: { data: TrendData[]; color: 'blue' | 'green' }) {
+function SimpleBarChart({ data, color, label }: { data: TrendData[]; color: 'blue' | 'green'; label?: string }) {
   const hasData = data.some(d => d.value > 0)
   
   if (!hasData) {
+    const emptyMessage = label === 'Lead Activity Trend'
+      ? 'No lead activity yet'
+      : label === 'Customer Reply Trend'
+      ? 'No customer replies yet'
+      : 'No activity during the last 7 days'
+    
+    const subMessage = label === 'Lead Activity Trend'
+      ? 'Your 7-day trend will appear after ReplyFlow begins capturing customers.'
+      : label === 'Customer Reply Trend'
+      ? 'Inbound customer replies will appear here.'
+      : 'Activity will appear here as customers call, text, and reply'
+    
     return (
       <div className="flex items-center justify-center h-32 sm:h-40 text-center">
         <div className="px-4">
           <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-            No activity during the last 7 days
+            {emptyMessage}
           </p>
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-            Activity will appear here as customers call, text, and reply
+            {subMessage}
           </p>
         </div>
       </div>
