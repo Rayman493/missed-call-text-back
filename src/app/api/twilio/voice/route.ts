@@ -1178,13 +1178,37 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
                 }
               }
             } else {
-              console.error('[AI BASELINE INTAKE RECORDS FAILED] Could not ensure baseline records', {
+              console.error('[AI BASELINE INTAKE RECORDS FAILED] Could not ensure baseline records - falling back to voicemail', {
                 callSid: CallSid,
                 businessId: business.id,
                 leadId: baselineRecords.leadId,
                 conversationId: baselineRecords.conversationId
               });
+
+              // CRITICAL: Do not start AI with missing baseline IDs
+              // Fall back to voicemail to ensure data integrity
+              logCallTrace({
+                route: 'voice',
+                action: 'ai_baseline_records_failed',
+                callSid: CallSid,
+                from: From,
+                to: To,
+                forwardedFrom: ForwardedFrom,
+                businessId: business.id,
+                businessName: business.name,
+                reason: 'Baseline lead/conversation creation failed - falling back to voicemail'
+              })
+
+              console.log('[AI FAILED - VOICEMAIL FALLBACK] Baseline records unavailable, falling back to voicemail')
+              console.log('[VOICE PATH] VOICEMAIL (BASELINE FAILED)')
+              // Fall through to voicemail flow
             }
+
+            // Only proceed with AI TwiML if baseline records succeeded
+            if (!baselineLeadId || !baselineConversationId) {
+              console.log('[AI BASELINE CHECK] Skipping AI TwiML generation - baseline records missing')
+              // Fall through to voicemail flow
+            } else {
 
             logCallTrace({
               route: 'voice',
@@ -1277,8 +1301,9 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
                   'X-Call-Type': callPath
                 },
               })
-            }
-          } catch (error) {
+            } // Close else block for baseline records check
+          } // Close else block for session check
+        } catch (error) {
             console.error('[AI FAILED - VOICEMAIL FALLBACK] Error generating POC TwiML:', error);
             console.log('[AI FAILED - VOICEMAIL FALLBACK] Falling back to voicemail due to AI setup failure');
             console.log('[VOICE PATH] VOICEMAIL');

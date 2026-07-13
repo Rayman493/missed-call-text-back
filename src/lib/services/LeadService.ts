@@ -94,17 +94,22 @@ export class LeadService {
   }
 
   /**
-   * Find or create a lead with canonical selection logic
+ * Find or create a lead with canonical selection logic
+   * 
+   * Model A: One canonical customer per business and phone number (enforced by database unique constraint)
    * 
    * Logic:
    * 1. Look for existing lead by phone
-   * 2. If found and recent (within reuseRecentHours), reuse it
-   * 3. If found but old, create new lead
-   * 4. If not found, create new lead
-   * 5. Use Call SID idempotency guard if provided
+   * 2. If found, reuse it regardless of age (canonical customer model)
+   * 3. If not found, create new lead
+   * 4. Use Call SID idempotency guard if provided
+   * 
+   * Note: The 24-hour reuseRecentHours parameter is DEPRECATED and ignored.
+   * New service requests should be represented as new conversations or AI intake records,
+   * not as duplicate customer/lead records.
    */
   static async findOrCreateLead(options: FindOrCreateLeadOptions): Promise<{ lead: Lead | null; isNew: boolean }> {
-    const { business_id, caller_phone, reuseRecentHours = 24, callSid, ...leadData } = options
+    const { business_id, caller_phone, callSid, ...leadData } = options
     
     // Step 1: Check idempotency by Call SID
     if (callSid) {
@@ -118,31 +123,20 @@ export class LeadService {
       }
     }
 
-    // Step 2: Look for existing lead by phone
+    // Step 2: Look for existing lead by phone (canonical customer model)
     const existingLead = await this.findLead({ business_id, caller_phone })
     
     if (existingLead) {
-      // Step 3: Check if lead is recent
-      if (this.isRecentLead(existingLead, reuseRecentHours)) {
-        console.log('[LeadService.findOrCreateLead] Reusing recent lead:', {
-          leadId: existingLead.id,
-          business_id,
-          caller_phone,
-          hoursSinceCreation: (Date.now() - new Date(existingLead.created_at).getTime()) / (1000 * 60 * 60)
-        })
-        return { lead: existingLead, isNew: false }
-      } else {
-        console.log('[LeadService.findOrCreateLead] Existing lead is old, creating new lead:', {
-          existingLeadId: existingLead.id,
-          business_id,
-          caller_phone,
-          hoursSinceCreation: (Date.now() - new Date(existingLead.created_at).getTime()) / (1000 * 60 * 60)
-        })
-        // Fall through to create new lead
-      }
+      console.log('[LeadService.findOrCreateLead] Reusing existing canonical lead:', {
+        leadId: existingLead.id,
+        business_id,
+        caller_phone,
+        hoursSinceCreation: (Date.now() - new Date(existingLead.created_at).getTime()) / (1000 * 60 * 60)
+      })
+      return { lead: existingLead, isNew: false }
     }
 
-    // Step 4: Create new lead
+    // Step 3: Create new lead
     const newLead = await this.createLead({
       business_id,
       caller_phone,
@@ -210,46 +204,74 @@ export class LeadService {
       }
     }
 
-    // RETRY LOGIC: Bounded retry for transient database failures
-    const retryDelays = [1000, 3000, 10000] // 1s, 3s, 10s
+    // INSERT LOGIC: Handle uniqueness conflict immediately (not transient)
+    const { data, error } = await supabaseAdmin
+      .from('leads')
+      .insert(leadPayload)
+      .select()
+      .single()
+
+    if (!error) {
+      console.log('[LeadService.createLead] Lead created:', {
+        leadId: data.id,
+        business_id,
+        caller_phone: data.caller_phone,
+        status: data.status
+      })
+      return data
+    }
+
+    // Handle 23505 (unique constraint violation) as idempotent conflict
+    // This is NOT a transient error - it means the lead already exists
+    if (error.code === '23505') {
+      console.log('[LeadService.createLead] Unique constraint violation - lead already exists, fetching existing lead:', {
+        business_id,
+        caller_phone: normalizedPhone,
+        callSid,
+        errorCode: error.code
+      })
+
+      // Immediately fetch and return the existing lead (idempotent reuse)
+      const existingLead = await this.findLead({ business_id, caller_phone: normalizedPhone })
+      if (existingLead) {
+        console.log('[LeadService.createLead] Reusing existing lead from uniqueness conflict:', {
+          leadId: existingLead.id,
+          business_id,
+          caller_phone: normalizedPhone
+        })
+        return existingLead
+      }
+
+      // If we can't find the existing lead despite the conflict, this is unexpected
+      console.error('[LeadService.createLead] Unique conflict but existing lead not found:', {
+        business_id,
+        caller_phone: normalizedPhone,
+        callSid,
+        error: error.message
+      })
+      return null
+    }
+
+    // Handle genuinely transient errors with bounded retry
+    const isTransient = this.isTransientDatabaseError(error)
+    if (!isTransient) {
+      // Non-transient error (not 23505)
+      console.error('[LeadService.createLead] Failed to create lead (non-transient):', {
+        business_id,
+        caller_phone: normalizedPhone,
+        callSid,
+        error: error.message,
+        code: error.code
+      })
+      return null
+    }
+
+    // Retry for genuinely transient errors (not 23505)
+    const retryDelays = [1000, 3000] // Reduced to 2 retries for transient errors only
     const maxRetries = retryDelays.length
 
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      const { data, error } = await supabaseAdmin
-        .from('leads')
-        .insert(leadPayload)
-        .select()
-        .single()
-
-      if (!error) {
-        console.log('[LeadService.createLead] Lead created:', {
-          leadId: data.id,
-          business_id,
-          caller_phone: data.caller_phone,
-          status: data.status
-        })
-        return data
-      }
-
-      // Check if this is a transient error worth retrying
-      const isTransient = this.isTransientDatabaseError(error)
-
-      if (!isTransient || attempt === maxRetries) {
-        // Non-transient error or max retries reached
-        console.error('[LeadService.createLead] Failed to create lead:', {
-          business_id,
-          caller_phone: normalizedPhone,
-          callSid,
-          error: error.message,
-          code: error.code,
-          attempt: attempt + 1,
-          isTransient
-        })
-        return null
-      }
-
-      // Log retry attempt
-      console.log('[LeadService.createLead] Retrying lead creation:', {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      console.log('[LeadService.createLead] Retrying lead creation (transient error):', {
         attempt: attempt + 1,
         callSid,
         business_id,
@@ -258,7 +280,6 @@ export class LeadService {
         nextRetryDelay: retryDelays[attempt]
       })
 
-      // Wait before retry
       await new Promise(resolve => setTimeout(resolve, retryDelays[attempt]))
 
       // Re-check idempotency after delay (lead may have been created by another process)
@@ -272,8 +293,45 @@ export class LeadService {
           return existingLead
         }
       }
+
+      // Retry insert
+      const { data: retryData, error: retryError } = await supabaseAdmin
+        .from('leads')
+        .insert(leadPayload)
+        .select()
+        .single()
+
+      if (!retryError) {
+        console.log('[LeadService.createLead] Lead created on retry:', {
+          leadId: retryData.id,
+          business_id,
+          caller_phone: retryData.caller_phone,
+          status: retryData.status
+        })
+        return retryData
+      }
+
+      // If retry hits 23505, handle as idempotent conflict
+      if (retryError.code === '23505') {
+        const existingLead = await this.findLead({ business_id, caller_phone: normalizedPhone })
+        if (existingLead) {
+          console.log('[LeadService.createLead] Reusing existing lead from retry uniqueness conflict:', {
+            leadId: existingLead.id,
+            business_id,
+            caller_phone: normalizedPhone
+          })
+          return existingLead
+        }
+      }
     }
 
+    console.error('[LeadService.createLead] Failed after all retries:', {
+      business_id,
+      caller_phone: normalizedPhone,
+      callSid,
+      error: error.message,
+      code: error.code
+    })
     return null
   }
 
@@ -300,10 +358,14 @@ export class LeadService {
 
   /**
    * Check if a database error is transient (worth retrying)
+   * 
+   * Note: 23505 (unique constraint violation) is NOT transient - it represents
+   * a permanent conflict with existing data and should be handled as idempotent reuse,
+   * not as a retryable error.
    */
   private static isTransientDatabaseError(error: any): boolean {
     if (!error) return false
-    const transientCodes = ['PGRST116', '23505', '40001', '40P01'] // Not found, unique violation, serialization failure, deadlock
+    const transientCodes = ['PGRST116', '40001', '40P01'] // Not found, serialization failure, deadlock
     return transientCodes.includes(error.code) || 
            error.message?.includes('timeout') ||
            error.message?.includes('connection') ||

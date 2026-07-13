@@ -221,11 +221,14 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
   // The AI service may have finished persisting data during the retry window
   // Check BOTH ai_call_records AND lead.raw_metadata for extracted info
   if (aiCallRecord && aiCallRecord.outcome === 'incomplete') {
-    console.log('[FINAL REFRESH] AI call record still incomplete after retries - performing final refresh', {
+    const totalRetries = callNeverReachedAI ? 0 : retryDelays.length;
+    console.log('[FINAL REFRESH] AI call record still incomplete - performing final refresh', {
       callSid: CallSid,
       aiCallRecordId: aiCallRecord.id,
       currentOutcome: aiCallRecord.outcome,
-      totalRetries: retryDelays.length
+      callNeverReachedAI,
+      totalRetries,
+      retriesSkipped: callNeverReachedAI
     });
 
     // Final refresh: Reload ai_call_records
