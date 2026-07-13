@@ -3375,51 +3375,32 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         
         {/* Mobile Layout - Conversation-first: Conversation -> Collapsible Sections */}
         <div className="lg:hidden space-y-2 pb-[calc(6rem+env(safe-area-inset-bottom))]">
-          {/* Compact Status Pills */}
-          <div className="flex flex-wrap gap-1.5 px-2">
-            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-200 ${
-              leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
-                ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-200/50 dark:border-green-800/30'
-                : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
-                  ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-200/50 dark:border-green-800/30'
-                  : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20 border border-slate-200/50 dark:border-slate-800/30'
-            }`}>
-              {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0
-                ? 'AI Answered'
-                : leadData?.voicemailRecordings && leadData.voicemailRecordings.some((v: any) => v.transcription_text)
-                  ? 'Voicemail Saved'
-                  : 'Waiting for Call'}
-            </span>
-            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-200 ${leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200/50 dark:border-blue-800/30' : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20 border border-slate-200/50 dark:border-slate-800/30'}`}>
-              {leadData?.messages?.some((m: any) => m.direction === 'inbound') ? 'Customer Replied' : 'Awaiting Reply'}
-            </span>
-            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-200 ${
-              followUpJobs && followUpJobs.length > 0
-                ? followUpJobs.some((job: any) => job.status === 'active' || job.status === 'scheduled')
-                  ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200/50 dark:border-blue-800/30'
-                  : followUpJobs.some((job: any) => job.status === 'completed')
-                    ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-200/50 dark:border-green-800/30'
-                    : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20 border border-slate-200/50 dark:border-slate-800/30'
-                : followUpSettings?.enabled
-                  ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-200/50 dark:border-green-800/30'
-                  : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/20 border border-slate-200/50 dark:border-slate-800/30'
-            }`}>
-              {followUpJobs && followUpJobs.length > 0
-                ? followUpJobs.some((job: any) => job.status === 'active' || job.status === 'scheduled')
-                  ? 'Follow-Up Scheduled'
-                  : followUpJobs.some((job: any) => job.status === 'completed')
-                    ? 'Follow-Up Sent'
-                    : 'Follow-Up Paused'
-                : followUpSettings?.enabled
-                  ? 'Follow-Ups Ready'
-                  : 'Follow-Ups Off'}
-            </span>
+          {/* Conversation Header - Establishes the messaging workspace */}
+          <div className="px-3 pt-2 pb-1">
+            <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Conversation</h2>
+            <div className="flex items-center gap-1.5 mt-1 text-[11px] text-slate-400 dark:text-slate-500">
+              {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && (
+                <span>AI answered</span>
+              )}
+              {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && leadData?.messages?.some((m: any) => m.direction === 'inbound') && (
+                <span>•</span>
+              )}
+              {leadData?.messages?.some((m: any) => m.direction === 'inbound') && (
+                <span>Customer replied</span>
+              )}
+              {(leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 || leadData?.messages?.some((m: any) => m.direction === 'inbound')) && (followUpJobs && followUpJobs.length > 0 || followUpSettings?.enabled) && (
+                <span>•</span>
+              )}
+              {(followUpJobs && followUpJobs.length > 0 || followUpSettings?.enabled) && (
+                <span>Follow-ups available</span>
+              )}
+            </div>
           </div>
 
           {/* Conversation Section - Primary content, conversation-first */}
-          <div className="bg-card border border-border/60 rounded-2xl lg:hidden flex flex-col overflow-hidden shadow-md" style={{ minHeight: '420px', height: '60dvh' }}>
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl lg:hidden flex flex-col overflow-hidden shadow-lg ring-1 ring-slate-900/5 dark:ring-slate-100/5" style={{ minHeight: '420px', height: '60dvh' }}>
             {/* Mobile Message Thread - Scrollable viewport */}
-            <div ref={mobileConversationContainerRef} className="flex-1 min-h-0 overflow-y-auto scroll-smooth overscroll-contain bg-slate-50/40 dark:bg-slate-950/20" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', scrollPaddingBottom: '5rem' }}>
+            <div ref={mobileConversationContainerRef} className="flex-1 min-h-0 overflow-y-auto scroll-smooth overscroll-contain bg-slate-50/30 dark:bg-slate-950/30" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', scrollPaddingBottom: '5rem' }}>
               {/* Inner content wrapper for justify-end */}
               <div className="min-h-full px-2 py-1 flex flex-col justify-end">
                 {loading ? (
@@ -3454,8 +3435,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
             {/* Divider - Softer for natural integration */}
             <div className="border-t border-border/30 flex-shrink-0"></div>
-            {/* Composer - Integrated at bottom with better mobile spacing and safe-area for bottom nav */}
-            <div className="px-3 py-3 flex-shrink-0 bg-card/98 shadow-[0_-8px_30px_rgba(2,6,23,0.08)]" style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}>
+            {/* Composer - Integrated at bottom with proper spacing */}
+            <div className="px-3 py-3 flex-shrink-0 bg-card/98 shadow-[0_-8px_30px_rgba(2,6,23,0.08)]" style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' }}>
               {/* Image Previews */}
               {mobileImages.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-2">
