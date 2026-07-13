@@ -39,6 +39,10 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
   }
 
   const isActive = (href: string) => {
+    // When More menu is open, don't highlight any nav items (only More button should be active)
+    if (isMoreMenuOpen) {
+      return false
+    }
     if (href === '/dashboard') {
       return pathname === '/dashboard'
     }
