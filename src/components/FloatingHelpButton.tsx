@@ -63,21 +63,21 @@ export default function FloatingHelpButton({ context }: FloatingHelpButtonProps)
 
       {/* Modal */}
       {isOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-4">
           {/* Backdrop - prevents scroll and bleed-through */}
-          <div 
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm" 
+          <div
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
             onClick={() => setIsOpen(false)}
             style={{ touchAction: 'none' }}
           />
           {/* Modal container */}
-          <div className="relative w-full max-w-lg max-h-[calc(100dvh-32px)] flex flex-col">
-            {/* Mobile: Centered modal with safe areas */}
-            <div className="md:hidden bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-32px)]">
+          <div className="relative w-full max-w-lg max-h-[calc(100dvh-5rem-env(safe-area-inset-bottom))] sm:max-h-[85vh] flex flex-col">
+            {/* Mobile: Bottom sheet with safe areas */}
+            <div className="md:hidden bg-white dark:bg-slate-800 rounded-t-2xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-5rem-env(safe-area-inset-bottom))]">
               <ReplyFlowAssistant context={context} onClose={() => setIsOpen(false)} />
             </div>
             {/* Desktop: Centered modal */}
-            <div className="hidden md:block bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden max-h-[80vh]">
+            <div className="hidden md:block bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden max-h-[85vh]">
               <ReplyFlowAssistant context={context} onClose={() => setIsOpen(false)} />
             </div>
           </div>

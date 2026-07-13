@@ -9,6 +9,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 interface Lead {
   id: string
   caller_phone: string
+  name?: string | null
   raw_metadata: any
 }
 
@@ -335,8 +336,7 @@ export default function RequestPaymentModal({
               >
                 <option value="">Select a lead</option>
                 {leads.map((lead) => {
-                  const intake = getLeadAIIntake(lead)
-                  const displayName = intake.customerName || 'Customer'
+                  const displayName = lead.name || 'Customer'
                   return (
                     <option key={lead.id} value={lead.id}>
                       {formatPhoneNumber(lead.caller_phone)} - {displayName}
