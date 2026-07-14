@@ -33,22 +33,22 @@ export default function LeadStatusDropdown({
     if (isOpen && buttonRef.current && typeof window !== 'undefined') {
       const rect = buttonRef.current.getBoundingClientRect()
       const dropdownWidth = 180
-      const dropdownHeight = 400
+      const dropdownHeight = 280 // Approximate actual height (7 items ~40px each)
       const viewportWidth = window.innerWidth
       const viewportHeight = window.innerHeight
 
       // Calculate position with viewport clamping
       let left = rect.left
-      let top = rect.bottom + 4
+      let top = rect.bottom + 8 // 8px gap between trigger and menu
 
       // Clamp to right edge - align dropdown right edge with button right edge
       if (left + dropdownWidth > viewportWidth) {
         left = rect.right - dropdownWidth
       }
 
-      // Clamp to bottom edge
+      // Clamp to bottom edge - only flip upward if genuinely insufficient space below
       if (top + dropdownHeight > viewportHeight) {
-        top = rect.top - dropdownHeight - 4
+        top = rect.top - dropdownHeight - 8 // 8px gap when flipping upward
       }
 
       setDropdownPosition({ top, left })
