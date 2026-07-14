@@ -49,8 +49,8 @@ export default function LeadStatusDropdown({
       const spaceBelow = usableBottom - triggerRect.bottom - 8
       const spaceAbove = triggerRect.top - 12 - 8
 
-      // Determine direction - downward by default, flip upward only if more space above
-      const openUpward = spaceBelow < spaceAbove && spaceBelow < 180
+      // Determine direction - downward by default, flip upward if more space above
+      const openUpward = spaceBelow < spaceAbove
 
       let top: number
       let calculatedMaxHeight: number
