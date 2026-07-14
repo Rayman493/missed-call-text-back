@@ -154,10 +154,10 @@ function generateIgnoredContactResponse(): string {
   return response.toString();
 }
 
-// Helper to generate repeat-caller update voicemail
+// Helper to generate repeat-caller update voicemail with premium audio fallback
 function generateUpdateVoicemailResponse(businessId: string, callerPhone: string, conversationId?: string): string {
   // Update voicemail greeting for repeat callers with active requests
-  const voicemailMessage = "We already have your recent request on file. Please leave any updates or additional details after the tone.";
+  const voicemailMessage = "Hi, this is the assistant for the business. We already have your original request. Please leave a quick update after the tone, and I'll add it to your conversation.";
   
   // Build callback parameters
   const callbackParams: Record<string, string> = {
@@ -178,7 +178,15 @@ function generateUpdateVoicemailResponse(businessId: string, callerPhone: string
   // Use Twilio's VoiceResponse builder for automatic XML escaping
   const response = new VoiceResponse();
   response.pause({ length: 1 });
+  
+  // Try premium pre-generated audio with TTS fallback
+  // If audio fails to load, Twilio will continue to the next verb (say)
+  const premiumGreetingUrl = '/audio/update-voicemail-greeting.mp3';
+  response.play(premiumGreetingUrl);
+  
+  // Fallback to TTS if audio fails to load
   response.say({ voice: "alice" }, voicemailMessage);
+  
   response.record({
     maxLength: 60,
     playBeep: true,
