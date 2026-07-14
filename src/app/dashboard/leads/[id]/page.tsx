@@ -2786,12 +2786,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       </svg>
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="end"
-                    side="bottom"
-                    sideOffset={8}
-                    className="z-[10000] w-[280px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-2xl border bg-popover shadow-2xl"
-                  >
+                  <DropdownMenuPortal>
+                    <DropdownMenuContent
+                      align="end"
+                      side="bottom"
+                      sideOffset={8}
+                      collisionPadding={12}
+                      avoidCollisions
+                      className="z-[10000] w-[280px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-2xl border bg-popover shadow-2xl"
+                    >
                       {/* Conversation Actions Group */}
                       <div className="px-1.5 py-1">
                         <div className="px-2.5 py-1.5 text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider">
@@ -2900,7 +2903,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         </DropdownMenuItem>
                       </div>
                     </DropdownMenuContent>
-                  </DropdownMenu>
+                  </DropdownMenuPortal>
+                </DropdownMenu>
               </div>
             </div>
             
@@ -2992,12 +2996,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         </svg>
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="end"
-                      side="bottom"
-                      sideOffset={8}
-                      className="z-[10000] w-[280px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-2xl border bg-popover shadow-2xl"
-                    >
+                    <DropdownMenuPortal>
+                      <DropdownMenuContent
+                        align="end"
+                        side="bottom"
+                        sideOffset={8}
+                        collisionPadding={12}
+                        avoidCollisions
+                        className="z-[10000] w-[280px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-2xl border bg-popover shadow-2xl"
+                      >
                         {/* Conversation Actions Group */}
                         <div className="px-1.5 py-1">
                           <div className="px-2.5 py-1.5 text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider">
@@ -3106,6 +3113,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           </DropdownMenuItem>
                         </div>
                       </DropdownMenuContent>
+                    </DropdownMenuPortal>
                   </DropdownMenu>
                 </div>
               </div>

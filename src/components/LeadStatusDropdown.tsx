@@ -153,12 +153,15 @@ export default function LeadStatusDropdown({
           )}
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="end"
-        side="bottom"
-        sideOffset={8}
-        className="w-[280px] max-w-[calc(100vw-24px)] max-h-[min(420px,calc(100dvh-120px))] bg-card border border-border/50 rounded-lg shadow-xl shadow-black/10 dark:shadow-black/30 overflow-y-auto overscroll-contain z-[10000]"
-      >
+      <DropdownMenuPortal>
+        <DropdownMenuContent
+          align="end"
+          side="bottom"
+          sideOffset={8}
+          collisionPadding={12}
+          avoidCollisions
+          className="w-[280px] max-w-[calc(100vw-24px)] max-h-[min(420px,calc(100dvh-120px))] bg-card border border-border/50 rounded-lg shadow-xl shadow-black/10 dark:shadow-black/30 overflow-y-auto overscroll-contain z-[10000]"
+        >
           {allStatuses.map((status: LeadLifecycleStatus) => (
             <DropdownMenuItem
               key={status}
@@ -178,6 +181,7 @@ export default function LeadStatusDropdown({
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>
+      </DropdownMenuPortal>
     </DropdownMenu>
   )
 }

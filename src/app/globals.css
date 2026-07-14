@@ -479,23 +479,3 @@ html.light select:-moz-autofill:focus {
     -ms-overflow-style: none;
   }
 }
-
-/* Disable Radix UI DropdownMenu animations */
-[data-radix-dropdown-menu-content] {
-  animation: none !important;
-  transition: none !important;
-  transform: none !important;
-}
-
-[data-radix-dropdown-menu-content][data-state="open"],
-[data-radix-dropdown-menu-content][data-state="closed"] {
-  animation: none !important;
-  transition: none !important;
-  transform: none !important;
-}
-
-/* Disable all animations on dropdown menu content */
-[data-radix-dropdown-menu-content] > * {
-  animation: none !important;
-  transition: none !important;
-}
