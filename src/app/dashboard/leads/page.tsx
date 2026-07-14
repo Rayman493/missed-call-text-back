@@ -1489,7 +1489,7 @@ export default function LeadsPage() {
                                     <a
                                       href={`tel:${lead.caller_phone}`}
                                       onClick={(e) => e.stopPropagation()}
-                                      className="flex sm:hidden inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2 py-1.5 sm:px-2.5 sm:py-1.5 bg-muted hover:bg-muted/80 text-muted-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-colors group-hover:bg-primary/10 group-hover:text-primary whitespace-nowrap w-full"
+                                      className="flex sm:hidden inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2 py-1.5 sm:px-2.5 sm:py-1.5 bg-muted hover:bg-muted/80 text-muted-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-colors whitespace-nowrap w-full"
                                       title="Call"
                                     >
                                       <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
