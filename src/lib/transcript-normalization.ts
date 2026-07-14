@@ -58,14 +58,16 @@ export function normalizeAITranscript(value: unknown): TranscriptMessage[] {
         return parsed.messages.map(normalizeTranscriptMessage).filter(isValidMessage);
       }
       // If parsed is not array or messages object, treat as single message
+      // Legacy fallback: flat strings are customer speech, not assistant
       return [{
-        role: 'assistant',
+        role: 'caller',
         content: value
       }];
     } catch {
       // Not valid JSON, treat as single message
+      // Legacy fallback: flat strings are customer speech, not assistant
       return [{
-        role: 'assistant',
+        role: 'caller',
         content: value
       }];
     }
