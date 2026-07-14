@@ -19,8 +19,7 @@ export default function LeadStatusDropdown({
 }: LeadStatusDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 })
-  const [maxHeight, setMaxHeight] = useState(400)
+  const [dropdownPosition, setDropdownPosition] = useState({ left: 0, width: 280, maxHeight: 400, top: 0, bottom: 0, openUpward: false })
   const buttonRef = useRef<HTMLButtonElement>(null)
 
   const sizeClasses = {
@@ -41,7 +40,7 @@ export default function LeadStatusDropdown({
 
       // Vertical positioning - use visualViewport and account for bottom navigation
       const viewportHeight = window.visualViewport?.height ?? window.innerHeight
-      const bottomNav = document.querySelector('[data-mobile-bottom-nav]')
+      const bottomNav = document.querySelector('[data-mobile-bottom-nav="true"]')
       const bottomNavTop = bottomNav?.getBoundingClientRect().top ?? viewportHeight
       const usableBottom = Math.min(viewportHeight, bottomNavTop) - 12
 
@@ -49,28 +48,31 @@ export default function LeadStatusDropdown({
       const spaceBelow = usableBottom - triggerRect.bottom - 8
       const spaceAbove = triggerRect.top - 12 - 8
 
-      // Determine direction - downward by default, flip upward if more space above
-      const openUpward = spaceBelow < spaceAbove
+      // Direction selection with desiredHeight
+      const desiredHeight = 360
 
-      let top: number
-      let calculatedMaxHeight: number
-
-      if (openUpward) {
-        // Open upward - position top using estimated height, then constrain with maxHeight
-        calculatedMaxHeight = Math.max(180, spaceAbove)
-        const estimatedHeight = 280
-        top = triggerRect.top - estimatedHeight - 8
-        // Clamp to top of viewport
-        top = Math.max(12, top)
-        setDropdownPosition({ top, left })
+      let openUpward: boolean
+      if (spaceBelow >= desiredHeight) {
+        openUpward = false
+      } else if (spaceAbove >= desiredHeight) {
+        openUpward = true
       } else {
-        // Open downward
-        calculatedMaxHeight = Math.max(180, spaceBelow)
-        top = triggerRect.bottom + 8
-        setDropdownPosition({ top, left })
+        openUpward = spaceAbove > spaceBelow
       }
 
-      setMaxHeight(calculatedMaxHeight)
+      const availableHeight = openUpward ? spaceAbove : spaceBelow
+      const maxHeight = Math.min(desiredHeight, availableHeight)
+
+      // Position based on direction
+      if (openUpward) {
+        // Use CSS bottom - anchor bottom edge 8px above trigger
+        const bottom = viewportHeight - triggerRect.top + 8
+        setDropdownPosition({ left, width: menuWidth, maxHeight, top: 0, bottom, openUpward })
+      } else {
+        // Use CSS top - anchor top edge 8px below trigger
+        const top = triggerRect.bottom + 8
+        setDropdownPosition({ left, width: menuWidth, maxHeight, top, bottom: 0, openUpward })
+      }
     }
   }, [isOpen])
 
@@ -222,10 +224,11 @@ export default function LeadStatusDropdown({
             <div
               className="fixed z-[9999] bg-card border border-border/50 rounded-lg shadow-xl shadow-black/10 dark:shadow-black/30 overflow-y-auto overscroll-contain animate-in fade-in slide-in-from-top-2 duration-200"
               style={{
-                top: `${dropdownPosition.top}px`,
+                top: dropdownPosition.openUpward ? undefined : `${dropdownPosition.top}px`,
+                bottom: dropdownPosition.openUpward ? `${dropdownPosition.bottom}px` : undefined,
                 left: `${dropdownPosition.left}px`,
-                width: '280px',
-                maxHeight: `${maxHeight}px`
+                width: `${dropdownPosition.width}px`,
+                maxHeight: `${dropdownPosition.maxHeight}px`
               }}
               role="menu"
             >
