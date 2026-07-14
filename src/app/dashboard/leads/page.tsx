@@ -452,41 +452,6 @@ export default function LeadsPage() {
     }
   }
 
-  // Handle delete lead
-  const handleDeleteLead = async (leadId: string) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token
-
-      if (!token) {
-        throw new Error('Not authenticated')
-      }
-
-      const response = await fetch(`/api/leads/${leadId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to delete customer')
-      }
-
-      // Update local state
-      setLeads(prev => prev.map(lead =>
-        lead.id === leadId
-          ? { ...lead, deleted_at: new Date().toISOString(), deleted_by: user?.id, deletion_reason: 'user_deleted' }
-          : lead
-      ))
-    } catch (error) {
-      console.error('Error deleting lead:', error)
-      alert('Failed to delete customer. Please try again.')
-    }
-  }
-
   // Realtime updates
   useRealtimeLeads(
     business?.id,
@@ -1357,20 +1322,6 @@ export default function LeadsPage() {
                                     <span>Restore Customer</span>
                                   </DropdownMenuItem>
                                 )}
-                                {!lead.deleted_at && (
-                                  <>
-                                    <DropdownMenuSeparator className="bg-border/40 my-1" />
-                                    <DropdownMenuItem
-                                      onSelect={() => handleDeleteLead(lead.id)}
-                                      className="w-full px-3 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2.5 font-medium transition-colors outline-none focus:bg-red-50 dark:focus:bg-red-900/20 cursor-pointer"
-                                    >
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                      </svg>
-                                      <span>Delete Customer</span>
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
@@ -1581,20 +1532,6 @@ export default function LeadsPage() {
                                         </svg>
                                         <span>Restore Customer</span>
                                       </DropdownMenuItem>
-                                    )}
-                                    {!lead.deleted_at && (
-                                      <>
-                                        <DropdownMenuSeparator className="bg-border/40 my-1" />
-                                        <DropdownMenuItem
-                                          onSelect={() => handleDeleteLead(lead.id)}
-                                          className="w-full px-3 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2.5 font-medium transition-colors outline-none focus:bg-red-50 dark:focus:bg-red-900/20 cursor-pointer"
-                                        >
-                                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                          </svg>
-                                          <span>Delete Customer</span>
-                                        </DropdownMenuItem>
-                                      </>
                                     )}
                                   </DropdownMenuContent>
                                 </DropdownMenu>

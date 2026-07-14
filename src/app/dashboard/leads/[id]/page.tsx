@@ -406,8 +406,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [internalNotes, setInternalNotes] = useState(leadData?.notes || '')
   const [isSavingNotes, setIsSavingNotes] = useState(false)
   const [showLeadInfo, setShowLeadInfo] = useState(false)
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
   const [internalNotesExpanded, setInternalNotesExpanded] = useState(false)
   const conversationContainerRef = useRef<HTMLDivElement>(null)
   const mobileConversationContainerRef = useRef<HTMLDivElement>(null)
@@ -506,40 +504,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       console.error('Failed to save notes:', error)
     } finally {
       setIsSavingNotes(false)
-    }
-  }
-
-  const handleDeleteCustomer = async () => {
-    if (!lead?.id) return
-    setIsDeleting(true)
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const headers: HeadersInit = { 'Content-Type': 'application/json' }
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`
-      }
-
-      const response = await fetch(`/api/leads/${lead.id}`, {
-        method: 'DELETE',
-        headers
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        console.error('Failed to delete customer:', result.error)
-        alert(result.error || 'Failed to delete customer')
-        return
-      }
-
-      // Redirect to customers list on successful deletion
-      router.push('/dashboard/leads')
-    } catch (error) {
-      console.error('Error deleting customer:', error)
-      alert('Failed to delete customer')
-    } finally {
-      setIsDeleting(false)
-      setShowDeleteModal(false)
     }
   }
 
@@ -2869,7 +2833,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                             </svg>
-                            Mark Ignored
+                            Ignore Customer
                           </DropdownMenuItem>
                         )}
                         {getLeadLifecycleStatus(leadData || lead) === 'ignored' && (
@@ -2883,24 +2847,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             Restore Customer
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem
-                          onSelect={() => setShowRemoveModal(true)}
-                          className="w-full px-3 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-red-50 dark:focus:bg-red-900/20 cursor-pointer"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                          Remove
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onSelect={() => setShowDeleteModal(true)}
-                          className="w-full px-3 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-red-50 dark:focus:bg-red-900/20 cursor-pointer"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862 2 2 0 011-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                          Delete Customer
-                        </DropdownMenuItem>
                       </div>
                     </DropdownMenuContent>
                   </DropdownMenuPortal>
@@ -3079,7 +3025,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                               </svg>
-                              Mark Ignored
+                              Ignore Customer
                             </DropdownMenuItem>
                           )}
                           {getLeadLifecycleStatus(leadData || lead) === 'ignored' && (
@@ -3093,24 +3039,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               Restore Customer
                             </DropdownMenuItem>
                           )}
-                          <DropdownMenuItem
-                            onSelect={() => setShowRemoveModal(true)}
-                            className="w-full px-3 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-red-50 dark:focus:bg-red-900/20 cursor-pointer"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                            Remove
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onSelect={() => setShowDeleteModal(true)}
-                            className="w-full px-3 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-red-50 dark:focus:bg-red-900/20 cursor-pointer"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862 2 2 0 011-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                            Delete Customer
-                          </DropdownMenuItem>
                         </div>
                       </DropdownMenuContent>
                     </DropdownMenuPortal>
