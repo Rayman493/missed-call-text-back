@@ -9,7 +9,6 @@
  */
 
 // Retry window constants (in minutes)
-export const AI_RETRY_WINDOW_MINUTES = 10; // Allow AI retry within 10 minutes of completion
 export const INCOMPLETE_RETRY_COOLDOWN_MINUTES = 5; // Allow AI retry after 5 minutes for incomplete/failed
 
 // Canonical routing result types
@@ -28,7 +27,6 @@ export type RepeatCallerReason =
   | 'active_request_exists'
   | 'latest_request_closed'
   | 'incomplete_intake_retry'
-  | 'recent_completion_retry_window'
   | 'retry_window_expired'
   | 'ignored_customer'
   | 'missing_metadata'
@@ -70,7 +68,7 @@ export interface RepeatCallerRoutingResult {
  * 1. No existing canonical customer → AI intake new request
  * 2. Existing customer with no completed AI intake → AI intake new request
  * 3. Existing customer with incomplete/failed intake → AI retry after cooldown
- * 4. Existing customer with active unresolved request → Update voicemail
+ * 4. Existing customer with active unresolved request → Update voicemail (no retry window for completed intake)
  * 5. Existing customer with closed request → AI intake new request
  * 6. Ignored customer → Preserve existing behavior
  */
@@ -163,24 +161,9 @@ export async function determineRepeatCallerRoute(params: {
       }
     }
 
-    // Case 5: Active unresolved request - route to update voicemail
+    // Case 5: Active unresolved request - ALWAYS route to update voicemail
+    // No retry window for completed intake - customers should leave updates, not repeat entire intake
     if (ACTIVE_LEAD_STATUSES.includes(lead.status as LeadStatus)) {
-      // Check if within immediate retry window for completed intake
-      if (latestAICallRecord.outcome === 'completed' && minutesSinceLastIntake < AI_RETRY_WINDOW_MINUTES) {
-        console.log('[REPEAT CALLER ROUTING] Completed intake but within retry window - AI retry');
-        return {
-          route: 'ai_intake_retry',
-          reason: 'recent_completion_retry_window',
-          leadId: lead.id,
-          conversationId: latestAICallRecord.conversation_id,
-          latestAICallRecordId: latestAICallRecord.id,
-          leadStatus: lead.status,
-          aiOutcome: latestAICallRecord.outcome,
-          minutesSinceLastIntake: Math.round(minutesSinceLastIntake),
-          canRetryAI: true
-        };
-      }
-
       console.log('[REPEAT CALLER ROUTING] Active unresolved request - update voicemail');
       return {
         route: 'update_voicemail_active_request',
