@@ -2,11 +2,12 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { formatRelativeTime } from '@/lib/utils'
-import { Phone, Play, Pause, Volume2, VolumeX } from 'lucide-react'
+import { Phone } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useVoicemailVolume } from '@/contexts/VoicemailVolumeContext'
 import { useVoicemailProgress } from '@/contexts/VoicemailProgressContext'
 import { useVoicemailAudioManager } from '@/lib/voicemail-audio-manager'
+import PremiumAudioPlayer from './PremiumAudioPlayer'
 
 interface VoicemailMessageProps {
   recording: {
@@ -59,7 +60,6 @@ export default function VoicemailMessage({
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   const [audioError, setAudioError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [showVolumeSlider, setShowVolumeSlider] = useState(false)
   const [showFullTranscript, setShowFullTranscript] = useState(false)
   
   // Use global volume context
@@ -76,12 +76,8 @@ export default function VoicemailMessage({
   
   // Use audio-element level manager for coordinated playback
   const audioManager = useVoicemailAudioManager()
-  const [isSeeking, setIsSeeking] = useState(false)
-  const [isDragging, setIsDragging] = useState(false)
   const [canSeek, setCanSeek] = useState(false)
   const audioRef = useRef<HTMLAudioElement>(null)
-  const volumeSliderRef = useRef<HTMLDivElement>(null)
-  const progressBarRef = useRef<HTMLDivElement>(null)
   
   // Cache blob URL to prevent recreation
   const [blobUrl, setBlobUrl] = useState<string | null>(null)
@@ -147,7 +143,7 @@ export default function VoicemailMessage({
 
   const handleTimeUpdate = () => {
     const audio = audioRef.current
-    if (!audio || isDragging) return
+    if (!audio) return
     
     const audioCurrentTime = audio.currentTime
     if (isNaN(audioCurrentTime) || !isFinite(audioCurrentTime)) return
@@ -314,38 +310,6 @@ export default function VoicemailMessage({
     }
   }
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = Math.floor(seconds % 60)
-    return `${mins}:${secs.toString().padStart(2, '0')}`
-  }
-
-  
-  const handleVolumeChange = (newVolume: number) => {
-    const audio = audioRef.current
-    if (!audio) return
-
-    audio.volume = newVolume
-    setVolume(newVolume)
-    
-    // Update mute state based on volume
-    if (newVolume === 0) {
-      setMuted(true)
-    } else {
-      setMuted(false)
-      setPreviousVolume(newVolume)
-    }
-  }
-
-  // Apply global volume to audio element
-  useEffect(() => {
-    const audio = audioRef.current
-    if (!audio) return
-
-    // Clamp volume between 0 and 1 and apply with mute state
-    const normalizedVolume = isMuted ? 0 : Math.min(1, Math.max(0, volume))
-    audio.volume = normalizedVolume
-  }, [volume, isMuted, audioRef.current])
 
   // Register voicemail with audio manager when audio element is ready
   useEffect(() => {
@@ -407,25 +371,6 @@ export default function VoicemailMessage({
     }
   }, [recording.id])
 
-  // Close volume slider when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (volumeSliderRef.current && !volumeSliderRef.current.contains(event.target as Node)) {
-        setShowVolumeSlider(false)
-      }
-    }
-
-    // Guard against SSR
-    if (showVolumeSlider && typeof document !== 'undefined') {
-      document.addEventListener('mousedown', handleClickOutside)
-    }
-
-    return () => {
-      if (typeof document !== 'undefined') {
-        document.removeEventListener('mousedown', handleClickOutside)
-      }
-    }
-  }, [showVolumeSlider])
 
   const seekTo = (time: number) => {
     const audio = audioRef.current
@@ -435,97 +380,6 @@ export default function VoicemailMessage({
     const clampedTime = Math.max(0, Math.min(time, duration))
     audio.currentTime = clampedTime
     setCurrentTime(recording.id, clampedTime)
-  }
-
-  const seekToClientX = (clientX: number) => {
-    const audio = audioRef.current
-    const progressRef = progressBarRef.current
-    
-    if (!audio || !progressRef || !duration || isNaN(duration)) {
-      return
-    }
-
-    const rect = progressRef.getBoundingClientRect()
-    const percent = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width))
-    const nextTime = percent * duration
-
-    // Prevent NaN
-    if (isNaN(nextTime) || !isFinite(nextTime)) {
-      return
-    }
-
-    audio.currentTime = nextTime
-    setCurrentTime(recording.id, nextTime)
-  }
-
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!canSeek) return
-    seekToClientX(e.clientX)
-  }
-
-  const handleProgressDragStart = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!canSeek) return
-    setIsDragging(true)
-    setIsSeeking(true)
-    seekToClientX(e.clientX)
-  }
-
-  const handleProgressDragMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isDragging || !canSeek) return
-    seekToClientX(e.clientX)
-  }
-
-  const handleProgressDragEnd = () => {
-    if (!isDragging) return
-    setIsDragging(false)
-    setIsSeeking(false)
-  }
-
-  // Handle mouse move for dragging
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (isDragging && progressBarRef.current) {
-        const rect = progressBarRef.current.getBoundingClientRect()
-        const clickX = Math.max(0, Math.min(e.clientX - rect.left, rect.width))
-        const percentage = clickX / rect.width
-        const newTime = percentage * duration
-        setCurrentTime(recording.id, newTime)
-      }
-    }
-
-    const handleMouseUp = () => {
-      if (isDragging) {
-        setIsDragging(false)
-        setIsSeeking(false)
-        seekTo(currentTime)
-      }
-    }
-
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove)
-      document.addEventListener('mouseup', handleMouseUp)
-    }
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
-    }
-  }, [isDragging, currentTime, duration])
-
-  // Handle keyboard navigation
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!canSeek) return
-
-    switch (e.key) {
-      case 'ArrowLeft':
-        e.preventDefault()
-        seekTo(currentTime - 5)
-        break
-      case 'ArrowRight':
-        e.preventDefault()
-        seekTo(currentTime + 5)
-        break
-    }
   }
 
   const getStatusColor = (status: string) => {
@@ -625,115 +479,22 @@ export default function VoicemailMessage({
               {/* Audio Controls */}
               {!isLoading && !audioError && (
                 <div className="space-y-3">
-                  {/* iOS-style Audio Controls */}
-                  <div className="space-y-3">
-                    {/* Main Controls Row */}
-                    <div className="flex items-center justify-between">
-                      {/* Play/Pause Button */}
-                      <button
-                        onClick={togglePlayPause}
-                        disabled={!audioUrl}
-                        className="w-14 h-14 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-full flex items-center justify-center transition-colors shadow-md"
-                        aria-label={isPlaying ? 'Pause' : 'Play'}
-                      >
-                        {isPlaying ? (
-                          <Pause className="w-6 h-6" />
-                        ) : (
-                          <Play className="w-6 h-6 ml-0.5" />
-                        )}
-                      </button>
-
-                      {/* Time Display */}
-                      <div className="flex items-center text-sm text-muted-foreground font-medium">
-                        <span>{formatTime(currentTime)}</span>
-                        <span className="mx-2">/</span>
-                        <span>{formatTime(duration)}</span>
-                      </div>
-
-                      {/* Volume Control */}
-                      <div className="relative" ref={volumeSliderRef}>
-                        {/* Volume Button */}
-                        <button
-                          onClick={toggleMute}
-                          onMouseEnter={() => setShowVolumeSlider(true)}
-                          onFocus={() => setShowVolumeSlider(true)}
-                          className="w-8 h-8 text-muted-foreground hover:text-foreground transition-colors p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/20"
-                          aria-label={isMuted ? 'Unmute' : 'Mute'}
-                          aria-pressed={isMuted}
-                        >
-                          {isMuted || volume === 0 ? (
-                            <VolumeX className="w-5 h-5" />
-                          ) : (
-                            <Volume2 className="w-5 h-5" />
-                          )}
-                        </button>
-
-                        {/* Volume Slider */}
-                        {showVolumeSlider && (
-                          <div className="absolute bottom-full right-0 mb-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3 min-w-[120px]">
-                            <div className="flex flex-col items-center gap-2">
-                              <span className="text-xs text-muted-foreground">Volume</span>
-                              <div className="flex items-center gap-2 w-full">
-                                <VolumeX className="w-3 h-3 text-muted-foreground" />
-                                <input
-                                  type="range"
-                                  min="0"
-                                  max="1"
-                                  step="0.1"
-                                  value={volume}
-                                  onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                                  className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
-                                  style={{
-                                    background: `linear-gradient(to right, rgb(59 130 246) 0%, rgb(59 130 246) ${volume * 100}%, rgb(229 231 235) ${volume * 100}%, rgb(229 231 235) 100%)`
-                                  }}
-                                />
-                                <Volume2 className="w-3 h-3 text-muted-foreground" />
-                              </div>
-                              <span className="text-xs text-muted-foreground">
-                                {Math.round(volume * 100)}%
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Enhanced Progress Bar */}
-                    <div
-                      ref={progressBarRef}
-                      className="relative w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 cursor-pointer"
-                      onClick={handleProgressClick}
-                      onPointerDown={(e) => {
-                        setIsDragging(true)
-                        seekToClientX(e.clientX)
-                      }}
-                      onPointerMove={(e) => {
-                        if (isDragging) seekToClientX(e.clientX)
-                      }}
-                      onPointerUp={() => setIsDragging(false)}
-                      onPointerLeave={() => setIsDragging(false)}
-                      onKeyDown={handleKeyDown}
-                      tabIndex={canSeek ? 0 : -1}
-                      role="slider"
-                      aria-label="Audio progress"
-                      aria-valuemin={0}
-                      aria-valuemax={duration}
-                      aria-valuenow={currentTime}
-                      aria-valuetext={`${formatTime(currentTime)} of ${formatTime(duration)}`}
-                    >
-                      <div 
-                        className={`bg-blue-600 h-2 rounded-full transition-all ${isDragging ? 'duration-0' : 'duration-100'}`}
-                        style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
-                      />
-                      {/* Always Visible Progress Handle */}
-                      {canSeek && (
-                        <div 
-                          className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-blue-600 rounded-full shadow-md transition-all ${isDragging ? 'scale-125' : 'hover:scale-110'}`}
-                          style={{ left: `calc(${duration > 0 ? (currentTime / duration) * 100 : 0}% - 8px)` }}
-                        />
-                      )}
-                    </div>
-                  </div>
+                  <PremiumAudioPlayer
+                    audioRef={audioRef}
+                    isPlaying={isPlaying}
+                    isEnded={isEnded}
+                    currentTime={currentTime}
+                    duration={duration}
+                    canSeek={canSeek}
+                    isLoading={isLoading}
+                    audioError={audioError}
+                    onTogglePlayPause={togglePlayPause}
+                    onSeek={(time) => {
+                      seekTo(time)
+                      setCurrentTime(recording.id, time)
+                    }}
+                    recordingId={recording.id}
+                  />
 
                   {/* Hidden Native Audio Element */}
                   <audio
@@ -819,51 +580,4 @@ export default function VoicemailMessage({
       </div>
     </div>
   )
-}
-
-// Add CSS for volume slider styling
-const style = document.createElement('style')
-style.textContent = `
-  .slider::-webkit-slider-thumb {
-    appearance: none;
-    width: 12px;
-    height: 12px;
-    background: rgb(59 130 246);
-    border-radius: 50%;
-    cursor: pointer;
-    border: 2px solid white;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  }
-  
-  .slider::-moz-range-thumb {
-    width: 12px;
-    height: 12px;
-    background: rgb(59 130 246);
-    border-radius: 50%;
-    cursor: pointer;
-    border: 2px solid white;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  }
-  
-  .slider::-webkit-slider-thumb:hover {
-    background: rgb(37 99 235);
-    transform: scale(1.1);
-  }
-  
-  .slider::-moz-range-thumb:hover {
-    background: rgb(37 99 235);
-    transform: scale(1.1);
-  }
-  
-  @media (prefers-reduced-motion: reduce) {
-    .slider::-webkit-slider-thumb:hover,
-    .slider::-moz-range-thumb:hover {
-      transform: none;
-    }
-  }
-`
-
-if (typeof window !== 'undefined' && !document.head.querySelector('style[data-volume-slider]')) {
-  style.setAttribute('data-volume-slider', 'true')
-  document.head.appendChild(style)
 }
