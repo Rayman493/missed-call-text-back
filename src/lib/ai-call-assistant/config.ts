@@ -48,6 +48,31 @@ export const AI_CONFIG = {
     timeoutSeconds: 30, // 30s timeout for connection
   },
   
+  // Voice activity and endpointing configuration
+  // Note: Actual endpointing parameters are configured in the external AI Voice service (Fly.io)
+  // These values document the intended behavior for reference
+  voiceActivity: {
+    // Conservative endpointing to allow callers to pause naturally
+    // Old: 800ms (more aggressive, could cut off thinking callers)
+    // New: 1200ms (allows brief pauses while thinking)
+    endpointingPrewarmDurationMs: 1200,
+    
+    // Silence detection before considering speech complete
+    // Old: 600ms
+    // New: 900ms (slightly more patient)
+    silenceDurationMs: 900,
+  },
+  
+  // Turn-to-turn pacing configuration
+  // Note: Actual pacing is controlled by the external AI Voice service (Fly.io)
+  // These values document the intended behavior for reference
+  pacing: {
+    // Delay between caller speech end and AI response start
+    // Old: 200ms (could feel impatient)
+    // New: 300ms (slightly more natural, not noticeably slower)
+    responseDelayMs: 300,
+  },
+  
   // Phase 0: Simple intake script only
   intakeScript: {
     enabled: true,
