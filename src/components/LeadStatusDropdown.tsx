@@ -20,6 +20,7 @@ export default function LeadStatusDropdown({
   const [isOpen, setIsOpen] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 })
+  const [maxHeight, setMaxHeight] = useState(400)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
   const sizeClasses = {
@@ -31,27 +32,66 @@ export default function LeadStatusDropdown({
   // Calculate dropdown position when opened
   useEffect(() => {
     if (isOpen && buttonRef.current && typeof window !== 'undefined') {
-      const rect = buttonRef.current.getBoundingClientRect()
-      const dropdownWidth = 180
-      const dropdownHeight = 280
-      const viewportWidth = window.innerWidth
-      const viewportHeight = window.innerHeight
+      const triggerRect = buttonRef.current.getBoundingClientRect()
 
-      // Calculate position with viewport clamping
-      let left = rect.left
-      let top = rect.bottom + 4
+      // Horizontal positioning - align right edge with trigger, clamp to viewport
+      const menuWidth = Math.min(300, window.innerWidth - 24)
+      let left = triggerRect.right - menuWidth
+      left = Math.max(12, Math.min(left, window.innerWidth - menuWidth - 12))
 
-      // Clamp to right edge - align dropdown right edge with button right edge
-      if (left + dropdownWidth > viewportWidth) {
-        left = rect.right - dropdownWidth
-      }
+      // Vertical positioning - use visualViewport and account for bottom navigation
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight
+      const bottomNav = document.querySelector('[data-mobile-bottom-nav]')
+      const bottomNavTop = bottomNav?.getBoundingClientRect().top ?? viewportHeight
+      const usableBottom = Math.min(viewportHeight, bottomNavTop) - 12
 
-      // Clamp to bottom edge - flip upward if insufficient space
-      if (top + dropdownHeight > viewportHeight) {
-        top = rect.top - dropdownHeight - 4
+      // Calculate available space
+      const spaceBelow = usableBottom - triggerRect.bottom - 8
+      const spaceAbove = triggerRect.top - 12 - 8
+
+      let top: number
+      let calculatedMaxHeight: number
+
+      // Downward-first behavior - open below if adequate room
+      if (spaceBelow >= spaceAbove) {
+        top = triggerRect.bottom + 8
+        calculatedMaxHeight = Math.max(180, spaceBelow)
+      } else {
+        // Flip upward when more space above
+        calculatedMaxHeight = Math.max(180, spaceAbove)
+        top = triggerRect.top - calculatedMaxHeight - 8
       }
 
       setDropdownPosition({ top, left })
+      setMaxHeight(calculatedMaxHeight)
+    }
+  }, [isOpen])
+
+  // Recalculate or close menu on viewport changes
+  useEffect(() => {
+    if (!isOpen) return
+
+    const handleResize = () => setIsOpen(false)
+    const handleOrientationChange = () => setIsOpen(false)
+    const handleScroll = () => setIsOpen(false)
+
+    window.addEventListener('resize', handleResize)
+    window.addEventListener('orientationchange', handleOrientationChange)
+    window.addEventListener('scroll', handleScroll, true)
+
+    // Handle visualViewport resize (virtual keyboard)
+    const visualViewport = window.visualViewport
+    if (visualViewport) {
+      visualViewport.addEventListener('resize', handleResize)
+    }
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      window.removeEventListener('orientationchange', handleOrientationChange)
+      window.removeEventListener('scroll', handleScroll, true)
+      if (visualViewport) {
+        visualViewport.removeEventListener('resize', handleResize)
+      }
     }
   }, [isOpen])
 
@@ -173,10 +213,12 @@ export default function LeadStatusDropdown({
 
             {/* Dropdown */}
             <div
-              className="fixed z-[9999] bg-card border border-border/50 rounded-lg shadow-xl shadow-black/10 dark:shadow-black/30 min-w-[160px] overflow-hidden max-h-[400px] overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200"
+              className="fixed z-[9999] bg-card border border-border/50 rounded-lg shadow-xl shadow-black/10 dark:shadow-black/30 overflow-y-auto overscroll-contain animate-in fade-in slide-in-from-top-2 duration-200"
               style={{
                 top: `${dropdownPosition.top}px`,
-                left: `${dropdownPosition.left}px`
+                left: `${dropdownPosition.left}px`,
+                maxWidth: '300px',
+                maxHeight: `${maxHeight}px`
               }}
               role="menu"
             >
