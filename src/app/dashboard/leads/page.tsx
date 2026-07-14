@@ -17,6 +17,13 @@ import AppHeader from '@/components/AppHeader'
 import BottomNavigation from '@/components/BottomNavigation'
 import Link from 'next/link'
 import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@radix-ui/react-dropdown-menu'
+import {
   formatPhoneNumber,
   formatRelativeTime,
   truncateText,
@@ -197,9 +204,6 @@ export default function LeadsPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [showFilters, setShowFilters] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
-  const [cardOverflowMenu, setCardOverflowMenu] = useState<string | null>(null)
-  const cardOverflowButtonRef = useRef<HTMLButtonElement>(null)
-  const [cardOverflowMenuPosition, setCardOverflowMenuPosition] = useState<{ top: number; left: number } | null>(null)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const { checkoutMode, isLoading: eligibilityLoading } = useTrialEligibility()
@@ -216,35 +220,6 @@ export default function LeadsPage() {
       setShowAddCustomerModal(true)
     }
   }, [addCustomer, showAddCustomerModal])
-
-  // Calculate card overflow menu position when opening
-  useEffect(() => {
-    if (cardOverflowMenu && cardOverflowButtonRef.current) {
-      const rect = cardOverflowButtonRef.current.getBoundingClientRect()
-      const menuWidth = 160
-      const menuHeight = 200
-      const viewportWidth = window.innerWidth
-      const viewportHeight = window.innerHeight
-
-      // Calculate position with viewport clamping
-      let left = rect.right
-      let top = rect.bottom + 4
-
-      // Clamp to right edge - align menu right edge with button right edge
-      if (left + menuWidth > viewportWidth) {
-        left = rect.right - menuWidth
-      }
-
-      // Clamp to bottom edge
-      if (top + menuHeight > viewportHeight) {
-        top = rect.top - menuHeight - 4
-      }
-
-      setCardOverflowMenuPosition({ top, left })
-    } else {
-      setCardOverflowMenuPosition(null)
-    }
-  }, [cardOverflowMenu])
 
   const supabase = createBrowserClient()
 
@@ -504,8 +479,6 @@ export default function LeadsPage() {
           ? { ...lead, deleted_at: new Date().toISOString(), deleted_by: user?.id, deletion_reason: 'user_deleted' }
           : lead
       ))
-
-      setCardOverflowMenu(null)
     } catch (error) {
       console.error('Error deleting lead:', error)
       alert('Failed to delete customer. Please try again.')
@@ -1315,108 +1288,75 @@ export default function LeadsPage() {
                                 </svg>
                               </div>
                             </div>
-                            <div className="relative flex-shrink-0">
-                              <button
-                                ref={cardOverflowButtonRef}
-                                onClick={(e) => {
-                                  e.preventDefault()
-                                  e.stopPropagation()
-                                  setCardOverflowMenu(cardOverflowMenu === lead.id ? null : lead.id)
-                                }}
-                                className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
-                                title="More actions"
-                                aria-label="More actions"
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button
+                                  type="button"
+                                  className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+                                  title="More actions"
+                                  aria-label="More actions"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                  </svg>
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent
+                                align="end"
+                                side="bottom"
+                                sideOffset={8}
+                                className="z-[10000] w-[200px] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1"
                               >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                                </svg>
-                              </button>
-                              {cardOverflowMenu === lead.id && cardOverflowMenuPosition && typeof document !== 'undefined' && createPortal(
-                                <>
-                                  <div
-                                    className="fixed inset-0 z-[9998]"
-                                    onClick={(e) => {
-                                      e.preventDefault()
-                                      e.stopPropagation()
-                                      setCardOverflowMenu(null)
-                                    }}
-                                  />
-                                  <div className="fixed z-[10000] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1 min-w-[160px] max-w-[220px]"
-                                    style={{
-                                      top: `${cardOverflowMenuPosition.top}px`,
-                                      left: `${cardOverflowMenuPosition.left}px`
-                                    }}
+                                {lead.deleted_at && (
+                                  <DropdownMenuItem
+                                    onSelect={() => handleRestoreLead(lead.id)}
+                                    className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors outline-none focus:bg-muted/50 cursor-pointer"
                                   >
-                                    {lead.deleted_at && (
-                                      <button
-                                        onClick={(e) => {
-                                          e.preventDefault()
-                                          e.stopPropagation()
-                                          handleRestoreLead(lead.id)
-                                          setCardOverflowMenu(null)
-                                        }}
-                                        className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors"
-                                      >
-                                        <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                        </svg>
-                                        <span>Restore Customer</span>
-                                      </button>
-                                    )}
-                                    {!lead.deleted_at && getLeadLifecycleStatus(lead) !== 'ignored' && (
-                                      <button
-                                        onClick={(e) => {
-                                          e.preventDefault()
-                                          e.stopPropagation()
-                                          handleIgnoreLead(lead.id)
-                                          setCardOverflowMenu(null)
-                                        }}
-                                        className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors"
-                                      >
-                                        <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                        </svg>
-                                        <span>Ignore Customer</span>
-                                      </button>
-                                    )}
-                                    {!lead.deleted_at && getLeadLifecycleStatus(lead) === 'ignored' && (
-                                      <button
-                                        onClick={(e) => {
-                                          e.preventDefault()
-                                          e.stopPropagation()
-                                          handleLeadStatusChange(lead.id, 'active')
-                                          setCardOverflowMenu(null)
-                                        }}
-                                        className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors"
-                                      >
-                                        <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                        </svg>
-                                        <span>Restore Customer</span>
-                                      </button>
-                                    )}
-                                    {!lead.deleted_at && (
-                                      <>
-                                        <div className="border-t border-border/40 my-1"></div>
-                                        <button
-                                          onClick={(e) => {
-                                            e.preventDefault()
-                                            e.stopPropagation()
-                                            handleDeleteLead(lead.id)
-                                          }}
-                                          className="w-full px-3 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2.5 font-medium transition-colors"
-                                        >
-                                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                          </svg>
-                                          <span>Delete Customer</span>
-                                        </button>
-                                      </>
-                                    )}
-                                  </div>
-                                </>
-                              , document.body)}
-                            </div>
+                                    <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    <span>Restore Customer</span>
+                                  </DropdownMenuItem>
+                                )}
+                                {!lead.deleted_at && getLeadLifecycleStatus(lead) !== 'ignored' && (
+                                  <DropdownMenuItem
+                                    onSelect={() => handleIgnoreLead(lead.id)}
+                                    className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors outline-none focus:bg-muted/50 cursor-pointer"
+                                  >
+                                    <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                    <span>Ignore Customer</span>
+                                  </DropdownMenuItem>
+                                )}
+                                {!lead.deleted_at && getLeadLifecycleStatus(lead) === 'ignored' && (
+                                  <DropdownMenuItem
+                                    onSelect={() => handleLeadStatusChange(lead.id, 'active')}
+                                    className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors outline-none focus:bg-muted/50 cursor-pointer"
+                                  >
+                                    <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    <span>Restore Customer</span>
+                                  </DropdownMenuItem>
+                                )}
+                                {!lead.deleted_at && (
+                                  <>
+                                    <DropdownMenuSeparator className="bg-border/40 my-1" />
+                                    <DropdownMenuItem
+                                      onSelect={() => handleDeleteLead(lead.id)}
+                                      className="w-full px-3 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2.5 font-medium transition-colors outline-none focus:bg-red-50 dark:focus:bg-red-900/20 cursor-pointer"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                      <span>Delete Customer</span>
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </div>
                       </div>
@@ -1560,102 +1500,74 @@ export default function LeadsPage() {
                                     </svg>
                                   </div>
                                 </div>
-                                <div className="relative flex-shrink-0">
-                                  <button
-                                    onClick={(e) => {
-                                      e.preventDefault()
-                                      e.stopPropagation()
-                                      setCardOverflowMenu(cardOverflowMenu === lead.id ? null : lead.id)
-                                    }}
-                                    className="p-1 sm:p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
-                                    title="More actions"
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="p-1 sm:p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+                                      title="More actions"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                      </svg>
+                                    </button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent
+                                    align="end"
+                                    side="bottom"
+                                    sideOffset={8}
+                                    className="z-[10000] w-[200px] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1"
                                   >
-                                    <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                                    </svg>
-                                  </button>
-                                  {cardOverflowMenu === lead.id && (
-                                    <>
-                                      <div
-                                        className="fixed inset-0 z-[9998]"
-                                        onClick={(e) => {
-                                          e.preventDefault()
-                                          e.stopPropagation()
-                                          setCardOverflowMenu(null)
-                                        }}
-                                      />
-                                      <div className="absolute right-0 top-full mt-1 z-[10000] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1 min-w-[160px] max-w-[220px]">
-                                        {lead.deleted_at && (
-                                          <button
-                                            onClick={(e) => {
-                                              e.preventDefault()
-                                              e.stopPropagation()
-                                              handleRestoreLead(lead.id)
-                                              setCardOverflowMenu(null)
-                                            }}
-                                            className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors"
-                                          >
-                                            <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                            </svg>
-                                            <span>Restore Customer</span>
-                                          </button>
-                                        )}
-                                        {!lead.deleted_at && getLeadLifecycleStatus(lead) !== 'ignored' && (
-                                          <button
-                                            onClick={(e) => {
-                                              e.preventDefault()
-                                              e.stopPropagation()
-                                              handleIgnoreLead(lead.id)
-                                              setCardOverflowMenu(null)
-                                            }}
-                                            className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors"
-                                          >
-                                            <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                            </svg>
-                                            <span>Ignore Customer</span>
-                                          </button>
-                                        )}
-                                        {!lead.deleted_at && getLeadLifecycleStatus(lead) === 'ignored' && (
-                                          <button
-                                            onClick={(e) => {
-                                              e.preventDefault()
-                                              e.stopPropagation()
-                                              handleLeadStatusChange(lead.id, 'active')
-                                              setCardOverflowMenu(null)
-                                            }}
-                                            className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors"
-                                          >
-                                            <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                            </svg>
-                                            <span>Restore Customer</span>
-                                          </button>
-                                        )}
-                                        {!lead.deleted_at && (
-                                          <>
-                                            <div className="border-t border-border/40 my-1"></div>
-                                            <button
-                                              onClick={(e) => {
-                                                e.preventDefault()
-                                                e.stopPropagation()
-                                                handleDeleteLead(lead.id)
-                                                setCardOverflowMenu(null)
-                                              }}
-                                              className="w-full px-3 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2.5 font-medium transition-colors"
-                                            >
-                                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                              </svg>
-                                              <span>Delete Customer</span>
-                                            </button>
-                                          </>
-                                        )}
-                                      </div>
-                                    </>
-                                  )}
-                                </div>
+                                    {lead.deleted_at && (
+                                      <DropdownMenuItem
+                                        onSelect={() => handleRestoreLead(lead.id)}
+                                        className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors outline-none focus:bg-muted/50 cursor-pointer"
+                                      >
+                                        <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        <span>Restore Customer</span>
+                                      </DropdownMenuItem>
+                                    )}
+                                    {!lead.deleted_at && getLeadLifecycleStatus(lead) !== 'ignored' && (
+                                      <DropdownMenuItem
+                                        onSelect={() => handleIgnoreLead(lead.id)}
+                                        className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors outline-none focus:bg-muted/50 cursor-pointer"
+                                      >
+                                        <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                        </svg>
+                                        <span>Ignore Customer</span>
+                                      </DropdownMenuItem>
+                                    )}
+                                    {!lead.deleted_at && getLeadLifecycleStatus(lead) === 'ignored' && (
+                                      <DropdownMenuItem
+                                        onSelect={() => handleLeadStatusChange(lead.id, 'active')}
+                                        className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors outline-none focus:bg-muted/50 cursor-pointer"
+                                      >
+                                        <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        <span>Restore Customer</span>
+                                      </DropdownMenuItem>
+                                    )}
+                                    {!lead.deleted_at && (
+                                      <>
+                                        <DropdownMenuSeparator className="bg-border/40 my-1" />
+                                        <DropdownMenuItem
+                                          onSelect={() => handleDeleteLead(lead.id)}
+                                          className="w-full px-3 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2.5 font-medium transition-colors outline-none focus:bg-red-50 dark:focus:bg-red-900/20 cursor-pointer"
+                                        >
+                                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                          </svg>
+                                          <span>Delete Customer</span>
+                                        </DropdownMenuItem>
+                                      </>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </div>
                             </div>
                           </div>
