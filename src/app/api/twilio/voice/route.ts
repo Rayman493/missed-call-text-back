@@ -6,7 +6,6 @@ import { sendSms } from '@/lib/twilio';
 import { normalizePhoneNumberForStorage } from '@/lib/supabase/admin';
 import { timelineEvents } from '@/lib/event-timeline';
 import { requireTwilioAuth } from '@/lib/twilio/webhook';
-import { shouldSendAutoText } from '@/lib/smart-filtering';
 import { createFollowUpJobs } from '@/lib/follow-ups';
 import { checkTwilioVoiceRateLimit, getClientIp } from '@/lib/rate-limit';
 import { getSpokenBusinessName } from '@/lib/speech';
@@ -653,64 +652,9 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
     // Only log timeline event if NOT ignored
     await timelineEvents.callReceived(business.id, '', '', From, To);
 
-    // SMART FILTERING CHECK: Run spam/repeat filtering BEFORE lead/conversation creation
-    console.log('[SPAM FILTER] ==========================================')
-    console.log('[SPAM FILTER] enabled:', (business as any).smart_filtering_enabled)
-    console.log('[SPAM FILTER] caller:', From)
-    console.log('[SPAM FILTER] timestamp:', new Date().toISOString())
-    console.log('[SPAM FILTER] ==========================================')
-
-    let isSpamFiltered = false
-    let spamFilterReason = ''
-
-    if ((business as any).smart_filtering_enabled) {
-      console.log('[SPAM FILTER] Running smart filtering before lead creation')
-      const filteringResult = await shouldSendAutoText({
-        businessId: business.id,
-        callerPhone: From,
-        callSid: CallSid || undefined,
-        business: business
-      })
-
-      if (!filteringResult.allowed) {
-        isSpamFiltered = true
-        spamFilterReason = filteringResult.reason
-
-        console.log('[SPAM FILTER] ==========================================')
-        console.log('[SPAM FILTER] enabled=true')
-        console.log('[SPAM FILTER] reason=', spamFilterReason)
-        console.log('[SPAM FILTER] action=ignored_before_lead_creation')
-        console.log('[SPAM FILTER] caller=', From)
-        console.log('[SPAM FILTER] ==========================================')
-
-        // Return silent hangup, similar to ignored contacts
-        // Do NOT create lead, conversation, SMS, follow-ups, or notifications
-        const twiml = generateIgnoredContactResponse()
-        console.log('[FINAL TWIML PATH] SPAM_FILTERED - smart filtering blocked lead creation', {
-          callSid: CallSid,
-          businessId: business.id,
-          reason: spamFilterReason
-        })
-        console.log('[VOICE ROUTE RETURN]', {
-          path: 'SPAM_FILTERED',
-          reason: 'Smart filtering blocked lead creation - silent hangup',
-          callSid: CallSid || 'unknown',
-          phoneNumber: normalizedFrom
-        })
-        return new NextResponse(twiml, {
-          status: 200,
-          headers: {
-            "Content-Type": "text/xml",
-            "X-ReplyFlow-Voice-Version": "v2",
-            "X-ReplyFlow-Spam-Filtered": "true"
-          },
-        })
-      } else {
-        console.log('[SPAM FILTER] Caller allowed by smart filtering:', filteringResult.reason)
-      }
-    } else {
-      console.log('[SPAM FILTER] Smart filtering disabled, allowing all calls')
-    }
+    // Note: Spam filtering has been moved to auto-sms-dispatcher.ts
+    // Filtering now happens at SMS send time, not at voice route time
+    // This ensures filtering decisions are made with complete context
 
     console.log('[Voice] Business twilio_phone_number:', business.twilio_phone_number);
     console.log('[Voice] Business business_phone_number:', business.business_phone_number);

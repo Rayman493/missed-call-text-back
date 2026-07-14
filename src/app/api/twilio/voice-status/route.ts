@@ -10,8 +10,58 @@ import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 import { hasAiSummaryBeenSent } from '@/lib/sms-decision'
 import { dispatchAutomaticCustomerSms } from '@/lib/auto-sms-dispatcher'
 import { isCompleteAIIntake } from '@/lib/ai-intake-completion'
-import { isAutomatedTranscriptSpam } from '@/lib/smart-filtering'
 import { isPersonalVoicemailCall } from '@/lib/call-pipeline-classification'
+
+// Transcript spam detection patterns
+const AUTOMATED_PATTERNS = [
+  /press \d+/i,
+  /dial \d+/i,
+  /call \d+/i,
+  /for \w+ press \d+/i,
+  /please hold/i,
+  /this call is being recorded/i,
+  /your call is important to us/i,
+  /all representatives are busy/i,
+  /you have reached/i,
+  /leave a message after the tone/i,
+  /to speak with a representative/i,
+  /to leave a voicemail/i,
+  /for customer service/i,
+  /for sales/i,
+  /for support/i,
+  /for billing/i,
+  /for technical support/i,
+  /to repeat this menu/i,
+  /stay on the line/i,
+  /thank you for calling/i,
+  /this is an automated call/i,
+  /robo/i,
+  /robot call/i,
+]
+
+// Check if transcript appears to be automated robocall
+function isAutomatedTranscriptSpam(transcript: string): { isSpam: boolean; reason?: string; matchedPhrases?: string[] } {
+  const lowerTranscript = transcript.toLowerCase()
+  const matchedPhrases: string[] = []
+  
+  for (const pattern of AUTOMATED_PATTERNS) {
+    const match = lowerTranscript.match(pattern)
+    if (match) {
+      matchedPhrases.push(match[0])
+    }
+  }
+  
+  // Consider spam if multiple automated patterns are found
+  if (matchedPhrases.length >= 2) {
+    return {
+      isSpam: true,
+      reason: 'automated_prompt',
+      matchedPhrases
+    }
+  }
+  
+  return { isSpam: false }
+}
 
 console.log('[VOICE STATUS MODULE LOADED] =========================================');
 console.log('[VOICE STATUS MODULE LOADED] timestamp:', new Date().toISOString());

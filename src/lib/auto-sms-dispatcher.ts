@@ -4,6 +4,7 @@ import { isIgnoredContact } from '@/lib/ignored-contacts'
 import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 import { isCompleteAIIntake } from '@/lib/ai-intake-completion'
 import { generateSummaryFromExtractedInfo } from '@/lib/sms-processing'
+import { normalizePhoneNumber } from '@/lib/twilio'
 
 export type AutoSmsTrigger = 'call_finished' | 'ai_confirmation' | 'voicemail_completed' | 'recording_fallback'
 export type AutoSmsOutcome = 'SUMMARY'
@@ -156,6 +157,110 @@ async function hasAutomaticSmsForCall(callSid: string, businessId: string): Prom
   return false
 }
 
+// Spam detection patterns
+const SPAM_PATTERNS = {
+  INVALID_LENGTH: /^(\d{1,4}|\d{12,})$/, // Too short or too long numbers
+  REPEATED_DIGITS: /^(\d)\1+$/, // 111111111, 222222222, etc.
+  OBVIOUS_SPAM: /^(900|800|888|877|866|855|844|833)/, // Premium/US toll-free
+  ANONYMOUS: /^(anonymous|private|blocked|restricted)$/i,
+  MALFORMED: /[^\d+\-\s\(\)]/, // Contains non-phone characters
+}
+
+// Check for obvious spam/invalid numbers
+function checkSpamNumber(phoneNumber: string): { blocked: boolean; reason: string } {
+  if (SPAM_PATTERNS.INVALID_LENGTH.test(phoneNumber)) {
+    return { blocked: true, reason: 'blocked_invalid_number' }
+  }
+  if (SPAM_PATTERNS.REPEATED_DIGITS.test(phoneNumber)) {
+    return { blocked: true, reason: 'blocked_repeated_digits' }
+  }
+  if (SPAM_PATTERNS.OBVIOUS_SPAM.test(phoneNumber)) {
+    return { blocked: true, reason: 'blocked_spam_pattern' }
+  }
+  if (SPAM_PATTERNS.ANONYMOUS.test(phoneNumber)) {
+    return { blocked: true, reason: 'blocked_anonymous_number' }
+  }
+  if (SPAM_PATTERNS.MALFORMED.test(phoneNumber)) {
+    return { blocked: true, reason: 'blocked_malformed' }
+  }
+  return { blocked: false, reason: '' }
+}
+
+// Check for repeat call protection (user-configured, separate from idempotency)
+async function checkRepeatCallProtection(
+  businessId: string,
+  phoneNumber: string,
+  cooldownMinutes: number
+): Promise<{ blocked: boolean; reason: string }> {
+  const cooldownStart = new Date(Date.now() - (cooldownMinutes * 60 * 1000))
+  
+  const recentDecision = await db.getRecentFilteringDecision(businessId, phoneNumber, cooldownStart)
+  if (recentDecision && recentDecision.decision === 'allowed') {
+    return {
+      blocked: true,
+      reason: 'blocked_repeat_caller'
+    }
+  }
+  
+  return { blocked: false, reason: '' }
+}
+
+// Check if caller is blocked/private
+function checkBlockedPrivateCallers(phoneNumber: string, enabled: boolean): { blocked: boolean; reason: string } {
+  if (!enabled) {
+    return { blocked: false, reason: '' }
+  }
+  
+  if (SPAM_PATTERNS.ANONYMOUS.test(phoneNumber)) {
+    return { blocked: true, reason: 'blocked_private_number' }
+  }
+  
+  return { blocked: false, reason: '' }
+}
+
+// Check if caller is suspected spam
+function checkSuspectedSpamCallers(phoneNumber: string, enabled: boolean): { blocked: boolean; reason: string } {
+  if (!enabled) {
+    return { blocked: false, reason: '' }
+  }
+  
+  if (SPAM_PATTERNS.INVALID_LENGTH.test(phoneNumber)) {
+    return { blocked: true, reason: 'blocked_suspected_spam' }
+  }
+  if (SPAM_PATTERNS.REPEATED_DIGITS.test(phoneNumber)) {
+    return { blocked: true, reason: 'blocked_suspected_spam' }
+  }
+  if (SPAM_PATTERNS.OBVIOUS_SPAM.test(phoneNumber)) {
+    return { blocked: true, reason: 'blocked_suspected_spam' }
+  }
+  
+  return { blocked: false, reason: '' }
+}
+
+// Log filtering decision for analytics
+async function logFilteringDecision(
+  businessId: string,
+  callerPhone: string,
+  callSid: string,
+  decision: string,
+  reason: string
+): Promise<void> {
+  try {
+    await supabaseAdmin
+      .from('filtering_decisions')
+      .insert({
+        business_id: businessId,
+        caller_phone: callerPhone,
+        call_sid: callSid,
+        decision,
+        reason,
+        created_at: new Date().toISOString()
+      })
+  } catch (error) {
+    console.error('[AUTO SMS] Failed to log filtering decision:', error)
+  }
+}
+
 // Helper function to check if SMS error is transient (worth retrying)
 function isTransientSmsError(error: any): boolean {
   if (!error) return false
@@ -200,12 +305,82 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
     return { success: false, skipped: true, reason: 'business_not_found' }
   }
 
+  // Get automation settings with defaults
+  const automationSettings = business.automation_settings || {
+    spamRepeatFilteringEnabled: false,
+    ignoreRepeatCalls: false,
+    repeatCallWindowMinutes: 30,
+    ignoreBlockedPrivateNumbers: false,
+    ignoreSuspectedSpamCallers: false,
+    blockedNumbers: []
+  }
+
+  // Normalize phone number for filtering checks
+  const normalizedPhone = normalizePhoneNumber(callerPhone)
+
+  // Personal contacts check (independent of master toggle)
   if (await isIgnoredContact(businessId, callerPhone)) {
+    await logFilteringDecision(businessId, normalizedPhone, callSid, 'suppressed', 'ignored_contact')
     return { success: true, skipped: true, reason: 'ignored_contact' }
   }
 
+  // Idempotency check (webhook/call level, separate from user-configured repeat suppression)
   if (await hasAutomaticSmsForCall(callSid, businessId)) {
     return { success: true, skipped: true, reason: 'automatic_sms_already_dispatched_for_call' }
+  }
+
+  // Apply spam/repeat filtering only to instant-response SMS
+  // Do not filter AI recaps, payment requests, manual messages, or follow-ups
+  const isInstantResponse = trigger === 'call_finished' || trigger === 'voicemail_completed' || trigger === 'recording_fallback'
+  const isAiRecap = trigger === 'ai_confirmation'
+  
+  if (isInstantResponse && automationSettings.spamRepeatFilteringEnabled) {
+    // Check for repeat call protection (user-configured)
+    if (automationSettings.ignoreRepeatCalls) {
+      const repeatCheck = await checkRepeatCallProtection(
+        businessId,
+        normalizedPhone,
+        automationSettings.repeatCallWindowMinutes || 30
+      )
+      if (repeatCheck.blocked) {
+        await logFilteringDecision(businessId, normalizedPhone, callSid, 'suppressed', repeatCheck.reason)
+        console.log('[AUTO SMS FILTERING] Blocked by repeat call protection', {
+          businessId,
+          callerPhone: normalizedPhone,
+          callSid,
+          windowMinutes: automationSettings.repeatCallWindowMinutes
+        })
+        return { success: true, skipped: true, reason: repeatCheck.reason }
+      }
+    }
+
+    // Check for blocked/private callers
+    if (automationSettings.ignoreBlockedPrivateNumbers) {
+      const privateCheck = checkBlockedPrivateCallers(normalizedPhone, true)
+      if (privateCheck.blocked) {
+        await logFilteringDecision(businessId, normalizedPhone, callSid, 'suppressed', privateCheck.reason)
+        console.log('[AUTO SMS FILTERING] Blocked by private caller check', {
+          businessId,
+          callerPhone: normalizedPhone,
+          callSid
+        })
+        return { success: true, skipped: true, reason: privateCheck.reason }
+      }
+    }
+
+    // Check for suspected spam callers
+    if (automationSettings.ignoreSuspectedSpamCallers) {
+      const spamCheck = checkSuspectedSpamCallers(normalizedPhone, true)
+      if (spamCheck.blocked) {
+        await logFilteringDecision(businessId, normalizedPhone, callSid, 'suppressed', spamCheck.reason)
+        console.log('[AUTO SMS FILTERING] Blocked by suspected spam check', {
+          businessId,
+          callerPhone: normalizedPhone,
+          callSid
+        })
+        return { success: true, skipped: true, reason: spamCheck.reason }
+      }
+    }
   }
 
   const businessName = params.businessName || business.name || 'My Business'
@@ -244,6 +419,21 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
 
   console.log(`[AUTO SMS DISPATCH] Sending template: ${template}`)
 
+  // Log structured decision event
+  console.log('[AUTO SMS DECISION]', {
+    businessId,
+    callSid,
+    callerPhone: normalizedPhone,
+    decision: 'send',
+    trigger,
+    filteringEnabled: automationSettings.spamRepeatFilteringEnabled,
+    repeatProtectionEnabled: automationSettings.ignoreRepeatCalls,
+    repeatWindowMinutes: automationSettings.repeatCallWindowMinutes,
+    timestamp: new Date().toISOString()
+  })
+
+  await logFilteringDecision(businessId, normalizedPhone, callSid, 'allowed', 'all_checks_passed')
+
   // RETRY LOGIC: Bounded retry for transient Twilio failures
   const retryDelays = [60000, 300000, 1800000] // 1min, 5min, 30min
   const maxRetries = retryDelays.length
@@ -251,11 +441,16 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
   let messageId: string | null = null
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    // Business availability text should only apply to instant-response SMS
+    // AI recaps, payment requests, manual messages, and follow-ups should not receive availability text
+    const shouldAppendAvailability = isInstantResponse
+    
     const sendResult = await sendSms(business, callerPhone, messageBody, {
       lead_id: leadId,
       conversation_id: conversationId,
       source: 'ai_summary',
       reason,
+      skipBusinessAvailabilityAppend: !shouldAppendAvailability
     })
 
     twilioMessageSid = sendResult.sid
