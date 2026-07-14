@@ -1,6 +1,14 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useMemo } from 'react'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuPortal,
+} from '@radix-ui/react-dropdown-menu'
 import { createPortal } from 'react-dom'
 import ConversationComposer from '@/components/ConversationComposer'
 import MobileConversationComposer from '@/components/MobileConversationComposer'
@@ -401,9 +409,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [internalNotesExpanded, setInternalNotesExpanded] = useState(false)
-  const [showOverflowMenu, setShowOverflowMenu] = useState(false)
-  const overflowButtonRef = useRef<HTMLButtonElement>(null)
-  const [overflowMenuPosition, setOverflowMenuPosition] = useState<{ top: number; left: number } | null>(null)
   const conversationContainerRef = useRef<HTMLDivElement>(null)
   const mobileConversationContainerRef = useRef<HTMLDivElement>(null)
   const bottomSentinelRef = useRef<HTMLDivElement>(null)
@@ -423,49 +428,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       return () => document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [showMoreActions])
-
-  // Calculate overflow menu position when opening
-  useEffect(() => {
-    if (showOverflowMenu && overflowButtonRef.current) {
-      const rect = overflowButtonRef.current.getBoundingClientRect()
-      const menuWidth = 160
-      const menuHeight = 200
-      const viewportWidth = window.innerWidth
-      const viewportHeight = window.innerHeight
-
-      // Calculate position with viewport clamping
-      let left = rect.right
-      let top = rect.bottom + 4
-
-      // Clamp to right edge - align menu right edge with button right edge
-      if (left + menuWidth > viewportWidth) {
-        left = rect.right - menuWidth
-      }
-
-      // Clamp to bottom edge
-      if (top + menuHeight > viewportHeight) {
-        top = rect.top - menuHeight - 4
-      }
-
-      setOverflowMenuPosition({ top, left })
-    } else {
-      setOverflowMenuPosition(null)
-    }
-  }, [showOverflowMenu])
-
-  // Close overflow menu on Escape key
-  useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && showOverflowMenu) {
-        setShowOverflowMenu(false)
-      }
-    }
-
-    if (typeof document !== 'undefined') {
-      document.addEventListener('keydown', handleEscape)
-      return () => document.removeEventListener('keydown', handleEscape)
-    }
-  }, [showOverflowMenu])
 
   // Persist collapsedSections to localStorage
   useEffect(() => {
@@ -2796,17 +2758,138 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </button>
                 
                 {/* Mobile Overflow Button */}
-                <button
-                  ref={overflowButtonRef}
-                  onClick={() => setShowOverflowMenu(!showOverflowMenu)}
-                  className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
-                  title="More actions"
-                  aria-label="More actions"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                  </svg>
-                </button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
+                      title="More actions"
+                      aria-label="Conversation actions"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                      </svg>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuPortal>
+                    <DropdownMenuContent
+                      align="end"
+                      side="bottom"
+                      sideOffset={8}
+                      collisionPadding={12}
+                      avoidCollisions
+                      className="z-[10000] w-[280px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-2xl border bg-popover shadow-2xl"
+                    >
+                      {/* Conversation Actions Group */}
+                      <div className="px-1.5 py-1">
+                        <div className="px-2.5 py-1.5 text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider">
+                          Conversation Actions
+                        </div>
+                        <DropdownMenuItem
+                          onSelect={() => handleCreateJobClick()}
+                          className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-muted/50 cursor-pointer"
+                        >
+                          <ClipboardPlus className="w-4 h-4 stroke-[1.8]" />
+                          Create Job
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() => handleAppointmentClick()}
+                          className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-muted/50 cursor-pointer"
+                        >
+                          <CalendarDays className="w-4 h-4 stroke-[1.8]" />
+                          Schedule
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() => setShowPaymentModal(true)}
+                          disabled={!business || getAvailableProviders(business).length === 0}
+                          className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-muted/50 cursor-pointer"
+                        >
+                          <CreditCard className="w-4 h-4 stroke-[1.8]" />
+                          Request Payment
+                        </DropdownMenuItem>
+                      </div>
+
+                      <DropdownMenuSeparator className="bg-border/50 my-1" />
+
+                      {/* Tools Group */}
+                      <div className="px-1.5 py-1">
+                        <DropdownMenuItem
+                          onSelect={() => {
+                            setMobileInternalNotesExpanded(true)
+                            setShowLeadInfo(true)
+                          }}
+                          className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-muted/50 cursor-pointer"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          Internal Notes
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() => handleRefresh()}
+                          disabled={refreshing}
+                          className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-muted/50 cursor-pointer"
+                        >
+                          <svg
+                            className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          Refresh
+                        </DropdownMenuItem>
+                      </div>
+
+                      <DropdownMenuSeparator className="bg-border/50 my-1" />
+
+                      {/* Customer Actions Group */}
+                      <div className="px-1.5 py-1">
+                        {getLeadLifecycleStatus(leadData || lead) !== 'ignored' && (
+                          <DropdownMenuItem
+                            onSelect={() => handleStatusUpdate('ignored')}
+                            className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-muted/50 cursor-pointer"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            Mark Ignored
+                          </DropdownMenuItem>
+                        )}
+                        {getLeadLifecycleStatus(leadData || lead) === 'ignored' && (
+                          <DropdownMenuItem
+                            onSelect={() => handleStatusUpdate('active')}
+                            className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-muted/50 cursor-pointer"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Restore Customer
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem
+                          onSelect={() => setShowRemoveModal(true)}
+                          className="w-full px-3 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-red-50 dark:focus:bg-red-900/20 cursor-pointer"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                          Remove
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() => setShowDeleteModal(true)}
+                          className="w-full px-3 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-red-50 dark:focus:bg-red-900/20 cursor-pointer"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862 2 2 0 011-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Delete Customer
+                        </DropdownMenuItem>
+                      </div>
+                    </DropdownMenuContent>
+                  </DropdownMenuPortal>
+                </DropdownMenu>
               </div>
             </div>
             
@@ -2888,92 +2971,76 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </button>
 
                   {/* Desktop Overflow Button */}
-                  <button
-                    ref={overflowButtonRef}
-                    onClick={() => setShowOverflowMenu(!showOverflowMenu)}
-                    className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
-                    aria-label="More actions"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                    </svg>
-                  </button>
-
-                  {showOverflowMenu && overflowMenuPosition && typeof document !== 'undefined' && createPortal(
-                    <>
-                      <div
-                        className="fixed inset-0 z-[9998]"
-                        onClick={() => setShowOverflowMenu(false)}
-                      />
-                      <div
-                        className="fixed z-[9999] bg-card border border-border/50 rounded-xl shadow-2xl py-1.5 min-w-[200px] overflow-hidden"
-                        style={{
-                          top: `${overflowMenuPosition.top}px`,
-                          left: `${overflowMenuPosition.left}px`
-                        }}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                        aria-label="Conversation actions"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                        </svg>
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuContent
+                        align="end"
+                        side="bottom"
+                        sideOffset={8}
+                        collisionPadding={12}
+                        avoidCollisions
+                        className="z-[10000] w-[280px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-2xl border bg-popover shadow-2xl"
                       >
                         {/* Conversation Actions Group */}
                         <div className="px-1.5 py-1">
                           <div className="px-2.5 py-1.5 text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider">
                             Conversation Actions
                           </div>
-                          <button
-                            onClick={() => {
-                              handleCreateJobClick()
-                              setShowOverflowMenu(false)
-                            }}
-                            className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-3 transition-colors rounded-lg"
+                          <DropdownMenuItem
+                            onSelect={() => handleCreateJobClick()}
+                            className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-muted/50 cursor-pointer"
                           >
                             <ClipboardPlus className="w-4 h-4 stroke-[1.8]" />
                             Create Job
-                          </button>
-                          <button
-                            onClick={() => {
-                              handleAppointmentClick()
-                              setShowOverflowMenu(false)
-                            }}
-                            className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-3 transition-colors rounded-lg"
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onSelect={() => handleAppointmentClick()}
+                            className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-muted/50 cursor-pointer"
                           >
                             <CalendarDays className="w-4 h-4 stroke-[1.8]" />
                             Schedule
-                          </button>
-                          <button
-                            onClick={() => {
-                              setShowPaymentModal(true)
-                              setShowOverflowMenu(false)
-                            }}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onSelect={() => setShowPaymentModal(true)}
                             disabled={!business || getAvailableProviders(business).length === 0}
-                            className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 transition-colors rounded-lg"
+                            className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-muted/50 cursor-pointer"
                           >
                             <CreditCard className="w-4 h-4 stroke-[1.8]" />
                             Request Payment
-                          </button>
+                          </DropdownMenuItem>
                         </div>
 
-                        <div className="border-t border-border/50 my-1" />
+                        <DropdownMenuSeparator className="bg-border/50 my-1" />
 
                         {/* Tools Group */}
                         <div className="px-1.5 py-1">
-                          <button
-                            onClick={() => {
-                              setMobileInternalNotesExpanded(true)
+                          <DropdownMenuItem
+                            onSelect={() => {
+                              setInternalNotesExpanded(true)
                               setShowLeadInfo(true)
-                              setShowOverflowMenu(false)
                             }}
-                            className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-3 transition-colors rounded-lg"
+                            className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-muted/50 cursor-pointer"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                             Internal Notes
-                          </button>
-                          <button
-                            onClick={() => {
-                              handleRefresh()
-                              setShowOverflowMenu(false)
-                            }}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onSelect={() => handleRefresh()}
                             disabled={refreshing}
-                            className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 transition-colors rounded-lg"
+                            className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-muted/50 cursor-pointer"
                           >
                             <svg
                               className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`}
@@ -2984,69 +3051,57 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
                             Refresh
-                          </button>
+                          </DropdownMenuItem>
                         </div>
 
-                        <div className="border-t border-border/50 my-1" />
+                        <DropdownMenuSeparator className="bg-border/50 my-1" />
 
                         {/* Customer Actions Group */}
                         <div className="px-1.5 py-1">
                           {getLeadLifecycleStatus(leadData || lead) !== 'ignored' && (
-                            <button
-                              onClick={() => {
-                                handleStatusUpdate('ignored')
-                                setShowOverflowMenu(false)
-                              }}
-                              className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-3 transition-colors rounded-lg"
+                            <DropdownMenuItem
+                              onSelect={() => handleStatusUpdate('ignored')}
+                              className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-muted/50 cursor-pointer"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                               </svg>
                               Mark Ignored
-                            </button>
+                            </DropdownMenuItem>
                           )}
                           {getLeadLifecycleStatus(leadData || lead) === 'ignored' && (
-                            <button
-                              onClick={() => {
-                                handleStatusUpdate('active')
-                                setShowOverflowMenu(false)
-                              }}
-                              className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-3 transition-colors rounded-lg"
+                            <DropdownMenuItem
+                              onSelect={() => handleStatusUpdate('active')}
+                              className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-muted/50 cursor-pointer"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                               </svg>
                               Restore Customer
-                            </button>
+                            </DropdownMenuItem>
                           )}
-                          <button
-                            onClick={() => {
-                              setShowRemoveModal(true)
-                              setShowOverflowMenu(false)
-                            }}
-                            className="w-full px-3 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 transition-colors rounded-lg"
+                          <DropdownMenuItem
+                            onSelect={() => setShowRemoveModal(true)}
+                            className="w-full px-3 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-red-50 dark:focus:bg-red-900/20 cursor-pointer"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                             Remove
-                          </button>
-                          <button
-                            onClick={() => {
-                              setShowDeleteModal(true)
-                              setShowOverflowMenu(false)
-                            }}
-                            className="w-full px-3 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 transition-colors rounded-lg"
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onSelect={() => setShowDeleteModal(true)}
+                            className="w-full px-3 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-red-50 dark:focus:bg-red-900/20 cursor-pointer"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862 2 2 0 011-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
                             Delete Customer
-                          </button>
+                          </DropdownMenuItem>
                         </div>
-                      </div>
-                    </>
-                  , document.body)}
+                      </DropdownMenuContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenu>
                 </div>
               </div>
             </div>
