@@ -35,6 +35,7 @@ import {
 import { getLeadAIIntake } from '@/lib/ai-field-mapping'
 import { copyToClipboard } from '@/lib/clipboard'
 import { calculateLeadTiming, getCustomerInfoForCopy, getAISummaryForCopy } from '@/lib/lead-timing'
+import { debugDropdownOpening } from '@/lib/dropdown-diagnostics'
 import { 
   getSubscriptionStatusText, 
   isInTrialPeriod, 
@@ -1300,7 +1301,11 @@ export default function LeadsPage() {
                                 </svg>
                               </div>
                             </div>
-                            <DropdownMenu>
+                            <DropdownMenu onOpenChange={(open) => {
+                              if (open) {
+                                debugDropdownOpening('customer-card-actions')
+                              }
+                            }}>
                               <DropdownMenuTrigger asChild>
                                 <button
                                   type="button"
@@ -1318,6 +1323,7 @@ export default function LeadsPage() {
                                 align="end"
                                 side="bottom"
                                 sideOffset={8}
+                                data-dropdown-debug="customer-card-actions"
                                 className="z-[10000] w-[200px] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1"
                               >
                                 {lead.deleted_at && (
