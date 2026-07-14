@@ -1,11 +1,18 @@
 import { db } from '@/lib/supabase/admin'
 import { normalizePhoneNumber } from '@/lib/twilio'
 
+// Default out of office message
+const DEFAULT_OUT_OF_OFFICE_MESSAGE = 'Thank you for calling {{business_name}}. We are currently out of the office and will return on {{return_date}}. We will get back to you as soon as possible.'
+
+// Default after hours message
+const DEFAULT_AFTER_HOURS_MESSAGE = 'Thank you for calling {{business_name}}. We are currently outside business hours and will get back to you during our next business day.'
+
 // Types for filtering decisions
 export interface FilteringResult {
   allowed: boolean
   reason: string
   details?: any
+  messageOverride?: string
 }
 
 export interface FilteringContext {
@@ -60,8 +67,18 @@ export async function shouldSendAutoText(context: FilteringContext): Promise<Fil
       return { allowed: true, reason: 'business_not_found' }
     }
 
+    // Get automation settings with defaults (matching migration defaults)
+    const automationSettings = business.automation_settings || {
+      spamRepeatFilteringEnabled: false,
+      ignoreRepeatCalls: false,
+      repeatCallWindowMinutes: 30,
+      ignoreBlockedPrivateNumbers: false,
+      ignoreSuspectedSpamCallers: false,
+      blockedNumbers: []
+    }
+
     // Check if smart filtering is enabled
-    if (!business.smart_filtering_enabled) {
+    if (!automationSettings.spamRepeatFilteringEnabled) {
       console.log('[Smart Filtering] Smart filtering disabled, allowing')
       return { allowed: true, reason: 'filtering_disabled' }
     }
@@ -74,9 +91,11 @@ export async function shouldSendAutoText(context: FilteringContext): Promise<Fil
       () => checkSpamNumber(normalizedPhone),
       () => checkBlacklist(context.businessId, normalizedPhone),
       () => checkPersonalContacts(context.businessId, normalizedPhone),
+      () => checkOutOfOffice(business),
       () => checkBusinessHours(business),
-      () => checkRepeatCallProtection(context.businessId, normalizedPhone, business.repeat_call_cooldown_hours || 24, business),
-      () => checkUnknownCallersOnly(context.businessId, normalizedPhone, business.only_text_unknown_callers),
+      () => checkRepeatCallProtection(context.businessId, normalizedPhone, automationSettings.repeatCallWindowMinutes || 15, business, automationSettings.ignoreRepeatCalls),
+      () => checkBlockedPrivateCallers(normalizedPhone, automationSettings.ignoreBlockedPrivateNumbers),
+      () => checkSuspectedSpamCallers(normalizedPhone, automationSettings.ignoreSuspectedSpamCallers),
     ]
 
     for (const check of checks) {
@@ -195,6 +214,47 @@ async function checkPersonalContacts(businessId: string, phoneNumber: string): P
 }
 
 /**
+ * Check if out of office mode is active
+ */
+function checkOutOfOffice(business: any): FilteringResult {
+  if (!business.out_of_office_enabled) {
+    console.log('[Smart Filtering] Out of office disabled')
+    return { allowed: true, reason: 'out_of_office_disabled' }
+  }
+
+  const now = new Date()
+  const start = business.out_of_office_start ? new Date(business.out_of_office_start) : null
+  const end = business.out_of_office_end ? new Date(business.out_of_office_end) : null
+
+  if (!start || !end) {
+    console.log('[Smart Filtering] Out of office enabled but missing start/end dates')
+    return { allowed: true, reason: 'out_of_office_missing_dates' }
+  }
+
+  // Check if current time is within the out of office window
+  if (now >= start && now <= end) {
+    const message = business.out_of_office_message || DEFAULT_OUT_OF_OFFICE_MESSAGE
+    console.log('[Smart Filtering] Out of office active, using custom message')
+    return { 
+      allowed: true, 
+      reason: 'out_of_office_active', 
+      messageOverride: message,
+      details: { start, end, message }
+    }
+  }
+
+  // Check if out of office hasn't started yet
+  if (now < start) {
+    console.log('[Smart Filtering] Out of office scheduled but not started yet')
+    return { allowed: true, reason: 'out_of_office_not_started' }
+  }
+
+  // Out of office has expired
+  console.log('[Smart Filtering] Out of office expired, normal behavior')
+  return { allowed: true, reason: 'out_of_office_expired' }
+}
+
+/**
  * Check if call is within business hours
  */
 function checkBusinessHours(business: any): FilteringResult {
@@ -228,7 +288,14 @@ function checkBusinessHours(business: any): FilteringResult {
     if (currentTime >= startTime && currentTime <= endTime) {
       return { allowed: true, reason: 'within_business_hours', details: { currentTime, startTime, endTime, timeZone } }
     } else {
-      return { allowed: false, reason: 'blocked_after_hours', details: { currentTime, startTime, endTime, timeZone } }
+      // Outside business hours - return after-hours message
+      const message = business.after_hours_message || DEFAULT_AFTER_HOURS_MESSAGE
+      return { 
+        allowed: true, 
+        reason: 'after_hours', 
+        messageOverride: message,
+        details: { currentTime, startTime, endTime, timeZone, message } 
+      }
     }
   } catch (error) {
     console.error('[Smart Filtering] Error checking business hours:', error)
@@ -240,17 +307,17 @@ function checkBusinessHours(business: any): FilteringResult {
 /**
  * Check for repeat call protection
  */
-async function checkRepeatCallProtection(businessId: string, phoneNumber: string, cooldownHours: number, business: any): Promise<FilteringResult> {
-  if (!business.repeat_call_protection_enabled) {
+async function checkRepeatCallProtection(businessId: string, phoneNumber: string, cooldownMinutes: number, business: any, ignoreRepeatCalls: boolean): Promise<FilteringResult> {
+  if (!ignoreRepeatCalls) {
     console.log('[Smart Filtering] Repeat call protection disabled')
     return { allowed: true, reason: 'repeat_call_protection_disabled' }
   }
 
-  console.log('[Smart Filtering] Checking repeat call protection for:', phoneNumber, 'cooldown:', cooldownHours, 'hours')
+  console.log('[Smart Filtering] Checking repeat call protection for:', phoneNumber, 'cooldown:', cooldownMinutes, 'minutes')
 
   try {
     // Check if this caller received an auto-text within the cooldown period
-    const cooldownStart = new Date(Date.now() - (cooldownHours * 60 * 60 * 1000))
+    const cooldownStart = new Date(Date.now() - (cooldownMinutes * 60 * 1000))
     
     const recentDecision = await db.getRecentFilteringDecision(businessId, phoneNumber, cooldownStart)
     if (recentDecision && recentDecision.decision === 'allowed') {
@@ -258,7 +325,7 @@ async function checkRepeatCallProtection(businessId: string, phoneNumber: string
         allowed: false, 
         reason: 'blocked_repeat_caller', 
         details: { 
-          cooldownHours,
+          cooldownMinutes,
           lastTextAt: recentDecision.created_at,
           lastDecisionId: recentDecision.id
         } 
@@ -269,53 +336,53 @@ async function checkRepeatCallProtection(businessId: string, phoneNumber: string
     // Continue with other checks if repeat call check fails
   }
 
-  return { allowed: true, reason: 'no_recent_text', details: { cooldownHours } }
+  return { allowed: true, reason: 'no_recent_text', details: { cooldownMinutes } }
 }
 
 /**
- * Check if caller is unknown (not in approved contacts)
+ * Check if caller is a blocked or private number
  */
-async function checkUnknownCallersOnly(businessId: string, phoneNumber: string, enabled: boolean): Promise<FilteringResult> {
+function checkBlockedPrivateCallers(phoneNumber: string, enabled: boolean): FilteringResult {
   if (!enabled) {
-    console.log('[Smart Filtering] Unknown callers only filtering disabled')
-    return { allowed: true, reason: 'unknown_callers_disabled' }
+    console.log('[Smart Filtering] Blocked/private caller filtering disabled')
+    return { allowed: true, reason: 'blocked_private_disabled' }
   }
 
-  console.log('[Smart Filtering] Checking if caller is unknown for:', phoneNumber)
+  console.log('[Smart Filtering] Checking for blocked/private number:', phoneNumber)
 
-  try {
-    // Check if number is in approved contacts (whitelist)
-    const allowedNumber = await db.getAllowedNumber(businessId, phoneNumber)
-    if (allowedNumber) {
-      return { 
-        allowed: false, 
-        reason: 'blocked_known_contact', 
-        details: { 
-          allowedId: allowedNumber.id,
-          notes: allowedNumber.notes
-        } 
-      }
-    }
-
-    // Also check if they're an existing lead (known customer)
-    const existingLead = await db.getLeadByPhone(businessId, phoneNumber)
-    if (existingLead) {
-      return { 
-        allowed: false, 
-        reason: 'blocked_existing_lead', 
-        details: { 
-          leadId: existingLead.id,
-          status: existingLead.status,
-          firstContactAt: existingLead.first_contact_at
-        } 
-      }
-    }
-  } catch (error) {
-    console.error('[Smart Filtering] Error checking unknown callers:', error)
-    // Continue with other checks if unknown caller check fails
+  // Check for anonymous/private numbers
+  if (SPAM_PATTERNS.ANONYMOUS.test(phoneNumber)) {
+    return { allowed: false, reason: 'blocked_private_number', details: { pattern: 'anonymous' } }
   }
 
-  return { allowed: true, reason: 'unknown_caller_allowed' }
+  return { allowed: true, reason: 'not_blocked_private' }
+}
+
+/**
+ * Check if caller is a suspected spam number
+ */
+function checkSuspectedSpamCallers(phoneNumber: string, enabled: boolean): FilteringResult {
+  if (!enabled) {
+    console.log('[Smart Filtering] Suspected spam filtering disabled')
+    return { allowed: true, reason: 'suspected_spam_disabled' }
+  }
+
+  console.log('[Smart Filtering] Checking for suspected spam patterns:', phoneNumber)
+
+  // Check for obvious spam patterns (toll-free, repeated digits, invalid length)
+  if (SPAM_PATTERNS.INVALID_LENGTH.test(phoneNumber)) {
+    return { allowed: false, reason: 'blocked_suspected_spam', details: { pattern: 'invalid_length' } }
+  }
+
+  if (SPAM_PATTERNS.REPEATED_DIGITS.test(phoneNumber)) {
+    return { allowed: false, reason: 'blocked_suspected_spam', details: { pattern: 'repeated_digits' } }
+  }
+
+  if (SPAM_PATTERNS.OBVIOUS_SPAM.test(phoneNumber)) {
+    return { allowed: false, reason: 'blocked_suspected_spam', details: { pattern: 'premium_toll_free' } }
+  }
+
+  return { allowed: true, reason: 'not_suspected_spam' }
 }
 
 /**
