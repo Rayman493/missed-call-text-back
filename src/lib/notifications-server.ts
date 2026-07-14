@@ -213,14 +213,15 @@ export class NotificationServiceServer {
     }
 
     // Idempotency check: prevent duplicate notifications for the same context
+    // Check for customer_reply by messageId
     if (data && data.messageId && type === 'customer_reply') {
       const { data: existingNotification } = await supabaseAdmin
         .from('notifications')
         .select('id')
         .eq('business_id', businessId)
         .eq('type', type)
-        .eq('lead_id', data.leadId)
-        .eq('message_id', data.messageId)
+        .eq('data->>leadId', data.leadId)
+        .eq('data->>messageId', data.messageId)
         .maybeSingle()
 
       if (existingNotification) {
@@ -231,6 +232,48 @@ export class NotificationServiceServer {
           messageId: data.messageId 
         })
         return true // Return true to indicate success (notification already exists)
+      }
+    }
+
+    // Idempotency check for voicemail_received by recordingSid
+    if (data && data.recordingSid && type === 'voicemail_received') {
+      const { data: existingNotification } = await supabaseAdmin
+        .from('notifications')
+        .select('id')
+        .eq('business_id', businessId)
+        .eq('type', type)
+        .eq('data->>leadId', data.leadId)
+        .eq('data->>recordingSid', data.recordingSid)
+        .maybeSingle()
+
+      if (existingNotification) {
+        console.log('[NOTIFICATIONS IDEMPOTENT SKIP]', { 
+          businessId, 
+          type, 
+          leadId: data.leadId,
+          recordingSid: data.recordingSid 
+        })
+        return true
+      }
+    }
+
+    // Idempotency check for new_lead by leadId
+    if (data && data.leadId && type === 'new_lead') {
+      const { data: existingNotification } = await supabaseAdmin
+        .from('notifications')
+        .select('id')
+        .eq('business_id', businessId)
+        .eq('type', type)
+        .eq('data->>leadId', data.leadId)
+        .maybeSingle()
+
+      if (existingNotification) {
+        console.log('[NOTIFICATIONS IDEMPOTENT SKIP]', { 
+          businessId, 
+          type, 
+          leadId: data.leadId 
+        })
+        return true
       }
     }
 

@@ -248,6 +248,22 @@ export default function NavbarNotifications() {
         return <Info className="w-4 h-4 text-slate-600" />
       case 'voicemail_received':
         return <MessageSquare className="w-4 h-4 text-indigo-600" />
+      case 'ai_intake_completed':
+        return <User className="w-4 h-4 text-emerald-600" />
+      case 'payment_requested':
+        return <CreditCard className="w-4 h-4 text-orange-600" />
+      case 'payment_completed':
+        return <CheckCircle className="w-4 h-4 text-green-600" />
+      case 'calendar_connected':
+        return <Calendar className="w-4 h-4 text-blue-500" />
+      case 'calendar_disconnected':
+        return <AlertTriangle className="w-4 h-4 text-red-600" />
+      case 'appointment_created':
+        return <Calendar className="w-4 h-4 text-green-500" />
+      case 'appointment_deleted':
+        return <AlertTriangle className="w-4 h-4 text-red-600" />
+      case 'personal_voicemail':
+        return <MessageSquare className="w-4 h-4 text-pink-600" />
       default:
         return <Bell className="w-4 h-4 text-slate-600" />
     }
@@ -271,6 +287,22 @@ export default function NavbarNotifications() {
         return 'bg-slate-50/50 dark:bg-slate-900/10'
       case 'voicemail_received':
         return 'bg-indigo-50/50 dark:bg-indigo-900/10'
+      case 'ai_intake_completed':
+        return 'bg-emerald-50/50 dark:bg-emerald-900/10'
+      case 'payment_requested':
+        return 'bg-orange-50/50 dark:bg-orange-900/10'
+      case 'payment_completed':
+        return 'bg-green-50/50 dark:bg-green-900/10'
+      case 'calendar_connected':
+        return 'bg-blue-50/50 dark:bg-blue-900/10'
+      case 'calendar_disconnected':
+        return 'bg-red-50/50 dark:bg-red-900/10'
+      case 'appointment_created':
+        return 'bg-green-50/50 dark:bg-green-900/10'
+      case 'appointment_deleted':
+        return 'bg-red-50/50 dark:bg-red-900/10'
+      case 'personal_voicemail':
+        return 'bg-pink-50/50 dark:bg-pink-900/10'
       default:
         return 'bg-white dark:bg-card'
     }
@@ -292,6 +324,22 @@ export default function NavbarNotifications() {
         return 'border-l-2 border-l-slate-500'
       case 'voicemail_received':
         return 'border-l-2 border-l-indigo-500'
+      case 'ai_intake_completed':
+        return 'border-l-2 border-l-emerald-500'
+      case 'payment_requested':
+        return 'border-l-2 border-l-orange-500'
+      case 'payment_completed':
+        return 'border-l-2 border-l-green-500'
+      case 'calendar_connected':
+        return 'border-l-2 border-l-blue-500'
+      case 'calendar_disconnected':
+        return 'border-l-2 border-l-red-500'
+      case 'appointment_created':
+        return 'border-l-2 border-l-green-500'
+      case 'appointment_deleted':
+        return 'border-l-2 border-l-red-500'
+      case 'personal_voicemail':
+        return 'border-l-2 border-l-pink-500'
       default:
         return 'border-l-2 border-l-slate-300 dark:border-l-slate-600'
     }
@@ -313,6 +361,22 @@ export default function NavbarNotifications() {
         return 'bg-slate-500'
       case 'voicemail_received':
         return 'bg-indigo-500'
+      case 'ai_intake_completed':
+        return 'bg-emerald-500'
+      case 'payment_requested':
+        return 'bg-orange-500'
+      case 'payment_completed':
+        return 'bg-green-500'
+      case 'calendar_connected':
+        return 'bg-blue-500'
+      case 'calendar_disconnected':
+        return 'bg-red-500'
+      case 'appointment_created':
+        return 'bg-green-500'
+      case 'appointment_deleted':
+        return 'bg-red-500'
+      case 'personal_voicemail':
+        return 'bg-pink-500'
       default:
         return 'bg-slate-500'
     }

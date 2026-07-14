@@ -636,18 +636,6 @@ export async function POST(req: NextRequest) {
         // Promote lead from new to active when follow-up is sent
         await promoteLeadToActiveIfNew(lead.id, supabase)
 
-        // Create notification for follow-up sent
-        try {
-          const notificationService = new NotificationService(supabase)
-          await notificationService.notifyFollowupSent(
-            business.id,
-            lead.caller_phone || 'Unknown',
-            lead.id
-          )
-          console.log('[send-followups] Notification created for follow-up sent')
-        } catch (error) {
-          console.error('[send-followups] Error creating notification:', error)
-        }
         
         // Update conversation activity only if conversation exists
         if (conversation) {
@@ -1224,18 +1212,6 @@ export async function GET(req: NextRequest) {
         // Promote lead from new to active when follow-up is sent
         await promoteLeadToActiveIfNew(lead.id, supabase)
 
-        // Create notification for follow-up sent
-        try {
-          const notificationService = new NotificationService(supabase)
-          await notificationService.notifyFollowupSent(
-            business.id,
-            lead.caller_phone || 'Unknown',
-            lead.id
-          )
-          console.log('[send-followups] Notification created for follow-up sent')
-        } catch (error) {
-          console.error('[send-followups] Error creating notification:', error)
-        }
         
         // Update conversation activity only if conversation exists
         if (conversation) {

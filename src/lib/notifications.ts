@@ -5,7 +5,7 @@ import { Business } from '@/lib/types'
 export interface Notification {
   id: string
   business_id: string
-  type: 'new_lead' | 'customer_reply' | 'followup_completed' | 'followup_sent' | 'forwarding_disconnected' | 'sms_failed' | 'trial_ending' | 'subscription_issue' | 'voicemail_received' | 'missed_call'
+  type: 'new_lead' | 'customer_reply' | 'followup_completed' | 'forwarding_disconnected' | 'sms_failed' | 'trial_ending' | 'subscription_issue' | 'voicemail_received' | 'ai_intake_completed' | 'payment_requested' | 'payment_completed' | 'calendar_connected' | 'calendar_disconnected' | 'appointment_created' | 'appointment_deleted' | 'personal_voicemail'
   title: string
   message: string
   data?: any
@@ -39,13 +39,6 @@ export const NOTIFICATION_TEMPLATES = {
   followup_completed: (data: { leadName: string; leadId: string }) => ({
     title: 'Follow-up Sequence Completed',
     message: `All follow-ups sent to ${data.leadName}`,
-    action_url: `/dashboard/leads/${data.leadId}`,
-    action_text: 'View Lead'
-  }),
-
-  followup_sent: (data: { leadName: string; leadId: string }) => ({
-    title: 'Follow-up Sent',
-    message: `Message sent to ${data.leadName}`,
     action_url: `/dashboard/leads/${data.leadId}`,
     action_text: 'View Lead'
   }),
@@ -85,11 +78,60 @@ export const NOTIFICATION_TEMPLATES = {
     action_text: 'Listen'
   }),
 
-  missed_call: (data: { leadName: string; leadPhone: string; leadId: string }) => ({
-    title: 'Missed Call',
-    message: `${data.leadName} (${data.leadPhone}) called but didn't reach you`,
+  ai_intake_completed: (data: { leadName: string; leadPhone: string; leadId: string; serviceRequested?: string }) => ({
+    title: 'New AI Intake Lead',
+    message: `${data.leadName || data.leadPhone || 'Customer'} requested help${data.serviceRequested ? ` with ${data.serviceRequested}` : ''}`,
     action_url: `/dashboard/leads/${data.leadId}`,
     action_text: 'View Lead'
+  }),
+
+  payment_requested: (data: { leadName: string; leadPhone: string; leadId: string; amountCents: number; description?: string }) => ({
+    title: 'Payment Request Sent',
+    message: `Payment request of $${(data.amountCents / 100).toFixed(2)} sent to ${data.leadName || data.leadPhone}${data.description ? ` for ${data.description}` : ''}`,
+    action_url: `/dashboard/leads/${data.leadId}`,
+    action_text: 'View Lead'
+  }),
+
+  payment_completed: (data: { leadName: string; leadPhone: string; leadId: string; amountCents: number }) => ({
+    title: 'Payment Received',
+    message: `$${(data.amountCents / 100).toFixed(2)} payment received from ${data.leadName || data.leadPhone}`,
+    action_url: `/dashboard/leads/${data.leadId}`,
+    action_text: 'View Lead'
+  }),
+
+  calendar_connected: (data: { calendarEmail?: string }) => ({
+    title: 'Google Calendar Connected',
+    message: data.calendarEmail ? `Connected to ${data.calendarEmail}` : 'Google Calendar connected successfully',
+    action_url: '/dashboard/calendar',
+    action_text: 'View Calendar'
+  }),
+
+  calendar_disconnected: () => ({
+    title: 'Google Calendar Disconnected',
+    message: 'Google Calendar has been disconnected',
+    action_url: '/dashboard/calendar',
+    action_text: 'View Calendar'
+  }),
+
+  appointment_created: (data: { title: string, date: string }) => ({
+    title: 'Appointment Created',
+    message: `${data.title} scheduled for ${new Date(data.date).toLocaleDateString()}`,
+    action_url: '/dashboard/calendar',
+    action_text: 'View Calendar'
+  }),
+
+  appointment_deleted: (data: { title: string }) => ({
+    title: 'Appointment Deleted',
+    message: `${data.title} has been deleted`,
+    action_url: '/dashboard/calendar',
+    action_text: 'View Calendar'
+  }),
+
+  personal_voicemail: (data: { callerPhone: string; voicemailId: string }) => ({
+    title: 'New Personal Voicemail',
+    message: `Voicemail from ${data.callerPhone}`,
+    action_url: '/dashboard/personal-voicemail',
+    action_text: 'Listen'
   })
 }
 
@@ -244,15 +286,6 @@ export class NotificationService {
     await this.createNotification(
       businessId,
       'followup_completed',
-      '',
-      { leadName, leadId }
-    )
-  }
-
-  async notifyFollowupSent(businessId: string, leadName: string, leadId: string): Promise<void> {
-    await this.createNotification(
-      businessId,
-      'followup_sent',
       '',
       { leadName, leadId }
     )
