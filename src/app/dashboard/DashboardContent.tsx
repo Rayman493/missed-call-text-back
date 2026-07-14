@@ -1,7 +1,5 @@
 'use client'
 
-// @ts-nocheck - TypeScript disabled due to disabled Admin Tools section with complex type checking
-
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'

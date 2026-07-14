@@ -580,46 +580,38 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
     console.log('[OFFBOARDING CHECK] Business is active, continuing with normal call processing');
     
     // EARLIEST POSSIBLE POINT: Check if caller is in ignored contacts BEFORE ANY DB write
-    console.log('[IGNORED CONTACT CHECK] =========================================');
-    console.log('[IGNORED CONTACT CHECK] businessId:', business.id);
-    console.log('[IGNORED CONTACT CHECK] rawFrom:', From);
-    console.log('[IGNORED CONTACT CHECK] normalizedFrom:', normalizedFrom);
-    console.log('[IGNORED CONTACT CHECK] timestamp:', new Date().toISOString());
-    console.log('[IGNORED CONTACT CHECK] =========================================');
+    console.log('[IGNORED CONTACT CHECK]', {
+      businessId: business.id,
+      rawFrom: From,
+      normalizedFrom: normalizedFrom
+    });
 
     let isIgnored = false;
     let ignoredCheckError = null;
 
     try {
       isIgnored = await isIgnoredContact(business.id, normalizedFrom);
-      console.log('[IGNORED CONTACT CHECK] =========================================');
-      console.log('[IGNORED CONTACT CHECK] ignoredContactResult:', isIgnored);
-      console.log('[IGNORED CONTACT CHECK] error:', ignoredCheckError);
-      console.log('[IGNORED CONTACT CHECK] timestamp:', new Date().toISOString());
-      console.log('[IGNORED CONTACT CHECK] =========================================');
+      console.log('[IGNORED CONTACT CHECK]', {
+        ignoredContactResult: isIgnored,
+        error: ignoredCheckError
+      });
     } catch (error) {
       ignoredCheckError = error instanceof Error ? error.message : String(error);
-      console.log('[IGNORED CONTACT CHECK] =========================================');
-      console.log('[IGNORED CONTACT CHECK] ignoredContactResult:', isIgnored);
-      console.log('[IGNORED CONTACT CHECK] error:', ignoredCheckError);
-      console.log('[IGNORED CONTACT CHECK] timestamp:', new Date().toISOString());
-      console.log('[IGNORED CONTACT CHECK] =========================================');
+      console.error('[IGNORED CONTACT CHECK] Error:', ignoredCheckError);
     }
 
     if (isIgnored) {
-      console.log('[IGNORED CONTACT - PERSONAL VOICEMAIL] =========================================');
-      console.log('[IGNORED CONTACT - PERSONAL VOICEMAIL] businessId:', business.id);
-      console.log('[IGNORED CONTACT - PERSONAL VOICEMAIL] normalizedFrom:', normalizedFrom);
-      console.log('[IGNORED CONTACT - PERSONAL VOICEMAIL] action: record personal voicemail / no AI / no customer system');
-      console.log('[IGNORED CONTACT - PERSONAL VOICEMAIL] timestamp:', new Date().toISOString());
-      console.log('[IGNORED CONTACT - PERSONAL VOICEMAIL] =========================================');
+      console.log('[IGNORED CONTACT - PERSONAL VOICEMAIL]', {
+        businessId: business.id,
+        normalizedFrom: normalizedFrom,
+        action: 'record personal voicemail / no AI / no customer system'
+      });
 
       console.log('[IGNORED CONTACT MESSAGE]', {
         businessId: business.id,
-        phoneNumber: normalizedFrom,
-        timestamp: new Date().toISOString()
+        phoneNumber: normalizedFrom
       })
-      console.log('[FINAL TWIML PATH] IGNORED_CONTACT - caller is in ignored list', {
+      console.log('[FINAL TWIML PATH] IGNORED_CONTACT', {
         callSid: CallSid,
         businessId: business.id
       })
