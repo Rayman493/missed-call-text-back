@@ -29,6 +29,13 @@ body {
   transition-duration: 180ms;
 }
 
+/* Disable transitions on Radix popper wrapper to prevent slide animation */
+[data-radix-popper-content-wrapper] {
+  transition-property: none !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+}
+
 /* Light mode styles */
 html.light {
   color-scheme: light;

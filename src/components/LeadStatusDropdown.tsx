@@ -9,7 +9,6 @@ import {
   DropdownMenuPortal,
 } from '@radix-ui/react-dropdown-menu'
 import { getLeadStatusLabel, getLeadStatusClasses, LeadLifecycleStatus } from '@/lib/lead-lifecycle'
-import { debugDropdownOpening, findMatchingCssRules, observeWrapperStyleChanges } from '@/lib/dropdown-diagnostics'
 
 interface LeadStatusDropdownProps {
   currentStatus: LeadLifecycleStatus
@@ -127,11 +126,7 @@ export default function LeadStatusDropdown({
   const allStatuses: LeadLifecycleStatus[] = ['new', 'active', 'scheduled', 'payment_requested', 'paid', 'completed', 'lost']
 
   return (
-    <DropdownMenu onOpenChange={(open) => {
-      if (open) {
-        debugDropdownOpening('lead-status')
-      }
-    }}>
+    <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
           type="button"
@@ -165,7 +160,6 @@ export default function LeadStatusDropdown({
           sideOffset={8}
           collisionPadding={12}
           avoidCollisions
-          data-dropdown-debug="lead-status"
           className="w-[280px] max-w-[calc(100vw-24px)] max-h-[min(420px,calc(100dvh-120px))] bg-card border border-border/50 rounded-lg shadow-xl shadow-black/10 dark:shadow-black/30 overflow-y-auto overscroll-contain z-[10000]"
         >
           {allStatuses.map((status: LeadLifecycleStatus) => (

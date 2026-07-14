@@ -27,7 +27,6 @@ import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel, LeadL
 import { copyToClipboard } from '@/lib/clipboard'
 import { calculateLeadTiming, getCustomerInfoForCopy, getAISummaryForCopy } from '@/lib/lead-timing'
 import { isProviderAvailable, getAvailableProviders, PaymentProvider } from '@/lib/payment-links'
-import { debugDropdownOpening } from '@/lib/dropdown-diagnostics'
 import Link from 'next/link'
 import { Lead, Message, Conversation } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
@@ -2774,11 +2773,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </button>
                 
                 {/* Mobile Overflow Button */}
-                <DropdownMenu onOpenChange={(open) => {
-                  if (open) {
-                    debugDropdownOpening('conversation-actions-mobile')
-                  }
-                }}>
+                <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
@@ -2798,7 +2793,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       sideOffset={8}
                       collisionPadding={12}
                       avoidCollisions
-                      data-dropdown-debug="conversation-actions-mobile"
                       className="z-[10000] w-[280px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-2xl border bg-popover shadow-2xl"
                     >
                       {/* Conversation Actions Group */}
@@ -2990,11 +2984,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </button>
 
                   {/* Desktop Overflow Button */}
-                  <DropdownMenu onOpenChange={(open) => {
-                    if (open) {
-                      debugDropdownOpening('conversation-actions-desktop')
-                    }
-                  }}>
+                  <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button
                         type="button"
@@ -3013,7 +3003,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         sideOffset={8}
                         collisionPadding={12}
                         avoidCollisions
-                        data-dropdown-debug="conversation-actions-desktop"
                         className="z-[10000] w-[280px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-2xl border bg-popover shadow-2xl"
                       >
                         {/* Conversation Actions Group */}
