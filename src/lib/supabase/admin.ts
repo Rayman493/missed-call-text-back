@@ -1953,6 +1953,17 @@ export const db = {
   /**
    * Reactivate a completed/archived lead for a new request
    * This preserves the canonical customer while starting a fresh request cycle
+   * 
+   * Preserves (customer identity):
+   * - name (customer name belongs to the customer, not the request)
+   * - caller_phone (canonical customer identifier)
+   * - notes (customer history)
+   * - raw_metadata (historical data)
+   * 
+   * Clears (request-specific):
+   * - status (resets to 'new' for new request)
+   * - reason_for_call (previous request reason)
+   * - urgency (previous request urgency)
    */
   async reactivateLead(leadId: string): Promise<Lead | null> {
     console.log('[REACTIVATE LEAD] Reactivating lead for new request:', leadId)
@@ -1961,9 +1972,9 @@ export const db = {
       .from('leads')
       .update({
         status: 'new',
-        reason_for_call: null, // Clear previous request details
-        urgency: null,
-        name: null, // Clear previous name to allow AI to re-collect
+        reason_for_call: null, // Clear previous request reason
+        urgency: null, // Clear previous request urgency
+        // DO NOT clear: name (customer identity), caller_phone, notes, raw_metadata
         updated_at: new Date().toISOString()
       })
       .eq('id', leadId)
@@ -1977,7 +1988,9 @@ export const db = {
 
     console.log('[REACTIVATE LEAD] Successfully reactivated lead:', updatedLead.id, {
       previousStatus: 'completed/archived',
-      newStatus: updatedLead.status
+      newStatus: updatedLead.status,
+      preservedName: !!updatedLead.name,
+      preservedPhone: !!updatedLead.caller_phone
     })
 
     return updatedLead
