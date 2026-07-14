@@ -42,9 +42,10 @@ interface AICallDetailsProps {
   leadData?: any
   collapsible?: boolean
   onSave?: () => void | Promise<void>
+  onNavigateToTimeline?: (aiCallRecordId: string) => void
 }
 
-export default function AICallDetails({ leadId, businessId, conversationId, callerPhone, leadData, collapsible = true, onSave }: AICallDetailsProps) {
+export default function AICallDetails({ leadId, businessId, conversationId, callerPhone, leadData, collapsible = true, onSave, onNavigateToTimeline }: AICallDetailsProps) {
   const [aiCallRecords, setAiCallRecords] = useState<AICallRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [transcriptExpanded, setTranscriptExpanded] = useState(false)
@@ -890,12 +891,18 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 {normalizedRecords.map((record) => (
                   <button
                     key={record.id}
-                    onClick={() => setSelectedRecordId(record.id)}
+                    onClick={() => {
+                      setSelectedRecordId(record.id)
+                      if (onNavigateToTimeline) {
+                        onNavigateToTimeline(record.id)
+                      }
+                    }}
                     className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all duration-200 ${
                       selectedRecordId === record.id
                         ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
                         : 'bg-slate-50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900/50'
                     }`}
+                    aria-label={`Open conversation origin for request: ${getHistoryCardTitle(record)}`}
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs font-semibold text-foreground line-clamp-1">

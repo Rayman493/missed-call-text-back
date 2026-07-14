@@ -33,6 +33,7 @@ interface MobileConversationMessageListProps {
   getErrorMessage: (errorCode: string) => string
   renderAudio?: boolean // New prop to control audio rendering
   onImageLoad?: () => void // Callback when image loads
+  highlightedItemId?: string | null // ID of timeline item to highlight
 }
 
 export default function MobileConversationMessageList({ 
@@ -42,7 +43,8 @@ export default function MobileConversationMessageList({
   handleRetry, 
   getErrorMessage,
   renderAudio = true, // Default to true for mobile
-  onImageLoad
+  onImageLoad,
+  highlightedItemId
 }: MobileConversationMessageListProps) {
   const [previousMessageCount, setPreviousMessageCount] = useState(0)
   
@@ -72,7 +74,15 @@ export default function MobileConversationMessageList({
             )
           }
           return (
-            <div key={item.id} className="flex items-center justify-center my-3.5">
+            <div 
+              key={item.id} 
+              id={item.id}
+              className={`flex items-center justify-center my-3.5 transition-all duration-300 ${
+                highlightedItemId === item.id 
+                  ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-background bg-blue-50/50 dark:bg-blue-900/20' 
+                  : ''
+              }`}
+            >
               <div className="flex items-center gap-2 bg-slate-50/80 dark:bg-slate-900/50 px-3 py-1.5 rounded-full border border-slate-200/80 dark:border-slate-800 shadow-sm">
                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
                 <span className="text-[10px] font-medium text-slate-600 dark:text-slate-400">

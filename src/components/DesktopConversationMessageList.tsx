@@ -31,6 +31,7 @@ interface DesktopConversationMessageListProps {
   handleRetry: (body: string, id: string, clientTempId?: string) => void
   getErrorMessage: (errorCode: string) => string
   onImageLoad?: () => void // Callback when image loads
+  highlightedItemId?: string | null // ID of timeline item to highlight
 }
 
 export default function DesktopConversationMessageList({ 
@@ -39,7 +40,8 @@ export default function DesktopConversationMessageList({
   sending, 
   handleRetry, 
   getErrorMessage,
-  onImageLoad
+  onImageLoad,
+  highlightedItemId
 }: DesktopConversationMessageListProps) {
   const [previousMessageCount, setPreviousMessageCount] = useState(0)
   
@@ -69,7 +71,15 @@ export default function DesktopConversationMessageList({
             )
           }
           return (
-            <div key={item.id} className="flex items-center justify-center my-4">
+            <div 
+              key={item.id} 
+              id={item.id}
+              className={`flex items-center justify-center my-4 transition-all duration-300 ${
+                highlightedItemId === item.id 
+                  ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-background bg-blue-50/50 dark:bg-blue-900/20' 
+                  : ''
+              }`}
+            >
               <div className="flex items-center gap-2.5 bg-slate-50/80 dark:bg-slate-900/50 px-3.5 py-1.5 rounded-full border border-slate-200/80 dark:border-slate-800 shadow-sm">
                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
                 <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400">

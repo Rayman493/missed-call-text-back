@@ -407,6 +407,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [isSavingNotes, setIsSavingNotes] = useState(false)
   const [showLeadInfo, setShowLeadInfo] = useState(false)
   const [internalNotesExpanded, setInternalNotesExpanded] = useState(false)
+  const [highlightedTimelineItemId, setHighlightedTimelineItemId] = useState<string | null>(null)
   const conversationContainerRef = useRef<HTMLDivElement>(null)
   const mobileConversationContainerRef = useRef<HTMLDivElement>(null)
   const bottomSentinelRef = useRef<HTMLDivElement>(null)
@@ -1239,7 +1240,46 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
-  // Handle remove customer
+  // Handle navigate to timeline item from Request History
+  const handleNavigateToTimeline = (aiCallRecordId: string) => {
+    // Guard against SSR
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const timelineItemId = `ai-intake-${aiCallRecordId}`
+    const timelineElement = document.getElementById(timelineItemId)
+
+    if (!timelineElement) {
+      // Timeline item not found - could be older record without matching timeline entry
+      console.log('[handleNavigateToTimeline] Timeline item not found:', timelineItemId)
+      return
+    }
+
+    // Determine which container to scroll
+    const isDesktop = window.innerWidth >= 1024
+    const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
+
+    if (!container) {
+      console.log('[handleNavigateToTimeline] Container not found')
+      return
+    }
+
+    // Set highlight state
+    setHighlightedTimelineItemId(timelineItemId)
+
+    // Scroll to the element with smooth behavior
+    timelineElement.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+      inline: 'nearest'
+    })
+
+    // Remove highlight after 2 seconds
+    setTimeout(() => {
+      setHighlightedTimelineItemId(null)
+    }, 2000)
+  }
   const handleRemoveCustomer = async () => {
     setIsRemoving(true)
     try {
@@ -3233,6 +3273,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   handleRetry={handleRetry}
                   getErrorMessage={getErrorMessage}
                   onImageLoad={() => scrollToBottom('smooth', true)}
+                  highlightedItemId={highlightedTimelineItemId}
                 />
               )}
             </div>
@@ -3476,6 +3517,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     handleRetry={handleRetry}
                     getErrorMessage={getErrorMessage}
                     renderAudio={false}
+                    highlightedItemId={highlightedTimelineItemId}
                   />
                 )}
               </div>
@@ -3582,6 +3624,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     leadData={leadData}
                     collapsible={false}
                     onSave={handleRefresh}
+                    onNavigateToTimeline={handleNavigateToTimeline}
                   />
                 </div>
               )}
