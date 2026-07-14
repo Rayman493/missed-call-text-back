@@ -22,6 +22,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuPortal,
 } from '@radix-ui/react-dropdown-menu'
 import {
   formatPhoneNumber,
@@ -92,6 +93,29 @@ function getCompactSummary(lead: any): string {
   }
 
   return 'New customer request'
+}
+
+// Status filter options
+const statusFilterOptions = [
+  { value: 'all', label: 'All', icon: '●' },
+  { value: 'new', label: 'New', icon: '📞' },
+  { value: 'active', label: 'Active', icon: '💬' },
+  { value: 'scheduled', label: 'Scheduled', icon: '📅' },
+  { value: 'payment_requested', label: 'Payment Requested', icon: '💳' },
+  { value: 'paid', label: 'Paid', icon: '✅' },
+  { value: 'completed', label: 'Completed', icon: '✓' },
+  { value: 'lost', label: 'Lost', icon: '❌' },
+  { value: 'ignored', label: 'Ignored', icon: '🟠' },
+]
+
+function getStatusFilterIcon(filter: string): string {
+  const option = statusFilterOptions.find(opt => opt.value === filter)
+  return option?.icon || '●'
+}
+
+function getStatusFilterLabel(filter: string): string {
+  const option = statusFilterOptions.find(opt => opt.value === filter)
+  return option?.label || 'All'
 }
 
 // Helper to get structured AI data for lead card (legacy shape)
@@ -970,22 +994,55 @@ export default function LeadsPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-3 py-2 sm:px-4 sm:py-2 bg-background border border-border/50 rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all cursor-pointer"
-                >
-                  <option value="all">All</option>
-                  <option value="new">New</option>
-                  <option value="active">Active</option>
-                  <option value="scheduled">Scheduled</option>
-                  <option value="payment_requested">Payment</option>
-                  <option value="paid">Paid</option>
-                  <option value="completed">Completed</option>
-                  <option value="lost">Lost</option>
-                  <option value="ignored">Ignored</option>
-                  <option value="deleted">Deleted</option>
-                </select>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="px-3 py-2 sm:px-4 sm:py-2 bg-background border border-border/50 rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all cursor-pointer flex items-center gap-2 hover:bg-muted/50 data-[state=open]:ring-2 data-[state=open]:ring-offset-2 data-[state=open]:ring-primary"
+                    >
+                      <span className="text-xs">{getStatusFilterIcon(statusFilter)}</span>
+                      <span className="whitespace-nowrap">{getStatusFilterLabel(statusFilter)}</span>
+                      <svg 
+                        className="w-3 h-3 transition-transform duration-200 data-[state=open]:rotate-180" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuPortal>
+                    <DropdownMenuContent
+                      align="end"
+                      side="bottom"
+                      sideOffset={8}
+                      collisionPadding={12}
+                      avoidCollisions
+                      className="w-[240px] max-w-[calc(100vw-24px)] max-h-[min(420px,calc(100dvh-120px))] bg-card border border-border/50 rounded-lg shadow-xl shadow-black/10 dark:shadow-black/30 overflow-y-auto overscroll-contain z-[10000]"
+                    >
+                      {statusFilterOptions.map((option) => (
+                        <DropdownMenuItem
+                          key={option.value}
+                          onSelect={() => setStatusFilter(option.value)}
+                          className="w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center gap-2.5 outline-none focus:bg-muted/50 cursor-pointer"
+                        >
+                          <span className="text-xs">{option.icon}</span>
+                          <div className="flex-1">
+                            <div className="text-xs font-medium text-foreground">
+                              {option.label}
+                            </div>
+                          </div>
+                          {statusFilter === option.value && (
+                            <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenuPortal>
+                </DropdownMenu>
                 <button
                   onClick={fetchLeads}
                   disabled={loading || refreshing}
