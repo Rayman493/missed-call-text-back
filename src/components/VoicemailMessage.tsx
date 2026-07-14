@@ -60,6 +60,7 @@ export default function VoicemailMessage({
   const [audioError, setAudioError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [showVolumeSlider, setShowVolumeSlider] = useState(false)
+  const [showFullTranscript, setShowFullTranscript] = useState(false)
   
   // Use global volume context
   const { volume, isMuted, previousVolume, setVolume, setMuted, setPreviousVolume, toggleMute } = useVoicemailVolume()
@@ -755,30 +756,58 @@ export default function VoicemailMessage({
             </div>
           )}
 
-          {/* Transcription (Future Ready) */}
-          {recording.transcription_text && (
+          {/* Transcription States */}
+          {recording.transcription_status === 'processing' && (
+            <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-800">
+              <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
+                <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                Transcription processing…
+              </div>
+            </div>
+          )}
+
+          {recording.transcription_status === 'failed' && (
+            <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-800">
+              <p className="text-xs text-blue-600 dark:text-blue-400">
+                Transcript unavailable. Listen to the recording for the full update.
+              </p>
+            </div>
+          )}
+
+          {recording.transcription_text && recording.transcription_status === 'completed' && (
             <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-800">
               <p className="text-xs font-medium text-blue-800 dark:text-blue-200 mb-2">Transcript</p>
               <p className="text-sm text-blue-900 dark:text-blue-100 leading-relaxed">
-                "{recording.transcription_text}"
+                {showFullTranscript || recording.transcription_text.length <= 300
+                  ? `"${recording.transcription_text}"`
+                  : `"${recording.transcription_text.substring(0, 300)}..."`
+                }
               </p>
+              {recording.transcription_text.length > 300 && (
+                <button
+                  onClick={() => setShowFullTranscript(!showFullTranscript)}
+                  className="text-xs text-blue-600 dark:text-blue-400 mt-2 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                >
+                  {showFullTranscript ? 'Show less' : 'Show more'}
+                </button>
+              )}
               <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
                 AI Transcription
               </p>
             </div>
           )}
 
-          {/* Processing State */}
-          {recording.recording_status === 'processing' && (
+          {/* Recording Processing State */}
+          {recording.recording_status === 'processing' && !recording.transcription_text && (
             <div className="text-center py-2">
               <div className="inline-flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
                 <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                Processing voicemail...
+                Processing voicemail…
               </div>
             </div>
           )}
 
-          {/* Failed State */}
+          {/* Recording Failed State */}
           {recording.recording_status === 'failed' && (
             <div className="text-center py-2">
               <p className="text-xs text-red-600 dark:text-red-400">
