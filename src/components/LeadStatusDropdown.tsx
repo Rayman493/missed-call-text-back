@@ -35,7 +35,7 @@ export default function LeadStatusDropdown({
       const triggerRect = buttonRef.current.getBoundingClientRect()
 
       // Horizontal positioning - align right edge with trigger, clamp to viewport
-      const menuWidth = Math.min(300, window.innerWidth - 24)
+      const menuWidth = Math.min(280, window.innerWidth - 24)
       let left = triggerRect.right - menuWidth
       left = Math.max(12, Math.min(left, window.innerWidth - menuWidth - 12))
 
@@ -45,21 +45,24 @@ export default function LeadStatusDropdown({
       const bottomNavTop = bottomNav?.getBoundingClientRect().top ?? viewportHeight
       const usableBottom = Math.min(viewportHeight, bottomNavTop) - 12
 
-      // Calculate available space
+      // Calculate available space (account for 8px gap)
       const spaceBelow = usableBottom - triggerRect.bottom - 8
       const spaceAbove = triggerRect.top - 12 - 8
+
+      // Determine direction - downward by default, flip upward only if more space above
+      const openUpward = spaceBelow < spaceAbove && spaceBelow < 180
 
       let top: number
       let calculatedMaxHeight: number
 
-      // Downward-first behavior - open below if adequate room
-      if (spaceBelow >= spaceAbove) {
-        top = triggerRect.bottom + 8
-        calculatedMaxHeight = Math.max(180, spaceBelow)
-      } else {
-        // Flip upward when more space above
+      if (openUpward) {
+        // Open upward
         calculatedMaxHeight = Math.max(180, spaceAbove)
         top = triggerRect.top - calculatedMaxHeight - 8
+      } else {
+        // Open downward
+        calculatedMaxHeight = Math.max(180, spaceBelow)
+        top = triggerRect.bottom + 8
       }
 
       setDropdownPosition({ top, left })
@@ -217,7 +220,7 @@ export default function LeadStatusDropdown({
               style={{
                 top: `${dropdownPosition.top}px`,
                 left: `${dropdownPosition.left}px`,
-                maxWidth: '300px',
+                width: '280px',
                 maxHeight: `${maxHeight}px`
               }}
               role="menu"
