@@ -1,5 +1,5 @@
 ﻿import React, { useState, useRef } from 'react'
-import { Image as ImageIcon, X } from 'lucide-react'
+import { Plus, X } from 'lucide-react'
 
 interface ConversationComposerProps {
   message: string
@@ -192,16 +192,16 @@ export default function ConversationComposer({
           onDrop={handleDrop}
           className="relative"
         >
-          <div className="flex items-center gap-2 bg-card border border-border/40 rounded-2xl p-2 shadow-sm hover:shadow-md transition-shadow duration-200 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500/30">
+          <div className="flex items-center gap-2 bg-card border border-border/40 rounded-2xl p-2.5 shadow-sm hover:shadow-md transition-shadow duration-200 focus-within:ring-2 focus-within:ring-blue-500/30 focus-within:border-blue-500/50">
             {/* Image Upload Button */}
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200 flex-shrink-0 rounded-lg h-9 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2"
+              className="p-2.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200 flex-shrink-0 rounded-xl h-11 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2"
               disabled={sending}
               aria-label="Attach image"
             >
-              <ImageIcon className="w-4.5 h-4.5" />
+              <Plus className="w-5 h-5" />
             </button>
           <input
             ref={fileInputRef}
@@ -218,18 +218,18 @@ export default function ConversationComposer({
               onChange={handleTextareaChange}
               onKeyDown={handleKeyDown}
               placeholder="Type a message..."
-              className={`flex-1 px-2.5 py-2 bg-transparent text-foreground resize-none focus:outline-none text-sm leading-relaxed h-9 ${
+              className={`flex-1 px-3 py-2.5 bg-transparent text-foreground resize-none focus:outline-none text-base leading-relaxed h-11 ${
                 isAtMaxHeight ? 'overflow-y-auto' : 'overflow-y-hidden'
               }`}
               rows={1}
-              style={{ minHeight: '36px', maxHeight: '120px' }}
+              style={{ minHeight: '44px', maxHeight: '120px' }}
               disabled={sending}
             />
             <button
               type="button"
               onClick={handleSend}
               disabled={sending || !hasContent}
-              className="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-500 disabled:cursor-not-allowed text-white rounded-xl font-semibold transition-all duration-200 shadow-sm hover:shadow flex items-center gap-1.5 flex-shrink-0 h-9 disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2"
+              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-500 disabled:cursor-not-allowed text-white rounded-xl font-semibold transition-all duration-200 shadow-sm hover:shadow flex items-center gap-1.5 flex-shrink-0 h-11 disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2"
             >
             {sending ? (
               <>
