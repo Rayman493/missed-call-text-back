@@ -1036,6 +1036,95 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
         isForwardedCall
       })
       
+      // REPEAT CALLER ROUTING: Check if this is a repeat caller with completed intake
+      // This must happen BEFORE AI session creation to prevent duplicate AI intake
+      console.log('[REPEAT CALLER ROUTING] Starting repeat-caller routing decision', {
+        callSid: CallSid,
+        businessId: business.id,
+        callerPhone: normalizedFrom,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Look up existing lead for this caller
+      const existingLead = await db.getLeadByPhone(business.id, normalizedFrom);
+      
+      let latestAICallRecord = null;
+      if (existingLead) {
+        // Look up latest AI call record excluding current CallSid
+        latestAICallRecord = await db.getMostRecentAiCallRecordExcludingCallSid(
+          business.id,
+          existingLead.id,
+          CallSid
+        );
+      }
+      
+      console.log('[REPEAT CALLER ROUTING] Lookup results', {
+        existingLeadFound: !!existingLead,
+        leadId: existingLead?.id,
+        leadStatus: existingLead?.status,
+        latestAICallRecordFound: !!latestAICallRecord,
+        latestAICallRecordId: latestAICallRecord?.id,
+        latestAICallOutcome: latestAICallRecord?.outcome,
+        latestAICallSid: latestAICallRecord?.call_sid
+      });
+      
+      // Call canonical repeat-caller routing service
+      const routingResult = await determineRepeatCallerRoute({
+        businessId: business.id,
+        callerPhone: normalizedFrom,
+        lead: existingLead,
+        latestAICallRecord: latestAICallRecord
+      });
+      
+      console.log('[REPEAT CALLER ROUTING] Decision result', {
+        route: routingResult.route,
+        reason: routingResult.reason,
+        leadId: routingResult.leadId,
+        conversationId: routingResult.conversationId,
+        canRetryAI: routingResult.canRetryAI
+      });
+      
+      // Handle update voicemail route
+      if (routingResult.route === 'update_voicemail_active_request') {
+        console.log('[REPEAT CALLER ROUTING] Returning update voicemail TwiML', {
+          callSid: CallSid,
+          businessId: business.id,
+          leadId: routingResult.leadId,
+          conversationId: routingResult.conversationId,
+          reason: routingResult.reason
+        });
+        
+        const updateVoicemailTwiml = generateUpdateVoicemailResponse(
+          business.id,
+          normalizedFrom,
+          routingResult.conversationId
+        );
+        
+        console.log('[VOICE PATH] UPDATE_VOICEMAIL (repeat caller with active request)');
+        console.log('[VOICE ROUTE RETURN]', {
+          path: 'UPDATE_VOICEMAIL',
+          reason: routingResult.reason,
+          callSid: CallSid,
+          businessId: business.id,
+          leadId: routingResult.leadId
+        });
+        
+        return new NextResponse(updateVoicemailTwiml, {
+          status: 200,
+          headers: {
+            "Content-Type": "text/xml",
+            "X-ReplyFlow-Voice-Version": "v2",
+            "X-ReplyFlow-Repeat-Caller-Routing": "update_voicemail"
+          },
+        });
+      }
+      
+      // For AI intake routes, continue to AI session creation
+      console.log('[REPEAT CALLER ROUTING] Continuing to AI intake', {
+        route: routingResult.route,
+        reason: routingResult.reason
+      });
+      
       
       // CORRECTED CALL ROUTING BEHAVIOR:
       // Forwarded calls have already gone through the carrier/business ring window, so it is correct for AI to answer immediately once Twilio receives them.

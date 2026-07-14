@@ -1689,6 +1689,30 @@ export const db = {
     return data
   },
 
+  // Get latest AI call record excluding current CallSid (for repeat-caller routing)
+  async getMostRecentAiCallRecordExcludingCallSid(businessId: string, leadId: string, excludeCallSid: string): Promise<any | null> {
+    const { data, error } = await supabaseAdmin
+      .from('ai_call_records')
+      .select('*')
+      .eq('business_id', businessId)
+      .eq('lead_id', leadId)
+      .neq('call_sid', excludeCallSid)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // Not found
+        return null
+      }
+      console.error('Error fetching AI call record excluding CallSid:', error)
+      return null
+    }
+
+    return data
+  },
+
   async updateAiCallRecordCustomerReply(callRecordId: string, replyBody: string): Promise<any | null> {
     const now = new Date().toISOString()
     
