@@ -80,7 +80,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to add customer')
+        throw new Error(data.error || 'Failed to add lead')
       }
 
       // Close modal
@@ -110,7 +110,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
         }
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to add customer')
+      setError(err.message || 'Failed to add lead')
     } finally {
       setIsSubmitting(false)
     }
@@ -128,7 +128,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
       <div className="relative w-full max-w-lg max-h-[calc(100dvh-8rem-env(safe-area-inset-bottom))] md:max-h-[90vh] overflow-hidden rounded-2xl border border-border/50 bg-card shadow-2xl shadow-black/10 dark:shadow-black/30 flex flex-col animate-in zoom-in-95 duration-200">
         {/* Sticky Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border/50 flex-shrink-0">
-          <h2 className="text-lg font-semibold text-foreground">Add Customer</h2>
+          <h2 className="text-lg font-semibold text-foreground">Add Lead</h2>
           <button
             onClick={onClose}
             className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
@@ -284,7 +284,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
                 Adding...
               </>
             ) : (
-              'Add Customer'
+              'Add Lead'
             )}
           </button>
         </div>

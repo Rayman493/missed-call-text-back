@@ -92,7 +92,7 @@ function getCompactSummary(lead: any): string {
     if (inbound?.body) return truncateText(inbound.body, 80)
   }
 
-  return 'New customer request'
+  return 'New lead'
 }
 
 // Status filter options
