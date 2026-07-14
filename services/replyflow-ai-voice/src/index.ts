@@ -5184,6 +5184,14 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
   // Extract parameters from URL
   const url = new URL(req.url || '', `http://${req.headers.host}`);
 
+  console.log('[WEBSOCKET_CONNECTED] =========================================');
+  console.log('[WEBSOCKET_CONNECTED] event: websocket_connected');
+  console.log('[WEBSOCKET_CONNECTED] business_id:', url.searchParams.get('businessId') || 'none');
+  console.log('[WEBSOCKET_CONNECTED] call_sid:', url.searchParams.get('callSid') || 'none');
+  console.log('[WEBSOCKET_CONNECTED] session_id:', url.searchParams.get('sessionId') || 'none');
+  console.log('[WEBSOCKET_CONNECTED] Timestamp:', new Date().toISOString());
+  console.log('[WEBSOCKET_CONNECTED] =========================================');
+
   console.log('[SIMPLE MODE] =========================================');
   console.log('[SIMPLE MODE] event: connection_start');
   console.log('[SIMPLE MODE] simple_mode_selected:', true);
@@ -5200,6 +5208,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     callSid: '',
     callerPhone: '',
     businessName: '',
+    forwardedFrom: '',
     streamSid: '',
     currentStage: 'ask_name_reason' as any,
     assistantSpeaking: false,
@@ -5244,6 +5253,8 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     silentCloseMarkReceived: false,
     silentCloseHangupTimeout: null as NodeJS.Timeout | null,
     cachedPlaybackInterrupted: false,
+    // AI session tracking for fallback
+    aiSessionTracker: null as AISessionStateTracker | null,
   };
 
   // Canonical Simple Mode prompt keys - no mapping layer
@@ -5261,6 +5272,12 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
   state.sessionId = url.searchParams.get('sessionId') || '';
   state.businessId = url.searchParams.get('businessId') || '';
   state.callSid = url.searchParams.get('callSid') || '';
+  state.callerPhone = url.searchParams.get('callerPhone') || '';
+  state.businessName = url.searchParams.get('businessName') || '';
+  state.forwardedFrom = url.searchParams.get('forwardedFrom') || '';
+  
+  // Initialize AI session tracker with actual values
+  state.aiSessionTracker = createAISessionTracker(state.callSid, state.businessId);
 
   // Set up Twilio stream handler for media send
   const twilioHandler = new TwilioStreamHandler({
@@ -6774,6 +6791,14 @@ Reply to this message if you'd like to update or add any information.
 
     if (cachedAudio) {
       // Use cached PCMU audio
+      console.log('[GREETING_AUDIO_SEND] =========================================');
+      console.log('[GREETING_AUDIO_SEND] event: greeting_audio_send');
+      console.log('[GREETING_AUDIO_SEND] stage:', stage);
+      console.log('[GREETING_AUDIO_SEND] cached_prompt_key:', stage);
+      console.log('[GREETING_AUDIO_SEND] audio_length_bytes:', Buffer.from(cachedAudio, 'base64').length);
+      console.log('[GREETING_AUDIO_SEND] Timestamp:', new Date().toISOString());
+      console.log('[GREETING_AUDIO_SEND] =========================================');
+      
       console.log('[SIMPLE MODE] =========================================');
       console.log('[SIMPLE MODE] event: cached_prompt_audio_found');
       console.log('[SIMPLE MODE] sourceOfSpeech:', 'cached_realtime_pcmu_prompt');
@@ -6801,6 +6826,32 @@ Reply to this message if you'd like to update or add any information.
         console.log('[AUDIO TIMING] assistantSpeaking:', state.assistantSpeaking);
         console.log('[AUDIO TIMING] audioPath: direct_pcmu_passthrough');
         console.log('[AUDIO TIMING] =========================================');
+
+        // Check if Twilio WebSocket is still open before sending audio
+        if (ws.readyState !== WebSocket.OPEN) {
+          console.log('[TWILIO_WS_ERROR] =========================================');
+          console.log('[TWILIO_WS_ERROR] event: twilio_websocket_not_open');
+          console.log('[TWILIO_WS_ERROR] readyState:', ws.readyState);
+          console.log('[TWILIO_WS_ERROR] Timestamp:', new Date().toISOString());
+          console.log('[TWILIO_WS_ERROR] =========================================');
+          
+          if (state.aiSessionTracker) {
+            updateAISessionState(state.aiSessionTracker, 'FAILED', 'Twilio WebSocket not open when sending cached audio');
+          }
+          
+          triggerVoicemailFallback(
+            ws,
+            twilioHandler,
+            state.aiSessionTracker,
+            'Twilio WebSocket not open when sending cached audio',
+            state.callSid,
+            state.businessId,
+            state.callerPhone,
+            state.businessName,
+            state.forwardedFrom
+          );
+          return;
+        }
 
         for (let i = 0; i < audioBuffer.length; i += chunkSize) {
           if (state.cachedPlaybackInterrupted) {
@@ -6860,6 +6911,11 @@ Reply to this message if you'd like to update or add any information.
         console.log('[SIMPLE MODE] cached_prompt_key:', stage);
         console.log('[SIMPLE MODE] chunk_count:', totalChunks);
         console.log('[SIMPLE MODE] =========================================');
+        
+        // Update AI session state to GREETING_SENT when audio is sent
+        if (state.aiSessionTracker && stage === 'ask_name_reason') {
+          updateAISessionState(state.aiSessionTracker, 'GREETING_SENT', 'Greeting audio sent to Twilio');
+        }
 
         // CRITICAL FIX: Do NOT set assistantSpeaking = false yet
         // Wait for Twilio mark event to confirm audio playback completion
@@ -6918,11 +6974,40 @@ Reply to this message if you'd like to update or add any information.
         }
 
       } catch (error) {
+        console.log('[CACHED_AUDIO_ERROR] =========================================');
+        console.log('[CACHED_AUDIO_ERROR] event: cached_audio_send_error');
+        console.log('[CACHED_AUDIO_ERROR] error:', error instanceof Error ? error.message : String(error));
+        console.log('[CACHED_AUDIO_ERROR] stage:', stage);
+        console.log('[CACHED_AUDIO_ERROR] Timestamp:', new Date().toISOString());
+        console.log('[CACHED_AUDIO_ERROR] =========================================');
+        
         console.log('[SIMPLE MODE] Error sending cached audio:', error);
         state.assistantSpeaking = false;
+        
+        if (state.aiSessionTracker) {
+          updateAISessionState(state.aiSessionTracker, 'FAILED', `Cached audio send error: ${error instanceof Error ? error.message : String(error)}`);
+        }
+        
+        triggerVoicemailFallback(
+          ws,
+          twilioHandler,
+          state.aiSessionTracker,
+          `Cached audio send error: ${error instanceof Error ? error.message : String(error)}`,
+          state.callSid,
+          state.businessId,
+          state.callerPhone,
+          state.businessName,
+          state.forwardedFrom
+        );
       }
 
     } else {
+      console.log('[GREETING_AUDIO_MISSING] =========================================');
+      console.log('[GREETING_AUDIO_MISSING] event: greeting_audio_missing');
+      console.log('[GREETING_AUDIO_MISSING] cached_prompt_key:', stage);
+      console.log('[GREETING_AUDIO_MISSING] Timestamp:', new Date().toISOString());
+      console.log('[GREETING_AUDIO_MISSING] =========================================');
+      
       console.log('[SIMPLE MODE] =========================================');
       console.log('[SIMPLE MODE] CRITICAL ERROR: Cached prompt audio is required but missing!');
       console.log('[SIMPLE MODE] CRITICAL ERROR: cached_prompt_key:', stage);
@@ -6930,16 +7015,24 @@ Reply to this message if you'd like to update or add any information.
       console.log('[SIMPLE MODE] CRITICAL ERROR: Live speech fallback is DISABLED in Simple Mode');
       console.log('[SIMPLE MODE] CRITICAL ERROR: Please populate cachedPromptAudio with base64 PCMU audio');
       console.log('[SIMPLE MODE] CRITICAL ERROR: Run: npx ts-node scripts/generate-realtime-cached-audio.ts');
-      console.log('[SIMPLE MODE] CRITICAL ERROR: Terminating call to prevent off-script speech');
+      console.log('[SIMPLE MODE] CRITICAL ERROR: Triggering voicemail fallback');
       console.log('[SIMPLE MODE] =========================================');
       
-      // Simple Mode must never fall back to live speech - terminate call instead
+      // Simple Mode must never fall back to live speech - use voicemail fallback instead
       state.assistantSpeaking = false;
       logSimple('cached_prompt_missing_critical_error', { stage });
-      ws.close();
-      if (state.openAiWs) {
-        state.openAiWs.close();
-      }
+      
+      triggerVoicemailFallback(
+        ws,
+        twilioHandler,
+        state.aiSessionTracker,
+        `Cached prompt audio missing for stage: ${stage}`,
+        state.callSid,
+        state.businessId,
+        state.callerPhone,
+        state.businessName,
+        state.forwardedFrom
+      );
       return;
     }
   };
@@ -6952,6 +7045,17 @@ Reply to this message if you'd like to update or add any information.
         clearTimeout(state.sessionReadyTimeout);
         state.sessionReadyTimeout = null;
       }
+      console.log('[SESSION_READY] =========================================');
+      console.log('[SESSION_READY] event: session_ready');
+      console.log('[SESSION_READY] currentStage:', state.currentStage);
+      console.log('[SESSION_READY] Timestamp:', new Date().toISOString());
+      console.log('[SESSION_READY] =========================================');
+      
+      // Update AI session state to SESSION_READY
+      if (state.aiSessionTracker) {
+        updateAISessionState(state.aiSessionTracker, 'SESSION_READY', 'OpenAI session ready, sending greeting');
+      }
+      
       console.log('[OPENAI READY]', Date.now(), 'both session.created and session.updated received');
       console.log('[OPENAI TIMING]', Date.now(), 'sendPrompt.initial');
       sendPrompt(state.currentStage);
@@ -6969,6 +7073,12 @@ Reply to this message if you'd like to update or add any information.
 
       if (message.event === 'start') {
         state.streamSid = message.streamSid;
+        
+        console.log('[TWILIO_START_RECEIVED] =========================================');
+        console.log('[TWILIO_START_RECEIVED] event: twilio_start_received');
+        console.log('[TWILIO_START_RECEIVED] streamSid:', message.streamSid);
+        console.log('[TWILIO_START_RECEIVED] Timestamp:', new Date().toISOString());
+        console.log('[TWILIO_START_RECEIVED] =========================================');
         
         // Log raw start event keys for debugging
         console.log('[SIMPLE MODE] =========================================');
@@ -7006,10 +7116,15 @@ Reply to this message if you'd like to update or add any information.
         state.businessId = businessId;
         state.callerPhone = from;
         
+        // Initialize AI session tracker now that we have callSid and businessId
+        state.aiSessionTracker = createAISessionTracker(callSid, businessId);
+        updateAISessionState(state.aiSessionTracker, 'AI_CONNECTING', 'Twilio WebSocket connected, connecting to OpenAI');
+        
         // Also expose callSid on the websocket so the fallback ingest paths can find it.
         (ws as any).callSid = callSid;
         (ws as any).businessId = businessId;
         (ws as any).callerPhone = from;
+        (ws as any).aiSessionTracker = state.aiSessionTracker;
         
         console.log('[SIMPLE MODE] =========================================');
         console.log('[SIMPLE MODE] event: simple_mode_call_sid_set');
@@ -7057,7 +7172,71 @@ Reply to this message if you'd like to update or add any information.
           }
         });
 
+        // Set connection timeout
+        const openAiConnectTimeout = setTimeout(() => {
+          if (state.openAiWs && state.openAiWs.readyState === WebSocket.CONNECTING) {
+            console.log('[OPENAI_CONNECT_TIMEOUT] =========================================');
+            console.log('[OPENAI_CONNECT_TIMEOUT] event: openai_connect_timeout');
+            console.log('[OPENAI_CONNECT_TIMEOUT] timeoutMs: 5000');
+            console.log('[OPENAI_CONNECT_TIMEOUT] Timestamp:', new Date().toISOString());
+            console.log('[OPENAI_CONNECT_TIMEOUT] =========================================');
+            
+            if (state.aiSessionTracker) {
+              updateAISessionState(state.aiSessionTracker, 'FAILED', 'OpenAI WebSocket connection timeout');
+            }
+            
+            state.openAiWs.terminate();
+            triggerVoicemailFallback(
+              ws,
+              twilioHandler,
+              state.aiSessionTracker,
+              'OpenAI WebSocket connection timeout (5s)',
+              state.callSid,
+              state.businessId,
+              state.callerPhone,
+              state.businessName,
+              state.forwardedFrom
+            );
+          }
+        }, 5000);
+
+        state.openAiWs.on('error', (error) => {
+          clearTimeout(openAiConnectTimeout);
+          console.log('[OPENAI_CONNECT_ERROR] =========================================');
+          console.log('[OPENAI_CONNECT_ERROR] event: openai_connect_error');
+          console.log('[OPENAI_CONNECT_ERROR] error:', error.message);
+          console.log('[OPENAI_CONNECT_ERROR] Timestamp:', new Date().toISOString());
+          console.log('[OPENAI_CONNECT_ERROR] =========================================');
+          
+          if (state.aiSessionTracker) {
+            updateAISessionState(state.aiSessionTracker, 'FAILED', `OpenAI WebSocket connection error: ${error.message}`);
+          }
+          
+          triggerVoicemailFallback(
+            ws,
+            twilioHandler,
+            state.aiSessionTracker,
+            `OpenAI WebSocket connection error: ${error.message}`,
+            state.callSid,
+            state.businessId,
+            state.callerPhone,
+            state.businessName,
+            state.forwardedFrom
+          );
+        });
+
         state.openAiWs.on('open', () => {
+          clearTimeout(openAiConnectTimeout);
+          console.log('[OPENAI_CONNECTED] =========================================');
+          console.log('[OPENAI_CONNECTED] event: openai_connected');
+          console.log('[OPENAI_CONNECTED] Timestamp:', new Date().toISOString());
+          console.log('[OPENAI_CONNECTED] =========================================');
+          
+          // Update AI session state
+          if (state.aiSessionTracker) {
+            updateAISessionState(state.aiSessionTracker, 'AI_CONNECTED', 'OpenAI WebSocket connected');
+          }
+          
           logSimple('openai_connected');
           console.log('[OPENAI TIMING]', Date.now(), 'websocket_open');
           console.log('[SIMPLE MODE] =========================================');
@@ -7108,6 +7287,16 @@ Reply to this message if you'd like to update or add any information.
 
           // Wait for session.created + session.updated before sending the first prompt
           state.sessionReadyTimeout = setTimeout(() => {
+            console.log('[SESSION_READY_TIMEOUT] =========================================');
+            console.log('[SESSION_READY_TIMEOUT] event: session_ready_timeout');
+            console.log('[SESSION_READY_TIMEOUT] elapsedMs: 5000');
+            console.log('[SESSION_READY_TIMEOUT] sessionCreatedReceived:', state.sessionCreatedReceived);
+            console.log('[SESSION_READY_TIMEOUT] sessionUpdatedReceived:', state.sessionUpdatedReceived);
+            console.log('[SESSION_READY_TIMEOUT] initialPromptSent:', state.initialPromptSent);
+            console.log('[SESSION_READY_TIMEOUT] currentStage:', state.currentStage);
+            console.log('[SESSION_READY_TIMEOUT] Timestamp:', new Date().toISOString());
+            console.log('[SESSION_READY_TIMEOUT] =========================================');
+            
             console.log('[OPENAI READY TIMEOUT]', {
               elapsedMs: 5000,
               sessionCreatedReceived: state.sessionCreatedReceived,
@@ -7115,6 +7304,22 @@ Reply to this message if you'd like to update or add any information.
               initialPromptSent: state.initialPromptSent,
               currentStage: state.currentStage,
             });
+            
+            // Trigger voicemail fallback if session never became ready
+            if (!state.sessionCreatedReceived || !state.sessionUpdatedReceived) {
+              console.log('[SESSION_READY_TIMEOUT] Triggering voicemail fallback due to session not ready');
+              triggerVoicemailFallback(
+                ws,
+                twilioHandler,
+                state.aiSessionTracker,
+                'Session ready timeout - session.created or session.updated not received within 5s',
+                state.callSid,
+                state.businessId,
+                state.callerPhone,
+                state.businessName,
+                state.forwardedFrom
+              );
+            }
           }, 5000);
         });
 
@@ -7129,6 +7334,12 @@ Reply to this message if you'd like to update or add any information.
           // Log session lifecycle events
           if (message.type === 'session.created') {
             state.sessionCreatedReceived = true;
+            console.log('[SESSION_CREATED] =========================================');
+            console.log('[SESSION_CREATED] event: session_created');
+            console.log('[SESSION_CREATED] session.id:', message.session?.id);
+            console.log('[SESSION_CREATED] Timestamp:', new Date().toISOString());
+            console.log('[SESSION_CREATED] =========================================');
+            
             console.log('[OPENAI EVENT] session.created');
             console.log('[OPENAI TIMING]', Date.now(), 'session.created received');
             console.log('[SIMPLE MODE] =========================================');
@@ -7139,6 +7350,12 @@ Reply to this message if you'd like to update or add any information.
             maybeSendInitialPrompt();
           } else if (message.type === 'session.updated') {
             state.sessionUpdatedReceived = true;
+            console.log('[SESSION_UPDATED] =========================================');
+            console.log('[SESSION_UPDATED] event: session_updated');
+            console.log('[SESSION_UPDATED] session.id:', message.session?.id);
+            console.log('[SESSION_UPDATED] Timestamp:', new Date().toISOString());
+            console.log('[SESSION_UPDATED] =========================================');
+            
             console.log('[OPENAI EVENT] session.updated');
             console.log('[OPENAI TIMING]', Date.now(), 'session.updated received');
             console.log('[SIMPLE MODE] =========================================');
@@ -7148,12 +7365,31 @@ Reply to this message if you'd like to update or add any information.
             console.log('[SIMPLE MODE] =========================================');
             maybeSendInitialPrompt();
           } else if (message.type === 'error') {
+            console.log('[OPENAI_EVENT_ERROR] =========================================');
+            console.log('[OPENAI_EVENT_ERROR] event: openai_error');
+            console.log('[OPENAI_EVENT_ERROR] error:', JSON.stringify(message.error));
+            console.log('[OPENAI_EVENT_ERROR] Timestamp:', new Date().toISOString());
+            console.log('[OPENAI_EVENT_ERROR] =========================================');
+            
             console.log('[OPENAI EVENT] error', message.error);
             console.log('[OPENAI ERROR DUMP]', JSON.stringify(message, null, 2));
             console.log('[SIMPLE MODE] =========================================');
             console.log('[SIMPLE MODE] event: error from OpenAI');
             console.log('[SIMPLE MODE] error:', JSON.stringify(message.error));
             console.log('[SIMPLE MODE] =========================================');
+            
+            // Trigger voicemail fallback on OpenAI errors
+            triggerVoicemailFallback(
+              ws,
+              twilioHandler,
+              state.aiSessionTracker,
+              `OpenAI WebSocket error: ${JSON.stringify(message.error)}`,
+              state.callSid,
+              state.businessId,
+              state.callerPhone,
+              state.businessName,
+              state.forwardedFrom
+            );
           }
 
           // Log key OpenAI events with full details
@@ -9905,10 +10141,30 @@ Return only JSON, no other text.`;
 
           // Check for required parameters
           if (!sessionId || !callSid) {
+            console.log('[MISSING_PARAMS_ERROR] =========================================');
+            console.log('[MISSING_PARAMS_ERROR] event: missing_required_parameters');
+            console.log('[MISSING_PARAMS_ERROR] sessionId:', sessionId || 'none');
+            console.log('[MISSING_PARAMS_ERROR] callSid:', callSid || 'none');
+            console.log('[MISSING_PARAMS_ERROR] Timestamp:', new Date().toISOString());
+            console.log('[MISSING_PARAMS_ERROR] =========================================');
+            
             log(LogLevel.WARN, '[AI POC] initialization skipped because: missing required parameters', { sessionId, callSid });
             openaiInitAttempted = false;
             openaiInitFailed = true;
-            ws.close(1008, 'Missing required parameters');
+            
+            // Trigger voicemail fallback for missing parameters
+            const aiSessionTrackerFallback = createAISessionTracker(callSid || '', businessId || '');
+            await triggerVoicemailFallback(
+              ws,
+              twilioHandler,
+              aiSessionTrackerFallback,
+              'Missing required parameters (sessionId or callSid)',
+              callSid || '',
+              businessId || '',
+              callerPhone || '',
+              businessName || '',
+              forwardedFrom || ''
+            );
             return;
           }
 
@@ -9922,10 +10178,28 @@ Return only JSON, no other text.`;
           });
           
           if (!OPENAI_API_KEY) {
+            console.log('[OPENAI_KEY_ERROR] =========================================');
+            console.log('[OPENAI_KEY_ERROR] event: openai_api_key_missing');
+            console.log('[OPENAI_KEY_ERROR] Timestamp:', new Date().toISOString());
+            console.log('[OPENAI_KEY_ERROR] =========================================');
+            
             log(LogLevel.ERROR, '[AI POC] initialization skipped because: OPENAI_API_KEY not set');
             openaiInitAttempted = false;
             openaiInitFailed = true;
-            ws.close(1011, 'OpenAI API key not configured');
+            
+            // Trigger voicemail fallback for missing API key
+            const aiSessionTrackerFallback = createAISessionTracker(callSid || '', businessId || '');
+            await triggerVoicemailFallback(
+              ws,
+              twilioHandler,
+              aiSessionTrackerFallback,
+              'OpenAI API key not configured',
+              callSid || '',
+              businessId || '',
+              callerPhone || '',
+              businessName || '',
+              forwardedFrom || ''
+            );
             return;
           }
 
