@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -24,6 +24,8 @@ export default function LeadStatusDropdown({
   size = 'md'
 }: LeadStatusDropdownProps) {
   const [isUpdating, setIsUpdating] = useState(false)
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null)
+  const [shouldPreventClick, setShouldPreventClick] = useState(false)
 
   const sizeClasses = {
     sm: 'px-2.5 py-1.5 text-xs',
@@ -42,6 +44,40 @@ export default function LeadStatusDropdown({
       console.error('Failed to update lead status:', error)
     } finally {
       setIsUpdating(false)
+    }
+  }
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY
+    }
+    setShouldPreventClick(false)
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchStartRef.current) return
+    
+    const currentX = e.touches[0].clientX
+    const currentY = e.touches[0].clientY
+    const deltaX = Math.abs(currentX - touchStartRef.current.x)
+    const deltaY = Math.abs(currentY - touchStartRef.current.y)
+    
+    // If touch moved more than 10 pixels, consider it a scroll/swipe, not a tap
+    if (deltaX > 10 || deltaY > 10) {
+      setShouldPreventClick(true)
+    }
+  }
+
+  const handleTouchEnd = () => {
+    touchStartRef.current = null
+  }
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (shouldPreventClick) {
+      e.preventDefault()
+      e.stopPropagation()
+      setShouldPreventClick(false)
     }
   }
 
@@ -95,6 +131,10 @@ export default function LeadStatusDropdown({
         <button
           type="button"
           disabled={disabled || isUpdating}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onClick={handleClick}
           className={`${sizeClasses[size]} ${getLeadStatusClasses(currentStatus)} rounded-lg font-medium transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 data-[state=open]:ring-2 data-[state=open]:ring-offset-2 data-[state=open]:ring-primary`}
         >
           <span>{getStatusIcon(currentStatus)}</span>
