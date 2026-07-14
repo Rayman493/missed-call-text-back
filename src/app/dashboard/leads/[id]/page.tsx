@@ -2790,7 +2790,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     align="end"
                     side="bottom"
                     sideOffset={8}
-                    collisionPadding={12}
                     className="z-[10000] w-[280px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-2xl border bg-popover shadow-2xl"
                     style={{ animation: 'none', transition: 'none' }}
                   >
@@ -2998,7 +2997,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       align="end"
                       side="bottom"
                       sideOffset={8}
-                      collisionPadding={12}
                       className="z-[10000] w-[280px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-2xl border bg-popover shadow-2xl"
                       style={{ animation: 'none', transition: 'none' }}
                     >
