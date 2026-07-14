@@ -73,6 +73,10 @@ export async function POST(request: NextRequest) {
     const recordingStatus = params.get('RecordingStatus') as string;
     const from = params.get('From') as string;
     const to = params.get('To') as string;
+    
+    // Check if this is an update voicemail from repeat caller
+    let isUpdateVoicemail = params.get('isUpdateVoicemail') === 'true';
+    const conversationIdParam = params.get('conversationId');
 
     // Check if this is an ignored contact voicemail
     // We need to check this early to skip all automation
@@ -150,6 +154,16 @@ export async function POST(request: NextRequest) {
     // Normalize caller phone number
     const normalizedCallerPhone = normalizePhoneNumberForStorage(from);
     console.log('[VOICEMAIL] Normalized caller phone:', normalizedCallerPhone);
+
+    // Log update voicemail context
+    if (isUpdateVoicemail) {
+      console.log('[UPDATE VOICEMAIL] Repeat caller update voicemail detected', {
+        businessId: business.id,
+        callerPhone: normalizedCallerPhone,
+        conversationIdParam,
+        callSid
+      });
+    }
 
     // EARLIEST POSSIBLE POINT: Check if caller is in ignored contacts
     console.log('[IGNORED CONTACT VOICEMAIL CHECK]', {
@@ -232,7 +246,7 @@ export async function POST(request: NextRequest) {
       to,
       businessId: business.id,
       businessName: business.name,
-      reason: 'Looking up lead by caller phone for voicemail'
+      reason: isUpdateVoicemail ? 'Looking up lead for repeat caller update voicemail' : 'Looking up lead by caller phone for voicemail'
     })
     
     let lead = await db.getLeadByPhone(business.id, normalizedCallerPhone);
@@ -248,8 +262,15 @@ export async function POST(request: NextRequest) {
         businessName: business.name,
         leadId: lead.id,
         existingOrCreated: 'existing',
-        reason: 'Found existing lead for voicemail'
+        reason: isUpdateVoicemail ? 'Found existing lead for update voicemail' : 'Found existing lead for voicemail'
       })
+    }
+    
+    // For update voicemail, we must have an existing lead - if not, fall back to normal voicemail path
+    if (isUpdateVoicemail && !lead) {
+      console.warn('[UPDATE VOICEMAIL] Update voicemail flag set but no existing lead found - falling back to normal voicemail path');
+      console.log('[UPDATE VOICEMAIL] This should not happen if routing logic is correct');
+      isUpdateVoicemail = false; // Disable update voicemail mode and proceed with normal flow
     }
     
     if (!lead) {
@@ -461,6 +482,11 @@ export async function POST(request: NextRequest) {
         caller_phone: normalizedCallerPhone,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        raw_metadata: isUpdateVoicemail ? {
+          is_update_voicemail: true,
+          is_repeat_caller: true,
+          routing_reason: 'active_request_exists'
+        } : null
       })
       .select()
       .single();
@@ -497,13 +523,25 @@ export async function POST(request: NextRequest) {
 
     // Create notification for voicemail
     try {
-      await notificationServiceServer.notifyVoicemailReceived(
-        business.id,
-        'Customer',
-        normalizedCallerPhone,
-        lead.id
-      );
-      console.log('[VOICEMAIL] Notification created for voicemail');
+      if (isUpdateVoicemail) {
+        // Use repeat caller update notification
+        await notificationServiceServer.notifyVoicemailReceived(
+          business.id,
+          lead.name || 'Customer',
+          normalizedCallerPhone,
+          lead.id
+        );
+        console.log('[UPDATE VOICEMAIL] Repeat caller update notification created');
+      } else {
+        // Use normal voicemail notification
+        await notificationServiceServer.notifyVoicemailReceived(
+          business.id,
+          'Customer',
+          normalizedCallerPhone,
+          lead.id
+        );
+        console.log('[VOICEMAIL] Notification created for voicemail');
+      }
     } catch (error) {
       console.error('[VOICEMAIL] Failed to create voicemail notification:', error);
     }

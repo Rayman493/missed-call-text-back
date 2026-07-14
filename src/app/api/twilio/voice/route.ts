@@ -17,6 +17,7 @@ import { notificationServiceServer } from '@/lib/notifications-server';
 import { markForwardingVerified } from '@/lib/forwarding-verification';
 import { buildCallbackUrl } from '@/lib/public-origin';
 import { classifyCallSid } from '@/lib/call-pipeline-classification';
+import { determineRepeatCallerRoute } from '@/lib/repeat-caller-routing';
 import VoiceResponse from 'twilio/lib/twiml/VoiceResponse';
 
 // Constants for repeat caller behavior
@@ -150,6 +151,45 @@ function generateIgnoredContactResponse(): string {
   // Used for spam filtering and blocked calls
   const response = new VoiceResponse();
   response.hangup();
+  return response.toString();
+}
+
+// Helper to generate repeat-caller update voicemail
+function generateUpdateVoicemailResponse(businessId: string, callerPhone: string, conversationId?: string): string {
+  // Update voicemail greeting for repeat callers with active requests
+  const voicemailMessage = "We already have your recent request on file. Please leave any updates or additional details after the tone.";
+  
+  // Build callback parameters
+  const callbackParams: Record<string, string> = {
+    businessId,
+    callerPhone,
+    isUpdateVoicemail: 'true'
+  };
+  
+  if (conversationId) {
+    callbackParams.conversationId = conversationId;
+  }
+  
+  // Build properly encoded callback URLs using canonical public origin helper
+  const actionUrl = buildCallbackUrl('/api/twilio/voicemail', callbackParams);
+  
+  const recordingStatusCallbackUrl = buildCallbackUrl('/api/twilio/recording-status', callbackParams);
+  
+  // Use Twilio's VoiceResponse builder for automatic XML escaping
+  const response = new VoiceResponse();
+  response.pause({ length: 1 });
+  response.say({ voice: "alice" }, voicemailMessage);
+  response.record({
+    maxLength: 60,
+    playBeep: true,
+    trim: "trim-silence",
+    action: actionUrl,
+    method: "POST",
+    recordingStatusCallback: recordingStatusCallbackUrl,
+    recordingStatusCallbackMethod: "POST",
+  });
+  response.hangup();
+  
   return response.toString();
 }
 
@@ -1399,6 +1439,89 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
     // Check if lead already exists
     console.log('[Voice] Checking for existing lead for phone:', normalizedCallerPhone);
     const existingLead = await db.getLeadByPhone(business.id, normalizedCallerPhone);
+    
+    // Fetch latest AI call record for routing decision
+    let latestAICallRecord = null;
+    if (existingLead) {
+      try {
+        const { data: aiRecords } = await supabaseAdmin
+          .from('ai_call_records')
+          .select('*')
+          .eq('lead_id', existingLead.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        
+        latestAICallRecord = aiRecords;
+        console.log('[REPEAT CALLER ROUTING] Latest AI call record found:', {
+          aiCallRecordId: latestAICallRecord?.id,
+          outcome: latestAICallRecord?.outcome,
+          createdAt: latestAICallRecord?.created_at
+        });
+      } catch (error) {
+        console.log('[REPEAT CALLER ROUTING] No AI call records found or error fetching:', error);
+      }
+    }
+    
+    // Determine routing using canonical service
+    const routingResult = await determineRepeatCallerRoute({
+      businessId: business.id,
+      callerPhone: normalizedCallerPhone,
+      lead: existingLead,
+      latestAICallRecord
+    });
+    
+    console.log('[REPEAT CALLER ROUTING] Routing decision:', {
+      route: routingResult.route,
+      reason: routingResult.reason,
+      leadId: routingResult.leadId,
+      conversationId: routingResult.conversationId,
+      leadStatus: routingResult.leadStatus,
+      aiOutcome: routingResult.aiOutcome,
+      minutesSinceLastIntake: routingResult.minutesSinceLastIntake,
+      canRetryAI: routingResult.canRetryAI
+    });
+    
+    // Handle update voicemail route for active requests
+    if (routingResult.route === 'update_voicemail_active_request') {
+      console.log('[REPEAT CALLER ROUTING] Routing to update voicemail for active request');
+      
+      // Log timeline event for repeat caller update
+      if (routingResult.leadId) {
+        await timelineEvents.callReceived(business.id, routingResult.leadId, routingResult.conversationId || '', normalizedCallerPhone, To);
+      }
+      
+      const twiml = generateUpdateVoicemailResponse(
+        business.id,
+        normalizedCallerPhone,
+        routingResult.conversationId
+      );
+      
+      console.log('[VOICE PATH] UPDATE_VOICEMAIL');
+      console.log('[VOICE ROUTE RETURN]', {
+        path: 'UPDATE_VOICEMAIL',
+        reason: routingResult.reason,
+        callSid: CallSid,
+        businessId: business.id,
+        leadId: routingResult.leadId
+      });
+      
+      return new NextResponse(twiml, {
+        status: 200,
+        headers: {
+          "Content-Type": "text/xml",
+          "X-ReplyFlow-Voice-Version": "v2",
+          "X-ReplyFlow-Repeat-Caller": "true",
+          "X-ReplyFlow-Routing-Reason": routingResult.reason
+        },
+      });
+    }
+    
+    // For ignored customer, preserve existing behavior (already handled earlier)
+    if (routingResult.route === 'ignored_customer_existing_behavior') {
+      console.log('[REPEAT CALLER ROUTING] Ignored customer - preserving existing behavior');
+      // Continue with existing ignored contact logic (handled earlier)
+    }
     
     // Determine if we should reuse existing lead
     let shouldReuseLead = false;
