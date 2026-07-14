@@ -1341,7 +1341,7 @@ export default function LeadsPage() {
                                       setCardOverflowMenu(null)
                                     }}
                                   />
-                                  <div className="fixed z-[9999] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1 min-w-[160px] max-w-[220px]"
+                                  <div className="fixed z-[10000] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1 min-w-[160px] max-w-[220px]"
                                     style={{
                                       top: `${cardOverflowMenuPosition.top}px`,
                                       left: `${cardOverflowMenuPosition.left}px`
@@ -1577,14 +1577,14 @@ export default function LeadsPage() {
                                   {cardOverflowMenu === lead.id && (
                                     <>
                                       <div
-                                        className="fixed inset-0 z-[50]"
+                                        className="fixed inset-0 z-[9998]"
                                         onClick={(e) => {
                                           e.preventDefault()
                                           e.stopPropagation()
                                           setCardOverflowMenu(null)
                                         }}
                                       />
-                                      <div className="absolute right-0 top-full mt-1 z-[50] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1 min-w-[160px] max-w-[220px]">
+                                      <div className="absolute right-0 top-full mt-1 z-[10000] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1 min-w-[160px] max-w-[220px]">
                                         {lead.deleted_at && (
                                           <button
                                             onClick={(e) => {
