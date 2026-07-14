@@ -88,6 +88,11 @@ export default function PremiumAudioPlayer({
 
   // Handle mouse move for dragging
   useEffect(() => {
+    // Guard against SSR
+    if (typeof document === 'undefined') {
+      return
+    }
+
     const handleMouseMove = (e: MouseEvent) => {
       if (isDragging && progressBarRef.current) {
         const rect = progressBarRef.current.getBoundingClientRect()
