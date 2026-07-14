@@ -265,9 +265,7 @@ export default function LeadsPage() {
     if (!business?.id) return
 
     try {
-      if (!loading) {
-        setRefreshing(true)
-      }
+      setRefreshing(true)
       setError(null)
 
       let query = supabase
@@ -342,7 +340,7 @@ export default function LeadsPage() {
         .from('call_events')
         .select('*', { count: 'exact', head: true })
         .eq('business_id', business.id)
-      
+
       setMissedCallCount(count || 0)
 
       // Fetch ignored contacts count
@@ -350,7 +348,7 @@ export default function LeadsPage() {
         .from('ignored_contacts')
         .select('*', { count: 'exact', head: true })
         .eq('business_id', business.id)
-      
+
       setIgnoredContactsCount(ignoredCount || 0)
     } catch (error) {
       console.error('Error fetching leads:', error)
@@ -359,7 +357,7 @@ export default function LeadsPage() {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [business?.id, supabase, loading, deletedFilter])
+  }, [business?.id, supabase, deletedFilter])
 
   // Handle lead status change from overview page
   const handleLeadStatusChange = async (leadId: string, newStatus: LeadLifecycleStatus) => {
