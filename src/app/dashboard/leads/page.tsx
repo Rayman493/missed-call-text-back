@@ -186,6 +186,8 @@ function getLeadMessageStatus(latestMessage: any) {
   return { color: 'blue', icon: '💬' }
 }
 
+const MOBILE_BOTTOM_NAV_COLLISION_PADDING = 80
+
 export default function LeadsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -1318,7 +1320,9 @@ export default function LeadsPage() {
                                 align="end"
                                 side="bottom"
                                 sideOffset={8}
-                                className="z-[10000] w-[200px] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1"
+                                collisionPadding={MOBILE_BOTTOM_NAV_COLLISION_PADDING}
+                                avoidCollisions
+                                className="z-[10000] w-[240px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-100px)] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1 overflow-y-auto overscroll-contain"
                               >
                                 {lead.deleted_at && (
                                   <DropdownMenuItem
@@ -1541,7 +1545,9 @@ export default function LeadsPage() {
                                     align="end"
                                     side="bottom"
                                     sideOffset={8}
-                                    className="z-[10000] w-[200px] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1"
+                                    collisionPadding={MOBILE_BOTTOM_NAV_COLLISION_PADDING}
+                                    avoidCollisions
+                                    className="z-[10000] w-[240px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-100px)] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1 overflow-y-auto overscroll-contain"
                                   >
                                     {lead.deleted_at && (
                                       <DropdownMenuItem
