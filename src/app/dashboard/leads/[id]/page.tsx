@@ -2791,7 +2791,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     side="bottom"
                     sideOffset={8}
                     collisionPadding={12}
-                    className="z-[10000] w-[280px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-2xl border bg-popover shadow-2xl data-[state=open]:animate-none data-[state=closed]:animate-none"
+                    className="z-[10000] w-[280px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-2xl border bg-popover shadow-2xl"
+                    style={{ animation: 'none', transition: 'none' }}
                   >
                       {/* Conversation Actions Group */}
                       <div className="px-1.5 py-1">
@@ -2998,7 +2999,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       side="bottom"
                       sideOffset={8}
                       collisionPadding={12}
-                      className="z-[10000] w-[280px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-2xl border bg-popover shadow-2xl data-[state=open]:animate-none data-[state=closed]:animate-none"
+                      className="z-[10000] w-[280px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-2xl border bg-popover shadow-2xl"
+                      style={{ animation: 'none', transition: 'none' }}
                     >
                         {/* Conversation Actions Group */}
                         <div className="px-1.5 py-1">
