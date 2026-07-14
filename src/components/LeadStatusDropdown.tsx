@@ -1,8 +1,14 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { createPortal } from 'react-dom'
-import { getLeadLifecycleStatus, getLeadStatusLabel, getLeadStatusClasses, LeadLifecycleStatus } from '@/lib/lead-lifecycle'
+import { useState } from 'react'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuPortal,
+} from '@radix-ui/react-dropdown-menu'
+import { getLeadStatusLabel, getLeadStatusClasses, LeadLifecycleStatus } from '@/lib/lead-lifecycle'
 
 interface LeadStatusDropdownProps {
   currentStatus: LeadLifecycleStatus
@@ -17,10 +23,7 @@ export default function LeadStatusDropdown({
   disabled = false,
   size = 'md'
 }: LeadStatusDropdownProps) {
-  const [isOpen, setIsOpen] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
-  const [dropdownPosition, setDropdownPosition] = useState({ left: 0, width: 280, maxHeight: 400, top: 0, bottom: 0, openUpward: false })
-  const buttonRef = useRef<HTMLButtonElement>(null)
 
   const sizeClasses = {
     sm: 'px-2.5 py-1.5 text-xs',
@@ -28,87 +31,10 @@ export default function LeadStatusDropdown({
     lg: 'px-3.5 py-2 text-sm'
   }
 
-  // Calculate dropdown position when opened
-  useEffect(() => {
-    if (isOpen && buttonRef.current && typeof window !== 'undefined') {
-      const triggerRect = buttonRef.current.getBoundingClientRect()
-
-      // Horizontal positioning - align right edge with trigger, clamp to viewport
-      const menuWidth = Math.min(280, window.innerWidth - 24)
-      let left = triggerRect.right - menuWidth
-      left = Math.max(12, Math.min(left, window.innerWidth - menuWidth - 12))
-
-      // Vertical positioning - use visualViewport and account for bottom navigation
-      const viewportHeight = window.visualViewport?.height ?? window.innerHeight
-      const bottomNav = document.querySelector('[data-mobile-bottom-nav="true"]')
-      const bottomNavTop = bottomNav?.getBoundingClientRect().top ?? viewportHeight
-      const usableBottom = Math.min(viewportHeight, bottomNavTop) - 12
-
-      // Calculate available space (account for 8px gap)
-      const spaceBelow = usableBottom - triggerRect.bottom - 8
-      const spaceAbove = triggerRect.top - 12 - 8
-
-      // Direction selection with desiredHeight
-      const desiredHeight = 360
-
-      let openUpward: boolean
-      if (spaceBelow >= desiredHeight) {
-        openUpward = false
-      } else if (spaceAbove >= desiredHeight) {
-        openUpward = true
-      } else {
-        openUpward = spaceAbove > spaceBelow
-      }
-
-      const availableHeight = openUpward ? spaceAbove : spaceBelow
-      const maxHeight = Math.min(desiredHeight, availableHeight)
-
-      // Position based on direction
-      if (openUpward) {
-        // Use CSS bottom - anchor bottom edge 8px above trigger
-        const bottom = viewportHeight - triggerRect.top + 8
-        setDropdownPosition({ left, width: menuWidth, maxHeight, top: 0, bottom, openUpward })
-      } else {
-        // Use CSS top - anchor top edge 8px below trigger
-        const top = triggerRect.bottom + 8
-        setDropdownPosition({ left, width: menuWidth, maxHeight, top, bottom: 0, openUpward })
-      }
-    }
-  }, [isOpen])
-
-  // Recalculate or close menu on viewport changes
-  useEffect(() => {
-    if (!isOpen) return
-
-    const handleResize = () => setIsOpen(false)
-    const handleOrientationChange = () => setIsOpen(false)
-    const handleScroll = () => setIsOpen(false)
-
-    window.addEventListener('resize', handleResize)
-    window.addEventListener('orientationchange', handleOrientationChange)
-    window.addEventListener('scroll', handleScroll, true)
-
-    // Handle visualViewport resize (virtual keyboard)
-    const visualViewport = window.visualViewport
-    if (visualViewport) {
-      visualViewport.addEventListener('resize', handleResize)
-    }
-
-    return () => {
-      window.removeEventListener('resize', handleResize)
-      window.removeEventListener('orientationchange', handleOrientationChange)
-      window.removeEventListener('scroll', handleScroll, true)
-      if (visualViewport) {
-        visualViewport.removeEventListener('resize', handleResize)
-      }
-    }
-  }, [isOpen])
-
   const handleStatusSelect = async (newStatus: LeadLifecycleStatus) => {
     if (newStatus === currentStatus || isUpdating) return
     
     setIsUpdating(true)
-    setIsOpen(false)
     
     try {
       await onStatusChange(newStatus)
@@ -117,24 +43,6 @@ export default function LeadStatusDropdown({
     } finally {
       setIsUpdating(false)
     }
-  }
-
-  const handleButtonClick = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    e.preventDefault()
-    setIsOpen(!isOpen)
-  }
-
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    e.preventDefault()
-    setIsOpen(false)
-  }
-
-  const handleStatusOptionClick = (e: React.MouseEvent, newStatus: LeadLifecycleStatus) => {
-    e.stopPropagation()
-    e.preventDefault()
-    handleStatusSelect(newStatus)
   }
 
   const getStatusIcon = (status: LeadLifecycleStatus) => {
@@ -182,80 +90,58 @@ export default function LeadStatusDropdown({
   const allStatuses: LeadLifecycleStatus[] = ['new', 'active', 'scheduled', 'payment_requested', 'paid', 'completed', 'lost']
 
   return (
-    <div className="relative">
-      <button
-        ref={buttonRef}
-        onClick={handleButtonClick}
-        onMouseDown={(e) => e.stopPropagation()}
-        onPointerDown={(e) => e.stopPropagation()}
-        disabled={disabled || isUpdating}
-        className={`${sizeClasses[size]} ${getLeadStatusClasses(currentStatus)} rounded-lg font-medium transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 ${
-          isOpen ? 'ring-2 ring-offset-2 ring-primary' : ''
-        }`}
-        aria-haspopup="menu"
-        aria-expanded={isOpen}
-      >
-        <span>{getStatusIcon(currentStatus)}</span>
-        <span>{getLeadStatusLabel(currentStatus)}</span>
-        {isUpdating ? (
-          <div className="animate-spin rounded-full h-3 w-3 border-b border-current"></div>
-        ) : (
-          <svg 
-            className={`w-3 h-3 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} 
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        )}
-      </button>
-
-      {isOpen && typeof window !== 'undefined' && (
-        createPortal(
-          <>
-            {/* Backdrop */}
-            <div
-              className="fixed inset-0 z-[9998] bg-transparent"
-              onClick={handleBackdropClick}
-            />
-
-            {/* Dropdown */}
-            <div
-              className="fixed z-[9999] bg-card border border-border/50 rounded-lg shadow-xl shadow-black/10 dark:shadow-black/30 overflow-y-auto overscroll-contain animate-in fade-in slide-in-from-top-2 duration-200"
-              style={{
-                top: dropdownPosition.openUpward ? undefined : `${dropdownPosition.top}px`,
-                bottom: dropdownPosition.openUpward ? `${dropdownPosition.bottom}px` : undefined,
-                left: `${dropdownPosition.left}px`,
-                width: `${dropdownPosition.width}px`,
-                maxHeight: `${dropdownPosition.maxHeight}px`
-              }}
-              role="menu"
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          disabled={disabled || isUpdating}
+          className={`${sizeClasses[size]} ${getLeadStatusClasses(currentStatus)} rounded-lg font-medium transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 data-[state=open]:ring-2 data-[state=open]:ring-offset-2 data-[state=open]:ring-primary`}
+        >
+          <span>{getStatusIcon(currentStatus)}</span>
+          <span>{getLeadStatusLabel(currentStatus)}</span>
+          {isUpdating ? (
+            <div className="animate-spin rounded-full h-3 w-3 border-b border-current"></div>
+          ) : (
+            <svg 
+              className="w-3 h-3 transition-transform duration-200 data-[state=open]:rotate-180" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
             >
-              {allStatuses.map((status: LeadLifecycleStatus) => (
-                <button
-                  key={status}
-                  onClick={(e) => handleStatusOptionClick(e, status)}
-                  disabled={isUpdating}
-                  className="w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                  role="menuitem"
-                >
-                  <span className="text-xs">{getStatusIcon(status)}</span>
-                  <div className="flex-1">
-                    <div className="text-xs font-medium text-foreground">
-                      {getLeadStatusLabel(status)}
-                    </div>
-                    <div className="text-[10px] text-muted-foreground">
-                      {getStatusDescription(status)}
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </>,
-          document.body
-        )
-      )}
-    </div>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          )}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuPortal>
+        <DropdownMenuContent
+          align="end"
+          side="bottom"
+          sideOffset={8}
+          collisionPadding={12}
+          avoidCollisions
+          className="w-[280px] max-w-[calc(100vw-24px)] max-h-[min(420px,calc(100dvh-120px))] bg-card border border-border/50 rounded-lg shadow-xl shadow-black/10 dark:shadow-black/30 overflow-y-auto overscroll-contain z-[10000] data-[state=closed]:animate-out data-[state=closed]:fade-out data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in data-[state=open]:zoom-in-95"
+        >
+          {allStatuses.map((status: LeadLifecycleStatus) => (
+            <DropdownMenuItem
+              key={status}
+              onSelect={() => handleStatusSelect(status)}
+              disabled={isUpdating}
+              className="w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:bg-muted/50 cursor-pointer"
+            >
+              <span className="text-xs">{getStatusIcon(status)}</span>
+              <div className="flex-1">
+                <div className="text-xs font-medium text-foreground">
+                  {getLeadStatusLabel(status)}
+                </div>
+                <div className="text-[10px] text-muted-foreground">
+                  {getStatusDescription(status)}
+                </div>
+              </div>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenuPortal>
+    </DropdownMenu>
   )
 }
