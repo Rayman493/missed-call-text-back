@@ -1177,8 +1177,13 @@ export default function LeadsPage() {
                       </p>
                       <div
                         key={lead.id}
-                        className="w-full max-w-2xl h-full flex flex-col bg-card rounded-xl border border-border/50 hover:border-border/80 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group cursor-pointer relative overflow-hidden"
-                        onClick={() => handleConversationClick(lead.id)}
+                        className="w-full max-w-2xl h-full flex flex-col bg-card rounded-xl border border-border/50 hover:border-border/80 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group relative overflow-hidden"
+                        onClick={() => {
+                          // Only navigate on desktop
+                          if (window.innerWidth >= 768) {
+                            handleConversationClick(lead.id)
+                          }
+                        }}
                       >
                         {/* Status Accent Bar - Subtle left accent */}
                         <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${getLeadStatusAccentColor(getLeadLifecycleStatus(lead))}`}></div>
@@ -1389,8 +1394,13 @@ export default function LeadsPage() {
                         return (
                           <div
                             key={lead.id}
-                            className="bg-card rounded-xl border border-border/50 hover:border-border/80 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group cursor-pointer relative overflow-hidden"
-                            onClick={() => handleConversationClick(lead.id)}
+                            className="bg-card rounded-xl border border-border/50 hover:border-border/80 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group relative overflow-hidden"
+                            onClick={() => {
+                              // Only navigate on desktop
+                              if (window.innerWidth >= 768) {
+                                handleConversationClick(lead.id)
+                              }
+                            }}
                           >
                             {/* Status Accent Bar - Subtle left accent */}
                             <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${getLeadStatusAccentColor(getLeadLifecycleStatus(lead))}`}></div>
