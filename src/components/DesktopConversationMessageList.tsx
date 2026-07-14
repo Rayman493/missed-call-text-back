@@ -54,38 +54,38 @@ export default function DesktopConversationMessageList({
   }, [messagesArray.length, previousMessageCount])
 
   return (
-    <div className="space-y-4 pb-24" data-desktop-layout data-active-conversation-list>
+    <div className="space-y-5 pb-24" data-desktop-layout data-active-conversation-list>
       {conversationTimeline.map((item: any, index: number) => {
         // Handle system events
         if (item.type === 'system_event') {
           const event = item.data
           if (event.isDivider) {
             return (
-              <div key={item.id} className="flex items-center justify-center my-4">
-                <div className="flex-1 border-t border-slate-200/70 dark:border-slate-800"></div>
-                <div className="px-4 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+              <div key={item.id} className="flex items-center justify-center my-6">
+                <div className="flex-1 border-t border-border/40"></div>
+                <div className="px-4 text-xs font-medium text-muted-foreground/70">
                   {event.message}
                 </div>
-                <div className="flex-1 border-t border-slate-200/70 dark:border-slate-800"></div>
+                <div className="flex-1 border-t border-border/40"></div>
               </div>
             )
           }
           return (
-            <div 
-              key={item.id} 
+            <div
+              key={item.id}
               id={item.id}
-              className={`flex items-center justify-center my-4 transition-all duration-300 ${
-                highlightedItemId === item.id 
-                  ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-background bg-blue-50/50 dark:bg-blue-900/20' 
+              className={`flex items-center justify-center my-6 transition-all duration-300 ${
+                highlightedItemId === item.id
+                  ? 'ring-2 ring-primary/50 ring-offset-2 ring-offset-background bg-primary/5'
                   : ''
               }`}
             >
-              <div className="flex items-center gap-2.5 bg-slate-50/80 dark:bg-slate-900/50 px-3.5 py-1.5 rounded-full border border-slate-200/80 dark:border-slate-800 shadow-sm">
-                <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-                <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400">
+              <div className="flex items-center gap-2.5 bg-muted/60 px-4 py-2 rounded-full border border-border/50 shadow-sm">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
+                <span className="text-xs font-medium text-foreground/80">
                   {event.message}
                 </span>
-                <span className="text-[10px] text-slate-500 dark:text-slate-500">
+                <span className="text-[11px] text-muted-foreground/60">
                   {formatRelativeTime(event.timestamp)}
                 </span>
               </div>
@@ -141,7 +141,7 @@ export default function DesktopConversationMessageList({
         return (
           <div
             key={getMessageKey(msg)}
-            className={`flex items-start gap-3 ${msg.media && msg.media.length > 0 ? 'mb-4' : 'mb-3'} ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
+            className={`flex items-start gap-3 ${msg.media && msg.media.length > 0 ? 'mb-5' : 'mb-4'} ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
           >
             {/* Message Content */}
             <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} ${isOutbound ? 'max-w-[75%]' : 'max-w-[85%]'}`}>

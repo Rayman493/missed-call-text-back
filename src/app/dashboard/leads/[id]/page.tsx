@@ -2973,20 +2973,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Premium Two-Column Header */}
-            <div className="flex items-start gap-6">
+            <div className="flex items-start gap-8">
               {/* LEFT: Avatar and Customer Info */}
-              <div className="flex items-start gap-4 min-w-0 flex-1">
+              <div className="flex items-start gap-5 min-w-0 flex-1">
                 {/* Customer Avatar */}
                 <div className="flex-shrink-0">
                   {lead?.photo_url ? (
                     <img
                       src={lead.photo_url}
                       alt={getLeadDisplayName(leadData || lead)}
-                      className="w-16 h-16 rounded-full object-cover border-2 border-border/40"
+                      className="w-20 h-20 rounded-full object-cover border-2 border-border/30 shadow-sm"
                     />
                   ) : (
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center border-2 border-border/40">
-                      <span className="text-white font-semibold text-xl">
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center border-2 border-border/30 shadow-sm">
+                      <span className="text-white font-semibold text-2xl">
                         {getLeadDisplayName(leadData || lead)
                           .split(' ')
                           .map(n => n[0])
@@ -2999,16 +2999,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </div>
 
                 {/* Customer Info */}
-                <div className="min-w-0 flex-1">
-                  <h1 className="text-3xl font-bold text-foreground tracking-tight mb-1">
+                <div className="min-w-0 flex-1 pt-1">
+                  <h1 className="text-3xl font-semibold text-foreground tracking-tight mb-2">
                     {getLeadDisplayName(leadData || lead)}
                   </h1>
-                  <p className="text-base text-muted-foreground mb-2">
+                  <p className="text-base text-muted-foreground mb-3 font-normal">
                     {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
                   </p>
-                  <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-3 text-sm text-muted-foreground/80">
                     <span>Customer since {formatRelativeTime(lead?.created_at)}</span>
-                    <span>•</span>
+                    <span className="text-border/40">•</span>
                     <span>{messagesArray.length} message{messagesArray.length !== 1 ? 's' : ''}</span>
                   </div>
                 </div>
@@ -3029,27 +3029,27 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleCreateJobClick}
-                    className="inline-flex h-9 items-center gap-1.5 px-3 rounded-lg text-foreground hover:bg-muted transition-colors text-xs font-medium"
+                    className="inline-flex h-10 items-center gap-2 px-4 rounded-lg text-foreground hover:bg-muted/80 transition-colors text-sm font-medium border border-transparent hover:border-border/50"
                     title="Create job"
                   >
-                    <ClipboardPlus className="w-3.5 h-3.5 stroke-[1.8]" />
+                    <ClipboardPlus className="w-4 h-4 stroke-[1.8]" />
                     <span className="leading-none">Create Job</span>
                   </button>
                   <button
                     onClick={handleAppointmentClick}
-                    className="inline-flex h-9 items-center gap-1.5 px-3 rounded-lg text-foreground hover:bg-muted transition-colors text-xs font-medium"
+                    className="inline-flex h-10 items-center gap-2 px-4 rounded-lg text-foreground hover:bg-muted/80 transition-colors text-sm font-medium border border-transparent hover:border-border/50"
                     title="Schedule appointment"
                   >
-                    <CalendarDays className="w-3.5 h-3.5 stroke-[1.8]" />
+                    <CalendarDays className="w-4 h-4 stroke-[1.8]" />
                     <span className="leading-none">Schedule</span>
                   </button>
                   <button
                     onClick={() => setShowPaymentModal(true)}
                     disabled={!business || getAvailableProviders(business).length === 0}
-                    className="inline-flex h-9 items-center gap-1.5 px-3 rounded-lg text-foreground hover:bg-muted transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex h-10 items-center gap-2 px-4 rounded-lg text-foreground hover:bg-muted/80 transition-colors text-sm font-medium border border-transparent hover:border-border/50 disabled:opacity-50 disabled:cursor-not-allowed"
                     title={!business || getAvailableProviders(business).length === 0 ? 'Configure a payment method in Settings to request payments' : 'Request payment'}
                   >
-                    <CreditCard className="w-3.5 h-3.5 stroke-[1.8]" />
+                    <CreditCard className="w-4 h-4 stroke-[1.8]" />
                     <span className="leading-none">Request Payment</span>
                   </button>
 
@@ -3301,18 +3301,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   {/* AI Intake Summary */}
                   {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
                     <div>
-                      <h3 className="text-sm font-medium text-muted-foreground mb-4">AI Intake</h3>
+                      <h3 className="text-sm font-semibold text-foreground mb-4">AI Intake</h3>
                       {(() => {
                         const intake = getLeadAIIntake(leadData || lead)
                         const hasIntake = intake.serviceRequested || leadData?.aiCallRecords?.length > 0
                         if (hasIntake && (intake.serviceRequested || intake.desiredCompletion || intake.callbackTime)) {
                           return (
-                            <div className="mb-4 p-3 bg-muted/30 rounded-lg border border-border/30">
-                              <p className="text-[11px] font-medium text-muted-foreground mb-2">Current Request</p>
-                              <p className="text-sm font-semibold text-foreground mb-1">{intake.serviceRequested || 'Service request'}</p>
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <div className="mb-5 p-4 bg-muted/40 rounded-xl border border-border/30">
+                              <p className="text-xs font-medium text-muted-foreground/70 mb-2 uppercase tracking-wide">Current Request</p>
+                              <p className="text-sm font-semibold text-foreground mb-2 leading-snug">{intake.serviceRequested || 'Service request'}</p>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground/80">
                                 {intake.desiredCompletion && <span>{intake.desiredCompletion}</span>}
-                                {intake.callbackTime && <span>• {intake.callbackTime}</span>}
+                                {intake.callbackTime && <span className="text-border/40">•</span>}
+                                {intake.callbackTime && <span>{intake.callbackTime}</span>}
                               </div>
                             </div>
                           )
@@ -3337,15 +3338,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
                   {/* Customer Status - Premium rows */}
                   <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-3">Customer Status</h3>
+                    <h3 className="text-sm font-semibold text-foreground mb-4">Customer Status</h3>
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between py-1">
+                      <div className="flex items-center justify-between py-2 border-b border-border/20">
                         <span className="text-sm text-foreground font-medium">AI Intake</span>
                         <span className={`text-sm font-semibold ${getAIIntakeStatusColor(getAIIntakeStatus(leadData || lead)).replace('bg-', 'text-').replace('dark:bg-', 'dark:text-').replace('/30', '').replace('/20', '')}`}>
                           {getAIIntakeStatusLabel(getAIIntakeStatus(leadData || lead))}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between py-1">
+                      <div className="flex items-center justify-between py-2 border-b border-border/20">
                         <span className="text-sm text-foreground font-medium">Customer Replied</span>
                         <span className={`text-sm font-semibold ${
                           leadData?.raw_metadata?.customer_replied || leadData?.raw_metadata?.replied_after_ai_call || leadData?.raw_metadata?.last_customer_reply_at || followUpJobs.some((j: any) => j.cancelled_reason === 'customer_replied')
@@ -3355,7 +3356,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           {leadData?.raw_metadata?.customer_replied || leadData?.raw_metadata?.replied_after_ai_call || leadData?.raw_metadata?.last_customer_reply_at || followUpJobs.some((j: any) => j.cancelled_reason === 'customer_replied') ? 'Yes' : 'No'}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between py-1">
+                      <div className="flex items-center justify-between py-2 border-b border-border/20">
                         <span className="text-sm text-foreground font-medium">Corrections</span>
                         <span className={`text-sm font-semibold ${
                           (leadData?.raw_metadata?.corrected_fields && Object.keys(leadData.raw_metadata.corrected_fields).length > 0)
@@ -3365,7 +3366,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           {leadData?.raw_metadata?.corrected_fields ? Object.keys(leadData.raw_metadata.corrected_fields).length : 0}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between py-1">
+                      <div className="flex items-center justify-between py-2">
                         <span className="text-sm text-foreground font-medium">Follow-Ups</span>
                         <span className={`text-sm font-semibold ${
                           !followUpSettings || !followUpSettings.followUps || followUpSettings.followUps.length === 0

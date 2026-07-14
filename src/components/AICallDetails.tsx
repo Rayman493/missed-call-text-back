@@ -384,16 +384,16 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               )}
 
               {/* Structured Information */}
-              <div className="space-y-3">
+              <div className="space-y-4">
           {/* Customer Information - Prominent */}
-          <div className="bg-slate-50/60 dark:bg-slate-900/30 rounded-xl p-3 border border-slate-200/60 dark:border-slate-800/60">
-            <div className="flex items-center justify-between mb-1.5">
+          <div className="bg-muted/40 rounded-xl p-4 border border-border/30">
+            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <User className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Name</span>
+                <User className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wide">Name</span>
               </div>
               {manualFields.has('callerName') && !isEditMode && (
-                <span className="text-[9px] px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-medium">Manual</span>
+                <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md font-medium">Manual</span>
               )}
             </div>
             {isEditMode ? (
@@ -401,7 +401,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 type="text"
                 value={editValues.callerName}
                 onChange={(e) => setEditValues({ ...editValues, callerName: e.target.value })}
-                className="w-full px-2 py-1.5 text-sm font-medium text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-sm font-medium text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
                 placeholder="Customer name"
               />
             ) : (
@@ -412,21 +412,21 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           </div>
 
           {/* Service Requested - Prominent */}
-          <div className="bg-slate-50/60 dark:bg-slate-900/30 rounded-xl p-3 border border-slate-200/60 dark:border-slate-800/60">
-            <div className="flex items-center justify-between mb-1.5">
+          <div className="bg-muted/40 rounded-xl p-4 border border-border/30">
+            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <FileText className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Reason</span>
+                <FileText className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wide">Reason</span>
               </div>
               {manualFields.has('reasonForCalling') && !isEditMode && (
-                <span className="text-[9px] px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-medium">Manual</span>
+                <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md font-medium">Manual</span>
               )}
             </div>
             {isEditMode ? (
               <textarea
                 value={editValues.reasonForCalling}
                 onChange={(e) => setEditValues({ ...editValues, reasonForCalling: e.target.value })}
-                className="w-full min-h-[72px] px-2 py-1.5 text-sm font-medium text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 resize-y"
+                className="w-full min-h-[80px] px-3 py-2 text-sm font-medium text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
                 rows={3}
                 placeholder="Service requested"
               />
@@ -439,19 +439,19 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
           {/* Details - Truncated with expansion */}
           {isEditMode || (extractedInfo?.importantDetails || correctedFields?.details) ? (
-            <div className="bg-card rounded-xl p-3.5 border border-border/50">
-              <div className="flex items-center justify-between mb-1.5">
+            <div className="bg-card rounded-xl p-4 border border-border/30">
+              <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <span className="w-3.5 h-3.5 text-[14px] leading-none">📝</span>
-                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Details</span>
+                  <span className="w-4 h-4 text-[15px] leading-none">📝</span>
+                  <span className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wide">Details</span>
                 </div>
                 {manualFields.has('importantDetails') && !isEditMode && (
-                  <span className="text-[9px] px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-medium">Manual</span>
+                  <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md font-medium">Manual</span>
                 )}
                 {!isEditMode && ((correctedFields?.details?.length > 200 || (extractedInfo?.importantDetails?.length || 0) > 200)) && (
                   <button
                     onClick={() => setDetailsExpanded(!detailsExpanded)}
-                    className="text-[10px] text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+                    className="text-xs text-primary hover:text-primary/80 font-medium"
                   >
                     {detailsExpanded ? 'Show Less' : 'Show More'}
                   </button>
@@ -461,12 +461,12 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 <textarea
                   value={editValues.importantDetails}
                   onChange={(e) => setEditValues({ ...editValues, importantDetails: e.target.value })}
-                  className="w-full min-h-[120px] px-2 py-1.5 text-sm text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 resize-y"
+                  className="w-full min-h-[120px] px-3 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
                   rows={5}
                   placeholder="Additional details"
                 />
               ) : (
-                <p className="text-xs text-foreground leading-relaxed">
+                <p className="text-sm text-foreground leading-relaxed">
                   {detailsExpanded 
                     ? (correctedFields?.details ? sentenceCase(correctedFields.details) : extractedInfo?.importantDetails ? sentenceCase(extractedInfo.importantDetails) : '')
                     : (correctedFields?.details ? sentenceCase(correctedFields.details.substring(0, 200) + (correctedFields.details.length > 200 ? '...' : '')) : extractedInfo?.importantDetails ? sentenceCase(extractedInfo.importantDetails.substring(0, 200) + ((extractedInfo.importantDetails.length || 0) > 200 ? '...' : '')) : '')
@@ -477,30 +477,30 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           ) : null}
 
           {/* Compact Row: Location, Callback, Urgency */}
-          <div className="bg-slate-50/60 dark:bg-slate-900/30 rounded-xl p-3 border border-slate-200/60 dark:border-slate-800/60">
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+          <div className="bg-muted/40 rounded-xl p-4 border border-border/30">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
               {/* Location */}
               {isEditMode || (extractedInfo?.addressOrLocation || correctedFields?.address) ? (
                 <div className="min-w-0 space-y-2">
                   <div className="flex items-center justify-between gap-1">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <MapPin className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                      <span className="text-[10px] font-semibold text-muted-foreground tracking-wide">Location</span>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      <span className="text-xs font-semibold text-muted-foreground/80 tracking-wide">Location</span>
                     </div>
                     {manualFields.has('addressOrLocation') && !isEditMode && (
-                      <span className="text-[8px] px-1 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-medium">Manual</span>
+                      <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md font-medium">Manual</span>
                     )}
                   </div>
                   {isEditMode ? (
                     <textarea
                       value={editValues.addressOrLocation}
                       onChange={(e) => setEditValues({ ...editValues, addressOrLocation: e.target.value })}
-                      className="w-full min-h-[64px] px-2 py-1 text-[11px] text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 resize-y"
+                      className="w-full min-h-[64px] px-3 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
                       rows={3}
                       placeholder="Service address"
                     />
                   ) : (
-                    <p className="text-[12px] text-foreground leading-snug">
+                    <p className="text-sm text-foreground leading-snug">
                       {correctedFields?.address || extractedInfo?.addressOrLocation}
                     </p>
                   )}
@@ -510,24 +510,24 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               {/* Callback Time */}
               <div className="min-w-0 space-y-2">
                 <div className="flex items-center justify-between gap-1">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <Phone className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                    <span className="text-[10px] font-semibold text-muted-foreground tracking-wide">Callback</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-xs font-semibold text-muted-foreground/80 tracking-wide">Callback</span>
                   </div>
                   {manualFields.has('preferredCallbackTime') && !isEditMode && (
-                    <span className="text-[8px] px-1 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-medium">Manual</span>
+                    <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md font-medium">Manual</span>
                   )}
                 </div>
                 {isEditMode ? (
                   <textarea
                     value={editValues.preferredCallbackTime}
                     onChange={(e) => setEditValues({ ...editValues, preferredCallbackTime: e.target.value })}
-                    className="w-full min-h-[64px] px-2 py-1 text-[11px] text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 resize-y"
+                    className="w-full min-h-[64px] px-3 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
                     rows={3}
                     placeholder="Best time to call"
                   />
                 ) : (
-                  <p className="text-[12px] text-foreground leading-snug">
+                  <p className="text-sm text-foreground leading-snug">
                     {sentenceCase(extractedInfo.preferredCallbackTime) || 'Not Provided'}
                   </p>
                 )}
@@ -536,24 +536,24 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               {/* Desired Completion Time */}
               <div className="min-w-0 space-y-2">
                 <div className="flex items-center justify-between gap-1">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <Calendar className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                    <span className="text-[10px] font-semibold text-muted-foreground tracking-wide">Completion</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-xs font-semibold text-muted-foreground/80 tracking-wide">Completion</span>
                   </div>
                   {manualFields.has('desiredCompletionTime') && !isEditMode && (
-                    <span className="text-[8px] px-1 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-medium">Manual</span>
+                    <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md font-medium">Manual</span>
                   )}
                 </div>
                 {isEditMode ? (
                   <textarea
                     value={editValues.desiredCompletionTime}
                     onChange={(e) => setEditValues({ ...editValues, desiredCompletionTime: e.target.value })}
-                    className="w-full min-h-[64px] px-2 py-1 text-[11px] text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 resize-y"
+                    className="w-full min-h-[64px] px-3 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
                     rows={3}
                     placeholder="Desired completion"
                   />
                 ) : (
-                  <p className="text-[12px] text-foreground leading-snug">
+                  <p className="text-sm text-foreground leading-snug">
                     {sentenceCase(extractedInfo.desiredCompletionTime) || 'Not Provided'}
                   </p>
                 )}

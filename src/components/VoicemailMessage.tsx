@@ -574,7 +574,7 @@ export default function VoicemailMessage({
           <span className="text-[11px] sm:text-xs text-muted-foreground/70 font-normal" title={new Date(recording.created_at).toLocaleString()}>
             {formatRelativeTime(recording.created_at)}
           </span>
-          <span className={`px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-[11px] sm:text-xs rounded-full font-medium border border-blue-200 dark:border-blue-800/30 flex items-center gap-1`}>
+          <span className={`px-2 py-0.5 bg-primary/10 text-primary text-[11px] sm:text-xs rounded-full font-medium border border-primary/20 flex items-center gap-1`}>
             <Phone className="w-2.5 h-2.5" />
             Voicemail
           </span>
@@ -584,18 +584,18 @@ export default function VoicemailMessage({
         </div>
 
         {/* Voicemail Card */}
-        <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-4 sm:p-5 shadow-md">
+        <div className="bg-muted/50 border border-border/50 rounded-xl p-5 shadow-sm">
           {/* Voicemail Header */}
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center shadow-sm">
-              <Phone className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center shadow-sm">
+              <Phone className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1">
-              <p className="font-semibold text-blue-900 dark:text-blue-100 text-base">Voicemail Received</p>
-              <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">
+              <p className="font-semibold text-foreground text-base">Voicemail Received</p>
+              <p className="text-sm text-muted-foreground font-medium">
                 {recording.recording_duration ? `${recording.recording_duration} seconds` : 'Processing duration...'}
               </p>
-              <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">{formatRelativeTime(recording.created_at)}</p>
+              <p className="text-xs text-muted-foreground/70 mt-0.5">{formatRelativeTime(recording.created_at)}</p>
             </div>
           </div>
 
