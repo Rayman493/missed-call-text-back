@@ -1,3 +1,5 @@
+import { sanitizeCustomerName, sanitizeServiceRequested, sanitizeAdditionalDetails, sanitizeServiceAddress, sanitizeTiming } from './content-sanitization'
+
 // Helper function to safely trim and capitalize text
 // This is a low-level helper that does NOT apply conversational filler removal
 export const safeTrimAndCapitalize = (text: string | null | undefined): string => {
@@ -75,6 +77,9 @@ export const normalizeCustomerName = (text: string | null | undefined): string =
     return safeTrimAndCapitalize(original);
   }
   
+  // Apply content sanitization for display
+  normalized = sanitizeCustomerName(normalized);
+  
   return normalized;
 };
 
@@ -116,6 +121,9 @@ export const normalizeServiceReason = (text: string | null | undefined): string 
     return safeTrimAndCapitalize(original);
   }
   
+  // Apply content sanitization for display
+  normalized = sanitizeServiceRequested(normalized);
+  
   return normalized;
 };
 
@@ -154,6 +162,9 @@ export const normalizeAddress = (text: string | null | undefined): string => {
     return safeTrimAndCapitalize(original);
   }
   
+  // Apply content sanitization for display
+  normalized = sanitizeServiceAddress(normalized);
+  
   return normalized;
 };
 
@@ -188,6 +199,9 @@ export const normalizeTiming = (text: string | null | undefined): string => {
     return safeTrimAndCapitalize(original);
   }
   
+  // Apply content sanitization for display
+  normalized = sanitizeTiming(normalized);
+  
   return normalized;
 };
 
@@ -219,6 +233,9 @@ export const normalizeAdditionalDetails = (text: string | null | undefined): str
   if (isNormalizationDamaged(original, normalized)) {
     return safeTrimAndCapitalize(original);
   }
+  
+  // Apply content sanitization for display
+  normalized = sanitizeAdditionalDetails(normalized);
   
   return normalized;
 };
