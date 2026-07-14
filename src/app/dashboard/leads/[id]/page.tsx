@@ -2708,30 +2708,54 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
           {/* Mobile Layout: Compact Information Header */}
           <div className="md:hidden">
-            <div className="flex items-center justify-between gap-2">
-              {/* Back button + Customer name */}
-              <div className="flex items-center gap-2 flex-1 min-w-0">
+            <div className="flex items-center gap-3">
+              {/* Back button */}
+              <div className="flex-shrink-0">
                 <AppBackButton fallbackHref="/dashboard/leads" label="" />
-                <div className="min-w-0">
-                  <h1 className="font-semibold text-foreground text-base leading-tight truncate">
-                    {getLeadDisplayName(leadData || lead)}
-                  </h1>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
-                  </p>
-                </div>
+              </div>
+              
+              {/* Customer Avatar */}
+              <div className="flex-shrink-0">
+                {lead?.photo_url ? (
+                  <img
+                    src={lead.photo_url}
+                    alt={getLeadDisplayName(leadData || lead)}
+                    className="w-12 h-12 rounded-full object-cover border-2 border-border/40"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center border-2 border-border/40">
+                    <span className="text-white font-semibold text-base">
+                      {getLeadDisplayName(leadData || lead)
+                        .split(' ')
+                        .map(n => n[0])
+                        .join('')
+                        .toUpperCase()
+                        .slice(0, 2)}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Customer Info */}
+              <div className="min-w-0 flex-1">
+                <h1 className="font-bold text-foreground text-lg leading-tight truncate">
+                  {getLeadDisplayName(leadData || lead)}
+                </h1>
+                <p className="text-sm text-muted-foreground truncate">
+                  {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
+                </p>
               </div>
               
               {/* Actions */}
-              <div className="flex items-center gap-1 flex-shrink-0">
+              <div className="flex items-center gap-1.5 flex-shrink-0">
                 {/* Info Button */}
                 <button
                   onClick={() => setShowLeadInfo(!showLeadInfo)}
-                  className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
+                  className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200"
                   title="Customer information"
                   aria-label="Customer information"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </button>
@@ -2904,24 +2928,49 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Desktop Layout: Premium Profile Header */}
           <div className="hidden md:block">
             {/* Back to Leads */}
-            <div className="mb-3">
+            <div className="mb-4">
               <AppBackButton fallbackHref="/dashboard/leads" label="Back to Customers" />
             </div>
 
-            {/* Simplified Two-Column Header */}
-            <div className="flex items-start justify-between gap-6">
-              {/* LEFT: Customer Info */}
-              <div className="min-w-0 flex-1">
-                <h1 className="text-2xl font-bold text-foreground tracking-tight mb-1">
-                  {getLeadDisplayName(leadData || lead)}
-                </h1>
-                <p className="text-sm text-muted-foreground mb-2">
-                  {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
-                </p>
-                <div className="flex items-center gap-2.5 text-xs text-muted-foreground">
-                  <span>Customer since {formatRelativeTime(lead?.created_at)}</span>
-                  <span>•</span>
-                  <span>{messagesArray.length} message{messagesArray.length !== 1 ? 's' : ''}</span>
+            {/* Premium Two-Column Header */}
+            <div className="flex items-start gap-6">
+              {/* LEFT: Avatar and Customer Info */}
+              <div className="flex items-start gap-4 min-w-0 flex-1">
+                {/* Customer Avatar */}
+                <div className="flex-shrink-0">
+                  {lead?.photo_url ? (
+                    <img
+                      src={lead.photo_url}
+                      alt={getLeadDisplayName(leadData || lead)}
+                      className="w-16 h-16 rounded-full object-cover border-2 border-border/40"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center border-2 border-border/40">
+                      <span className="text-white font-semibold text-xl">
+                        {getLeadDisplayName(leadData || lead)
+                          .split(' ')
+                          .map(n => n[0])
+                          .join('')
+                          .toUpperCase()
+                          .slice(0, 2)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Customer Info */}
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-3xl font-bold text-foreground tracking-tight mb-1">
+                    {getLeadDisplayName(leadData || lead)}
+                  </h1>
+                  <p className="text-base text-muted-foreground mb-2">
+                    {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
+                  </p>
+                  <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                    <span>Customer since {formatRelativeTime(lead?.created_at)}</span>
+                    <span>•</span>
+                    <span>{messagesArray.length} message{messagesArray.length !== 1 ? 's' : ''}</span>
+                  </div>
                 </div>
               </div>
 
@@ -3134,22 +3183,25 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Desktop Conversation Section - Independent Scroll */}
           <section className="flex flex-col min-h-0 h-[calc(100vh-260px)]">
             {/* Desktop Message Thread - Scrollable */}
-            <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-4 py-3 min-h-0 custom-scrollbar" style={{ minHeight: '200px' }}>
+            <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-4 py-3 min-h-0 custom-scrollbar bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800/60 rounded-2xl shadow-[0_4px_20px_rgb(0,0,0,0.08),0_2px_8px_rgb(0,0,0,0.04)] ring-1 ring-slate-900/5 dark:ring-slate-100/5" style={{ minHeight: '200px' }}>
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                 </div>
               ) : conversationTimeline.length === 0 ? (
-                <div className="flex items-center justify-center h-full py-12 animate-fadeIn">
-                  <div className="text-center max-w-md px-4">
-                    <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-border/50">
-                      <svg className="w-8 h-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <div className="flex items-center justify-center h-full py-16 animate-fadeIn">
+                  <div className="text-center max-w-md px-6">
+                    <div className="w-20 h-20 bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-blue-200/30 dark:border-blue-900/30">
+                      <svg className="w-10 h-10 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
                     </div>
-                    <h3 className="text-lg font-semibold text-foreground mb-3">No conversation yet</h3>
-                    <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
-                      Messages with this customer will appear here.
+                    <h3 className="text-xl font-bold text-foreground mb-3">No conversation yet</h3>
+                    <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed mb-4">
+                      The first message will appear here once you or your customer starts the conversation.
+                    </p>
+                    <p className="text-xs text-muted-foreground/70 max-w-sm mx-auto leading-relaxed">
+                      ReplyFlow is ready when your customer reaches out.
                     </p>
                   </div>
                 </div>
@@ -3350,9 +3402,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Conversation Section - Primary content, conversation-first */}
-          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl lg:hidden flex flex-col overflow-hidden shadow-lg ring-1 ring-slate-900/5 dark:ring-slate-100/5" style={{ minHeight: '420px', height: '60dvh' }}>
+          <div className="bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800/60 rounded-2xl lg:hidden flex flex-col overflow-hidden shadow-[0_4px_20px_rgb(0,0,0,0.08),0_2px_8px_rgb(0,0,0,0.04)] ring-1 ring-slate-900/5 dark:ring-slate-100/5" style={{ minHeight: '420px', height: '60dvh' }}>
             {/* Mobile Message Thread - Scrollable viewport */}
-            <div ref={mobileConversationContainerRef} className="flex-1 min-h-0 overflow-y-auto scroll-smooth overscroll-contain bg-slate-50/30 dark:bg-slate-950/30" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', scrollPaddingBottom: '5rem' }}>
+            <div ref={mobileConversationContainerRef} className="flex-1 min-h-0 overflow-y-auto scroll-smooth overscroll-contain bg-slate-50/40 dark:bg-slate-950/40" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', scrollPaddingBottom: '5rem' }}>
               {/* Inner content wrapper for justify-end */}
               <div className="min-h-full px-2 py-1 flex flex-col justify-end">
                 {loading ? (
@@ -3360,16 +3412,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                   </div>
                 ) : conversationTimeline.length === 0 ? (
-                  <div className="flex items-center justify-center h-full py-6 animate-fadeIn">
-                    <div className="text-center max-w-sm px-4">
-                      <div className="w-12 h-12 bg-muted/50 rounded-xl flex items-center justify-center mx-auto mb-3 border border-border/50">
-                        <svg className="w-6 h-6 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <div className="flex items-center justify-center h-full py-12 animate-fadeIn">
+                    <div className="text-center max-w-sm px-6">
+                      <div className="w-16 h-16 bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-blue-200/30 dark:border-blue-900/30">
+                        <svg className="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                         </svg>
                       </div>
-                      <h3 className="text-sm font-semibold text-foreground mb-2">No conversation yet</h3>
-                      <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
-                        Messages with this customer will appear here.
+                      <h3 className="text-base font-bold text-foreground mb-2">No conversation yet</h3>
+                      <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed mb-2">
+                        The first message will appear here once you or your customer starts the conversation.
+                      </p>
+                      <p className="text-[10px] text-muted-foreground/60 max-w-xs mx-auto leading-relaxed">
+                        ReplyFlow is ready when your customer reaches out.
                       </p>
                     </div>
                   </div>
