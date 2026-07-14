@@ -6,9 +6,10 @@ interface ScrollAnimationProps {
   children: React.ReactNode
   className?: string
   delay?: number
+  disabledOnMobile?: boolean
 }
 
-export default function ScrollAnimation({ children, className = '', delay = 0 }: ScrollAnimationProps) {
+export default function ScrollAnimation({ children, className = '', delay = 0, disabledOnMobile = false }: ScrollAnimationProps) {
   const [isVisible, setIsVisible] = useState(false)
   const [hasAnimated, setHasAnimated] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -20,7 +21,9 @@ export default function ScrollAnimation({ children, className = '', delay = 0 }:
     // Check for reduced motion preference
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-    if (prefersReducedMotion) {
+    // Check if on mobile and animations are disabled
+    const isMobile = window.innerWidth < 768
+    if (prefersReducedMotion || (disabledOnMobile && isMobile)) {
       setIsVisible(true)
       return
     }
@@ -34,7 +37,7 @@ export default function ScrollAnimation({ children, className = '', delay = 0 }:
       },
       {
         threshold: 0.15, // Trigger when 15% visible
-        rootMargin: '0px 0px -50px 0px', // Slight offset for better feel
+        rootMargin: isMobile ? '0px 0px -100px 0px' : '0px 0px -50px 0px', // Earlier trigger on mobile
       }
     )
 
@@ -43,7 +46,7 @@ export default function ScrollAnimation({ children, className = '', delay = 0 }:
     return () => {
       observer.unobserve(element)
     }
-  }, [hasAnimated])
+  }, [hasAnimated, disabledOnMobile])
 
   return (
     <div

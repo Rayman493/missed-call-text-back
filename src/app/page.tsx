@@ -112,15 +112,15 @@ export default async function Home() {
       {/* Hero Section - SAFE VERSION WITHOUT FRAMER-MOTION */}
       <HomepageErrorBoundary>
         <ScrollAnimation>
-          <section className="relative flex flex-col items-center justify-center py-16 sm:py-20 md:py-28 lg:py-32 text-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-background dark:via-muted dark:to-background overflow-hidden">
+          <section className="relative flex flex-col items-center justify-center py-10 sm:py-16 md:py-24 lg:py-32 text-center bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-background dark:via-muted dark:to-background overflow-hidden">
             {/* Premium background effects */}
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/50 to-transparent dark:from-transparent dark:via-muted/30 dark:to-transparent"></div>
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-blue-500/5 dark:bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
             <div className="absolute top-20 right-0 w-[400px] h-[400px] bg-blue-400/5 dark:bg-blue-400/10 rounded-full blur-3xl pointer-events-none"></div>
             <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-400/5 dark:bg-indigo-400/10 rounded-full blur-3xl pointer-events-none"></div>
 
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 sm:space-y-10 md:space-y-12 relative z-10">
-              <div className="flex flex-col items-center text-center gap-y-8 sm:gap-y-10">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8 md:space-y-10 lg:space-y-12 relative z-10">
+              <div className="flex flex-col items-center text-center gap-y-6 sm:gap-y-8 md:gap-y-10">
                 <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] sm:leading-[1.15] text-slate-900 dark:text-foreground">
                   Never Miss a Lead Again
                 </h1>
@@ -188,8 +188,8 @@ export default async function Home() {
 
       {/* Product Preview */}
       <HomepageErrorBoundary>
-        <ScrollAnimation>
-          <section className="bg-white dark:bg-background py-12 sm:py-16 md:py-20 border-t border-slate-200 dark:border-slate-800">
+        <ScrollAnimation disabledOnMobile={true}>
+          <section className="bg-white dark:bg-background py-8 sm:py-12 md:py-16 lg:py-20 border-t border-slate-200 dark:border-slate-800">
             <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="relative">
                 {/* Product Mockup Card */}
