@@ -4,6 +4,8 @@
  * Provides canonical field names and backward compatibility for reading extracted_info
  */
 
+import { normalizeText } from './ai-intake-formatter'
+
 /**
  * Apply sentence capitalization to a string
  * Only capitalizes the first character if it's lowercase
@@ -276,7 +278,7 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
   }
 
   const result = {
-    customerName: pick(
+    customerName: normalizeText(pick(
       corrected.name,
       corrected.callerName,
       corrected.customerName,
@@ -289,7 +291,7 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       normalized.callerName,
       rawMetadata.name,
       extractedInfoRaw.customerName
-    ),
+    )),
     customerPhone: pick(
       lead?.caller_phone,
       lead?.phone,
@@ -300,23 +302,23 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       extractedInfoRaw.phone,
       extractedInfoRaw.customerPhone
     ),
-    serviceRequested: pick(
+    serviceRequested: normalizeText(pick(
       corrected.serviceRequested,
       corrected.reason,
       corrected.reasonForCalling,
       rawMetadata.serviceRequested,
       normalized.reasonForCalling,
       extractedInfoRaw.serviceRequested
-    ),
-    additionalDetails: pick(
+    )),
+    additionalDetails: normalizeText(pick(
       corrected.details,
       corrected.issueDescription,
       corrected.importantDetails,
       rawMetadata.additionalDetails,
       normalized.importantDetails,
       extractedInfoRaw.additionalDetails
-    ),
-    serviceAddress: pick(
+    )),
+    serviceAddress: normalizeText(pick(
       corrected.address,
       corrected.serviceAddress,
       corrected.addressOrLocation,
@@ -324,8 +326,8 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       normalized.addressOrLocation,
       rawMetadata.address,
       extractedInfoRaw.serviceAddress
-    ),
-    desiredCompletion: pick(
+    )),
+    desiredCompletion: normalizeText(pick(
       corrected.desiredCompletion,
       corrected.urgency,
       corrected.urgencyLevel,
@@ -333,15 +335,15 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       rawMetadata.desiredCompletion,
       normalized.desiredCompletionTime,
       extractedInfoRaw.desiredCompletion
-    ),
-    callbackTime: pick(
+    )),
+    callbackTime: normalizeText(pick(
       corrected.callbackTime,
       corrected.callback_time,
       corrected.preferredCallbackTime,
       rawMetadata.callbackTime,
       normalized.preferredCallbackTime,
       extractedInfoRaw.callbackTime
-    ),
+    )),
   }
 
   // Development-only trace log
