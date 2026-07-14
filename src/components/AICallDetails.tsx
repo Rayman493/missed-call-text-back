@@ -7,6 +7,7 @@ import { MessageCircle, ChevronDown, ChevronUp, Pencil, X, Check, Loader2, User,
 import { normalizeExtractedInfo, getLeadAIIntake, getAIIntakeStatus } from '@/lib/ai-field-mapping'
 import { normalizeAITranscript } from '@/lib/transcript-normalization'
 import { normalizeAICallRecord, getHistoryCardTitle, getOutcomeColor as getRecordOutcomeColor, getIntakeBadgeLabel, type NormalizedIntake } from '@/lib/ai-call-record-normalizer'
+import { normalizeCustomerName, normalizeServiceReason, normalizeAdditionalDetails, normalizeAddress, normalizeTiming } from '@/lib/ai-intake-formatter'
 
 interface AICallRecord {
   id: string
@@ -260,13 +261,14 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
   // Use the selected normalized record for display
   // This ensures clicking different history cards updates all displayed fields
+  // Apply canonical sanitization functions to ensure profanity filtering
   const extractedInfo = selectedRecord ? {
-    callerName: selectedRecord.customerName || undefined,
-    reasonForCalling: selectedRecord.serviceRequested || undefined,
-    importantDetails: selectedRecord.additionalDetails || undefined,
-    desiredCompletionTime: selectedRecord.desiredCompletion || undefined,
-    addressOrLocation: selectedRecord.serviceAddress || undefined,
-    preferredCallbackTime: selectedRecord.callbackTime || undefined,
+    callerName: normalizeCustomerName(selectedRecord.customerName) || undefined,
+    reasonForCalling: normalizeServiceReason(selectedRecord.serviceRequested) || undefined,
+    importantDetails: normalizeAdditionalDetails(selectedRecord.additionalDetails) || undefined,
+    desiredCompletionTime: normalizeTiming(selectedRecord.desiredCompletion) || undefined,
+    addressOrLocation: normalizeAddress(selectedRecord.serviceAddress) || undefined,
+    preferredCallbackTime: normalizeTiming(selectedRecord.callbackTime) || undefined,
   } : {}
   
   const correctedFields = leadData?.raw_metadata?.corrected_fields
