@@ -228,6 +228,7 @@ export default function LeadsPage() {
   const [isStartingCheckout, setIsStartingCheckout] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [quickFilter, setQuickFilter] = useState<'all' | 'active' | 'new' | 'today'>('all')
   const [showFilters, setShowFilters] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
@@ -589,7 +590,18 @@ export default function LeadsPage() {
     // Hide deleted leads from default view (when filter is not 'deleted')
     const shouldShowDeleted = !isDeleted
 
-    return matchesSearch && matchesStatus && (shouldShowIgnored || !isIgnored) && shouldShowDeleted
+    // Handle quick filter
+    let matchesQuickFilter = true
+    if (quickFilter === 'active') {
+      matchesQuickFilter = leadStatus === 'active'
+    } else if (quickFilter === 'new') {
+      matchesQuickFilter = leadStatus === 'new'
+    } else if (quickFilter === 'today') {
+      const createdToday = new Date(lead.created_at).toDateString() === new Date().toDateString()
+      matchesQuickFilter = createdToday
+    }
+
+    return matchesSearch && matchesStatus && (shouldShowIgnored || !isIgnored) && shouldShowDeleted && matchesQuickFilter
   })
 
   
@@ -954,27 +966,59 @@ export default function LeadsPage() {
               </div>
             </div>
 
-            {/* Quick Summary Row - Hide on mobile to save space */}
-            <div className="hidden sm:flex flex-wrap items-center gap-3 mb-6">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-muted/50 rounded-lg border border-border/50">
-                <span className="text-sm font-medium text-foreground">{leads.filter(l => !l.deleted_at).length}</span>
-                <span className="text-xs text-muted-foreground">Total</span>
-              </div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-500/10 rounded-lg border border-green-500/20">
-                <span className="text-sm font-medium text-green-600 dark:text-green-400">{leadStatusCounts.active}</span>
-                <span className="text-xs text-green-600/70 dark:text-green-400/70">Active</span>
-              </div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 rounded-lg border border-amber-500/20">
-                <span className="text-sm font-medium text-amber-600 dark:text-amber-400">{leadStatusCounts.new}</span>
-                <span className="text-xs text-amber-600/70 dark:text-amber-400/70">Need Reply</span>
-              </div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 rounded-lg border border-blue-500/20">
-                <span className="text-sm font-medium text-blue-600 dark:text-blue-400">{leads.filter(l => {
+            {/* Premium Filter Chips */}
+            <div className="flex flex-wrap items-center gap-2 mb-4 sm:mb-6">
+              <button
+                onClick={() => setQuickFilter('all')}
+                className={`
+                  inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200
+                  ${quickFilter === 'all'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'bg-transparent border border-border/50 text-muted-foreground hover:bg-muted/50 hover:border-border'
+                  }
+                `}
+              >
+                All <span className="opacity-70">({leads.filter(l => !l.deleted_at).length})</span>
+              </button>
+              <button
+                onClick={() => setQuickFilter('active')}
+                className={`
+                  inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200
+                  ${quickFilter === 'active'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'bg-transparent border border-border/50 text-muted-foreground hover:bg-muted/50 hover:border-border'
+                  }
+                `}
+              >
+                Active <span className="opacity-70">({leadStatusCounts.active})</span>
+              </button>
+              <button
+                onClick={() => setQuickFilter('new')}
+                className={`
+                  inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200
+                  ${quickFilter === 'new'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'bg-transparent border border-border/50 text-muted-foreground hover:bg-muted/50 hover:border-border'
+                  }
+                `}
+              >
+                Needs Reply <span className="opacity-70">({leadStatusCounts.new})</span>
+              </button>
+              <button
+                onClick={() => setQuickFilter('today')}
+                className={`
+                  inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200
+                  ${quickFilter === 'today'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'bg-transparent border border-border/50 text-muted-foreground hover:bg-muted/50 hover:border-border'
+                  }
+                `}
+              >
+                New Today <span className="opacity-70">({leads.filter(l => {
                   const createdToday = new Date(l.created_at).toDateString() === new Date().toDateString()
                   return !l.deleted_at && createdToday
-                }).length}</span>
-                <span className="text-xs text-blue-600/70 dark:text-blue-400/70">New Today</span>
-              </div>
+                }).length})</span>
+              </button>
             </div>
 
             {/* Search/Filter Toolbar - Compact on mobile */}
