@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
+import { createPortal } from 'react-dom'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
@@ -197,6 +198,8 @@ export default function LeadsPage() {
   const [showFilters, setShowFilters] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [cardOverflowMenu, setCardOverflowMenu] = useState<string | null>(null)
+  const cardOverflowButtonRef = useRef<HTMLButtonElement>(null)
+  const [cardOverflowMenuPosition, setCardOverflowMenuPosition] = useState<{ top: number; left: number } | null>(null)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const { checkoutMode, isLoading: eligibilityLoading } = useTrialEligibility()
@@ -213,6 +216,35 @@ export default function LeadsPage() {
       setShowAddCustomerModal(true)
     }
   }, [addCustomer, showAddCustomerModal])
+
+  // Calculate card overflow menu position when opening
+  useEffect(() => {
+    if (cardOverflowMenu && cardOverflowButtonRef.current) {
+      const rect = cardOverflowButtonRef.current.getBoundingClientRect()
+      const menuWidth = 160
+      const menuHeight = 200
+      const viewportWidth = window.innerWidth
+      const viewportHeight = window.innerHeight
+
+      // Calculate position with viewport clamping
+      let left = rect.right
+      let top = rect.bottom + 4
+
+      // Clamp to right edge - align menu right edge with button right edge
+      if (left + menuWidth > viewportWidth) {
+        left = rect.right - menuWidth
+      }
+
+      // Clamp to bottom edge
+      if (top + menuHeight > viewportHeight) {
+        top = rect.top - menuHeight - 4
+      }
+
+      setCardOverflowMenuPosition({ top, left })
+    } else {
+      setCardOverflowMenuPosition(null)
+    }
+  }, [cardOverflowMenu])
 
   const supabase = createBrowserClient()
 
@@ -948,7 +980,7 @@ export default function LeadsPage() {
                 </div>
                 <button
                   onClick={() => setShowAddCustomerModal(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs sm:text-sm font-medium rounded-lg transition-colors shadow-sm"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs sm:text-sm font-medium rounded-lg transition-colors shadow-sm whitespace-nowrap"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -1181,7 +1213,7 @@ export default function LeadsPage() {
                           {/* Header: Name, Phone, Status */}
                           <div className="flex items-start justify-between gap-3 mb-2.5">
                             <div className="flex-1 min-w-0">
-                              <h3 className={`text-lg font-semibold text-foreground mb-0.5 truncate tracking-tight ${isNewCustomer ? 'text-orange-500' : ''}`}>
+                              <h3 className="text-lg font-semibold text-foreground mb-0.5 truncate tracking-tight">
                                 {getLeadDisplayName(lead)}
                               </h3>
                               <p className="text-xs text-muted-foreground">
@@ -1261,7 +1293,7 @@ export default function LeadsPage() {
                               <a
                                 href={`tel:${lead.caller_phone}`}
                                 onClick={(e) => e.stopPropagation()}
-                                className="flex sm:hidden inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-muted hover:bg-muted/80 text-muted-foreground text-xs font-medium rounded-lg transition-colors group-hover:bg-primary/10 group-hover:text-primary whitespace-nowrap"
+                                className="sm:hidden inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-muted hover:bg-muted/80 text-muted-foreground text-xs font-medium rounded-lg transition-colors group-hover:bg-primary/10 group-hover:text-primary whitespace-nowrap w-full"
                                 title="Call"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1270,7 +1302,7 @@ export default function LeadsPage() {
                                 Call
                               </a>
                             )}
-                            <div className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-all duration-200 cursor-pointer whitespace-nowrap shadow-sm hover:shadow"
+                            <div className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-all duration-200 cursor-pointer whitespace-nowrap shadow-sm hover:shadow w-full"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 router.push(`/dashboard/leads/${lead.id}`)
@@ -1283,6 +1315,7 @@ export default function LeadsPage() {
                             </div>
                             <div className="relative">
                               <button
+                                ref={cardOverflowButtonRef}
                                 onClick={(e) => {
                                   e.preventDefault()
                                   e.stopPropagation()
@@ -1296,17 +1329,22 @@ export default function LeadsPage() {
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                                 </svg>
                               </button>
-                              {cardOverflowMenu === lead.id && (
+                              {cardOverflowMenu === lead.id && cardOverflowMenuPosition && typeof document !== 'undefined' && createPortal(
                                 <>
                                   <div
-                                    className="fixed inset-0 z-[50]"
+                                    className="fixed inset-0 z-[9998]"
                                     onClick={(e) => {
                                       e.preventDefault()
                                       e.stopPropagation()
                                       setCardOverflowMenu(null)
                                     }}
                                   />
-                                  <div className="absolute right-0 top-full mt-1 z-[50] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1 min-w-[160px] max-w-[220px]">
+                                  <div className="fixed z-[9999] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1 min-w-[160px] max-w-[220px]"
+                                    style={{
+                                      top: `${cardOverflowMenuPosition.top}px`,
+                                      left: `${cardOverflowMenuPosition.left}px`
+                                    }}
+                                  >
                                     {lead.deleted_at && (
                                       <button
                                         onClick={(e) => {
@@ -1375,7 +1413,7 @@ export default function LeadsPage() {
                                     )}
                                   </div>
                                 </>
-                              )}
+                              , document.body)}
                             </div>
                           </div>
                         </div>
@@ -1418,7 +1456,7 @@ export default function LeadsPage() {
                               {/* Header: Name, Phone, Status - Compact on mobile */}
                               <div className="flex items-start justify-between gap-2 sm:gap-3 mb-1.5 sm:mb-2">
                                 <div className="flex-1 min-w-0">
-                                  <h3 className={`text-sm sm:text-base font-semibold text-foreground mb-0.5 truncate tracking-tight ${isNewCustomer ? 'text-orange-500' : ''}`}>
+                                  <h3 className="text-sm sm:text-base font-semibold text-foreground mb-0.5 truncate tracking-tight">
                                     {getLeadDisplayName(lead)}
                                   </h3>
                                   <p className="text-[11px] sm:text-xs text-muted-foreground">

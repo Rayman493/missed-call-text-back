@@ -437,9 +437,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       let left = rect.right
       let top = rect.bottom + 4
 
-      // Clamp to right edge
+      // Clamp to right edge - align menu right edge with button right edge
       if (left + menuWidth > viewportWidth) {
-        left = rect.left - menuWidth
+        left = rect.right - menuWidth
       }
 
       // Clamp to bottom edge
@@ -3081,9 +3081,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
                     </div>
-                    <h3 className="text-lg font-semibold text-foreground mb-3">Ready to start a conversation</h3>
+                    <h3 className="text-lg font-semibold text-foreground mb-3">No conversation yet</h3>
                     <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
-                      Send a message below to contact this customer. Future messages and automatic follow-ups will appear here.
+                      Messages with this customer will appear here.
                     </p>
                   </div>
                 </div>
@@ -3301,9 +3301,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                         </svg>
                       </div>
-                      <h3 className="text-sm font-semibold text-foreground mb-2">Ready to start a conversation</h3>
+                      <h3 className="text-sm font-semibold text-foreground mb-2">No conversation yet</h3>
                       <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
-                        Send a message below to contact this customer. Future messages and automatic follow-ups will appear here.
+                        Messages with this customer will appear here.
                       </p>
                     </div>
                   </div>
@@ -3575,8 +3575,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Desktop Layout - 2 Column */}
       {/* Mobile Bottom Sheet for Lead Details */}
       {showLeadInfo && (
-        <div className="md:hidden fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50">
-          <div className="bg-white dark:bg-slate-900 rounded-t-2xl w-full max-h-[80vh] overflow-hidden animate-slide-up">
+        <div className="md:hidden fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50" onClick={() => setShowLeadInfo(false)}>
+          <div className="bg-white dark:bg-slate-900 rounded-t-2xl w-full max-h-[80vh] overflow-hidden animate-slide-up" onClick={(e) => e.stopPropagation()}>
             {/* Handle */}
             <div className="flex justify-center py-2">
               <div className="w-12 h-1 bg-slate-300 dark:bg-slate-600 rounded-full"></div>
@@ -3686,8 +3686,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       {/* Desktop Modal for Lead Details */}
       {showLeadInfo && (
-        <div className="hidden md:block fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-card rounded-xl shadow-xl max-w-md w-full p-6">
+        <div className="hidden md:block fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => setShowLeadInfo(false)}>
+          <div className="bg-card rounded-xl shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
               <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
