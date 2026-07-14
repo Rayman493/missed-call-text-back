@@ -4,7 +4,7 @@
  * Provides canonical field names and backward compatibility for reading extracted_info
  */
 
-import { normalizeText } from './ai-intake-formatter'
+import { normalizeCustomerName, normalizeServiceReason, normalizeAddress, normalizeTiming, normalizeAdditionalDetails, safeTrimAndCapitalize } from './ai-intake-formatter'
 
 /**
  * Apply sentence capitalization to a string
@@ -278,7 +278,7 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
   }
 
   const result = {
-    customerName: normalizeText(pick(
+    customerName: normalizeCustomerName(pick(
       corrected.name,
       corrected.callerName,
       corrected.customerName,
@@ -302,7 +302,7 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       extractedInfoRaw.phone,
       extractedInfoRaw.customerPhone
     ),
-    serviceRequested: normalizeText(pick(
+    serviceRequested: normalizeServiceReason(pick(
       corrected.serviceRequested,
       corrected.reason,
       corrected.reasonForCalling,
@@ -310,7 +310,7 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       normalized.reasonForCalling,
       extractedInfoRaw.serviceRequested
     )),
-    additionalDetails: normalizeText(pick(
+    additionalDetails: normalizeAdditionalDetails(pick(
       corrected.details,
       corrected.issueDescription,
       corrected.importantDetails,
@@ -318,7 +318,7 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       normalized.importantDetails,
       extractedInfoRaw.additionalDetails
     )),
-    serviceAddress: normalizeText(pick(
+    serviceAddress: normalizeAddress(pick(
       corrected.address,
       corrected.serviceAddress,
       corrected.addressOrLocation,
@@ -327,7 +327,7 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       rawMetadata.address,
       extractedInfoRaw.serviceAddress
     )),
-    desiredCompletion: normalizeText(pick(
+    desiredCompletion: normalizeTiming(pick(
       corrected.desiredCompletion,
       corrected.urgency,
       corrected.urgencyLevel,
@@ -336,7 +336,7 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       normalized.desiredCompletionTime,
       extractedInfoRaw.desiredCompletion
     )),
-    callbackTime: normalizeText(pick(
+    callbackTime: normalizeTiming(pick(
       corrected.callbackTime,
       corrected.callback_time,
       corrected.preferredCallbackTime,
