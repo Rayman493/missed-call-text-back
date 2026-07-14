@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { db } from '@/lib/supabase/admin'
+import { db, normalizePhoneNumberForStorage } from '@/lib/supabase/admin'
 import { normalizePhoneNumber } from '@/lib/twilio'
 import { requireTwilioAuth } from '@/lib/twilio/webhook'
 import { checkVoiceStatusRateLimit } from '@/lib/rate-limit'
@@ -137,7 +137,32 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
   // Terminal statuses with 0 duration indicate the call never connected to the AI service
   const isTerminalStatus = ['busy', 'no-answer', 'failed', 'canceled'].includes(CallStatus)
   const isZeroDuration = !Duration || Duration === '0' || parseInt(Duration) === 0
-  const callNeverReachedAI = isTerminalStatus && isZeroDuration
+  let callNeverReachedAI = isTerminalStatus && isZeroDuration
+
+  // === UPDATE VOICEMAIL DETECTION ===
+  // Check if this is a repeat-caller update voicemail call
+  // Update voicemail calls have no ai_call_records row (intentionally)
+  // Use call_events to detect the update voicemail route
+  const { data: callEventForRouting } = await supabase
+    .from('call_events')
+    .select('id, conversation_id, is_update_voicemail')
+    .eq('twilio_call_sid', CallSid)
+    .maybeSingle();
+
+  const isUpdateVoicemail = callEventForRouting?.is_update_voicemail === true;
+  if (isUpdateVoicemail) {
+    console.log('[VOICE STATUS UPDATE VOICEMAIL] =========================================');
+    console.log('[VOICE STATUS UPDATE VOICEMAIL] Detected update voicemail call via call_events');
+    console.log('[VOICE STATUS UPDATE VOICEMAIL] CallSid:', CallSid);
+    console.log('[VOICE STATUS UPDATE VOICEMAIL] conversationId:', callEventForRouting.conversation_id);
+    console.log('[VOICE STATUS UPDATE VOICEMAIL] Bypassing AI record lookup retry loop');
+    console.log('[VOICE STATUS UPDATE VOICEMAIL] Will use phone-based lead lookup with canonical normalization');
+    console.log('[VOICE STATUS UPDATE VOICEMAIL] =========================================');
+    
+    // Update voicemail calls have no ai_call_records, so skip the retry loop
+    // Set callNeverReachedAI to true to skip AI record lookup
+    callNeverReachedAI = true;
+  }
 
   let aiCallRecord = null
   // Give the AI service more time to finalize the simple-mode completion
@@ -531,8 +556,8 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
     }
   }
 
-  // Normalize customer phone number
-  const normalizedCallerPhone = normalizePhoneNumber(From)
+  // Normalize customer phone number using canonical storage format
+  const normalizedCallerPhone = normalizePhoneNumberForStorage(From)
   console.log(`[Twilio Voice Status Webhook] Normalized caller phone: ${normalizedCallerPhone}`)
 
   // CRITICAL FIX: If AI call record exists but has no lead_id, create lead now

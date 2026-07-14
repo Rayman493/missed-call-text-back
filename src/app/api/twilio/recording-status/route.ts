@@ -25,10 +25,11 @@ export async function POST(request: NextRequest) {
     // Parse form data using URLSearchParams
     const params = new URLSearchParams(rawBody);
     
-    // Extract URL parameters for personal voicemail detection
+    // Extract URL parameters for voicemail classification
     const url = new URL(request.url);
     const businessId = url.searchParams.get('businessId');
     const callerPhone = url.searchParams.get('callerPhone');
+    const isUpdateVoicemail = url.searchParams.get('isUpdateVoicemail') === 'true';
     
     // Defensive logging
     console.log('[RECORDING STATUS] Request details:', {
@@ -39,7 +40,8 @@ export async function POST(request: NextRequest) {
       CallSid: params.get('CallSid'),
       AccountSid: params.get('AccountSid') ? '[PRESENT]' : '[MISSING]',
       businessId: businessId ? '[PRESENT]' : '[MISSING]',
-      callerPhone: callerPhone ? '[PRESENT]' : '[MISSING]'
+      callerPhone: callerPhone ? '[PRESENT]' : '[MISSING]',
+      isUpdateVoicemail: isUpdateVoicemail ? '[TRUE]' : '[FALSE]'
     });
     
     // Convert params to object for signature validation
@@ -75,6 +77,51 @@ export async function POST(request: NextRequest) {
     if (!recordingSid) {
       console.error('[RECORDING STATUS] Missing RecordingSid');
       return new NextResponse('Missing RecordingSid', { status: 400 });
+    }
+
+    // === UPDATE VOICEMAIL PATH ===
+    // If isUpdateVoicemail flag is present, this is a repeat caller update voicemail
+    // Handle separately from personal voicemail and normal AI intake
+    if (isUpdateVoicemail) {
+      console.log('[UPDATE VOICEMAIL RECORDING STATUS] =========================================');
+      console.log('[UPDATE VOICEMAIL RECORDING STATUS] recordingSid:', recordingSid);
+      console.log('[UPDATE VOICEMAIL RECORDING STATUS] recordingStatus:', recordingStatus);
+      console.log('[UPDATE VOICEMAIL RECORDING STATUS] =========================================');
+
+      try {
+        // Update voicemail recording with transcription when available
+        if (recordingStatus === 'completed' && recordingUrl) {
+          console.log('[UPDATE VOICEMAIL RECORDING STATUS] Starting transcription');
+          
+          try {
+            const transcriptionResult = await transcribeVoicemail(recordingUrl, recordingSid);
+            
+            if (transcriptionResult && transcriptionResult.transcript) {
+              console.log('[UPDATE VOICEMAIL RECORDING STATUS] Transcription successful');
+              
+              await supabaseAdmin
+                .from('voicemail_recordings')
+                .update({
+                  transcription_text: transcriptionResult.transcript,
+                  transcription_status: 'completed',
+                  updated_at: new Date().toISOString()
+                })
+                .eq('recording_sid', recordingSid);
+              
+              console.log('[UPDATE VOICEMAIL RECORDING STATUS] Transcription saved');
+            }
+          } catch (transcriptionError) {
+            console.error('[UPDATE VOICEMAIL RECORDING STATUS] Transcription error:', transcriptionError);
+            // Don't fail the callback on transcription errors
+          }
+        }
+
+        console.log('[UPDATE VOICEMAIL RECORDING STATUS] Complete');
+        return new NextResponse('OK', { status: 200 });
+      } catch (error) {
+        console.error('[UPDATE VOICEMAIL RECORDING STATUS] Error:', error);
+        return new NextResponse('OK', { status: 200 });
+      }
     }
 
     // === PERSONAL VOICEMAIL PATH ===

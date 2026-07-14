@@ -201,12 +201,7 @@ export async function POST(request: NextRequest) {
           transcription_status: null,
           caller_phone: normalizedCallerPhone,
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          raw_metadata: {
-            is_ignored_contact: true,
-            automation_skipped: true,
-            skip_reason: 'Caller is in ignored contacts list'
-          }
+          updated_at: new Date().toISOString()
         })
         .select()
         .single();
@@ -481,12 +476,7 @@ export async function POST(request: NextRequest) {
         transcription_status: null,
         caller_phone: normalizedCallerPhone,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        raw_metadata: isUpdateVoicemail ? {
-          is_update_voicemail: true,
-          is_repeat_caller: true,
-          routing_reason: 'active_request_exists'
-        } : null
+        updated_at: new Date().toISOString()
       })
       .select()
       .single();
