@@ -435,6 +435,21 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       localStorage.setItem('customerDetailsCollapsedSections', JSON.stringify(collapsedSections))
     }
   }, [collapsedSections])
+
+  // Prevent body scrolling when Customer Details modal is open
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      if (showLeadInfo) {
+        document.body.style.overflow = 'hidden'
+        document.body.style.position = 'fixed'
+        document.body.style.width = '100%'
+      } else {
+        document.body.style.overflow = ''
+        document.body.style.position = ''
+        document.body.style.width = ''
+      }
+    }
+  }, [showLeadInfo])
   
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth', force = false, isInitialLoad = false) => {
     // Guard against SSR
@@ -2771,15 +2786,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       </svg>
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuPortal>
-                    <DropdownMenuContent
-                      align="end"
-                      side="bottom"
-                      sideOffset={8}
-                      collisionPadding={12}
-                      avoidCollisions
-                      className="z-[10000] w-[280px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-2xl border bg-popover shadow-2xl"
-                    >
+                  <DropdownMenuContent
+                    align="end"
+                    side="bottom"
+                    sideOffset={8}
+                    collisionPadding={12}
+                    className="z-[10000] w-[280px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-2xl border bg-popover shadow-2xl data-[state=open]:animate-none data-[state=closed]:animate-none"
+                  >
                       {/* Conversation Actions Group */}
                       <div className="px-1.5 py-1">
                         <div className="px-2.5 py-1.5 text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider">
@@ -2888,15 +2901,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         </DropdownMenuItem>
                       </div>
                     </DropdownMenuContent>
-                  </DropdownMenuPortal>
-                </DropdownMenu>
+                  </DropdownMenu>
               </div>
             </div>
             
             {/* Compact metadata row - only show essential info */}
             <div className="flex items-center gap-2 mt-2 text-[10px] text-muted-foreground">
-              <span>{formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}</span>
-              <span>•</span>
               <span>{messagesArray.length} msg</span>
               {lead?.last_message_at && (
                 <>
@@ -2983,15 +2993,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         </svg>
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuPortal>
-                      <DropdownMenuContent
-                        align="end"
-                        side="bottom"
-                        sideOffset={8}
-                        collisionPadding={12}
-                        avoidCollisions
-                        className="z-[10000] w-[280px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-2xl border bg-popover shadow-2xl"
-                      >
+                    <DropdownMenuContent
+                      align="end"
+                      side="bottom"
+                      sideOffset={8}
+                      collisionPadding={12}
+                      className="z-[10000] w-[280px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-2xl border bg-popover shadow-2xl data-[state=open]:animate-none data-[state=closed]:animate-none"
+                    >
                         {/* Conversation Actions Group */}
                         <div className="px-1.5 py-1">
                           <div className="px-2.5 py-1.5 text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider">
@@ -3100,7 +3108,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           </DropdownMenuItem>
                         </div>
                       </DropdownMenuContent>
-                    </DropdownMenuPortal>
                   </DropdownMenu>
                 </div>
               </div>
