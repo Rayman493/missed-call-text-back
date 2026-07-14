@@ -1177,11 +1177,18 @@ export default function LeadsPage() {
                       </p>
                       <div
                         key={lead.id}
-                        className="w-full max-w-2xl h-full flex flex-col bg-card rounded-xl border border-border/50 hover:border-border/80 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group relative overflow-hidden"
+                        className={`w-full max-w-2xl h-full flex flex-col rounded-xl border relative overflow-hidden transition-all duration-200 ${
+                          selectedLeadId === lead.id
+                            ? 'bg-primary/5 border-primary/50 shadow-lg shadow-primary/10'
+                            : 'bg-card border-border/50 hover:border-border/80 hover:shadow-md hover:-translate-y-0.5'
+                        }`}
                         onClick={() => {
                           // Only navigate on desktop
                           if (window.innerWidth >= 768) {
                             handleConversationClick(lead.id)
+                          } else {
+                            // On mobile, just highlight
+                            setSelectedLeadId(selectedLeadId === lead.id ? null : lead.id)
                           }
                         }}
                       >
@@ -1394,11 +1401,18 @@ export default function LeadsPage() {
                         return (
                           <div
                             key={lead.id}
-                            className="bg-card rounded-xl border border-border/50 hover:border-border/80 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group relative overflow-hidden"
+                            className={`rounded-xl border relative overflow-hidden transition-all duration-200 ${
+                              selectedLeadId === lead.id
+                                ? 'bg-primary/5 border-primary/50 shadow-lg shadow-primary/10'
+                                : 'bg-card border-border/50 hover:border-border/80 hover:shadow-md hover:-translate-y-0.5'
+                            }`}
                             onClick={() => {
                               // Only navigate on desktop
                               if (window.innerWidth >= 768) {
                                 handleConversationClick(lead.id)
+                              } else {
+                                // On mobile, just highlight
+                                setSelectedLeadId(selectedLeadId === lead.id ? null : lead.id)
                               }
                             }}
                           >
