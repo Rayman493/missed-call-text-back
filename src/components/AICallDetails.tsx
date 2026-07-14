@@ -478,14 +478,14 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
           {/* Compact Row: Location, Callback, Urgency */}
           <div className="bg-slate-50/60 dark:bg-slate-900/30 rounded-xl p-3 border border-slate-200/60 dark:border-slate-800/60">
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
               {/* Location */}
               {isEditMode || (extractedInfo?.addressOrLocation || correctedFields?.address) ? (
-                <div className="min-h-[64px] space-y-2">
+                <div className="min-w-0 space-y-2">
                   <div className="flex items-center justify-between gap-1">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <MapPin className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                      <span className="text-[10px] font-semibold text-muted-foreground tracking-wide whitespace-nowrap">Location</span>
+                      <span className="text-[10px] font-semibold text-muted-foreground tracking-wide">Location</span>
                     </div>
                     {manualFields.has('addressOrLocation') && !isEditMode && (
                       <span className="text-[8px] px-1 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-medium">Manual</span>
@@ -500,7 +500,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                       placeholder="Service address"
                     />
                   ) : (
-                    <p className="text-[12px] text-foreground leading-snug line-clamp-2">
+                    <p className="text-[12px] text-foreground leading-snug">
                       {correctedFields?.address || extractedInfo?.addressOrLocation}
                     </p>
                   )}
@@ -508,11 +508,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               ) : null}
 
               {/* Callback Time */}
-              <div className="min-h-[64px] space-y-2">
+              <div className="min-w-0 space-y-2">
                 <div className="flex items-center justify-between gap-1">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <Phone className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                    <span className="text-[10px] font-semibold text-muted-foreground tracking-wide whitespace-nowrap">Callback</span>
+                    <span className="text-[10px] font-semibold text-muted-foreground tracking-wide">Callback</span>
                   </div>
                   {manualFields.has('preferredCallbackTime') && !isEditMode && (
                     <span className="text-[8px] px-1 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-medium">Manual</span>
@@ -527,18 +527,18 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                     placeholder="Best time to call"
                   />
                 ) : (
-                  <p className="text-[12px] text-foreground leading-snug line-clamp-2">
+                  <p className="text-[12px] text-foreground leading-snug">
                     {sentenceCase(extractedInfo.preferredCallbackTime) || 'Not Provided'}
                   </p>
                 )}
               </div>
 
               {/* Desired Completion Time */}
-              <div className="min-h-[64px] space-y-2">
+              <div className="min-w-0 space-y-2">
                 <div className="flex items-center justify-between gap-1">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <Calendar className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                    <span className="text-[10px] font-semibold text-muted-foreground tracking-wide whitespace-nowrap">Completion</span>
+                    <span className="text-[10px] font-semibold text-muted-foreground tracking-wide">Completion</span>
                   </div>
                   {manualFields.has('desiredCompletionTime') && !isEditMode && (
                     <span className="text-[8px] px-1 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-medium">Manual</span>
@@ -553,7 +553,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                     placeholder="Desired completion"
                   />
                 ) : (
-                  <p className="text-[12px] text-foreground leading-snug line-clamp-2">
+                  <p className="text-[12px] text-foreground leading-snug">
                     {sentenceCase(extractedInfo.desiredCompletionTime) || 'Not Provided'}
                   </p>
                 )}
@@ -712,14 +712,14 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
           {/* Compact Row: Location, Callback, Urgency */}
           <div className="bg-card rounded-xl p-4 border border-border/50">
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
               {/* Location */}
               {isEditMode || (extractedInfo?.addressOrLocation || correctedFields?.address) ? (
-                <div className="min-h-[64px] space-y-2 rounded-lg bg-slate-50/60 dark:bg-slate-900/30 border border-slate-200/60 dark:border-slate-800/60 p-3">
+                <div className="min-w-0 space-y-2 rounded-lg bg-slate-50/60 dark:bg-slate-900/30 border border-slate-200/60 dark:border-slate-800/60 p-3">
                   <div className="flex items-center justify-between gap-1">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <span className="w-3.5 h-3.5 text-[13px] leading-none flex-shrink-0">📍</span>
-                      <span className="text-[10px] font-semibold text-muted-foreground tracking-wide whitespace-nowrap">Location</span>
+                      <span className="text-[10px] font-semibold text-muted-foreground tracking-wide">Location</span>
                     </div>
                     {manualFields.has('addressOrLocation') && !isEditMode && (
                       <span className="text-[8px] px-1 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-medium">Manual</span>
@@ -734,7 +734,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                       placeholder="Service address"
                     />
                   ) : (
-                    <p className="text-[12px] text-foreground leading-snug line-clamp-2">
+                    <p className="text-[12px] text-foreground leading-snug">
                       {correctedFields?.address || extractedInfo?.addressOrLocation}
                     </p>
                   )}
@@ -743,11 +743,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
               {/* Callback Time */}
               {isEditMode || extractedInfo?.preferredCallbackTime ? (
-                <div className="min-h-[64px] space-y-2 rounded-lg bg-slate-50/60 dark:bg-slate-900/30 border border-slate-200/60 dark:border-slate-800/60 p-3">
+                <div className="min-w-0 space-y-2 rounded-lg bg-slate-50/60 dark:bg-slate-900/30 border border-slate-200/60 dark:border-slate-800/60 p-3">
                   <div className="flex items-center justify-between gap-1">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <span className="w-3.5 h-3.5 text-[13px] leading-none flex-shrink-0">☎️</span>
-                      <span className="text-[10px] font-semibold text-muted-foreground tracking-wide whitespace-nowrap">Callback</span>
+                      <span className="text-[10px] font-semibold text-muted-foreground tracking-wide">Callback</span>
                     </div>
                     {manualFields.has('preferredCallbackTime') && !isEditMode && (
                       <span className="text-[8px] px-1 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-medium">Manual</span>
@@ -762,7 +762,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                       placeholder="Best time to call"
                     />
                   ) : (
-                    <p className="text-[12px] text-foreground leading-snug line-clamp-2">
+                    <p className="text-[12px] text-foreground leading-snug">
                       {sentenceCase(extractedInfo.preferredCallbackTime)}
                     </p>
                   )}
@@ -770,11 +770,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               ) : null}
 
               {/* Desired Completion Time */}
-              <div className="min-h-[64px] space-y-2 rounded-lg bg-slate-50/60 dark:bg-slate-900/30 border border-slate-200/60 dark:border-slate-800/60 p-3">
+              <div className="min-w-0 space-y-2 rounded-lg bg-slate-50/60 dark:bg-slate-900/30 border border-slate-200/60 dark:border-slate-800/60 p-3">
                 <div className="flex items-center justify-between gap-1">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="w-3.5 h-3.5 text-[13px] leading-none flex-shrink-0">📅</span>
-                    <span className="text-[10px] font-semibold text-muted-foreground tracking-wide whitespace-nowrap">Completion</span>
+                    <span className="text-[10px] font-semibold text-muted-foreground tracking-wide">Completion</span>
                   </div>
                   {manualFields.has('desiredCompletionTime') && !isEditMode && (
                     <span className="text-[8px] px-1 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-medium">Manual</span>
@@ -789,7 +789,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                     placeholder="Desired completion"
                   />
                 ) : (
-                  <p className="text-[12px] text-foreground leading-snug line-clamp-2">
+                  <p className="text-[12px] text-foreground leading-snug">
                     {sentenceCase(extractedInfo.desiredCompletionTime) || 'Not Provided'}
                   </p>
                 )}
