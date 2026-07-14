@@ -153,39 +153,36 @@ function generateIgnoredContactResponse(): string {
   return response.toString();
 }
 
-// Helper to generate repeat-caller update voicemail with premium audio fallback
+// Helper to generate repeat-caller update voicemail with TTS fallback
 function generateUpdateVoicemailResponse(businessId: string, callerPhone: string, conversationId?: string): string {
   // Update voicemail greeting for repeat callers with active requests
   const voicemailMessage = "Hi, this is the assistant for the business. We already have your original request. Please leave a quick update after the tone, and I'll add it to your conversation.";
-  
+
   // Build callback parameters
   const callbackParams: Record<string, string> = {
     businessId,
     callerPhone,
     isUpdateVoicemail: 'true'
   };
-  
+
   if (conversationId) {
     callbackParams.conversationId = conversationId;
   }
-  
+
   // Build properly encoded callback URLs using canonical public origin helper
   const actionUrl = buildCallbackUrl('/api/twilio/voicemail', callbackParams);
-  
+
   const recordingStatusCallbackUrl = buildCallbackUrl('/api/twilio/recording-status', callbackParams);
-  
+
   // Use Twilio's VoiceResponse builder for automatic XML escaping
   const response = new VoiceResponse();
   response.pause({ length: 1 });
-  
-  // Try premium pre-generated audio with TTS fallback
-  // If audio fails to load, Twilio will continue to the next verb (say)
-  const premiumGreetingUrl = '/audio/update-voicemail-greeting.mp3';
-  response.play(premiumGreetingUrl);
-  
-  // Fallback to TTS if audio fails to load
+
+  // CRITICAL FIX: Use TTS directly instead of premium audio file
+  // The premium audio file may not be publicly accessible to Twilio
+  // TTS is always available and provides a safe fallback
   response.say({ voice: "alice" }, voicemailMessage);
-  
+
   response.record({
     maxLength: 60,
     playBeep: true,
@@ -196,7 +193,7 @@ function generateUpdateVoicemailResponse(businessId: string, callerPhone: string
     recordingStatusCallbackMethod: "POST",
   });
   response.hangup();
-  
+
   return response.toString();
 }
 
@@ -1037,6 +1034,32 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
           conversationId: routingResult.conversationId,
           reason: routingResult.reason
         });
+
+        // CRITICAL FIX: Classify CallSid as update_voicemail BEFORE returning TwiML
+        // This enables voice-status bypass without URL query parameters
+        try {
+          await classifyCallSid(CallSid, business.id, normalizedFrom, 'update_voicemail');
+          console.log('[CALL CLASSIFICATION] Classified CallSid as update_voicemail:', CallSid.substring(0, 8));
+        } catch (error) {
+          console.error('[CALL CLASSIFICATION] Failed to classify CallSid as update_voicemail:', error);
+          // Continue anyway - TwiML will still work, but voice-status bypass may fail
+        }
+
+        // CRITICAL FIX: Set is_update_voicemail flag in call_events BEFORE returning TwiML
+        // This provides a secondary durable marker for voice-status bypass
+        try {
+          await supabaseAdmin
+            .from('call_events')
+            .update({
+              is_update_voicemail: true,
+              conversation_id: routingResult.conversationId || null
+            })
+            .eq('twilio_call_sid', CallSid);
+          console.log('[CALL EVENTS] Set is_update_voicemail flag for CallSid:', CallSid.substring(0, 8));
+        } catch (error) {
+          console.error('[CALL EVENTS] Failed to set is_update_voicemail flag:', error);
+          // Continue anyway - classification should be sufficient
+        }
         
         const updateVoicemailTwiml = generateUpdateVoicemailResponse(
           business.id,

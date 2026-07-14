@@ -7,7 +7,7 @@
 
 import { supabaseAdmin } from '@/lib/supabase/admin';
 
-export type CallPipeline = 'personal_voicemail' | 'ai_intake' | 'normal_voicemail' | 'unknown';
+export type CallPipeline = 'personal_voicemail' | 'ai_intake' | 'normal_voicemail' | 'update_voicemail' | 'unknown';
 
 export interface CallClassification {
   callSid: string;
@@ -167,4 +167,15 @@ export async function cleanupExpiredClassifications(): Promise<void> {
 export async function isPersonalVoicemailCall(callSid: string): Promise<boolean> {
   const classification = await getCallClassification(callSid);
   return classification?.pipeline === 'personal_voicemail';
+}
+
+/**
+ * Check if a CallSid is classified as Update Voicemail
+ * 
+ * @param callSid - Twilio CallSid
+ * @returns true if Update Voicemail, false otherwise
+ */
+export async function isUpdateVoicemailCall(callSid: string): Promise<boolean> {
+  const classification = await getCallClassification(callSid);
+  return classification?.pipeline === 'update_voicemail';
 }

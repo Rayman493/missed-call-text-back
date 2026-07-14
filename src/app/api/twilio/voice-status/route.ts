@@ -10,7 +10,7 @@ import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 import { hasAiSummaryBeenSent } from '@/lib/sms-decision'
 import { dispatchAutomaticCustomerSms } from '@/lib/auto-sms-dispatcher'
 import { isCompleteAIIntake } from '@/lib/ai-intake-completion'
-import { isPersonalVoicemailCall } from '@/lib/call-pipeline-classification'
+import { isPersonalVoicemailCall, isUpdateVoicemailCall } from '@/lib/call-pipeline-classification'
 
 // Transcript spam detection patterns
 const AUTOMATED_PATTERNS = [
@@ -156,11 +156,30 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
     console.log('[VOICE STATUS PERSONAL VOICEMAIL] Bypassing all AI processing');
     console.log('[VOICE STATUS PERSONAL VOICEMAIL] No AI record lookup, no lead creation, no SMS, no follow-ups');
     console.log('[VOICE STATUS PERSONAL VOICEMAIL] =========================================');
-    
+
     // Personal voicemail calls have no AI processing, no leads, no conversations
     // The recording-status callback handles transcription independently
     // Nothing to do here - return success immediately
     return { success: true, reason: 'personal_voicemail_bypass' };
+  }
+
+  // === UPDATE VOICEMAIL DETECTION ===
+  // Check if this is an Update Voicemail call before any AI processing
+  // Update Voicemail calls should not create AI records or trigger AI completion logic
+  // Use CallSid classification for durable routing (not URL query parameters)
+  const isUpdateVoicemail = await isUpdateVoicemailCall(CallSid);
+  if (isUpdateVoicemail) {
+    console.log('[VOICE STATUS UPDATE VOICEMAIL] =========================================');
+    console.log('[VOICE STATUS UPDATE VOICEMAIL] Detected update voicemail call via CallSid classification');
+    console.log('[VOICE STATUS UPDATE VOICEMAIL] CallSid:', CallSid);
+    console.log('[VOICE STATUS UPDATE VOICEMAIL] Bypassing all AI processing');
+    console.log('[VOICE STATUS UPDATE VOICEMAIL] No AI record lookup, no lead creation, no SMS, no follow-ups');
+    console.log('[VOICE STATUS UPDATE VOICEMAIL] =========================================');
+
+    // Update voicemail calls have no AI processing
+    // The recording-status callback handles recording save, transcription, and transcript attachment
+    // Return immediately to skip all AI completion cleanup
+    return { success: true, reason: 'update_voicemail_bypass' };
   }
 
   // Create fresh Supabase client for this request
@@ -192,24 +211,24 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
   // === UPDATE VOICEMAIL DETECTION ===
   // Check if this is a repeat-caller update voicemail call
   // Update voicemail calls have no ai_call_records row (intentionally)
-  // Use call_events to detect the update voicemail route
+  // Use call_events to detect the update voicemail route (secondary check)
   const { data: callEventForRouting } = await supabase
     .from('call_events')
     .select('id, conversation_id, is_update_voicemail')
     .eq('twilio_call_sid', CallSid)
     .maybeSingle();
 
-  const isUpdateVoicemail = callEventForRouting?.is_update_voicemail === true;
-  if (isUpdateVoicemail) {
+  const isUpdateVoicemailFromCallEvents = callEventForRouting?.is_update_voicemail === true;
+  if (isUpdateVoicemailFromCallEvents) {
     console.log('[VOICE STATUS UPDATE VOICEMAIL] =========================================');
     console.log('[VOICE STATUS UPDATE VOICEMAIL] Detected update voicemail call via call_events');
     console.log('[VOICE STATUS UPDATE VOICEMAIL] CallSid:', CallSid);
-    console.log('[VOICE STATUS UPDATE VOICEMAIL] conversationId:', callEventForRouting.conversation_id);
+    console.log('[VOICE STATUS UPDATE VOICEMAIL] conversationId:', callEventForRouting?.conversation_id);
     console.log('[VOICE STATUS UPDATE VOICEMAIL] Skipping ALL AI completion logic');
     console.log('[VOICE STATUS UPDATE VOICEMAIL] Recording/transcription handled by recording-status callback');
     console.log('[VOICE STATUS UPDATE VOICEMAIL] Returning immediately');
     console.log('[VOICE STATUS UPDATE VOICEMAIL] =========================================');
-    
+
     // Update voicemail calls have no ai_call_records and should not flow through AI completion logic
     // The recording-status callback handles recording save, transcription, and transcript attachment
     // Return immediately to skip all AI completion cleanup
