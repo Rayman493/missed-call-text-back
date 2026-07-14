@@ -19,7 +19,7 @@ export default function LeadStatusDropdown({
 }: LeadStatusDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 })
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, useBottom: false, bottom: 0 })
   const [maxHeight, setMaxHeight] = useState(400)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
@@ -56,16 +56,17 @@ export default function LeadStatusDropdown({
       let calculatedMaxHeight: number
 
       if (openUpward) {
-        // Open upward
+        // Open upward - use bottom positioning to anchor to trigger
         calculatedMaxHeight = Math.max(180, spaceAbove)
-        top = triggerRect.top - calculatedMaxHeight - 8
+        const bottom = window.innerHeight - triggerRect.top + 8
+        setDropdownPosition({ top: 0, left, useBottom: true, bottom })
       } else {
         // Open downward
         calculatedMaxHeight = Math.max(180, spaceBelow)
         top = triggerRect.bottom + 8
+        setDropdownPosition({ top, left, useBottom: false, bottom: 0 })
       }
 
-      setDropdownPosition({ top, left })
       setMaxHeight(calculatedMaxHeight)
     }
   }, [isOpen])
@@ -218,7 +219,8 @@ export default function LeadStatusDropdown({
             <div
               className="fixed z-[9999] bg-card border border-border/50 rounded-lg shadow-xl shadow-black/10 dark:shadow-black/30 overflow-y-auto overscroll-contain animate-in fade-in slide-in-from-top-2 duration-200"
               style={{
-                top: `${dropdownPosition.top}px`,
+                top: dropdownPosition.useBottom ? undefined : `${dropdownPosition.top}px`,
+                bottom: dropdownPosition.useBottom ? `${dropdownPosition.bottom}px` : undefined,
                 left: `${dropdownPosition.left}px`,
                 width: '280px',
                 maxHeight: `${maxHeight}px`
