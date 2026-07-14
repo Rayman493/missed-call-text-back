@@ -185,21 +185,21 @@ export default function ConversationComposer({
           </div>
         )}
 
-        {/* Floating Dock Composer */}
+        {/* Premium Composer */}
         <div
           ref={dropZoneRef}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
           className="relative"
         >
-          <div className="flex items-center gap-2 bg-card border border-border/40 rounded-2xl p-2.5 shadow-sm hover:shadow-md transition-shadow duration-200 focus-within:ring-2 focus-within:ring-blue-500/30 focus-within:border-blue-500/50">
+          <div className="flex items-center gap-2 bg-slate-900/50 dark:bg-slate-950/50 border border-slate-700/50 dark:border-slate-800/50 rounded-2xl p-2.5 shadow-lg hover:shadow-xl transition-all duration-200 focus-within:ring-2 focus-within:ring-blue-500/40 focus-within:border-blue-500/60 focus-within:bg-slate-900/70 dark:focus-within:bg-slate-950/70">
             {/* Image Upload Button */}
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-2.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200 flex-shrink-0 rounded-xl h-11 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2"
+              className="p-2.5 text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 dark:hover:bg-slate-800/50 transition-all duration-200 flex-shrink-0 rounded-xl h-11 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-slate-900"
               disabled={sending}
-              aria-label="Attach image"
+              aria-label="Add image"
             >
               <Plus className="w-5 h-5" />
             </button>
@@ -218,7 +218,7 @@ export default function ConversationComposer({
               onChange={handleTextareaChange}
               onKeyDown={handleKeyDown}
               placeholder="Type a message..."
-              className={`flex-1 px-3 py-2.5 bg-transparent text-foreground resize-none focus:outline-none text-base leading-relaxed h-11 ${
+              className={`flex-1 px-3 py-2.5 bg-transparent text-slate-100 dark:text-slate-100 resize-none focus:outline-none text-base leading-relaxed h-11 placeholder:text-slate-500 dark:placeholder:text-slate-500 ${
                 isAtMaxHeight ? 'overflow-y-auto' : 'overflow-y-hidden'
               }`}
               rows={1}
@@ -229,7 +229,12 @@ export default function ConversationComposer({
               type="button"
               onClick={handleSend}
               disabled={sending || !hasContent}
-              className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-500 disabled:cursor-not-allowed text-white rounded-xl font-semibold transition-all duration-200 shadow-sm hover:shadow flex items-center gap-1.5 flex-shrink-0 h-11 disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2"
+              className={`px-4 py-2.5 rounded-xl font-semibold transition-all duration-200 shadow-sm hover:shadow flex items-center gap-1.5 flex-shrink-0 h-11 disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-slate-900 ${
+                hasContent && !sending
+                  ? 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white shadow-md hover:shadow-lg'
+                  : 'bg-slate-700/50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-500 hover:bg-slate-700/70 dark:hover:bg-slate-800/70 disabled:cursor-not-allowed'
+              }`}
+              aria-label="Send message"
             >
             {sending ? (
               <>

@@ -1,22 +1,135 @@
 import React, { useState, useRef } from 'react'
+import { Plus, X } from 'lucide-react'
 
 interface MobileConversationComposerProps {
   message: string
   setMessage: (message: string) => void
-  handleSendMessage: () => void
+  handleSendMessage: (media?: File[]) => void
   sending: boolean
+  onClearImages?: (clearFn: () => void) => void
+}
+
+interface ImagePreview {
+  file: File
+  preview: string
+  id: string
 }
 
 export default function MobileConversationComposer({ 
   message, 
   setMessage, 
   handleSendMessage, 
-  sending 
+  sending,
+  onClearImages
 }: MobileConversationComposerProps) {
   const [isTyping, setIsTyping] = useState(false)
   const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null)
   const [isAtMaxHeight, setIsAtMaxHeight] = useState(false)
+  const [images, setImages] = useState<ImagePreview[]>([])
+  const [error, setError] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const dropZoneRef = useRef<HTMLDivElement>(null)
+
+  // Clear images when onClearImages is called
+  React.useEffect(() => {
+    if (onClearImages) {
+      onClearImages(() => setImages([]))
+    }
+  }, [onClearImages])
+
+  const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files) return
+
+    const newImages: ImagePreview[] = []
+    let unsupportedFile = ''
+
+    Array.from(files).forEach(file => {
+      if (!file.type.startsWith('image/')) return
+
+      if (!SUPPORTED_IMAGE_TYPES.includes(file.type)) {
+        unsupportedFile = file.name
+        return
+      }
+
+      const preview = URL.createObjectURL(file)
+      newImages.push({
+        file,
+        preview,
+        id: Math.random().toString(36).substr(2, 9)
+      })
+    })
+
+    if (unsupportedFile) {
+      setError('WEBP images are not supported for MMS. Please upload a JPG or PNG.')
+      setTimeout(() => setError(null), 3000)
+    }
+
+    setImages(prev => [...prev, ...newImages])
+  }
+
+  const removeImage = (id: string) => {
+    setImages(prev => {
+      const imageToRemove = prev.find(img => img.id === id)
+      if (imageToRemove) {
+        URL.revokeObjectURL(imageToRemove.preview)
+      }
+      return prev.filter(img => img.id !== id)
+    })
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    const files = e.dataTransfer.files
+    if (!files) return
+
+    const newImages: ImagePreview[] = []
+    let unsupportedFile = ''
+
+    Array.from(files).forEach(file => {
+      if (!file.type.startsWith('image/')) return
+
+      if (!SUPPORTED_IMAGE_TYPES.includes(file.type)) {
+        unsupportedFile = file.name
+        return
+      }
+
+      const preview = URL.createObjectURL(file)
+      newImages.push({
+        file,
+        preview,
+        id: Math.random().toString(36).substr(2, 9)
+      })
+    })
+
+    if (unsupportedFile) {
+      setError('WEBP images are not supported for MMS. Please upload a JPG or PNG.')
+      setTimeout(() => setError(null), 3000)
+    }
+
+    setImages(prev => [...prev, ...newImages])
+  }
+
+  const handleSend = () => {
+    const hasContent = message.trim() || images.length > 0
+    if (!hasContent || sending) return
+    if (images.length > 0) {
+      const mediaFiles = images.map(img => img.file)
+      handleSendMessage(mediaFiles)
+    } else {
+      handleSendMessage()
+    }
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value
@@ -44,7 +157,7 @@ export default function MobileConversationComposer({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      handleSendMessage()
+      handleSend()
     }
   }
 
@@ -53,8 +166,62 @@ export default function MobileConversationComposer({
       <div className="max-w-5xl mx-auto">
         {/* Composer Container */}
         <div className="relative">
+          {/* Image Previews */}
+          {images.length > 0 && (
+            <div className="flex flex-wrap gap-3 mb-3">
+              {images.map(img => (
+                <div key={img.id} className="relative group">
+                  <img
+                    src={img.preview}
+                    alt="Preview"
+                    className="w-20 h-20 object-cover rounded-xl border border-gray-300 dark:border-gray-600 shadow-sm"
+                  />
+                  <button
+                    onClick={() => removeImage(img.id)}
+                    className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                    type="button"
+                    aria-label="Remove image"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-xl text-sm shadow-sm mb-3">
+              {error}
+            </div>
+          )}
+
           {/* iPhone-style Composer Row */}
-          <div className="flex items-center gap-3 rounded-3xl border border-white/10 bg-white/[0.045] px-4 py-3 shadow-[0_1px_0_rgba(255,255,255,0.04),0_12px_36px_rgba(2,6,23,0.32)] transition-all duration-200 focus-within:border-blue-400/40 focus-within:bg-white/[0.065]">
+          <div
+            ref={dropZoneRef}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            className="flex items-center gap-3 rounded-3xl border border-white/10 bg-white/[0.045] px-4 py-3 shadow-[0_1px_0_rgba(255,255,255,0.04),0_12px_36px_rgba(2,6,23,0.32)] transition-all duration-200 focus-within:border-blue-400/40 focus-within:bg-white/[0.065]"
+          >
+            {/* Attachment Button */}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="p-2.5 text-slate-400 hover:text-slate-200 hover:bg-white/10 transition-all duration-200 flex-shrink-0 rounded-xl h-11 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2"
+              disabled={sending}
+              aria-label="Add image"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleImageSelect}
+              className="hidden"
+            />
+
             {/* Message Input */}
             <div className="flex-1 relative">
               <textarea
@@ -81,10 +248,10 @@ export default function MobileConversationComposer({
             
             {/* iPhone-style Send Button */}
             <button
-              onClick={handleSendMessage}
-              disabled={sending || !message.trim()}
+              onClick={handleSend}
+              disabled={sending || !(message.trim() || images.length > 0)}
               className={`flex-shrink-0 w-11 h-11 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center disabled:cursor-not-allowed ${
-                message.trim() && !sending
+                (message.trim() || images.length > 0) && !sending
                   ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-[0_10px_25px_rgba(37,99,235,0.35)] hover:from-blue-500 hover:to-cyan-500 hover:shadow-[0_14px_34px_rgba(37,99,235,0.42)]'
                   : 'bg-white/8 hover:bg-white/10 text-slate-500 ring-1 ring-white/10'
               }`}
