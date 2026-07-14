@@ -166,14 +166,14 @@ export default function LeadStatusDropdown({
         createPortal(
           <>
             {/* Backdrop */}
-            <div 
-              className="fixed inset-0 z-50" 
+            <div
+              className="fixed inset-0 z-[9998]"
               onClick={handleBackdropClick}
             />
-            
+
             {/* Dropdown */}
             <div
-              className="fixed z-[51] bg-card border border-border/50 rounded-lg shadow-xl shadow-black/10 dark:shadow-black/30 min-w-[160px] overflow-hidden max-h-[400px] overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200"
+              className="fixed z-[9999] bg-card border border-border/50 rounded-lg shadow-xl shadow-black/10 dark:shadow-black/30 min-w-[160px] overflow-hidden max-h-[400px] overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200"
               style={{
                 top: `${dropdownPosition.top}px`,
                 left: `${dropdownPosition.left}px`
