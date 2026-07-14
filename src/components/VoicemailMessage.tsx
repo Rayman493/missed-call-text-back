@@ -591,7 +591,7 @@ export default function VoicemailMessage({
               <Phone className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1">
-              <p className="font-semibold text-foreground text-base">Voicemail Received</p>
+              <p className="font-semibold text-foreground text-base">Customer Update</p>
               <p className="text-sm text-muted-foreground font-medium">
                 {recording.recording_duration ? `${recording.recording_duration} seconds` : 'Processing duration...'}
               </p>

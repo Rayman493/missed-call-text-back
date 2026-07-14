@@ -156,7 +156,7 @@ function generateIgnoredContactResponse(): string {
 // Helper to generate repeat-caller update voicemail with TTS fallback
 function generateUpdateVoicemailResponse(businessId: string, callerPhone: string, conversationId?: string): string {
   // Update voicemail greeting for repeat callers with active requests
-  const voicemailMessage = "Hi, this is the assistant for the business. We already have your original request. Please leave a quick update after the tone, and I'll add it to your conversation.";
+  const voicemailMessage = "Hi again. Please leave your update after the tone and we'll add it to your request. Thank you.";
 
   // Build callback parameters
   const callbackParams: Record<string, string> = {
