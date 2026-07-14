@@ -155,13 +155,15 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
     console.log('[VOICE STATUS UPDATE VOICEMAIL] Detected update voicemail call via call_events');
     console.log('[VOICE STATUS UPDATE VOICEMAIL] CallSid:', CallSid);
     console.log('[VOICE STATUS UPDATE VOICEMAIL] conversationId:', callEventForRouting.conversation_id);
-    console.log('[VOICE STATUS UPDATE VOICEMAIL] Bypassing AI record lookup retry loop');
-    console.log('[VOICE STATUS UPDATE VOICEMAIL] Will use phone-based lead lookup with canonical normalization');
+    console.log('[VOICE STATUS UPDATE VOICEMAIL] Skipping ALL AI completion logic');
+    console.log('[VOICE STATUS UPDATE VOICEMAIL] Recording/transcription handled by recording-status callback');
+    console.log('[VOICE STATUS UPDATE VOICEMAIL] Returning immediately');
     console.log('[VOICE STATUS UPDATE VOICEMAIL] =========================================');
     
-    // Update voicemail calls have no ai_call_records, so skip the retry loop
-    // Set callNeverReachedAI to true to skip AI record lookup
-    callNeverReachedAI = true;
+    // Update voicemail calls have no ai_call_records and should not flow through AI completion logic
+    // The recording-status callback handles recording save, transcription, and transcript attachment
+    // Return immediately to skip all AI completion cleanup
+    return { success: true, reason: 'update_voicemail_bypass' };
   }
 
   let aiCallRecord = null

@@ -1489,15 +1489,40 @@ export const db = {
   /**
    * Get or create conversation for a lead with idempotent, concurrency-safe behavior
    * Canonical selection order:
-   * 1. Prefer conversation with messages (real customer conversation)
-   * 2. Otherwise use oldest conversation for the lead
-   * 3. If none exists, create new conversation
+   * 1. If forceNew is true, always create new conversation (for reactivated customers)
+   * 2. Otherwise prefer conversation with messages (real customer conversation)
+   * 3. Otherwise use oldest conversation for the lead
+   * 4. If none exists, create new conversation
    * 
    * This handles historical duplicates by selecting the canonical conversation
    * and prevents race conditions through proper error handling.
    */
-  async getOrCreateConversation(leadId: string, businessId: string): Promise<{ conversationId: string; isNew: boolean }> {
-    console.log('[GET OR CREATE CONVERSATION] Looking up conversation for lead:', leadId, 'business:', businessId)
+  async getOrCreateConversation(leadId: string, businessId: string, forceNew: boolean = false): Promise<{ conversationId: string; isNew: boolean }> {
+    console.log('[GET OR CREATE CONVERSATION] Looking up conversation for lead:', leadId, 'business:', businessId, 'forceNew:', forceNew)
+
+    // If forceNew is true, skip lookup and create new conversation immediately
+    // This is used when reactivating completed customers to start a fresh conversation
+    if (forceNew) {
+      console.log('[GET OR CREATE CONVERSATION] forceNew=true - creating new conversation without lookup')
+      
+      const { data: newConversation, error: createError } = await supabaseAdmin
+        .from('conversations')
+        .insert({
+          lead_id: leadId,
+          business_id: businessId,
+          status: 'active'
+        })
+        .select('id')
+        .single()
+
+      if (createError || !newConversation) {
+        console.error('[GET OR CREATE CONVERSATION] Failed to create conversation:', createError)
+        throw new Error(`Failed to create conversation: ${createError?.message || 'Unknown error'}`)
+      }
+
+      console.log('[GET OR CREATE CONVERSATION] Created new conversation (forceNew):', newConversation.id)
+      return { conversationId: newConversation.id, isNew: true }
+    }
 
     // Step 1: Try to find existing conversation with canonical selection
     // Fetch conversations with message counts to determine canonical
@@ -1923,6 +1948,39 @@ export const db = {
     }
     
     return data
+  },
+
+  /**
+   * Reactivate a completed/archived lead for a new request
+   * This preserves the canonical customer while starting a fresh request cycle
+   */
+  async reactivateLead(leadId: string): Promise<Lead | null> {
+    console.log('[REACTIVATE LEAD] Reactivating lead for new request:', leadId)
+
+    const { data: updatedLead, error } = await supabaseAdmin
+      .from('leads')
+      .update({
+        status: 'new',
+        reason_for_call: null, // Clear previous request details
+        urgency: null,
+        name: null, // Clear previous name to allow AI to re-collect
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', leadId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('[REACTIVATE LEAD] Failed to reactivate lead:', error)
+      return null
+    }
+
+    console.log('[REACTIVATE LEAD] Successfully reactivated lead:', updatedLead.id, {
+      previousStatus: 'completed/archived',
+      newStatus: updatedLead.status
+    })
+
+    return updatedLead
   },
 
   // Clean up old failed follow-up jobs to prevent UI pollution

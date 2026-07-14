@@ -1124,6 +1124,45 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
         route: routingResult.route,
         reason: routingResult.reason
       });
+
+      // === CUSTOMER REACTIVATION ===
+      // If the customer has a closed request, reactivate them and create a new conversation
+      if (routingResult.reason === 'latest_request_closed' && routingResult.leadId) {
+        console.log('[CUSTOMER REACTIVATION] =========================================');
+        console.log('[CUSTOMER REACTIVATION] Reactivating completed customer for new request');
+        console.log('[CUSTOMER REACTIVATION] leadId:', routingResult.leadId);
+        console.log('[CUSTOMER REACTIVATION] previousStatus:', routingResult.leadStatus);
+        console.log('[CUSTOMER REACTIVATION] =========================================');
+
+        // Reactivate the lead (change status from completed/archived to new)
+        const reactivatedLead = await db.reactivateLead(routingResult.leadId);
+        
+        if (reactivatedLead) {
+          console.log('[CUSTOMER REACTIVATION] Successfully reactivated lead:', reactivatedLead.id);
+          
+          // Create a NEW conversation for the reactivated customer
+          // This preserves the previous completed conversation history
+          const newConversation = await db.getOrCreateConversation(
+            reactivatedLead.id,
+            business.id,
+            true // forceNew = true to create fresh conversation
+          );
+          
+          console.log('[CUSTOMER REACTIVATION] Created new conversation for reactivated customer:', newConversation.conversationId);
+          
+          // Update routing result with new conversation ID
+          routingResult.conversationId = newConversation.conversationId;
+          
+          console.log('[CUSTOMER REACTIVATION] =========================================');
+          console.log('[CUSTOMER REACTIVATION] Customer reactivation complete');
+          console.log('[CUSTOMER REACTIVATION] leadId:', reactivatedLead.id);
+          console.log('[CUSTOMER REACTIVATION] newConversationId:', newConversation.conversationId);
+          console.log('[CUSTOMER REACTIVATION] previousHistory: preserved');
+          console.log('[CUSTOMER REACTIVATION] =========================================');
+        } else {
+          console.error('[CUSTOMER REACTIVATION] Failed to reactivate lead, continuing with existing state');
+        }
+      }
       
       
       // CORRECTED CALL ROUTING BEHAVIOR:
