@@ -1214,7 +1214,7 @@ export default function LeadsPage() {
                           <div className="flex items-start justify-between gap-3 mb-2.5">
                             <div className="flex-1 min-w-0">
                               <h3 className="text-lg font-semibold text-foreground mb-0.5 truncate tracking-tight">
-                                {getLeadDisplayName(lead)}
+                                <span className="text-foreground">{getLeadDisplayName(lead)}</span>
                               </h3>
                               <p className="text-xs text-muted-foreground">
                                 {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}
@@ -1459,7 +1459,7 @@ export default function LeadsPage() {
                               <div className="flex items-start justify-between gap-2 sm:gap-3 mb-1.5 sm:mb-2">
                                 <div className="flex-1 min-w-0">
                                   <h3 className="text-sm sm:text-base font-semibold text-foreground mb-0.5 truncate tracking-tight">
-                                    {getLeadDisplayName(lead)}
+                                    <span className="text-foreground">{getLeadDisplayName(lead)}</span>
                                   </h3>
                                   <p className="text-[11px] sm:text-xs text-muted-foreground">
                                     {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}

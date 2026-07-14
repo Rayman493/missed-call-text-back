@@ -32,10 +32,26 @@ export default function LeadStatusDropdown({
   useEffect(() => {
     if (isOpen && buttonRef.current && typeof window !== 'undefined') {
       const rect = buttonRef.current.getBoundingClientRect()
-      setDropdownPosition({
-        top: rect.bottom + 4,
-        left: rect.left
-      })
+      const dropdownWidth = 180
+      const dropdownHeight = 280
+      const viewportWidth = window.innerWidth
+      const viewportHeight = window.innerHeight
+
+      // Calculate position with viewport clamping
+      let left = rect.left
+      let top = rect.bottom + 4
+
+      // Clamp to right edge - align dropdown right edge with button right edge
+      if (left + dropdownWidth > viewportWidth) {
+        left = rect.right - dropdownWidth
+      }
+
+      // Clamp to bottom edge - flip upward if insufficient space
+      if (top + dropdownHeight > viewportHeight) {
+        top = rect.top - dropdownHeight - 4
+      }
+
+      setDropdownPosition({ top, left })
     }
   }, [isOpen])
 
@@ -151,7 +167,7 @@ export default function LeadStatusDropdown({
           <>
             {/* Backdrop */}
             <div
-              className="fixed inset-0 z-[9998]"
+              className="fixed inset-0 z-[9998] bg-transparent"
               onClick={handleBackdropClick}
             />
 
