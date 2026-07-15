@@ -5453,7 +5453,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       ask_completion_time: 'desiredCompletionTime',
       ask_callback_time: 'callbackTime'
     };
-    const extractedField = stageToFieldMap[stage];
+    let extractedField = stageToFieldMap[stage];
     if (!extractedField) {
       console.log('[AI INTAKE CAPTURE AUDIT] =========================================');
       console.log('[AI INTAKE CAPTURE AUDIT] stage:', stage);
@@ -5843,18 +5843,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       };
 
       parseNameAndServiceCalled = true;
-      const parseResult = parseNameAndService(rawTranscript, state.intakeData.serviceRequested);
-
-      // FIRST-STAGE ASSIGNMENT TRACE
-      console.log('[FIRST-STAGE ASSIGNMENT TRACE] =========================================');
-      console.log('[FIRST-STAGE ASSIGNMENT TRACE] rawFirstStageTranscript:', rawTranscript);
-      console.log('[FIRST-STAGE ASSIGNMENT TRACE] parseResult.customerName:', parseResult.customerName);
-      console.log('[FIRST-STAGE ASSIGNMENT TRACE] parseResult.serviceRequested:', parseResult.serviceRequested);
-      console.log('[FIRST-STAGE ASSIGNMENT TRACE] intakeDataBefore.customerName:', state.intakeData.customerName);
-      console.log('[FIRST-STAGE ASSIGNMENT TRACE] intakeDataBefore.serviceRequested:', state.intakeData.serviceRequested);
-      console.log('[FIRST-STAGE ASSIGNMENT TRACE] Timestamp:', new Date().toISOString());
-      console.log('[FIRST-STAGE ASSIGNMENT TRACE] =========================================');
-
+      
       // Validation: Reject obviously invalid customerName values
       const isValidCustomerName = (name: string): boolean => {
         if (!name || typeof name !== 'string') return false;
@@ -5901,21 +5890,114 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         if (nameIntroPatterns.some(pattern => pattern.test(trimmed))) return false;
         return true;
       };
-
-      // Store parsed name and service with validation
-      const customerNameValid = parseResult.customerName && isValidCustomerName(parseResult.customerName);
-      const serviceRequestedValid = parseResult.serviceRequested && isValidServiceRequested(parseResult.serviceRequested);
       
-      if (customerNameValid) {
-        state.intakeData.customerName = parseResult.customerName;
+      // Check validity of existing fields before merge
+      const existingNameValid = state.intakeData.customerName && isValidCustomerName(state.intakeData.customerName);
+      const existingServiceValid = state.intakeData.serviceRequested && isValidServiceRequested(state.intakeData.serviceRequested);
+      
+      // Determine which fields are missing
+      const missingName = !existingNameValid;
+      const missingService = !existingServiceValid;
+      
+      // MERGE DECISION TRACE
+      console.log('[ASK_NAME_REASON MERGE DECISION] =========================================');
+      console.log('[ASK_NAME_REASON MERGE DECISION] existingCustomerName:', state.intakeData.customerName);
+      console.log('[ASK_NAME_REASON MERGE DECISION] existingServiceRequested:', state.intakeData.serviceRequested);
+      console.log('[ASK_NAME_REASON MERGE DECISION] existingNameValid:', existingNameValid);
+      console.log('[ASK_NAME_REASON MERGE DECISION] existingServiceValid:', existingServiceValid);
+      console.log('[ASK_NAME_REASON MERGE DECISION] missingName:', missingName);
+      console.log('[ASK_NAME_REASON MERGE DECISION] missingService:', missingService);
+      console.log('[ASK_NAME_REASON MERGE DECISION] newRawTranscript:', rawTranscript);
+      console.log('[ASK_NAME_REASON MERGE DECISION] Timestamp:', new Date().toISOString());
+      console.log('[ASK_NAME_REASON MERGE DECISION] =========================================');
+      
+      // Parse the new transcript with awareness of existing valid fields
+      const parseResult = parseNameAndService(rawTranscript, existingServiceValid ? state.intakeData.serviceRequested : undefined);
+
+      // FIRST-STAGE ASSIGNMENT TRACE
+      console.log('[FIRST-STAGE ASSIGNMENT TRACE] =========================================');
+      console.log('[FIRST-STAGE ASSIGNMENT TRACE] rawFirstStageTranscript:', rawTranscript);
+      console.log('[FIRST-STAGE ASSIGNMENT TRACE] parseResult.customerName:', parseResult.customerName);
+      console.log('[FIRST-STAGE ASSIGNMENT TRACE] parseResult.serviceRequested:', parseResult.serviceRequested);
+      console.log('[FIRST-STAGE ASSIGNMENT TRACE] intakeDataBefore.customerName:', state.intakeData.customerName);
+      console.log('[FIRST-STAGE ASSIGNMENT TRACE] intakeDataBefore.serviceRequested:', state.intakeData.serviceRequested);
+      console.log('[FIRST-STAGE ASSIGNMENT TRACE] Timestamp:', new Date().toISOString());
+      console.log('[FIRST-STAGE ASSIGNMENT TRACE] =========================================');
+
+      // Validate parsed candidates
+      const parsedNameValid = parseResult.customerName && isValidCustomerName(parseResult.customerName);
+      const parsedServiceValid = parseResult.serviceRequested && isValidServiceRequested(parseResult.serviceRequested);
+      
+      // MISSING-FIELD-AWARE MERGE LOGIC
+      let mergeDecision = 'unknown';
+      let customerNameAfterMerge = state.intakeData.customerName;
+      let serviceRequestedAfterMerge = state.intakeData.serviceRequested;
+      
+      if (missingName && missingService) {
+        // Case A: Both fields missing - use normal combined extraction
+        mergeDecision = 'assign_both';
+        if (parsedNameValid) {
+          customerNameAfterMerge = parseResult.customerName;
+        }
+        if (parsedServiceValid) {
+          serviceRequestedAfterMerge = parseResult.serviceRequested;
+        }
+      } else if (!missingName && missingService) {
+        // Case B: Valid name exists, service missing - preserve name, assign service only
+        mergeDecision = 'preserve_name_assign_service';
+        customerNameAfterMerge = state.intakeData.customerName; // Preserve existing valid name
+        if (parsedServiceValid) {
+          serviceRequestedAfterMerge = parseResult.serviceRequested;
+        }
+      } else if (missingName && !missingService) {
+        // Case C: Valid service exists, name missing - preserve service, assign name only
+        mergeDecision = 'preserve_service_assign_name';
+        serviceRequestedAfterMerge = state.intakeData.serviceRequested; // Preserve existing valid service
+        if (parsedNameValid) {
+          customerNameAfterMerge = parseResult.customerName;
+        }
       } else {
-        console.log('[FIRST-STAGE VALIDATION] customerName rejected as invalid:', parseResult.customerName);
+        // Case D: Both fields already valid - preserve both
+        mergeDecision = 'preserve_both';
+        customerNameAfterMerge = state.intakeData.customerName;
+        serviceRequestedAfterMerge = state.intakeData.serviceRequested;
       }
-      if (serviceRequestedValid) {
-        state.intakeData.serviceRequested = parseResult.serviceRequested;
-      } else {
-        console.log('[FIRST-STAGE VALIDATION] serviceRequested rejected as invalid:', parseResult.serviceRequested);
+      
+      // Apply merge decisions
+      state.intakeData.customerName = customerNameAfterMerge;
+      state.intakeData.serviceRequested = serviceRequestedAfterMerge;
+      
+      // MERGE RESULT TRACE
+      console.log('[ASK_NAME_REASON MERGE RESULT] =========================================');
+      console.log('[ASK_NAME_REASON MERGE RESULT] mergeDecision:', mergeDecision);
+      console.log('[ASK_NAME_REASON MERGE RESULT] parsedNameCandidate:', parseResult.customerName);
+      console.log('[ASK_NAME_REASON MERGE RESULT] parsedServiceCandidate:', parseResult.serviceRequested);
+      console.log('[ASK_NAME_REASON MERGE RESULT] parsedNameValid:', parsedNameValid);
+      console.log('[ASK_NAME_REASON MERGE RESULT] parsedServiceValid:', parsedServiceValid);
+      console.log('[ASK_NAME_REASON MERGE RESULT] customerNameAfterMerge:', customerNameAfterMerge);
+      console.log('[ASK_NAME_REASON MERGE RESULT] serviceRequestedAfterMerge:', serviceRequestedAfterMerge);
+      console.log('[ASK_NAME_REASON MERGE RESULT] Timestamp:', new Date().toISOString());
+      console.log('[ASK_NAME_REASON MERGE RESULT] =========================================');
+      
+      // Determine which field was actually filled for stage capture metadata
+      let extractedFieldActual = 'customerName';
+      if (mergeDecision === 'preserve_name_assign_service' && parsedServiceValid) {
+        extractedFieldActual = 'serviceRequested';
+      } else if (mergeDecision === 'preserve_service_assign_name' && parsedNameValid) {
+        extractedFieldActual = 'customerName';
+      } else if (mergeDecision === 'assign_both') {
+        if (parsedNameValid && parsedServiceValid) {
+          extractedFieldActual = 'both';
+        } else if (parsedNameValid) {
+          extractedFieldActual = 'customerName';
+        } else if (parsedServiceValid) {
+          extractedFieldActual = 'serviceRequested';
+        }
       }
+      
+      // Recalculate validity flags for raw transcript preservation logic
+      const customerNameValid = state.intakeData.customerName && isValidCustomerName(state.intakeData.customerName);
+      const serviceRequestedValid = state.intakeData.serviceRequested && isValidServiceRequested(state.intakeData.serviceRequested);
 
       // Preserve original raw transcript for completion repair
       // Only preserve if at least one field was valid (useful for repair)
@@ -5979,9 +6061,24 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       console.log('[ASK_NAME_REASON TRACE] stateCustomerNameAfter:', stateCustomerNameAfter);
       console.log('[ASK_NAME_REASON TRACE] stateServiceRequestedAfter:', stateServiceRequestedAfter);
       console.log('[ASK_NAME_REASON TRACE] parserRuleMatched:', parserRuleMatched);
+      console.log('[ASK_NAME_REASON TRACE] mergeDecision:', mergeDecision);
+      console.log('[ASK_NAME_REASON TRACE] extractedFieldActual:', extractedFieldActual);
       console.log('[ASK_NAME_REASON TRACE] =========================================');
 
-      capturedAnswer = parseResult.customerName;
+      // Use the actual field that was filled for stage capture
+      if (extractedFieldActual === 'serviceRequested') {
+        capturedAnswer = parseResult.serviceRequested;
+        extractedField = 'serviceRequested';
+      } else if (extractedFieldActual === 'customerName') {
+        capturedAnswer = parseResult.customerName;
+        extractedField = 'customerName';
+      } else if (extractedFieldActual === 'both') {
+        capturedAnswer = parseResult.customerName; // Default to name for 'both' case
+        extractedField = 'customerName';
+      } else {
+        capturedAnswer = parseResult.customerName;
+        extractedField = 'customerName';
+      }
     } else {
       state.intakeData[extractedField] = capturedAnswer;
     }

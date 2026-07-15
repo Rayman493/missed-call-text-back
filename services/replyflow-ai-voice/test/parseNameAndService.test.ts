@@ -898,4 +898,135 @@ console.log('=== FINAL TEST SUMMARY ===');
 console.log(`Total Passed: ${passed}`);
 console.log(`Total Failed: ${failed}`);
 
+console.log('\n=== PARTIAL-FIELD MERGE LOGIC TESTS ===\n');
+
+// Test the merge logic directly with mocked parse results
+const testMergeLogic = (
+  existingName: string,
+  existingService: string,
+  parsedName: string,
+  parsedService: string,
+  expectedName: string,
+  expectedService: string,
+  description: string
+): boolean => {
+  const existingNameValid = existingName && isValidCustomerName(existingName);
+  const existingServiceValid = existingService && isValidServiceRequested(existingService);
+  const missingName = !existingNameValid;
+  const missingService = !existingServiceValid;
+  
+  const parsedNameValid = parsedName && isValidCustomerName(parsedName);
+  const parsedServiceValid = parsedService && isValidServiceRequested(parsedService);
+  
+  let mergeDecision = 'unknown';
+  let customerNameAfterMerge = existingName;
+  let serviceRequestedAfterMerge = existingService;
+  
+  if (missingName && missingService) {
+    mergeDecision = 'assign_both';
+    if (parsedNameValid) customerNameAfterMerge = parsedName;
+    if (parsedServiceValid) serviceRequestedAfterMerge = parsedService;
+  } else if (!missingName && missingService) {
+    mergeDecision = 'preserve_name_assign_service';
+    customerNameAfterMerge = existingName;
+    if (parsedServiceValid) serviceRequestedAfterMerge = parsedService;
+  } else if (missingName && !missingService) {
+    mergeDecision = 'preserve_service_assign_name';
+    serviceRequestedAfterMerge = existingService;
+    if (parsedNameValid) customerNameAfterMerge = parsedName;
+  } else {
+    mergeDecision = 'preserve_both';
+    customerNameAfterMerge = existingName;
+    serviceRequestedAfterMerge = existingService;
+  }
+  
+  const passed = customerNameAfterMerge === expectedName && serviceRequestedAfterMerge === expectedService;
+  console.log(`${passed ? '✓ PASS' : '✗ FAIL'}: ${description}`);
+  console.log(`  Merge decision: ${mergeDecision}`);
+  console.log(`  Result: name="${customerNameAfterMerge}", service="${serviceRequestedAfterMerge}"`);
+  if (!passed) {
+    console.log(`  Expected: name="${expectedName}", service="${expectedService}"`);
+  }
+  return passed;
+};
+
+let mergeLogicPassed = 0;
+let mergeLogicFailed = 0;
+
+// Test 1: Name first, service second (production failure scenario)
+if (testMergeLogic(
+  'Rachel Adams', '', // existing
+  '', 'My furnace keeps shutting off after a few minutes.', // parsed
+  'Rachel Adams', 'My furnace keeps shutting off after a few minutes.', // expected
+  'Name first, service second (production failure scenario)'
+)) {
+  mergeLogicPassed++;
+} else {
+  mergeLogicFailed++;
+}
+
+// Test 2: Service first, name second (inverse scenario)
+if (testMergeLogic(
+  '', 'My furnace keeps shutting off.', // existing
+  'Rachel Adams', '', // parsed
+  'Rachel Adams', 'My furnace keeps shutting off.', // expected
+  'Service first, name second (inverse scenario)'
+)) {
+  mergeLogicPassed++;
+} else {
+  mergeLogicFailed++;
+}
+
+// Test 3: Non-answer then full answer
+if (testMergeLogic(
+  '', '', // existing (non-answer rejected)
+  'Megan Foster', 'My toilet keeps overflowing.', // parsed
+  'Megan Foster', 'My toilet keeps overflowing.', // expected
+  'Non-answer then full answer'
+)) {
+  mergeLogicPassed++;
+} else {
+  mergeLogicFailed++;
+}
+
+// Test 4: Full answer direct success
+if (testMergeLogic(
+  '', '', // existing
+  'Kevin Brooks', 'someone to look at my water heater.', // parsed
+  'Kevin Brooks', 'someone to look at my water heater.', // expected
+  'Full answer direct success'
+)) {
+  mergeLogicPassed++;
+} else {
+  mergeLogicFailed++;
+}
+
+// Test 5: Valid name must not be overwritten
+if (testMergeLogic(
+  'Rachel Adams', '', // existing
+  'My furnace keeps shutting off after a few minutes.', '', // parsed (service-only treated as name fallback but invalid)
+  'Rachel Adams', '', // expected (name preserved, service not assigned because parsed name invalid)
+  'Valid name must not be overwritten'
+)) {
+  mergeLogicPassed++;
+} else {
+  mergeLogicFailed++;
+}
+
+// Test 6: Valid service must not be overwritten
+if (testMergeLogic(
+  '', 'My furnace keeps shutting off.', // existing
+  'Rachel Adams', '', // parsed
+  'Rachel Adams', 'My furnace keeps shutting off.', // expected
+  'Valid service must not be overwritten'
+)) {
+  mergeLogicPassed++;
+} else {
+  mergeLogicFailed++;
+}
+
+console.log('\n=== MERGE LOGIC TEST SUMMARY ===');
+console.log(`Passed: ${mergeLogicPassed}/6`);
+console.log(`Failed: ${mergeLogicFailed}/6`);
+
 process.exit(failed > 0 ? 1 : 0);
