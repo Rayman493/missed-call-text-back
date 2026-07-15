@@ -1001,6 +1001,164 @@ if (testMergeLogic(
   mergeLogicFailed++;
 }
 
+// Test 5: Valid field overwrite protection (name)
+if (testMergeLogic(
+  'Rachel Adams', '', // existing
+  'Invalid Name', 'My furnace is broken.', // parsed (name should be rejected)
+  'Rachel Adams', 'My furnace is broken.', // expected (name preserved)
+  'Valid field overwrite protection (name)'
+)) {
+  mergeLogicPassed++;
+} else {
+  mergeLogicFailed++;
+}
+
+// Test 6: Valid field overwrite protection (service)
+if (testMergeLogic(
+  '', 'My water heater is leaking.', // existing
+  'Christopher Bennett', 'Invalid Service', // parsed (service should be rejected)
+  'Christopher Bennett', 'My water heater is leaking.', // expected (service preserved)
+  'Valid field overwrite protection (service)'
+)) {
+  mergeLogicPassed++;
+} else {
+  mergeLogicFailed++;
+}
+
+console.log('\n=== MERGE LOGIC TEST RESULTS ===');
+console.log('Passed:', mergeLogicPassed);
+console.log('Failed:', mergeLogicFailed);
+console.log('Total:', mergeLogicPassed + mergeLogicFailed);
+console.log('=============================\n');
+
+// ============================================================================
+// TARGETED REPROMPT SELECTION TESTS
+// ============================================================================
+
+console.log('\n=== TARGETED REPROMPT SELECTION TESTS ===\n');
+
+// Test targeted reprompt selection (using existing validation functions)
+function testRepromptSelection(
+  customerName: string,
+  serviceRequested: string,
+  expectedRepromptType: string,
+  testName: string
+): boolean {
+  const hasValidName = isValidCustomerName(customerName);
+  const hasValidService = isValidServiceRequested(serviceRequested);
+  
+  let repromptType: string;
+  if (!hasValidName && !hasValidService) {
+    repromptType = 'full_name_and_reason';
+  } else if (hasValidName && !hasValidService) {
+    repromptType = 'service_only';
+  } else if (!hasValidName && hasValidService) {
+    repromptType = 'name_only';
+  } else {
+    repromptType = 'advance';
+  }
+  
+  const passed = repromptType === expectedRepromptType;
+  
+  console.log(`[TEST] ${testName}`);
+  console.log(`  customerName: "${customerName}"`);
+  console.log(`  serviceRequested: "${serviceRequested}"`);
+  console.log(`  hasValidName: ${hasValidName}`);
+  console.log(`  hasValidService: ${hasValidService}`);
+  console.log(`  expectedRepromptType: ${expectedRepromptType}`);
+  console.log(`  actualRepromptType: ${repromptType}`);
+  console.log(`  Result: ${passed ? 'PASS' : 'FAIL'}`);
+  console.log('');
+  
+  return passed;
+}
+
+let repromptTestsPassed = 0;
+let repromptTestsFailed = 0;
+
+// Test 1: Both fields missing → full reprompt
+if (testRepromptSelection(
+  '', '',
+  'full_name_and_reason',
+  'Both fields missing → full reprompt'
+)) {
+  repromptTestsPassed++;
+} else {
+  repromptTestsFailed++;
+}
+
+// Test 2: Name only → service-only reprompt
+if (testRepromptSelection(
+  'Rachel Adams', '',
+  'service_only',
+  'Name only → service-only reprompt'
+)) {
+  repromptTestsPassed++;
+} else {
+  repromptTestsFailed++;
+}
+
+// Test 3: Service only → name-only reprompt
+if (testRepromptSelection(
+  '', 'My water heater is leaking all over the basement.',
+  'name_only',
+  'Service only → name-only reprompt'
+)) {
+  repromptTestsPassed++;
+} else {
+  repromptTestsFailed++;
+}
+
+// Test 4: Pure non-answer → full reprompt
+if (testRepromptSelection(
+  '', '',
+  'full_name_and_reason',
+  'Pure non-answer → full reprompt'
+)) {
+  repromptTestsPassed++;
+} else {
+  repromptTestsFailed++;
+}
+
+// Test 5: Both fields valid → advance
+if (testRepromptSelection(
+  'Christopher Bennett', 'My water heater is leaking all over the basement.',
+  'advance',
+  'Both fields valid → advance'
+)) {
+  repromptTestsPassed++;
+} else {
+  repromptTestsFailed++;
+}
+
+// Test 6: Invalid name, valid service → name-only reprompt
+if (testRepromptSelection(
+  'I need help with my furnace', 'My furnace keeps shutting off.',
+  'name_only',
+  'Invalid name, valid service → name-only reprompt'
+)) {
+  repromptTestsPassed++;
+} else {
+  repromptTestsFailed++;
+}
+
+// Test 7: Valid name, invalid service → service-only reprompt
+if (testRepromptSelection(
+  'Rachel Adams', 'Hi, this is Rachel',
+  'service_only',
+  'Valid name, invalid service → service-only reprompt'
+)) {
+  repromptTestsPassed++;
+} else {
+  repromptTestsFailed++;
+}
+
+console.log('\n=== TARGETED REPROMPT TEST RESULTS ===');
+console.log('Passed:', repromptTestsPassed);
+console.log('Failed:', repromptTestsFailed);
+console.log('Total:', repromptTestsPassed + repromptTestsFailed);
+console.log('====================================\n');
+
 // Test 5: Valid name must not be overwritten
 if (testMergeLogic(
   'Rachel Adams', '', // existing

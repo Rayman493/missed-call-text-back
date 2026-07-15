@@ -612,7 +612,7 @@ interface CallContext {
 }
 
 // Intake state machine types
-type IntakeStage = 'ask_name_reason' | 'ask_details' | 'ask_location_or_context' | 'ask_timing' | 'ask_callback_time' | 'complete';
+type IntakeStage = 'ask_name_reason' | 'ask_name_reason_service_only' | 'ask_name_reason_name_only' | 'ask_details' | 'ask_location_or_context' | 'ask_timing' | 'ask_callback_time' | 'complete';
 
 /**
  * AI Intake Flow Documentation
@@ -1505,6 +1505,8 @@ function isFillerPhrase(text: string): boolean {
  */
 const APPROVED_PROMPTS: Record<string, string> = {
   ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
+  ask_name_reason_service_only: "And what do you need help with?",
+  ask_name_reason_name_only: "And what's your name?",
   ask_details: "Got it. Can you share any important details the business should know?",
   ask_location_or_context: "Thanks. Just a couple more questions. Where will this take place?",
   ask_timing: "When are you hoping this will be done?",
@@ -1544,6 +1546,8 @@ function sendApprovedPrompt(stage: string, openAiWs: any, ws?: any): boolean {
   // Map internal stage to template stage
   const stageMapping: Record<string, 'ask_name_reason' | 'ask_details' | 'ask_location_or_context' | 'ask_timing' | 'ask_callback_time' | 'complete'> = {
     'ask_name_reason': 'ask_name_reason',
+    'ask_name_reason_service_only': 'ask_name_reason',
+    'ask_name_reason_name_only': 'ask_name_reason',
     'ask_details': 'ask_details',
     'ask_location_or_context': 'ask_location_or_context',
     'ask_timing': 'ask_timing',
@@ -1552,7 +1556,14 @@ function sendApprovedPrompt(stage: string, openAiWs: any, ws?: any): boolean {
   };
   
   const templateStage = stageMapping[stage] || 'ask_name_reason';
-  const approvedText = getIntakeStageTextSafe(intakeTemplate, templateStage);
+  
+  // For targeted reprompts, use the direct prompt from APPROVED_PROMPTS instead of template
+  let approvedText: string;
+  if (stage === 'ask_name_reason_service_only' || stage === 'ask_name_reason_name_only') {
+    approvedText = APPROVED_PROMPTS[stage] || APPROVED_PROMPTS.ask_name_reason;
+  } else {
+    approvedText = getIntakeStageTextSafe(intakeTemplate, templateStage);
+  }
 
   // Log [SCRIPTED PROMPT SELECTED] - explicit logging for AI prompt selection
   console.log('[SCRIPTED PROMPT SELECTED] =========================================');
@@ -2159,6 +2170,8 @@ function sendStagePrompt(
  */
 const STAGE_PROMPTS: Record<IntakeStage, string> = {
   ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
+  ask_name_reason_service_only: "And what do you need help with?",
+  ask_name_reason_name_only: "And what's your name?",
   ask_details: "Got it. Can you share any important details the business should know?",
   ask_location_or_context: "Thanks. Just a couple more questions. Where will this take place?",
   ask_timing: "When are you hoping this will be done?",
@@ -2177,6 +2190,8 @@ function getNextStage(currentStage: IntakeStage): IntakeStage {
 
   const stageSequence: Record<IntakeStage, IntakeStage> = {
     ask_name_reason: 'ask_details',
+    ask_name_reason_service_only: 'ask_details',
+    ask_name_reason_name_only: 'ask_details',
     ask_details: 'ask_location_or_context',
     ask_location_or_context: 'ask_timing',
     ask_timing: 'ask_callback_time',
@@ -2374,39 +2389,112 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
 
   // Special handling for ask_name_reason: validate both fields before advancing
   if (intake.stage === 'ask_name_reason') {
-    const customerNamePresent = !!intake.customerName;
-    const serviceRequestedPresent = !!intake.serviceRequested;
+    // Validation functions (matching the merge logic in storeStageCapture)
+    const isValidCustomerName = (name: string): boolean => {
+      if (!name || typeof name !== 'string') return false;
+      const trimmed = name.trim();
+      // Reject if too long (likely full sentence)
+      if (trimmed.length > 50) return false;
+      // Reject if contains service-request language
+      const servicePhrases = [
+        "i'm calling because",
+        "i am calling because",
+        "i need",
+        "calling about",
+        "looking for",
+        "i want to",
+        "i would like"
+      ];
+      const lowerName = trimmed.toLowerCase();
+      if (servicePhrases.some(phrase => lowerName.includes(phrase))) return false;
+      // Reject if contains problem description patterns
+      if (lowerName.includes("leaking") || lowerName.includes("stopped working") || lowerName.includes("clogged")) return false;
+      return true;
+    };
 
-    console.log('[SCRIPTED FLOW] =========================================');
-    console.log('[SCRIPTED FLOW] ask_name_reason validation');
-    console.log('[SCRIPTED FLOW] customerNamePresent:', customerNamePresent);
-    console.log('[SCRIPTED FLOW] serviceRequestedPresent:', serviceRequestedPresent);
-    console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-    console.log('[SCRIPTED FLOW] =========================================');
+    const isValidServiceRequested = (service: string): boolean => {
+      if (!service || typeof service !== 'string') return false;
+      const trimmed = service.trim();
+      // Reject if it's just a name introduction
+      const nameIntroPatterns = [
+        /^hi, this is .+$/i,
+        /^this is .+$/i,
+        /^my name is .+$/i,
+        /^my name's .+$/i,
+        /^i'm .+$/i,
+        /^i am .+$/i
+      ];
+      if (nameIntroPatterns.some(pattern => pattern.test(trimmed))) return false;
+      return true;
+    };
+
+    const hasValidName = isValidCustomerName(intake.customerName || '');
+    const hasValidService = isValidServiceRequested(intake.serviceRequested || '');
+
+    console.log('[TARGETED REPROMPT SELECTION] =========================================');
+    console.log('[TARGETED REPROMPT SELECTION] currentCustomerName:', intake.customerName || 'none');
+    console.log('[TARGETED REPROMPT SELECTION] currentServiceRequested:', intake.serviceRequested || 'none');
+    console.log('[TARGETED REPROMPT SELECTION] hasValidName:', hasValidName);
+    console.log('[TARGETED REPROMPT SELECTION] hasValidService:', hasValidService);
+    console.log('[TARGETED REPROMPT SELECTION] Timestamp:', new Date().toISOString());
+    console.log('[TARGETED REPROMPT SELECTION] =========================================');
 
     let nextStage: IntakeStage;
     let promptToSend: string;
+    let repromptType: string;
 
-    if (!customerNamePresent && !serviceRequestedPresent) {
-      // Both missing: stay on ask_name_reason and repeat the original prompt
+    if (!hasValidName && !hasValidService) {
+      // Both fields missing: use full combined reprompt
       nextStage = 'ask_name_reason';
       promptToSend = APPROVED_PROMPTS.ask_name_reason;
-      console.log('[SCRIPTED FLOW] =========================================');
-      console.log('[SCRIPTED FLOW] both fields missing, repeating ask_name_reason');
-      console.log('[SCRIPTED FLOW] nextStage:', nextStage);
-      console.log('[SCRIPTED FLOW] promptToSend:', promptToSend);
-      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-      console.log('[SCRIPTED FLOW] =========================================');
+      repromptType = 'full_name_and_reason';
+      console.log('[TARGETED REPROMPT SELECTED] =========================================');
+      console.log('[TARGETED REPROMPT SELECTED] type: full_name_and_reason');
+      console.log('[TARGETED REPROMPT SELECTED] reason: both fields missing or invalid');
+      console.log('[TARGETED REPROMPT SELECTED] prompt:', promptToSend);
+      console.log('[TARGETED REPROMPT SELECTED] nextStage:', nextStage);
+      console.log('[TARGETED REPROMPT SELECTED] Timestamp:', new Date().toISOString());
+      console.log('[TARGETED REPROMPT SELECTED] =========================================');
+    } else if (hasValidName && !hasValidService) {
+      // Name valid, service missing: targeted service-only reprompt
+      nextStage = 'ask_name_reason_service_only';
+      promptToSend = APPROVED_PROMPTS.ask_name_reason_service_only;
+      repromptType = 'service_only';
+      console.log('[TARGETED REPROMPT SELECTED] =========================================');
+      console.log('[TARGETED REPROMPT SELECTED] type: service_only');
+      console.log('[TARGETED REPROMPT SELECTED] reason: name valid, service missing');
+      console.log('[TARGETED REPROMPT SELECTED] preservedName:', intake.customerName);
+      console.log('[TARGETED REPROMPT SELECTED] prompt:', promptToSend);
+      console.log('[TARGETED REPROMPT SELECTED] nextStage:', nextStage);
+      console.log('[TARGETED REPROMPT SELECTED] Timestamp:', new Date().toISOString());
+      console.log('[TARGETED REPROMPT SELECTED] =========================================');
+    } else if (!hasValidName && hasValidService) {
+      // Service valid, name missing: targeted name-only reprompt
+      nextStage = 'ask_name_reason_name_only';
+      promptToSend = APPROVED_PROMPTS.ask_name_reason_name_only;
+      repromptType = 'name_only';
+      console.log('[TARGETED REPROMPT SELECTED] =========================================');
+      console.log('[TARGETED REPROMPT SELECTED] type: name_only');
+      console.log('[TARGETED REPROMPT SELECTED] reason: service valid, name missing');
+      console.log('[TARGETED REPROMPT SELECTED] preservedService:', intake.serviceRequested);
+      console.log('[TARGETED REPROMPT SELECTED] prompt:', promptToSend);
+      console.log('[TARGETED REPROMPT SELECTED] nextStage:', nextStage);
+      console.log('[TARGETED REPROMPT SELECTED] Timestamp:', new Date().toISOString());
+      console.log('[TARGETED REPROMPT SELECTED] =========================================');
     } else {
-      // At least one field present: advance to ask_details
+      // Both fields valid: advance to ask_details
       nextStage = 'ask_details';
       promptToSend = APPROVED_PROMPTS.ask_details;
-      console.log('[SCRIPTED FLOW] =========================================');
-      console.log('[SCRIPTED FLOW] advancing to ask_details');
-      console.log('[SCRIPTED FLOW] nextStage:', nextStage);
-      console.log('[SCRIPTED FLOW] promptToSend:', promptToSend);
-      console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-      console.log('[SCRIPTED FLOW] =========================================');
+      repromptType = 'advance';
+      console.log('[TARGETED REPROMPT SELECTED] =========================================');
+      console.log('[TARGETED REPROMPT SELECTED] type: advance');
+      console.log('[TARGETED REPROMPT SELECTED] reason: both fields valid');
+      console.log('[TARGETED REPROMPT SELECTED] customerName:', intake.customerName);
+      console.log('[TARGETED REPROMPT SELECTED] serviceRequested:', intake.serviceRequested);
+      console.log('[TARGETED REPROMPT SELECTED] prompt:', promptToSend);
+      console.log('[TARGETED REPROMPT SELECTED] nextStage:', nextStage);
+      console.log('[TARGETED REPROMPT SELECTED] Timestamp:', new Date().toISOString());
+      console.log('[TARGETED REPROMPT SELECTED] =========================================');
     }
 
     return {

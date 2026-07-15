@@ -41,6 +41,8 @@ export type SimpleModePromptKey = typeof SIMPLE_MODE_PROMPT_KEYS[number];
  */
 export type IntakeStage = 
   | 'ask_name_reason'
+  | 'ask_name_reason_service_only'
+  | 'ask_name_reason_name_only'
   | 'ask_details'
   | 'ask_location_or_context'
   | 'ask_timing'
@@ -55,6 +57,8 @@ export type IntakeStage =
 export const AI_INTAKE_TEMPLATES: Record<IntakeTemplate, Record<IntakeStage, string>> = {
   on_site: {
     ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
+    ask_name_reason_service_only: "And what do you need help with?",
+    ask_name_reason_name_only: "And what's your name?",
     ask_details: "Okay. Can you share any important details the business should know?",
     ask_location_or_context: "All right. Just a couple more questions. Where will this take place?",
     ask_timing: "When are you hoping this will be done?",
@@ -63,6 +67,8 @@ export const AI_INTAKE_TEMPLATES: Record<IntakeTemplate, Record<IntakeStage, str
   },
   appointment: {
     ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
+    ask_name_reason_service_only: "And what do you need help with?",
+    ask_name_reason_name_only: "And what's your name?",
     ask_details: "Okay. Can you share any important details the business should know?",
     ask_location_or_context: "All right. Just a couple more questions. Where will this take place?",
     ask_timing: "When are you hoping this will be done?",
@@ -71,6 +77,8 @@ export const AI_INTAKE_TEMPLATES: Record<IntakeTemplate, Record<IntakeStage, str
   },
   lessons: {
     ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
+    ask_name_reason_service_only: "And what do you need help with?",
+    ask_name_reason_name_only: "And what's your name?",
     ask_details: "Okay. Can you share any important details the business should know?",
     ask_location_or_context: "All right. Just a couple more questions. Where will this take place?",
     ask_timing: "When are you hoping this will be done?",
@@ -79,6 +87,8 @@ export const AI_INTAKE_TEMPLATES: Record<IntakeTemplate, Record<IntakeStage, str
   },
   professional: {
     ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
+    ask_name_reason_service_only: "And what do you need help with?",
+    ask_name_reason_name_only: "And what's your name?",
     ask_details: "Okay. Can you share any important details the business should know?",
     ask_location_or_context: "All right. Just a couple more questions. Where will this take place?",
     ask_timing: "When are you hoping this will be done?",
@@ -103,6 +113,8 @@ export function getIntakeStageText(template: IntakeTemplate, stage: IntakeStage)
  */
 const LEGACY_FALLBACK_PROMPTS: Record<IntakeStage, string> = {
   ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
+  ask_name_reason_service_only: "And what do you need help with?",
+  ask_name_reason_name_only: "And what's your name?",
   ask_details: "Okay. Can you share any important details the business should know?",
   ask_location_or_context: "All right. Just a couple more questions. Where will this take place?",
   ask_timing: "When are you hoping this will be done?",
