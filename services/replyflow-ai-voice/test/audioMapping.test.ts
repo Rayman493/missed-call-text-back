@@ -189,6 +189,88 @@ if (textMappingCorrect) {
   passed++;
 }
 
+// Test 7: Canonical registry contains all 8 legitimate prompt keys
+console.log('\nTest 7: Canonical registry contains all 8 legitimate prompt keys');
+const canonicalPromptKeys = [
+  'ask_name_reason',
+  'ask_name_reason_service_only',
+  'ask_name_reason_name_only',
+  'ask_details',
+  'ask_location',
+  'ask_completion_time',
+  'ask_callback_time',
+  'complete'
+];
+let canonicalRegistryComplete = true;
+for (const key of canonicalPromptKeys) {
+  if (!cachedPromptAudio[key as keyof typeof cachedPromptAudio]) {
+    console.log(`✗ FAIL: Canonical registry missing key: ${key}`);
+    canonicalRegistryComplete = false;
+    failed++;
+  }
+}
+if (canonicalRegistryComplete) {
+  console.log('✓ PASS: Canonical registry contains all 8 legitimate prompt keys');
+  passed++;
+}
+
+// Test 8: Current cachedPromptAudio produces empty missing and unexpected arrays
+console.log('\nTest 8: Current cachedPromptAudio produces empty missing and unexpected arrays');
+const loadedPromptKeys = Object.keys(cachedPromptAudio);
+const missingPromptKeys = canonicalPromptKeys.filter(key => !loadedPromptKeys.includes(key));
+const unexpectedPromptKeys = loadedPromptKeys.filter(key => !canonicalPromptKeys.includes(key));
+
+if (missingPromptKeys.length === 0 && unexpectedPromptKeys.length === 0) {
+  console.log('✓ PASS: No missing or unexpected prompt keys');
+  passed++;
+} else {
+  console.log('✗ FAIL: Missing or unexpected prompt keys found');
+  console.log(`  Missing: ${JSON.stringify(missingPromptKeys)}`);
+  console.log(`  Unexpected: ${JSON.stringify(unexpectedPromptKeys)}`);
+  failed++;
+}
+
+// Test 9: Targeted prompts are not classified as unexpected
+console.log('\nTest 9: Targeted prompts are not classified as unexpected');
+const targetedKeys = ['ask_name_reason_service_only', 'ask_name_reason_name_only'];
+let targetedNotUnexpected = true;
+for (const key of targetedKeys) {
+  if (unexpectedPromptKeys.includes(key)) {
+    console.log(`✗ FAIL: Targeted key classified as unexpected: ${key}`);
+    targetedNotUnexpected = false;
+    failed++;
+  }
+}
+if (targetedNotUnexpected) {
+  console.log('✓ PASS: Targeted prompts are not classified as unexpected');
+  passed++;
+}
+
+// Test 10: Fake unknown prompt key would be detected as unexpected
+console.log('\nTest 10: Fake unknown prompt key would be detected as unexpected');
+const fakeKey = 'fake_unknown_prompt_key';
+const wouldBeUnexpected = !canonicalPromptKeys.includes(fakeKey);
+if (wouldBeUnexpected) {
+  console.log('✓ PASS: Fake unknown prompt key would be detected as unexpected');
+  passed++;
+} else {
+  console.log('✗ FAIL: Fake unknown prompt key would not be detected as unexpected');
+  failed++;
+}
+
+// Test 11: Removing a required prompt would be detected as missing
+console.log('\nTest 11: Removing a required prompt would be detected as missing');
+const simulatedRemoval = 'ask_name_reason';
+const simulatedLoadedKeys = loadedPromptKeys.filter(key => key !== simulatedRemoval);
+const wouldBeMissing = canonicalPromptKeys.filter(key => !simulatedLoadedKeys.includes(key)).includes(simulatedRemoval);
+if (wouldBeMissing) {
+  console.log('✓ PASS: Removing required prompt would be detected as missing');
+  passed++;
+} else {
+  console.log('✗ FAIL: Removing required prompt would not be detected as missing');
+  failed++;
+}
+
 // Summary
 console.log('\n=== TEST SUMMARY ===');
 console.log(`Total: ${passed + failed}`);

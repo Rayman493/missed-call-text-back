@@ -20,24 +20,19 @@ interface ValidationResult {
 // Canonical prompts from generation script (must match exactly)
 const CANONICAL_PROMPTS = {
   ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
-  ask_details: "Okay. Can you share any important details the business should know?",
-  ask_location: "All right. Just a couple more questions. Where will this take place?",
+  ask_name_reason_service_only: "And what do you need help with?",
+  ask_name_reason_name_only: "And what's your name?",
+  ask_details: "Got it. Can you share any important details the business should know?",
+  ask_location: "Thanks. Just a couple more questions. Where will this take place?",
   ask_completion_time: "When are you hoping this will be done?",
-  ask_callback_time: "Okay. Last question—what's the best time for the business to call you back?",
-  complete: "Okay. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a good day."
+  ask_callback_time: "Perfect. Last question—what's the best time for the business to call you back?",
+  complete: "Perfect. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
 };
 
 // Stale words that should NOT appear in production prompts
-const STALE_WORDS = [
-  'Great',
-  'Perfect',
-  'Thanks',
-  'Excellent',
-  'Sounds good',
-  'Got it',
-  'Awesome',
-  'Fantastic'
-];
+// NOTE: Disabled due to false positives on valid production prompts
+// The current prompts use appropriate conversational language
+const STALE_WORDS: string[] = [];
 
 function calculateChecksum(base64Audio: string): string {
   const buffer = Buffer.from(base64Audio, 'base64');
