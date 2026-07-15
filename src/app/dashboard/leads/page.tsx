@@ -1361,20 +1361,22 @@ export default function LeadsPage() {
                                   title="More actions"
                                   aria-label="More actions"
                                   onClick={(e) => e.stopPropagation()}
+                                  onKeyDown={(e) => e.stopPropagation()}
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                                   </svg>
                                 </button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent
-                                align="end"
-                                side="bottom"
-                                sideOffset={8}
-                                collisionPadding={MOBILE_BOTTOM_NAV_COLLISION_PADDING}
-                                avoidCollisions
-                                className="z-[10000] w-[240px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-100px)] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1 overflow-y-auto overscroll-contain"
-                              >
+                              <DropdownMenuPortal>
+                                <DropdownMenuContent
+                                  align="end"
+                                  side="bottom"
+                                  sideOffset={6}
+                                  collisionPadding={12}
+                                  avoidCollisions
+                                  className="z-50 w-[240px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-100px)] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1 overflow-y-auto overscroll-contain"
+                                >
                                 {lead.deleted_at && (
                                   <DropdownMenuItem
                                     onSelect={() => handleRestoreLead(lead.id)}
@@ -1409,6 +1411,7 @@ export default function LeadsPage() {
                                   </DropdownMenuItem>
                                 )}
                               </DropdownMenuContent>
+                              </DropdownMenuPortal>
                             </DropdownMenu>
                           </div>
                         </div>
@@ -1560,20 +1563,22 @@ export default function LeadsPage() {
                                       className="p-1 sm:p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
                                       title="More actions"
                                       onClick={(e) => e.stopPropagation()}
+                                      onKeyDown={(e) => e.stopPropagation()}
                                     >
                                       <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                                       </svg>
                                     </button>
                                   </DropdownMenuTrigger>
-                                  <DropdownMenuContent
-                                    align="end"
-                                    side="bottom"
-                                    sideOffset={8}
-                                    collisionPadding={MOBILE_BOTTOM_NAV_COLLISION_PADDING}
-                                    avoidCollisions
-                                    className="z-[10000] w-[240px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-100px)] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1 overflow-y-auto overscroll-contain"
-                                  >
+                                  <DropdownMenuPortal>
+                                    <DropdownMenuContent
+                                      align="end"
+                                      side="bottom"
+                                      sideOffset={6}
+                                      collisionPadding={12}
+                                      avoidCollisions
+                                      className="z-50 w-[240px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-100px)] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1 overflow-y-auto overscroll-contain"
+                                    >
                                     {lead.deleted_at && (
                                       <DropdownMenuItem
                                         onSelect={() => handleRestoreLead(lead.id)}
@@ -1608,6 +1613,7 @@ export default function LeadsPage() {
                                       </DropdownMenuItem>
                                     )}
                                   </DropdownMenuContent>
+                                  </DropdownMenuPortal>
                                 </DropdownMenu>
                               </div>
                             </div>
