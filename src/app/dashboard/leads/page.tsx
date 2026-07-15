@@ -1245,27 +1245,41 @@ export default function LeadsPage() {
                         key={lead.id}
                         className={`w-full max-w-2xl h-full flex flex-col rounded-xl border relative overflow-hidden transition-all duration-200 cursor-pointer ${
                           selectedLeadId === lead.id
-                            ? 'bg-primary/5 border-primary/50 shadow-lg shadow-primary/10'
-                            : 'bg-card border-border/50 hover:border-primary/60 hover:shadow-lg hover:-translate-y-1'
+                            ? 'bg-blue-50/80 dark:bg-blue-950/30 border-blue-500 shadow-lg shadow-blue-500/20 ring-2 ring-blue-500/30'
+                            : 'bg-card border-border/50 hover:border-blue-400/70 hover:shadow-md hover:-translate-y-0.5'
                         }`}
                         onClick={() => {
-                          // Only navigate on desktop
+                          // Desktop: single-click selects
+                          if (window.innerWidth >= 768) {
+                            setSelectedLeadId(selectedLeadId === lead.id ? null : lead.id)
+                          } else {
+                            // Mobile: first tap selects, second tap opens
+                            if (selectedLeadId === lead.id) {
+                              handleConversationClick(lead.id)
+                            } else {
+                              setSelectedLeadId(lead.id)
+                            }
+                          }
+                        }}
+                        onDoubleClick={() => {
+                          // Desktop: double-click opens
                           if (window.innerWidth >= 768) {
                             handleConversationClick(lead.id)
-                          } else {
-                            // On mobile, just highlight
-                            setSelectedLeadId(selectedLeadId === lead.id ? null : lead.id)
                           }
                         }}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
+                          if (e.key === ' ') {
+                            e.preventDefault()
+                            setSelectedLeadId(selectedLeadId === lead.id ? null : lead.id)
+                          } else if (e.key === 'Enter') {
                             e.preventDefault()
                             handleConversationClick(lead.id)
                           }
                         }}
                         tabIndex={0}
                         role="button"
-                        aria-label={`View ${getLeadDisplayName(lead)} details`}
+                        aria-label={`${getLeadDisplayName(lead)}${selectedLeadId === lead.id ? ', selected' : ''}`}
+                        aria-selected={selectedLeadId === lead.id}
                       >
                         {/* Status Accent Bar - Subtle left accent */}
                         <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${getLeadStatusAccentColor(getLeadLifecycleStatus(lead))}`}></div>
@@ -1446,27 +1460,41 @@ export default function LeadsPage() {
                             key={lead.id}
                             className={`rounded-xl border relative overflow-hidden transition-all duration-200 cursor-pointer ${
                               selectedLeadId === lead.id
-                                ? 'bg-primary/5 border-primary/50 shadow-lg shadow-primary/10'
-                                : 'bg-card border-border/50 hover:border-primary/60 hover:shadow-lg hover:-translate-y-1'
+                                ? 'bg-blue-50/80 dark:bg-blue-950/30 border-blue-500 shadow-lg shadow-blue-500/20 ring-2 ring-blue-500/30'
+                                : 'bg-card border-border/50 hover:border-blue-400/70 hover:shadow-md hover:-translate-y-0.5'
                             }`}
                             onClick={() => {
-                              // Only navigate on desktop
+                              // Desktop: single-click selects
+                              if (window.innerWidth >= 768) {
+                                setSelectedLeadId(selectedLeadId === lead.id ? null : lead.id)
+                              } else {
+                                // Mobile: first tap selects, second tap opens
+                                if (selectedLeadId === lead.id) {
+                                  handleConversationClick(lead.id)
+                                } else {
+                                  setSelectedLeadId(lead.id)
+                                }
+                              }
+                            }}
+                            onDoubleClick={() => {
+                              // Desktop: double-click opens
                               if (window.innerWidth >= 768) {
                                 handleConversationClick(lead.id)
-                              } else {
-                                // On mobile, just highlight
-                                setSelectedLeadId(selectedLeadId === lead.id ? null : lead.id)
                               }
                             }}
                             onKeyDown={(e) => {
-                              if (e.key === 'Enter' || e.key === ' ') {
+                              if (e.key === ' ') {
+                                e.preventDefault()
+                                setSelectedLeadId(selectedLeadId === lead.id ? null : lead.id)
+                              } else if (e.key === 'Enter') {
                                 e.preventDefault()
                                 handleConversationClick(lead.id)
                               }
                             }}
                             tabIndex={0}
                             role="button"
-                            aria-label={`View ${getLeadDisplayName(lead)} details`}
+                            aria-label={`${getLeadDisplayName(lead)}${selectedLeadId === lead.id ? ', selected' : ''}`}
+                            aria-selected={selectedLeadId === lead.id}
                           >
                             {/* Status Accent Bar - Subtle left accent */}
                             <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${getLeadStatusAccentColor(getLeadLifecycleStatus(lead))}`}></div>
