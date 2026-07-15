@@ -1,6 +1,6 @@
 /**
  * Generate Customer Update greeting audio using OpenAI TTS
- * This script creates a pre-recorded greeting with the "alloy" voice
+ * This script creates a pre-recorded greeting with the "nova" voice
  * to match the AI intake voice for consistency.
  */
 
@@ -29,13 +29,13 @@ const OUTPUT_FILE = path.join(process.cwd(), 'public', 'update-voicemail-greetin
 async function generateGreeting() {
   console.log('[GREETING GENERATION] Starting...');
   console.log('[GREETING GENERATION] Text:', GREETING_TEXT);
-  console.log('[GREETING GENERATION] Voice: alloy');
+  console.log('[GREETING GENERATION] Voice: nova');
   console.log('[GREETING GENERATION] Output:', OUTPUT_FILE);
 
   try {
     const mp3 = await openai.audio.speech.create({
       model: 'tts-1',
-      voice: 'alloy',
+      voice: 'nova',
       input: GREETING_TEXT,
       speed: 1.0,
     });

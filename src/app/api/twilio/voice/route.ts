@@ -156,7 +156,7 @@ function generateIgnoredContactResponse(): string {
 // Helper to generate repeat-caller update voicemail with pre-recorded greeting
 function generateUpdateVoicemailResponse(businessId: string, callerPhone: string, conversationId?: string): string {
   // Update voicemail greeting for repeat callers with active requests
-  // Uses pre-recorded audio with OpenAI "alloy" voice to match AI intake
+  // Uses pre-recorded audio with OpenAI "nova" voice to match AI intake
 
   // Build callback parameters
   const callbackParams: Record<string, string> = {
@@ -178,8 +178,8 @@ function generateUpdateVoicemailResponse(businessId: string, callerPhone: string
   const response = new VoiceResponse();
   response.pause({ length: 1 });
 
-  // Use pre-recorded greeting with OpenAI "alloy" voice to match AI intake
-  // The greeting audio file should be generated using OpenAI TTS with the "alloy" voice
+  // Use pre-recorded greeting with OpenAI "nova" voice to match AI intake
+  // The greeting audio file should be generated using OpenAI TTS with the "nova" voice
   // and placed at /public/update-voicemail-greeting-v2.mp3
   const greetingUrl = `${process.env.NEXT_PUBLIC_APP_URL || ''}/update-voicemail-greeting-v2.mp3`;
   response.play(greetingUrl);
