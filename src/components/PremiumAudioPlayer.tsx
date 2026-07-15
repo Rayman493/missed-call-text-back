@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Play, Pause } from 'lucide-react'
+import { Play, Pause, Volume2, VolumeX, Volume1 } from 'lucide-react'
 
 interface PremiumAudioPlayerProps {
   audioRef: React.RefObject<HTMLAudioElement>
@@ -32,6 +32,19 @@ export default function PremiumAudioPlayer({
 }: PremiumAudioPlayerProps) {
   const [isDragging, setIsDragging] = useState(false)
   const progressBarRef = useRef<HTMLDivElement>(null)
+  
+  // Volume state
+  const [volume, setVolume] = useState(() => {
+    // Initialize from session storage or default to 1.0
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('replyflow-audio-volume')
+      return saved ? parseFloat(saved) : 1.0
+    }
+    return 1.0
+  })
+  const [previousVolume, setPreviousVolume] = useState(1.0)
+  const [isMuted, setIsMuted] = useState(false)
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false)
 
   // Generate decorative waveform bars (visual only)
   const waveformBars = Array.from({ length: 40 }, (_, i) => {
@@ -44,6 +57,63 @@ export default function PremiumAudioPlayer({
     const secs = Math.floor(seconds % 60)
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
+
+  // Volume control functions
+  const handleVolumeChange = (newVolume: number) => {
+    const clampedVolume = Math.max(0, Math.min(1, newVolume))
+    setVolume(clampedVolume)
+    setPreviousVolume(clampedVolume)
+    setIsMuted(clampedVolume === 0)
+    
+    // Update audio element
+    if (audioRef.current) {
+      audioRef.current.volume = clampedVolume
+    }
+    
+    // Persist to session storage
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('replyflow-audio-volume', clampedVolume.toString())
+    }
+  }
+
+  const toggleMute = () => {
+    if (isMuted) {
+      // Unmute - restore previous volume
+      const restoreVolume = previousVolume > 0 ? previousVolume : 1.0
+      setVolume(restoreVolume)
+      setIsMuted(false)
+      
+      if (audioRef.current) {
+        audioRef.current.volume = restoreVolume
+      }
+    } else {
+      // Mute - save current volume and set to 0
+      setPreviousVolume(volume)
+      setVolume(0)
+      setIsMuted(true)
+      
+      if (audioRef.current) {
+        audioRef.current.volume = 0
+      }
+    }
+  }
+
+  const getVolumeIcon = () => {
+    if (isMuted || volume === 0) {
+      return VolumeX
+    } else if (volume < 0.5) {
+      return Volume1
+    } else {
+      return Volume2
+    }
+  }
+
+  // Sync volume with audio element on mount and when volume changes
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume
+    }
+  }, [volume, audioRef])
 
   const seekToClientX = (clientX: number) => {
     const audio = audioRef.current
@@ -194,6 +264,43 @@ export default function PremiumAudioPlayer({
             <span className="tabular-nums">{formatTime(currentTime)}</span>
             <span className="mx-2 text-muted-foreground/50">/</span>
             <span className="tabular-nums">{formatTime(duration)}</span>
+          </div>
+
+          {/* Volume Control */}
+          <div className="relative flex items-center gap-2">
+            <button
+              onClick={toggleMute}
+              onMouseEnter={() => setShowVolumeSlider(true)}
+              onMouseLeave={() => setShowVolumeSlider(false)}
+              className="p-2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-full"
+              aria-label={isMuted ? 'Unmute' : 'Mute'}
+              aria-pressed={isMuted}
+            >
+              {React.createElement(getVolumeIcon(), { className: 'w-5 h-5' })}
+            </button>
+            
+            {/* Volume Slider */}
+            <div 
+              className={`relative flex items-center gap-2 transition-all duration-200 ${
+                showVolumeSlider ? 'opacity-100 w-24' : 'opacity-0 w-0 overflow-hidden'
+              }`}
+              onMouseEnter={() => setShowVolumeSlider(true)}
+              onMouseLeave={() => setShowVolumeSlider(false)}
+            >
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={isMuted ? 0 : volume}
+                onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+                className="w-20 h-1 bg-gray-200 dark:bg-gray-700 rounded-full appearance-none cursor-pointer accent-blue-600"
+                aria-label="Volume"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round((isMuted ? 0 : volume) * 100)}
+              />
+            </div>
           </div>
         </div>
 
