@@ -73,6 +73,10 @@ export async function POST(request: NextRequest) {
     const recordingStatus = params.get('RecordingStatus') as string;
     const from = params.get('From') as string;
     const to = params.get('To') as string;
+
+    // Normalize recording status: if Twilio sends a recording URL, the recording is completed
+    // Twilio only provides the recording URL when the recording is finished and available
+    const normalizedRecordingStatus = recordingStatus || (recordingUrl ? 'completed' : 'unknown');
     
     // Check if this is an update voicemail from repeat caller
     let isUpdateVoicemail = params.get('isUpdateVoicemail') === 'true';
@@ -88,7 +92,8 @@ export async function POST(request: NextRequest) {
       recordingSid,
       recordingUrl: recordingUrl ? '[URL_PRESENT]' : '[URL_MISSING]',
       recordingDuration,
-      recordingStatus,
+      rawRecordingStatus: recordingStatus,
+      normalizedRecordingStatus,
       from,
       to
     });
@@ -196,7 +201,7 @@ export async function POST(request: NextRequest) {
           recording_sid: recordingSid,
           recording_url: recordingUrl,
           recording_duration: recordingDuration ? parseInt(recordingDuration) : null,
-          recording_status: recordingStatus || 'unknown',
+          recording_status: normalizedRecordingStatus,
           transcription_text: null,
           transcription_status: null,
           caller_phone: normalizedCallerPhone,
@@ -458,7 +463,7 @@ export async function POST(request: NextRequest) {
       recordingSid: recordingSid,
       recordingUrl: recordingUrl,
       recordingDuration: recordingDuration,
-      recordingStatus: recordingStatus
+      recordingStatus: normalizedRecordingStatus
     });
 
     const { data: voicemail, error: voicemailError } = await supabaseAdmin
@@ -471,7 +476,7 @@ export async function POST(request: NextRequest) {
         recording_sid: recordingSid,
         recording_url: recordingUrl,
         recording_duration: recordingDuration ? parseInt(recordingDuration) : null,
-        recording_status: recordingStatus || 'unknown',
+        recording_status: normalizedRecordingStatus,
         transcription_text: null,
         transcription_status: null,
         caller_phone: normalizedCallerPhone,

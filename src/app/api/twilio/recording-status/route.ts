@@ -65,9 +65,14 @@ export async function POST(request: NextRequest) {
     const callSid = params.get('CallSid') as string;
     const accountSid = params.get('AccountSid') as string;
 
+    // Normalize recording status: if Twilio sends a recording URL, the recording is completed
+    // Twilio only provides the recording URL when the recording is finished and available
+    const normalizedRecordingStatus = recordingStatus || (recordingUrl ? 'completed' : 'unknown');
+
     console.log('[RECORDING STATUS] Recording status data:', {
       recordingSid,
-      recordingStatus,
+      rawRecordingStatus: recordingStatus,
+      normalizedRecordingStatus,
       recordingUrl: recordingUrl ? '[URL_PRESENT]' : '[URL_MISSING]',
       recordingDuration,
       callSid,
@@ -85,35 +90,78 @@ export async function POST(request: NextRequest) {
     if (isUpdateVoicemail) {
       console.log('[UPDATE VOICEMAIL RECORDING STATUS] =========================================');
       console.log('[UPDATE VOICEMAIL RECORDING STATUS] recordingSid:', recordingSid);
-      console.log('[UPDATE VOICEMAIL RECORDING STATUS] recordingStatus:', recordingStatus);
+      console.log('[UPDATE VOICEMAIL RECORDING STATUS] recordingStatus:', normalizedRecordingStatus);
+      console.log('[UPDATE VOICEMAIL RECORDING STATUS] recordingUrl:', recordingUrl ? '[URL_PRESENT]' : '[URL_MISSING]');
       console.log('[UPDATE VOICEMAIL RECORDING STATUS] =========================================');
 
       try {
-        // Update voicemail recording with transcription when available
-        if (recordingStatus === 'completed' && recordingUrl) {
-          console.log('[UPDATE VOICEMAIL RECORDING STATUS] Starting transcription');
-          
-          try {
-            const transcriptionResult = await transcribeVoicemail(recordingUrl, recordingSid);
-            
-            if (transcriptionResult && transcriptionResult.transcript) {
-              console.log('[UPDATE VOICEMAIL RECORDING STATUS] Transcription successful');
-              
-              await supabaseAdmin
-                .from('voicemail_recordings')
-                .update({
-                  transcription_text: transcriptionResult.transcript,
-                  transcription_status: 'completed',
-                  updated_at: new Date().toISOString()
-                })
-                .eq('recording_sid', recordingSid);
-              
-              console.log('[UPDATE VOICEMAIL RECORDING STATUS] Transcription saved');
+        // First, update the recording status and URL (same as normal path)
+        // This is critical for audio playback to work
+        const updateData: any = {
+          recording_status: normalizedRecordingStatus,
+          updated_at: new Date().toISOString(),
+        };
+
+        // Add optional fields if present
+        if (recordingUrl) {
+          updateData.recording_url = recordingUrl;
+        }
+        if (recordingDuration) {
+          updateData.recording_duration = parseInt(recordingDuration) || null;
+        }
+
+        console.log('[UPDATE VOICEMAIL RECORDING STATUS] Updating recording status and URL:', {
+          recordingSid,
+          recordingStatus: updateData.recording_status,
+          hasRecordingUrl: !!updateData.recording_url,
+          recordingDuration: updateData.recording_duration
+        });
+
+        const { data: voicemail, error: updateError } = await supabaseAdmin
+          .from('voicemail_recordings')
+          .update(updateData)
+          .eq('recording_sid', recordingSid)
+          .select()
+          .maybeSingle();
+
+        if (updateError) {
+          console.error('[UPDATE VOICEMAIL RECORDING STATUS] Failed to update recording status:', updateError);
+        } else if (voicemail) {
+          console.log('[UPDATE VOICEMAIL RECORDING STATUS] Recording status updated successfully:', {
+            voicemailId: voicemail.id,
+            recordingStatus: voicemail.recording_status,
+            hasRecordingUrl: !!voicemail.recording_url,
+            recordingUrl: voicemail.recording_url ? '[URL_PRESENT]' : '[URL_MISSING]'
+          });
+
+          // Update voicemail recording with transcription when available
+          if (normalizedRecordingStatus === 'completed' && voicemail.recording_url) {
+            console.log('[UPDATE VOICEMAIL RECORDING STATUS] Starting transcription');
+
+            try {
+              const transcriptionResult = await transcribeVoicemail(voicemail.recording_url, recordingSid);
+
+              if (transcriptionResult && transcriptionResult.transcript) {
+                console.log('[UPDATE VOICEMAIL RECORDING STATUS] Transcription successful');
+
+                await supabaseAdmin
+                  .from('voicemail_recordings')
+                  .update({
+                    transcription_text: transcriptionResult.transcript,
+                    transcription_status: 'completed',
+                    updated_at: new Date().toISOString()
+                  })
+                  .eq('recording_sid', recordingSid);
+
+                console.log('[UPDATE VOICEMAIL RECORDING STATUS] Transcription saved');
+              }
+            } catch (transcriptionError) {
+              console.error('[UPDATE VOICEMAIL RECORDING STATUS] Transcription error:', transcriptionError);
+              // Don't fail the callback on transcription errors
             }
-          } catch (transcriptionError) {
-            console.error('[UPDATE VOICEMAIL RECORDING STATUS] Transcription error:', transcriptionError);
-            // Don't fail the callback on transcription errors
           }
+        } else {
+          console.log('[UPDATE VOICEMAIL RECORDING STATUS] No voicemail recording found for sid:', recordingSid);
         }
 
         console.log('[UPDATE VOICEMAIL RECORDING STATUS] Complete');
@@ -227,7 +275,7 @@ export async function POST(request: NextRequest) {
     // Update voicemail recording with final status
     console.log('[RECORDING STATUS] Updating voicemail recording status');
     const updateData: any = {
-      recording_status: recordingStatus || 'unknown',
+      recording_status: normalizedRecordingStatus,
       updated_at: new Date().toISOString(),
     };
 
