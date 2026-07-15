@@ -5506,6 +5506,101 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     complete: "Perfect. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
   };
 
+  // STARTUP VALIDATION: Validate all required Simple Mode cached prompts
+  const requiredPromptKeys = [
+    'ask_name_reason',
+    'ask_name_reason_service_only',
+    'ask_name_reason_name_only',
+    'ask_details',
+    'ask_location',
+    'ask_completion_time',
+    'ask_callback_time',
+    'complete'
+  ];
+
+  console.log('[STARTUP AUDIO VALIDATION] =========================================');
+  console.log('[STARTUP AUDIO VALIDATION] event: validating_cached_prompt_assets');
+  console.log('[STARTUP AUDIO VALIDATION] Timestamp:', new Date().toISOString());
+  console.log('[STARTUP AUDIO VALIDATION] =========================================');
+
+  const audioValidationResults: Record<string, { exists: boolean; byteLength?: number; hash?: string }> = {};
+  let hasMissingAssets = false;
+  let hasDuplicateAssets = false;
+
+  for (const promptKey of requiredPromptKeys) {
+    const audio = cachedPromptAudio[promptKey as keyof typeof cachedPromptAudio];
+    const exists = !!audio;
+    const byteLength = audio ? Buffer.from(audio, 'base64').length : undefined;
+    const hash = audio ? require('crypto').createHash('sha256').update(Buffer.from(audio, 'base64')).digest('hex').substring(0, 16) : undefined;
+
+    audioValidationResults[promptKey] = { exists, byteLength, hash };
+
+    console.log('[STARTUP AUDIO VALIDATION] =========================================');
+    console.log('[STARTUP AUDIO VALIDATION] promptKey:', promptKey);
+    console.log('[STARTUP AUDIO VALIDATION] exists:', exists);
+    console.log('[STARTUP AUDIO VALIDATION] byteLength:', byteLength || 'N/A');
+    console.log('[STARTUP AUDIO VALIDATION] hash:', hash || 'N/A');
+    console.log('[STARTUP AUDIO VALIDATION] =========================================');
+
+    if (!exists) {
+      hasMissingAssets = true;
+      console.log('[STARTUP AUDIO VALIDATION ERROR] =========================================');
+      console.log('[STARTUP AUDIO VALIDATION ERROR] event: missing_cached_audio_asset');
+      console.log('[STARTUP AUDIO VALIDATION ERROR] missingPromptKey:', promptKey);
+      console.log('[STARTUP AUDIO VALIDATION ERROR] action: fallback_will_be_used');
+      console.log('[STARTUP AUDIO VALIDATION ERROR] Timestamp:', new Date().toISOString());
+      console.log('[STARTUP AUDIO VALIDATION ERROR] =========================================');
+    }
+  }
+
+  // Check for duplicate assets (same hash)
+  const hashes: Record<string, string[]> = {};
+  for (const [promptKey, result] of Object.entries(audioValidationResults)) {
+    if (result.hash) {
+      if (!hashes[result.hash]) {
+        hashes[result.hash] = [];
+      }
+      hashes[result.hash].push(promptKey);
+    }
+  }
+
+  for (const [hash, keys] of Object.entries(hashes)) {
+    if (keys.length > 1) {
+      hasDuplicateAssets = true;
+      console.log('[STARTUP AUDIO VALIDATION WARNING] =========================================');
+      console.log('[STARTUP AUDIO VALIDATION WARNING] event: duplicate_audio_assets_detected');
+      console.log('[STARTUP AUDIO VALIDATION WARNING] hash:', hash);
+      console.log('[STARTUP AUDIO VALIDATION WARNING] duplicatePromptKeys:', JSON.stringify(keys));
+      console.log('[STARTUP AUDIO VALIDATION WARNING] action: investigate_generation_script');
+      console.log('[STARTUP AUDIO VALIDATION WARNING] Timestamp:', new Date().toISOString());
+      console.log('[STARTUP AUDIO VALIDATION WARNING] =========================================');
+    }
+  }
+
+  if (hasMissingAssets) {
+    console.log('[STARTUP AUDIO VALIDATION ERROR] =========================================');
+    console.log('[STARTUP AUDIO VALIDATION ERROR] event: startup_validation_failed');
+    console.log('[STARTUP AUDIO VALIDATION ERROR] reason: missing_required_audio_assets');
+    console.log('[STARTUP AUDIO VALIDATION ERROR] action: run_npx_ts-node_scripts_generate-realtime-cached-audio_ts');
+    console.log('[STARTUP AUDIO VALIDATION ERROR] Timestamp:', new Date().toISOString());
+    console.log('[STARTUP AUDIO VALIDATION ERROR] =========================================');
+  }
+
+  if (hasDuplicateAssets) {
+    console.log('[STARTUP AUDIO VALIDATION WARNING] =========================================');
+    console.log('[STARTUP AUDIO VALIDATION WARNING] event: duplicate_assets_detected');
+    console.log('[STARTUP AUDIO VALIDATION WARNING] action: investigate_generation_script_for_collisions');
+    console.log('[STARTUP AUDIO VALIDATION WARNING] Timestamp:', new Date().toISOString());
+    console.log('[STARTUP AUDIO VALIDATION WARNING] =========================================');
+  }
+
+  console.log('[STARTUP AUDIO VALIDATION] =========================================');
+  console.log('[STARTUP AUDIO VALIDATION] event: validation_complete');
+  console.log('[STARTUP AUDIO VALIDATION] hasMissingAssets:', hasMissingAssets);
+  console.log('[STARTUP AUDIO VALIDATION] hasDuplicateAssets:', hasDuplicateAssets);
+  console.log('[STARTUP AUDIO VALIDATION] Timestamp:', new Date().toISOString());
+  console.log('[STARTUP AUDIO VALIDATION] =========================================');
+
   // Cached PCMU audio for each prompt (pre-generated for deterministic speech)
   state.sessionId = url.searchParams.get('sessionId') || '';
   state.businessId = url.searchParams.get('businessId') || '';
@@ -7771,6 +7866,8 @@ Reply to this message if you'd like to update or add any information.
     logSimple('send_prompt', { prompt: prompt.substring(0, 50) + '...' });
 
     let cachedAudio = cachedPromptAudio[promptKey as keyof typeof cachedPromptAudio];
+    let usedFallback = false;
+    let resolvedCacheKey = promptKey;
 
     if (!cachedAudio && source === 'immediate_post_transcription' && promptKeyOverride) {
       // SAFE FALLBACK: Use the full ask_name_reason prompt if targeted variant is missing
@@ -7778,7 +7875,7 @@ Reply to this message if you'd like to update or add any information.
       console.log('[TARGETED PROMPT DELIVERY] event: targeted_prompt_audio_missing');
       console.log('[TARGETED PROMPT DELIVERY] callSid:', state.callSid);
       console.log('[TARGETED PROMPT DELIVERY] logicalStage:', stage);
-      console.log('[TARGETED PROMPT DELIVERY] selectedPromptKey:', promptKey);
+      console.log('[TARGETED PROMPT DELIVERY] requestedCacheKey:', promptKey);
       console.log('[TARGETED PROMPT DELIVERY] authorizedTurnId:', turnId);
       console.log('[TARGETED PROMPT DELIVERY] templateFound:', !!prompts[promptKey]);
       console.log('[TARGETED PROMPT DELIVERY] cachedAudioFound:', false);
@@ -7799,11 +7896,13 @@ Reply to this message if you'd like to update or add any information.
         
         // Use the fallback audio
         cachedAudio = fallbackAudio;
+        resolvedCacheKey = stage;
+        usedFallback = true;
       } else {
         // Even fallback is missing - this is a critical error but don't trigger voicemail
         console.log('[TARGETED PROMPT DELIVERY ERROR] =========================================');
         console.log('[TARGETED PROMPT DELIVERY ERROR] callSid:', state.callSid);
-        console.log('[TARGETED PROMPT DELIVERY ERROR] selectedPromptKey:', promptKey);
+        console.log('[TARGETED PROMPT DELIVERY ERROR] requestedCacheKey:', promptKey);
         console.log('[TARGETED PROMPT DELIVERY ERROR] authorizedTurnId:', turnId);
         console.log('[TARGETED PROMPT DELIVERY ERROR] failureStep:', 'both_targeted_and_fallback_missing');
         console.log('[TARGETED PROMPT DELIVERY ERROR] errorName:', 'NO_CACHED_AUDIO');
@@ -7826,11 +7925,14 @@ Reply to this message if you'd like to update or add any information.
       console.log('[TARGETED PROMPT DELIVERY] event: prompt_audio_found');
       console.log('[TARGETED PROMPT DELIVERY] callSid:', state.callSid);
       console.log('[TARGETED PROMPT DELIVERY] logicalStage:', stage);
-      console.log('[TARGETED PROMPT DELIVERY] selectedPromptKey:', promptKey);
+      console.log('[TARGETED PROMPT DELIVERY] requestedCacheKey:', promptKey);
+      console.log('[TARGETED PROMPT DELIVERY] resolvedCacheKey:', resolvedCacheKey);
       console.log('[TARGETED PROMPT DELIVERY] authorizedTurnId:', turnId);
+      console.log('[TARGETED PROMPT DELIVERY] usedFallback:', usedFallback);
       console.log('[TARGETED PROMPT DELIVERY] templateFound:', true);
       console.log('[TARGETED PROMPT DELIVERY] cachedAudioFound:', true);
       console.log('[TARGETED PROMPT DELIVERY] audioByteLength:', Buffer.from(cachedAudio, 'base64').length);
+      console.log('[TARGETED PROMPT DELIVERY] expectedPromptText:', prompts[resolvedCacheKey] || 'N/A');
       console.log('[TARGETED PROMPT DELIVERY] Timestamp:', new Date().toISOString());
       console.log('[TARGETED PROMPT DELIVERY] =========================================');
       
