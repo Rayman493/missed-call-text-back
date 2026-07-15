@@ -1347,8 +1347,14 @@ export default function LeadsPage() {
                             </div>
                           </div>
 
-                          {/* Action Buttons - Only overflow menu */}
-                          <div className="flex items-center gap-2 pt-2.5 border-t border-border/30 mt-auto justify-end">
+                          {/* Action Buttons - Open affordance and overflow menu */}
+                          <div className="flex items-center gap-2 pt-2.5 border-t border-border/30 mt-auto justify-between">
+                            <span className="text-xs text-muted-foreground/70 flex items-center gap-1">
+                              Open customer
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                            </span>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <button
@@ -1542,8 +1548,14 @@ export default function LeadsPage() {
                                 </div>
                               </div>
 
-                              {/* Action Buttons - Only overflow menu */}
-                              <div className="flex items-center gap-1 sm:gap-1.5 pt-1.5 sm:pt-2 border-t border-border/30 justify-end">
+                              {/* Action Buttons - Open affordance and overflow menu */}
+                              <div className="flex items-center gap-1 sm:gap-1.5 pt-1.5 sm:pt-2 border-t border-border/30 justify-between">
+                                <span className="hidden sm:inline text-xs text-muted-foreground/70 flex items-center gap-1">
+                                  Open customer
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                  </svg>
+                                </span>
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <button
