@@ -198,12 +198,25 @@ for (const [key, base64Audio] of Object.entries(cachedPromptAudio)) {
 if (missingPromptKeys.length > 0) {
   console.error('[CACHED AUDIO VALIDATION] CRITICAL ERROR: Missing required prompts. Deployment cannot proceed.');
   console.error('[CACHED AUDIO VALIDATION] CRITICAL ERROR: missingPromptKeys:', missingPromptKeys);
+  console.error('[CACHED AUDIO VALIDATION] CRITICAL ERROR: action: run npx ts-node scripts/generate-realtime-cached-audio.ts');
   process.exit(1);
 }
 
 if (unexpectedPromptKeys.length > 0) {
   console.error('[CACHED AUDIO VALIDATION] CRITICAL ERROR: Unexpected prompt keys found. Registry may be misaligned.');
   console.error('[CACHED AUDIO VALIDATION] CRITICAL ERROR: unexpectedPromptKeys:', unexpectedPromptKeys);
+  console.error('[CACHED AUDIO VALIDATION] CRITICAL ERROR: action: update REQUIRED_PROMPTS array in src/index.ts to include all legitimate prompt keys');
+  process.exit(1);
+}
+
+// Build-time regression check: ensure canonical registry matches cached audio
+const canonicalRegistrySize = REQUIRED_PROMPTS.length;
+const cachedAudioSize = loadedPromptKeys.length;
+if (canonicalRegistrySize !== cachedAudioSize) {
+  console.error('[CACHED AUDIO VALIDATION] CRITICAL ERROR: Canonical registry size mismatch.');
+  console.error('[CACHED AUDIO VALIDATION] CRITICAL ERROR: canonicalRegistrySize:', canonicalRegistrySize);
+  console.error('[CACHED AUDIO VALIDATION] CRITICAL ERROR: cachedAudioSize:', cachedAudioSize);
+  console.error('[CACHED AUDIO VALIDATION] CRITICAL ERROR: action: synchronize REQUIRED_PROMPTS array with cachedPromptAudio keys');
   process.exit(1);
 }
 
