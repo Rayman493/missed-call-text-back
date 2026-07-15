@@ -5398,6 +5398,8 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     // Watchdog timers for stall detection
     markWatchdogTimeout: null as NodeJS.Timeout | null,
     transcriptionWatchdogTimeout: null as NodeJS.Timeout | null,
+    // Preserve original raw transcript for completion repair
+    rawFirstStageTranscript: null as string | null,
   };
 
   // Canonical Simple Mode prompt keys - no mapping layer
@@ -5532,6 +5534,55 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
             : trimmed;
           customerName = normalizeNameCandidate(nameCandidate) || trimmed;
           return { customerName, serviceRequested };
+        }
+
+        // NEW: Two-sentence pattern handling for common natural responses
+        // Pattern: "Hi, this is Mike Thompson. I'm calling because my kitchen sink is leaking."
+        const sentences = trimmed.split(/\.\s+/).filter(s => s.trim());
+        if (sentences.length >= 2) {
+          const firstSentence = sentences[0].trim();
+          const secondSentence = sentences.slice(1).join('. ').trim();
+          
+          // Check if first sentence is a name introduction
+          const nameIntroPatterns = [
+            /^(?:hi|hello|hey)[,\s]+(?:this is|my name is|my name's|name is|i am|i'm)\s+(.+)$/i,
+            /^(?:this is|my name is|my name's|name is|i am|i'm)\s+(.+)$/i,
+            /^([a-z][a-z' -]{1,40}?)\s+here$/i,
+          ];
+          
+          let nameFromFirstSentence: string | null = null;
+          for (const pattern of nameIntroPatterns) {
+            const match = firstSentence.match(pattern);
+            if (match) {
+              nameFromFirstSentence = normalizeNameCandidate(match[1].trim());
+              break;
+            }
+          }
+          
+          // Check if second sentence contains service language
+          const servicePatterns = [
+            /(?:i'm calling because|i am calling because|calling because)\s+(.+)/i,
+            /(?:i'm calling about|i am calling about|calling about)\s+(.+)/i,
+            /(?:i need|i want|i'd like|i would like)\s+(.+)/i,
+            /(?:looking for|looking to|need someone to)\s+(.+)/i,
+          ];
+          
+          let serviceFromSecondSentence: string | null = null;
+          for (const pattern of servicePatterns) {
+            const match = secondSentence.match(pattern);
+            if (match) {
+              serviceFromSecondSentence = stripServicePrefix(match[1].trim()).replace(/[.,;]\s*$/, '');
+              break;
+            }
+          }
+          
+          // If we got both name and service from two-sentence pattern, use it
+          if (nameFromFirstSentence && serviceFromSecondSentence) {
+            customerName = nameFromFirstSentence;
+            serviceRequested = serviceFromSecondSentence;
+            parserRuleMatched = 'two_sentence_pattern';
+            return { customerName, serviceRequested };
+          }
         }
 
         // Try explicit combined patterns first (name + reason in one pattern)
@@ -5731,6 +5782,15 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         state.intakeData.serviceRequested = parseResult.serviceRequested;
       } else {
         console.log('[FIRST-STAGE VALIDATION] serviceRequested rejected as invalid:', parseResult.serviceRequested);
+      }
+
+      // Preserve original raw transcript for completion repair
+      if (!state.rawFirstStageTranscript) {
+        state.rawFirstStageTranscript = rawTranscript;
+        console.log('[FIRST-STAGE RAW TRANSCRIPT PRESERVED] =========================================');
+        console.log('[FIRST-STAGE RAW TRANSCRIPT PRESERVED] rawFirstStageTranscript:', state.rawFirstStageTranscript);
+        console.log('[FIRST-STAGE RAW TRANSCRIPT PRESERVED] Timestamp:', new Date().toISOString());
+        console.log('[FIRST-STAGE RAW TRANSCRIPT PRESERVED] =========================================');
       }
 
       const stateCustomerNameAfter = state.intakeData.customerName;
@@ -6607,16 +6667,33 @@ Reply to this message if you'd like to update or add any information.
       // Only reparse if existing values are invalid
       if (!existingCustomerNameValid || !existingServiceRequestedValid) {
         console.log('[COMPLETION STAGE] Reparsing due to invalid existing values');
+        
+        // COMPLETION REPAIR SOURCE: Use preserved raw transcript if available
+        const repairSource = state.rawFirstStageTranscript || state.intakeData.customerName || '';
+        console.log('[COMPLETION REPAIR SOURCE] =========================================');
+        console.log('[COMPLETION REPAIR SOURCE] rawFirstStageTranscript:', state.rawFirstStageTranscript);
+        console.log('[COMPLETION REPAIR SOURCE] repairSource:', repairSource);
+        console.log('[COMPLETION REPAIR SOURCE] usingPreservedRawTranscript:', !!state.rawFirstStageTranscript);
+        console.log('[COMPLETION REPAIR SOURCE] Timestamp:', new Date().toISOString());
+        console.log('[COMPLETION REPAIR SOURCE] =========================================');
+        
         console.log('[parseNameAndService input]', {
+          repairSource,
           rawCustomerName:  state.intakeData.customerName,
           rawServiceRequested: state.intakeData.serviceRequested,
           alreadyHasService,
         });
         const parseResult = parseNameAndService(
-          state.intakeData.customerName || '',
+          repairSource,
           alreadyHasService ? state.intakeData.serviceRequested : undefined
         );
         console.log('[parseNameAndService output]', parseResult);
+        
+        console.log('[COMPLETION REPAIR OUTPUT] =========================================');
+        console.log('[COMPLETION REPAIR OUTPUT] parseResult.customerName:', parseResult.customerName);
+        console.log('[COMPLETION REPAIR OUTPUT] parseResult.serviceRequested:', parseResult.serviceRequested);
+        console.log('[COMPLETION REPAIR OUTPUT] Timestamp:', new Date().toISOString());
+        console.log('[COMPLETION REPAIR OUTPUT] =========================================');
         
         // Only overwrite invalid fields
         if (!existingCustomerNameValid && parseResult.customerName) {
@@ -6655,6 +6732,13 @@ Reply to this message if you'd like to update or add any information.
       state.intakeData.serviceAddress      = normalizeCrmField(state.intakeData.serviceAddress,        'address', 'serviceAddress');
       state.intakeData.desiredCompletionTime = normalizeCrmField(state.intakeData.desiredCompletionTime, 'time', 'desiredCompletionTime');
       state.intakeData.callbackTime        = normalizeCrmField(state.intakeData.callbackTime,        'time',    'callbackTime');
+
+      // FINAL CANONICAL FIELDS LOG
+      console.log('[FINAL CANONICAL FIELDS] =========================================');
+      console.log('[FINAL CANONICAL FIELDS] finalCanonicalCustomerName:', state.intakeData.customerName);
+      console.log('[FINAL CANONICAL FIELDS] finalCanonicalServiceRequested:', state.intakeData.serviceRequested);
+      console.log('[FINAL CANONICAL FIELDS] Timestamp:', new Date().toISOString());
+      console.log('[FINAL CANONICAL FIELDS] =========================================');
       state.intakeData.issueDescription    = normalizeCrmField(state.intakeData.issueDescription,     'details', 'issueDescription');
 
       // Log normalized values for diagnostics
