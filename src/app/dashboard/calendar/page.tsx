@@ -700,6 +700,17 @@ export default function SchedulePage() {
                   {/* Mobile-first: Calendar first, then Today's Schedule. Desktop: Today's Schedule sticky on left */}
                   <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[300px_1fr] gap-3 lg:gap-5 items-stretch">
 
+                  {/* LEFT (desktop): Today's Schedule */}
+                  <div className="hidden lg:block order-2 lg:order-1">
+                    <TodaySchedule
+                      jobs={jobs}
+                      isLoading={isLoadingJobs}
+                      onJobClick={(job) => { setSelectedJob(job); setIsJobDetailsOpen(true) }}
+                      onNewJob={openNewJob}
+                      onStatusChange={handleJobStatusChange}
+                    />
+                  </div>
+
                   {/* RIGHT (mobile-first): Tab toggle + Calendar / Jobs content */}
                   <div className="order-1 lg:order-2 min-w-0">
 
