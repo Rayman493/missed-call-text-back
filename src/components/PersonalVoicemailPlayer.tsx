@@ -400,11 +400,28 @@ export function PersonalVoicemailPlayer({
             {isVolumePopoverOpen && (
               <div
                 ref={volumePopoverRef}
-                className="absolute top-full right-0 mt-2 w-36 max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-lg shadow-lg p-4 z-50 animate-in fade-in slide-in-from-top-2 duration-200"
+                className="absolute top-full right-0 mt-2 w-44 max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-lg shadow-lg p-4 z-50 animate-in fade-in slide-in-from-top-2 duration-200"
                 role="dialog"
                 aria-label="Volume control"
               >
-                <div className="text-xs font-medium text-foreground mb-3">Volume</div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        toggleMute()
+                      }}
+                      className="p-1.5 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+                      aria-label={isMuted ? 'Unmute' : 'Mute'}
+                    >
+                      {getVolumeIcon()}
+                    </button>
+                    <span className="text-sm font-medium text-foreground">Volume</span>
+                  </div>
+                  <span className="text-sm text-muted-foreground font-mono tabular-nums">
+                    {Math.round((isMuted ? 0 : volume) * 100)}%
+                  </span>
+                </div>
                 <input
                   type="range"
                   min="0"
@@ -412,7 +429,7 @@ export function PersonalVoicemailPlayer({
                   step="0.01"
                   value={isMuted ? 0 : volume}
                   onChange={handleVolumeChange}
-                  className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors duration-200"
+                  className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors duration-200 touch-action-pan-y"
                   style={{
                     background: `linear-gradient(to right, #2563eb ${(isMuted ? 0 : volume) * 100}%, #e2e8f0 ${(isMuted ? 0 : volume) * 100}%)`,
                   }}

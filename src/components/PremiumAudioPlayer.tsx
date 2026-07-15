@@ -306,32 +306,38 @@ export default function PremiumAudioPlayer({
             {/* Mobile: Volume Popover */}
             <div className="md:hidden">
               {isMobileVolumeOpen && (
-                <div className="absolute top-full right-0 mt-2 w-36 max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-lg shadow-lg p-3 z-50">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        toggleMute()
-                      }}
-                      className="p-1.5 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
-                      aria-label={isMuted ? 'Unmute' : 'Mute'}
-                    >
-                      {React.createElement(getVolumeIcon(), { className: 'w-4 h-4' })}
-                    </button>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.01"
-                      value={isMuted ? 0 : volume}
-                      onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                      className="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full appearance-none cursor-pointer accent-blue-600"
-                      aria-label="Volume"
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                      aria-valuenow={Math.round((isMuted ? 0 : volume) * 100)}
-                    />
+                <div className="absolute top-full right-0 mt-2 w-44 max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-lg shadow-lg p-4 z-50">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggleMute()
+                        }}
+                        className="p-1.5 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+                        aria-label={isMuted ? 'Unmute' : 'Mute'}
+                      >
+                        {React.createElement(getVolumeIcon(), { className: 'w-4 h-4' })}
+                      </button>
+                      <span className="text-sm font-medium text-foreground">Volume</span>
+                    </div>
+                    <span className="text-sm text-muted-foreground font-mono tabular-nums">
+                      {Math.round((isMuted ? 0 : volume) * 100)}%
+                    </span>
                   </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={isMuted ? 0 : volume}
+                    onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+                    className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full appearance-none cursor-pointer accent-blue-600 touch-action-pan-y"
+                    aria-label="Volume"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={Math.round((isMuted ? 0 : volume) * 100)}
+                  />
                 </div>
               )}
             </div>
