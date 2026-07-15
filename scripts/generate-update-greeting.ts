@@ -6,7 +6,18 @@
 
 import fs from 'fs';
 import path from 'path';
+import { config } from 'dotenv';
 import { OpenAI } from 'openai';
+
+// Load environment variables from .env.local file
+config({ path: '.env.local' });
+
+// Check for required API key
+if (!process.env.OPENAI_API_KEY) {
+  console.error('[GREETING GENERATION] ERROR: OPENAI_API_KEY is not set in .env.local');
+  console.error('[GREETING GENERATION] Please add OPENAI_API_KEY to your .env.local file and try again.');
+  process.exit(1);
+}
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
