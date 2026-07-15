@@ -277,8 +277,25 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
     return null
   }
 
+  // FIELD SELECTION TRACE - Log which field is selected in fallback chain
+  const traceFieldSelection = (fieldName: string, candidates: (string | null | undefined)[]): string | null => {
+    const selected = pick(...candidates);
+    const selectedIndex = candidates.findIndex(c => c && typeof c === 'string' && c.trim() === selected);
+    
+    console.log('[FIELD SELECTION TRACE] =========================================');
+    console.log('[FIELD SELECTION TRACE] field:', fieldName);
+    console.log('[FIELD SELECTION TRACE] selectedValue:', selected);
+    console.log('[FIELD SELECTION TRACE] selectedIndex:', selectedIndex);
+    console.log('[FIELD SELECTION TRACE] candidates:', candidates);
+    console.log('[FIELD SELECTION TRACE] leadId:', lead?.id);
+    console.log('[FIELD SELECTION TRACE] Timestamp:', new Date().toISOString());
+    console.log('[FIELD SELECTION TRACE] =========================================');
+    
+    return selected;
+  };
+
   const result = {
-    customerName: normalizeCustomerName(pick(
+    customerName: normalizeCustomerName(traceFieldSelection('customerName', [
       corrected.name,
       corrected.callerName,
       corrected.customerName,
@@ -291,7 +308,7 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       normalized.callerName,
       rawMetadata.name,
       extractedInfoRaw.customerName
-    )),
+    ])),
     customerPhone: pick(
       lead?.caller_phone,
       lead?.phone,
@@ -302,14 +319,14 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       extractedInfoRaw.phone,
       extractedInfoRaw.customerPhone
     ),
-    serviceRequested: normalizeServiceReason(pick(
+    serviceRequested: normalizeServiceReason(traceFieldSelection('serviceRequested', [
       corrected.serviceRequested,
       corrected.reason,
       corrected.reasonForCalling,
       rawMetadata.serviceRequested,
       normalized.reasonForCalling,
       extractedInfoRaw.serviceRequested
-    )),
+    ])),
     additionalDetails: normalizeAdditionalDetails(pick(
       corrected.details,
       corrected.issueDescription,

@@ -36,7 +36,7 @@
  */
 
 // VERSION PROOF CONSTANTS - Hardcoded to prove deployment
-const AI_VOICE_DEPLOY_VERSION = "stable-cached-prompts-alloy-v1";
+const AI_VOICE_DEPLOY_VERSION = "extraction-tracing-v1";
 const AI_VOICE_EXPECTED_COMMIT = process.env.FLY_IMAGE_REF || process.env.FLY_ALLOC_ID || "local";
 const AI_VOICE_BUILD_TIMESTAMP = new Date().toISOString();
 const AI_VOICE_DEPLOY_ENV = process.env.NODE_ENV || "unknown";
@@ -2199,6 +2199,13 @@ function getNextStage(currentStage: IntakeStage): IntakeStage {
  * Then advances to the next stage in the fixed sequence
  */
 function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptAttempts?: Map<IntakeStage, number>): { response: string; nextStage: IntakeStage } {
+  console.log('[EXTRACTION PATH DETECTION] =========================================');
+  console.log('[EXTRACTION PATH DETECTION] path: getIntakeResponse (LEGACY PATH)');
+  console.log('[EXTRACTION PATH DETECTION] currentStage:', intake.stage);
+  console.log('[EXTRACTION PATH DETECTION] transcript:', transcript || 'none');
+  console.log('[EXTRACTION PATH DETECTION] Timestamp:', new Date().toISOString());
+  console.log('[EXTRACTION PATH DETECTION] =========================================');
+  
   console.log('[SCRIPTED FLOW] =========================================');
   console.log('[SCRIPTED FLOW] caller transcript received');
   console.log('[SCRIPTED FLOW] currentStage:', intake.stage);
@@ -2439,6 +2446,15 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
 function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
   const lowerTranscript = transcript.toLowerCase().trim();
   
+  // STAGE 2: Extraction Function Entry
+  console.log('[EXTRACTION TRACE STAGE 2] =========================================');
+  console.log('[EXTRACTION TRACE STAGE 2] extractMultipleAnswersInput:', transcript);
+  console.log('[EXTRACTION TRACE STAGE 2] currentStage:', intake.stage);
+  console.log('[EXTRACTION TRACE STAGE 2] existingCustomerName:', intake.customerName);
+  console.log('[EXTRACTION TRACE STAGE 2] existingServiceRequested:', intake.serviceRequested);
+  console.log('[EXTRACTION TRACE STAGE 2] Timestamp:', new Date().toISOString());
+  console.log('[EXTRACTION TRACE STAGE 2] =========================================');
+  
   console.log('[FIELD EXTRACTION INPUT] =========================================');
   console.log('[FIELD EXTRACTION INPUT] currentStage:', intake.stage);
   console.log('[FIELD EXTRACTION INPUT] transcript:', transcript);
@@ -2464,6 +2480,12 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
     case 'ask_name_reason':
       // Allowed: customerName, serviceRequested
       // Forbidden: issueDescription, serviceAddress, desiredCompletionTime, callbackTime
+
+      // STAGE 1: Raw Input Trace
+      console.log('[EXTRACTION TRACE STAGE 1] =========================================');
+      console.log('[EXTRACTION TRACE STAGE 1] rawFirstStageTranscript:', transcript);
+      console.log('[EXTRACTION TRACE STAGE 1] Timestamp:', new Date().toISOString());
+      console.log('[EXTRACTION TRACE STAGE 1] =========================================');
 
       // Deterministic parsing before GPT for ask_name_reason
       console.log('[SCRIPTED FLOW] deterministic name/reason parse =========================================');
@@ -2790,6 +2812,21 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
           console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
           console.log('[FIELD ASSIGNMENT] =========================================');
           console.log('[LIVE EXTRACTION MAPPED] serviceRequested:', intake.serviceRequested);
+          
+          // STAGE 3: Extraction Function Output
+          console.log('[EXTRACTION TRACE STAGE 3] =========================================');
+          console.log('[EXTRACTION TRACE STAGE 3] extractedCustomerName:', intake.customerName);
+          console.log('[EXTRACTION TRACE STAGE 3] extractedServiceRequested:', intake.serviceRequested);
+          console.log('[EXTRACTION TRACE STAGE 3] extractionMethod:', usedFallbackGpt ? 'fallback_gpt_extraction' : 'deterministic_regex_parse');
+          console.log('[EXTRACTION TRACE STAGE 3] Timestamp:', new Date().toISOString());
+          console.log('[EXTRACTION TRACE STAGE 3] =========================================');
+          
+          // STAGE 4: In-Memory State
+          console.log('[EXTRACTION TRACE STAGE 4] =========================================');
+          console.log('[EXTRACTION TRACE STAGE 4] intakeData.customerName:', intake.customerName);
+          console.log('[EXTRACTION TRACE STAGE 4] intakeData.serviceRequested:', intake.serviceRequested);
+          console.log('[EXTRACTION TRACE STAGE 4] Timestamp:', new Date().toISOString());
+          console.log('[EXTRACTION TRACE STAGE 4] =========================================');
           
           // DIAGNOSTIC LOGGING FOR FIRST-STAGE EXTRACTION
           console.log('[FIRST-STAGE EXTRACTION DIAGNOSTICS] =========================================');
@@ -3561,7 +3598,24 @@ async function finalizeIncompleteIntake(
     preferredCallbackTime: intakeData?.callbackTime || null,
     summary: `Partial intake: ${intakeData?.customerName || 'Unknown'} called about ${intakeData?.serviceRequested || 'unknown issue'}. Some details may be missing.`
   };
+  
+  // STAGE 5: Partial Persistence Payload
+  console.log('[EXTRACTION TRACE STAGE 5] =========================================');
+  console.log('[EXTRACTION TRACE STAGE 5] extractedFields.callerName:', extractedFields.callerName);
+  console.log('[EXTRACTION TRACE STAGE 5] extractedFields.reasonForCalling:', extractedFields.reasonForCalling);
+  console.log('[EXTRACTION TRACE STAGE 5] intakeData.customerName:', intakeData?.customerName);
+  console.log('[EXTRACTION TRACE STAGE 5] intakeData.serviceRequested:', intakeData?.serviceRequested);
+  console.log('[EXTRACTION TRACE STAGE 5] Timestamp:', new Date().toISOString());
+  console.log('[EXTRACTION TRACE STAGE 5] =========================================');
+  
   const canonicalInfo = buildCanonicalExtractedInfo(extractedFields, callerPhone || '');
+  
+  // STAGE 7: Canonical Mapping Values
+  console.log('[EXTRACTION TRACE STAGE 7] =========================================');
+  console.log('[EXTRACTION TRACE STAGE 7] canonicalInfo.customerName:', canonicalInfo.customerName);
+  console.log('[EXTRACTION TRACE STAGE 7] canonicalInfo.serviceRequested:', canonicalInfo.serviceRequested);
+  console.log('[EXTRACTION TRACE STAGE 7] Timestamp:', new Date().toISOString());
+  console.log('[EXTRACTION TRACE STAGE 7] =========================================');
   
   // Prefer the lead/conversation IDs pre-created by the voice route. If they are not
   // available (e.g., direct stream reconnect without custom parameters), fall back to
@@ -3797,6 +3851,14 @@ async function finalizeIncompleteIntake(
     return;
   }
   console.log('[INCOMPLETE FINALIZATION] AI record created/updated successfully');
+  
+  // STAGE 8: Final Persisted Values
+  console.log('[EXTRACTION TRACE STAGE 8] =========================================');
+  console.log('[EXTRACTION TRACE STAGE 8] persistedExtractedInfo.customerName:', canonicalInfo.customerName);
+  console.log('[EXTRACTION TRACE STAGE 8] persistedExtractedInfo.serviceRequested:', canonicalInfo.serviceRequested);
+  console.log('[EXTRACTION TRACE STAGE 8] callSid:', callSid);
+  console.log('[EXTRACTION TRACE STAGE 8] Timestamp:', new Date().toISOString());
+  console.log('[EXTRACTION TRACE STAGE 8] =========================================');
 
   // SMS DISPATCH REMOVED: AI voice service must NEVER send customer SMS.
   // Automatic customer summary SMS is owned exclusively by the voice-status webhook.
@@ -5255,6 +5317,13 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
   // Extract parameters from URL
   const url = new URL(req.url || '', `http://${req.headers.host}`);
 
+  console.log('[EXTRACTION PATH DETECTION] =========================================');
+  console.log('[EXTRACTION PATH DETECTION] path: handleSimpleModeConnection (SIMPLE MODE)');
+  console.log('[EXTRACTION PATH DETECTION] business_id:', url.searchParams.get('businessId') || 'none');
+  console.log('[EXTRACTION PATH DETECTION] call_sid:', url.searchParams.get('callSid') || 'none');
+  console.log('[EXTRACTION PATH DETECTION] Timestamp:', new Date().toISOString());
+  console.log('[EXTRACTION PATH DETECTION] =========================================');
+
   console.log('[WEBSOCKET_CONNECTED] =========================================');
   console.log('[WEBSOCKET_CONNECTED] event: websocket_connected');
   console.log('[WEBSOCKET_CONNECTED] business_id:', url.searchParams.get('businessId') || 'none');
@@ -5404,6 +5473,21 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     if (stage === 'ask_name_reason') {
       const stateCustomerNameBefore = state.intakeData.customerName;
       const stateServiceRequestedBefore = state.intakeData.serviceRequested;
+      
+      // SIMPLE MODE STAGE 1: Raw Input Trace
+      console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 1] =========================================');
+      console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 1] rawFirstStageTranscript:', rawTranscript);
+      console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 1] Timestamp:', new Date().toISOString());
+      console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 1] =========================================');
+      
+      // SIMPLE MODE STAGE 2: Function Entry Trace
+      console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 2] =========================================');
+      console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 2] storeStageCaptureInput:', rawTranscript);
+      console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 2] currentStage:', stage);
+      console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 2] existingCustomerName:', state.intakeData.customerName);
+      console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 2] existingServiceRequested:', state.intakeData.serviceRequested);
+      console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 2] Timestamp:', new Date().toISOString());
+      console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 2] =========================================');
 
       // Helper function to parse caller name and service from name/reason answer
       const parseNameAndService = (text: string, existingService?: string): { customerName: string; serviceRequested: string } => {
@@ -5597,6 +5681,21 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
       const stateCustomerNameAfter = state.intakeData.customerName;
       const stateServiceRequestedAfter = state.intakeData.serviceRequested;
+      
+      // SIMPLE MODE STAGE 3: Extraction Output Trace
+      console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 3] =========================================');
+      console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 3] extractedCustomerName:', parseResult.customerName);
+      console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 3] extractedServiceRequested:', parseResult.serviceRequested);
+      console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 3] extractionMethod:', 'parseNameAndService (Simple Mode)');
+      console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 3] Timestamp:', new Date().toISOString());
+      console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 3] =========================================');
+      
+      // SIMPLE MODE STAGE 4: In-Memory State Trace
+      console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 4] =========================================');
+      console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 4] intakeData.customerName:', state.intakeData.customerName);
+      console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 4] intakeData.serviceRequested:', state.intakeData.serviceRequested);
+      console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 4] Timestamp:', new Date().toISOString());
+      console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 4] =========================================');
 
       console.log('[ASK_NAME_REASON TRACE] =========================================');
       console.log('[ASK_NAME_REASON TRACE] callSid:', state.callSid);
@@ -5640,6 +5739,19 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     console.log('[AI INTAKE CAPTURE AUDIT] allStageCaptures:', JSON.stringify(state.stageCaptures, null, 2));
     console.log('[AI INTAKE CAPTURE AUDIT] Timestamp:', capture.timestamp);
     console.log('[AI INTAKE CAPTURE AUDIT] =========================================');
+    
+    // RAW STAGE CAPTURE OVERWRITE CHECK
+    if (stage === 'ask_name_reason') {
+      console.log('[RAW STAGE CAPTURE OVERWRITE CHECK] =========================================');
+      console.log('[RAW STAGE CAPTURE OVERWRITE CHECK] stage:', stage);
+      console.log('[RAW STAGE CAPTURE OVERWRITE CHECK] extractedField:', extractedField);
+      console.log('[RAW STAGE CAPTURE OVERWRITE CHECK] capturedAnswer:', capturedAnswer);
+      console.log('[RAW STAGE CAPTURE OVERWRITE CHECK] customerName:', state.intakeData.customerName);
+      console.log('[RAW STAGE CAPTURE OVERWRITE CHECK] serviceRequested:', state.intakeData.serviceRequested);
+      console.log('[RAW STAGE CAPTURE OVERWRITE CHECK] WARNING: Check if raw capture overwrites structured extraction');
+      console.log('[RAW STAGE CAPTURE OVERWRITE CHECK] Timestamp:', new Date().toISOString());
+      console.log('[RAW STAGE CAPTURE OVERWRITE CHECK] =========================================');
+    }
 
     // Persist partial data incrementally after each field capture
     persistPartialIntake(stage, extractedField).catch(err => {
@@ -5651,6 +5763,20 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
   // Partial intake persistence function - persists captured data incrementally
   const persistPartialIntake = async (stage: string, field: string) => {
+    // PARTIAL PERSISTENCE TIMING CHECK
+    console.log('[PARTIAL PERSISTENCE TIMING] =========================================');
+    console.log('[PARTIAL PERSISTENCE TIMING] callSid:', state.callSid);
+    console.log('[PARTIAL PERSISTENCE TIMING] stage:', stage);
+    console.log('[PARTIAL PERSISTENCE TIMING] field:', field);
+    console.log('[PARTIAL PERSISTENCE TIMING] Timestamp:', new Date().toISOString());
+    console.log('[PARTIAL PERSISTENCE TIMING] customerName:', state.intakeData.customerName);
+    console.log('[PARTIAL PERSISTENCE TIMING] serviceRequested:', state.intakeData.serviceRequested);
+    console.log('[PARTIAL PERSISTENCE TIMING] issueDescription:', state.intakeData.issueDescription);
+    console.log('[PARTIAL PERSISTENCE TIMING] serviceAddress:', state.intakeData.serviceAddress);
+    console.log('[PARTIAL PERSISTENCE TIMING] desiredCompletionTime:', state.intakeData.desiredCompletionTime);
+    console.log('[PARTIAL PERSISTENCE TIMING] callbackTime:', state.intakeData.callbackTime);
+    console.log('[PARTIAL PERSISTENCE TIMING] =========================================');
+    
     if (!state.callSid || !state.businessId || !state.callerPhone) {
       console.log('[PARTIAL INTAKE PERSIST] =========================================');
       console.log('[PARTIAL INTAKE PERSIST] callSid:', state.callSid);
@@ -5975,6 +6101,17 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     console.log('[COMPLETION SOURCE] intakeData:', JSON.stringify(state.intakeData, null, 2));
     console.log('[COMPLETION SOURCE] Timestamp:', new Date().toISOString());
     console.log('[COMPLETION SOURCE] =========================================');
+    
+    // STAGE 6: Completion Input Values
+    console.log('[EXTRACTION TRACE STAGE 6] =========================================');
+    console.log('[EXTRACTION TRACE STAGE 6] completionInput.customerName:', state.intakeData.customerName);
+    console.log('[EXTRACTION TRACE STAGE 6] completionInput.serviceRequested:', state.intakeData.serviceRequested);
+    console.log('[EXTRACTION TRACE STAGE 6] completionInput.issueDescription:', state.intakeData.issueDescription);
+    console.log('[EXTRACTION TRACE STAGE 6] completionInput.serviceAddress:', state.intakeData.serviceAddress);
+    console.log('[EXTRACTION TRACE STAGE 6] completionInput.desiredCompletionTime:', state.intakeData.desiredCompletionTime);
+    console.log('[EXTRACTION TRACE STAGE 6] completionInput.callbackTime:', state.intakeData.callbackTime);
+    console.log('[EXTRACTION TRACE STAGE 6] Timestamp:', new Date().toISOString());
+    console.log('[EXTRACTION TRACE STAGE 6] =========================================');
 
     if (state.completionPersistenceStarted) {
       console.log('[COMPLETION SOURCE] =========================================');
@@ -6348,6 +6485,17 @@ Reply to this message if you'd like to update or add any information.
       // If extractMultipleAnswers already populated serviceRequested, preserve it and
       // only clean the name portion out of customerName (strip trailing service text).
       const alreadyHasService = !!(state.intakeData.serviceRequested && state.intakeData.serviceRequested.trim());
+      
+      // COMPLETION STAGE OVERWRITE CHECK
+      console.log('[COMPLETION OVERWRITE CHECK] =========================================');
+      console.log('[COMPLETION OVERWRITE CHECK] rawCustomerName:', state.intakeData.customerName);
+      console.log('[COMPLETION OVERWRITE CHECK] rawServiceRequested:', state.intakeData.serviceRequested);
+      console.log('[COMPLETION OVERWRITE CHECK] alreadyHasService:', alreadyHasService);
+      console.log('[COMPLETION OVERWRITE CHECK] WARNING: parseNameAndService will be called again in completion');
+      console.log('[COMPLETION OVERWRITE CHECK] This may overwrite values from initial extraction');
+      console.log('[COMPLETION OVERWRITE CHECK] Timestamp:', new Date().toISOString());
+      console.log('[COMPLETION OVERWRITE CHECK] =========================================');
+      
       console.log('[parseNameAndService input]', {
         rawCustomerName:  state.intakeData.customerName,
         rawServiceRequested: state.intakeData.serviceRequested,
@@ -6358,6 +6506,17 @@ Reply to this message if you'd like to update or add any information.
         alreadyHasService ? state.intakeData.serviceRequested : undefined
       );
       console.log('[parseNameAndService output]', { customerName, serviceRequested });
+      
+      // COMPLETION STAGE OVERWRITE RESULT
+      console.log('[COMPLETION OVERWRITE RESULT] =========================================');
+      console.log('[COMPLETION OVERWRITE RESULT] customerNameBefore:', state.intakeData.customerName);
+      console.log('[COMPLETION OVERWRITE RESULT] customerNameAfter:', customerName);
+      console.log('[COMPLETION OVERWRITE RESULT] serviceRequestedBefore:', state.intakeData.serviceRequested);
+      console.log('[COMPLETION OVERWRITE RESULT] serviceRequestedAfter:', serviceRequested);
+      console.log('[COMPLETION OVERWRITE RESULT] customerNameChanged:', state.intakeData.customerName !== customerName);
+      console.log('[COMPLETION OVERWRITE RESULT] serviceRequestedChanged:', state.intakeData.serviceRequested !== serviceRequested);
+      console.log('[COMPLETION OVERWRITE RESULT] Timestamp:', new Date().toISOString());
+      console.log('[COMPLETION OVERWRITE RESULT] =========================================');
 
       // Apply minimal cleanup to name only (split on comma)
       state.intakeData.customerName = cleanNameMinimal(customerName);
@@ -15166,9 +15325,13 @@ server.listen(PORT, () => {
   console.log('[RUNTIME VERSION CHECK] - AUDIO FLUSHED');
   console.log('[RUNTIME VERSION CHECK] - SEND AUDIO INTERNAL DEBUG');
   console.log('[RUNTIME VERSION CHECK] - ASSISTANT SPEAKING TRUE/FALSE');
+  console.log('[RUNTIME VERSION CHECK] - FIRST-STAGE EXTRACTION DIAGNOSTICS');
+  console.log('[RUNTIME VERSION CHECK] - EXTRACTION TRACE STAGES 1-8');
   console.log('[RUNTIME VERSION CHECK] Timestamp:', AI_VOICE_BUILD_TIMESTAMP);
   console.log('[RUNTIME VERSION CHECK] =========================================');
-  console.log('[AI VOICE SERVICE VERSION] feature=stable-cached-prompts-alloy-v1');
+  console.log('[AI VOICE SERVICE VERSION] feature=extraction-tracing-v1');
+  console.log('[AI VOICE SERVICE VERSION] extraction-code-path: LOADED');
+  console.log('[AI VOICE SERVICE VERSION] intelligent-fallback: ENABLED');
   console.log('[SCHEMA COMPATIBILITY CHECK] conversations table columns: lead_id, business_id, status, created_at, updated_at (NO call_sid)');
   console.log('[SCHEMA COMPATIBILITY CHECK] leads table columns: id, business_id, phone, caller_phone, name, email, source, status, raw_metadata, created_at, updated_at (AI service writes only business_id, caller_phone, status, source, raw_metadata)');
   console.log('[SCHEMA COMPATIBILITY CHECK] ai_call_records table columns: id, business_id, lead_id, conversation_id, caller_phone, call_sid, ai_session_id, transcript, outcome, extracted_info, summary, extraction_failed, created_at, updated_at');
