@@ -317,7 +317,9 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
           <div className="text-xs text-muted-foreground">0 earned</div>
         </div>
         <div className="flex flex-col items-center justify-center py-6 text-center">
-          <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-muted-foreground/50 mb-2" />
+          <div className="w-12 h-12 sm:w-14 sm:h-14 bg-slate-500/10 dark:bg-slate-500/15 rounded-xl border border-slate-500/20 dark:border-slate-500/25 flex items-center justify-center mb-3">
+            <Trophy className="w-6 h-6 sm:w-7 sm:h-7 text-slate-500/70 dark:text-slate-400/70" />
+          </div>
           <p className="text-sm text-muted-foreground">Your first achievement is waiting</p>
           <p className="text-xs text-muted-foreground/70 mt-1 max-w-[200px]">
             Milestones will appear as you begin capturing customers
