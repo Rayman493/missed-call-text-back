@@ -271,6 +271,57 @@ if (wouldBeMissing) {
   failed++;
 }
 
+// Test 12: Verify runtime validator canonical registry matches production expectations
+console.log('\nTest 12: Verify runtime validator canonical registry matches production expectations');
+const expectedCanonicalKeys = [
+  'ask_name_reason',
+  'ask_name_reason_service_only',
+  'ask_name_reason_name_only',
+  'ask_details',
+  'ask_location',
+  'ask_completion_time',
+  'ask_callback_time',
+  'complete'
+];
+let canonicalMatchesProduction = true;
+if (canonicalPromptKeys.length !== expectedCanonicalKeys.length) {
+  console.log(`✗ FAIL: Canonical registry has ${canonicalPromptKeys.length} keys, expected ${expectedCanonicalKeys.length}`);
+  canonicalMatchesProduction = false;
+  failed++;
+} else {
+  for (const expectedKey of expectedCanonicalKeys) {
+    if (!canonicalPromptKeys.includes(expectedKey)) {
+      console.log(`✗ FAIL: Canonical registry missing expected key: ${expectedKey}`);
+      canonicalMatchesProduction = false;
+      failed++;
+    }
+  }
+  for (const actualKey of canonicalPromptKeys) {
+    if (!expectedCanonicalKeys.includes(actualKey)) {
+      console.log(`✗ FAIL: Canonical registry has unexpected key: ${actualKey}`);
+      canonicalMatchesProduction = false;
+      failed++;
+    }
+  }
+}
+if (canonicalMatchesProduction) {
+  console.log('✓ PASS: Canonical registry matches production expectations (8 keys)');
+  passed++;
+}
+
+// Test 13: Verify validation would pass with current state
+console.log('\nTest 13: Verify validation would pass with current state');
+const validationWouldPass = missingPromptKeys.length === 0 && unexpectedPromptKeys.length === 0;
+if (validationWouldPass) {
+  console.log('✓ PASS: Validation would pass (missingPromptKeys: [], unexpectedPromptKeys: [])');
+  passed++;
+} else {
+  console.log('✗ FAIL: Validation would fail');
+  console.log(`  missingPromptKeys: ${JSON.stringify(missingPromptKeys)}`);
+  console.log(`  unexpectedPromptKeys: ${JSON.stringify(unexpectedPromptKeys)}`);
+  failed++;
+}
+
 // Summary
 console.log('\n=== TEST SUMMARY ===');
 console.log(`Total: ${passed + failed}`);

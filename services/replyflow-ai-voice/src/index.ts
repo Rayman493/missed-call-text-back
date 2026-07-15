@@ -64,6 +64,18 @@ import { OPENAI_REALTIME_MODEL, createOpenAIRealtimeUrl } from './realtime-model
 // @ts-nocheck
 // TypeScript checking disabled to allow deployment with improved Supabase logging
 
+// Canonical Simple Mode prompt keys - single source of truth for all prompt validation
+const REQUIRED_PROMPTS = [
+  'ask_name_reason',
+  'ask_name_reason_service_only',
+  'ask_name_reason_name_only',
+  'ask_details',
+  'ask_location',
+  'ask_completion_time',
+  'ask_callback_time',
+  'complete'
+];
+
 // Prompt playback state - authoritative source of truth for scripted prompt playback
 type PromptPlaybackStatus = 'idle' | 'starting' | 'streaming' | 'waiting_for_mark' | 'done';
 type PromptPlaybackState = {
@@ -145,17 +157,6 @@ console.log('[CACHED AUDIO VALIDATION] generatedAt:', CACHED_AUDIO_GENERATED_AT)
 console.log('[CACHED AUDIO VALIDATION] realtimeModel:', REALTIME_MODEL);
 console.log('[CACHED AUDIO VALIDATION] ttsVoice:', TTS_VOICE);
 console.log('[CACHED AUDIO VALIDATION] outputFormat:', OUTPUT_FORMAT);
-
-// Required production prompts for Simple Mode (canonical keys)
-// These must match SIMPLE_MODE_PROMPT_KEYS exactly
-const REQUIRED_PROMPTS = [
-  'ask_name_reason',
-  'ask_details',
-  'ask_location',
-  'ask_completion_time',
-  'ask_callback_time',
-  'complete'
-];
 
 const crypto = require('crypto');
 
@@ -5505,101 +5506,6 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     ask_callback_time: "Perfect. Last question—what's the best time for the business to call you back?",
     complete: "Perfect. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
   };
-
-  // STARTUP VALIDATION: Validate all required Simple Mode cached prompts
-  const requiredPromptKeys = [
-    'ask_name_reason',
-    'ask_name_reason_service_only',
-    'ask_name_reason_name_only',
-    'ask_details',
-    'ask_location',
-    'ask_completion_time',
-    'ask_callback_time',
-    'complete'
-  ];
-
-  console.log('[STARTUP AUDIO VALIDATION] =========================================');
-  console.log('[STARTUP AUDIO VALIDATION] event: validating_cached_prompt_assets');
-  console.log('[STARTUP AUDIO VALIDATION] Timestamp:', new Date().toISOString());
-  console.log('[STARTUP AUDIO VALIDATION] =========================================');
-
-  const audioValidationResults: Record<string, { exists: boolean; byteLength?: number; hash?: string }> = {};
-  let hasMissingAssets = false;
-  let hasDuplicateAssets = false;
-
-  for (const promptKey of requiredPromptKeys) {
-    const audio = cachedPromptAudio[promptKey as keyof typeof cachedPromptAudio];
-    const exists = !!audio;
-    const byteLength = audio ? Buffer.from(audio, 'base64').length : undefined;
-    const hash = audio ? require('crypto').createHash('sha256').update(Buffer.from(audio, 'base64')).digest('hex').substring(0, 16) : undefined;
-
-    audioValidationResults[promptKey] = { exists, byteLength, hash };
-
-    console.log('[STARTUP AUDIO VALIDATION] =========================================');
-    console.log('[STARTUP AUDIO VALIDATION] promptKey:', promptKey);
-    console.log('[STARTUP AUDIO VALIDATION] exists:', exists);
-    console.log('[STARTUP AUDIO VALIDATION] byteLength:', byteLength || 'N/A');
-    console.log('[STARTUP AUDIO VALIDATION] hash:', hash || 'N/A');
-    console.log('[STARTUP AUDIO VALIDATION] =========================================');
-
-    if (!exists) {
-      hasMissingAssets = true;
-      console.log('[STARTUP AUDIO VALIDATION ERROR] =========================================');
-      console.log('[STARTUP AUDIO VALIDATION ERROR] event: missing_cached_audio_asset');
-      console.log('[STARTUP AUDIO VALIDATION ERROR] missingPromptKey:', promptKey);
-      console.log('[STARTUP AUDIO VALIDATION ERROR] action: fallback_will_be_used');
-      console.log('[STARTUP AUDIO VALIDATION ERROR] Timestamp:', new Date().toISOString());
-      console.log('[STARTUP AUDIO VALIDATION ERROR] =========================================');
-    }
-  }
-
-  // Check for duplicate assets (same hash)
-  const hashes: Record<string, string[]> = {};
-  for (const [promptKey, result] of Object.entries(audioValidationResults)) {
-    if (result.hash) {
-      if (!hashes[result.hash]) {
-        hashes[result.hash] = [];
-      }
-      hashes[result.hash].push(promptKey);
-    }
-  }
-
-  for (const [hash, keys] of Object.entries(hashes)) {
-    if (keys.length > 1) {
-      hasDuplicateAssets = true;
-      console.log('[STARTUP AUDIO VALIDATION WARNING] =========================================');
-      console.log('[STARTUP AUDIO VALIDATION WARNING] event: duplicate_audio_assets_detected');
-      console.log('[STARTUP AUDIO VALIDATION WARNING] hash:', hash);
-      console.log('[STARTUP AUDIO VALIDATION WARNING] duplicatePromptKeys:', JSON.stringify(keys));
-      console.log('[STARTUP AUDIO VALIDATION WARNING] action: investigate_generation_script');
-      console.log('[STARTUP AUDIO VALIDATION WARNING] Timestamp:', new Date().toISOString());
-      console.log('[STARTUP AUDIO VALIDATION WARNING] =========================================');
-    }
-  }
-
-  if (hasMissingAssets) {
-    console.log('[STARTUP AUDIO VALIDATION ERROR] =========================================');
-    console.log('[STARTUP AUDIO VALIDATION ERROR] event: startup_validation_failed');
-    console.log('[STARTUP AUDIO VALIDATION ERROR] reason: missing_required_audio_assets');
-    console.log('[STARTUP AUDIO VALIDATION ERROR] action: run_npx_ts-node_scripts_generate-realtime-cached-audio_ts');
-    console.log('[STARTUP AUDIO VALIDATION ERROR] Timestamp:', new Date().toISOString());
-    console.log('[STARTUP AUDIO VALIDATION ERROR] =========================================');
-  }
-
-  if (hasDuplicateAssets) {
-    console.log('[STARTUP AUDIO VALIDATION WARNING] =========================================');
-    console.log('[STARTUP AUDIO VALIDATION WARNING] event: duplicate_assets_detected');
-    console.log('[STARTUP AUDIO VALIDATION WARNING] action: investigate_generation_script_for_collisions');
-    console.log('[STARTUP AUDIO VALIDATION WARNING] Timestamp:', new Date().toISOString());
-    console.log('[STARTUP AUDIO VALIDATION WARNING] =========================================');
-  }
-
-  console.log('[STARTUP AUDIO VALIDATION] =========================================');
-  console.log('[STARTUP AUDIO VALIDATION] event: validation_complete');
-  console.log('[STARTUP AUDIO VALIDATION] hasMissingAssets:', hasMissingAssets);
-  console.log('[STARTUP AUDIO VALIDATION] hasDuplicateAssets:', hasDuplicateAssets);
-  console.log('[STARTUP AUDIO VALIDATION] Timestamp:', new Date().toISOString());
-  console.log('[STARTUP AUDIO VALIDATION] =========================================');
 
   // Cached PCMU audio for each prompt (pre-generated for deterministic speech)
   state.sessionId = url.searchParams.get('sessionId') || '';
