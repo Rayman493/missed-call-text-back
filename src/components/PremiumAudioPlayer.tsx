@@ -177,8 +177,7 @@ export default function PremiumAudioPlayer({
             )}
             <button
               onClick={onTogglePlayPause}
-              disabled={!canSeek}
-              className="relative w-12 h-12 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-full flex items-center justify-center transition-all shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="relative w-12 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center transition-all shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               aria-label={isPlaying ? 'Pause' : 'Play'}
               onKeyDown={handleKeyDown}
             >
