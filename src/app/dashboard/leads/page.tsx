@@ -1243,10 +1243,10 @@ export default function LeadsPage() {
                       </p>
                       <div
                         key={lead.id}
-                        className={`w-full max-w-2xl h-full flex flex-col rounded-xl border relative overflow-hidden transition-all duration-200 ${
+                        className={`w-full max-w-2xl h-full flex flex-col rounded-xl border relative overflow-hidden transition-all duration-200 cursor-pointer ${
                           selectedLeadId === lead.id
                             ? 'bg-primary/5 border-primary/50 shadow-lg shadow-primary/10'
-                            : 'bg-card border-border/50 hover:border-border/80 hover:shadow-md hover:-translate-y-0.5'
+                            : 'bg-card border-border/50 hover:border-primary/60 hover:shadow-lg hover:-translate-y-1'
                         }`}
                         onClick={() => {
                           // Only navigate on desktop
@@ -1257,6 +1257,15 @@ export default function LeadsPage() {
                             setSelectedLeadId(selectedLeadId === lead.id ? null : lead.id)
                           }
                         }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            handleConversationClick(lead.id)
+                          }
+                        }}
+                        tabIndex={0}
+                        role="button"
+                        aria-label={`View ${getLeadDisplayName(lead)} details`}
                       >
                         {/* Status Accent Bar - Subtle left accent */}
                         <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${getLeadStatusAccentColor(getLeadLifecycleStatus(lead))}`}></div>
@@ -1338,34 +1347,8 @@ export default function LeadsPage() {
                             </div>
                           </div>
 
-                          {/* Action Buttons - Improved mobile touch targets */}
-                          <div className="flex items-center gap-2 pt-2.5 border-t border-border/30 mt-auto">
-                            <div className="grid grid-cols-2 gap-2 flex-1">
-                              {lead.caller_phone && lead.caller_phone !== '+10000000000' && (
-                                <a
-                                  href={`tel:${lead.caller_phone}`}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="sm:hidden inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-muted hover:bg-muted/80 text-muted-foreground text-xs font-medium rounded-lg transition-colors group-hover:bg-primary/10 group-hover:text-primary whitespace-nowrap w-full"
-                                  title="Call"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 8V5z" />
-                                  </svg>
-                                  Call
-                                </a>
-                              )}
-                              <div className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-all duration-200 cursor-pointer whitespace-nowrap shadow-sm hover:shadow w-full"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  router.push(`/dashboard/leads/${lead.id}`)
-                                }}
-                              >
-                                <span>View</span>
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
-                              </div>
-                            </div>
+                          {/* Action Buttons - Only overflow menu */}
+                          <div className="flex items-center gap-2 pt-2.5 border-t border-border/30 mt-auto justify-end">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <button
@@ -1455,10 +1438,10 @@ export default function LeadsPage() {
                         return (
                           <div
                             key={lead.id}
-                            className={`rounded-xl border relative overflow-hidden transition-all duration-200 ${
+                            className={`rounded-xl border relative overflow-hidden transition-all duration-200 cursor-pointer ${
                               selectedLeadId === lead.id
                                 ? 'bg-primary/5 border-primary/50 shadow-lg shadow-primary/10'
-                                : 'bg-card border-border/50 hover:border-border/80 hover:shadow-md hover:-translate-y-0.5'
+                                : 'bg-card border-border/50 hover:border-primary/60 hover:shadow-lg hover:-translate-y-1'
                             }`}
                             onClick={() => {
                               // Only navigate on desktop
@@ -1469,6 +1452,15 @@ export default function LeadsPage() {
                                 setSelectedLeadId(selectedLeadId === lead.id ? null : lead.id)
                               }
                             }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault()
+                                handleConversationClick(lead.id)
+                              }
+                            }}
+                            tabIndex={0}
+                            role="button"
+                            aria-label={`View ${getLeadDisplayName(lead)} details`}
                           >
                             {/* Status Accent Bar - Subtle left accent */}
                             <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${getLeadStatusAccentColor(getLeadLifecycleStatus(lead))}`}></div>
@@ -1550,34 +1542,8 @@ export default function LeadsPage() {
                                 </div>
                               </div>
 
-                              {/* Action Buttons - Improved mobile touch targets */}
-                              <div className="flex items-center gap-1 sm:gap-1.5 pt-1.5 sm:pt-2 border-t border-border/30">
-                                <div className="grid grid-cols-2 gap-1 sm:gap-1.5 flex-1">
-                                  {lead.caller_phone && lead.caller_phone !== '+10000000000' && (
-                                    <a
-                                      href={`tel:${lead.caller_phone}`}
-                                      onClick={(e) => e.stopPropagation()}
-                                      className="flex sm:hidden inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2 py-1.5 sm:px-2.5 sm:py-1.5 bg-muted hover:bg-muted/80 text-muted-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-colors whitespace-nowrap w-full"
-                                      title="Call"
-                                    >
-                                      <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 8V5z" />
-                                      </svg>
-                                      <span className="hidden sm:inline">Call</span>
-                                    </a>
-                                  )}
-                                  <div className="inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2 py-1.5 sm:px-2.5 sm:py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-all duration-200 cursor-pointer whitespace-nowrap shadow-sm hover:shadow w-full"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      router.push(`/dashboard/leads/${lead.id}`)
-                                    }}
-                                  >
-                                    <span>View</span>
-                                    <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                    </svg>
-                                  </div>
-                                </div>
+                              {/* Action Buttons - Only overflow menu */}
+                              <div className="flex items-center gap-1 sm:gap-1.5 pt-1.5 sm:pt-2 border-t border-border/30 justify-end">
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <button
