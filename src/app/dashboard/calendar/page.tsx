@@ -667,7 +667,7 @@ export default function SchedulePage() {
     >
               {/* Loading State */}
               {isLoading ? (
-                <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] xl:grid-cols-[340px_1fr] gap-4 xl:gap-5 items-start py-4">
+                <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] xl:grid-cols-[340px_1fr] gap-4 xl:gap-5 items-stretch py-4">
                   {/* Skeleton Today's Schedule */}
                   <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 animate-pulse">
                     <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/2 mb-2"></div>
@@ -698,14 +698,14 @@ export default function SchedulePage() {
               ) : (
                 <>
                   {/* Mobile-first: Calendar first, then Today's Schedule. Desktop: Today's Schedule sticky on left */}
-                  <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[300px_1fr] gap-3 lg:gap-5 items-start">
+                  <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[300px_1fr] gap-3 lg:gap-5 items-stretch">
 
                   {/* RIGHT (mobile-first): Tab toggle + Calendar / Jobs content */}
                   <div className="order-1 lg:order-2 min-w-0">
 
                   {/* Schedule Tab Toggle */}
                   <div className="hidden md:flex mb-3">
-                    <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1 w-fit">
+                    <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1 w-full">
                       <button
                         onClick={() => setScheduleTab('calendar')}
                         className={`flex items-center gap-1.5 px-4 py-2 rounded-md font-medium transition-all ${
