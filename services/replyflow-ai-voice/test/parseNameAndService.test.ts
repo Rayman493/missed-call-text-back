@@ -47,12 +47,24 @@ const parseNameAndService = (text: string, existingService?: string): { customer
   const trimmed = text.trim();
   const lower = trimmed.toLowerCase();
 
+  // NEW: Filler prefix normalization - strip harmless conversational fillers at start
+  // Allowed fillers: yeah, yep, yes, uh, um, well, so, okay, ok, alright, hi, hey
+  // Allow short filler combinations like "uh yeah", "well yeah", "yeah so"
+  // Handle optional trailing punctuation: comma, period, dash
+  // IMPORTANT: Use lookahead to ensure filler is followed by comma, space, or end of string (not part of a word)
+  const normalizeFillerPrefix = (input: string): string => {
+    const fillerPattern = /^(?:(?:yeah|yep|yes|uh|um|well|so|okay|ok|alright|hi|hey)(?=[,\s]|$)[,\s]*){1,2}/i;
+    return input.replace(fillerPattern, '').trim();
+  };
+
+  const parseText = normalizeFillerPrefix(trimmed);
+
   // Split on sentence boundaries for two-sentence patterns
   const sentenceSplitPatterns = [/\.\s+/i, /\.\n/i, /\n/i];
-  let sentences: string[] = [trimmed];
+  let sentences: string[] = [parseText];
   for (const pattern of sentenceSplitPatterns) {
-    if (pattern.test(trimmed)) {
-      sentences = trimmed.split(pattern).map(s => s.trim()).filter(s => s.length > 0);
+    if (pattern.test(parseText)) {
+      sentences = parseText.split(pattern).map(s => s.trim()).filter(s => s.length > 0);
       break;
     }
   }
@@ -101,10 +113,10 @@ const parseNameAndService = (text: string, existingService?: string): { customer
   // NEW: Comma-separated pattern handling for natural responses
   // Pattern: "Sarah Johnson, my air conditioner stopped working."
   // Safety: Left side must look like a plausible human name, not a service/problem statement
-  const commaIndex = trimmed.indexOf(',');
-  if (commaIndex > 0 && commaIndex < trimmed.length - 1) {
-    const leftSide = trimmed.slice(0, commaIndex).trim();
-    const rightSide = trimmed.slice(commaIndex + 1).trim();
+  const commaIndex = parseText.indexOf(',');
+  if (commaIndex > 0 && commaIndex < parseText.length - 1) {
+    const leftSide = parseText.slice(0, commaIndex).trim();
+    const rightSide = parseText.slice(commaIndex + 1).trim();
     
     // Safety check: Left side must look like a plausible name
     const looksLikeName = (candidate: string): boolean => {
@@ -181,7 +193,7 @@ const parseNameAndService = (text: string, existingService?: string): { customer
   ];
 
   for (const pattern of namePatterns) {
-    const match = trimmed.match(pattern);
+    const match = parseText.match(pattern);
     if (match && match[1]) {
       name = match[1].trim();
       break;
@@ -193,10 +205,24 @@ const parseNameAndService = (text: string, existingService?: string): { customer
   ];
 
   for (const pattern of servicePatterns) {
-    const match = trimmed.match(pattern);
+    const match = parseText.match(pattern);
     if (match && match[1] && !service) {
       service = match[1].trim();
       break;
+    }
+  }
+
+  // Fallback: if no service matched and no name was found, check if text contains service phrases
+  // This handles cases like "Yeah, my kitchen sink is leaking." after filler normalization
+  // But NOT pure problem statements like "My kitchen sink is leaking, and it is getting worse."
+  if (!service && !name) {
+    const servicePhrases = [
+      "i need", "i want", "i'd like", "i would like", "i'm calling", "i am calling",
+      "calling about", "looking for", "looking to", "need someone", "trying to"
+    ];
+    const hasServicePhrase = servicePhrases.some(phrase => parseText.toLowerCase().includes(phrase));
+    if (hasServicePhrase) {
+      service = parseText;
     }
   }
 
@@ -277,7 +303,74 @@ const testCases = [
     expectedName: "Yesenia Noel",
     expectedService: "my sink is clogged"
   },
-  // False-positive protection tests
+  // Filler prefix regression tests
+  {
+    description: "Filler prefix: Yeah, this is David Miller. I'm calling because my garage door has been acting weird and now won't open all the way.",
+    input: "Yeah, this is David Miller. I'm calling because my garage door has been acting weird and now won't open all the way.",
+    expectedName: "David Miller",
+    expectedService: "my garage door has been acting weird and now won't open all the way."
+  },
+  {
+    description: "Filler prefix: Uh, this is John Smith. I need a plumber.",
+    input: "Uh, this is John Smith. I need a plumber.",
+    expectedName: "John Smith",
+    expectedService: "a plumber."
+  },
+  {
+    description: "Filler prefix: Well, my name is Sarah Johnson. Calling about a broken water heater.",
+    input: "Well, my name is Sarah Johnson. Calling about a broken water heater.",
+    expectedName: "Sarah Johnson",
+    expectedService: "a broken water heater."
+  },
+  {
+    description: "Filler prefix: Hey, this is Mike Thompson. I'm calling because my kitchen sink has been leaking.",
+    input: "Hey, this is Mike Thompson. I'm calling because my kitchen sink has been leaking.",
+    expectedName: "Mike Thompson",
+    expectedService: "my kitchen sink has been leaking."
+  },
+  {
+    description: "Filler prefix: Alright, this is Yesenia Noel. My sink is clogged.",
+    input: "Alright, this is Yesenia Noel. My sink is clogged.",
+    expectedName: "Yesenia Noel",
+    expectedService: "My sink is clogged."
+  },
+  {
+    description: "Filler prefix: Um, this is Tom Wilson. I need help with a clogged drain.",
+    input: "Um, this is Tom Wilson. I need help with a clogged drain.",
+    expectedName: "Tom Wilson",
+    expectedService: "help with a clogged drain."
+  },
+  {
+    description: "Filler prefix: Okay, this is Maria Garcia. Calling about getting my house cleaned.",
+    input: "Okay, this is Maria Garcia. Calling about getting my house cleaned.",
+    expectedName: "Maria Garcia",
+    expectedService: "getting my house cleaned."
+  },
+  {
+    description: "Filler prefix: So, this is David Miller. I'm calling because my garage door has been acting weird.",
+    input: "So, this is David Miller. I'm calling because my garage door has been acting weird.",
+    expectedName: "David Miller",
+    expectedService: "my garage door has been acting weird."
+  },
+  {
+    description: "Filler prefix: Uh yeah, this is John Smith. I need a plumber.",
+    input: "Uh yeah, this is John Smith. I need a plumber.",
+    expectedName: "John Smith",
+    expectedService: "a plumber."
+  },
+  {
+    description: "Filler prefix: Well yeah, this is Sarah Johnson. Calling about a broken water heater.",
+    input: "Well yeah, this is Sarah Johnson. Calling about a broken water heater.",
+    expectedName: "Sarah Johnson",
+    expectedService: "a broken water heater."
+  },
+  {
+    description: "Filler prefix: Yeah so, this is Mike Thompson. I'm calling because my kitchen sink has been leaking.",
+    input: "Yeah so, this is Mike Thompson. I'm calling because my kitchen sink has been leaking.",
+    expectedName: "Mike Thompson",
+    expectedService: "my kitchen sink has been leaking."
+  },
+  // False-positive protection tests for filler stripping
   // Key requirement: These must NOT extract a customer name
   {
     description: "False-positive: My kitchen sink is leaking, and it is getting worse.",
@@ -302,6 +395,94 @@ const testCases = [
     expectedService: "", // Service extraction varies, focus on name validation
     expectNameValid: false,
     expectServiceValid: false // Allow empty service
+  },
+  {
+    description: "False-positive filler: Yeah, my kitchen sink is leaking.",
+    input: "Yeah, my kitchen sink is leaking.",
+    expectedName: "",
+    expectedService: "", // No explicit service phrase, so no service extraction
+    expectNameValid: false,
+    expectServiceValid: false
+  },
+  {
+    description: "False-positive filler: Uh, I need a plumber.",
+    input: "Uh, I need a plumber.",
+    expectedName: "",
+    expectedService: "a plumber.",
+    expectNameValid: false,
+    expectServiceValid: true
+  },
+  {
+    description: "False-positive filler: Well, my air conditioner stopped working.",
+    input: "Well, my air conditioner stopped working.",
+    expectedName: "",
+    expectedService: "", // No explicit service phrase, so no service extraction
+    expectNameValid: false,
+    expectServiceValid: false
+  },
+  {
+    description: "False-positive filler: Hey, calling about a broken water heater.",
+    input: "Hey, calling about a broken water heater.",
+    expectedName: "",
+    expectedService: "a broken water heater.",
+    expectNameValid: false,
+    expectServiceValid: true
+  },
+  {
+    description: "False-positive filler: Alright, my sink is clogged.",
+    input: "Alright, my sink is clogged.",
+    expectedName: "",
+    expectedService: "", // No explicit service phrase, so no service extraction
+    expectNameValid: false,
+    expectServiceValid: false
+  },
+  {
+    description: "False-positive filler: Um, I need help with a clogged drain.",
+    input: "Um, I need help with a clogged drain.",
+    expectedName: "",
+    expectedService: "help with a clogged drain.",
+    expectNameValid: false,
+    expectServiceValid: true
+  },
+  {
+    description: "False-positive filler: Okay, looking for a plumber.",
+    input: "Okay, looking for a plumber.",
+    expectedName: "",
+    expectedService: "a plumber.",
+    expectNameValid: false,
+    expectServiceValid: true
+  },
+  {
+    description: "False-positive filler: So, I need someone to fix my garage door.",
+    input: "So, I need someone to fix my garage door.",
+    expectedName: "",
+    expectedService: "someone to fix my garage door.",
+    expectNameValid: false,
+    expectServiceValid: true
+  },
+  {
+    description: "False-positive filler: Uh yeah, my kitchen sink is leaking.",
+    input: "Uh yeah, my kitchen sink is leaking.",
+    expectedName: "",
+    expectedService: "", // No explicit service phrase, so no service extraction
+    expectNameValid: false,
+    expectServiceValid: false
+  },
+  {
+    description: "False-positive filler: Well yeah, I need a plumber.",
+    input: "Well yeah, I need a plumber.",
+    expectedName: "",
+    expectedService: "a plumber.",
+    expectNameValid: false,
+    expectServiceValid: true
+  },
+  {
+    description: "False-positive filler: Yeah so, my air conditioner stopped working.",
+    input: "Yeah so, my air conditioner stopped working.",
+    expectedName: "",
+    expectedService: "", // No explicit service phrase, so no service extraction
+    expectNameValid: false,
+    expectServiceValid: false
   }
 ];
 
@@ -373,6 +554,15 @@ const repairTestCases = [
     intakeServiceRequested: "",
     expectedName: "Sarah Johnson",
     expectedService: "my air conditioner stopped working"
+  },
+  // Filler prefix repair test
+  {
+    description: "Repair with filler prefix raw transcript",
+    rawFirstStageTranscript: "Yeah, this is David Miller. I'm calling because my garage door has been acting weird and now won't open all the way.",
+    intakeCustomerName: "",
+    intakeServiceRequested: "",
+    expectedName: "David Miller",
+    expectedService: "my garage door has been acting weird and now won't open all the way."
   }
 ];
 

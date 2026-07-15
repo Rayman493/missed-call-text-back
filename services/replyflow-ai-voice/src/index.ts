@@ -5501,6 +5501,31 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         let customerName = trimmed;
         let serviceRequested = existingService ?? '';
 
+        // NEW: Strip harmless conversational fillers at the very beginning
+        // This handles prefixes like "Yeah,", "Um,", "Uh, yeah,", "Well," before explicit introductions
+        // Allowed fillers: yeah, yep, yes, uh, um, well, so, okay, ok, alright, hi, hey
+        // Allow short filler combinations like "uh yeah", "well yeah", "yeah so"
+        // Handle optional trailing punctuation: comma, period, dash
+        // IMPORTANT: Use lookahead to ensure filler is followed by comma, space, or end of string (not part of a word)
+        const stripConversationalFillers = (s: string): string => {
+          const fillerPattern = /^(?:(?:yeah|yep|yes|uh|um|well|so|okay|ok|alright|hi|hey)(?=[,\s]|$)[,\s]*){1,2}/i;
+          return s.replace(fillerPattern, '').trim();
+        };
+
+        const normalizedInput = stripConversationalFillers(trimmed);
+        let fillerStripped = false;
+        if (normalizedInput !== trimmed) {
+          fillerStripped = true;
+          console.log('[PARSER FILLER STRIP] =========================================');
+          console.log('[PARSER FILLER STRIP] originalInput:', trimmed);
+          console.log('[PARSER FILLER STRIP] normalizedInput:', normalizedInput);
+          console.log('[PARSER FILLER STRIP] Timestamp:', new Date().toISOString());
+          console.log('[PARSER FILLER STRIP] =========================================');
+        }
+
+        // Use normalized input for parsing, but keep original for fallback
+        const parseText = normalizedInput;
+
         // Common prefixes to strip from a name candidate
         const stripNamePrefix = (s: string): string =>
           s
@@ -5538,7 +5563,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
         // NEW: Two-sentence pattern handling for common natural responses
         // Pattern: "Hi, this is Mike Thompson. I'm calling because my kitchen sink is leaking."
-        const sentences = trimmed.split(/\.\s+/).filter(s => s.trim());
+        const sentences = parseText.split(/\.\s+/).filter(s => s.trim());
         if (sentences.length >= 2) {
           const firstSentence = sentences[0].trim();
           const secondSentence = sentences.slice(1).join('. ').trim();
@@ -5588,10 +5613,10 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         // NEW: Comma-separated pattern handling for natural responses
         // Pattern: "Sarah Johnson, my air conditioner stopped working."
         // Safety: Left side must look like a plausible human name, not a service/problem statement
-        const commaIndex = trimmed.indexOf(',');
-        if (commaIndex > 0 && commaIndex < trimmed.length - 1) {
-          const leftSide = trimmed.slice(0, commaIndex).trim();
-          const rightSide = trimmed.slice(commaIndex + 1).trim();
+        const commaIndex = parseText.indexOf(',');
+        if (commaIndex > 0 && commaIndex < parseText.length - 1) {
+          const leftSide = parseText.slice(0, commaIndex).trim();
+          const rightSide = parseText.slice(commaIndex + 1).trim();
           
           // Safety check: Left side must look like a plausible name
           const looksLikeName = (candidate: string): boolean => {
@@ -5684,7 +5709,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
           /(?:name's)\s+(.+?)\.\s*(?:calling about|looking for|looking to)\s+(.+)/i,
         ];
         for (const pattern of combinedPatterns) {
-          const match = trimmed.match(pattern);
+          const match = parseText.match(pattern);
           if (match) {
             const namePart = normalizeNameCandidate(match[1].trim());
             const servicePart = stripServicePrefix(match[2].trim()).replace(/[.,;]\s*$/, '');
@@ -5709,20 +5734,20 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         ];
         let nameMatch: RegExpMatchArray | null = null;
         for (const pattern of namePatterns) {
-          nameMatch = trimmed.match(pattern);
+          nameMatch = parseText.match(pattern);
           if (nameMatch) break;
         }
 
         // If name matched, extract service from the remaining text after the name
-        let remainingText = trimmed;
+        let remainingText = parseText;
         if (nameMatch) {
           const namePart = normalizeNameCandidate(nameMatch[1].trim());
           if (namePart) {
             customerName = namePart;
             // Extract the text after the name match
-            const matchIndex = trimmed.indexOf(nameMatch[0]);
+            const matchIndex = parseText.indexOf(nameMatch[0]);
             if (matchIndex >= 0) {
-              remainingText = trimmed.slice(matchIndex + nameMatch[0].length).trim();
+              remainingText = parseText.slice(matchIndex + nameMatch[0].length).trim();
             }
           }
         }
@@ -5760,11 +5785,26 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         }
 
         // If we have a name but no service, and the name contains a service phrase, split it.
-        if (customerName && !serviceRequested && customerName !== trimmed) {
+        if (customerName && !serviceRequested && customerName !== parseText) {
           const serviceFromName = stripServicePrefix(customerName);
           if (serviceFromName && serviceFromName !== customerName) {
             serviceRequested = serviceFromName;
             parserRuleMatched = 'name_contains_service';
+          }
+        }
+
+        // Fallback: if no service matched and no name was found, check if text contains service phrases
+        // This handles cases like "Yeah, I need a plumber." after filler normalization
+        // But NOT pure problem statements like "My kitchen sink is leaking, and it is getting worse."
+        if (!serviceRequested && !customerName && remainingText.length > 0) {
+          const servicePhrases = [
+            "i need", "i want", "i'd like", "i would like", "i'm calling", "i am calling",
+            "calling about", "looking for", "looking to", "need someone", "trying to"
+          ];
+          const hasServicePhrase = servicePhrases.some(phrase => remainingText.toLowerCase().includes(phrase));
+          if (hasServicePhrase) {
+            serviceRequested = remainingText;
+            parserRuleMatched = 'service_phrase_fallback';
           }
         }
 
