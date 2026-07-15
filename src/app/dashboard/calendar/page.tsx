@@ -647,6 +647,7 @@ export default function SchedulePage() {
         title="Schedule"
         contentClassName="flex-1 flex items-center justify-center px-3 sm:px-4 lg:px-6 pb-24 md:pb-8 relative z-10"
         innerClassName=""
+        maxWidthClassName="max-w-[1400px] mx-auto"
       >
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -662,6 +663,7 @@ export default function SchedulePage() {
       contentClassName="flex-1 pt-3 sm:pt-4 lg:pt-8 px-3 sm:px-4 lg:px-5 pb-40 md:pb-8 relative z-10"
       contentStyle={{ paddingBottom: 'max(80px, calc(80px + env(safe-area-inset-bottom)))' }}
       innerClassName=""
+      maxWidthClassName="max-w-[1400px] mx-auto"
     >
               {/* Loading State */}
               {isLoading ? (
