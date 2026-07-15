@@ -109,11 +109,20 @@ export default function PremiumAudioPlayer({
   }
 
   // Sync volume with audio element on mount and when volume changes
+  // Also sync whenever audioRef.current becomes available (handles audio element recreation)
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = volume
     }
   }, [volume, audioRef])
+
+  // Additional effect to ensure volume is applied when audio element is created/updated
+  // This handles cases where the parent reuses the same ref but creates a new audio element
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume
+    }
+  }, [audioRef.current, volume])
 
   const seekToClientX = (clientX: number) => {
     const audio = audioRef.current
