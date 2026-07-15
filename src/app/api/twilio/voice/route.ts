@@ -153,10 +153,10 @@ function generateIgnoredContactResponse(): string {
   return response.toString();
 }
 
-// Helper to generate repeat-caller update voicemail with TTS fallback
+// Helper to generate repeat-caller update voicemail with pre-recorded greeting
 function generateUpdateVoicemailResponse(businessId: string, callerPhone: string, conversationId?: string): string {
   // Update voicemail greeting for repeat callers with active requests
-  const voicemailMessage = "Hi again. Please leave your update after the tone and we'll add it to your request. Thank you.";
+  // Uses pre-recorded audio with OpenAI "alloy" voice to match AI intake
 
   // Build callback parameters
   const callbackParams: Record<string, string> = {
@@ -178,10 +178,11 @@ function generateUpdateVoicemailResponse(businessId: string, callerPhone: string
   const response = new VoiceResponse();
   response.pause({ length: 1 });
 
-  // CRITICAL FIX: Use TTS directly instead of premium audio file
-  // The premium audio file may not be publicly accessible to Twilio
-  // TTS is always available and provides a safe fallback
-  response.say({ voice: "alice" }, voicemailMessage);
+  // Use pre-recorded greeting with OpenAI "alloy" voice to match AI intake
+  // The greeting audio file should be generated using OpenAI TTS with the "alloy" voice
+  // and placed at /public/update-voicemail-greeting-v2.mp3
+  const greetingUrl = `${process.env.NEXT_PUBLIC_APP_URL || ''}/update-voicemail-greeting-v2.mp3`;
+  response.play(greetingUrl);
 
   response.record({
     maxLength: 60,
