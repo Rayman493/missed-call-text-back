@@ -322,6 +322,63 @@ if (validationWouldPass) {
   failed++;
 }
 
+// Test 14: Verify session transcription model is gpt-realtime-whisper (not gpt-4o-transcribe)
+console.log('\nTest 14: Verify session transcription model is gpt-realtime-whisper');
+const fs = require('fs');
+const path = require('path');
+const indexPath = path.join(__dirname, '../src/index.ts');
+let indexContent: string | undefined;
+try {
+  indexContent = fs.readFileSync(indexPath, 'utf-8');
+} catch (err) {
+  console.log('✗ FAIL: Could not read index.ts file');
+  console.log(`  Path: ${indexPath}`);
+  console.log(`  Error: ${err}`);
+  failed++;
+}
+if (indexContent) {
+  // Check that gpt-realtime-whisper is used in session configuration
+  const usesRealtimeWhisper = indexContent.includes('model: "gpt-realtime-whisper"') || indexContent.includes("model: 'gpt-realtime-whisper'");
+  const usesGpt4oTranscribe = indexContent.includes('model: "gpt-4o-transcribe"') || indexContent.includes("model: 'gpt-4o-transcribe'");
+  
+  if (usesRealtimeWhisper && !usesGpt4oTranscribe) {
+    console.log('✓ PASS: Session uses gpt-realtime-whisper (correct model)');
+    passed++;
+  } else {
+    console.log('✗ FAIL: Session does not use gpt-realtime-whisper');
+    if (usesGpt4oTranscribe) {
+      console.log('  ERROR: Still using gpt-4o-transcribe (causes missing_compute_residency_info error)');
+    }
+    failed++;
+  }
+}
+
+// Test 15: Verify Twilio fallback does not use invalid Status field
+console.log('\nTest 15: Verify Twilio fallback does not use invalid Status field');
+if (indexContent) {
+  const triggerVoicemailFallbackRegex = /triggerVoicemailFallback[\s\S]*?twilioClient\.calls\(callSid\)\.update\([\s\S]*?\}/g;
+  const fallbackMatches = indexContent.match(triggerVoicemailFallbackRegex);
+  let fallbackUsesInvalidStatus = false;
+  if (fallbackMatches) {
+    for (const match of fallbackMatches) {
+      if (match.includes("status: 'in-progress'") || match.includes('status: "in-progress"')) {
+        fallbackUsesInvalidStatus = true;
+        break;
+      }
+    }
+  }
+  if (!fallbackUsesInvalidStatus) {
+    console.log('✓ PASS: Twilio fallback does not use invalid Status field');
+    passed++;
+  } else {
+    console.log('✗ FAIL: Twilio fallback still uses invalid Status: "in-progress"');
+    console.log('  ERROR: Valid Twilio Status values are only [canceled, completed]');
+    failed++;
+  }
+} else {
+  console.log('✗ SKIP: Could not read index.ts file');
+}
+
 // Summary
 console.log('\n=== TEST SUMMARY ===');
 console.log(`Total: ${passed + failed}`);

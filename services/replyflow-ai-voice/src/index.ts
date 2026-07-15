@@ -4372,8 +4372,7 @@ async function triggerVoicemailFallback(
     
     await twilioClient.calls(callSid).update({
       method: 'POST',
-      url: voicemailUrl,
-      status: 'in-progress'
+      url: voicemailUrl
     });
     
     console.log('[VOICEMAIL FALLBACK RECORDING]', { callSid, voicemailUrl });
@@ -5506,6 +5505,10 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     // Turn tracking to prevent stale callbacks
     currentTurnId: 0 as number,
   };
+
+  // Track consecutive transcription failures per stage (module scope)
+  const transcriptionFailureCount = new Map<string, number>();
+  const MAX_TRANSCRIPTION_FAILURES = 3;
 
   // Canonical Simple Mode prompt keys - no mapping layer
   // These are the exact keys used for cached audio lookups
@@ -8389,7 +8392,7 @@ Reply to this message if you'd like to update or add any information.
                     type: "audio/pcmu"
                   },
                   transcription: {
-                    model: "gpt-4o-transcribe"
+                    model: "gpt-realtime-whisper"
                   },
                   turn_detection: {
                     type: "server_vad",
@@ -8681,19 +8684,33 @@ Reply to this message if you'd like to update or add any information.
               console.log('[TRANSCRIPTION FAILED] =========================================');
             }
             
-            // Determine if error is fatal (server-level) or recoverable
-            const isFatalError = message.error?.code === 'server_error' || 
-                                 message.error?.type === 'server_error' ||
-                                 message.error?.message?.includes('missing_compute_residency_info');
+            // Track consecutive transcription failures for this stage
+            const stage = state.currentStage;
+            const failureCount = (transcriptionFailureCount.get(stage) || 0) + 1;
+            transcriptionFailureCount.set(stage, failureCount);
             
-            if (isFatalError) {
+            console.log('[TRANSCRIPTION FAILED] =========================================');
+            console.log('[TRANSCRIPTION FAILED] consecutiveFailures:', failureCount);
+            console.log('[TRANSCRIPTION FAILED] maxFailuresBeforeFallback:', MAX_TRANSCRIPTION_FAILURES);
+            console.log('[TRANSCRIPTION FAILED] stage:', stage);
+            console.log('[TRANSCRIPTION FAILED] =========================================');
+            
+            // Determine if error is fatal (server-level) or recoverable
+            // Only trigger fallback for true server errors or after repeated failures
+            const isFatalError = message.error?.code === 'server_error' || 
+                                 message.error?.type === 'server_error';
+            const shouldFallback = isFatalError || failureCount >= MAX_TRANSCRIPTION_FAILURES;
+            
+            if (shouldFallback) {
               console.log('[TRANSCRIPTION FAILED] =========================================');
-              console.log('[TRANSCRIPTION FAILED] action: fatal_error_detected');
-              console.log('[TRANSCRIPTION FAILED] reason: server_or_infrastructure_error');
               console.log('[TRANSCRIPTION FAILED] action: triggering_voicemail_fallback');
+              console.log('[TRANSCRIPTION FAILED] reason:', isFatalError ? 'server_or_infrastructure_error' : 'max_consecutive_failures_reached');
               console.log('[TRANSCRIPTION FAILED] =========================================');
               
-              // Trigger voicemail fallback for fatal errors
+              // Reset failure count for this stage
+              transcriptionFailureCount.delete(stage);
+              
+              // Trigger voicemail fallback for fatal errors or repeated failures
               triggerVoicemailFallback(
                 ws,
                 twilioHandler,
@@ -11982,7 +11999,7 @@ Return only JSON, no other text.`;
                         type: "audio/pcmu"
                       },
                       transcription: {
-                        model: "gpt-4o-transcribe"
+                        model: "gpt-realtime-whisper"
                       },
                       turn_detection: {
                         type: "server_vad",
