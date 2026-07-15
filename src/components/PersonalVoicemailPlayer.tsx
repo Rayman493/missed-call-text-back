@@ -400,7 +400,7 @@ export function PersonalVoicemailPlayer({
             {isVolumePopoverOpen && (
               <div
                 ref={volumePopoverRef}
-                className="absolute top-full right-0 mt-2 w-40 bg-popover border border-border rounded-lg shadow-lg p-4 z-50 animate-in fade-in slide-in-from-top-2 duration-200"
+                className="absolute top-full right-0 mt-2 w-36 max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-lg shadow-lg p-4 z-50 animate-in fade-in slide-in-from-top-2 duration-200"
                 role="dialog"
                 aria-label="Volume control"
               >

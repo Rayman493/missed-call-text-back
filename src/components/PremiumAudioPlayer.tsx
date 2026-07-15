@@ -33,10 +33,12 @@ export default function PremiumAudioPlayer({
 }: PremiumAudioPlayerProps) {
   const [isDragging, setIsDragging] = useState(false)
   const progressBarRef = useRef<HTMLDivElement>(null)
+  const volumeControlRef = useRef<HTMLDivElement>(null)
   
   // Volume state - sync with shared volume manager
   const [volume, setVolume] = useState(() => volumeManager.getVolume())
   const [isMuted, setIsMuted] = useState(() => volumeManager.getIsMuted())
+  const [isMobileVolumeOpen, setIsMobileVolumeOpen] = useState(false)
 
   // Generate decorative waveform bars (visual only)
   const waveformBars = Array.from({ length: 40 }, (_, i) => {
@@ -81,6 +83,33 @@ export default function PremiumAudioPlayer({
 
   const toggleMute = () => {
     volumeManager.toggleMute()
+  }
+
+  // Close mobile volume popover on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (volumeControlRef.current && !volumeControlRef.current.contains(event.target as Node)) {
+        setIsMobileVolumeOpen(false)
+      }
+    }
+
+    if (isMobileVolumeOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isMobileVolumeOpen])
+
+  const handleVolumeButtonClick = () => {
+    // Desktop: toggle mute
+    // Mobile: open/close volume control
+    if (window.innerWidth >= 768) {
+      toggleMute()
+    } else {
+      setIsMobileVolumeOpen(!isMobileVolumeOpen)
+    }
   }
 
   const getVolumeIcon = () => {
@@ -245,9 +274,9 @@ export default function PremiumAudioPlayer({
           </div>
 
           {/* Volume Control */}
-          <div className="relative flex items-center gap-2 group">
+          <div ref={volumeControlRef} className="relative flex items-center gap-2 group">
             <button
-              onClick={toggleMute}
+              onClick={handleVolumeButtonClick}
               className="p-2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-full"
               aria-label={isMuted ? 'Unmute' : 'Mute'}
               aria-pressed={isMuted}
@@ -255,9 +284,9 @@ export default function PremiumAudioPlayer({
               {React.createElement(getVolumeIcon(), { className: 'w-5 h-5' })}
             </button>
             
-            {/* Volume Slider */}
+            {/* Desktop: Inline Slider */}
             <div 
-              className="relative flex items-center gap-2 transition-all duration-200 opacity-0 w-0 overflow-hidden group-hover:opacity-100 group-hover:w-24 group-focus-within:opacity-100 group-focus-within:w-24"
+              className="hidden md:flex relative items-center gap-2 transition-all duration-200 opacity-0 w-0 overflow-hidden group-hover:opacity-100 group-hover:w-24 group-focus-within:opacity-100 group-focus-within:w-24"
             >
               <input
                 type="range"
@@ -272,6 +301,39 @@ export default function PremiumAudioPlayer({
                 aria-valuemax={100}
                 aria-valuenow={Math.round((isMuted ? 0 : volume) * 100)}
               />
+            </div>
+
+            {/* Mobile: Volume Popover */}
+            <div className="md:hidden">
+              {isMobileVolumeOpen && (
+                <div className="absolute top-full right-0 mt-2 w-36 max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-lg shadow-lg p-3 z-50">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        toggleMute()
+                      }}
+                      className="p-1.5 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+                      aria-label={isMuted ? 'Unmute' : 'Mute'}
+                    >
+                      {React.createElement(getVolumeIcon(), { className: 'w-4 h-4' })}
+                    </button>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      value={isMuted ? 0 : volume}
+                      onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+                      className="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full appearance-none cursor-pointer accent-blue-600"
+                      aria-label="Volume"
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={Math.round((isMuted ? 0 : volume) * 100)}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
