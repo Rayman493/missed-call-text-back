@@ -7533,19 +7533,71 @@ Reply to this message if you'd like to update or add any information.
               console.log('[TRANSCRIPTION WATCHDOG] =========================================');
             }
           } else if (message.type === 'conversation.item.input_audio_transcription.failed') {
-            console.log('[AUDIO PIPELINE] =========================================');
-            console.log('[AUDIO PIPELINE] event: transcription.failed');
-            console.log('[AUDIO PIPELINE] timestamp:', Date.now());
-            console.log('[AUDIO PIPELINE] itemId:', message.item_id);
-            console.log('[AUDIO PIPELINE] error:', JSON.stringify(message.error, null, 2));
-            console.log('[AUDIO PIPELINE] errorCode:', message.error?.code);
-            console.log('[AUDIO PIPELINE] errorMessage:', message.error?.message);
-            console.log('[AUDIO PIPELINE] errorParam:', message.error?.param);
-            console.log('[AUDIO PIPELINE] errorDetails:', JSON.stringify(message.error?.details, null, 2));
-            console.log('[AUDIO PIPELINE] assistantSpeaking:', state.assistantSpeaking);
-            console.log('[AUDIO PIPELINE] audioBufferAppendCount:', state.audioBufferAppendCount || 0);
-            console.log('[AUDIO PIPELINE] inSpeechSegment:', state.inSpeechSegment);
-            console.log('[AUDIO PIPELINE] =========================================');
+            console.log('[TRANSCRIPTION FAILED] =========================================');
+            console.log('[TRANSCRIPTION FAILED] event: transcription.failed');
+            console.log('[TRANSCRIPTION FAILED] timestamp:', Date.now());
+            console.log('[TRANSCRIPTION FAILED] itemId:', message.item_id);
+            console.log('[TRANSCRIPTION FAILED] error:', JSON.stringify(message.error, null, 2));
+            console.log('[TRANSCRIPTION FAILED] errorCode:', message.error?.code);
+            console.log('[TRANSCRIPTION FAILED] errorMessage:', message.error?.message);
+            console.log('[TRANSCRIPTION FAILED] errorParam:', message.error?.param);
+            console.log('[TRANSCRIPTION FAILED] errorDetails:', JSON.stringify(message.error?.details, null, 2));
+            console.log('[TRANSCRIPTION FAILED] assistantSpeaking:', state.assistantSpeaking);
+            console.log('[TRANSCRIPTION FAILED] audioBufferAppendCount:', state.audioBufferAppendCount || 0);
+            console.log('[TRANSCRIPTION FAILED] inSpeechSegment:', state.inSpeechSegment);
+            console.log('[TRANSCRIPTION FAILED] currentStage:', state.currentStage);
+            console.log('[TRANSCRIPTION FAILED] =========================================');
+            
+            // Clear transcription watchdog since transcription failed
+            if (state.transcriptionWatchdogTimeout) {
+              clearTimeout(state.transcriptionWatchdogTimeout);
+              state.transcriptionWatchdogTimeout = null;
+              console.log('[TRANSCRIPTION FAILED] =========================================');
+              console.log('[TRANSCRIPTION FAILED] action: watchdog_cleared');
+              console.log('[TRANSCRIPTION FAILED] reason: transcription_failed');
+              console.log('[TRANSCRIPTION FAILED] =========================================');
+            }
+            
+            // Determine if error is fatal (server-level) or recoverable
+            const isFatalError = message.error?.code === 'server_error' || 
+                                 message.error?.type === 'server_error' ||
+                                 message.error?.message?.includes('missing_compute_residency_info');
+            
+            if (isFatalError) {
+              console.log('[TRANSCRIPTION FAILED] =========================================');
+              console.log('[TRANSCRIPTION FAILED] action: fatal_error_detected');
+              console.log('[TRANSCRIPTION FAILED] reason: server_or_infrastructure_error');
+              console.log('[TRANSCRIPTION FAILED] action: triggering_voicemail_fallback');
+              console.log('[TRANSCRIPTION FAILED] =========================================');
+              
+              // Trigger voicemail fallback for fatal errors
+              triggerVoicemailFallback(
+                ws,
+                twilioHandler,
+                state.aiSessionTracker,
+                `Transcription infrastructure error: ${message.error?.message || 'Unknown error'}`,
+                state.callSid,
+                state.businessId,
+                state.callerPhone,
+                state.businessName,
+                state.forwardedFrom
+              );
+            } else {
+              // Recoverable error: reprompt the current stage
+              console.log('[TRANSCRIPTION FAILED] =========================================');
+              console.log('[TRANSCRIPTION FAILED] action: recoverable_error_detected');
+              console.log('[TRANSCRIPTION FAILED] reason: transcription_temporarily_failed');
+              console.log('[TRANSCRIPTION FAILED] action: reprompting_current_stage');
+              console.log('[TRANSCRIPTION FAILED] =========================================');
+              
+              // Reprompt the current stage if connection is healthy
+              if (state.currentStage && state.currentStage !== 'complete' && state.openAiWs?.readyState === WebSocket.OPEN) {
+                console.log('[TRANSCRIPTION FAILED] Reprompting current stage:', state.currentStage);
+                sendPrompt(state.currentStage);
+              } else {
+                console.log('[TRANSCRIPTION FAILED] Cannot reprompt - connection unhealthy or stage complete');
+              }
+            }
           }
 
           // Reset audio accumulator counters at the start of each new response

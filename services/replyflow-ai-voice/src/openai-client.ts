@@ -303,7 +303,7 @@ export class OpenAIRealtimeClient {
               type: 'audio/pcmu',
             },
             transcription: {
-              model: 'gpt-4o-transcribe',
+              model: 'gpt-realtime-whisper',
             },
             turn_detection: {
               type: 'server_vad',
