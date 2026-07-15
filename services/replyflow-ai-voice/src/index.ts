@@ -5671,16 +5671,79 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       parseNameAndServiceCalled = true;
       const parseResult = parseNameAndService(rawTranscript, state.intakeData.serviceRequested);
 
-      // Store parsed name and service
-      if (parseResult.customerName) {
+      // FIRST-STAGE ASSIGNMENT TRACE
+      console.log('[FIRST-STAGE ASSIGNMENT TRACE] =========================================');
+      console.log('[FIRST-STAGE ASSIGNMENT TRACE] rawFirstStageTranscript:', rawTranscript);
+      console.log('[FIRST-STAGE ASSIGNMENT TRACE] parseResult.customerName:', parseResult.customerName);
+      console.log('[FIRST-STAGE ASSIGNMENT TRACE] parseResult.serviceRequested:', parseResult.serviceRequested);
+      console.log('[FIRST-STAGE ASSIGNMENT TRACE] intakeDataBefore.customerName:', state.intakeData.customerName);
+      console.log('[FIRST-STAGE ASSIGNMENT TRACE] intakeDataBefore.serviceRequested:', state.intakeData.serviceRequested);
+      console.log('[FIRST-STAGE ASSIGNMENT TRACE] Timestamp:', new Date().toISOString());
+      console.log('[FIRST-STAGE ASSIGNMENT TRACE] =========================================');
+
+      // Validation: Reject obviously invalid customerName values
+      const isValidCustomerName = (name: string): boolean => {
+        if (!name || typeof name !== 'string') return false;
+        const trimmed = name.trim();
+        // Reject if too long (likely full sentence)
+        if (trimmed.length > 50) return false;
+        // Reject if contains service-request language
+        const servicePhrases = [
+          "i'm calling because",
+          "i am calling because",
+          "i need",
+          "calling about",
+          "looking for",
+          "i want to",
+          "i would like"
+        ];
+        const lowerName = trimmed.toLowerCase();
+        if (servicePhrases.some(phrase => lowerName.includes(phrase))) return false;
+        // Reject if contains problem description patterns
+        if (lowerName.includes("leaking") || lowerName.includes("stopped working") || lowerName.includes("clogged")) return false;
+        return true;
+      };
+
+      // Validation: Reject obviously invalid serviceRequested values
+      const isValidServiceRequested = (service: string): boolean => {
+        if (!service || typeof service !== 'string') return false;
+        const trimmed = service.trim();
+        // Reject if it's just a name introduction
+        const nameIntroPatterns = [
+          /^hi, this is .+$/i,
+          /^this is .+$/i,
+          /^my name is .+$/i,
+          /^my name's .+$/i,
+          /^i'm .+$/i,
+          /^i am .+$/i
+        ];
+        if (nameIntroPatterns.some(pattern => pattern.test(trimmed))) return false;
+        return true;
+      };
+
+      // Store parsed name and service with validation
+      if (parseResult.customerName && isValidCustomerName(parseResult.customerName)) {
         state.intakeData.customerName = parseResult.customerName;
+      } else {
+        console.log('[FIRST-STAGE VALIDATION] customerName rejected as invalid:', parseResult.customerName);
       }
-      if (parseResult.serviceRequested) {
+      if (parseResult.serviceRequested && isValidServiceRequested(parseResult.serviceRequested)) {
         state.intakeData.serviceRequested = parseResult.serviceRequested;
+      } else {
+        console.log('[FIRST-STAGE VALIDATION] serviceRequested rejected as invalid:', parseResult.serviceRequested);
       }
 
       const stateCustomerNameAfter = state.intakeData.customerName;
       const stateServiceRequestedAfter = state.intakeData.serviceRequested;
+
+      // FIRST-STAGE ASSIGNMENT RESULT TRACE
+      console.log('[FIRST-STAGE ASSIGNMENT RESULT] =========================================');
+      console.log('[FIRST-STAGE ASSIGNMENT RESULT] intakeDataAfter.customerName:', state.intakeData.customerName);
+      console.log('[FIRST-STAGE ASSIGNMENT RESULT] intakeDataAfter.serviceRequested:', state.intakeData.serviceRequested);
+      console.log('[FIRST-STAGE ASSIGNMENT RESULT] customerNameChanged:', stateCustomerNameBefore !== stateCustomerNameAfter);
+      console.log('[FIRST-STAGE ASSIGNMENT RESULT] serviceRequestedChanged:', stateServiceRequestedBefore !== stateServiceRequestedAfter);
+      console.log('[FIRST-STAGE ASSIGNMENT RESULT] Timestamp:', new Date().toISOString());
+      console.log('[FIRST-STAGE ASSIGNMENT RESULT] =========================================');
       
       // SIMPLE MODE STAGE 3: Extraction Output Trace
       console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 3] =========================================');
@@ -6486,26 +6549,85 @@ Reply to this message if you'd like to update or add any information.
       // only clean the name portion out of customerName (strip trailing service text).
       const alreadyHasService = !!(state.intakeData.serviceRequested && state.intakeData.serviceRequested.trim());
       
+      // COMPLETION STAGE VALIDATION: Check if existing values are valid before overwriting
+      const isValidCustomerName = (name: string): boolean => {
+        if (!name || typeof name !== 'string') return false;
+        const trimmed = name.trim();
+        // Reject if too long (likely full sentence)
+        if (trimmed.length > 50) return false;
+        // Reject if contains service-request language
+        const servicePhrases = [
+          "i'm calling because",
+          "i am calling because",
+          "i need",
+          "calling about",
+          "looking for",
+          "i want to",
+          "i would like"
+        ];
+        const lowerName = trimmed.toLowerCase();
+        if (servicePhrases.some(phrase => lowerName.includes(phrase))) return false;
+        // Reject if contains problem description patterns
+        if (lowerName.includes("leaking") || lowerName.includes("stopped working") || lowerName.includes("clogged")) return false;
+        return true;
+      };
+
+      const isValidServiceRequested = (service: string): boolean => {
+        if (!service || typeof service !== 'string') return false;
+        const trimmed = service.trim();
+        // Reject if it's just a name introduction
+        const nameIntroPatterns = [
+          /^hi, this is .+$/i,
+          /^this is .+$/i,
+          /^my name is .+$/i,
+          /^my name's .+$/i,
+          /^i'm .+$/i,
+          /^i am .+$/i
+        ];
+        if (nameIntroPatterns.some(pattern => pattern.test(trimmed))) return false;
+        return true;
+      };
+
+      const existingCustomerNameValid = isValidCustomerName(state.intakeData.customerName || '');
+      const existingServiceRequestedValid = isValidServiceRequested(state.intakeData.serviceRequested || '');
+      
       // COMPLETION STAGE OVERWRITE CHECK
       console.log('[COMPLETION OVERWRITE CHECK] =========================================');
       console.log('[COMPLETION OVERWRITE CHECK] rawCustomerName:', state.intakeData.customerName);
       console.log('[COMPLETION OVERWRITE CHECK] rawServiceRequested:', state.intakeData.serviceRequested);
+      console.log('[COMPLETION OVERWRITE CHECK] existingCustomerNameValid:', existingCustomerNameValid);
+      console.log('[COMPLETION OVERWRITE CHECK] existingServiceRequestedValid:', existingServiceRequestedValid);
       console.log('[COMPLETION OVERWRITE CHECK] alreadyHasService:', alreadyHasService);
-      console.log('[COMPLETION OVERWRITE CHECK] WARNING: parseNameAndService will be called again in completion');
-      console.log('[COMPLETION OVERWRITE CHECK] This may overwrite values from initial extraction');
       console.log('[COMPLETION OVERWRITE CHECK] Timestamp:', new Date().toISOString());
       console.log('[COMPLETION OVERWRITE CHECK] =========================================');
       
-      console.log('[parseNameAndService input]', {
-        rawCustomerName:  state.intakeData.customerName,
-        rawServiceRequested: state.intakeData.serviceRequested,
-        alreadyHasService,
-      });
-      const { customerName, serviceRequested } = parseNameAndService(
-        state.intakeData.customerName || '',
-        alreadyHasService ? state.intakeData.serviceRequested : undefined
-      );
-      console.log('[parseNameAndService output]', { customerName, serviceRequested });
+      let customerName = state.intakeData.customerName || '';
+      let serviceRequested = state.intakeData.serviceRequested || '';
+      
+      // Only reparse if existing values are invalid
+      if (!existingCustomerNameValid || !existingServiceRequestedValid) {
+        console.log('[COMPLETION STAGE] Reparsing due to invalid existing values');
+        console.log('[parseNameAndService input]', {
+          rawCustomerName:  state.intakeData.customerName,
+          rawServiceRequested: state.intakeData.serviceRequested,
+          alreadyHasService,
+        });
+        const parseResult = parseNameAndService(
+          state.intakeData.customerName || '',
+          alreadyHasService ? state.intakeData.serviceRequested : undefined
+        );
+        console.log('[parseNameAndService output]', parseResult);
+        
+        // Only overwrite invalid fields
+        if (!existingCustomerNameValid && parseResult.customerName) {
+          customerName = parseResult.customerName;
+        }
+        if (!existingServiceRequestedValid && parseResult.serviceRequested) {
+          serviceRequested = parseResult.serviceRequested;
+        }
+      } else {
+        console.log('[COMPLETION STAGE] Preserving valid first-stage extraction values');
+      }
       
       // COMPLETION STAGE OVERWRITE RESULT
       console.log('[COMPLETION OVERWRITE RESULT] =========================================');
