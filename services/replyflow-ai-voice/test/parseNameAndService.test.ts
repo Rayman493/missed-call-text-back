@@ -98,6 +98,79 @@ const parseNameAndService = (text: string, existingService?: string): { customer
     return { customerName: name, serviceRequested: service };
   }
 
+  // NEW: Comma-separated pattern handling for natural responses
+  // Pattern: "Sarah Johnson, my air conditioner stopped working."
+  // Safety: Left side must look like a plausible human name, not a service/problem statement
+  const commaIndex = trimmed.indexOf(',');
+  if (commaIndex > 0 && commaIndex < trimmed.length - 1) {
+    const leftSide = trimmed.slice(0, commaIndex).trim();
+    const rightSide = trimmed.slice(commaIndex + 1).trim();
+    
+    // Safety check: Left side must look like a plausible name
+    const looksLikeName = (candidate: string): boolean => {
+      const trimmedCandidate = candidate.trim();
+      const lowerCandidate = trimmedCandidate.toLowerCase();
+      
+      // Must be short (2-4 words typical for names)
+      const wordCount = trimmedCandidate.split(/\s+/).length;
+      if (wordCount < 2 || wordCount > 4) return false;
+      
+      // Must be primarily alphabetic (allow apostrophes, hyphens, spaces)
+      const alphaRatio = (trimmedCandidate.match(/[a-z]/gi) || []).length / trimmedCandidate.length;
+      if (alphaRatio < 0.7) return false;
+      
+      // Must NOT contain service/problem language
+      const servicePhrases = [
+        "i need", "i'm calling", "i am calling", "calling about",
+        "my sink", "my air conditioner", "my kitchen", "my bathroom",
+        "the pipe", "the toilet", "the faucet", "the water",
+        "looking for", "looking to", "need someone", "want to",
+        "would like", "leaking", "clogged", "stopped working",
+        "broken", "not working", "issue", "problem"
+      ];
+      if (servicePhrases.some(phrase => lowerCandidate.includes(phrase))) return false;
+      
+      // Must NOT begin with common service phrases
+      const invalidStarts = [
+        "i need", "i'm", "i am", "calling", "looking", "need",
+        "my sink", "my air", "my kitchen", "my bathroom", "my toilet",
+        "the pipe", "the toilet", "the faucet", "the water"
+      ];
+      if (invalidStarts.some(start => lowerCandidate.startsWith(start))) return false;
+      
+      return true;
+    };
+    
+    // Safety check: Right side must look like a plausible service (not a name introduction)
+    const looksLikeService = (candidate: string): boolean => {
+      const trimmedCandidate = candidate.trim();
+      const lowerCandidate = trimmedCandidate.toLowerCase();
+      
+      // Must NOT be a name introduction
+      const nameIntroPatterns = [
+        /^hi, this is .+$/i,
+        /^this is .+$/i,
+        /^my name is .+$/i,
+        /^my name's .+$/i,
+        /^i'm .+$/i,
+        /^i am .+$/i
+      ];
+      if (nameIntroPatterns.some(pattern => pattern.test(trimmedCandidate))) return false;
+      
+      return true;
+    };
+    
+    // If both sides pass safety checks, use the comma-separated split
+    if (looksLikeName(leftSide) && looksLikeService(rightSide)) {
+      const nameCandidate = leftSide;
+      const serviceCandidate = rightSide.replace(/[.,;]\s*$/, '');
+      
+      if (nameCandidate && serviceCandidate) {
+        return { customerName: nameCandidate, serviceRequested: serviceCandidate };
+      }
+    }
+  }
+
   // Single sentence fallback
   let name = '';
   let service = existingService ?? '';
@@ -172,6 +245,63 @@ const testCases = [
     existingService: "existing service",
     expectedName: "Mike Thompson",
     expectedService: "existing service"
+  },
+  // Comma-separated pattern tests
+  {
+    description: "Comma-separated: Sarah Johnson, my air conditioner stopped working.",
+    input: "Sarah Johnson, my air conditioner stopped working.",
+    expectedName: "Sarah Johnson",
+    expectedService: "my air conditioner stopped working"
+  },
+  {
+    description: "Comma-separated: Mike Thompson, my kitchen sink is leaking.",
+    input: "Mike Thompson, my kitchen sink is leaking.",
+    expectedName: "Mike Thompson",
+    expectedService: "my kitchen sink is leaking"
+  },
+  {
+    description: "Comma-separated: John Smith, I need an estimate for a new deck.",
+    input: "John Smith, I need an estimate for a new deck.",
+    expectedName: "John Smith",
+    expectedService: "I need an estimate for a new deck"
+  },
+  {
+    description: "Comma-separated: Maria Garcia, calling about getting my house cleaned.",
+    input: "Maria Garcia, calling about getting my house cleaned.",
+    expectedName: "Maria Garcia",
+    expectedService: "calling about getting my house cleaned"
+  },
+  {
+    description: "Comma-separated: Yesenia Noel, my sink is clogged.",
+    input: "Yesenia Noel, my sink is clogged.",
+    expectedName: "Yesenia Noel",
+    expectedService: "my sink is clogged"
+  },
+  // False-positive protection tests
+  // Key requirement: These must NOT extract a customer name
+  {
+    description: "False-positive: My kitchen sink is leaking, and it is getting worse.",
+    input: "My kitchen sink is leaking, and it is getting worse.",
+    expectedName: "",
+    expectedService: "", // Service extraction varies, focus on name validation
+    expectNameValid: false,
+    expectServiceValid: false // Allow empty service
+  },
+  {
+    description: "False-positive: I need a plumber, preferably sometime today.",
+    input: "I need a plumber, preferably sometime today.",
+    expectedName: "",
+    expectedService: "a plumber, preferably sometime today.",
+    expectNameValid: false,
+    expectServiceValid: true
+  },
+  {
+    description: "False-positive: The pipe under my sink, near the cabinet, is leaking.",
+    input: "The pipe under my sink, near the cabinet, is leaking.",
+    expectedName: "",
+    expectedService: "", // Service extraction varies, focus on name validation
+    expectNameValid: false,
+    expectServiceValid: false // Allow empty service
   }
 ];
 
@@ -234,6 +364,15 @@ const repairTestCases = [
     intakeServiceRequested: "Calling about a broken water heater",
     expectedName: "Sarah Johnson",
     expectedService: "Calling about a broken water heater"
+  },
+  // Comma-separated repair tests
+  {
+    description: "Repair with comma-separated raw transcript",
+    rawFirstStageTranscript: "Sarah Johnson, my air conditioner stopped working.",
+    intakeCustomerName: "",
+    intakeServiceRequested: "",
+    expectedName: "Sarah Johnson",
+    expectedService: "my air conditioner stopped working"
   }
 ];
 

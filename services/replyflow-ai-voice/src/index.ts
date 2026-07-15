@@ -5585,6 +5585,89 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
           }
         }
 
+        // NEW: Comma-separated pattern handling for natural responses
+        // Pattern: "Sarah Johnson, my air conditioner stopped working."
+        // Safety: Left side must look like a plausible human name, not a service/problem statement
+        const commaIndex = trimmed.indexOf(',');
+        if (commaIndex > 0 && commaIndex < trimmed.length - 1) {
+          const leftSide = trimmed.slice(0, commaIndex).trim();
+          const rightSide = trimmed.slice(commaIndex + 1).trim();
+          
+          // Safety check: Left side must look like a plausible name
+          const looksLikeName = (candidate: string): boolean => {
+            const trimmedCandidate = candidate.trim();
+            const lowerCandidate = trimmedCandidate.toLowerCase();
+            
+            // Must be short (2-4 words typical for names)
+            const wordCount = trimmedCandidate.split(/\s+/).length;
+            if (wordCount < 2 || wordCount > 4) return false;
+            
+            // Must be primarily alphabetic (allow apostrophes, hyphens, spaces)
+            const alphaRatio = (trimmedCandidate.match(/[a-z]/gi) || []).length / trimmedCandidate.length;
+            if (alphaRatio < 0.7) return false;
+            
+            // Must NOT contain service/problem language
+            const servicePhrases = [
+              "i need", "i'm calling", "i am calling", "calling about",
+              "my sink", "my air conditioner", "my kitchen", "my bathroom",
+              "the pipe", "the toilet", "the faucet", "the water",
+              "looking for", "looking to", "need someone", "want to",
+              "would like", "leaking", "clogged", "stopped working",
+              "broken", "not working", "issue", "problem"
+            ];
+            if (servicePhrases.some(phrase => lowerCandidate.includes(phrase))) return false;
+            
+            // Must NOT begin with common service phrases
+            const invalidStarts = [
+              "i need", "i'm", "i am", "calling", "looking", "need",
+              "my sink", "my air", "my kitchen", "my bathroom", "my toilet",
+              "the pipe", "the toilet", "the faucet", "the water"
+            ];
+            if (invalidStarts.some(start => lowerCandidate.startsWith(start))) return false;
+            
+            return true;
+          };
+          
+          // Safety check: Right side must look like a plausible service (not a name introduction)
+          const looksLikeService = (candidate: string): boolean => {
+            const trimmedCandidate = candidate.trim();
+            const lowerCandidate = trimmedCandidate.toLowerCase();
+            
+            // Must NOT be a name introduction
+            const nameIntroPatterns = [
+              /^hi, this is .+$/i,
+              /^this is .+$/i,
+              /^my name is .+$/i,
+              /^my name's .+$/i,
+              /^i'm .+$/i,
+              /^i am .+$/i
+            ];
+            if (nameIntroPatterns.some(pattern => pattern.test(trimmedCandidate))) return false;
+            
+            return true;
+          };
+          
+          // If both sides pass safety checks, use the comma-separated split
+          if (looksLikeName(leftSide) && looksLikeService(rightSide)) {
+            const nameCandidate = normalizeNameCandidate(leftSide);
+            const serviceCandidate = stripServicePrefix(rightSide).replace(/[.,;]\s*$/, '');
+            
+            if (nameCandidate && serviceCandidate) {
+              customerName = nameCandidate;
+              serviceRequested = serviceCandidate;
+              parserRuleMatched = 'comma_separated_pattern';
+              console.log('[PARSER TRACE] =========================================');
+              console.log('[PARSER TRACE] matchedStrategy: comma_separated_pattern');
+              console.log('[PARSER TRACE] rawTranscript:', trimmed);
+              console.log('[PARSER TRACE] nameCandidate:', nameCandidate);
+              console.log('[PARSER TRACE] serviceCandidate:', serviceCandidate);
+              console.log('[PARSER TRACE] Timestamp:', new Date().toISOString());
+              console.log('[PARSER TRACE] =========================================');
+              return { customerName, serviceRequested };
+            }
+          }
+        }
+
         // Try explicit combined patterns first (name + reason in one pattern)
         const combinedPatterns = [
           // "Name is X. I need Y" / "Name is X, I need Y" / "Name is X and I need Y"
