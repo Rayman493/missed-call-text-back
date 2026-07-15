@@ -81,23 +81,23 @@ export default function AIIntakeSummaryMessage({ body }: AIIntakeSummaryMessageP
       </div>
 
       {(address || completionTime || callTime) && (
-        <div className="space-y-1 text-[11px] leading-relaxed text-muted-foreground">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] leading-relaxed text-muted-foreground">
           {address && (
-            <div className="flex items-start gap-1.5 min-w-0">
+            <div className="sm:col-span-2 flex items-start gap-1.5 min-w-0">
               <MapPin className="mt-0.5 h-3 w-3 flex-shrink-0" />
-              <span className="min-w-0 break-words">{address}</span>
+              <span className="min-w-0 break-words leading-snug">{address}</span>
             </div>
           )}
           {completionTime && (
             <div className="flex items-start gap-1.5 min-w-0">
               <Calendar className="mt-0.5 h-3 w-3 flex-shrink-0" />
-              <span className="min-w-0 break-words">{completionTime}</span>
+              <span className="min-w-0 break-words leading-snug">{completionTime}</span>
             </div>
           )}
           {callTime && (
             <div className="flex items-start gap-1.5 min-w-0">
               <Phone className="mt-0.5 h-3 w-3 flex-shrink-0" />
-              <span className="min-w-0 break-words">{callTime}</span>
+              <span className="min-w-0 break-words leading-snug">{callTime}</span>
             </div>
           )}
         </div>
