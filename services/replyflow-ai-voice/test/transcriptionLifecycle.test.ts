@@ -109,8 +109,14 @@ class TranscriptionLifecycleSimulator {
     // Increment turnId to invalidate stale callbacks
     this.state.currentTurnId++;
 
-    // Route to appropriate prompt based on field validity (use transcription turnId)
-    this.routePostTranscriptionPrompt(transcriptionTurnId);
+    // CRITICAL FIX: Use the NEW turn ID for targeted reprompt authorization
+    // The targeted reprompt is a response to the current accepted turn, so it must be
+    // authorized for the NEXT listening turn (the incremented turn ID).
+    // This prevents the stale callback guard from rejecting legitimate targeted reprompts.
+    const authorizedTurnId = this.state.currentTurnId;
+
+    // Route to appropriate prompt based on field validity (use authorized turnId)
+    this.routePostTranscriptionPrompt(authorizedTurnId);
   }
 
   // Simplified name/service parsing
@@ -262,7 +268,7 @@ const testCases = [
     expectedPromptKey: 'ask_name_reason_service_only',
     expectedSource: 'targeted_reprompt',
     expectedStage: 'ask_name_reason',
-    expectedTurnId: 0
+    expectedTurnId: 1  // After increment (FIX: was 0, now 1)
   },
   {
     description: "Partial service only response → targeted name_only reprompt",
@@ -271,7 +277,7 @@ const testCases = [
     expectedPromptKey: 'ask_name_reason_name_only',
     expectedSource: 'targeted_reprompt',
     expectedStage: 'ask_name_reason',
-    expectedTurnId: 0
+    expectedTurnId: 1  // After increment (FIX: was 0, now 1)
   },
   {
     description: "Both fields valid → advance stage, no reprompt",
@@ -280,7 +286,7 @@ const testCases = [
     expectedPromptKey: 'ask_details',
     expectedSource: 'normal_stage_advancement',
     expectedStage: 'ask_details',
-    expectedTurnId: 0
+    expectedTurnId: 1  // After increment (FIX: was 0, now 1)
   },
   {
     description: "Neither field valid → full combined reprompt",
@@ -289,7 +295,7 @@ const testCases = [
     expectedPromptKey: 'ask_name_reason',
     expectedSource: 'full_reprompt',
     expectedStage: 'ask_name_reason',
-    expectedTurnId: 0
+    expectedTurnId: 1  // After increment (FIX: was 0, now 1)
   },
   {
     description: "Repeated partial name responses → no full prompt repeated",
@@ -299,7 +305,7 @@ const testCases = [
     ],
     expectedPromptKeys: ['ask_name_reason_service_only', 'ask_name_reason_service_only'],
     expectedSources: ['targeted_reprompt', 'targeted_reprompt'],
-    expectedTurnIds: [0, 1]
+    expectedTurnIds: [1, 2]  // After each increment (FIX: was [0, 1], now [1, 2])
   }
 ];
 

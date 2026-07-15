@@ -7772,6 +7772,19 @@ Reply to this message if you'd like to update or add any information.
 
     const cachedAudio = cachedPromptAudio[promptKey as keyof typeof cachedPromptAudio];
 
+    if (!cachedAudio && source === 'immediate_post_transcription' && promptKeyOverride) {
+      // EXPLICIT ERROR: Routing decision was targeted_reprompt but no prompt audio exists
+      console.log('[NAME_ONLY_TRACE] =========================================');
+      console.log('[NAME_ONLY_TRACE] event: CRITICAL_prompt_audio_missing');
+      console.log('[NAME_ONLY_TRACE] routingDecision:', 'targeted_reprompt');
+      console.log('[NAME_ONLY_TRACE] selectedPromptKey:', promptKey);
+      console.log('[NAME_ONLY_TRACE] promptKeyOverride:', promptKeyOverride);
+      console.log('[NAME_ONLY_TRACE] logicalStage:', stage);
+      console.log('[NAME_ONLY_TRACE] action: NO_AUDIO_DISPATCHED');
+      console.log('[NAME_ONLY_TRACE] Timestamp:', new Date().toISOString());
+      console.log('[NAME_ONLY_TRACE] =========================================');
+    }
+
     if (cachedAudio) {
       // Use cached PCMU audio
       console.log('[GREETING_AUDIO_SEND] =========================================');
@@ -8970,18 +8983,24 @@ Reply to this message if you'd like to update or add any information.
 
             // Generate turn ID for this transcription event
             const turnId = state.currentTurnId;
-            console.log('[ASK_NAME_REASON TURN RECEIVED] =========================================');
-            console.log('[ASK_NAME_REASON TURN RECEIVED] turnId:', turnId);
-            console.log('[ASK_NAME_REASON TURN RECEIVED] rawTranscript:', transcript);
-            console.log('[ASK_NAME_REASON TURN RECEIVED] logicalStage:', state.currentStage);
-            console.log('[ASK_NAME_REASON TURN RECEIVED] stateBefore:', JSON.stringify({
-              customerName: state.intakeData.customerName,
-              serviceRequested: state.intakeData.serviceRequested
-            }));
-            console.log('[ASK_NAME_REASON TURN RECEIVED] Timestamp:', new Date().toISOString());
-            console.log('[ASK_NAME_REASON TURN RECEIVED] =========================================');
+            console.log('[NAME_ONLY_TRACE] =========================================');
+            console.log('[NAME_ONLY_TRACE] event: transcription_received');
+            console.log('[NAME_ONLY_TRACE] callSid:', state.callSid);
+            console.log('[NAME_ONLY_TRACE] sourceTranscript:', transcript);
+            console.log('[NAME_ONLY_TRACE] sourceTurnId:', turnId);
+            console.log('[NAME_ONLY_TRACE] currentTurnIdBefore:', state.currentTurnId);
+            console.log('[NAME_ONLY_TRACE] logicalStage:', state.currentStage);
+            console.log('[NAME_ONLY_TRACE] customerNameBefore:', state.intakeData.customerName);
+            console.log('[NAME_ONLY_TRACE] serviceRequestedBefore:', state.intakeData.serviceRequested);
+            console.log('[NAME_ONLY_TRACE] Timestamp:', new Date().toISOString());
+            console.log('[NAME_ONLY_TRACE] =========================================');
 
             const fieldName = accepted ? storeStageCapture(state.currentStage, meaningfulTranscript, 'openai_transcription_completed') : null;
+            
+            // Track turn ID for targeted reprompt authorization
+            // Initialize with current turn ID, will be updated after successful processing
+            let authorizedTurnId = turnId;
+            
             if (fieldName) {
               clearSilentTimeout('valid_transcript_accepted');
               clearStageTimeout(); // Clear timeout on valid response
@@ -9001,6 +9020,21 @@ Reply to this message if you'd like to update or add any information.
               // Increment turn ID on successful transcription to invalidate stale callbacks
               state.currentTurnId++;
               
+              // CRITICAL FIX: Use the NEW turn ID for targeted reprompt authorization
+              // The targeted reprompt is a response to the current accepted turn, so it must be
+              // authorized for the NEXT listening turn (the incremented turn ID).
+              // This prevents the stale callback guard from rejecting legitimate targeted reprompts.
+              authorizedTurnId = state.currentTurnId;
+              
+              console.log('[NAME_ONLY_TRACE] =========================================');
+              console.log('[NAME_ONLY_TRACE] event: turn_incremented');
+              console.log('[NAME_ONLY_TRACE] currentTurnIdAfter:', state.currentTurnId);
+              console.log('[NAME_ONLY_TRACE] authorizedTurnId:', authorizedTurnId);
+              console.log('[NAME_ONLY_TRACE] customerNameAfter:', state.intakeData.customerName);
+              console.log('[NAME_ONLY_TRACE] serviceRequestedAfter:', state.intakeData.serviceRequested);
+              console.log('[NAME_ONLY_TRACE] Timestamp:', new Date().toISOString());
+              console.log('[NAME_ONLY_TRACE] =========================================');
+              
               console.log('[ASK_NAME_REASON TURN MERGED] =========================================');
               console.log('[ASK_NAME_REASON TURN MERGED] turnId:', turnId);
               console.log('[ASK_NAME_REASON TURN MERGED] parsedCustomerName:', state.intakeData.customerName);
@@ -9014,6 +9048,7 @@ Reply to this message if you'd like to update or add any information.
               console.log('[ASK_NAME_REASON TURN MERGED] missingName:', !state.intakeData.customerName || state.intakeData.customerName.trim() === '');
               console.log('[ASK_NAME_REASON TURN MERGED] missingService:', !state.intakeData.serviceRequested || state.intakeData.serviceRequested.trim() === '');
               console.log('[ASK_NAME_REASON TURN MERGED] nextTurnId:', state.currentTurnId);
+              console.log('[ASK_NAME_REASON TURN MERGED] authorizedTurnId:', authorizedTurnId);
               console.log('[ASK_NAME_REASON TURN MERGED] Timestamp:', new Date().toISOString());
               console.log('[ASK_NAME_REASON TURN MERGED] =========================================');
             }
@@ -9123,15 +9158,23 @@ Reply to this message if you'd like to update or add any information.
                   console.log('[IMMEDIATE TRANSCRIPTION REPROMPT] Timestamp:', new Date().toISOString());
                   console.log('[IMMEDIATE TRANSCRIPTION REPROMPT] =========================================');
                   
+                  console.log('[NAME_ONLY_TRACE] =========================================');
+                  console.log('[NAME_ONLY_TRACE] event: routing_decision');
+                  console.log('[NAME_ONLY_TRACE] selectedRoutingAction:', 'targeted_reprompt');
+                  console.log('[NAME_ONLY_TRACE] selectedPromptKey:', promptKeyOverride || state.currentStage);
+                  console.log('[NAME_ONLY_TRACE] promptTurnId:', authorizedTurnId);
+                  console.log('[NAME_ONLY_TRACE] Timestamp:', new Date().toISOString());
+                  console.log('[NAME_ONLY_TRACE] =========================================');
+                  
                   console.log('[ASK_NAME_REASON ROUTING DECISION] =========================================');
-                  console.log('[ASK_NAME_REASON ROUTING DECISION] turnId:', turnId);
+                  console.log('[ASK_NAME_REASON ROUTING DECISION] turnId:', authorizedTurnId);
                   console.log('[ASK_NAME_REASON ROUTING DECISION] action: reprompt_with_targeted_variant');
                   console.log('[ASK_NAME_REASON ROUTING DECISION] selectedPromptKey:', promptKeyOverride || state.currentStage);
                   console.log('[ASK_NAME_REASON ROUTING DECISION] reason:', hasValidCustomerName && !hasValidServiceRequested ? 'customerName_valid_serviceRequested_missing' : !hasValidCustomerName && hasValidServiceRequested ? 'customerName_missing_serviceRequested_valid' : 'both_fields_missing');
                   console.log('[ASK_NAME_REASON ROUTING DECISION] Timestamp:', new Date().toISOString());
                   console.log('[ASK_NAME_REASON ROUTING DECISION] =========================================');
                   
-                  sendPrompt(state.currentStage, promptKeyOverride, 'immediate_post_transcription', turnId);
+                  sendPrompt(state.currentStage, promptKeyOverride, 'immediate_post_transcription', authorizedTurnId);
                 }
               } else if (currentIndex < stages.length - 1) {
                 // Normal stage advancement for other stages
@@ -9142,7 +9185,7 @@ Reply to this message if you'd like to update or add any information.
                 console.log('[STAGE TRANSITION] =========================================');
                 console.log('[STAGE TRANSITION] event: stage_advanced');
                 console.log('[STAGE TRANSITION] trigger: user_transcription_accepted');
-                console.log('[STAGE TRANSITION] turnId:', turnId);
+                console.log('[STAGE TRANSITION] turnId:', authorizedTurnId);
                 console.log('[STAGE TRANSITION] previousStage:', previousStage);
                 console.log('[STAGE TRANSITION] nextStage:', nextStage);
                 console.log('[STAGE TRANSITION] transcript:', transcript);
@@ -9153,7 +9196,7 @@ Reply to this message if you'd like to update or add any information.
                 console.log('[STAGE TRANSITION] =========================================');
                 
                 console.log('[ASK_NAME_REASON ROUTING DECISION] =========================================');
-                console.log('[ASK_NAME_REASON ROUTING DECISION] turnId:', turnId);
+                console.log('[ASK_NAME_REASON ROUTING DECISION] turnId:', authorizedTurnId);
                 console.log('[ASK_NAME_REASON ROUTING DECISION] action: advance_to_next_stage');
                 console.log('[ASK_NAME_REASON ROUTING DECISION] previousStage:', previousStage);
                 console.log('[ASK_NAME_REASON ROUTING DECISION] nextStage:', nextStage);
@@ -9161,7 +9204,7 @@ Reply to this message if you'd like to update or add any information.
                 console.log('[ASK_NAME_REASON ROUTING DECISION] Timestamp:', new Date().toISOString());
                 console.log('[ASK_NAME_REASON ROUTING DECISION] =========================================');
                 
-                sendPrompt(state.currentStage, undefined, 'normal_stage_advancement', turnId);
+                sendPrompt(state.currentStage, undefined, 'normal_stage_advancement', authorizedTurnId);
               } else if (isFinalStage) {
                 // Final stage (ask_callback_time) completed - advance to complete
                 const previousStage = state.currentStage;
@@ -9170,7 +9213,7 @@ Reply to this message if you'd like to update or add any information.
                 console.log('[STAGE TRANSITION] =========================================');
                 console.log('[STAGE TRANSITION] event: final_stage_advanced_to_complete');
                 console.log('[STAGE TRANSITION] trigger: user_transcription_accepted');
-                console.log('[STAGE TRANSITION] turnId:', turnId);
+                console.log('[STAGE TRANSITION] turnId:', authorizedTurnId);
                 console.log('[STAGE TRANSITION] previousStage:', previousStage);
                 console.log('[STAGE TRANSITION] nextStage:', 'complete');
                 console.log('[STAGE TRANSITION] transcript:', transcript);
@@ -9181,7 +9224,7 @@ Reply to this message if you'd like to update or add any information.
                 console.log('[STAGE TRANSITION] =========================================');
                 
                 console.log('[ASK_NAME_REASON ROUTING DECISION] =========================================');
-                console.log('[ASK_NAME_REASON ROUTING DECISION] turnId:', turnId);
+                console.log('[ASK_NAME_REASON ROUTING DECISION] turnId:', authorizedTurnId);
                 console.log('[ASK_NAME_REASON ROUTING DECISION] action: advance_to_complete');
                 console.log('[ASK_NAME_REASON ROUTING DECISION] previousStage:', previousStage);
                 console.log('[ASK_NAME_REASON ROUTING DECISION] nextStage:', 'complete');
@@ -9189,7 +9232,7 @@ Reply to this message if you'd like to update or add any information.
                 console.log('[ASK_NAME_REASON ROUTING DECISION] Timestamp:', new Date().toISOString());
                 console.log('[ASK_NAME_REASON ROUTING DECISION] =========================================');
                 
-                sendPrompt('complete', undefined, 'final_stage_completion', turnId);
+                sendPrompt('complete', undefined, 'final_stage_completion', authorizedTurnId);
                 
                 // Run completion persistence immediately after setting stage to complete
                 processSimpleModeCompletion().catch(console.error);
@@ -9390,7 +9433,34 @@ Reply to this message if you'd like to update or add any information.
   };
 
   ws.on('close', async () => {
+    // Clear all timers on WebSocket close to prevent memory leaks
     clearSilentTimeout('websocket_closed');
+    
+    if (state.stageTimeout) {
+      clearTimeout(state.stageTimeout);
+      state.stageTimeout = null;
+    }
+    if (state.transcriptionWatchdogTimeout) {
+      clearTimeout(state.transcriptionWatchdogTimeout);
+      state.transcriptionWatchdogTimeout = null;
+    }
+    if (state.markWatchdogTimeout) {
+      clearTimeout(state.markWatchdogTimeout);
+      state.markWatchdogTimeout = null;
+    }
+    if (state.silentCloseHangupTimeout) {
+      clearTimeout(state.silentCloseHangupTimeout);
+      state.silentCloseHangupTimeout = null;
+    }
+    if (state.simpleModeFinalTimeout) {
+      clearTimeout(state.simpleModeFinalTimeout);
+      state.simpleModeFinalTimeout = null;
+    }
+    if (state.sessionReadyTimeout) {
+      clearTimeout(state.sessionReadyTimeout);
+      state.sessionReadyTimeout = null;
+    }
+    
     console.log('[SIMPLE MODE] WebSocket closed');
     if (state.openAiWs) state.openAiWs.close();
 
