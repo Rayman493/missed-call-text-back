@@ -543,6 +543,28 @@ export default function LeadsPage() {
     router.push(`/dashboard/leads/${leadId}`)
   }
 
+  // Handle outside-click deselection
+  const handleCustomerAreaClick = (event: React.MouseEvent<HTMLElement>) => {
+    if (!selectedLeadId) return
+
+    const target = event.target as HTMLElement
+
+    // Check if click is inside a customer card
+    if (target.closest('[data-customer-card="true"]')) {
+      return
+    }
+
+    // Clear selection when clicking outside cards
+    setSelectedLeadId(null)
+  }
+
+  // Handle Escape key for deselection
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (event.key === 'Escape' && selectedLeadId) {
+      setSelectedLeadId(null)
+    }
+  }
+
   // Handle billing actions
   const handleBillingActionClick = async (action: 'portal' | 'upgrade') => {
     try {
@@ -711,7 +733,11 @@ export default function LeadsPage() {
 
           {/* Main Content */}
           <main className="flex-1 pt-4 lg:pt-8 px-4 lg:px-6 pb-6 md:pb-6 relative z-10 overflow-y-auto" style={{ paddingBottom: 'max(80px, calc(80px + env(safe-area-inset-bottom)))' }}>
-            <div className="max-w-[1400px] mx-auto space-y-3 sm:space-y-4 lg:space-y-6">
+            <div 
+              className="max-w-[1400px] mx-auto space-y-3 sm:space-y-4 lg:space-y-6"
+              onClick={handleCustomerAreaClick}
+              onKeyDown={handleKeyDown}
+            >
             {/* SMS Verification Banner */}
             <SmsVerificationBanner business={business} />
 
@@ -1243,15 +1269,16 @@ export default function LeadsPage() {
                       </p>
                       <div
                         key={lead.id}
+                        data-customer-card="true"
                         className={`w-full max-w-2xl h-full flex flex-col rounded-xl border relative overflow-hidden transition-all duration-200 cursor-pointer ${
                           selectedLeadId === lead.id
                             ? 'bg-blue-50/80 dark:bg-blue-950/30 border-blue-500 shadow-lg shadow-blue-500/20 ring-2 ring-blue-500/30'
                             : 'bg-card border-border/50 hover:border-blue-400/70 hover:shadow-md hover:-translate-y-0.5'
                         }`}
                         onClick={() => {
-                          // Desktop: single-click selects
+                          // Desktop: single-click selects (does not deselect)
                           if (window.innerWidth >= 768) {
-                            setSelectedLeadId(selectedLeadId === lead.id ? null : lead.id)
+                            setSelectedLeadId(lead.id)
                           } else {
                             // Mobile: first tap selects, second tap opens
                             if (selectedLeadId === lead.id) {
@@ -1270,7 +1297,7 @@ export default function LeadsPage() {
                         onKeyDown={(e) => {
                           if (e.key === ' ') {
                             e.preventDefault()
-                            setSelectedLeadId(selectedLeadId === lead.id ? null : lead.id)
+                            setSelectedLeadId(lead.id)
                           } else if (e.key === 'Enter') {
                             e.preventDefault()
                             handleConversationClick(lead.id)
@@ -1469,15 +1496,16 @@ export default function LeadsPage() {
                         return (
                           <div
                             key={lead.id}
+                            data-customer-card="true"
                             className={`rounded-xl border relative overflow-hidden transition-all duration-200 cursor-pointer ${
                               selectedLeadId === lead.id
                                 ? 'bg-blue-50/80 dark:bg-blue-950/30 border-blue-500 shadow-lg shadow-blue-500/20 ring-2 ring-blue-500/30'
                                 : 'bg-card border-border/50 hover:border-blue-400/70 hover:shadow-md hover:-translate-y-0.5'
                             }`}
                             onClick={() => {
-                              // Desktop: single-click selects
+                              // Desktop: single-click selects (does not deselect)
                               if (window.innerWidth >= 768) {
-                                setSelectedLeadId(selectedLeadId === lead.id ? null : lead.id)
+                                setSelectedLeadId(lead.id)
                               } else {
                                 // Mobile: first tap selects, second tap opens
                                 if (selectedLeadId === lead.id) {
@@ -1496,7 +1524,7 @@ export default function LeadsPage() {
                             onKeyDown={(e) => {
                               if (e.key === ' ') {
                                 e.preventDefault()
-                                setSelectedLeadId(selectedLeadId === lead.id ? null : lead.id)
+                                setSelectedLeadId(lead.id)
                               } else if (e.key === 'Enter') {
                                 e.preventDefault()
                                 handleConversationClick(lead.id)
