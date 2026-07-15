@@ -37,7 +37,6 @@ export default function PremiumAudioPlayer({
   // Volume state - sync with shared volume manager
   const [volume, setVolume] = useState(() => volumeManager.getVolume())
   const [isMuted, setIsMuted] = useState(() => volumeManager.getIsMuted())
-  const [showVolumeSlider, setShowVolumeSlider] = useState(false)
 
   // Generate decorative waveform bars (visual only)
   const waveformBars = Array.from({ length: 40 }, (_, i) => {
@@ -252,11 +251,7 @@ export default function PremiumAudioPlayer({
             
             {/* Volume Slider */}
             <div 
-              className={`relative flex items-center gap-2 transition-all duration-200 ${
-                showVolumeSlider ? 'opacity-100 w-24' : 'opacity-0 w-0 overflow-hidden'
-              }`}
-              onMouseEnter={() => setShowVolumeSlider(true)}
-              onMouseLeave={() => setShowVolumeSlider(false)}
+              className="relative flex items-center gap-2 transition-all duration-200 opacity-0 w-0 overflow-hidden group-hover:opacity-100 group-hover:w-24 group-focus-within:opacity-100 group-focus-within:w-24"
             >
               <input
                 type="range"
