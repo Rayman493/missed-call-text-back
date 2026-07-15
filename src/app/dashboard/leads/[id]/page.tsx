@@ -3215,88 +3215,89 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      {/* Conversation Thread - CSS-based Layout */}
+      {/* Conversation Thread - Conditional Rendering to Prevent Duplicate Audio Elements */}
       <div className="flex-1 max-w-7xl mx-auto w-full px-6 lg:px-8 py-2">
-        
-        {/* Desktop Layout */}
-        <div className="hidden lg:grid lg:grid-cols-[minmax(0,2.5fr)_340px] gap-10 items-start">
-          {/* Desktop Conversation Section - Independent Scroll */}
-          <section className="flex flex-col min-h-0 h-[calc(100vh-260px)]">
-            {/* Desktop Message Thread - Scrollable */}
-            <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-5 py-4 min-h-0 custom-scrollbar bg-white dark:bg-slate-950 border border-slate-200/70 dark:border-slate-800/70 rounded-2xl shadow-[0_4px_24px_rgb(0,0,0,0.10),0_2px_12px_rgb(0,0,0,0.06)] ring-1 ring-slate-900/8 dark:ring-slate-100/8" style={{ minHeight: '200px' }}>
-              {loading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                </div>
-              ) : conversationTimeline.length === 0 ? (
-                <div className="flex items-center justify-center h-full py-16 animate-fadeIn">
-                  <div className="text-center max-w-md px-6">
-                    <div className="w-20 h-20 bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-blue-200/30 dark:border-blue-900/30">
-                      <svg className="w-10 h-10 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                    </div>
-                    <h3 className="text-xl font-bold text-foreground mb-3">No conversation yet</h3>
-                    <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed mb-4">
-                      The first message will appear here once you or your customer starts the conversation.
-                    </p>
-                    <p className="text-xs text-muted-foreground/70 max-w-sm mx-auto leading-relaxed mb-5">
-                      ReplyFlow is ready when your customer reaches out.
-                    </p>
-                    <div className="space-y-2 text-left max-w-sm mx-auto">
-                      <div className="flex items-center gap-2.5 text-xs text-muted-foreground/70">
-                        <svg className="w-3.5 h-3.5 text-blue-500/70 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+
+        {/* Desktop Layout - Only render when not mobile view */}
+        {!isMobileView && (
+          <div className="grid grid-cols-[minmax(0,2.5fr)_340px] gap-10 items-start">
+            {/* Desktop Conversation Section - Independent Scroll */}
+            <section className="flex flex-col min-h-0 h-[calc(100vh-260px)]">
+              {/* Desktop Message Thread - Scrollable */}
+              <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-5 py-4 min-h-0 custom-scrollbar bg-white dark:bg-slate-950 border border-slate-200/70 dark:border-slate-800/70 rounded-2xl shadow-[0_4px_24px_rgb(0,0,0,0.10),0_2px_12px_rgb(0,0,0,0.06)] ring-1 ring-slate-900/8 dark:ring-slate-100/8" style={{ minHeight: '200px' }}>
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                  </div>
+                ) : conversationTimeline.length === 0 ? (
+                  <div className="flex items-center justify-center h-full py-16 animate-fadeIn">
+                    <div className="text-center max-w-md px-6">
+                      <div className="w-20 h-20 bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-blue-200/30 dark:border-blue-900/30">
+                        <svg className="w-10 h-10 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                         </svg>
-                        <span>AI is ready to answer missed calls</span>
                       </div>
-                      <div className="flex items-center gap-2.5 text-xs text-muted-foreground/70">
-                        <svg className="w-3.5 h-3.5 text-blue-500/70 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span>Send a message to start the conversation</span>
-                      </div>
-                      <div className="flex items-center gap-2.5 text-xs text-muted-foreground/70">
-                        <svg className="w-3.5 h-3.5 text-blue-500/70 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span>Photos and videos can be shared here</span>
+                      <h3 className="text-xl font-bold text-foreground mb-3">No conversation yet</h3>
+                      <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed mb-4">
+                        The first message will appear here once you or your customer starts the conversation.
+                      </p>
+                      <p className="text-xs text-muted-foreground/70 max-w-sm mx-auto leading-relaxed mb-5">
+                        ReplyFlow is ready when your customer reaches out.
+                      </p>
+                      <div className="space-y-2 text-left max-w-sm mx-auto">
+                        <div className="flex items-center gap-2.5 text-xs text-muted-foreground/70">
+                          <svg className="w-3.5 h-3.5 text-blue-500/70 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          <span>AI is ready to answer missed calls</span>
+                        </div>
+                        <div className="flex items-center gap-2.5 text-xs text-muted-foreground/70">
+                          <svg className="w-3.5 h-3.5 text-blue-500/70 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          <span>Send a message to start the conversation</span>
+                        </div>
+                        <div className="flex items-center gap-2.5 text-xs text-muted-foreground/70">
+                          <svg className="w-3.5 h-3.5 text-blue-500/70 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          <span>Photos and videos can be shared here</span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ) : (
-                <DesktopConversationMessageList
-                  messagesArray={messagesArray}
-                  conversationTimeline={conversationTimeline}
+                ) : (
+                  <DesktopConversationMessageList
+                    messagesArray={messagesArray}
+                    conversationTimeline={conversationTimeline}
+                    sending={sending}
+                    handleRetry={handleRetry}
+                    getErrorMessage={getErrorMessage}
+                    onImageLoad={() => scrollToBottom('smooth', true)}
+                    highlightedItemId={highlightedTimelineItemId}
+                  />
+                )}
+              </div>
+
+              {/* Desktop Message Composer - Fixed to Bottom */}
+              <div className="shrink-0 pt-3">
+                <ConversationComposer
+                  message={message}
+                  setMessage={setMessage}
+                  handleSendMessage={handleSendMessage}
                   sending={sending}
-                  handleRetry={handleRetry}
-                  getErrorMessage={getErrorMessage}
-                  onImageLoad={() => scrollToBottom('smooth', true)}
-                  highlightedItemId={highlightedTimelineItemId}
+                  onClearImages={(clearFn: () => void) => {
+                    clearComposerImagesRef.current = clearFn
+                  }}
                 />
-              )}
-            </div>
+              </div>
+            </section>
 
-            {/* Desktop Message Composer - Fixed to Bottom */}
-            <div className="shrink-0 pt-3">
-              <ConversationComposer
-                message={message}
-                setMessage={setMessage}
-                handleSendMessage={handleSendMessage}
-                sending={sending}
-                onClearImages={(clearFn: () => void) => {
-                  clearComposerImagesRef.current = clearFn
-                }}
-              />
-            </div>
-          </section>
-
-          {/* Desktop Sidebar - Simplified */}
-          <aside className="sticky top-4 overflow-y-auto max-h-[calc(100vh-260px)]" data-sidebar>
-            <div className="space-y-4">
-              {/* Consolidated Information Panel - Simplified */}
-              <div className="bg-card rounded-xl border border-border/40 p-5">
+            {/* Desktop Sidebar - Simplified */}
+            <aside className="sticky top-4 overflow-y-auto max-h-[calc(100vh-260px)]" data-sidebar>
+              <div className="space-y-4">
+                {/* Consolidated Information Panel - Simplified */}
+                <div className="bg-card rounded-xl border border-border/40 p-5">
                 <div className="space-y-5">
                   {/* AI Intake Summary */}
                   {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
@@ -3434,13 +3435,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </aside>
 
           {/* Workspace Section - Below conversation for desktop */}
-          <div className="hidden lg:block lg:col-span-2 mt-8">
+          <div className="col-span-2 mt-8">
             {renderWorkspaceSection()}
           </div>
         </div>
-        
-        {/* Mobile Layout - Conversation-first: Conversation -> Collapsible Sections */}
-        <div className="lg:hidden space-y-2 pb-[calc(6rem+env(safe-area-inset-bottom))]">
+        )}
+
+        {/* Mobile Layout - Only render when mobile view */}
+        {isMobileView && (
+          <div className="space-y-2 pb-[calc(6rem+env(safe-area-inset-bottom))]">
           {/* Conversation Header - Establishes the messaging workspace */}
           <div className="px-3 pt-2 pb-1">
             <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Conversation</h2>
@@ -3789,8 +3792,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             )}
           </div>
         </div>
+        )}
       </div>
-          {/* Desktop Layout - 2 Column */}
+
       {/* Mobile Bottom Sheet for Lead Details */}
       {showLeadInfo && (
         <div className="md:hidden fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50" onClick={() => setShowLeadInfo(false)}>

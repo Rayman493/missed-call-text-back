@@ -96,18 +96,6 @@ export default function DesktopConversationMessageList({
         // Handle voicemail items - always render with full audio player for desktop
         if (item.type === 'voicemail') {
           const voicemail = item.data
-          console.log('[DESKTOP VOICEMAIL] Rendering voicemail item:', {
-            voicemailId: voicemail.id,
-            recordingSid: voicemail.recording_url ? extractRecordingSid(voicemail.recording_url) : 'none',
-            recordingUrl: voicemail.recording_url,
-            recordingStatus: voicemail.recording_status,
-            recordingDuration: voicemail.recording_duration,
-            createdAt: voicemail.created_at,
-            transcriptionStatus: voicemail.transcription_status,
-            hasTranscription: !!voicemail.transcription_text,
-            fullData: voicemail
-          })
-
           return (
             <VoicemailMessage
               key={item.id}

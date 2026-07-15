@@ -85,18 +85,7 @@ export default function VoicemailMessage({
   // Initialize secure audio URL when component mounts
   useEffect(() => {
     const initializeAudioUrl = async () => {
-      console.log('[VOICEMAIL AUDIO INIT] Starting audio URL initialization:', {
-        voicemailId: recording.id,
-        recordingStatus: recording.recording_status,
-        hasRecordingUrl: !!recording.recording_url,
-        recordingUrl: recording.recording_url
-      })
-
       if (recording.recording_status !== 'completed' || !recording.recording_url) {
-        console.log('[VOICEMAIL AUDIO INIT] Skipping - conditions not met:', {
-          recordingStatus: recording.recording_status,
-          hasRecordingUrl: !!recording.recording_url
-        })
         return
       }
 
@@ -111,18 +100,11 @@ export default function VoicemailMessage({
         }
 
         const secureUrl = await createSecureAudioUrl(recordingSid)
-
-        console.log('[VOICEMAIL AUDIO INIT] Secure URL created:', {
-          voicemailId: recording.id,
-          recordingSid,
-          secureUrl
-        })
-
         setAudioUrl(secureUrl)
       } catch (error) {
         console.error('[VOICEMAIL AUDIO INIT] Error creating secure URL:', {
           voicemailId: recording.id,
-          error
+          error: error instanceof Error ? error.message : String(error)
         })
         setAudioError('Unable to load voicemail recording.')
       } finally {
@@ -206,9 +188,21 @@ export default function VoicemailMessage({
   const togglePlayPause = async () => {
     const audio = audioRef.current
     if (!audio) {
+      console.error('[VOICEMAIL PLAY FAILED] Audio element not available', { voicemailId: recording.id })
       setAudioError('Audio not available.')
       return
     }
+
+    console.log('[VOICEMAIL PLAY REQUEST]', {
+      voicemailId: recording.id,
+      hasAudioElement: !!audio,
+      src: audio.currentSrc || audio.src,
+      readyState: audio.readyState,
+      networkState: audio.networkState,
+      paused: audio.paused,
+      currentTime: audio.currentTime,
+      duration: audio.duration
+    })
 
     if (isPlaying) {
       audio.pause()
@@ -228,37 +222,53 @@ export default function VoicemailMessage({
           audio.currentTime = savedCurrentTime
         }
       }
-      
+
       // Prevent multiple play requests on the same audio element
       if (!audio.paused) {
+        console.log('[VOICEMAIL PLAY SKIPPED] Audio already playing', { voicemailId: recording.id })
         return
       }
-      
+
       // Check if we already have audio loaded - reuse it if we do
       if (audio.src && blobUrl) {
-        
+
         try {
           // Request play from audio manager (will pause other voicemails if needed)
           const canPlay = await audioManager.requestPlay(recording.id)
           if (!canPlay) {
+            console.log('[VOICEMAIL PLAY DENIED] Audio manager denied play request', { voicemailId: recording.id })
             return
           }
-          
+
           await audio.play()
           setIsPlaying(true)
-        } catch {
+          console.log('[VOICEMAIL PLAY SUCCESS] Audio started playing', { voicemailId: recording.id })
+        } catch (error) {
+          console.error('[VOICEMAIL PLAY FAILED]', {
+            voicemailId: recording.id,
+            error: error instanceof Error ? error.message : String(error),
+            errorName: error instanceof Error ? error.name : 'Unknown',
+            audioState: {
+              readyState: audio.readyState,
+              networkState: audio.networkState,
+              paused: audio.paused,
+              currentTime: audio.currentTime,
+              duration: audio.duration
+            }
+          })
           setAudioError('Unable to play voicemail recording.')
           audioManager.requestPause(recording.id)
         }
         return
       }
-      
+
       // Only fetch audio if we don't have it yet
       if (!audioUrl) {
+        console.error('[VOICEMAIL PLAY FAILED] Voicemail URL not available', { voicemailId: recording.id })
         setAudioError('Voicemail URL not available.')
         return
       }
-      
+
       try {
         const supabase = createBrowserClient()
         if (supabase) {
@@ -270,16 +280,16 @@ export default function VoicemailMessage({
                 'Authorization': `Bearer ${session.access_token}`
               }
             })
-            
+
             if (response.ok) {
               const audioBlob = await response.blob()
               const objectUrl = URL.createObjectURL(audioBlob)
               setBlobUrl(objectUrl)
-              
+
               // Set the audio source and load it
               audio.src = objectUrl
               audio.load()
-              
+
               // Apply saved volume to audio element when source changes
               const normalizedVolume = isMuted ? 0 : Math.min(1, Math.max(0, volume))
               audio.volume = normalizedVolume
@@ -302,30 +312,48 @@ export default function VoicemailMessage({
               
               // Wait for audio to load before playing
               audio.addEventListener('canplay', async () => {
+                console.log('[VOICEMAIL CANPLAY] Audio ready to play', { voicemailId: recording.id })
                 // Request play from audio manager (will pause other voicemails if needed)
                 const canPlay = await audioManager.requestPlay(recording.id)
                 if (!canPlay) {
+                  console.log('[VOICEMAIL PLAY DENIED] Audio manager denied play request on canplay', { voicemailId: recording.id })
                   return
                 }
-                
+
                 try {
                   await audio.play()
                   setIsPlaying(true)
-                } catch {
+                  console.log('[VOICEMAIL PLAY SUCCESS] Audio started playing after fetch', { voicemailId: recording.id })
+                } catch (error) {
+                  console.error('[VOICEMAIL PLAY FAILED] After audio fetch', {
+                    voicemailId: recording.id,
+                    error: error instanceof Error ? error.message : String(error)
+                  })
                   setAudioError('Unable to play voicemail recording.')
                   audioManager.requestPause(recording.id)
                 }
               }, { once: true })
             } else {
+              console.error('[VOICEMAIL FETCH FAILED] Response not OK', {
+                voicemailId: recording.id,
+                status: response.status,
+                statusText: response.statusText
+              })
               setAudioError('Unable to load voicemail recording.')
             }
           } else {
+            console.error('[VOICEMAIL AUTH FAILED] No session or access token', { voicemailId: recording.id })
             setAudioError('Authentication required.')
           }
         } else {
+          console.error('[VOICEMAIL SUPABASE FAILED] Unable to initialize authentication', { voicemailId: recording.id })
           setAudioError('Unable to initialize authentication.')
         }
-      } catch {
+      } catch (error) {
+        console.error('[VOICEMAIL FETCH ERROR] Exception during audio fetch', {
+          voicemailId: recording.id,
+          error: error instanceof Error ? error.message : String(error)
+        })
         setAudioError('Unable to play voicemail recording.')
       }
     }
