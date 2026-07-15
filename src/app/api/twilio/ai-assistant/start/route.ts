@@ -8,7 +8,18 @@ import { getGreeting, detectBusinessCategory, getEffectiveBusinessType } from '@
 import VoiceResponse from 'twilio/lib/twiml/VoiceResponse'
 
 /**
- * AI Call Assistant Start Route (Phase 0 - QA Only)
+ * AI Call Assistant Start Route (Phase 0 - LEGACY - NOT IN PRODUCTION)
+ * 
+ * ⚠️ LEGACY CODE - NOT USED IN PRODUCTION ⚠️
+ * 
+ * This route is part of the original Phase 0 implementation that was never
+ * deployed to production due to Vercel's WebSocket limitations.
+ * 
+ * PRODUCTION PATH:
+ * The actual production AI intake uses the Fly.io WebSocket service:
+ * - Entry point: /api/twilio/voice (generates TwiML with WebSocket URL)
+ * - WebSocket service: services/replyflow-ai-voice (Fly.io)
+ * - This file is kept for reference only and is not called in production
  * 
  * This route initializes an AI call session and returns TwiML.
  * 

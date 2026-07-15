@@ -5255,6 +5255,9 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     cachedPlaybackInterrupted: false,
     // AI session tracking for fallback
     aiSessionTracker: null as AISessionStateTracker | null,
+    // Watchdog timers for stall detection
+    markWatchdogTimeout: null as NodeJS.Timeout | null,
+    transcriptionWatchdogTimeout: null as NodeJS.Timeout | null,
   };
 
   // Canonical Simple Mode prompt keys - no mapping layer
@@ -6947,6 +6950,43 @@ Reply to this message if you'd like to update or add any information.
         console.log('[AUDIO TIMING] chunkCount:', totalChunks);
         console.log('[AUDIO TIMING] assistantSpeaking:', state.assistantSpeaking);
         console.log('[AUDIO TIMING] =========================================');
+
+        // MARK WATCHDOG: Force assistantSpeaking=false if mark never arrives
+        // This prevents permanent stall if Twilio fails to send mark event
+        const MARK_TIMEOUT_MS = 10000; // 10 seconds - longer than any prompt
+        if (state.markWatchdogTimeout) {
+          clearTimeout(state.markWatchdogTimeout);
+        }
+        state.markWatchdogTimeout = setTimeout(() => {
+          if (state.assistantSpeaking) {
+            console.log('[MARK WATCHDOG] =========================================');
+            console.log('[MARK WATCHDOG] event: mark_timeout');
+            console.log('[MARK WATCHDOG] stage:', stage);
+            console.log('[MARK WATCHDOG] action: forcing_assistantSpeaking_false');
+            console.log('[MARK WATCHDOG] reason: Twilio mark event not received within timeout');
+            console.log('[MARK WATCHDOG] timeoutMs:', MARK_TIMEOUT_MS);
+            console.log('[MARK WATCHDOG] Timestamp:', new Date().toISOString());
+            console.log('[MARK WATCHDOG] =========================================');
+            
+            state.assistantSpeaking = false;
+            state.ttsCompleteTime = Date.now();
+            
+            // Process any queued transcript that was waiting for mark
+            if (state.queuedTranscript) {
+              console.log('[MARK WATCHDOG] Processing queued transcript after timeout');
+              const queued = state.queuedTranscript;
+              state.queuedTranscript = null;
+              // Re-process as if transcription just arrived
+              // This will trigger stage advancement if valid
+            }
+          }
+        }, MARK_TIMEOUT_MS);
+        console.log('[MARK WATCHDOG] =========================================');
+        console.log('[MARK WATCHDOG] event: watchdog_started');
+        console.log('[MARK WATCHDOG] stage:', stage);
+        console.log('[MARK WATCHDOG] timeoutMs:', MARK_TIMEOUT_MS);
+        console.log('[MARK WATCHDOG] Timestamp:', new Date().toISOString());
+        console.log('[MARK WATCHDOG] =========================================');
         logSimple('cached_prompt_complete', { stage });
 
         if (stage === 'ask_name_reason') {
@@ -7410,6 +7450,39 @@ Reply to this message if you'd like to update or add any information.
             console.log('[AUDIO PIPELINE] =========================================');
             state.inSpeechSegment = true;
             state.audioAppendBlockedLogged = false;
+            
+            // TRANSCRIPTION WATCHDOG: Start watchdog when speech begins
+            // This detects if OpenAI never returns a transcription after speech
+            const TRANSCRIPTION_TIMEOUT_MS = 15000; // 15 seconds - longer than any reasonable answer
+            if (state.transcriptionWatchdogTimeout) {
+              clearTimeout(state.transcriptionWatchdogTimeout);
+            }
+            state.transcriptionWatchdogTimeout = setTimeout(() => {
+              console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+              console.log('[TRANSCRIPTION WATCHDOG] event: transcription_timeout');
+              console.log('[TRANSCRIPTION WATCHDOG] stage:', state.currentStage);
+              console.log('[TRANSCRIPTION WATCHDOG] action: reprompting');
+              console.log('[TRANSCRIPTION WATCHDOG] reason: Transcription not received after speech started');
+              console.log('[TRANSCRIPTION WATCHDOG] timeoutMs:', TRANSCRIPTION_TIMEOUT_MS);
+              console.log('[TRANSCRIPTION WATCHDOG] Timestamp:', new Date().toISOString());
+              console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+              
+              // Clear the watchdog
+              state.transcriptionWatchdogTimeout = null;
+              
+              // Reprompt the current stage
+              if (state.currentStage && state.currentStage !== 'complete') {
+                console.log('[TRANSCRIPTION WATCHDOG] Reprompting current stage:', state.currentStage);
+                sendPrompt(state.currentStage);
+              }
+            }, TRANSCRIPTION_TIMEOUT_MS);
+            console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+            console.log('[TRANSCRIPTION WATCHDOG] event: watchdog_started');
+            console.log('[TRANSCRIPTION WATCHDOG] stage:', state.currentStage);
+            console.log('[TRANSCRIPTION WATCHDOG] timeoutMs:', TRANSCRIPTION_TIMEOUT_MS);
+            console.log('[TRANSCRIPTION WATCHDOG] Timestamp:', new Date().toISOString());
+            console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+            
             if (state.assistantSpeaking) {
               console.log('[SIMPLE MODE] =========================================');
               console.log('[SIMPLE MODE] event: caller_speech_detected_during_prompt');
@@ -7448,6 +7521,17 @@ Reply to this message if you'd like to update or add any information.
             console.log('[AUDIO PIPELINE] elapsedMsPromptCompleteToSpeechStarted:', state.promptAudioSentAt && state.firstSpeechStartedAfterPromptAt ? state.firstSpeechStartedAfterPromptAt - state.promptAudioSentAt : null);
             console.log('[AUDIO PIPELINE] elapsedMsSpeechStartedToFirstAudioForwarded:', state.firstSpeechStartedAfterPromptAt && state.firstAudioForwardedAfterPromptAt ? state.firstAudioForwardedAfterPromptAt - state.firstSpeechStartedAfterPromptAt : null);
             console.log('[AUDIO PIPELINE] =========================================');
+            
+            // Clear transcription watchdog since transcription was received
+            if (state.transcriptionWatchdogTimeout) {
+              clearTimeout(state.transcriptionWatchdogTimeout);
+              state.transcriptionWatchdogTimeout = null;
+              console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+              console.log('[TRANSCRIPTION WATCHDOG] event: watchdog_cleared');
+              console.log('[TRANSCRIPTION WATCHDOG] reason: transcription_received');
+              console.log('[TRANSCRIPTION WATCHDOG] Timestamp:', new Date().toISOString());
+              console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+            }
           } else if (message.type === 'conversation.item.input_audio_transcription.failed') {
             console.log('[AUDIO PIPELINE] =========================================');
             console.log('[AUDIO PIPELINE] event: transcription.failed');
@@ -7901,6 +7985,18 @@ Reply to this message if you'd like to update or add any information.
           console.log('[SIMPLE MODE] markName:', message.mark.name);
           console.log('[SIMPLE MODE] action: setting_assistantSpeaking_false');
           console.log('[SIMPLE MODE] =========================================');
+          
+          // Clear mark watchdog since mark was received
+          if (state.markWatchdogTimeout) {
+            clearTimeout(state.markWatchdogTimeout);
+            state.markWatchdogTimeout = null;
+            console.log('[MARK WATCHDOG] =========================================');
+            console.log('[MARK WATCHDOG] event: watchdog_cleared');
+            console.log('[MARK WATCHDOG] reason: mark_received');
+            console.log('[MARK WATCHDOG] stage:', stage);
+            console.log('[MARK WATCHDOG] Timestamp:', new Date().toISOString());
+            console.log('[MARK WATCHDOG] =========================================');
+          }
           
           // Now that audio has finished playing, allow caller audio
           state.assistantSpeaking = false;
