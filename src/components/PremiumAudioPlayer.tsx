@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { Play, Pause, Volume2, VolumeX, Volume1 } from 'lucide-react'
+import { volumeManager } from '@/lib/volume-manager'
 
 interface PremiumAudioPlayerProps {
   audioRef: React.RefObject<HTMLAudioElement>
@@ -33,17 +34,9 @@ export default function PremiumAudioPlayer({
   const [isDragging, setIsDragging] = useState(false)
   const progressBarRef = useRef<HTMLDivElement>(null)
   
-  // Volume state
-  const [volume, setVolume] = useState(() => {
-    // Initialize from session storage or default to 1.0
-    if (typeof window !== 'undefined') {
-      const saved = sessionStorage.getItem('replyflow-audio-volume')
-      return saved ? parseFloat(saved) : 1.0
-    }
-    return 1.0
-  })
-  const [previousVolume, setPreviousVolume] = useState(1.0)
-  const [isMuted, setIsMuted] = useState(false)
+  // Volume state - sync with shared volume manager
+  const [volume, setVolume] = useState(() => volumeManager.getVolume())
+  const [isMuted, setIsMuted] = useState(() => volumeManager.getIsMuted())
   const [showVolumeSlider, setShowVolumeSlider] = useState(false)
 
   // Generate decorative waveform bars (visual only)
@@ -58,44 +51,31 @@ export default function PremiumAudioPlayer({
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
+  // Sync volume with shared volume manager
+  useEffect(() => {
+    const handleVolumeChange = (newVolume: number, newIsMuted: boolean) => {
+      setVolume(newVolume)
+      setIsMuted(newIsMuted)
+    }
+
+    volumeManager.addListener(handleVolumeChange)
+    return () => volumeManager.removeListener(handleVolumeChange)
+  }, [])
+
+  // Apply volume to audio element when it becomes available
+  useEffect(() => {
+    if (audioRef.current) {
+      volumeManager.applyToAudioElement(audioRef.current)
+    }
+  }, [audioRef])
+
   // Volume control functions
   const handleVolumeChange = (newVolume: number) => {
-    const clampedVolume = Math.max(0, Math.min(1, newVolume))
-    setVolume(clampedVolume)
-    setPreviousVolume(clampedVolume)
-    setIsMuted(clampedVolume === 0)
-    
-    // Update audio element
-    if (audioRef.current) {
-      audioRef.current.volume = clampedVolume
-    }
-    
-    // Persist to session storage
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('replyflow-audio-volume', clampedVolume.toString())
-    }
+    volumeManager.setVolume(newVolume)
   }
 
   const toggleMute = () => {
-    if (isMuted) {
-      // Unmute - restore previous volume
-      const restoreVolume = previousVolume > 0 ? previousVolume : 1.0
-      setVolume(restoreVolume)
-      setIsMuted(false)
-      
-      if (audioRef.current) {
-        audioRef.current.volume = restoreVolume
-      }
-    } else {
-      // Mute - save current volume and set to 0
-      setPreviousVolume(volume)
-      setVolume(0)
-      setIsMuted(true)
-      
-      if (audioRef.current) {
-        audioRef.current.volume = 0
-      }
-    }
+    volumeManager.toggleMute()
   }
 
   const getVolumeIcon = () => {
@@ -107,22 +87,6 @@ export default function PremiumAudioPlayer({
       return Volume2
     }
   }
-
-  // Sync volume with audio element on mount and when volume changes
-  // Also sync whenever audioRef.current becomes available (handles audio element recreation)
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = volume
-    }
-  }, [volume, audioRef])
-
-  // Additional effect to ensure volume is applied when audio element is created/updated
-  // This handles cases where the parent reuses the same ref but creates a new audio element
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = volume
-    }
-  }, [audioRef.current, volume])
 
   const seekToClientX = (clientX: number) => {
     const audio = audioRef.current
@@ -276,11 +240,9 @@ export default function PremiumAudioPlayer({
           </div>
 
           {/* Volume Control */}
-          <div className="relative flex items-center gap-2">
+          <div className="relative flex items-center gap-2 group">
             <button
               onClick={toggleMute}
-              onMouseEnter={() => setShowVolumeSlider(true)}
-              onMouseLeave={() => setShowVolumeSlider(false)}
               className="p-2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-full"
               aria-label={isMuted ? 'Unmute' : 'Mute'}
               aria-pressed={isMuted}

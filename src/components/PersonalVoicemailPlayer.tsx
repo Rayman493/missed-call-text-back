@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Play, Pause, Loader2, AlertCircle, VolumeX, Volume1, Volume2 } from 'lucide-react'
+import { volumeManager } from '@/lib/volume-manager'
 
 interface PersonalVoicemailPlayerProps {
   voicemailId: string
@@ -34,9 +35,8 @@ export function PersonalVoicemailPlayer({
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(storedDuration)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [volume, setVolume] = useState(1)
-  const [isMuted, setIsMuted] = useState(false)
-  const [previousVolume, setPreviousVolume] = useState(1)
+  const [volume, setVolume] = useState(() => volumeManager.getVolume())
+  const [isMuted, setIsMuted] = useState(() => volumeManager.getIsMuted())
   const [isVolumePopoverOpen, setIsVolumePopoverOpen] = useState(false)
   const [isSeeking, setIsSeeking] = useState(false)
   
@@ -72,37 +72,23 @@ export function PersonalVoicemailPlayer({
     }
   }, [playerState, isSeeking, updateProgress])
 
-  // Load volume from localStorage on mount
+  // Sync volume with shared volume manager
   useEffect(() => {
-    try {
-      const savedVolume = localStorage.getItem('replyflow-personal-voicemail-volume')
-      if (savedVolume !== null) {
-        const parsedVolume = parseFloat(savedVolume)
-        if (!isNaN(parsedVolume) && parsedVolume >= 0 && parsedVolume <= 1) {
-          setVolume(parsedVolume)
-          setPreviousVolume(parsedVolume)
-        }
-      }
-    } catch (error) {
-      console.error('[PersonalVoicemailPlayer] Error loading volume from localStorage:', error)
+    const handleVolumeChange = (newVolume: number, newIsMuted: boolean) => {
+      setVolume(newVolume)
+      setIsMuted(newIsMuted)
     }
+
+    volumeManager.addListener(handleVolumeChange)
+    return () => volumeManager.removeListener(handleVolumeChange)
   }, [])
 
-  // Save volume to localStorage when it changes
-  useEffect(() => {
-    try {
-      localStorage.setItem('replyflow-personal-voicemail-volume', volume.toString())
-    } catch (error) {
-      console.error('[PersonalVoicemailPlayer] Error saving volume to localStorage:', error)
-    }
-  }, [volume])
-
-  // Apply volume to audio element
+  // Apply volume to audio element when it becomes available
   useEffect(() => {
     if (audioRef.current) {
-      audioRef.current.volume = isMuted ? 0 : volume
+      volumeManager.applyToAudioElement(audioRef.current)
     }
-  }, [volume, isMuted])
+  }, [audioRef])
 
   // Close volume popover on click outside
   useEffect(() => {
@@ -314,27 +300,13 @@ export function PersonalVoicemailPlayer({
 
   // Toggle mute/unmute
   const toggleMute = useCallback(() => {
-    if (isMuted) {
-      // Unmute: restore previous volume
-      setIsMuted(false)
-      setVolume(previousVolume > 0 ? previousVolume : 1)
-    } else {
-      // Mute: store current volume and set to 0
-      setPreviousVolume(volume)
-      setIsMuted(true)
-    }
-  }, [isMuted, volume, previousVolume])
+    volumeManager.toggleMute()
+  }, [])
 
   // Handle volume change
   const handleVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseFloat(e.target.value)
-    setVolume(newVolume)
-    if (newVolume > 0) {
-      setIsMuted(false)
-      setPreviousVolume(newVolume)
-    } else {
-      setIsMuted(true)
-    }
+    volumeManager.setVolume(newVolume)
   }, [])
 
   // Get volume icon based on state
@@ -408,7 +380,7 @@ export function PersonalVoicemailPlayer({
           </div>
 
           {/* Volume Control */}
-          <div className="relative flex-shrink-0">
+          <div className="relative flex-shrink-0 group">
             <button
               ref={volumeButtonRef}
               onClick={() => setIsVolumePopoverOpen(!isVolumePopoverOpen)}
