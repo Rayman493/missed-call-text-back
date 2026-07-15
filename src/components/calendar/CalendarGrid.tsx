@@ -155,7 +155,7 @@ export default function CalendarGrid({
   }
 
   return (
-    <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm overflow-hidden">
+    <div className="w-full bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm overflow-hidden">
       <div className="sticky top-0 z-10 bg-white dark:bg-slate-900/60 backdrop-blur-sm p-1.5 sm:p-3 md:p-4 border-b border-slate-200/70 dark:border-slate-700/50">
         <div className="flex items-center justify-between gap-2">
           <button
