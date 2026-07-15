@@ -61,10 +61,16 @@ export default function PremiumAudioPlayer({
     return () => volumeManager.removeListener(handleVolumeChange)
   }, [])
 
-  // Apply volume to audio element when it becomes available
+  // Register audio element with volume manager when it becomes available
   useEffect(() => {
     if (audioRef.current) {
-      volumeManager.applyToAudioElement(audioRef.current)
+      volumeManager.registerAudioElement(audioRef.current)
+    }
+    
+    return () => {
+      if (audioRef.current) {
+        volumeManager.unregisterAudioElement(audioRef.current)
+      }
     }
   }, [audioRef])
 

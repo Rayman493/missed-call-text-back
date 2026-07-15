@@ -9,6 +9,7 @@ class VolumeManager {
   private isMuted: boolean = false;
   private previousVolume: number = 1.0;
   private listeners: Set<(volume: number, isMuted: boolean) => void> = new Set();
+  private registeredAudioElements: Set<HTMLAudioElement> = new Set();
 
   private constructor() {
     this.loadFromStorage();
@@ -62,6 +63,7 @@ class VolumeManager {
     this.previousVolume = clamped;
     this.isMuted = clamped === 0;
     this.saveToStorage();
+    this.applyToAllRegisteredElements();
     this.notifyListeners();
   }
 
@@ -76,7 +78,24 @@ class VolumeManager {
       this.isMuted = true;
     }
     this.saveToStorage();
+    this.applyToAllRegisteredElements();
     this.notifyListeners();
+  }
+
+  registerAudioElement(audio: HTMLAudioElement): void {
+    this.registeredAudioElements.add(audio);
+    // Apply current volume immediately on registration
+    this.applyToAudioElement(audio);
+  }
+
+  unregisterAudioElement(audio: HTMLAudioElement): void {
+    this.registeredAudioElements.delete(audio);
+  }
+
+  private applyToAllRegisteredElements(): void {
+    this.registeredAudioElements.forEach(audio => {
+      this.applyToAudioElement(audio);
+    });
   }
 
   applyToAudioElement(audio: HTMLAudioElement): void {
