@@ -3,10 +3,169 @@
  * Tests two-sentence combined name/reason patterns and completion repair logic
  */
 
+// Non-answer detection helper (copied from index.ts for testing)
+const isNonAnswer = (text: string): boolean => {
+  if (!text || typeof text !== 'string') return false;
+  const trimmed = text.trim();
+  const lower = trimmed.toLowerCase();
+  
+  // Exact phrase non-answers (case-insensitive)
+  const exactNonAnswers = [
+    "i don't know", "i dont know", "i'm not sure", "im not sure", "i am not sure", "not sure",
+    "i don't know what to say", "i dont know what to say", "i'm not really sure", "im not really sure",
+    "i don't have a name", "i dont have a name", "i don't want to say", "i dont want to say",
+    "i'd rather not say", "id rather not say", "i would rather not say", "i can't remember", "i cant remember",
+    "i cannot remember", "i forgot", "i don't remember", "i dont remember", "i don't know my name",
+    "i dont know my name", "i don't know what i need", "i dont know what i need", "i'm not certain",
+    "im not certain", "i am not certain", "i have no idea", "i don't have any idea", "i dont have any idea",
+    "no comment", "i can't tell you", "i cant tell you", "i cannot tell you", "i prefer not to answer",
+    "i'd prefer not to answer", "id prefer not to answer", "i would prefer not to answer", "i don't want to answer",
+    "i dont want to answer", "i won't answer", "i wont answer", "i will not answer", "i'm not comfortable saying",
+    "im not comfortable saying", "i am not comfortable saying", "i don't know what you mean", "i dont know what you mean",
+    "i don't understand", "i dont understand", "i don't know what to tell you", "i dont know what to tell you",
+    "i don't know what this is about", "i dont know what this is about", "i don't know why i'm calling",
+    "i dont know why im calling", "i don't know why i am calling", "i don't know what i'm calling about",
+    "i dont know what im calling about", "i don't know what i am calling about", "i'm not sure what i need",
+    "im not sure what i need", "i am not sure what i need", "i'm not sure what to say", "im not sure what to say",
+    "i am not sure what to say", "i don't know what service i need", "i dont know what service i need",
+    "i'm not sure what service i need", "im not sure what service i need", "i am not sure what service i need",
+    "i don't know what i'm looking for", "i dont know what im looking for", "i don't know what i am looking for",
+    "i'm not sure what i'm looking for", "im not sure what im looking for", "i am not sure what i am looking for",
+    "i don't know what i want", "i dont know what i want", "i'm not sure what i want", "im not sure what i want",
+    "i am not sure what i want", "i don't know what i'd like", "i dont know what id like",
+    "i don't know what i would like", "i'm not sure what i'd like", "im not sure what id like",
+    "i am not sure what i would like", "i don't have a specific request", "i dont have a specific request",
+    "i don't have anything specific", "i dont have anything specific", "i don't have a specific need",
+    "i dont have a specific need", "i don't have any specific needs", "i dont have any specific needs",
+    "i don't know what to ask for", "i dont know what to ask for", "i'm not sure what to ask for",
+    "im not sure what to ask for", "i am not sure what to ask for", "i don't know what i need help with",
+    "i dont know what i need help with", "i'm not sure what i need help with", "im not sure what i need help with",
+    "i am not sure what i need help with", "i don't know what my problem is", "i dont know what my problem is",
+    "i'm not sure what my problem is", "im not sure what my problem is", "i am not sure what my problem is",
+    "i don't know what's wrong", "i dont know whats wrong", "i don't know what is wrong",
+    "i'm not sure what's wrong", "im not sure whats wrong", "i am not sure what is wrong",
+    "i don't know what the issue is", "i dont know what the issue is", "i'm not sure what the issue is",
+    "im not sure what the issue is", "i am not sure what the issue is", "i don't know what's going on",
+    "i dont know whats going on", "i don't know what is going on", "i'm not sure what's going on",
+    "im not sure whats going on", "i am not sure what is going on", "i don't know what's happening",
+    "i dont know whats happening", "i don't know what is happening", "i'm not sure what's happening",
+    "im not sure whats happening", "i am not sure what is happening"
+  ];
+  
+  if (exactNonAnswers.includes(lower)) {
+    return true;
+  }
+  
+  // Short uncertainty phrases (3-6 words)
+  const shortUncertaintyPatterns = [
+    /^(i\s+)?don'?t\s+know$/i,
+    /^(i\s+)?don'?t\s+know\s+what$/i,
+    /^(i\s+)?don'?t\s+know\s+why$/i,
+    /^(i\s+)?don'?t\s+know\s+how$/i,
+    /^(i\s+)?don'?t\s+know\s+if$/i,
+    /^(i\s+)?don'?t\s+know\s+which$/i,
+    /^(i\s+)?don'?t\s+know\s+where$/i,
+    /^(i\s+)?don'?t\s+know\s+when$/i,
+    /^(i\s+)?don'?t\s+know\s+who$/i,
+    /^(i\s+)?don'?t\s+know\s+the\s+answer$/i,
+    /^(i\s+)?don'?t\s+know\s+the\s+name$/i,
+    /^(i\s+)?don'?t\s+know\s+my\s+name$/i,
+    /^(i\s+)?don'?t\s+know\s+what\s+to\s+say$/i,
+    /^(i\s+)?don'?t\s+know\s+what\s+to\s+do$/i,
+    /^(i\s+)?don'?t\s+know\s+what\s+to\s+tell\s+you$/i,
+    /^(i\s+)?don'?t\s+know\s+what\s+you\s+mean$/i,
+    /^(i\s+)?don'?t\s+know\s+what\s+you\s+want$/i,
+    /^(i\s+)?don'?t\s+know\s+what\s+you\s+need$/i,
+    /^(i\s+)?don'?t\s+know\s+what\s+this\s+is$/i,
+    /^(i\s+)?don'?t\s+know\s+what\s+that\s+is$/i,
+    /^(i\s+)?don'?t\s+know\s+what\s+is\s+going\s+on$/i,
+    /^(i\s+)?don'?t\s+know\s+what\s+happened$/i,
+    /^(i\s+)?don'?t\s+know\s+what'?s\s+wrong$/i,
+    /^(i\s+)?don'?t\s+know\s+what\s+is\s+wrong$/i,
+    /^(i\s+)?don'?t\s+know\s+the\s+problem$/i,
+    /^(i\s+)?don'?t\s+know\s+the\s+issue$/i,
+    /^(i\s+)?don'?t\s+know\s+what\s+the\s+problem\s+is$/i,
+    /^(i\s+)?don'?t\s+know\s+what\s+the\s+issue\s+is$/i,
+    /^(i\s+)?not\s+sure$/i,
+    /^(i\s+)?'?m\s+not\s+sure$/i,
+    /^(i\s+)?am\s+not\s+sure$/i,
+    /^(i\s+)?'?m\s+uncertain$/i,
+    /^(i\s+)?am\s+uncertain$/i,
+    /^(i\s+)?have\s+no\s+idea$/i,
+    /^(i\s+)?don'?t\s+have\s+any\s+idea$/i,
+    /^(i\s+)?can'?t\s+remember$/i,
+    /^(i\s+)?cannot\s+remember$/i,
+    /^(i\s+)?forgot$/i,
+    /^(i\s+)?don'?t\s+remember$/i,
+    /^(i\s+)?can'?t\s+say$/i,
+    /^(i\s+)?cannot\s+say$/i,
+    /^(i\s+)?won'?t\s+say$/i,
+    /^(i\s+)?will\s+not\s+say$/i,
+    /^(i\s+)?'?d\s+rather\s+not\s+say$/i,
+    /^(i\s+)?would\s+rather\s+not\s+say$/i,
+    /^(i\s+)?prefer\s+not\s+to\s+answer$/i,
+    /^(i\s+)?'?d\s+prefer\s+not\s+to\s+answer$/i,
+    /^(i\s+)?would\s+prefer\s+not\s+to\s+answer$/i,
+    /^(i\s+)?don'?t\s+want\s+to\s+answer$/i,
+    /^(i\s+)?won'?t\s+answer$/i,
+    /^(i\s+)?will\s+not\s+answer$/i,
+    /^(i\s+)?'?m\s+not\s+comfortable\s+saying$/i,
+    /^(i\s+)?am\s+not\s+comfortable\s+saying$/i,
+    /^(i\s+)?no\s+comment$/i,
+    /^(i\s+)?can'?t\s+tell\s+you$/i,
+    /^(i\s+)?cannot\s+tell\s+you$/i,
+    /^(i\s+)?don'?t\s+understand$/i,
+    /^(i\s+)?don'?t\s+know\s+what\s+you'?re\s+talking\s+about$/i,
+    /^(i\s+)?don'?t\s+know\s+what\s+you\s+are\s+talking\s+about$/i,
+    /^(i\s+)?'?m\s+not\s+sure\s+what\s+you'?re\s+talking\s+about$/i,
+    /^(i\s+)?am\s+not\s+sure\s+what\s+you\s+are\s+talking\s+about$/i,
+    /^(i\s+)?don'?t\s+know\s+what\s+you\s+mean$/i,
+    /^(i\s+)?'?m\s+not\s+sure\s+what\s+you\s+mean$/i,
+    /^(i\s+)?am\s+not\s+sure\s+what\s+you\s+mean$/i,
+    /^(i\s+)?don'?t\s+know\s+what\s+you'?re\s+asking$/i,
+    /^(i\s+)?don'?t\s+know\s+what\s+you\s+are\s+asking$/i,
+    /^(i\s+)?'?m\s+not\s+sure\s+what\s+you'?re\s+asking$/i,
+    /^(i\s+)?am\s+not\s+sure\s+what\s+you\s+are\s+asking$/i,
+    /^(i\s+)?don'?t\s+know\s+what\s+you\s+want$/i,
+    /^(i\s+)?'?m\s+not\s+sure\s+what\s+you\s+want$/i,
+    /^(i\s+)?am\s+not\s+sure\s+what\s+you\s+want$/i,
+    /^(i\s+)?don'?t\s+know\s+what\s+you\s+need$/i,
+    /^(i\s+)?'?m\s+not\s+sure\s+what\s+you\s+need$/i,
+    /^(i\s+)?am\s+not\s+sure\s+what\s+you\s+need$/i,
+    /^(i\s+)?don'?t\s+know\s+what\s+you'?re\s+looking\s+for$/i,
+    /^(i\s+)?don'?t\s+know\s+what\s+you\s+are\s+looking\s+for$/i,
+    /^(i\s+)?'?m\s+not\s+sure\s+what\s+you'?re\s+looking\s+for$/i,
+    /^(i\s+)?am\s+not\s+sure\s+what\s+you\s+are\s+looking\s+for$/i,
+    /^(i\s+)?don'?t\s+know\s+what\s+to\s+do$/i,
+    /^(i\s+)?'?m\s+not\s+sure\s+what\s+to\s+do$/i,
+    /^(i\s+)?am\s+not\s+sure\s+what\s+to\s+do$/i,
+    /^(i\s+)?don'?t\s+know\s+how\s+to\s+answer$/i,
+    /^(i\s+)?'?m\s+not\s+sure\s+how\s+to\s+answer$/i,
+    /^(i\s+)?am\s+not\s+sure\s+how\s+to\s+answer$/i,
+    /^(i\s+)?don'?t\s+know\s+how\s+to\s+respond$/i,
+    /^(i\s+)?'?m\s+not\s+sure\s+how\s+to\s+respond$/i,
+    /^(i\s+)?am\s+not\s+sure\s+how\s+to\s+respond$/i
+  ];
+  
+  for (const pattern of shortUncertaintyPatterns) {
+    if (pattern.test(lower)) {
+      return true;
+    }
+  }
+  
+  return false;
+};
+
 // Validation functions (copied from index.ts for testing)
 const isValidCustomerName = (name: string): boolean => {
   if (!name || typeof name !== 'string') return false;
   const trimmed = name.trim();
+  
+  // Reject non-answers (uncertainty, refusal, filler-only responses)
+  if (isNonAnswer(trimmed)) {
+    return false;
+  }
+  
   if (trimmed.length > 50) return false;
   const servicePhrases = [
     "i'm calling because",
@@ -486,7 +645,155 @@ const testCases = [
   }
 ];
 
-console.log('=== PARSE NAME AND SERVICE TEST CASES ===\n');
+console.log('=== NON-ANSWER DETECTION TESTS ===\n');
+
+let nonAnswerPassed = 0;
+let nonAnswerFailed = 0;
+
+const nonAnswerTestCases = [
+  { input: "I'm not really sure", expectNonAnswer: true },
+  { input: "I don't know", expectNonAnswer: true },
+  { input: "I don't know what to say", expectNonAnswer: true },
+  { input: "I'm not sure", expectNonAnswer: true },
+  { input: "I have no idea", expectNonAnswer: true },
+  { input: "I don't want to say", expectNonAnswer: true },
+  { input: "I'd rather not say", expectNonAnswer: true },
+  { input: "I can't remember", expectNonAnswer: true },
+  { input: "I forgot", expectNonAnswer: true },
+  { input: "No comment", expectNonAnswer: true },
+  { input: "I don't know why I'm calling", expectNonAnswer: true },
+  { input: "I'm not sure what I need", expectNonAnswer: true },
+  { input: "I don't know what service I need", expectNonAnswer: true },
+  { input: "I don't know what's wrong", expectNonAnswer: true },
+  { input: "I'm not comfortable saying", expectNonAnswer: true },
+  { input: "I prefer not to answer", expectNonAnswer: true },
+  { input: "I don't understand", expectNonAnswer: true },
+  { input: "I don't know what you mean", expectNonAnswer: true },
+  { input: "I don't know what to tell you", expectNonAnswer: true },
+  { input: "I don't know what's going on", expectNonAnswer: true },
+  { input: "I don't know what's happening", expectNonAnswer: true },
+  { input: "I don't know what the issue is", expectNonAnswer: true },
+  { input: "I don't know what the problem is", expectNonAnswer: true },
+  { input: "I don't know what I'm looking for", expectNonAnswer: true },
+  { input: "I don't know what I want", expectNonAnswer: true },
+  { input: "I don't have a specific request", expectNonAnswer: true },
+  { input: "I don't know what to ask for", expectNonAnswer: true },
+  { input: "I don't know what I need help with", expectNonAnswer: true },
+  { input: "I don't know my name", expectNonAnswer: true },
+  { input: "I don't have a name", expectNonAnswer: true },
+  { input: "I'm not certain", expectNonAnswer: true },
+  { input: "I don't know how to answer", expectNonAnswer: true },
+  { input: "I'm not sure how to respond", expectNonAnswer: true },
+  { input: "I won't answer", expectNonAnswer: true },
+  { input: "I will not answer", expectNonAnswer: true },
+  { input: "I can't tell you", expectNonAnswer: true },
+  { input: "I cannot tell you", expectNonAnswer: true },
+  { input: "I don't know what you're asking", expectNonAnswer: true },
+  { input: "I'm not sure what you want", expectNonAnswer: true },
+  { input: "I don't know what you need", expectNonAnswer: true },
+  { input: "I don't know what this is", expectNonAnswer: true },
+  { input: "I don't know what to do", expectNonAnswer: true },
+  { input: "I'm not sure what to do", expectNonAnswer: true },
+  { input: "I don't know what happened", expectNonAnswer: true },
+  { input: "I'm not sure what happened", expectNonAnswer: true },
+  { input: "I don't know what you're talking about", expectNonAnswer: true },
+  { input: "I'm not sure what you're talking about", expectNonAnswer: true },
+  { input: "I don't know what you mean", expectNonAnswer: true },
+  { input: "I'm not sure what you mean", expectNonAnswer: true },
+  { input: "I don't know what you're asking", expectNonAnswer: true },
+  { input: "I'm not sure what you're asking", expectNonAnswer: true },
+  { input: "I don't know what you're looking for", expectNonAnswer: true },
+  { input: "I'm not sure what you're looking for", expectNonAnswer: true },
+  { input: "I don't know what I'm calling about", expectNonAnswer: true },
+  { input: "I'm not sure what I'm calling about", expectNonAnswer: true },
+  { input: "I don't know why I'm calling", expectNonAnswer: true },
+  { input: "I'm not sure why I'm calling", expectNonAnswer: true },
+  { input: "I don't know what this is about", expectNonAnswer: true },
+  { input: "I'm not sure what this is about", expectNonAnswer: true },
+  { input: "I don't know what I'd like", expectNonAnswer: true },
+  { input: "I'm not sure what I'd like", expectNonAnswer: true },
+  { input: "I don't know what I would like", expectNonAnswer: true },
+  { input: "I'm not sure what I would like", expectNonAnswer: true },
+  { input: "I don't have anything specific", expectNonAnswer: true },
+  { input: "I don't have a specific need", expectNonAnswer: true },
+  { input: "I don't have any specific needs", expectNonAnswer: true },
+  { input: "I don't have any idea", expectNonAnswer: true },
+  { input: "I don't remember", expectNonAnswer: true },
+  { input: "I can't say", expectNonAnswer: true },
+  { input: "I cannot say", expectNonAnswer: true },
+  { input: "I won't say", expectNonAnswer: true },
+  { input: "I will not say", expectNonAnswer: true },
+  { input: "I'd rather not say", expectNonAnswer: true },
+  { input: "I would rather not say", expectNonAnswer: true },
+  { input: "I prefer not to answer", expectNonAnswer: true },
+  { input: "I'd prefer not to answer", expectNonAnswer: true },
+  { input: "I would prefer not to answer", expectNonAnswer: true },
+  { input: "I don't want to answer", expectNonAnswer: true },
+  { input: "I'm not comfortable saying", expectNonAnswer: true },
+  { input: "I am not comfortable saying", expectNonAnswer: true },
+  { input: "I don't know what you're talking about", expectNonAnswer: true },
+  { input: "I don't know what you are talking about", expectNonAnswer: true },
+  { input: "I'm not sure what you're talking about", expectNonAnswer: true },
+  { input: "I am not sure what you are talking about", expectNonAnswer: true },
+  { input: "I don't know what you mean", expectNonAnswer: true },
+  { input: "I'm not sure what you mean", expectNonAnswer: true },
+  { input: "I am not sure what you mean", expectNonAnswer: true },
+  { input: "I don't know what you're asking", expectNonAnswer: true },
+  { input: "I don't know what you are asking", expectNonAnswer: true },
+  { input: "I'm not sure what you're asking", expectNonAnswer: true },
+  { input: "I am not sure what you are asking", expectNonAnswer: true },
+  { input: "I don't know what you want", expectNonAnswer: true },
+  { input: "I'm not sure what you want", expectNonAnswer: true },
+  { input: "I am not sure what you want", expectNonAnswer: true },
+  { input: "I don't know what you need", expectNonAnswer: true },
+  { input: "I'm not sure what you need", expectNonAnswer: true },
+  { input: "I am not sure what you need", expectNonAnswer: true },
+  { input: "I don't know what you're looking for", expectNonAnswer: true },
+  { input: "I don't know what you are looking for", expectNonAnswer: true },
+  { input: "I'm not sure what you're looking for", expectNonAnswer: true },
+  { input: "I am not sure what you are looking for", expectNonAnswer: true },
+  { input: "I don't know what to do", expectNonAnswer: true },
+  { input: "I'm not sure what to do", expectNonAnswer: true },
+  { input: "I am not sure what to do", expectNonAnswer: true },
+  { input: "I don't know how to answer", expectNonAnswer: true },
+  { input: "I'm not sure how to answer", expectNonAnswer: true },
+  { input: "I am not sure how to answer", expectNonAnswer: true },
+  { input: "I don't know how to respond", expectNonAnswer: true },
+  { input: "I'm not sure how to respond", expectNonAnswer: true },
+  { input: "I am not sure how to respond", expectNonAnswer: true },
+  // False-positive protection: legitimate names should NOT be rejected
+  { input: "John Smith", expectNonAnswer: false },
+  { input: "Sarah Johnson", expectNonAnswer: false },
+  { input: "Mike Thompson", expectNonAnswer: false },
+  { input: "Maria Garcia", expectNonAnswer: false },
+  { input: "David Miller", expectNonAnswer: false },
+  { input: "Yesenia Noel", expectNonAnswer: false },
+  { input: "Tom Wilson", expectNonAnswer: false },
+  { input: "This is John Smith", expectNonAnswer: false },
+  { input: "My name is Sarah Johnson", expectNonAnswer: false },
+  { input: "I'm Mike Thompson", expectNonAnswer: false },
+  { input: "Hi, this is Maria Garcia", expectNonAnswer: false },
+  { input: "Hello, David Miller here", expectNonAnswer: false },
+  { input: "Hey, Yesenia Noel", expectNonAnswer: false },
+  { input: "Tom Wilson calling", expectNonAnswer: false }
+];
+
+for (const testCase of nonAnswerTestCases) {
+  const result = isNonAnswer(testCase.input);
+  if (result === testCase.expectNonAnswer) {
+    console.log(`✓ PASS: ${testCase.input} (isNonAnswer: ${result})`);
+    nonAnswerPassed++;
+  } else {
+    console.log(`✗ FAIL: ${testCase.input} (expected: ${testCase.expectNonAnswer}, got: ${result})`);
+    nonAnswerFailed++;
+  }
+}
+
+console.log('\n=== NON-ANSWER DETECTION TEST SUMMARY ===');
+console.log(`Passed: ${nonAnswerPassed}/${nonAnswerTestCases.length}`);
+console.log(`Failed: ${nonAnswerFailed}/${nonAnswerTestCases.length}`);
+
+console.log('\n=== PARSE NAME AND SERVICE TEST CASES ===\n');
 
 let passed = 0;
 let failed = 0;

@@ -5859,6 +5859,13 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       const isValidCustomerName = (name: string): boolean => {
         if (!name || typeof name !== 'string') return false;
         const trimmed = name.trim();
+        
+        // Reject non-answers (uncertainty, refusal, filler-only responses)
+        if (isNonAnswer(trimmed)) {
+          console.log('[CUSTOMER NAME VALIDATION] Rejected as non-answer:', trimmed);
+          return false;
+        }
+        
         // Reject if too long (likely full sentence)
         if (trimmed.length > 50) return false;
         // Reject if contains service-request language
@@ -5896,24 +5903,38 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       };
 
       // Store parsed name and service with validation
-      if (parseResult.customerName && isValidCustomerName(parseResult.customerName)) {
+      const customerNameValid = parseResult.customerName && isValidCustomerName(parseResult.customerName);
+      const serviceRequestedValid = parseResult.serviceRequested && isValidServiceRequested(parseResult.serviceRequested);
+      
+      if (customerNameValid) {
         state.intakeData.customerName = parseResult.customerName;
       } else {
         console.log('[FIRST-STAGE VALIDATION] customerName rejected as invalid:', parseResult.customerName);
       }
-      if (parseResult.serviceRequested && isValidServiceRequested(parseResult.serviceRequested)) {
+      if (serviceRequestedValid) {
         state.intakeData.serviceRequested = parseResult.serviceRequested;
       } else {
         console.log('[FIRST-STAGE VALIDATION] serviceRequested rejected as invalid:', parseResult.serviceRequested);
       }
 
       // Preserve original raw transcript for completion repair
-      if (!state.rawFirstStageTranscript) {
+      // Only preserve if at least one field was valid (useful for repair)
+      // This prevents contaminating the repair source with pure non-answers
+      if (!state.rawFirstStageTranscript && (customerNameValid || serviceRequestedValid)) {
         state.rawFirstStageTranscript = rawTranscript;
         console.log('[FIRST-STAGE RAW TRANSCRIPT PRESERVED] =========================================');
         console.log('[FIRST-STAGE RAW TRANSCRIPT PRESERVED] rawFirstStageTranscript:', state.rawFirstStageTranscript);
+        console.log('[FIRST-STAGE RAW TRANSCRIPT PRESERVED] customerNameValid:', customerNameValid);
+        console.log('[FIRST-STAGE RAW TRANSCRIPT PRESERVED] serviceRequestedValid:', serviceRequestedValid);
         console.log('[FIRST-STAGE RAW TRANSCRIPT PRESERVED] Timestamp:', new Date().toISOString());
         console.log('[FIRST-STAGE RAW TRANSCRIPT PRESERVED] =========================================');
+      } else if (!state.rawFirstStageTranscript && !customerNameValid && !serviceRequestedValid) {
+        console.log('[FIRST-STAGE RAW TRANSCRIPT NOT PRESERVED] =========================================');
+        console.log('[FIRST-STAGE RAW TRANSCRIPT NOT PRESERVED] reason: no_valid_fields');
+        console.log('[FIRST-STAGE RAW TRANSCRIPT NOT PRESERVED] customerName:', parseResult.customerName);
+        console.log('[FIRST-STAGE RAW TRANSCRIPT NOT PRESERVED] serviceRequested:', parseResult.serviceRequested);
+        console.log('[FIRST-STAGE RAW TRANSCRIPT NOT PRESERVED] Timestamp:', new Date().toISOString());
+        console.log('[FIRST-STAGE RAW TRANSCRIPT NOT PRESERVED] =========================================');
       }
 
       const stateCustomerNameAfter = state.intakeData.customerName;
@@ -6303,6 +6324,152 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
   // ─── CRM normalization helpers (moved outside processSimpleModeCompletion for use in transcription handler) ────────────────────────────────────────────
   // Rule: lightly clean customer responses without changing meaning or intent.
   // When in doubt, preserve the customer's original wording.
+
+  // Non-answer detection - recognizes clearly non-responsive or uncertain answers
+  const isNonAnswer = (value: string): boolean => {
+    if (!value || typeof value !== 'string') return false;
+    const trimmed = value.trim().toLowerCase();
+    
+    // Exact matches for common non-answer phrases (conservative list)
+    const nonAnswerPatterns = [
+      /^i'm not really sure\.?$/i,
+      /^not really sure\.?$/i,
+      /^i don't know\.?$/i,
+      /^don't know\.?$/i,
+      /^i'm not sure\.?$/i,
+      /^not sure\.?$/i,
+      /^no idea\.?$/i,
+      /^i have no idea\.?$/i,
+      /^uh, i don't know\.?$/i,
+      /^um, not sure\.?$/i,
+      /^i don't really know\.?$/i,
+      /^maybe\.?$/i,
+      /^i guess\.?$/i,
+      /^whatever\.?$/i,
+      /^i don't know yet\.?$/i,
+      /^rather not say\.?$/i,
+      /^i'd rather not say\.?$/i,
+      /^i'm not certain\.?$/i,
+      /^not certain\.?$/i,
+      /^i'm not sure yet\.?$/i,
+      /^unsure\.?$/i,
+      /^i don't have any idea\.?$/i,
+      /^no clue\.?$/i,
+      /^i have no clue\.?$/i,
+      /^beats me\.?$/i,
+      /^who knows\.?$/i,
+      /^i forget\.?$/i,
+      /^i can't remember\.?$/i,
+      /^i don't recall\.?$/i,
+      /^not sure what you mean\.?$/i,
+      /^i don't understand\.?$/i,
+      /^i'm confused\.?$/i,
+      /^i don't know what to say\.?$/i,
+      /^i'm not sure how to answer\.?$/i,
+      /^i don't have an answer\.?$/i,
+      /^no answer\.?$/i,
+      /^i can't say\.?$/i,
+      /^i'd prefer not to answer\.?$/i,
+      /^i'd rather not answer\.?$/i,
+      /^i don't want to answer\.?$/i,
+      /^i can't tell you\.?$/i,
+      /^i'm not comfortable answering\.?$/i,
+      /^i'd rather not say right now\.?$/i,
+      /^i'm not ready to answer\.?$/i,
+      /^i need to think about it\.?$/i,
+      /^let me think\.?$/i,
+      /^i'm thinking\.?$/i,
+      /^i don't know what you're asking\.?$/i,
+      /^i don't know what that means\.?$/i,
+      /^i'm not sure what you mean\.?$/i,
+      /^i don't know what to tell you\.?$/i,
+      /^i don't have anything to say\.?$/i,
+      /^i don't have any information\.?$/i,
+      /^i don't have any details\.?$/i,
+      /^i don't have anything to add\.?$/i,
+      /^i don't have anything more to say\.?$/i,
+      /^i don't have anything else to say\.?$/i,
+      /^i don't have any other information\.?$/i,
+      /^i don't have any other details\.?$/i,
+      /^i don't have anything else to add\.?$/i,
+      /^i don't have anything else to provide\.?$/i,
+      /^i don't have anything else to share\.?$/i,
+      /^i don't have anything else to tell you\.?$/i,
+      /^i don't have anything else\.?$/i,
+      /^i have nothing to say\.?$/i,
+      /^i have nothing to add\.?$/i,
+      /^i have nothing else to say\.?$/i,
+      /^i have nothing else to add\.?$/i,
+      /^i have nothing else to provide\.?$/i,
+      /^i have nothing else to share\.?$/i,
+      /^i have nothing else to tell you\.?$/i,
+      /^i have nothing else\.?$/i,
+      /^there's nothing to say\.?$/i,
+      /^there is nothing to say\.?$/i,
+      /^there's nothing to add\.?$/i,
+      /^there is nothing to add\.?$/i,
+      /^there's nothing else to say\.?$/i,
+      /^there is nothing else to say\.?$/i,
+      /^there's nothing else to add\.?$/i,
+      /^there is nothing else to add\.?$/i,
+      /^there's nothing else to provide\.?$/i,
+      /^there is nothing else to provide\.?$/i,
+      /^there's nothing else to share\.?$/i,
+      /^there is nothing else to share\.?$/i,
+      /^there's nothing else to tell you\.?$/i,
+      /^there is nothing else to tell you\.?$/i,
+      /^there's nothing else\.?$/i,
+      /^there is nothing else\.?$/i,
+      /^nothing to say\.?$/i,
+      /^nothing to add\.?$/i,
+      /^nothing else to say\.?$/i,
+      /^nothing else to add\.?$/i,
+      /^nothing else to provide\.?$/i,
+      /^nothing else to share\.?$/i,
+      /^nothing else to tell you\.?$/i,
+      /^nothing else\.?$/i,
+      /^i don't know what\.?$/i,
+      /^i dunno\.?$/i,
+      /^i don't know anything\.?$/i,
+      /^i don't know anything about it\.?$/i,
+      /^i don't know anything about that\.?$/i,
+      /^i don't know what you're talking about\.?$/i,
+      /^i don't know what that is\.?$/i,
+      /^i don't know what that means\.?$/i,
+      /^i don't know what to do\.?$/i,
+      /^i don't know how to answer\.?$/i,
+      /^i don't know how to respond\.?$/i,
+      /^i don't know how to help\.?$/i,
+      /^i don't know what you want\.?$/i,
+      /^i don't know what you need\.?$/i,
+      /^i don't know what you're asking for\.?$/i,
+      /^i don't know what you're asking\.?$/i,
+    ];
+    
+    // Check against exact patterns
+    for (const pattern of nonAnswerPatterns) {
+      if (pattern.test(trimmed)) {
+        return true;
+      }
+    }
+    
+    // Check for uncertainty/refusal keywords (conservative, only when phrase is primarily these words)
+    const uncertaintyKeywords = [
+      'not sure', 'don\'t know', 'no idea', 'rather not', 'prefer not', 
+      'uncertain', 'unsure', 'confused', 'maybe', 'possibly', 'perhaps'
+    ];
+    
+    // Only reject if the response is SHORT and consists primarily of uncertainty words
+    // This prevents false positives on legitimate names like "May Brooks" or "Will Hope"
+    if (trimmed.split(/\s+/).length <= 3) {
+      const hasUncertaintyKeyword = uncertaintyKeywords.some(keyword => trimmed.includes(keyword));
+      if (hasUncertaintyKeyword) {
+        return true;
+      }
+    }
+    
+    return false;
+  };
 
   // Strip leading filler words that carry no meaning
   const stripLeadingFiller = (s: string): string =>
@@ -8279,8 +8446,53 @@ Reply to this message if you'd like to update or add any information.
               }
 
               if (isValidStage) {
-                if (currentIndex < stages.length - 1) {
-                  // Normal stage advancement
+                // Stage-level validation for ask_name_reason: require both customerName AND serviceRequested
+                if (state.currentStage === 'ask_name_reason') {
+                  const hasValidCustomerName = !!state.intakeData.customerName && state.intakeData.customerName.trim() !== '';
+                  const hasValidServiceRequested = !!state.intakeData.serviceRequested && state.intakeData.serviceRequested.trim() !== '';
+                  
+                  console.log('[ASK_NAME_REASON STAGE VALIDATION] =========================================');
+                  console.log('[ASK_NAME_REASON STAGE VALIDATION] hasValidCustomerName:', hasValidCustomerName);
+                  console.log('[ASK_NAME_REASON STAGE VALIDATION] customerName:', state.intakeData.customerName);
+                  console.log('[ASK_NAME_REASON STAGE VALIDATION] hasValidServiceRequested:', hasValidServiceRequested);
+                  console.log('[ASK_NAME_REASON STAGE VALIDATION] serviceRequested:', state.intakeData.serviceRequested);
+                  console.log('[ASK_NAME_REASON STAGE VALIDATION] Timestamp:', new Date().toISOString());
+                  console.log('[ASK_NAME_REASON STAGE VALIDATION] =========================================');
+                  
+                  if (hasValidCustomerName && hasValidServiceRequested) {
+                    // Both fields valid: advance to next stage
+                    const previousStage = state.currentStage;
+                    const nextStage = stages[currentIndex + 1];
+                    state.currentStage = nextStage;
+                    
+                    console.log('[STAGE TRANSITION] =========================================');
+                    console.log('[STAGE TRANSITION] event: stage_advanced');
+                    console.log('[STAGE TRANSITION] trigger: queued_transcript_after_assistant_response');
+                    console.log('[STAGE TRANSITION] previousStage:', previousStage);
+                    console.log('[STAGE TRANSITION] nextStage:', nextStage);
+                    console.log('[STAGE TRANSITION] queuedTranscript:', state.queuedTranscript);
+                    console.log('[STAGE TRANSITION] fieldName:', fieldName);
+                    console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
+                    console.log('[STAGE TRANSITION] =========================================');
+                    
+                    sendPrompt(state.currentStage);
+                  } else {
+                    // Missing one or both fields: reprompt current stage
+                    console.log('[STAGE TRANSITION] =========================================');
+                    console.log('[STAGE TRANSITION] event: reprompt_triggered');
+                    console.log('[STAGE TRANSITION] trigger: ask_name_reason_missing_fields');
+                    console.log('[STAGE TRANSITION] currentStage:', state.currentStage);
+                    console.log('[STAGE TRANSITION] hasValidCustomerName:', hasValidCustomerName);
+                    console.log('[STAGE TRANSITION] hasValidServiceRequested:', hasValidServiceRequested);
+                    console.log('[STAGE TRANSITION] action: remaining_on_ask_name_reason');
+                    console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
+                    console.log('[STAGE TRANSITION] =========================================');
+                    
+                    // Reprompt the current stage to request missing information
+                    sendPrompt(state.currentStage);
+                  }
+                } else if (currentIndex < stages.length - 1) {
+                  // Normal stage advancement for other stages
                   const previousStage = state.currentStage;
                   const nextStage = stages[currentIndex + 1];
                   state.currentStage = nextStage;
@@ -8441,8 +8653,55 @@ Reply to this message if you'd like to update or add any information.
 
             // Only advance immediately if assistant is not speaking and stage is valid
             if (accepted && !state.assistantSpeaking) {
-              if (currentIndex < stages.length - 1) {
-                // Normal stage advancement
+              // Stage-level validation for ask_name_reason: require both customerName AND serviceRequested
+              if (state.currentStage === 'ask_name_reason') {
+                const hasValidCustomerName = !!state.intakeData.customerName && state.intakeData.customerName.trim() !== '';
+                const hasValidServiceRequested = !!state.intakeData.serviceRequested && state.intakeData.serviceRequested.trim() !== '';
+                
+                console.log('[ASK_NAME_REASON STAGE VALIDATION] =========================================');
+                console.log('[ASK_NAME_REASON STAGE VALIDATION] hasValidCustomerName:', hasValidCustomerName);
+                console.log('[ASK_NAME_REASON STAGE VALIDATION] customerName:', state.intakeData.customerName);
+                console.log('[ASK_NAME_REASON STAGE VALIDATION] hasValidServiceRequested:', hasValidServiceRequested);
+                console.log('[ASK_NAME_REASON STAGE VALIDATION] serviceRequested:', state.intakeData.serviceRequested);
+                console.log('[ASK_NAME_REASON STAGE VALIDATION] Timestamp:', new Date().toISOString());
+                console.log('[ASK_NAME_REASON STAGE VALIDATION] =========================================');
+                
+                if (hasValidCustomerName && hasValidServiceRequested) {
+                  // Both fields valid: advance to next stage
+                  const previousStage = state.currentStage;
+                  const nextStage = stages[currentIndex + 1];
+                  state.currentStage = nextStage;
+                  
+                  console.log('[STAGE TRANSITION] =========================================');
+                  console.log('[STAGE TRANSITION] event: stage_advanced');
+                  console.log('[STAGE TRANSITION] trigger: user_transcription_accepted');
+                  console.log('[STAGE TRANSITION] previousStage:', previousStage);
+                  console.log('[STAGE TRANSITION] nextStage:', nextStage);
+                  console.log('[STAGE TRANSITION] transcript:', transcript);
+                  console.log('[STAGE TRANSITION] fieldName:', fieldName);
+                  console.log('[STAGE TRANSITION] assistantSpeaking:', state.assistantSpeaking);
+                  console.log('[STAGE TRANSITION] timeSinceTtsCompleteMs:', timeSinceTtsCompleteMs);
+                  console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
+                  console.log('[STAGE TRANSITION] =========================================');
+                  
+                  sendPrompt(state.currentStage);
+                } else {
+                  // Missing one or both fields: reprompt current stage
+                  console.log('[STAGE TRANSITION] =========================================');
+                  console.log('[STAGE TRANSITION] event: reprompt_triggered');
+                  console.log('[STAGE TRANSITION] trigger: ask_name_reason_missing_fields');
+                  console.log('[STAGE TRANSITION] currentStage:', state.currentStage);
+                  console.log('[STAGE TRANSITION] hasValidCustomerName:', hasValidCustomerName);
+                  console.log('[STAGE TRANSITION] hasValidServiceRequested:', hasValidServiceRequested);
+                  console.log('[STAGE TRANSITION] action: remaining_on_ask_name_reason');
+                  console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
+                  console.log('[STAGE TRANSITION] =========================================');
+                  
+                  // Reprompt the current stage to request missing information
+                  sendPrompt(state.currentStage);
+                }
+              } else if (currentIndex < stages.length - 1) {
+                // Normal stage advancement for other stages
                 const previousStage = state.currentStage;
                 const nextStage = stages[currentIndex + 1];
                 state.currentStage = nextStage;
