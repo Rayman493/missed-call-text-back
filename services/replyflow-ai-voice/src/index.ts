@@ -2704,7 +2704,7 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
       console.log('[CUSTOMER NAME EXTRACTION END] Timestamp:', new Date().toISOString());
       console.log('[CUSTOMER NAME EXTRACTION END] =========================================');
 
-      // Extract service requested - accept verbatim answer
+      // Extract service requested - intelligently separate from name
       if (!intake.serviceRequested) {
         const oldService = intake.serviceRequested;
         const trimmedTranscript = transcript.trim();
@@ -2716,18 +2716,89 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
         const isUnusable = unusableAnswers.includes(lowerTranscript) || trimmedTranscript.length < 2;
 
         if (!isUnusable) {
-          // Accept the exact transcript as the answer
-          intake.serviceRequested = trimmedTranscript;
+          // Intelligently extract reason by removing name portion from transcript
+          let extractedReason = trimmedTranscript;
+          
+          // If we successfully extracted a name, remove it from the transcript to get the reason
+          if (intake.customerName && intake.customerName.length > 1) {
+            const nameLower = intake.customerName.toLowerCase();
+            const transcriptLower = trimmedTranscript.toLowerCase();
+            
+            // Find and remove the name from the transcript
+            const nameIndex = transcriptLower.indexOf(nameLower);
+            if (nameIndex !== -1) {
+              // Remove the name and common connecting phrases
+              let reasonCandidate = trimmedTranscript
+                .substring(nameIndex + intake.customerName.length)
+                .trim();
+              
+              // Remove common connecting phrases that follow the name
+              const connectingPhrases = [
+                /^,\s*/i,
+                /^and\s+/i,
+                /^,\s+and\s+/i,
+                /^;\s*/i,
+                /^\.\s*/i,
+                /^-\s*/i,
+                /^calling\s+(?:because|about|for|to)\s*/i,
+                /^i\s+(?:need|want|would like|am calling|'m calling)\s*/i,
+              ];
+              
+              for (const phrase of connectingPhrases) {
+                reasonCandidate = reasonCandidate.replace(phrase, '');
+              }
+              
+              // Clean up the reason
+              reasonCandidate = reasonCandidate.trim();
+              
+              // Only use the extracted reason if it's meaningful
+              if (reasonCandidate.length > 2 && 
+                  reasonCandidate.split(/\s+/).length >= 2 &&
+                  !/^and\s*$/i.test(reasonCandidate)) {
+                extractedReason = reasonCandidate;
+                console.log('[INTELLIGENT REASON EXTRACTION] =========================================');
+                console.log('[INTELLIGENT REASON EXTRACTION] Removed name from transcript');
+                console.log('[INTELLIGENT REASON EXTRACTION] extractedName:', intake.customerName);
+                console.log('[INTELLIGENT REASON EXTRACTION] originalTranscript:', trimmedTranscript);
+                console.log('[INTELLIGENT REASON EXTRACTION] extractedReason:', extractedReason);
+                console.log('[INTELLIGENT REASON EXTRACTION] Timestamp:', new Date().toISOString());
+                console.log('[INTELLIGENT REASON EXTRACTION] =========================================');
+              } else {
+                // If reason extraction failed, fall back to sentence splitting
+                const sentences = trimmedTranscript.split(/[.,;]\s+/).filter(s => s.trim());
+                if (sentences.length > 1) {
+                  // Use the second sentence as the reason (first sentence is likely the name)
+                  extractedReason = sentences.slice(1).join('. ').trim();
+                  console.log('[SENTENCE SPLIT REASON EXTRACTION] =========================================');
+                  console.log('[SENTENCE SPLIT REASON EXTRACTION] Used sentence splitting as fallback');
+                  console.log('[SENTENCE SPLIT REASON EXTRACTION] extractedReason:', extractedReason);
+                  console.log('[SENTENCE SPLIT REASON EXTRACTION] Timestamp:', new Date().toISOString());
+                  console.log('[SENTENCE SPLIT REASON EXTRACTION] =========================================');
+                }
+              }
+            }
+          }
+          
+          intake.serviceRequested = extractedReason;
           console.log('[FIELD ASSIGNMENT] =========================================');
           console.log('[FIELD ASSIGNMENT] field: serviceRequested');
           console.log('[FIELD ASSIGNMENT] oldValue:', oldService);
           console.log('[FIELD ASSIGNMENT] newValue:', intake.serviceRequested);
           console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
-          console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (verbatim capture)');
+          console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (intelligent fallback)');
           console.log('[FIELD ASSIGNMENT] transcript:', transcript);
           console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
           console.log('[FIELD ASSIGNMENT] =========================================');
           console.log('[LIVE EXTRACTION MAPPED] serviceRequested:', intake.serviceRequested);
+          
+          // DIAGNOSTIC LOGGING FOR FIRST-STAGE EXTRACTION
+          console.log('[FIRST-STAGE EXTRACTION DIAGNOSTICS] =========================================');
+          console.log('[FIRST-STAGE EXTRACTION DIAGNOSTICS] rawFirstStageTranscript:', transcript);
+          console.log('[FIRST-STAGE EXTRACTION DIAGNOSTICS] extractedCustomerName:', intake.customerName);
+          console.log('[FIRST-STAGE EXTRACTION DIAGNOSTICS] extractedServiceRequested:', intake.serviceRequested);
+          console.log('[FIRST-STAGE EXTRACTION DIAGNOSTICS] extractionSource: ' + (usedFallbackGpt ? 'fallback_gpt_extraction' : 'deterministic_regex_parse'));
+          console.log('[FIRST-STAGE EXTRACTION DIAGNOSTICS] Timestamp:', new Date().toISOString());
+          console.log('[FIRST-STAGE EXTRACTION DIAGNOSTICS] =========================================');
         } else {
           console.log('[FIELD EXTRACTION SKIPPED] =========================================');
           console.log('[FIELD EXTRACTION SKIPPED] field: serviceRequested');
