@@ -198,7 +198,7 @@ export default function MobileConversationMessageList({
                         <span className="text-[10px] text-muted-foreground/60">•</span>
                       </>
                     )}
-                    {isOptimistic && (
+                    {msg.status === 'sending' && (
                       <>
                         <span className="text-[10px] text-blue-500/70">Sending</span>
                         <span className="text-[10px] text-muted-foreground/60">•</span>

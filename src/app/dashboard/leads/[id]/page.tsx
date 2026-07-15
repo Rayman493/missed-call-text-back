@@ -214,6 +214,7 @@ function getMonotonicStatus(currentStatus: string, newStatus: string): string {
  * - Enforces status monotonicity
  * - Prevents duplicates
  * - Preserves chronological ordering
+ * - Clears optimistic flags on server reconciliation
  */
 function mergeMessageWithMonotonicity(existingMessages: any[], incomingMessage: any, source: string = 'unknown'): any[] {
   const messageMap = new Map<string, any>()
@@ -231,10 +232,19 @@ function mergeMessageWithMonotonicity(existingMessages: any[], incomingMessage: 
   const incomingClientMessageId = incomingMessage.clientMessageId || incomingMessage.client_message_id
   const incomingTwilioSid = incomingMessage.twilio_message_sid
   
+  console.log('[SMS RECONCILE] =========================================')
+  console.log('[SMS RECONCILE] source:', source)
+  console.log('[SMS RECONCILE] incomingMessageId:', incomingMessage.id)
+  console.log('[SMS RECONCILE] incomingClientMessageId:', incomingClientMessageId)
+  console.log('[SMS RECONCILE] incomingTwilioSid:', incomingTwilioSid)
+  console.log('[SMS RECONCILE] incomingStatus:', incomingMessage.status)
+  console.log('[SMS RECONCILE] =========================================')
+  
   // 1. Match by exact database ID
   if (incomingMessage.id && messageMap.has(incomingMessage.id)) {
     existingMessage = messageMap.get(incomingMessage.id)
     matchKey = 'id'
+    console.log('[SMS RECONCILE] Matched by database ID')
   }
   // 2. Match by clientMessageId (for optimistic message reconciliation)
   else if (incomingClientMessageId) {
@@ -243,6 +253,7 @@ function mergeMessageWithMonotonicity(existingMessages: any[], incomingMessage: 
       if (msgClientMessageId === incomingClientMessageId) {
         existingMessage = msg
         matchKey = 'clientMessageId'
+        console.log('[SMS RECONCILE] Matched by clientMessageId:', incomingClientMessageId)
         break
       }
     }
@@ -253,30 +264,50 @@ function mergeMessageWithMonotonicity(existingMessages: any[], incomingMessage: 
       if (msg.twilio_message_sid === incomingTwilioSid) {
         existingMessage = msg
         matchKey = 'twilio_message_sid'
+        console.log('[SMS RECONCILE] Matched by Twilio SID:', incomingTwilioSid)
         break
       }
     }
   }
   
   if (existingMessage) {
+    console.log('[SMS RECONCILE] Found existing message, merging...')
+    console.log('[SMS RECONCILE] existingStatus:', existingMessage.status)
+    console.log('[SMS RECONCILE] existingIsOptimistic:', existingMessage.isOptimistic)
+    
     // Merge with monotonic status
     const mergedMessage = {
       ...existingMessage,
       ...incomingMessage,
+      // Preserve clientMessageId from optimistic message
+      clientMessageId: existingMessage.clientMessageId || incomingMessage.clientMessageId || incomingMessage.client_message_id,
+      // Clear optimistic flag when server confirms
+      isOptimistic: false,
       status: getMonotonicStatus(existingMessage.status, incomingMessage.status)
     }
     
+    console.log('[SMS RECONCILE] mergedStatus:', mergedMessage.status)
+    console.log('[SMS RECONCILE] mergedIsOptimistic:', mergedMessage.isOptimistic)
+    
     // If matched by clientMessageId but incoming has real ID, update the map key
     if (matchKey === 'clientMessageId' && incomingMessage.id && incomingMessage.id !== existingMessage.id) {
+      console.log('[SMS RECONCILE] Updating map key from optimistic ID to server ID:', {
+        oldKey: existingMessage.id,
+        newKey: incomingMessage.id
+      })
       messageMap.delete(existingMessage.id)
       messageMap.set(incomingMessage.id, mergedMessage)
     } else {
       messageMap.set(existingMessage.id, mergedMessage)
     }
   } else {
+    console.log('[SMS RECONCILE] No existing message found, adding as new')
     // New message - add to map
     messageMap.set(incomingMessage.id, incomingMessage)
   }
+  
+  console.log('[SMS RECONCILE] Total messages after merge:', messageMap.size)
+  console.log('[SMS RECONCILE] =========================================')
   
   // Convert back to array and sort chronologically
   const merged = Array.from(messageMap.values())

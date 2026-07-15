@@ -188,7 +188,7 @@ export default function DesktopConversationMessageList({
                         <span className="text-[10px] text-muted-foreground/30">•</span>
                       </>
                     )}
-                    {isOptimistic && (
+                    {msg.status === 'sending' && (
                       <>
                         <span className="text-[10px] text-blue-500/60 font-medium">Sending</span>
                         <span className="text-[10px] text-muted-foreground/30">•</span>
