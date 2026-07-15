@@ -1363,12 +1363,23 @@ export default function LeadsPage() {
 
                           {/* Action Buttons - Open affordance and overflow menu */}
                           <div className="flex items-center gap-2 pt-2.5 border-t border-border/30 mt-auto justify-between">
-                            <span className="text-xs text-muted-foreground/70 flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleConversationClick(lead.id)
+                              }}
+                              onDoubleClick={(e) => {
+                                e.stopPropagation()
+                              }}
+                              className="text-xs text-muted-foreground/70 flex items-center gap-1 hover:text-foreground hover:bg-muted/50 px-2 py-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-card"
+                              aria-label={`Open ${getLeadDisplayName(lead)}`}
+                            >
                               Open customer
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                               </svg>
-                            </span>
+                            </button>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <button
@@ -1578,12 +1589,23 @@ export default function LeadsPage() {
 
                               {/* Action Buttons - Open affordance and overflow menu */}
                               <div className="flex items-center gap-1 sm:gap-1.5 pt-1.5 sm:pt-2 border-t border-border/30 justify-between">
-                                <span className="hidden sm:inline text-xs text-muted-foreground/70 flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleConversationClick(lead.id)
+                                  }}
+                                  onDoubleClick={(e) => {
+                                    e.stopPropagation()
+                                  }}
+                                  className="hidden sm:inline text-xs text-muted-foreground/70 flex items-center gap-1 hover:text-foreground hover:bg-muted/50 px-2 py-1 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-card"
+                                  aria-label={`Open ${getLeadDisplayName(lead)}`}
+                                >
                                   Open customer
                                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                   </svg>
-                                </span>
+                                </button>
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <button
