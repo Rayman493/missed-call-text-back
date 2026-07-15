@@ -8781,6 +8781,16 @@ Reply to this message if you'd like to update or add any information.
                     }
                     
                     // Reprompt with targeted prompt variant (logical stage remains ask_name_reason)
+                    console.log('[IMMEDIATE PARTIAL FIELD REPROMPT] =========================================');
+                    console.log('[IMMEDIATE PARTIAL FIELD REPROMPT] event: immediate_partial_field_reprompt');
+                    console.log('[IMMEDIATE PARTIAL FIELD REPROMPT] logicalStage:', state.currentStage);
+                    console.log('[IMMEDIATE PARTIAL FIELD REPROMPT] hasValidCustomerName:', hasValidCustomerName);
+                    console.log('[IMMEDIATE PARTIAL FIELD REPROMPT] hasValidServiceRequested:', hasValidServiceRequested);
+                    console.log('[IMMEDIATE PARTIAL FIELD REPROMPT] selectedPromptKey:', promptKeyOverride || state.currentStage);
+                    console.log('[IMMEDIATE PARTIAL FIELD REPROMPT] promptKeyOverridePassedToSendPrompt:', promptKeyOverride || 'none');
+                    console.log('[IMMEDIATE PARTIAL FIELD REPROMPT] Timestamp:', new Date().toISOString());
+                    console.log('[IMMEDIATE PARTIAL FIELD REPROMPT] =========================================');
+                    
                     sendPrompt(state.currentStage, promptKeyOverride);
                   }
                 } else if (currentIndex < stages.length - 1) {

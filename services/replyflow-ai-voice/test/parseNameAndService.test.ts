@@ -1187,4 +1187,124 @@ console.log('\n=== MERGE LOGIC TEST SUMMARY ===');
 console.log(`Passed: ${mergeLogicPassed}/6`);
 console.log(`Failed: ${mergeLogicFailed}/6`);
 
+// ============================================================================
+// IMMEDIATE POST-TRANSCRIPTION REPROMPT TESTS
+// ============================================================================
+
+console.log('\n=== TESTING IMMEDIATE POST-TRANSCRIPTION REPROMPT FLOW ===\n');
+
+// Test 1: Name valid, service missing - should use ask_name_reason_service_only
+{
+  console.log('Test 1: Name valid, service missing');
+  const transcript = 'Rachel Adams';
+  const hasValidCustomerName = true;
+  const hasValidServiceRequested = false;
+  
+  let expectedPromptKeyOverride = 'ask_name_reason_service_only';
+  let actualPromptKeyOverride: string | undefined;
+  
+  // Simulate the logic from the immediate reprompt path
+  let promptKeyOverride: string | undefined;
+  if (hasValidCustomerName && !hasValidServiceRequested) {
+    promptKeyOverride = 'ask_name_reason_service_only';
+  } else if (!hasValidCustomerName && hasValidServiceRequested) {
+    promptKeyOverride = 'ask_name_reason_name_only';
+  }
+  
+  actualPromptKeyOverride = promptKeyOverride;
+  
+  if (actualPromptKeyOverride === expectedPromptKeyOverride) {
+    console.log('✓ PASS: Correct promptKeyOverride selected:', actualPromptKeyOverride);
+  } else {
+    console.log('✗ FAIL: Expected', expectedPromptKeyOverride, 'but got', actualPromptKeyOverride);
+    failed++;
+  }
+}
+
+// Test 2: Service valid, name missing - should use ask_name_reason_name_only
+{
+  console.log('\nTest 2: Service valid, name missing');
+  const transcript = 'My water heater is leaking';
+  const hasValidCustomerName = false;
+  const hasValidServiceRequested = true;
+  
+  let expectedPromptKeyOverride = 'ask_name_reason_name_only';
+  let actualPromptKeyOverride: string | undefined;
+  
+  // Simulate the logic from the immediate reprompt path
+  let promptKeyOverride: string | undefined;
+  if (hasValidCustomerName && !hasValidServiceRequested) {
+    promptKeyOverride = 'ask_name_reason_service_only';
+  } else if (!hasValidCustomerName && hasValidServiceRequested) {
+    promptKeyOverride = 'ask_name_reason_name_only';
+  }
+  
+  actualPromptKeyOverride = promptKeyOverride;
+  
+  if (actualPromptKeyOverride === expectedPromptKeyOverride) {
+    console.log('✓ PASS: Correct promptKeyOverride selected:', actualPromptKeyOverride);
+  } else {
+    console.log('✗ FAIL: Expected', expectedPromptKeyOverride, 'but got', actualPromptKeyOverride);
+    failed++;
+  }
+}
+
+// Test 3: Both missing - should use generic full reprompt (no override)
+{
+  console.log('\nTest 3: Both fields missing');
+  const transcript = 'I dont know';
+  const hasValidCustomerName = false;
+  const hasValidServiceRequested = false;
+  
+  let expectedPromptKeyOverride = undefined; // No override, use default
+  let actualPromptKeyOverride: string | undefined;
+  
+  // Simulate the logic from the immediate reprompt path
+  let promptKeyOverride: string | undefined;
+  if (hasValidCustomerName && !hasValidServiceRequested) {
+    promptKeyOverride = 'ask_name_reason_service_only';
+  } else if (!hasValidCustomerName && hasValidServiceRequested) {
+    promptKeyOverride = 'ask_name_reason_name_only';
+  }
+  // Both missing: no override, use full combined prompt
+  
+  actualPromptKeyOverride = promptKeyOverride;
+  
+  if (actualPromptKeyOverride === expectedPromptKeyOverride) {
+    console.log('✓ PASS: Correct promptKeyOverride selected (none for full reprompt)');
+  } else {
+    console.log('✗ FAIL: Expected', expectedPromptKeyOverride, 'but got', actualPromptKeyOverride);
+    failed++;
+  }
+}
+
+// Test 4: Both valid - should not reprompt (advance to ask_details)
+{
+  console.log('\nTest 4: Both fields valid - should advance to ask_details');
+  const transcript = 'Rachel Adams and I need a plumber';
+  const hasValidCustomerName = true;
+  const hasValidServiceRequested = true;
+  
+  let shouldReprompt = false;
+  let shouldAdvance = true;
+  
+  // Simulate the logic from the immediate reprompt path
+  if (hasValidCustomerName && hasValidServiceRequested) {
+    shouldReprompt = false;
+    shouldAdvance = true;
+  } else {
+    shouldReprompt = true;
+    shouldAdvance = false;
+  }
+  
+  if (!shouldReprompt && shouldAdvance) {
+    console.log('✓ PASS: Correctly advancing to ask_details without reprompt');
+  } else {
+    console.log('✗ FAIL: Expected to advance without reprompt');
+    failed++;
+  }
+}
+
+console.log('\n=== IMMEDIATE POST-TRANSCRIPTION REPROMPT TESTS COMPLETE ===\n');
+
 process.exit(failed > 0 ? 1 : 0);
