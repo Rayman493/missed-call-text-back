@@ -52,7 +52,7 @@ function getErrorMessage(errorCode: string): string {
     return 'Phone number not enabled for SMS.'
   }
   // Never expose technical error codes or UNKNOWN to users
-  return 'We couldn\'t send this message. Please try again.'
+  return 'Your message wasn\'t sent. Please try again.'
 }
 
 function getStatusColor(status: string): string {

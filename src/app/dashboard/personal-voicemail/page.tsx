@@ -51,13 +51,13 @@ export default function PersonalVoicemailPage() {
       const data = await response.json()
       
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch voicemails')
+        throw new Error(data.error || 'We couldn\'t load your voicemails. Please try again.')
       }
-      
+
       setVoicemails(data.voicemails || [])
     } catch (err: any) {
       console.error('[Personal Voicemail] Error:', err)
-      setError(err.message)
+      setError('We couldn\'t load your voicemails. Please try again.')
     } finally {
       setLoading(false)
     }

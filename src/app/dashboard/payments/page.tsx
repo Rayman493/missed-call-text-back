@@ -159,7 +159,7 @@ export default function PaymentsPage() {
       })
     } catch (err) {
       console.error('Error fetching payments:', err)
-      setError('Failed to load payments')
+      setError('We couldn\'t load your payments. Please try refreshing the page.')
     } finally {
       setLoading(false)
     }

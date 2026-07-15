@@ -76,10 +76,10 @@ export default class GlobalErrorBoundary extends Component<Props, State> {
               </svg>
             </div>
             <h2 className="text-xl font-semibold text-foreground mb-2 text-center">
-              Application Error
+              Something went wrong
             </h2>
             <p className="text-muted-foreground mb-6 text-center">
-              Something went wrong. Please try refreshing the page.
+              We're sorry for the inconvenience. Please try refreshing the page.
             </p>
 
             {debug && (
