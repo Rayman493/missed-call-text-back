@@ -2622,6 +2622,7 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
         /(?:i need|i want)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
         /(?:i'm calling about|i am calling about|calling about)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
         /(?:looking for|looking to get|trying to get)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+        /(?:and\s+i\s+need)\s+(.+?)(?:\.|,|;|$)/i,
       ];
 
       let nameMatch: RegExpMatchArray | null = null;
@@ -5494,6 +5495,8 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
   // These are the exact keys used for cached audio lookups
   const prompts: Record<string, string> = {
     ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
+    ask_name_reason_service_only: "And what do you need help with?",
+    ask_name_reason_name_only: "And what's your name?",
     ask_details: "Got it. Can you share any important details the business should know?",
     ask_location: "Thanks. Just a couple more questions. Where will this take place?",
     ask_completion_time: "When are you hoping this will be done?",
@@ -6410,7 +6413,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       
       console.log('[STAGE TIMEOUT] =========================================');
       console.log('[STAGE TIMEOUT] event: reprompt_triggered');
-      console.log('[STAGE TIMEOUT] stage:', stage);
+      console.log('[STAGE TIMEOUT] logicalStage:', stage);
       console.log('[STAGE TIMEOUT] retryCountBefore:', retryCount);
       console.log('[STAGE TIMEOUT] retryCountAfter:', state.silenceRetryCountByStage[stage]);
       console.log('[STAGE TIMEOUT] elapsedMs:', Date.now() - state.stageStartTime);
@@ -6418,7 +6421,36 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       
       logSimple('stage_timeout_reprompt', { stage });
       
-      sendPrompt(stage);
+      // For ask_name_reason, use targeted reprompt based on missing fields
+      let promptKeyOverride: string | undefined;
+      if (stage === 'ask_name_reason') {
+        const hasValidCustomerName = !!state.intakeData.customerName && state.intakeData.customerName.trim().length > 0;
+        const hasValidServiceRequested = !!state.intakeData.serviceRequested && state.intakeData.serviceRequested.trim().length > 0;
+        
+        if (hasValidCustomerName && !hasValidServiceRequested) {
+          promptKeyOverride = 'ask_name_reason_service_only';
+          console.log('[STAGE TIMEOUT TARGETED REPROMPT] =========================================');
+          console.log('[STAGE TIMEOUT TARGETED REPROMPT] variant: ask_name_reason_service_only');
+          console.log('[STAGE TIMEOUT TARGETED REPROMPT] reason: customerName_valid_serviceRequested_missing');
+          console.log('[STAGE TIMEOUT TARGETED REPROMPT] Timestamp:', new Date().toISOString());
+          console.log('[STAGE TIMEOUT TARGETED REPROMPT] =========================================');
+        } else if (!hasValidCustomerName && hasValidServiceRequested) {
+          promptKeyOverride = 'ask_name_reason_name_only';
+          console.log('[STAGE TIMEOUT TARGETED REPROMPT] =========================================');
+          console.log('[STAGE TIMEOUT TARGETED REPROMPT] variant: ask_name_reason_name_only');
+          console.log('[STAGE TIMEOUT TARGETED REPROMPT] reason: customerName_missing_serviceRequested_valid');
+          console.log('[STAGE TIMEOUT TARGETED REPROMPT] Timestamp:', new Date().toISOString());
+          console.log('[STAGE TIMEOUT TARGETED REPROMPT] =========================================');
+        } else {
+          console.log('[STAGE TIMEOUT TARGETED REPROMPT] =========================================');
+          console.log('[STAGE TIMEOUT TARGETED REPROMPT] variant: ask_name_reason (full)');
+          console.log('[STAGE TIMEOUT TARGETED REPROMPT] reason: both_fields_missing');
+          console.log('[STAGE TIMEOUT TARGETED REPROMPT] Timestamp:', new Date().toISOString());
+          console.log('[STAGE TIMEOUT TARGETED REPROMPT] =========================================');
+        }
+      }
+      
+      sendPrompt(stage, promptKeyOverride);
     } else {
       // Second timeout: finalize with partial info
       console.log('[STAGE TIMEOUT] =========================================');
@@ -7668,8 +7700,8 @@ Reply to this message if you'd like to update or add any information.
   };
 
   // Helper to send prompt using cached PCMU audio or Realtime response.create
-  const sendPrompt = async (stage: string) => {
-    const promptKey = stage;
+  const sendPrompt = async (stage: string, promptKeyOverride?: string) => {
+    const promptKey = promptKeyOverride || stage;
     const prompt = prompts[promptKey];
     if (!prompt) {
       console.log('[SIMPLE MODE] No prompt for stage:', stage, 'promptKey:', promptKey);
@@ -7685,7 +7717,9 @@ Reply to this message if you'd like to update or add any information.
     state.audioAppendBlockedLogged = false;
     console.log('[AUDIO TIMING] =========================================');
     console.log('[AUDIO TIMING] event: assistantSpeaking_set_true');
-    console.log('[AUDIO TIMING] stage:', stage);
+    console.log('[AUDIO TIMING] logicalStage:', stage);
+    console.log('[AUDIO TIMING] selectedPromptKey:', promptKey);
+    console.log('[AUDIO TIMING] promptKeyOverride:', promptKeyOverride || 'none');
     console.log('[AUDIO TIMING] timestamp:', state.promptAudioStartedAt);
     console.log('[AUDIO TIMING] =========================================');
 
@@ -7694,21 +7728,22 @@ Reply to this message if you'd like to update or add any information.
     console.log('[SIMPLE MODE] simple_mode_selected:', true);
     console.log('[SIMPLE MODE] sourceOfPrompt:', 'simple_mode_intake_templates');
     console.log('[SIMPLE MODE] business_id:', state.businessId);
-    console.log('[SIMPLE MODE] currentStage:', stage);
-    console.log('[SIMPLE MODE] promptKey:', promptKey);
+    console.log('[SIMPLE MODE] logicalStage:', stage);
+    console.log('[SIMPLE MODE] selectedPromptKey:', promptKey);
+    console.log('[SIMPLE MODE] promptKeyOverride:', promptKeyOverride || 'none');
     console.log('[SIMPLE MODE] promptText:', prompt);
     console.log('[SIMPLE MODE] =========================================');
 
     logSimple('send_prompt', { prompt: prompt.substring(0, 50) + '...' });
 
-    const cachedAudio = cachedPromptAudio[stage as keyof typeof cachedPromptAudio];
+    const cachedAudio = cachedPromptAudio[promptKey as keyof typeof cachedPromptAudio];
 
     if (cachedAudio) {
       // Use cached PCMU audio
       console.log('[GREETING_AUDIO_SEND] =========================================');
       console.log('[GREETING_AUDIO_SEND] event: greeting_audio_send');
-      console.log('[GREETING_AUDIO_SEND] stage:', stage);
-      console.log('[GREETING_AUDIO_SEND] cached_prompt_key:', stage);
+      console.log('[GREETING_AUDIO_SEND] logicalStage:', stage);
+      console.log('[GREETING_AUDIO_SEND] cachedPromptKeyUsed:', promptKey);
       console.log('[GREETING_AUDIO_SEND] audio_length_bytes:', Buffer.from(cachedAudio, 'base64').length);
       console.log('[GREETING_AUDIO_SEND] Timestamp:', new Date().toISOString());
       console.log('[GREETING_AUDIO_SEND] =========================================');
@@ -7716,7 +7751,7 @@ Reply to this message if you'd like to update or add any information.
       console.log('[SIMPLE MODE] =========================================');
       console.log('[SIMPLE MODE] event: cached_prompt_audio_found');
       console.log('[SIMPLE MODE] sourceOfSpeech:', 'cached_realtime_pcmu_prompt');
-      console.log('[SIMPLE MODE] cached_prompt_key:', stage);
+      console.log('[SIMPLE MODE] cachedPromptKeyUsed:', promptKey);
       console.log('[SIMPLE MODE] cached_prompt_audio_found:', true);
       console.log('[SIMPLE MODE] response_create_live_prompt_disabled:', true);
       console.log('[SIMPLE MODE] =========================================');
@@ -7835,6 +7870,8 @@ Reply to this message if you'd like to update or add any information.
         // Wait for Twilio mark event to confirm audio playback completion
         // This prevents stage advancement before the prompt actually finishes playing
         // Send a mark event to track when Twilio finishes playing the audio
+        // IMPORTANT: Use logical stage for mark name, not prompt key, to ensure prompt completion
+        // is correctly detected regardless of which prompt variant was played
         const markName = `prompt-complete-${stage}`;
         const markMessage = {
           event: 'mark',
@@ -7847,14 +7884,16 @@ Reply to this message if you'd like to update or add any information.
         console.log('[SIMPLE MODE] =========================================');
         console.log('[SIMPLE MODE] event: prompt_mark_sent');
         console.log('[SIMPLE MODE] markName:', markName);
-        console.log('[SIMPLE MODE] stage:', stage);
+        console.log('[SIMPLE MODE] logicalStage:', stage);
+        console.log('[SIMPLE MODE] selectedPromptKey:', promptKey);
         console.log('[SIMPLE MODE] =========================================');
 
         // assistantSpeaking remains true until mark is received
         // state.ttsCompleteTime will be set when mark is received
         console.log('[AUDIO TIMING] =========================================');
         console.log('[AUDIO TIMING] event: prompt_audio_completed');
-        console.log('[AUDIO TIMING] stage:', stage);
+        console.log('[AUDIO TIMING] logicalStage:', stage);
+        console.log('[AUDIO TIMING] selectedPromptKey:', promptKey);
         console.log('[AUDIO TIMING] promptAudioStartedAt:', state.promptAudioStartedAt);
         console.log('[AUDIO TIMING] promptAudioSentAt:', state.promptAudioSentAt);
         console.log('[AUDIO TIMING] actualDurationMs:', state.promptAudioSentAt - state.promptAudioStartedAt);
@@ -7872,7 +7911,8 @@ Reply to this message if you'd like to update or add any information.
           if (state.assistantSpeaking) {
             console.log('[MARK WATCHDOG] =========================================');
             console.log('[MARK WATCHDOG] event: mark_timeout');
-            console.log('[MARK WATCHDOG] stage:', stage);
+            console.log('[MARK WATCHDOG] logicalStage:', stage);
+            console.log('[MARK WATCHDOG] selectedPromptKey:', promptKey);
             console.log('[MARK WATCHDOG] action: forcing_assistantSpeaking_false');
             console.log('[MARK WATCHDOG] reason: Twilio mark event not received within timeout');
             console.log('[MARK WATCHDOG] timeoutMs:', MARK_TIMEOUT_MS);
@@ -8381,10 +8421,31 @@ Reply to this message if you'd like to update or add any information.
               // Clear the watchdog
               state.transcriptionWatchdogTimeout = null;
               
-              // Reprompt the current stage
+              // Reprompt the current stage with targeted prompt variant for ask_name_reason
               if (state.currentStage && state.currentStage !== 'complete') {
-                console.log('[TRANSCRIPTION WATCHDOG] Reprompting current stage:', state.currentStage);
-                sendPrompt(state.currentStage);
+                let promptKeyOverride: string | undefined;
+                if (state.currentStage === 'ask_name_reason') {
+                  const hasValidCustomerName = !!state.intakeData.customerName && state.intakeData.customerName.trim().length > 0;
+                  const hasValidServiceRequested = !!state.intakeData.serviceRequested && state.intakeData.serviceRequested.trim().length > 0;
+                  
+                  if (hasValidCustomerName && !hasValidServiceRequested) {
+                    promptKeyOverride = 'ask_name_reason_service_only';
+                    console.log('[TRANSCRIPTION WATCHDOG TARGETED REPROMPT] =========================================');
+                    console.log('[TRANSCRIPTION WATCHDOG TARGETED REPROMPT] variant: ask_name_reason_service_only');
+                    console.log('[TRANSCRIPTION WATCHDOG TARGETED REPROMPT] reason: customerName_valid_serviceRequested_missing');
+                    console.log('[TRANSCRIPTION WATCHDOG TARGETED REPROMPT] Timestamp:', new Date().toISOString());
+                    console.log('[TRANSCRIPTION WATCHDOG TARGETED REPROMPT] =========================================');
+                  } else if (!hasValidCustomerName && hasValidServiceRequested) {
+                    promptKeyOverride = 'ask_name_reason_name_only';
+                    console.log('[TRANSCRIPTION WATCHDOG TARGETED REPROMPT] =========================================');
+                    console.log('[TRANSCRIPTION WATCHDOG TARGETED REPROMPT] variant: ask_name_reason_name_only');
+                    console.log('[TRANSCRIPTION WATCHDOG TARGETED REPROMPT] reason: customerName_missing_serviceRequested_valid');
+                    console.log('[TRANSCRIPTION WATCHDOG TARGETED REPROMPT] Timestamp:', new Date().toISOString());
+                    console.log('[TRANSCRIPTION WATCHDOG TARGETED REPROMPT] =========================================');
+                  }
+                }
+                console.log('[TRANSCRIPTION WATCHDOG] Reprompting current stage:', state.currentStage, 'promptKeyOverride:', promptKeyOverride || 'none');
+                sendPrompt(state.currentStage, promptKeyOverride);
               }
             }, TRANSCRIPTION_TIMEOUT_MS);
             console.log('[TRANSCRIPTION WATCHDOG] =========================================');
@@ -8501,10 +8562,31 @@ Reply to this message if you'd like to update or add any information.
               console.log('[TRANSCRIPTION FAILED] action: reprompting_current_stage');
               console.log('[TRANSCRIPTION FAILED] =========================================');
               
-              // Reprompt the current stage if connection is healthy
+              // Reprompt the current stage with targeted prompt variant for ask_name_reason if connection is healthy
               if (state.currentStage && state.currentStage !== 'complete' && state.openAiWs?.readyState === WebSocket.OPEN) {
-                console.log('[TRANSCRIPTION FAILED] Reprompting current stage:', state.currentStage);
-                sendPrompt(state.currentStage);
+                let promptKeyOverride: string | undefined;
+                if (state.currentStage === 'ask_name_reason') {
+                  const hasValidCustomerName = !!state.intakeData.customerName && state.intakeData.customerName.trim().length > 0;
+                  const hasValidServiceRequested = !!state.intakeData.serviceRequested && state.intakeData.serviceRequested.trim().length > 0;
+                  
+                  if (hasValidCustomerName && !hasValidServiceRequested) {
+                    promptKeyOverride = 'ask_name_reason_service_only';
+                    console.log('[TRANSCRIPTION FAILED TARGETED REPROMPT] =========================================');
+                    console.log('[TRANSCRIPTION FAILED TARGETED REPROMPT] variant: ask_name_reason_service_only');
+                    console.log('[TRANSCRIPTION FAILED TARGETED REPROMPT] reason: customerName_valid_serviceRequested_missing');
+                    console.log('[TRANSCRIPTION FAILED TARGETED REPROMPT] Timestamp:', new Date().toISOString());
+                    console.log('[TRANSCRIPTION FAILED TARGETED REPROMPT] =========================================');
+                  } else if (!hasValidCustomerName && hasValidServiceRequested) {
+                    promptKeyOverride = 'ask_name_reason_name_only';
+                    console.log('[TRANSCRIPTION FAILED TARGETED REPROMPT] =========================================');
+                    console.log('[TRANSCRIPTION FAILED TARGETED REPROMPT] variant: ask_name_reason_name_only');
+                    console.log('[TRANSCRIPTION FAILED TARGETED REPROMPT] reason: customerName_missing_serviceRequested_valid');
+                    console.log('[TRANSCRIPTION FAILED TARGETED REPROMPT] Timestamp:', new Date().toISOString());
+                    console.log('[TRANSCRIPTION FAILED TARGETED REPROMPT] =========================================');
+                  }
+                }
+                console.log('[TRANSCRIPTION FAILED] Reprompting current stage:', state.currentStage, 'promptKeyOverride:', promptKeyOverride || 'none');
+                sendPrompt(state.currentStage, promptKeyOverride);
               } else {
                 console.log('[TRANSCRIPTION FAILED] Cannot reprompt - connection unhealthy or stage complete');
               }
@@ -8662,19 +8744,44 @@ Reply to this message if you'd like to update or add any information.
                     
                     sendPrompt(state.currentStage);
                   } else {
-                    // Missing one or both fields: reprompt current stage
+                    // Missing one or both fields: reprompt with targeted prompt variant
                     console.log('[STAGE TRANSITION] =========================================');
                     console.log('[STAGE TRANSITION] event: reprompt_triggered');
                     console.log('[STAGE TRANSITION] trigger: ask_name_reason_missing_fields');
-                    console.log('[STAGE TRANSITION] currentStage:', state.currentStage);
+                    console.log('[STAGE TRANSITION] logicalStage:', state.currentStage);
                     console.log('[STAGE TRANSITION] hasValidCustomerName:', hasValidCustomerName);
                     console.log('[STAGE TRANSITION] hasValidServiceRequested:', hasValidServiceRequested);
-                    console.log('[STAGE TRANSITION] action: remaining_on_ask_name_reason');
+                    console.log('[STAGE TRANSITION] action: remaining_on_ask_name_reason_with_targeted_reprompt');
                     console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
                     console.log('[STAGE TRANSITION] =========================================');
                     
-                    // Reprompt the current stage to request missing information
-                    sendPrompt(state.currentStage);
+                    // Select targeted prompt variant based on which field is missing
+                    let promptKeyOverride: string | undefined;
+                    if (hasValidCustomerName && !hasValidServiceRequested) {
+                      promptKeyOverride = 'ask_name_reason_service_only';
+                      console.log('[TARGETED REPROMPT SELECTED] =========================================');
+                      console.log('[TARGETED REPROMPT SELECTED] variant: ask_name_reason_service_only');
+                      console.log('[TARGETED REPROMPT SELECTED] reason: customerName_valid_serviceRequested_missing');
+                      console.log('[TARGETED REPROMPT SELECTED] Timestamp:', new Date().toISOString());
+                      console.log('[TARGETED REPROMPT SELECTED] =========================================');
+                    } else if (!hasValidCustomerName && hasValidServiceRequested) {
+                      promptKeyOverride = 'ask_name_reason_name_only';
+                      console.log('[TARGETED REPROMPT SELECTED] =========================================');
+                      console.log('[TARGETED REPROMPT SELECTED] variant: ask_name_reason_name_only');
+                      console.log('[TARGETED REPROMPT SELECTED] reason: customerName_missing_serviceRequested_valid');
+                      console.log('[TARGETED REPROMPT SELECTED] Timestamp:', new Date().toISOString());
+                      console.log('[TARGETED REPROMPT SELECTED] =========================================');
+                    } else {
+                      // Both fields missing: use full combined prompt
+                      console.log('[TARGETED REPROMPT SELECTED] =========================================');
+                      console.log('[TARGETED REPROMPT SELECTED] variant: ask_name_reason (full)');
+                      console.log('[TARGETED REPROMPT SELECTED] reason: both_fields_missing');
+                      console.log('[TARGETED REPROMPT SELECTED] Timestamp:', new Date().toISOString());
+                      console.log('[TARGETED REPROMPT SELECTED] =========================================');
+                    }
+                    
+                    // Reprompt with targeted prompt variant (logical stage remains ask_name_reason)
+                    sendPrompt(state.currentStage, promptKeyOverride);
                   }
                 } else if (currentIndex < stages.length - 1) {
                   // Normal stage advancement for other stages
