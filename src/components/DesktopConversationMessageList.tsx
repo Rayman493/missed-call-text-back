@@ -102,9 +102,12 @@ export default function DesktopConversationMessageList({
             recordingUrl: voicemail.recording_url,
             recordingStatus: voicemail.recording_status,
             recordingDuration: voicemail.recording_duration,
-            createdAt: voicemail.created_at
+            createdAt: voicemail.created_at,
+            transcriptionStatus: voicemail.transcription_status,
+            hasTranscription: !!voicemail.transcription_text,
+            fullData: voicemail
           })
-          
+
           return (
             <VoicemailMessage
               key={item.id}

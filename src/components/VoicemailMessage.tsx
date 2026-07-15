@@ -85,7 +85,18 @@ export default function VoicemailMessage({
   // Initialize secure audio URL when component mounts
   useEffect(() => {
     const initializeAudioUrl = async () => {
+      console.log('[VOICEMAIL AUDIO INIT] Starting audio URL initialization:', {
+        voicemailId: recording.id,
+        recordingStatus: recording.recording_status,
+        hasRecordingUrl: !!recording.recording_url,
+        recordingUrl: recording.recording_url
+      })
+
       if (recording.recording_status !== 'completed' || !recording.recording_url) {
+        console.log('[VOICEMAIL AUDIO INIT] Skipping - conditions not met:', {
+          recordingStatus: recording.recording_status,
+          hasRecordingUrl: !!recording.recording_url
+        })
         return
       }
 
@@ -100,9 +111,19 @@ export default function VoicemailMessage({
         }
 
         const secureUrl = await createSecureAudioUrl(recordingSid)
-        
+
+        console.log('[VOICEMAIL AUDIO INIT] Secure URL created:', {
+          voicemailId: recording.id,
+          recordingSid,
+          secureUrl
+        })
+
         setAudioUrl(secureUrl)
-      } catch {
+      } catch (error) {
+        console.error('[VOICEMAIL AUDIO INIT] Error creating secure URL:', {
+          voicemailId: recording.id,
+          error
+        })
         setAudioError('Unable to load voicemail recording.')
       } finally {
         setIsLoading(false)
@@ -455,7 +476,7 @@ export default function VoicemailMessage({
           </div>
 
           {/* Audio Player */}
-          {recording.recording_status === 'completed' && recording.recording_url && (
+          {recording.recording_status === 'completed' && recording.recording_url ? (
             <div className="space-y-3">
               {/* Loading State */}
               {isLoading && (
@@ -514,6 +535,15 @@ export default function VoicemailMessage({
                   />
                 </div>
               )}
+            </div>
+          ) : (
+            /* Audio Unavailable State */
+            <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-800">
+              <p className="text-xs text-muted-foreground">
+                {recording.recording_status !== 'completed'
+                  ? 'Recording processing...'
+                  : 'Recording unavailable'}
+              </p>
             </div>
           )}
 
