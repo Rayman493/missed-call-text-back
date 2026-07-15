@@ -392,6 +392,99 @@ if (staleResults.promptSendLog.length === 1) {
   failed++;
 }
 
+// Additional test: Targeted prompt delivery with fallback
+console.log('\n=== TARGETED PROMPT DELIVERY TESTS ===\n');
+
+// Test 1: Name-only targeted prompt delivery
+simulator.reset();
+simulator.handleTranscriptionAccepted("Rachel Adams", 0, { customerName: "Rachel Adams", serviceRequested: "" });
+const nameOnlyResults = simulator.getResults();
+const nameOnlyPrompt = nameOnlyResults.promptSendLog[nameOnlyResults.promptSendLog.length - 1];
+if (nameOnlyPrompt?.promptKey === 'ask_name_reason_service_only' && nameOnlyPrompt?.source === 'targeted_reprompt') {
+  console.log('✓ PASS: Name-only targeted prompt delivery');
+  passed++;
+} else {
+  console.log('✗ FAIL: Name-only targeted prompt delivery');
+  console.log(`  Expected promptKey: ask_name_reason_service_only, Actual: ${nameOnlyPrompt?.promptKey}`);
+  console.log(`  Expected source: targeted_reprompt, Actual: ${nameOnlyPrompt?.source}`);
+  failed++;
+}
+
+// Test 2: Service-only targeted prompt delivery
+simulator.reset();
+simulator.handleTranscriptionAccepted("I need help with a clogged drain", 0, { customerName: "", serviceRequested: "help with a clogged drain" });
+const serviceOnlyResults = simulator.getResults();
+const serviceOnlyPrompt = serviceOnlyResults.promptSendLog[serviceOnlyResults.promptSendLog.length - 1];
+if (serviceOnlyPrompt?.promptKey === 'ask_name_reason_name_only' && serviceOnlyPrompt?.source === 'targeted_reprompt') {
+  console.log('✓ PASS: Service-only targeted prompt delivery');
+  passed++;
+} else {
+  console.log('✗ FAIL: Service-only targeted prompt delivery');
+  console.log(`  Expected promptKey: ask_name_reason_name_only, Actual: ${serviceOnlyPrompt?.promptKey}`);
+  console.log(`  Expected source: targeted_reprompt, Actual: ${serviceOnlyPrompt?.source}`);
+  failed++;
+}
+
+// Test 3: Full combined answer (normal flow)
+simulator.reset();
+simulator.handleTranscriptionAccepted("Rachel Adams and I need help with a clogged drain", 0, { customerName: "Rachel Adams", serviceRequested: "help with a clogged drain" });
+const combinedResults = simulator.getResults();
+const combinedPrompt = combinedResults.promptSendLog[combinedResults.promptSendLog.length - 1];
+if (combinedPrompt?.promptKey === 'ask_details' && combinedPrompt?.source === 'normal_stage_advancement' && combinedResults.state.currentStage === 'ask_details') {
+  console.log('✓ PASS: Full combined answer normal flow');
+  passed++;
+} else {
+  console.log('✗ FAIL: Full combined answer normal flow');
+  console.log(`  Expected promptKey: ask_details, Actual: ${combinedPrompt?.promptKey}`);
+  console.log(`  Expected source: normal_stage_advancement, Actual: ${combinedPrompt?.source}`);
+  console.log(`  Expected stage: ask_details, Actual: ${combinedResults.state.currentStage}`);
+  failed++;
+}
+
+// Test 4: Missing both fields (full reprompt)
+simulator.reset();
+simulator.handleTranscriptionAccepted("I'm not sure", 0, { customerName: "", serviceRequested: "" });
+const missingBothResults = simulator.getResults();
+const missingBothPrompt = missingBothResults.promptSendLog[missingBothResults.promptSendLog.length - 1];
+if (missingBothPrompt?.promptKey === 'ask_name_reason' && missingBothPrompt?.source === 'full_reprompt') {
+  console.log('✓ PASS: Missing both fields full reprompt');
+  passed++;
+} else {
+  console.log('✗ FAIL: Missing both fields full reprompt');
+  console.log(`  Expected promptKey: ask_name_reason, Actual: ${missingBothPrompt?.promptKey}`);
+  console.log(`  Expected source: full_reprompt, Actual: ${missingBothPrompt?.source}`);
+  failed++;
+}
+
+// Test 5: Repeated partial responses (no full prompt repeated)
+simulator.reset();
+simulator.handleTranscriptionAccepted("Rachel Adams", 0, { customerName: "Rachel Adams", serviceRequested: "" });
+simulator.handleTranscriptionAccepted("I said Rachel Adams", 1, { customerName: "Rachel Adams", serviceRequested: "" });
+const repeatedResults = simulator.getResults();
+const repeatedPromptKeys = repeatedResults.promptSendLog.map(log => log.promptKey);
+if (JSON.stringify(repeatedPromptKeys) === JSON.stringify(['ask_name_reason_service_only', 'ask_name_reason_service_only'])) {
+  console.log('✓ PASS: Repeated partial responses no full prompt');
+  passed++;
+} else {
+  console.log('✗ FAIL: Repeated partial responses no full prompt');
+  console.log(`  Expected: ['ask_name_reason_service_only', 'ask_name_reason_service_only'], Actual: ${JSON.stringify(repeatedPromptKeys)}`);
+  failed++;
+}
+
+// Test 6: Turn ID authorization for targeted reprompts
+simulator.reset();
+simulator.handleTranscriptionAccepted("Rachel Adams", 0, { customerName: "Rachel Adams", serviceRequested: "" });
+const turnIdResults = simulator.getResults();
+const turnIdPrompt = turnIdResults.promptSendLog[turnIdResults.promptSendLog.length - 1];
+if (turnIdPrompt?.turnId === 1) { // After increment
+  console.log('✓ PASS: Turn ID authorization for targeted reprompts');
+  passed++;
+} else {
+  console.log('✗ FAIL: Turn ID authorization for targeted reprompts');
+  console.log(`  Expected turnId: 1, Actual: ${turnIdPrompt?.turnId}`);
+  failed++;
+}
+
 // Summary
 console.log('\n=== TEST SUMMARY ===');
 console.log(`Total: ${passed + failed}`);

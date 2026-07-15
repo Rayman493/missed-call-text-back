@@ -7770,23 +7770,70 @@ Reply to this message if you'd like to update or add any information.
 
     logSimple('send_prompt', { prompt: prompt.substring(0, 50) + '...' });
 
-    const cachedAudio = cachedPromptAudio[promptKey as keyof typeof cachedPromptAudio];
+    let cachedAudio = cachedPromptAudio[promptKey as keyof typeof cachedPromptAudio];
 
     if (!cachedAudio && source === 'immediate_post_transcription' && promptKeyOverride) {
-      // EXPLICIT ERROR: Routing decision was targeted_reprompt but no prompt audio exists
-      console.log('[NAME_ONLY_TRACE] =========================================');
-      console.log('[NAME_ONLY_TRACE] event: CRITICAL_prompt_audio_missing');
-      console.log('[NAME_ONLY_TRACE] routingDecision:', 'targeted_reprompt');
-      console.log('[NAME_ONLY_TRACE] selectedPromptKey:', promptKey);
-      console.log('[NAME_ONLY_TRACE] promptKeyOverride:', promptKeyOverride);
-      console.log('[NAME_ONLY_TRACE] logicalStage:', stage);
-      console.log('[NAME_ONLY_TRACE] action: NO_AUDIO_DISPATCHED');
-      console.log('[NAME_ONLY_TRACE] Timestamp:', new Date().toISOString());
-      console.log('[NAME_ONLY_TRACE] =========================================');
+      // SAFE FALLBACK: Use the full ask_name_reason prompt if targeted variant is missing
+      console.log('[TARGETED PROMPT DELIVERY] =========================================');
+      console.log('[TARGETED PROMPT DELIVERY] event: targeted_prompt_audio_missing');
+      console.log('[TARGETED PROMPT DELIVERY] callSid:', state.callSid);
+      console.log('[TARGETED PROMPT DELIVERY] logicalStage:', stage);
+      console.log('[TARGETED PROMPT DELIVERY] selectedPromptKey:', promptKey);
+      console.log('[TARGETED PROMPT DELIVERY] authorizedTurnId:', turnId);
+      console.log('[TARGETED PROMPT DELIVERY] templateFound:', !!prompts[promptKey]);
+      console.log('[TARGETED PROMPT DELIVERY] cachedAudioFound:', false);
+      console.log('[TARGETED PROMPT DELIVERY] action: using_fallback_prompt');
+      console.log('[TARGETED PROMPT DELIVERY] fallbackPromptKey:', stage);
+      console.log('[TARGETED PROMPT DELIVERY] Timestamp:', new Date().toISOString());
+      console.log('[TARGETED PROMPT DELIVERY] =========================================');
+
+      // Fall back to the full prompt for the current stage
+      const fallbackAudio = cachedPromptAudio[stage as keyof typeof cachedPromptAudio];
+      if (fallbackAudio) {
+        console.log('[TARGETED PROMPT DELIVERY] =========================================');
+        console.log('[TARGETED PROMPT DELIVERY] event: fallback_prompt_audio_found');
+        console.log('[TARGETED PROMPT DELIVERY] fallbackPromptKey:', stage);
+        console.log('[TARGETED PROMPT DELIVERY] audioByteLength:', Buffer.from(fallbackAudio, 'base64').length);
+        console.log('[TARGETED PROMPT DELIVERY] Timestamp:', new Date().toISOString());
+        console.log('[TARGETED PROMPT DELIVERY] =========================================');
+        
+        // Use the fallback audio
+        cachedAudio = fallbackAudio;
+      } else {
+        // Even fallback is missing - this is a critical error but don't trigger voicemail
+        console.log('[TARGETED PROMPT DELIVERY ERROR] =========================================');
+        console.log('[TARGETED PROMPT DELIVERY ERROR] callSid:', state.callSid);
+        console.log('[TARGETED PROMPT DELIVERY ERROR] selectedPromptKey:', promptKey);
+        console.log('[TARGETED PROMPT DELIVERY ERROR] authorizedTurnId:', turnId);
+        console.log('[TARGETED PROMPT DELIVERY ERROR] failureStep:', 'both_targeted_and_fallback_missing');
+        console.log('[TARGETED PROMPT DELIVERY ERROR] errorName:', 'NO_CACHED_AUDIO');
+        console.log('[TARGETED PROMPT DELIVERY ERROR] errorMessage:', 'Both targeted variant and fallback audio are missing');
+        console.log('[TARGETED PROMPT DELIVERY ERROR] fallbackSelected:', 'none');
+        console.log('[TARGETED PROMPT DELIVERY ERROR] action: preserving_call_state');
+        console.log('[TARGETED PROMPT DELIVERY ERROR] Timestamp:', new Date().toISOString());
+        console.log('[TARGETED PROMPT DELIVERY ERROR] =========================================');
+        
+        // Reset assistantSpeaking to allow the conversation to continue
+        state.assistantSpeaking = false;
+        state.promptAudioStartedAt = 0;
+        return;
+      }
     }
 
     if (cachedAudio) {
       // Use cached PCMU audio
+      console.log('[TARGETED PROMPT DELIVERY] =========================================');
+      console.log('[TARGETED PROMPT DELIVERY] event: prompt_audio_found');
+      console.log('[TARGETED PROMPT DELIVERY] callSid:', state.callSid);
+      console.log('[TARGETED PROMPT DELIVERY] logicalStage:', stage);
+      console.log('[TARGETED PROMPT DELIVERY] selectedPromptKey:', promptKey);
+      console.log('[TARGETED PROMPT DELIVERY] authorizedTurnId:', turnId);
+      console.log('[TARGETED PROMPT DELIVERY] templateFound:', true);
+      console.log('[TARGETED PROMPT DELIVERY] cachedAudioFound:', true);
+      console.log('[TARGETED PROMPT DELIVERY] audioByteLength:', Buffer.from(cachedAudio, 'base64').length);
+      console.log('[TARGETED PROMPT DELIVERY] Timestamp:', new Date().toISOString());
+      console.log('[TARGETED PROMPT DELIVERY] =========================================');
+      
       console.log('[GREETING_AUDIO_SEND] =========================================');
       console.log('[GREETING_AUDIO_SEND] event: greeting_audio_send');
       console.log('[GREETING_AUDIO_SEND] logicalStage:', stage);
@@ -7908,6 +7955,15 @@ Reply to this message if you'd like to update or add any information.
         console.log('[SIMPLE MODE] chunk_count:', totalChunks);
         console.log('[SIMPLE MODE] =========================================');
         
+        console.log('[TARGETED PROMPT DELIVERY] =========================================');
+        console.log('[TARGETED PROMPT DELIVERY] event: media_send_completed');
+        console.log('[TARGETED PROMPT DELIVERY] callSid:', state.callSid);
+        console.log('[TARGETED PROMPT DELIVERY] selectedPromptKey:', promptKey);
+        console.log('[TARGETED PROMPT DELIVERY] authorizedTurnId:', turnId);
+        console.log('[TARGETED PROMPT DELIVERY] chunksSent:', totalChunks);
+        console.log('[TARGETED PROMPT DELIVERY] Timestamp:', new Date().toISOString());
+        console.log('[TARGETED PROMPT DELIVERY] =========================================');
+        
         // Update AI session state to GREETING_SENT when audio is sent
         if (state.aiSessionTracker && stage === 'ask_name_reason') {
           updateAISessionState(state.aiSessionTracker, 'GREETING_SENT', 'Greeting audio sent to Twilio');
@@ -7934,6 +7990,15 @@ Reply to this message if you'd like to update or add any information.
         console.log('[SIMPLE MODE] logicalStage:', stage);
         console.log('[SIMPLE MODE] selectedPromptKey:', promptKey);
         console.log('[SIMPLE MODE] =========================================');
+        
+        console.log('[TARGETED PROMPT DELIVERY] =========================================');
+        console.log('[TARGETED PROMPT DELIVERY] event: mark_sent');
+        console.log('[TARGETED PROMPT DELIVERY] callSid:', state.callSid);
+        console.log('[TARGETED PROMPT DELIVERY] selectedPromptKey:', promptKey);
+        console.log('[TARGETED PROMPT DELIVERY] authorizedTurnId:', turnId);
+        console.log('[TARGETED PROMPT DELIVERY] markName:', markName);
+        console.log('[TARGETED PROMPT DELIVERY] Timestamp:', new Date().toISOString());
+        console.log('[TARGETED PROMPT DELIVERY] =========================================');
 
         // assistantSpeaking remains true until mark is received
         // state.ttsCompleteTime will be set when mark is received
@@ -7995,6 +8060,15 @@ Reply to this message if you'd like to update or add any information.
         if (stage !== 'complete' && stage !== 'ask_name_reason') {
           startStageTimeout();
         }
+
+        console.log('[TARGETED PROMPT DELIVERY] =========================================');
+        console.log('[TARGETED PROMPT DELIVERY] event: delivery_succeeded');
+        console.log('[TARGETED PROMPT DELIVERY] callSid:', state.callSid);
+        console.log('[TARGETED PROMPT DELIVERY] selectedPromptKey:', promptKey);
+        console.log('[TARGETED PROMPT DELIVERY] authorizedTurnId:', turnId);
+        console.log('[TARGETED PROMPT DELIVERY] deliverySucceeded:', true);
+        console.log('[TARGETED PROMPT DELIVERY] Timestamp:', new Date().toISOString());
+        console.log('[TARGETED PROMPT DELIVERY] =========================================');
 
         // Handle final complete stage close
         if (stage === 'complete') {

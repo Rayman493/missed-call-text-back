@@ -33,6 +33,8 @@ const CACHED_AUDIO_GENERATION_VERSION = "realtime-pcmu-marin-canonical";
 // These are the exact keys used by the runtime state machine - no aliases allowed
 const prompts = {
   ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
+  ask_name_reason_service_only: "And what do you need help with?",
+  ask_name_reason_name_only: "And what's your name?",
   ask_details: "Okay. Can you share any important details the business should know?",
   ask_location: "All right. Just a couple more questions. Where will this take place?",
   ask_completion_time: "When are you hoping this will be done?",
