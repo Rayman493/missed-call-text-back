@@ -10,7 +10,7 @@ interface AddCustomerModalProps {
   isOpen: boolean
   onClose: () => void
   returnTo?: string
-  onLeadCreated?: (leadId: string) => void
+  onLeadCreated?: (leadId: string, leadData?: any) => void
 }
 
 export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCreated }: AddCustomerModalProps) {
@@ -99,7 +99,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
 
       // If a workflow provided a callback, hand the lead back without redirecting
       if (data.leadId && onLeadCreated) {
-        onLeadCreated(data.leadId)
+        onLeadCreated(data.leadId, data.lead)
       } else if (data.leadId) {
         if (returnTo === 'calendar') {
           // Return to calendar page with the new lead selected for job creation

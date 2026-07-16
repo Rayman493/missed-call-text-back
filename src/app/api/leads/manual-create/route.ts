@@ -199,11 +199,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Fetch the created/updated lead to return full data
+    let leadData = null
+    if (leadId) {
+      const { data: lead } = await supabaseAdmin
+        .from('leads')
+        .select('id, caller_phone, raw_metadata, conversation_id')
+        .eq('id', leadId)
+        .single()
+      leadData = lead
+    }
+
     return NextResponse.json({
       success: true,
       leadId,
       conversationId,
       isNewLead,
+      lead: leadData,
       message: isNewLead ? 'Customer created successfully' : 'Customer updated successfully'
     })
 

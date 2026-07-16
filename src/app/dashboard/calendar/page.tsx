@@ -1292,14 +1292,41 @@ export default function SchedulePage() {
                   <AddCustomerModal
                     isOpen={isAddCustomerModalOpen}
                     onClose={() => setIsAddCustomerModalOpen(false)}
-                    onLeadCreated={(leadId) => {
+                    onLeadCreated={(leadId, leadData) => {
                       setNewlyCreatedLeadId(leadId)
                       setIsAddCustomerModalOpen(false)
+                      
+                      // Extract customer data from lead if available
+                      let customerName = undefined
+                      let customerPhone = undefined
+                      let serviceAddress = undefined
+                      let title = undefined
+                      let notes = undefined
+
+                      if (leadData && leadData.raw_metadata) {
+                        const extracted = leadData.raw_metadata.extracted_info || {}
+                        customerName = extracted.callerName || undefined
+                        customerPhone = leadData.caller_phone || undefined
+                        serviceAddress = extracted.addressOrLocation || undefined
+                        title = extracted.reasonForCalling || undefined
+                        
+                        const noteParts = [
+                          extracted.importantDetails,
+                          extracted.desiredCompletionTime ? `Desired completion: ${extracted.desiredCompletionTime}` : null,
+                          extracted.preferredCallbackTime ? `Best callback time: ${extracted.preferredCallbackTime}` : null,
+                        ].filter(Boolean)
+                        notes = noteParts.length > 0 ? noteParts.join('\n\n') : undefined
+                      }
+
                       // Open job composer with the newly created customer pre-selected
                       setJobPrefill({
                         lead_id: leadId,
-                        customer_name: undefined,
-                        customer_phone: undefined
+                        customer_name: customerName,
+                        customer_phone: customerPhone,
+                        service_address: serviceAddress,
+                        title: title,
+                        notes: notes,
+                        conversation_id: leadData?.conversation_id || undefined
                       })
                       setIsJobComposerOpen(true)
                     }}
