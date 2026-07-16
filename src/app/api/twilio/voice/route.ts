@@ -1968,16 +1968,36 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
       // BUSINESS HOURS ENFORCEMENT
       if (businessHoursEnabled && shouldSendSms) {
         console.log('[QA - Business Hours] Business hours enabled, checking current time...');
-        
+
         // Get current time in business timezone
         const localTime = new Date(now.toLocaleString('en-US', { timeZone: businessTimezone }));
         const localHour = localTime.getHours();
+        const localMinute = localTime.getMinutes();
         const localDay = localTime.getDay(); // 0 = Sunday, 6 = Saturday
-        
-        // Business hours: 9 AM - 6 PM, Mon-Fri
+
+        // Parse configured business hours with safe fallback
+        const businessHoursStart = business.business_hours_start || '09:00';
+        const businessHoursEnd = business.business_hours_end || '18:00';
+
+        // Parse start time (HH:MM format)
+        const startParts = businessHoursStart.split(':');
+        const startHour = parseInt(startParts[0], 10) || 9;
+        const startMinute = parseInt(startParts[1], 10) || 0;
+
+        // Parse end time (HH:MM format)
+        const endParts = businessHoursEnd.split(':');
+        const endHour = parseInt(endParts[0], 10) || 18;
+        const endMinute = parseInt(endParts[1], 10) || 0;
+
+        // Calculate minutes since midnight for accurate comparison
+        const currentMinutes = localHour * 60 + localMinute;
+        const startMinutes = startHour * 60 + startMinute;
+        const endMinutes = endHour * 60 + endMinute;
+
+        // Business hours: configured start-end, Mon-Fri
         const isWeekday = localDay >= 1 && localDay <= 5; // Monday = 1, Friday = 5
-        const isBusinessHour = localHour >= 9 && localHour < 18; // 9 AM - 6 PM (exclusive of 6 PM)
-        
+        const isBusinessHour = currentMinutes >= startMinutes && currentMinutes < endMinutes;
+
         const isDuringBusinessHours = isWeekday && isBusinessHour;
         
         console.log('[QA - Business Hours] Time evaluation:', {

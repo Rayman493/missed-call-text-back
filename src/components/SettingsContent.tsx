@@ -1356,7 +1356,7 @@ export default function SettingsContent() {
                               <h4 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground">Prevent duplicate instant replies</h4>
                             </div>
                             <p className="text-[10px] sm:text-xs text-slate-600 dark:text-muted-foreground">
-                              Avoid repeated texts to the same caller.
+                              Avoid repeated instant-reply SMS to the same caller. Does not affect voice call routing.
                             </p>
                           </div>
                           <button
@@ -1369,7 +1369,7 @@ export default function SettingsContent() {
                             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 mt-1 ${
                               ignoreRepeatCalls ? 'bg-blue-600' : 'bg-slate-600'
                             } ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            aria-label={ignoreRepeatCalls ? 'Disable repeat call protection' : 'Enable repeat call protection'}
+                            aria-label={ignoreRepeatCalls ? 'Disable duplicate instant reply prevention' : 'Enable duplicate instant reply prevention'}
                           >
                             <span
                               className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
@@ -1584,184 +1584,18 @@ export default function SettingsContent() {
                     )}
                   </div>
 
-                  {/* Out of Office Mode */}
-                  <div className={`overflow-hidden rounded-xl border transition-all duration-200 ${
-                    formBusiness.out_of_office_enabled
-                      ? 'border-blue-200/70 bg-blue-50/50 shadow-sm dark:border-blue-900/40 dark:bg-blue-950/10'
-                      : 'border-slate-200/60 bg-slate-50/80 dark:border-slate-700/40 dark:bg-slate-800/40'
-                  }`}>
-                    <div className="flex items-start justify-between gap-4 p-3 sm:p-4">
+                  {/* Out of Office Mode - DISABLED (not consumed by runtime) */}
+                  <div className="rounded-xl border border-slate-200/60 bg-slate-50/80 p-3 sm:p-4 opacity-60 dark:border-slate-700/40 dark:bg-slate-800/40">
+                    <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0 flex-1">
                         <div className="mb-1 flex flex-wrap items-center gap-2">
                           <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">Out of Office</h3>
-                          {(() => {
-                            const now = new Date()
-                            const start = formBusiness.out_of_office_start ? new Date(formBusiness.out_of_office_start) : null
-                            const end = formBusiness.out_of_office_end ? new Date(formBusiness.out_of_office_end) : null
-                            const isEnabled = formBusiness.out_of_office_enabled
-
-                            if (!isEnabled) {
-                              return <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">Off</span>
-                            }
-
-                            if (start && now < start) {
-                              return <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">Scheduled</span>
-                            } else if (end && now > end) {
-                              return <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">Expired</span>
-                            } else if (start && end && now >= start && now <= end) {
-                              return <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:bg-green-900/30 dark:text-green-300">Active</span>
-                            }
-                            return <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">On</span>
-                          })()}
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">Coming Soon</span>
                         </div>
                         <p className="text-xs text-slate-500 dark:text-slate-400">Automatically reply while you're away.</p>
-                        {formBusiness.out_of_office_enabled && (
-                          <div className="mt-3 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
-                            <span className="font-medium">
-                              {formatOutOfOfficeDate(formBusiness.out_of_office_start, { weekday: 'short', month: 'short', day: 'numeric' })}
-                            </span>
-                            <span className="text-slate-400">→</span>
-                            <span className="font-medium">
-                              {formatOutOfOfficeDate(formBusiness.out_of_office_end, { weekday: 'short', month: 'short', day: 'numeric' })}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => {
-                          const newEnabled = !formBusiness.out_of_office_enabled
-                          updateBusiness({ out_of_office_enabled: newEnabled })
-                          // If enabling and message is empty, set default message
-                          if (newEnabled && !formBusiness.out_of_office_message) {
-                            updateBusiness({ out_of_office_message: DEFAULT_OUT_OF_OFFICE_MESSAGE })
-                          }
-                        }}
-                        disabled={isSaving}
-                        className={`relative mt-0.5 inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2 focus:ring-offset-background ${
-                          formBusiness.out_of_office_enabled ? 'bg-blue-600 hover:bg-blue-700' : 'bg-slate-600 hover:bg-slate-500'
-                        } ${isSaving ? 'cursor-not-allowed opacity-50' : 'active:scale-[0.98]'}`}
-                        aria-label={formBusiness.out_of_office_enabled ? 'Disable Out of Office' : 'Enable Out of Office'}
-                      >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-all duration-300 ${
-                            formBusiness.out_of_office_enabled ? 'translate-x-6' : 'translate-x-1'
-                          }`}
-                        />
-                      </button>
-                    </div>
-
-                    <div className={`grid transition-all duration-300 ease-out ${formBusiness.out_of_office_enabled ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
-                      <div className="overflow-hidden">
-                        <div className="space-y-4 border-t border-blue-200/60 p-3 sm:p-4 dark:border-slate-700/60">
-                          <div>
-                            <div className="mb-2 flex items-center justify-between gap-3">
-                              <div>
-                                <h4 className="text-sm font-semibold text-slate-900 dark:text-foreground">Vacation Schedule</h4>
-                                <p className="text-xs text-slate-500 dark:text-slate-400">Choose when this reply starts and ends.</p>
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                              <label 
-                                className="group relative cursor-pointer rounded-xl border border-slate-200/70 bg-white/80 p-3 shadow-sm transition-all hover:border-blue-300 hover:bg-white focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700/60 dark:bg-slate-900/40 dark:hover:border-blue-700"
-                                onClick={() => {
-                                  outOfOfficeStartRef.current?.focus()
-                                  if (outOfOfficeStartRef.current && 'showPicker' in outOfOfficeStartRef.current) {
-                                    (outOfOfficeStartRef.current as any).showPicker()
-                                  }
-                                }}
-                              >
-                                <span className="mb-2 flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-                                  <span>📅</span>
-                                  Starts
-                                </span>
-                                <span className="block text-sm font-semibold text-slate-900 dark:text-slate-100">
-                                  {formatOutOfOfficeDate(formBusiness.out_of_office_start, { month: 'short', day: 'numeric' })}
-                                </span>
-                                <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">
-                                  {formatOutOfOfficeTime(formBusiness.out_of_office_start) || 'Select a time'}
-                                </span>
-                                <input
-                                  ref={outOfOfficeStartRef}
-                                  type="datetime-local"
-                                  value={toDateTimeLocal(formBusiness.out_of_office_start)}
-                                  onChange={(e) => updateBusiness({ out_of_office_start: fromDateTimeLocal(e.target.value) })}
-                                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                                  aria-label="Out of office start date and time"
-                                />
-                              </label>
-
-                              <label 
-                                className="group relative cursor-pointer rounded-xl border border-slate-200/70 bg-white/80 p-3 shadow-sm transition-all hover:border-blue-300 hover:bg-white focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700/60 dark:bg-slate-900/40 dark:hover:border-blue-700"
-                                onClick={() => {
-                                  outOfOfficeEndRef.current?.focus()
-                                  if (outOfOfficeEndRef.current && 'showPicker' in outOfOfficeEndRef.current) {
-                                    (outOfOfficeEndRef.current as any).showPicker()
-                                  }
-                                }}
-                              >
-                                <span className="mb-2 flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-                                  <span>📅</span>
-                                  Ends
-                                </span>
-                                <span className="block text-sm font-semibold text-slate-900 dark:text-slate-100">
-                                  {formatOutOfOfficeDate(formBusiness.out_of_office_end, { month: 'short', day: 'numeric' })}
-                                </span>
-                                <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">
-                                  {formatOutOfOfficeTime(formBusiness.out_of_office_end) || 'Select a time'}
-                                </span>
-                                <input
-                                  ref={outOfOfficeEndRef}
-                                  type="datetime-local"
-                                  value={toDateTimeLocal(formBusiness.out_of_office_end)}
-                                  onChange={(e) => updateBusiness({ out_of_office_end: fromDateTimeLocal(e.target.value) })}
-                                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                                  aria-label="Out of office end date and time"
-                                />
-                              </label>
-                            </div>
-                            {formBusiness.out_of_office_start && formBusiness.out_of_office_end && new Date(formBusiness.out_of_office_end) <= new Date(formBusiness.out_of_office_start) && (
-                              <p className="mt-2 text-xs text-red-600 dark:text-red-400">
-                                End date/time must be after start date/time
-                              </p>
-                            )}
-                          </div>
-
-                          <div>
-                            <label className="mb-1.5 block text-sm font-semibold text-slate-900 dark:text-foreground">
-                              Response Message
-                            </label>
-                            <textarea
-                              value={formBusiness.out_of_office_message || ''}
-                              onChange={(e) => updateBusiness({ out_of_office_message: e.target.value })}
-                              rows={3}
-                              placeholder=""
-                              className="w-full resize-none rounded-xl border border-slate-200/70 bg-white/80 px-3 py-2.5 text-sm text-slate-900 transition-all hover:border-slate-300 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700/60 dark:bg-slate-900/40 dark:text-foreground dark:hover:border-slate-600"
-                            />
-                            <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">
-                              Supports {'{'}{'{'}business_name{'}'}{'}'} and {'{'}{'{'}return_date{'}'}{'}'}.
-                            </p>
-                          </div>
-
-                          <div>
-                            <div className="mb-1.5 flex items-center gap-2">
-                              <h4 className="text-sm font-semibold text-slate-900 dark:text-foreground">Customer Preview</h4>
-                            </div>
-                            <div className="rounded-2xl border border-slate-200/70 bg-white p-3 shadow-sm dark:border-slate-700/60 dark:bg-slate-900/50">
-                              <div className="mb-2 flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-                                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-50 text-sm dark:bg-blue-950/40">💬</span>
-                                ReplyFlow message
-                              </div>
-                              <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700 dark:text-slate-200">
-                                {(formBusiness.out_of_office_message || DEFAULT_OUT_OF_OFFICE_MESSAGE)
-                                  .replace(/\{\{business_name\}\}/gi, formBusiness.name || 'your business')
-                                  .replace(/\{\{return_date\}\}/gi, formBusiness.out_of_office_end 
-                                    ? new Date(formBusiness.out_of_office_end).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-                                    : 'No return schedule selected.'
-                                  )}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
+                        <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
+                          ⚠️ This feature is not yet available. The setting will be enabled in a future update.
+                        </p>
                       </div>
                     </div>
                   </div>
