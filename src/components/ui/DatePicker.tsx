@@ -160,6 +160,11 @@ export default function DatePicker({
     return date.toDateString() === selected.toDateString()
   }
 
+  const isWeekend = (date: Date) => {
+    const dayOfWeek = date.getDay()
+    return dayOfWeek === 0 || dayOfWeek === 6 // Sunday or Saturday
+  }
+
   const days = getDaysInMonth(currentMonth)
 
   return (
@@ -224,8 +229,15 @@ export default function DatePicker({
 
           {/* Day headers */}
           <div className="grid grid-cols-7 gap-0.5 px-4 pt-4 pb-2">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-              <div key={day} className="text-xs font-semibold text-slate-500 dark:text-slate-400 text-center py-2">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
+              <div 
+                key={day} 
+                className={`text-xs font-semibold text-center py-2 ${
+                  index === 0 || index === 6
+                    ? 'text-slate-400 dark:text-slate-500'
+                    : 'text-slate-500 dark:text-slate-400'
+                }`}
+              >
                 {day}
               </div>
             ))}
@@ -246,7 +258,9 @@ export default function DatePicker({
                       ? 'bg-blue-600 text-white hover:bg-blue-700 ring-2 ring-blue-600 ring-offset-2'
                       : dayInfo.isToday
                         ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 font-medium'
-                        : 'text-slate-900 dark:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800'
+                        : isWeekend(dayInfo.date)
+                          ? 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                          : 'text-slate-900 dark:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
               >
                 {dayInfo.day}

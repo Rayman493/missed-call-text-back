@@ -6,6 +6,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import NewTaskModal from './NewTaskModal'
 import Toast from '@/components/Toast'
 import { useRouter } from 'next/navigation'
+import { getLeadDisplayName, formatPhoneNumber } from '@/lib/utils'
 
 interface Task {
   id: string
@@ -22,6 +23,11 @@ interface Task {
     id: string
     caller_phone: string
     raw_metadata: any
+  } | null
+  jobs?: {
+    id: string
+    title: string
+    customer_name: string | null
   } | null
 }
 
@@ -186,10 +192,10 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
   }
 
   const getLeadName = (task: Task) => {
-    if (task.leads?.raw_metadata?.customer_name) {
-      return task.leads.raw_metadata.customer_name
+    if (task.leads) {
+      return getLeadDisplayName(task.leads)
     }
-    return task.leads?.caller_phone || 'Unknown'
+    return 'Unknown'
   }
 
   const handleLeadClick = (e: React.MouseEvent, leadId: string) => {
@@ -343,26 +349,30 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
                       {task.notes}
                     </p>
                   )}
-                  <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+                  <div className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400">
                     {task.due_date && (
-                      <span className="flex items-center gap-1">
+                      <div className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        {formatDate(task.due_date)}
-                        {task.due_time && ` at ${formatTime(task.due_time)}`}
-                      </span>
+                        <span>{formatDate(task.due_date)}</span>
+                        {task.due_time && <span> at {formatTime(task.due_time)}</span>}
+                      </div>
                     )}
                     {task.lead_id && (
-                      <button
-                        onClick={(e) => handleLeadClick(e, task.lead_id!)}
-                        className="flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
-                      >
-                        <span>• {getLeadName(task)}</span>
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <span className="text-slate-400 dark:text-slate-500">Customer:</span>
+                        <button
+                          onClick={(e) => handleLeadClick(e, task.lead_id!)}
+                          className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                        >
+                          {getLeadName(task)}
+                        </button>
+                      </div>
                     )}
-                    {task.job_id && (
-                      <span className="flex items-center gap-1">
-                        <span>• Job linked</span>
-                      </span>
+                    {task.job_id && task.jobs && (
+                      <div className="flex items-center gap-1">
+                        <span className="text-slate-400 dark:text-slate-500">Job:</span>
+                        <span className="text-slate-700 dark:text-slate-300">{task.jobs.title}</span>
+                      </div>
                     )}
                   </div>
                 </div>

@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('tasks')
-      .select('*, leads!left(id, caller_phone, raw_metadata)')
+      .select('*, leads!left(id, caller_phone, raw_metadata), jobs!left(id, title, customer_name)')
       .eq('business_id', business.id)
       .order('due_date', { ascending: true })
       .order('due_time', { ascending: true })
