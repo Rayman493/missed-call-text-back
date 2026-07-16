@@ -60,6 +60,7 @@ import {
 } from './intake-templates';
 import { testFallbacks, warnIfTestFallbacksActive } from './test-fallbacks';
 import { OPENAI_REALTIME_MODEL, createOpenAIRealtimeUrl } from './realtime-model';
+import { logModelConfiguration } from './model-config';
 
 // @ts-nocheck
 // TypeScript checking disabled to allow deployment with improved Supabase logging
@@ -256,6 +257,7 @@ console.log('[AI VOICE DEPLOYMENT PROOF] =======================================
 
 console.log('[AI VOICE STARTUP] Timestamp:', new Date().toISOString());
 warnIfTestFallbacksActive();
+logModelConfiguration();
 
 // Normalize phone number to E.164 US format
 function normalizePhoneNumberForStorage(phone: string): string {
