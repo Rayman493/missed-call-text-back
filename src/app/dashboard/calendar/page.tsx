@@ -8,7 +8,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import DashboardShell from '@/components/layout/DashboardShell'
 import Toast, { ToastContainer } from '@/components/Toast'
 import Link from 'next/link'
-import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle, Briefcase, MapPin, MoreVertical } from 'lucide-react'
+import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle, Briefcase, MapPin, MoreVertical, CheckCircle2 } from 'lucide-react'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import EventPill from '@/components/calendar/EventPill'
 import DayDetailModal from '@/components/calendar/DayDetailModal'
@@ -25,6 +25,9 @@ import NewJobModal from '@/components/jobs/NewJobModal'
 import LeadPickerModal from '@/components/jobs/LeadPickerModal'
 import AddCustomerModal from '@/components/AddCustomerModal'
 import ConfirmModal from '@/components/ui/ConfirmModal'
+import TodayCommandCenter from '@/components/schedule/TodayCommandCenter'
+import NewTaskModal from '@/components/schedule/NewTaskModal'
+import TasksTab from '@/components/schedule/TasksTab'
 import type { Job, JobStatus, JobPrefill } from '@/components/jobs/JobComposer'
 
 interface CalendarEvent {
@@ -70,7 +73,7 @@ export default function SchedulePage() {
   const [isEventDetailsOpen, setIsEventDetailsOpen] = useState(false)
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
   const [viewMode, setViewMode] = useState<'month' | 'agenda'>('month')
-  const [scheduleTab, setScheduleTab] = useState<'calendar' | 'jobs'>('calendar')
+  const [scheduleTab, setScheduleTab] = useState<'today' | 'calendar' | 'jobs' | 'tasks'>('today')
 
   // Jobs state
   const [jobs, setJobs] = useState<Job[]>([])
@@ -87,6 +90,7 @@ export default function SchedulePage() {
   const [editingJob, setEditingJob] = useState<Job | null>(null)
   const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false)
   const [newlyCreatedLeadId, setNewlyCreatedLeadId] = useState<string | null>(null)
+  const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false)
   
   // Overflow menu state
   const [isCalendarOverflowOpen, setIsCalendarOverflowOpen] = useState(false)
@@ -718,6 +722,17 @@ export default function SchedulePage() {
                   <div className="hidden md:flex mb-3">
                     <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1 w-full">
                       <button
+                        onClick={() => setScheduleTab('today')}
+                        className={`flex items-center gap-1.5 px-4 py-2 rounded-md font-medium transition-all ${
+                          scheduleTab === 'today'
+                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm text-[15px]'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground text-sm'
+                        }`}
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                        Today
+                      </button>
+                      <button
                         onClick={() => setScheduleTab('calendar')}
                         className={`flex items-center gap-1.5 px-4 py-2 rounded-md font-medium transition-all ${
                           scheduleTab === 'calendar'
@@ -744,12 +759,34 @@ export default function SchedulePage() {
                           </span>
                         )}
                       </button>
+                      <button
+                        onClick={() => setScheduleTab('tasks')}
+                        className={`flex items-center gap-1.5 px-4 py-2 rounded-md font-medium transition-all ${
+                          scheduleTab === 'tasks'
+                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm text-[15px]'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground text-sm'
+                        }`}
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                        Tasks
+                      </button>
                     </div>
                   </div>
 
                   {/* Mobile tab toggle */}
                   <div className="md:hidden mb-4 mt-2">
                     <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
+                      <button
+                        onClick={() => setScheduleTab('today')}
+                        className={`flex-1 flex items-center justify-center gap-1 py-1.5 px-3 rounded-md font-medium transition-all ${
+                          scheduleTab === 'today'
+                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm text-sm'
+                            : 'text-slate-600 dark:text-slate-400 text-xs'
+                        }`}
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Today
+                      </button>
                       <button
                         onClick={() => setScheduleTab('calendar')}
                         className={`flex-1 flex items-center justify-center gap-1 py-1.5 px-3 rounded-md font-medium transition-all ${
@@ -777,8 +814,30 @@ export default function SchedulePage() {
                           </span>
                         )}
                       </button>
+                      <button
+                        onClick={() => setScheduleTab('tasks')}
+                        className={`flex-1 flex items-center justify-center gap-1 py-1.5 px-3 rounded-md font-medium transition-all ${
+                          scheduleTab === 'tasks'
+                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm text-sm'
+                            : 'text-slate-600 dark:text-slate-400 text-xs'
+                        }`}
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Tasks
+                      </button>
                     </div>
                   </div>
+
+                  {/* Today Tab */}
+                  {scheduleTab === 'today' && (
+                    <TodayCommandCenter
+                      jobs={jobs}
+                      calendarEvents={events}
+                      onNewTask={() => setIsNewTaskModalOpen(true)}
+                      onNewJob={openNewJob}
+                      onNewAppointment={handleNewAppointment}
+                    />
+                  )}
 
                   {/* Jobs Tab */}
                   {scheduleTab === 'jobs' && (
@@ -788,6 +847,11 @@ export default function SchedulePage() {
                       onNewJob={openNewJob}
                       onJobClick={(job: Job) => { setSelectedJob(job); setIsJobDetailsOpen(true) }}
                     />
+                  )}
+
+                  {/* Tasks Tab */}
+                  {scheduleTab === 'tasks' && (
+                    <TasksTab onNewJob={openNewJob} />
                   )}
 
                   {/* Connected State — Calendar Tab */}
@@ -1238,6 +1302,16 @@ export default function SchedulePage() {
                         customer_phone: undefined
                       })
                       setIsJobComposerOpen(true)
+                    }}
+                  />
+
+                  {/* New Task Modal */}
+                  <NewTaskModal
+                    isOpen={isNewTaskModalOpen}
+                    onClose={() => setIsNewTaskModalOpen(false)}
+                    onTaskCreated={() => {
+                      // Refresh tasks in TodayCommandCenter
+                      // This will be handled by the component's internal fetch
                     }}
                   />
 
