@@ -303,6 +303,94 @@ const testAlertTests: Array<{ name: string; fn: () => Promise<void> | void }> = 
       assertTrue(testConditionId === 'manual_test_alert', 'Test condition ID should be clearly identifiable')
     },
   },
+  {
+    name: 'Resolve/reset test alert',
+    async fn() {
+      const mockAlertManager = new MockTestAlertManager()
+      
+      // Trigger alert
+      await mockAlertManager.checkAndAlert({
+        id: 'manual_test_alert',
+        name: 'Operational Monitoring Test',
+        severity: 'degraded',
+        description: 'Test alert',
+        check: async () => true
+      }, 'Test details')
+      
+      // Resolve the test condition
+      await mockAlertManager.markResolved('manual_test_alert')
+      
+      const alertState = mockAlertManager.getAlertState('manual_test_alert')
+      assertTrue(!!alertState, 'Alert state should still exist')
+      assertTrue(!!alertState!.resolvedAt, 'Resolved at should be set')
+    },
+  },
+  {
+    name: 'Immediate trigger after reset sends again',
+    async fn() {
+      const mockAlertManager = new MockTestAlertManager()
+      
+      // First trigger
+      await mockAlertManager.checkAndAlert({
+        id: 'manual_test_alert',
+        name: 'Operational Monitoring Test',
+        severity: 'degraded',
+        description: 'Test alert',
+        check: async () => true
+      }, 'Test details')
+      
+      // Simulate full reset (clear cooldown state)
+      mockAlertManager.reset()
+      
+      // Trigger again immediately after reset
+      await mockAlertManager.checkAndAlert({
+        id: 'manual_test_alert',
+        name: 'Operational Monitoring Test',
+        severity: 'degraded',
+        description: 'Test alert',
+        check: async () => true
+      }, 'Test details')
+      
+      assertTrue(mockAlertManager.wasEmailSent(), 'Email should be sent after reset')
+      assertEqual(mockAlertManager.getAlertCount('manual_test_alert'), 1, 'Alert count should be 1 after reset')
+    },
+  },
+  {
+    name: 'Reset affects only manual_test_alert',
+    async fn() {
+      const mockAlertManager = new MockTestAlertManager()
+      
+      // Trigger test alert
+      await mockAlertManager.checkAndAlert({
+        id: 'manual_test_alert',
+        name: 'Operational Monitoring Test',
+        severity: 'degraded',
+        description: 'Test alert',
+        check: async () => true
+      }, 'Test details')
+      
+      // Trigger a real alert
+      await mockAlertManager.checkAndAlert({
+        id: 'database-connectivity',
+        name: 'Database Connectivity',
+        severity: 'critical',
+        description: 'Real alert',
+        check: async () => true
+      }, 'Real alert details')
+      
+      // Reset only test alert
+      await mockAlertManager.markResolved('manual_test_alert')
+      
+      // Test alert should be resolved
+      const testState = mockAlertManager.getAlertState('manual_test_alert')
+      assertTrue(!!testState!.resolvedAt, 'Test alert should be resolved')
+      
+      // Real alert should retain normal state
+      const realState = mockAlertManager.getAlertState('database-connectivity')
+      assertTrue(!!realState, 'Real alert state should exist')
+      assertFalse(!!realState!.resolvedAt, 'Real alert should not be resolved')
+    },
+  },
 ]
 
 // Run all tests

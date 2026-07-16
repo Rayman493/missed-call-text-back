@@ -132,6 +132,7 @@ export async function GET(request: NextRequest) {
         summary: aiSummary,
         lastActivity: recentCalls?.[0]?.created_at || null,
         failureCount: totalUnrecovered, // Only count unrecovered as failures
+        unknownReason: aiStatus === 'unknown' && totalCalls === 0 ? 'inactivity' : (aiStatus === 'unknown' ? 'query_error' : undefined),
         details: {
           successCount: totalSuccess,
           totalCalls,
@@ -196,6 +197,7 @@ export async function GET(request: NextRequest) {
         summary: voiceSummary,
         lastActivity: recentCallEvents?.[0]?.created_at || null,
         failureCount: failedCalls.length,
+        unknownReason: voiceStatus === 'unknown' && totalCallEvents === 0 ? 'inactivity' : (voiceStatus === 'unknown' ? 'query_error' : undefined),
       }
     } catch (e) {
       services.twilioVoice = {
@@ -203,6 +205,7 @@ export async function GET(request: NextRequest) {
         status: 'unknown',
         summary: 'Unable to check Twilio voice status',
         lastActivity: null,
+        unknownReason: 'query_error',
       }
     }
 
@@ -250,6 +253,7 @@ export async function GET(request: NextRequest) {
         summary: smsSummary,
         lastActivity: recentMessages?.[0]?.created_at || null,
         failureCount: failedMessages.length,
+        unknownReason: smsStatus === 'unknown' && totalMessages === 0 ? 'inactivity' : (smsStatus === 'unknown' ? 'query_error' : undefined),
       }
     } catch (e) {
       services.twilioSms = {
@@ -257,6 +261,7 @@ export async function GET(request: NextRequest) {
         status: 'unknown',
         summary: 'Unable to check Twilio SMS status',
         lastActivity: null,
+        unknownReason: 'query_error',
       }
     }
 
@@ -317,6 +322,7 @@ export async function GET(request: NextRequest) {
         summary: stripeSummary,
         lastActivity: recentWebhooks?.[0]?.processed_at || null,
         failureCount,
+        unknownReason: stripeStatus === 'unknown' && (!recentWebhooks || recentWebhooks.length === 0) ? 'inactivity' : undefined,
       }
     } catch (e) {
       services.stripe = {
@@ -324,6 +330,7 @@ export async function GET(request: NextRequest) {
         status: 'unknown',
         summary: 'Unable to check Stripe status',
         lastActivity: null,
+        unknownReason: 'query_error',
       }
     }
 
@@ -357,6 +364,7 @@ export async function GET(request: NextRequest) {
         summary: provisioningSummary,
         lastActivity: now.toISOString(),
         failureCount: stuckCount,
+        unknownReason: provisioningStatus === 'unknown' && provisioningError ? 'query_error' : undefined,
       }
     } catch (e) {
       services.provisioning = {
@@ -364,6 +372,7 @@ export async function GET(request: NextRequest) {
         status: 'unknown',
         summary: 'Unable to check provisioning status',
         lastActivity: null,
+        unknownReason: 'query_error',
       }
     }
 
@@ -375,17 +384,56 @@ export async function GET(request: NextRequest) {
     // This ensures test alerts cannot affect the displayed system health status
 
     // Add AI failures as issues (only technical failures from ai_call_failures)
-    // Note: Recovered failures (voicemail/SMS) are not included here since they're not customer-facing issues
+    // Filter to exclude recovered failures and legacy VOICEMAIL_FALLBACK noise
     if (services.aiVoice.details?.recentFailures && services.aiVoice.details.recentFailures.length > 0) {
+      // Get ai_call_records to check final_recovery_outcome for filtering
+      const { data: callRecords } = await supabase
+        .from('ai_call_records')
+        .select('id, final_recovery_outcome, outcome, created_at')
+        .gte('created_at', twentyFourHoursAgo)
+
+      // Create a map of call records by timestamp for quick lookup
+      const callRecordsMap = new Map<string, any>()
+      callRecords?.forEach(record => {
+        callRecordsMap.set(record.created_at, record)
+      })
+
       services.aiVoice.details.recentFailures.forEach((failure: any, index: number) => {
-        recentIssues.push({
-          id: `ai-failure-${index}`,
-          timestamp: failure.time,
-          service: 'AI Voice',
-          severity: services.aiVoice.status === 'critical' ? 'critical' : 'degraded',
-          summary: `AI call failed at stage: ${failure.stage}`,
-          resolved: false,
-        })
+        // Check if this failure has a corresponding call record with final_recovery_outcome
+        const matchingRecord = callRecordsMap.get(failure.time)
+        
+        // Skip if the failure was recovered (final_recovery_outcome indicates successful recovery)
+        if (matchingRecord?.final_recovery_outcome) {
+          const outcome = matchingRecord.final_recovery_outcome
+          if (outcome === 'ai_success' || outcome === 'voicemail_success' || outcome === 'sms_success') {
+            return // Skip recovered failures
+          }
+          // Only show unrecovered failures
+          if (outcome === 'unrecovered') {
+            recentIssues.push({
+              id: `ai-failure-${index}`,
+              timestamp: failure.time,
+              service: 'AI Voice',
+              severity: services.aiVoice.status === 'critical' ? 'critical' : 'degraded',
+              summary: `AI call failed at stage: ${failure.stage} (unrecovered)`,
+              resolved: false,
+            })
+          }
+        } else {
+          // Legacy record without final_recovery_outcome
+          // Be conservative: exclude VOICEMAIL_FALLBACK as it's likely recovered
+          // Show other failure stages as they may indicate real issues
+          if (failure.stage !== 'VOICEMAIL_FALLBACK') {
+            recentIssues.push({
+              id: `ai-failure-${index}`,
+              timestamp: failure.time,
+              service: 'AI Voice',
+              severity: services.aiVoice.status === 'critical' ? 'critical' : 'degraded',
+              summary: `AI call failed at stage: ${failure.stage}`,
+              resolved: false,
+            })
+          }
+        }
       })
     }
 

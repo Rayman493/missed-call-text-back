@@ -12,6 +12,8 @@ export interface ServiceHealth {
   lastActivity?: string | null
   failureCount?: number
   details?: Record<string, any>
+  // Distinguish between Unknown due to inactivity vs query error
+  unknownReason?: 'inactivity' | 'query_error' | 'insufficient_data'
 }
 
 export interface SystemHealth {
@@ -41,14 +43,34 @@ export interface OperationalIssue {
  * Aggregate overall health from service health states
  * Critical if any service is critical
  * Degraded if any service is degraded (and none critical)
- * Healthy if all services are healthy
- * Unknown if no services have known status or mixed healthy/unknown
+ * Healthy if no Degraded/Critical, at least one Healthy, and any Unknown are due to inactivity (not query errors)
+ * Unknown if no services have known status, or if Unknown services are due to query errors
  */
 export function aggregateOverallHealth(services: Record<string, ServiceHealth>): HealthStatus {
-  const statuses = Object.values(services).map(s => s.status)
+  const serviceList = Object.values(services)
+  const statuses = serviceList.map(s => s.status)
   
+  // Critical always overrides
   if (statuses.some(s => s === 'critical')) return 'critical'
+  
+  // Degraded always overrides
   if (statuses.some(s => s === 'degraded')) return 'degraded'
+  
+  // Check if we have at least one healthy service
+  const hasHealthy = statuses.some(s => s === 'healthy')
+  
+  // Check if any unknown services are due to query errors (not just inactivity)
+  const hasQueryErrorUnknown = serviceList.some(
+    s => s.status === 'unknown' && s.unknownReason === 'query_error'
+  )
+  
+  // If we have healthy services and no query errors, treat as healthy
+  // Unknown due to inactivity should not make the system look indeterminate
+  if (hasHealthy && !hasQueryErrorUnknown) return 'healthy'
+  
+  // If all are healthy, return healthy
   if (statuses.every(s => s === 'healthy')) return 'healthy'
-  return 'unknown' // Mixed healthy/unknown or all unknown
+  
+  // Otherwise unknown (no healthy services, or query errors present)
+  return 'unknown'
 }

@@ -7,12 +7,13 @@
 import { aggregateOverallHealth, type HealthStatus, type ServiceHealth } from '../system-health'
 
 // Helper to create a service health object
-function createServiceHealth(status: HealthStatus): ServiceHealth {
+function createServiceHealth(status: HealthStatus, unknownReason?: 'inactivity' | 'query_error' | 'insufficient_data'): ServiceHealth {
   return {
     name: 'Test Service',
     status,
     summary: 'Test summary',
     lastActivity: new Date().toISOString(),
+    unknownReason,
   }
 }
 
@@ -101,18 +102,63 @@ const tests: Array<{ name: string; fn: () => void }> = [
     },
   },
   {
-    name: 'Mixed Unknown and Healthy → Unknown',
+    name: '5 Healthy + 1 Unknown due to inactivity → Overall Healthy',
     fn: () => {
       const services = {
         application: createServiceHealth('healthy'),
-        aiVoice: createServiceHealth('unknown'),
+        aiVoice: createServiceHealth('healthy'),
         twilioVoice: createServiceHealth('healthy'),
-        twilioSms: createServiceHealth('unknown'),
-        stripe: createServiceHealth('healthy'),
-        provisioning: createServiceHealth('unknown'),
+        twilioSms: createServiceHealth('healthy'),
+        stripe: createServiceHealth('unknown', 'inactivity'),
+        provisioning: createServiceHealth('healthy'),
       }
       const result = aggregateOverallHealth(services)
-      assertEqual(result, 'unknown', 'Mixed unknown/healthy should produce unknown')
+      assertEqual(result, 'healthy', 'Healthy + inactivity unknown should be healthy')
+    },
+  },
+  {
+    name: 'Healthy + Unknown due to query failure → not falsely Healthy',
+    fn: () => {
+      const services = {
+        application: createServiceHealth('healthy'),
+        aiVoice: createServiceHealth('unknown', 'query_error'),
+        twilioVoice: createServiceHealth('healthy'),
+        twilioSms: createServiceHealth('healthy'),
+        stripe: createServiceHealth('healthy'),
+        provisioning: createServiceHealth('healthy'),
+      }
+      const result = aggregateOverallHealth(services)
+      assertEqual(result, 'unknown', 'Query error unknown should prevent healthy')
+    },
+  },
+  {
+    name: 'Mixed Unknown and Healthy (query error) → Unknown',
+    fn: () => {
+      const services = {
+        application: createServiceHealth('healthy'),
+        aiVoice: createServiceHealth('unknown', 'query_error'),
+        twilioVoice: createServiceHealth('healthy'),
+        twilioSms: createServiceHealth('unknown', 'inactivity'),
+        stripe: createServiceHealth('healthy'),
+        provisioning: createServiceHealth('unknown', 'inactivity'),
+      }
+      const result = aggregateOverallHealth(services)
+      assertEqual(result, 'unknown', 'Query error unknown should produce unknown')
+    },
+  },
+  {
+    name: 'Mixed Unknown and Healthy (all inactivity) → Healthy',
+    fn: () => {
+      const services = {
+        application: createServiceHealth('healthy'),
+        aiVoice: createServiceHealth('unknown', 'inactivity'),
+        twilioVoice: createServiceHealth('healthy'),
+        twilioSms: createServiceHealth('unknown', 'inactivity'),
+        stripe: createServiceHealth('healthy'),
+        provisioning: createServiceHealth('unknown', 'inactivity'),
+      }
+      const result = aggregateOverallHealth(services)
+      assertEqual(result, 'healthy', 'All inactivity unknown with healthy should be healthy')
     },
   },
   {

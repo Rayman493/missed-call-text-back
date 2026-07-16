@@ -143,11 +143,17 @@ export class AlertManager {
       return
     }
 
+    // Custom subject for test alerts to make them clearly identifiable
+    const isTestAlert = condition.id === 'manual_test_alert'
+    const subject = isTestAlert 
+      ? `[TEST] ReplyFlow Alert: ${condition.name}`
+      : `[${condition.severity.toUpperCase()}] ReplyFlow Alert: ${condition.name}`
+
     try {
       await this.resend.emails.send({
         from: fromEmail,
         to: alertEmail,
-        subject: `[${condition.severity.toUpperCase()}] ReplyFlow Alert: ${condition.name}`,
+        subject,
         html: `
           <h2>${condition.name}</h2>
           <p><strong>Severity:</strong> ${condition.severity.toUpperCase()}</p>

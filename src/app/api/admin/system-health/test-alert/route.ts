@@ -38,14 +38,29 @@ export async function POST(request: NextRequest) {
     const action = body.action || 'trigger'
 
     if (action === 'resolve') {
-      // Resolve the test condition
-      await alertManager.markResolved(TEST_CONDITION_ID)
+      // Fully reset the test condition for immediate re-triggering
+      // This only affects the hardcoded test condition, not real operational alerts
+      const { error: resetError } = await supabase
+        .from('operational_alerts')
+        .update({
+          current_state: 'resolved',
+          resolved_at: new Date().toISOString(),
+          last_alerted_at: null,
+          alert_count_for_period: 0,
+          alert_count_period_start: null,
+        })
+        .eq('condition_id', TEST_CONDITION_ID)
+
+      if (resetError) {
+        console.error('[Test Alert] Reset error:', resetError)
+        return NextResponse.json({ error: 'Failed to reset test alert' }, { status: 500 })
+      }
       
       return NextResponse.json({
         success: true,
         action: 'resolve',
         conditionId: TEST_CONDITION_ID,
-        message: 'Test alert condition marked as resolved'
+        message: 'Test alert condition fully reset'
       })
     }
 
