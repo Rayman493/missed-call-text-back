@@ -101,7 +101,7 @@ export async function GET(request: Request) {
 
     const { data: paymentRequest, error: paymentRequestError } = await supabase
       .from('payment_requests')
-      .select('id, lead_id, business_id, status')
+      .select('id, lead_id, business_id, status, amount_cents, currency, stripe_checkout_session_id')
       .eq('stripe_checkout_session_id', session_id)
       .single()
 
@@ -116,7 +116,57 @@ export async function GET(request: Request) {
       return NextResponse.json({ status: 'already_paid' })
     }
 
-    console.log('[PAYMENT RECONCILE] Updating payment request to paid:', paymentRequest.id)
+    // Defense-in-depth: Verify Stripe session ID matches stored session ID
+    if (session.id !== paymentRequest.stripe_checkout_session_id) {
+      console.error('[PAYMENT RECONCILE] Integrity check failed: Stripe session ID mismatch')
+      console.error('[PAYMENT RECONCILE] Stripe session ID:', session.id)
+      console.error('[PAYMENT RECONCILE] Stored session ID:', paymentRequest.stripe_checkout_session_id)
+      return NextResponse.json({ error: 'Payment session mismatch' }, { status: 400 })
+    }
+
+    // Defense-in-depth: Verify amount matches if both are available
+    if (paymentRequest.amount_cents !== null && session.amount_total !== undefined) {
+      if (paymentRequest.amount_cents !== session.amount_total) {
+        console.error('[PAYMENT RECONCILE] Integrity check failed: Amount mismatch')
+        console.error('[PAYMENT RECONCILE] Expected amount (cents):', paymentRequest.amount_cents)
+        console.error('[PAYMENT RECONCILE] Stripe amount (cents):', session.amount_total)
+        return NextResponse.json({ error: 'Payment amount mismatch' }, { status: 400 })
+      }
+    }
+
+    // Defense-in-depth: Verify currency matches if both are available
+    if (paymentRequest.currency && session.currency) {
+      if (paymentRequest.currency.toLowerCase() !== session.currency.toLowerCase()) {
+        console.error('[PAYMENT RECONCILE] Integrity check failed: Currency mismatch')
+        console.error('[PAYMENT RECONCILE] Expected currency:', paymentRequest.currency)
+        console.error('[PAYMENT RECONCILE] Stripe currency:', session.currency)
+        return NextResponse.json({ error: 'Payment currency mismatch' }, { status: 400 })
+      }
+    }
+
+    // Defense-in-depth: Verify metadata matches if present (optional, for newer sessions)
+    if (session.metadata) {
+      const metadataErrors: string[] = []
+
+      if (session.metadata.payment_request_id && session.metadata.payment_request_id !== paymentRequest.id) {
+        metadataErrors.push('payment_request_id')
+      }
+      if (session.metadata.business_id && session.metadata.business_id !== paymentRequest.business_id) {
+        metadataErrors.push('business_id')
+      }
+      if (session.metadata.lead_id && session.metadata.lead_id !== paymentRequest.lead_id) {
+        metadataErrors.push('lead_id')
+      }
+
+      if (metadataErrors.length > 0) {
+        console.error('[PAYMENT RECONCILE] Integrity check failed: Metadata mismatch')
+        console.error('[PAYMENT RECONCILE] Mismatched fields:', metadataErrors.join(', '))
+        console.error('[PAYMENT RECONCILE] Payment request ID:', paymentRequest.id)
+        return NextResponse.json({ error: 'Payment metadata mismatch' }, { status: 400 })
+      }
+    }
+
+    console.log('[PAYMENT RECONCILE] Integrity checks passed, updating payment request to paid:', paymentRequest.id)
 
     const updatePayload: any = {
       status: 'paid'

@@ -433,7 +433,7 @@ export async function POST(request: Request) {
     }
 
     console.log('[PAYMENT REQUEST] Payment request record created successfully:', paymentRequest.id)
-    console.log('[PAYMENT REQUEST] Payment request token:', paymentRequest.token)
+    console.log('[PAYMENT REQUEST] Payment request token:', paymentRequest.token ? '[REDACTED]' : null)
     console.log('[PAYMENT REQUEST] Token persisted to database:', !!paymentRequest.token)
 
     // Update Stripe Payment Intent metadata with payment_request_id (only for Stripe)
