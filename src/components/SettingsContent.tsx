@@ -1780,6 +1780,16 @@ export default function SettingsContent() {
                               <span className="w-1 h-1 bg-green-500 rounded-full" />
                               Connected
                             </span>
+                          ) : business?.stripe_connect_account_id && business?.stripe_details_submitted && !business?.stripe_charges_enabled ? (
+                            <span className="text-xs px-2.5 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full font-medium flex items-center gap-1.5">
+                              <span className="w-1 h-1 bg-amber-500 rounded-full" />
+                              Verification Pending
+                            </span>
+                          ) : business?.stripe_connect_account_id ? (
+                            <span className="text-xs px-2.5 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full font-medium flex items-center gap-1.5">
+                              <span className="w-1 h-1 bg-amber-500 rounded-full" />
+                              Setup In Progress
+                            </span>
                           ) : (
                             <span className="text-xs px-2.5 py-0.5 bg-slate-200/70 dark:bg-slate-700/70 text-slate-600 dark:text-slate-300 rounded-full font-medium">
                               Not Connected
@@ -1802,7 +1812,15 @@ export default function SettingsContent() {
                                 : 'bg-blue-600 hover:bg-blue-700 text-white'
                           }`}
                         >
-                          {business?.stripe_charges_enabled && business?.stripe_details_submitted ? 'Manage' : isStripeConnectUnavailable ? 'Unavailable' : 'Connect'}
+                          {business?.stripe_charges_enabled && business?.stripe_details_submitted 
+                            ? 'Connected' 
+                            : business?.stripe_connect_account_id && business?.stripe_details_submitted && !business?.stripe_charges_enabled
+                              ? 'Verification Pending'
+                              : business?.stripe_connect_account_id
+                                ? 'Complete Setup'
+                                : isStripeConnectUnavailable 
+                                  ? 'Unavailable' 
+                                  : 'Connect'}
                         </button>
                       )}
                     </div>
@@ -1817,7 +1835,15 @@ export default function SettingsContent() {
                       {business?.stripe_connect_account_id && !(business?.stripe_charges_enabled && business?.stripe_details_submitted) && (
                         <div className="p-2.5 sm:p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
                           <p className="text-[10px] sm:text-xs text-amber-700 dark:text-amber-300">
-                            <span className="font-semibold">Setup in progress:</span> Complete Stripe onboarding to accept card payments.
+                            {business?.stripe_details_submitted && !business?.stripe_charges_enabled ? (
+                              <>
+                                <span className="font-semibold">Verification pending:</span> Stripe is reviewing your account. This usually takes 1-2 business days.
+                              </>
+                            ) : (
+                              <>
+                                <span className="font-semibold">Setup in progress:</span> Complete Stripe onboarding to accept card payments.
+                              </>
+                            )}
                           </p>
                         </div>
                       )}

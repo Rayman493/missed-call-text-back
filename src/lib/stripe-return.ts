@@ -7,7 +7,7 @@
  * the final resolved state is known.
  */
 
-const STRIPE_RETURN_PARAMS = ['checkout', 'session_id', 'billing_return', 'setup', 'billing']
+const STRIPE_RETURN_PARAMS = ['checkout', 'session_id', 'billing_return', 'setup', 'billing', 'stripe_onboarding']
 const STRIPE_RETURN_PATHS = ['/dashboard', '/setup/forwarding', '/billing/success']
 
 export function isStripeReturnUrl(url: string | URL): boolean {
@@ -29,6 +29,9 @@ export function isStripeReturnUrl(url: string | URL): boolean {
 
   // Setup return after checkout (triggers provisioning/onboarding gate)
   if (search.get('setup') === '1') return true
+
+  // Stripe Connect onboarding return
+  if (search.get('stripe_onboarding') === 'complete') return true
 
   return false
 }

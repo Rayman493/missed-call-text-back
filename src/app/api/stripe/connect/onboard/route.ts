@@ -89,15 +89,6 @@ export async function POST(request: Request) {
       stripe_connect_status: business.stripe_connect_status
     })
 
-    // If already connected, return existing account
-    if (business.stripe_connect_account_id && business.stripe_connect_status === 'connected') {
-      console.log('[STRIPE CONNECT] Business already connected:', business.stripe_connect_account_id)
-      return NextResponse.json({
-        connected: true,
-        account_id: business.stripe_connect_account_id
-      })
-    }
-
     // Create or retrieve Stripe Connect account
     let accountId = business.stripe_connect_account_id
 
@@ -142,6 +133,38 @@ export async function POST(request: Request) {
         .eq('id', business_id)
     } else {
       console.log('[STRIPE CONNECT] Using existing account:', accountId)
+      
+      // Fetch the existing Stripe account to check its actual status
+      const account = await stripe.accounts.retrieve(accountId)
+      console.log('[STRIPE CONNECT] Existing account status:', {
+        charges_enabled: account.charges_enabled,
+        details_submitted: account.details_submitted,
+        payouts_enabled: account.payouts_enabled,
+      })
+
+      // If account is fully enabled, return connected status
+      if (account.charges_enabled && account.details_submitted) {
+        console.log('[STRIPE CONNECT] Account is fully connected')
+        
+        // Sync status to database
+        await supabase
+          .from('businesses')
+          .update({
+            stripe_connect_status: 'connected',
+            stripe_details_submitted: account.details_submitted,
+            stripe_charges_enabled: account.charges_enabled,
+            stripe_payouts_enabled: account.payouts_enabled,
+          })
+          .eq('id', business_id)
+        
+        return NextResponse.json({
+          connected: true,
+          account_id: accountId,
+        })
+      }
+      
+      // Account exists but onboarding is incomplete - will create fresh Account Link below
+      console.log('[STRIPE CONNECT] Account exists but onboarding incomplete, will resume')
     }
 
     // Create account link for onboarding
