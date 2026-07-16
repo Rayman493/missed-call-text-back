@@ -126,14 +126,22 @@ export default function PaymentHandoff({
 
         <div className="space-y-3 mb-6">
           <a
-            href={checkoutUrl || '#'}
+            href={provider === 'venmo' ? 'https://venmo.com' : (checkoutUrl || '#')}
             target="_blank"
             rel="noopener noreferrer"
             className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
           >
-            {provider === 'venmo' ? 'Open Merchant in Venmo' : 'Open in PayPal'}
+            {provider === 'venmo' ? 'Open Venmo' : 'Open in PayPal'}
           </a>
         </div>
+
+        {provider === 'venmo' && (
+          <div className="bg-gray-100 border border-gray-200 rounded-lg p-3 text-sm text-gray-700 mb-4">
+            <p className="text-gray-600">
+              Venmo may not open directly to the business profile. Use the payment details above to complete your payment.
+            </p>
+          </div>
+        )}
 
         {provider === 'venmo' && venmoUsername && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-900">
