@@ -565,6 +565,11 @@ export default function SchedulePage() {
   }
 
   const handleNewAppointment = () => {
+    // Check if Google Calendar is connected before allowing standalone appointments
+    if (!calendarConnected) {
+      showToast('Google Calendar must be connected to create standalone appointments', 'error')
+      return
+    }
     // Open standalone appointment modal
     setIsNewAppointmentModalOpen(true)
   }

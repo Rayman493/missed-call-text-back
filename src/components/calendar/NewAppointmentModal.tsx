@@ -66,6 +66,18 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
       return
     }
 
+    // Validate end time is after start time if both provided
+    if (!isAllDay && startTime && endTime) {
+      const [startHours, startMinutes] = startTime.split(':').map(Number)
+      const [endHours, endMinutes] = endTime.split(':').map(Number)
+      const startTotalMinutes = startHours * 60 + startMinutes
+      const endTotalMinutes = endHours * 60 + endMinutes
+      if (endTotalMinutes <= startTotalMinutes) {
+        setError('End time must be after start time')
+        return
+      }
+    }
+
     setIsCreating(true)
     setError(null)
 
@@ -83,8 +95,10 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
       let finalEndTime = endTime
       if (!isAllDay && !endTime && startTime) {
         const [hours, minutes] = startTime.split(':').map(Number)
-        const endHour = hours + 1
-        finalEndTime = `${String(endHour).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+        const startDate = new Date()
+        startDate.setHours(hours, minutes, 0, 0)
+        const endDate = new Date(startDate.getTime() + 60 * 60 * 1000) // Add 1 hour
+        finalEndTime = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`
       }
 
       const response = await fetch('/api/google/calendar/create-event', {
