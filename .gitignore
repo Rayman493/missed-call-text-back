@@ -10,12 +10,17 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+.env.capacitor
 
 # Build outputs
 .next/
 out/
 build/
 dist/
+
+# Capacitor
+android/
+ios/
 
 # Runtime data
 *.pnp
