@@ -517,15 +517,13 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<{ succ
 
     // STEP 2: Fetch the oldest available warm number (NO legacy compatibility)
     console.log(`[Warm Inventory] STEP 2: Fetching oldest available warm number...`);
-    console.log(`[Warm Inventory] Query criteria: status=available, business_id IS NULL, sms_status=ready, detached_at IS NULL, detached_reason IS NULL`);
+    console.log(`[Warm Inventory] Query criteria: status=available, business_id IS NULL, sms_status=ready`);
     const { data: availableNumbers, error: fetchError } = await supabase
       .from('twilio_numbers')
       .select('*')
       .is('business_id', null)
       .eq('status', 'available')
       .eq('sms_status', 'ready')
-      .is('detached_at', null)
-      .is('detached_reason', null)
       .order('created_at', { ascending: true })
       .limit(1);
 
