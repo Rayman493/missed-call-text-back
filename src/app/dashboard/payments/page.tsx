@@ -96,6 +96,9 @@ export default function PaymentsPage() {
   const [isCreatingPayment, setIsCreatingPayment] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
   const [isCancelling, setIsCancelling] = useState(false)
+  const [isMarkingPaid, setIsMarkingPaid] = useState(false)
+  const [showMarkPaidConfirm, setShowMarkPaidConfirm] = useState(false)
+  const [paymentToMarkPaid, setPaymentToMarkPaid] = useState<PaymentRequest | null>(null)
   useBodyScrollLock(showPaymentModal)
 
   // Determine which payment methods are configured
@@ -350,6 +353,46 @@ export default function PaymentsPage() {
     }
   }
 
+  const handleMarkPaid = async (payment: PaymentRequest) => {
+    setIsMarkingPaid(true)
+    setError('')
+    setShowMarkPaidConfirm(false)
+    setPaymentToMarkPaid(null)
+
+    try {
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        throw new Error('Not authenticated')
+      }
+
+      const response = await fetch(`/api/payments/${payment.id}/mark-paid`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to mark payment as paid')
+      }
+
+      setSuccessMessage('Payment marked as paid successfully')
+      
+      // Refresh payments
+      await fetchPayments()
+    } catch (err) {
+      console.error('Error marking payment as paid:', err)
+      setError(err instanceof Error ? err.message : 'Failed to mark payment as paid')
+    } finally {
+      setIsMarkingPaid(false)
+    }
+  }
+
   return (
     <DashboardShell
       title="Payments"
@@ -505,6 +548,19 @@ export default function PaymentsPage() {
                             </a>
                           </>
                         )}
+                        {payment.status === 'pending' && (payment.payment_provider === 'paypal' || payment.payment_provider === 'venmo') && (
+                          <button
+                            onClick={() => {
+                              setPaymentToMarkPaid(payment)
+                              setShowMarkPaidConfirm(true)
+                            }}
+                            disabled={isMarkingPaid}
+                            className="p-1.5 text-green-400 hover:text-green-300 disabled:opacity-50"
+                            title="Mark as paid"
+                          >
+                            <CreditCard className="h-4 w-4" />
+                          </button>
+                        )}
                         {payment.status === 'pending' && (
                           <button
                             onClick={() => handleCancelPayment(payment)}
@@ -629,6 +685,19 @@ export default function PaymentsPage() {
                                     <ExternalLink className="h-3.5 w-3.5" />
                                   </a>
                                 </>
+                              )}
+                              {payment.status === 'pending' && (payment.payment_provider === 'paypal' || payment.payment_provider === 'venmo') && (
+                                <button
+                                  onClick={() => {
+                                    setPaymentToMarkPaid(payment)
+                                    setShowMarkPaidConfirm(true)
+                                  }}
+                                  disabled={isMarkingPaid}
+                                  className="text-green-400 hover:text-green-300 p-1 disabled:opacity-50"
+                                  title="Mark as paid"
+                                >
+                                  <CreditCard className="h-3.5 w-3.5" />
+                                </button>
                               )}
                               {payment.status === 'pending' && (
                                 <button
@@ -875,6 +944,49 @@ export default function PaymentsPage() {
           onClose={() => setIsAddCustomerModalOpen(false)}
           onLeadCreated={handleLeadCreated}
         />
+
+        {/* Mark as Paid Confirmation Modal */}
+        {showMarkPaidConfirm && paymentToMarkPaid && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm">
+            <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-700">
+              <h3 className="text-lg font-semibold text-white mb-2">Confirm Payment Received</h3>
+              <p className="text-gray-400 text-sm mb-4">
+                Confirm that you received this payment through {paymentToMarkPaid.payment_provider === 'paypal' ? 'PayPal' : 'Venmo'}.
+              </p>
+              <div className="bg-[#0f172a] rounded-lg p-4 mb-4 border border-slate-700">
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-400 text-sm">Amount</span>
+                  <span className="text-white font-semibold">{formatCurrency(paymentToMarkPaid.amount_cents / 100)}</span>
+                </div>
+                {paymentToMarkPaid.description && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-400 text-sm">Description</span>
+                    <span className="text-gray-300 text-sm">{paymentToMarkPaid.description}</span>
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => {
+                    setShowMarkPaidConfirm(false)
+                    setPaymentToMarkPaid(null)
+                  }}
+                  disabled={isMarkingPaid}
+                  className="px-4 py-2 text-sm font-medium text-gray-300 hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleMarkPaid(paymentToMarkPaid)}
+                  disabled={isMarkingPaid}
+                  className="px-4 py-2 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {isMarkingPaid ? 'Marking...' : 'Confirm Payment Received'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
     </DashboardShell>
   )
 }
