@@ -6,6 +6,7 @@
 
 import Twilio from 'twilio';
 import { createClient } from '@supabase/supabase-js';
+import { isSystemPhoneNumber } from './twilio-assignment';
 
 const MIN_AVAILABLE_WARM_NUMBERS = parseInt(process.env.WARM_INVENTORY_TARGET || '3', 10); // Warm buffer target
 
@@ -792,6 +793,15 @@ export async function recycleTwilioNumberToInventory(
   console.log(`[RECYCLE] Recycling number: ${phoneNumber}`);
   console.log(`[RECYCLE] Phone SID: ${phoneNumberSid}`);
   console.log(`[RECYCLE] From business: ${businessId}`);
+
+  // PROTECT: Block recycling of ReplyFlow system number
+  if (isSystemPhoneNumber(phoneNumber)) {
+    console.log('[RECYCLE] Refusing to recycle protected ReplyFlow system number:', phoneNumber);
+    return {
+      success: false,
+      error: 'Protected ReplyFlow system number cannot be recycled'
+    };
+  }
 
   if (!supabase) {
     console.error('[RECYCLE] ERROR: Supabase client not configured');
