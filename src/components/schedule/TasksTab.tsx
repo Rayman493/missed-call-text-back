@@ -5,6 +5,7 @@ import { CheckCircle2, Clock, AlertCircle, Plus, X, Edit2, Trash2 } from 'lucide
 import { createBrowserClient } from '@/lib/supabase/browser'
 import NewTaskModal from './NewTaskModal'
 import Toast from '@/components/Toast'
+import { useRouter } from 'next/navigation'
 
 interface Task {
   id: string
@@ -17,6 +18,11 @@ interface Task {
   lead_id: string | null
   job_id: string | null
   created_at: string
+  leads?: {
+    id: string
+    caller_phone: string
+    raw_metadata: any
+  } | null
 }
 
 interface TasksTabProps {
@@ -36,6 +42,7 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
     type: 'success',
     isVisible: false
   })
+  const router = useRouter()
   const supabase = createBrowserClient()
 
   const todayStr = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD in local timezone
@@ -160,7 +167,9 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return ''
-    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    // Parse YYYY-MM-DD as local date to avoid timezone shifts
+    const [year, month, day] = dateStr.split('-').map(Number)
+    return new Date(year, month - 1, day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   }
 
   const getTaskStatusBadge = (task: Task) => {
@@ -174,6 +183,18 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
       return <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded-full">Future</span>
     }
     return <span className="px-2 py-0.5 text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 rounded-full">Active</span>
+  }
+
+  const getLeadName = (task: Task) => {
+    if (task.leads?.raw_metadata?.customer_name) {
+      return task.leads.raw_metadata.customer_name
+    }
+    return task.leads?.caller_phone || 'Unknown'
+  }
+
+  const handleLeadClick = (e: React.MouseEvent, leadId: string) => {
+    e.stopPropagation()
+    router.push(`/dashboard/leads/${leadId}`)
   }
 
   return (
@@ -288,7 +309,9 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
                   ? 'bg-slate-50 dark:bg-slate-800/30 border-slate-200/50 dark:border-slate-700/30 opacity-70'
                   : isOverdue(task.due_date)
                     ? 'bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/50 dark:border-amber-900/20'
-                    : 'bg-white dark:bg-slate-900/60 border-slate-200/70 dark:border-slate-700/50 hover:border-blue-300 dark:hover:border-blue-700'
+                    : isFuture(task.due_date)
+                      ? 'bg-blue-50/30 dark:bg-blue-950/10 border-blue-200/30 dark:border-blue-900/20'
+                      : 'bg-white dark:bg-slate-900/60 border-slate-200/70 dark:border-slate-700/50 hover:border-blue-300 dark:hover:border-blue-700'
               }`}
             >
               <div className="flex items-start gap-3">
@@ -299,7 +322,9 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
                       ? 'border-green-500 bg-green-500'
                       : isOverdue(task.due_date)
                         ? 'border-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/30'
-                        : 'border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-blue-400'
+                        : isFuture(task.due_date)
+                          ? 'border-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/30'
+                          : 'border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-blue-400'
                   }`}
                 >
                   {task.completed && (
@@ -327,9 +352,12 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
                       </span>
                     )}
                     {task.lead_id && (
-                      <span className="flex items-center gap-1">
-                        <span>• Customer linked</span>
-                      </span>
+                      <button
+                        onClick={(e) => handleLeadClick(e, task.lead_id!)}
+                        className="flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        <span>• {getLeadName(task)}</span>
+                      </button>
                     )}
                     {task.job_id && (
                       <span className="flex items-center gap-1">

@@ -27,7 +27,9 @@ export default function DatePicker({
   // Initialize currentMonth from value when value changes
   useEffect(() => {
     if (value) {
-      const date = new Date(value + 'T00:00:00') // Ensure local time
+      // Parse YYYY-MM-DD as local date to avoid timezone shifts
+      const [year, month, day] = value.split('-').map(Number)
+      const date = new Date(year, month - 1, day)
       setCurrentMonth(date)
     }
   }, [value])
@@ -62,7 +64,9 @@ export default function DatePicker({
 
   const formatDateDisplay = (dateStr: string) => {
     if (!dateStr) return ''
-    const date = new Date(dateStr + 'T00:00:00')
+    // Parse YYYY-MM-DD as local date to avoid timezone shifts
+    const [year, month, day] = dateStr.split('-').map(Number)
+    const date = new Date(year, month - 1, day)
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   }
 
@@ -150,7 +154,9 @@ export default function DatePicker({
 
   const isSelectedDate = (date: Date) => {
     if (!value) return false
-    const selected = new Date(value + 'T00:00:00')
+    // Parse YYYY-MM-DD as local date to avoid timezone shifts
+    const [year, month, day] = value.split('-').map(Number)
+    const selected = new Date(year, month - 1, day)
     return date.toDateString() === selected.toDateString()
   }
 
@@ -192,16 +198,16 @@ export default function DatePicker({
       </button>
 
       {isOpen && !disabled && (
-        <div className="absolute z-50 mt-2 bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 w-full max-w-[320px]">
+        <div className="absolute z-50 mt-2 bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 w-full max-w-[340px]">
           {/* Header */}
-          <div className="flex items-center justify-between p-3 border-b border-slate-200 dark:border-slate-700">
+          <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
             <button
               type="button"
               onClick={() => navigateMonth('prev')}
-              className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
+              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
               aria-label="Previous month"
             >
-              <ChevronLeft className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+              <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
             </button>
             <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">
               {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
@@ -209,37 +215,37 @@ export default function DatePicker({
             <button
               type="button"
               onClick={() => navigateMonth('next')}
-              className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
+              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
               aria-label="Next month"
             >
-              <ChevronRight className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+              <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
             </button>
           </div>
 
           {/* Day headers */}
-          <div className="grid grid-cols-7 gap-1 px-3 pt-3 pb-2">
+          <div className="grid grid-cols-7 gap-0.5 px-4 pt-4 pb-2">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-              <div key={day} className="text-xs font-semibold text-slate-500 dark:text-slate-400 text-center py-1">
+              <div key={day} className="text-xs font-semibold text-slate-500 dark:text-slate-400 text-center py-2">
                 {day}
               </div>
             ))}
           </div>
 
           {/* Calendar grid */}
-          <div className="grid grid-cols-7 gap-1 px-3 pb-3">
+          <div className="grid grid-cols-7 gap-0.5 px-4 pb-4">
             {days.map((dayInfo, index) => (
               <button
                 key={index}
                 type="button"
                 onClick={() => dayInfo.isCurrentMonth && selectDate(dayInfo.date)}
                 disabled={!dayInfo.isCurrentMonth}
-                className={`p-2 text-sm rounded transition-colors ${
+                className={`aspect-square flex items-center justify-center text-sm rounded-lg transition-colors ${
                   !dayInfo.isCurrentMonth
                     ? 'text-slate-300 dark:text-slate-600 cursor-default'
                     : isSelectedDate(dayInfo.date)
-                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                      ? 'bg-blue-600 text-white hover:bg-blue-700 ring-2 ring-blue-600 ring-offset-2'
                       : dayInfo.isToday
-                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50'
+                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 font-medium'
                         : 'text-slate-900 dark:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
               >
@@ -249,11 +255,11 @@ export default function DatePicker({
           </div>
 
           {/* Footer actions */}
-          <div className="flex items-center justify-between p-3 border-t border-slate-200 dark:border-slate-700">
+          <div className="flex items-center justify-between p-4 border-t border-slate-200 dark:border-slate-700">
             <button
               type="button"
               onClick={selectToday}
-              className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+              className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors px-3 py-1.5 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20"
             >
               Today
             </button>
@@ -261,7 +267,7 @@ export default function DatePicker({
               <button
                 type="button"
                 onClick={clearDate}
-                className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground transition-colors"
+                className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground transition-colors px-3 py-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 Clear
               </button>

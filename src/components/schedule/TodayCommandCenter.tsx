@@ -165,6 +165,13 @@ export default function TodayCommandCenter({
     return `${hour12}:${minutes} ${ampm}`
   }
 
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return ''
+    // Parse YYYY-MM-DD as local date to avoid timezone shifts
+    const [year, month, day] = dateStr.split('-').map(Number)
+    return new Date(year, month - 1, day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  }
+
   const isOverdue = (dueDate: string | null) => {
     if (!dueDate) return false
     return dueDate < todayStr
@@ -268,7 +275,7 @@ export default function TodayCommandCenter({
                   </p>
                   {task.due_date && (
                     <p className="text-xs text-amber-600 dark:text-amber-400">
-                      Due {new Date(task.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      Due {formatDate(task.due_date)}
                       {task.due_time && ` at ${formatTime(task.due_time)}`}
                     </p>
                   )}
@@ -452,7 +459,7 @@ export default function TodayCommandCenter({
                 </div>
                 {job.scheduled_date && (
                   <span className="text-xs text-slate-500 dark:text-slate-400">
-                    {new Date(job.scheduled_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    {formatDate(job.scheduled_date)}
                   </span>
                 )}
               </div>

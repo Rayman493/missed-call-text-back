@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('tasks')
-      .select('*')
+      .select('*, leads!left(id, caller_phone, raw_metadata)')
       .eq('business_id', business.id)
       .order('due_date', { ascending: true })
       .order('due_time', { ascending: true })
@@ -38,12 +38,12 @@ export async function GET(request: NextRequest) {
     }
 
     if (overdue) {
-      const todayStr = new Date().toISOString().split('T')[0]
+      const todayStr = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD in local timezone
       query = query.lt('due_date', todayStr).eq('completed', false)
     }
 
     if (today) {
-      const todayStr = new Date().toISOString().split('T')[0]
+      const todayStr = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD in local timezone
       query = query.eq('due_date', todayStr).eq('completed', false)
     }
 

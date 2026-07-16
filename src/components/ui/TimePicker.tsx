@@ -22,6 +22,7 @@ export default function TimePicker({
 }: TimePickerProps) {
   const [isOpen, setIsOpen] = useState(false)
   const pickerRef = useRef<HTMLDivElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Close on outside click
   useEffect(() => {
@@ -51,16 +52,16 @@ export default function TimePicker({
     }
   }, [isOpen])
 
-  // Generate time options in 30-minute increments from 6:00 AM to 8:00 PM
+  // Generate time options in 15-minute increments from 6:00 AM to 8:00 PM
   const generateTimeOptions = () => {
     const options: { label: string; value: string }[] = []
     
     for (let hour = 6; hour <= 20; hour++) {
-      for (let minute of [0, 30]) {
+      for (let minute of [0, 15, 30, 45]) {
         const hour24 = hour
         const hour12 = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour)
         const ampm = hour >= 12 ? 'PM' : 'AM'
-        const minuteStr = minute === 0 ? '00' : '30'
+        const minuteStr = minute === 0 ? '00' : String(minute)
         const value24 = `${String(hour24).padStart(2, '0')}:${minuteStr}`
         const label12 = `${hour12}:${minuteStr} ${ampm}`
         
@@ -70,6 +71,21 @@ export default function TimePicker({
     
     return options
   }
+
+  const timeOptions = generateTimeOptions()
+
+  // Scroll selected time into view when dropdown opens
+  useEffect(() => {
+    if (isOpen && dropdownRef.current && value) {
+      const selectedIndex = timeOptions.findIndex(option => option.value === value)
+      if (selectedIndex >= 0) {
+        const selectedElement = dropdownRef.current.children[selectedIndex] as HTMLElement
+        if (selectedElement) {
+          selectedElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+        }
+      }
+    }
+  }, [isOpen, value, timeOptions])
 
   const formatTimeDisplay = (timeStr: string) => {
     if (!timeStr) return ''
@@ -89,8 +105,6 @@ export default function TimePicker({
     onChange('')
     setIsOpen(false)
   }
-
-  const timeOptions = generateTimeOptions()
 
   return (
     <div className="relative" ref={pickerRef}>
@@ -128,16 +142,16 @@ export default function TimePicker({
       </button>
 
       {isOpen && !disabled && (
-        <div className="absolute z-50 mt-2 bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 w-full max-h-[300px] overflow-y-auto">
-          <div className="p-1">
+        <div className="absolute z-50 mt-2 bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 w-full max-h-[320px] overflow-y-auto">
+          <div className="p-1" ref={dropdownRef}>
             {timeOptions.map((option) => (
               <button
                 key={option.value}
                 type="button"
                 onClick={() => selectTime(option.value)}
-                className={`w-full px-3 py-2 text-sm rounded transition-colors text-left ${
+                className={`w-full px-4 py-2.5 text-sm rounded-lg transition-colors text-left ${
                   value === option.value
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-blue-600 text-white font-medium'
                     : 'text-slate-900 dark:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
               >
@@ -151,7 +165,7 @@ export default function TimePicker({
               <button
                 type="button"
                 onClick={clearTime}
-                className="w-full px-3 py-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors text-left"
+                className="w-full px-4 py-2.5 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-left"
               >
                 Clear
               </button>
