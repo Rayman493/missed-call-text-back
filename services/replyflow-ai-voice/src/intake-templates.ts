@@ -62,7 +62,7 @@ export const AI_INTAKE_TEMPLATES: Record<IntakeTemplate, Record<IntakeStage, str
     ask_details: "Okay. Can you share any important details the business should know?",
     ask_location_or_context: "All right. Just a couple more questions. Where will this take place?",
     ask_timing: "When are you hoping this will be done?",
-    ask_callback_time: "Okay. Last question—what's the best time for the business to call you back?",
+    ask_callback_time: "Okay. Last question—what would be the best time for the business to call you back?",
     complete: "Okay. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
   },
   appointment: {
@@ -72,7 +72,7 @@ export const AI_INTAKE_TEMPLATES: Record<IntakeTemplate, Record<IntakeStage, str
     ask_details: "Okay. Can you share any important details the business should know?",
     ask_location_or_context: "All right. Just a couple more questions. Where will this take place?",
     ask_timing: "When are you hoping this will be done?",
-    ask_callback_time: "Okay. Last question—what's the best time for the business to call you back?",
+    ask_callback_time: "Okay. Last question—what would be the best time for the business to call you back?",
     complete: "Okay. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
   },
   lessons: {
@@ -82,7 +82,7 @@ export const AI_INTAKE_TEMPLATES: Record<IntakeTemplate, Record<IntakeStage, str
     ask_details: "Okay. Can you share any important details the business should know?",
     ask_location_or_context: "All right. Just a couple more questions. Where will this take place?",
     ask_timing: "When are you hoping this will be done?",
-    ask_callback_time: "Okay. Last question—what's the best time for the business to call you back?",
+    ask_callback_time: "Okay. Last question—what would be the best time for the business to call you back?",
     complete: "Okay. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
   },
   professional: {
@@ -92,7 +92,7 @@ export const AI_INTAKE_TEMPLATES: Record<IntakeTemplate, Record<IntakeStage, str
     ask_details: "Okay. Can you share any important details the business should know?",
     ask_location_or_context: "All right. Just a couple more questions. Where will this take place?",
     ask_timing: "When are you hoping this will be done?",
-    ask_callback_time: "Okay. Last question—what's the best time for the business to call you back?",
+    ask_callback_time: "Okay. Last question—what would be the best time for the business to call you back?",
     complete: "Okay. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
   }
 }
