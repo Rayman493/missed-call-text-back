@@ -1,12 +1,12 @@
 // Cached PCMU audio for Simple Mode prompts
 // Generated with OpenAI Realtime API
-// Model: gpt-realtime-2.1
+// Model: gpt-realtime
 // Voice: marin
 // Output Format: audio/pcmu
 // Generation date: 2026-07-15T18:23:57.159Z
 export const CACHED_AUDIO_GENERATION_VERSION = "realtime-pcmu-marin-canonical";
 export const CACHED_AUDIO_GENERATED_AT = "2026-07-15T18:23:57.159Z";
-export const REALTIME_MODEL = "gpt-realtime-2.1";
+export const REALTIME_MODEL = "gpt-realtime";
 export const TTS_VOICE = "marin";
 export const OUTPUT_FORMAT = "audio/pcmu";
 

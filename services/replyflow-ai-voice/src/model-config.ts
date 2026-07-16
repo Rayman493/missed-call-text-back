@@ -23,7 +23,10 @@ export const OPENAI_TRANSCRIPTION_MODEL = process.env.OPENAI_TRANSCRIPTION_MODEL
 export const OPENAI_TRANSCRIPTION_FALLBACK_MODEL = process.env.OPENAI_TRANSCRIPTION_FALLBACK_MODEL || '';
 
 // Voice configuration
-export const OPENAI_REALTIME_VOICE = process.env.OPENAI_REALTIME_VOICE || 'marin';
+// NOTE: Default is 'alloy' to match previous production behavior
+// Cached audio uses 'marin' but that only affects scripted prompt playback
+// Dynamic AI responses (if any) would use this default
+export const OPENAI_REALTIME_VOICE = process.env.OPENAI_REALTIME_VOICE || 'alloy';
 export const OPENAI_REALTIME_FALLBACK_VOICE = process.env.OPENAI_REALTIME_FALLBACK_VOICE || '';
 
 // Configuration validation
@@ -86,6 +89,8 @@ export function isFallbackError(error: any): boolean {
 }
 
 // Fallback state tracking to prevent retry loops
+// CRITICAL: Each call/session must have its own FallbackState instance
+// to prevent state leakage between concurrent callers
 export class FallbackState {
   private realtimeFallbackAttempted = false;
   private transcriptionFallbackAttempted = false;
@@ -123,5 +128,8 @@ export class FallbackState {
   }
 }
 
-// Global fallback state instance
-export const globalFallbackState = new FallbackState();
+// Factory function to create per-call fallback state instances
+// This ensures state isolation between concurrent callers
+export function createFallbackState(): FallbackState {
+  return new FallbackState();
+}

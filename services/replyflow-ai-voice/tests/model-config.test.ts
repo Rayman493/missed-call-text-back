@@ -17,7 +17,7 @@ import {
   hasVoiceFallback,
   isFallbackError,
   FallbackState,
-  globalFallbackState,
+  createFallbackState,
 } from '../src/model-config';
 
 console.log('[MODEL CONFIG VALIDATION] ========================================');
@@ -43,8 +43,8 @@ if (OPENAI_TRANSCRIPTION_MODEL === 'gpt-realtime-whisper') {
   failed++;
 }
 
-if (OPENAI_REALTIME_VOICE === 'marin') {
-  console.log('✓ Voice default: marin');
+if (OPENAI_REALTIME_VOICE === 'alloy') {
+  console.log('✓ Voice default: alloy (matches previous production behavior)');
   passed++;
 } else {
   console.log('✗ Voice default failed:', OPENAI_REALTIME_VOICE);
@@ -108,9 +108,9 @@ if (!isFallbackError(null)) {
 
 // Test 3: Fallback State Management
 console.log('[TEST 3] Fallback State Management');
-globalFallbackState.reset();
+const fallbackState1 = createFallbackState();
 
-if (!globalFallbackState.hasRealtimeFallbackBeenAttempted()) {
+if (!fallbackState1.hasRealtimeFallbackBeenAttempted()) {
   console.log('✓ Initial state: no Realtime fallback attempted');
   passed++;
 } else {
@@ -118,8 +118,8 @@ if (!globalFallbackState.hasRealtimeFallbackBeenAttempted()) {
   failed++;
 }
 
-globalFallbackState.markRealtimeFallbackAttempted();
-if (globalFallbackState.hasRealtimeFallbackBeenAttempted()) {
+fallbackState1.markRealtimeFallbackAttempted();
+if (fallbackState1.hasRealtimeFallbackBeenAttempted()) {
   console.log('✓ Tracks Realtime fallback attempt');
   passed++;
 } else {
@@ -127,7 +127,7 @@ if (globalFallbackState.hasRealtimeFallbackBeenAttempted()) {
   failed++;
 }
 
-if (!globalFallbackState.canAttemptRealtimeFallback()) {
+if (!fallbackState1.canAttemptRealtimeFallback()) {
   console.log('✓ Prevents retry after fallback attempted');
   passed++;
 } else {
@@ -135,8 +135,8 @@ if (!globalFallbackState.canAttemptRealtimeFallback()) {
   failed++;
 }
 
-globalFallbackState.reset();
-if (!globalFallbackState.hasRealtimeFallbackBeenAttempted()) {
+fallbackState1.reset();
+if (!fallbackState1.hasRealtimeFallbackBeenAttempted()) {
   console.log('✓ Resets fallback state');
   passed++;
 } else {
@@ -144,10 +144,24 @@ if (!globalFallbackState.hasRealtimeFallbackBeenAttempted()) {
   failed++;
 }
 
+// Test 3b: State isolation between concurrent callers
+console.log('[TEST 3b] State Isolation');
+const fallbackState2 = createFallbackState();
+const fallbackState3 = createFallbackState();
+
+fallbackState2.markRealtimeFallbackAttempted();
+if (fallbackState2.hasRealtimeFallbackBeenAttempted() && !fallbackState3.hasRealtimeFallbackBeenAttempted()) {
+  console.log('✓ State isolated between instances');
+  passed++;
+} else {
+  console.log('✗ State leakage between instances');
+  failed++;
+}
+
 // Test 4: Production Safety
 console.log('[TEST 4] Production Safety');
 
-if (OPENAI_REALTIME_MODEL === 'gpt-realtime' && OPENAI_TRANSCRIPTION_MODEL === 'gpt-realtime-whisper' && OPENAI_REALTIME_VOICE === 'marin') {
+if (OPENAI_REALTIME_MODEL === 'gpt-realtime' && OPENAI_TRANSCRIPTION_MODEL === 'gpt-realtime-whisper' && OPENAI_REALTIME_VOICE === 'alloy') {
   console.log('✓ Production defaults preserved without env vars');
   passed++;
 } else {
