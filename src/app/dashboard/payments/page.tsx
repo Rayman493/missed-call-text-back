@@ -555,10 +555,11 @@ export default function PaymentsPage() {
                               setShowMarkPaidConfirm(true)
                             }}
                             disabled={isMarkingPaid}
-                            className="p-1.5 text-green-400 hover:text-green-300 disabled:opacity-50"
+                            className="p-1.5 text-green-400 hover:text-green-300 disabled:opacity-50 flex items-center gap-1 text-xs font-medium"
                             title="Mark as paid"
                           >
                             <CreditCard className="h-4 w-4" />
+                            Mark Paid
                           </button>
                         )}
                         {payment.status === 'pending' && (
@@ -693,10 +694,10 @@ export default function PaymentsPage() {
                                     setShowMarkPaidConfirm(true)
                                   }}
                                   disabled={isMarkingPaid}
-                                  className="text-green-400 hover:text-green-300 p-1 disabled:opacity-50"
-                                  title="Mark as paid"
+                                  className="text-green-400 hover:text-green-300 text-xs font-medium p-1 disabled:opacity-50 flex items-center gap-1"
                                 >
                                   <CreditCard className="h-3.5 w-3.5" />
+                                  Mark Paid
                                 </button>
                               )}
                               {payment.status === 'pending' && (
