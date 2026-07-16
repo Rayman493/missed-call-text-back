@@ -62,7 +62,8 @@ export async function getAvailableWarmNumberCount(): Promise<number> {
       .select('id')
       .is('business_id', null)
       .eq('status', 'available')
-      .eq('sms_status', 'ready');
+      .eq('sms_status', 'ready')
+      .eq('provisioning_status', 'ready');
 
     if (error) {
       console.error('[Warm Inventory] Error fetching available warm numbers:', error);
@@ -97,15 +98,16 @@ export async function getWarmNumberStats(): Promise<WarmNumberStats> {
   try {
     console.log('[Warm Inventory] ========== GETTING WARM NUMBER STATS ==========');
     
-    // Available: status='available', business_id IS NULL, sms_status='ready'
+    // Available: status='available', business_id IS NULL, sms_status='ready', provisioning_status='ready'
     const { data: available } = await supabase
       .from('twilio_numbers')
       .select('id')
       .is('business_id', null)
       .eq('status', 'available')
-      .eq('sms_status', 'ready');
+      .eq('sms_status', 'ready')
+      .eq('provisioning_status', 'ready');
 
-    console.log(`[Warm Inventory] Available count: ${available?.length || 0} (status=available, business_id IS NULL, sms_status=ready)`);
+    console.log(`[Warm Inventory] Available count: ${available?.length || 0} (status=available, business_id IS NULL, sms_status=ready, provisioning_status=ready)`);
 
     // Assigned: status='assigned' (includes business_id populated)
     const { data: assigned } = await supabase
