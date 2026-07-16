@@ -39,7 +39,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     detailsQuestion: "Can you share any important details about the project?",
     desiredCompletionQuestion: "When would you like to have this work done?",
     locationQuestion: "Where is the service location?",
-    callbackTimeQuestion: "What's the best time for someone to call you back?",
+    callbackTimeQuestion: "What would be the best time for the business to call you back?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
       if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
@@ -59,7 +59,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     detailsQuestion: "Can you share any important details about the plumbing or HVAC issue?",
     desiredCompletionQuestion: "When would you like to have this work done?",
     locationQuestion: "Where is the service location?",
-    callbackTimeQuestion: "What's the best time for someone to call you back?",
+    callbackTimeQuestion: "What would be the best time for the business to call you back?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
       if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
@@ -79,7 +79,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     detailsQuestion: "Can you share any important details about the cleaning service?",
     desiredCompletionQuestion: "When would you like to have this cleaning done?",
     locationQuestion: "Where is the service location?",
-    callbackTimeQuestion: "What's the best time for someone to call you back?",
+    callbackTimeQuestion: "What would be the best time for the business to call you back?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
       if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
@@ -99,7 +99,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     detailsQuestion: "Can you share any important details about the landscaping project?",
     desiredCompletionQuestion: "When would you like to have this work done?",
     locationQuestion: "Where is the service location?",
-    callbackTimeQuestion: "What's the best time for someone to call you back?",
+    callbackTimeQuestion: "What would be the best time for the business to call you back?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
       if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
@@ -119,7 +119,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     detailsQuestion: "Can you share any important details about your real estate needs?",
     desiredCompletionQuestion: "When are you looking to move or complete this transaction?",
     locationQuestion: "Where is the property location?",
-    callbackTimeQuestion: "What's the best time for someone to call you back?",
+    callbackTimeQuestion: "What would be the best time for the business to call you back?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
       if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
@@ -139,7 +139,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     detailsQuestion: "Can you share any important details about your travel plans?",
     desiredCompletionQuestion: "When are you looking to travel?",
     locationQuestion: "Where are you located?",
-    callbackTimeQuestion: "What's the best time for someone to call you back?",
+    callbackTimeQuestion: "What would be the best time for the business to call you back?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
       if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
@@ -159,7 +159,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     detailsQuestion: "Can you share any important details about the appointment?",
     desiredCompletionQuestion: "When would you like to schedule your appointment?",
     locationQuestion: "Where is the service location?",
-    callbackTimeQuestion: "What's the best time for someone to call you back?",
+    callbackTimeQuestion: "What would be the best time for the business to call you back?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
       if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
@@ -179,7 +179,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     detailsQuestion: "Can you share any important details about your pet's grooming needs?",
     desiredCompletionQuestion: "When would you like to schedule the grooming appointment?",
     locationQuestion: "Where is the service location?",
-    callbackTimeQuestion: "What's the best time for someone to call you back?",
+    callbackTimeQuestion: "What would be the best time for the business to call you back?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
       if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
@@ -199,7 +199,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     detailsQuestion: "Can you share any important details about the lessons you need?",
     desiredCompletionQuestion: "When would you like to start the lessons?",
     locationQuestion: "Where is the service location?",
-    callbackTimeQuestion: "What's the best time for someone to call you back?",
+    callbackTimeQuestion: "What would be the best time for the business to call you back?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
       if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
@@ -219,7 +219,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     detailsQuestion: "Can you share any important details about the appointment?",
     desiredCompletionQuestion: "When would you like to schedule the appointment?",
     locationQuestion: "Where is the service location?",
-    callbackTimeQuestion: "What's the best time for someone to call you back?",
+    callbackTimeQuestion: "What would be the best time for the business to call you back?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
       if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
@@ -239,7 +239,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     detailsQuestion: "Can you share any important details about your legal needs?",
     desiredCompletionQuestion: "When would you like to schedule a consultation?",
     locationQuestion: "Where is the service location?",
-    callbackTimeQuestion: "What's the best time for someone to call you back?",
+    callbackTimeQuestion: "What would be the best time for the business to call you back?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
       if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
@@ -259,7 +259,7 @@ export const CATEGORY_INTAKE_CONFIG: Record<BusinessCategory, {
     detailsQuestion: "Can you share any important details about the service?",
     desiredCompletionQuestion: "When would you like to have this work done?",
     locationQuestion: "Where is the service location?",
-    callbackTimeQuestion: "What's the best time for someone to call you back?",
+    callbackTimeQuestion: "What would be the best time for the business to call you back?",
     confirmationFormat: (data) => {
       const parts = ['Thanks! Here\'s what I have:']
       if (data.caller_name) parts.push(`• Name: ${data.caller_name}`)
