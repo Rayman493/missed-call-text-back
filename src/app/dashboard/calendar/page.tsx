@@ -834,12 +834,23 @@ export default function SchedulePage() {
 
                   {/* Jobs Tab */}
                   {scheduleTab === 'jobs' && (
-                    <JobsTab
-                      jobs={jobs}
-                      isLoading={isLoadingJobs}
-                      onNewJob={openNewJob}
-                      onJobClick={(job: Job) => { setSelectedJob(job); setIsJobDetailsOpen(true) }}
-                    />
+                    <div>
+                      {/* Jobs Header */}
+                      <div className="mb-4">
+                        <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">
+                          Jobs
+                        </h2>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                          Manage the customer work you're doing from scheduled to completed.
+                        </p>
+                      </div>
+                      <JobsTab
+                        jobs={jobs}
+                        isLoading={isLoadingJobs}
+                        onNewJob={openNewJob}
+                        onJobClick={(job: Job) => { setSelectedJob(job); setIsJobDetailsOpen(true) }}
+                      />
+                    </div>
                   )}
 
                   {/* Tasks Tab */}
