@@ -309,7 +309,8 @@ export default function LeadsPage() {
 
       // Filter out ignored leads (automated robocalls) from normal customer workflow
       // This prevents spam calls from cluttering the lead list while preserving audit visibility
-      if (!deletedFilter) {
+      // Only exclude ignored leads when NOT in deleted filter mode and NOT when status filter is 'ignored'
+      if (!deletedFilter && statusFilter !== 'ignored') {
         query = query.neq('status', 'ignored')
       }
 
@@ -356,7 +357,7 @@ export default function LeadsPage() {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [business?.id, supabase, deletedFilter])
+  }, [business?.id, supabase, deletedFilter, statusFilter])
 
   // Handle lead status change from overview page
   const handleLeadStatusChange = async (leadId: string, newStatus: LeadLifecycleStatus) => {
@@ -433,6 +434,45 @@ export default function LeadsPage() {
     } catch (error) {
       console.error('Error ignoring lead:', error)
       alert('Failed to ignore customer. Please try again.')
+    }
+  }
+
+  // Handle restoring ignored lead
+  const handleRestoreIgnoredLead = async (leadId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        throw new Error('Not authenticated')
+      }
+
+      // Update lead status from ignored to new via API
+      const response = await fetch(`/api/leads/${leadId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          status: 'new'
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to restore customer')
+      }
+
+      // Update local state
+      setLeads(prev => prev.map(lead => 
+        lead.id === leadId 
+          ? { ...lead, status: 'new' }
+          : lead
+      ))
+    } catch (error) {
+      console.error('Error restoring ignored lead:', error)
+      alert('Failed to restore customer. Please try again.')
     }
   }
 
@@ -582,7 +622,7 @@ export default function LeadsPage() {
     // Hide ignored leads from default view (when filter is 'all')
     const isIgnored = leadStatus === 'ignored'
     const showIgnored = statusFilter === 'ignored'
-    const shouldShowIgnored = showIgnored || statusFilter !== 'all'
+    const shouldShowIgnored = showIgnored
 
     // Hide deleted leads from default view (when filter is not 'deleted')
     const shouldShowDeleted = !isDeleted
