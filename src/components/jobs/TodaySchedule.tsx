@@ -4,8 +4,15 @@ import { useState } from 'react'
 import { Plus, ChevronDown, ChevronUp, CheckCircle2, Loader2, Circle, XCircle } from 'lucide-react'
 import type { Job, JobStatus } from './JobComposer'
 
+interface CalendarEvent {
+  id: string
+  summary: string
+  start: { dateTime?: string; date?: string }
+}
+
 interface TodayScheduleProps {
   jobs: Job[]
+  calendarEvents?: CalendarEvent[]
   isLoading: boolean
   onJobClick: (job: Job) => void
   onNewJob: () => void
@@ -87,6 +94,7 @@ function getTodayLabel(): string {
 
 export default function TodaySchedule({
   jobs,
+  calendarEvents = [],
   isLoading,
   onJobClick,
   onNewJob,
@@ -100,8 +108,25 @@ export default function TodaySchedule({
   const todayJobs = jobs.filter(j => j.scheduled_date === todayKey)
   const tomorrowJobs = jobs.filter(j => j.scheduled_date === tomorrowKey)
 
-  // Sort by status priority, then by time
-  const sorted = [...todayJobs].sort((a, b) => {
+  // Filter actionable jobs (scheduled and in-progress only)
+  const actionableJobs = todayJobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress')
+  const cancelledJobs = todayJobs.filter(j => j.status === 'cancelled')
+  const completedJobs = todayJobs.filter(j => j.status === 'completed')
+
+  // Filter independent calendar events (deduplicate against jobs)
+  const independentEvents = calendarEvents.filter(event => {
+    const eventDateRaw = event.start?.dateTime || event.start?.date
+    if (!eventDateRaw) return false
+    const eventDate = eventDateRaw.split('T')[0]
+    if (eventDate !== todayKey) return false
+    
+    // Deduplicate: exclude events linked to today's jobs
+    const isLinkedToJob = todayJobs.some(job => job.google_calendar_event_id === event.id)
+    return !isLinkedToJob
+  })
+
+  // Sort actionable jobs by status priority, then by time
+  const sortedActionableJobs = [...actionableJobs].sort((a, b) => {
     const statusDiff = STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status)
     if (statusDiff !== 0) return statusDiff
     if (!a.scheduled_time) return 1
@@ -109,12 +134,24 @@ export default function TodaySchedule({
     return a.scheduled_time.localeCompare(b.scheduled_time)
   })
 
-  const visible = sorted.filter(j => j.status !== 'cancelled')
-  const cancelled = sorted.filter(j => j.status === 'cancelled')
+  // Sort independent events by time
+  const sortedEvents = [...independentEvents].sort((a, b) => {
+    const timeA = a.start?.dateTime?.split('T')[1]?.slice(0, 5) || ''
+    const timeB = b.start?.dateTime?.split('T')[1]?.slice(0, 5) || ''
+    return timeA.localeCompare(timeB)
+  })
 
-  const inProgress = sorted.filter(j => j.status === 'in_progress').length
-  const remaining = sorted.filter(j => j.status === 'scheduled').length
-  const completed = sorted.filter(j => j.status === 'completed').length
+  // Combine actionable items (jobs + independent events)
+  const actionableItems = [
+    ...sortedActionableJobs.map(job => ({ type: 'job' as const, data: job })),
+    ...sortedEvents.map(event => ({ type: 'event' as const, data: event }))
+  ].sort((a, b) => {
+    const timeA = a.type === 'job' ? a.data.scheduled_time : a.data.start?.dateTime?.split('T')[1]?.slice(0, 5) || ''
+    const timeB = b.type === 'job' ? b.data.scheduled_time : b.data.start?.dateTime?.split('T')[1]?.slice(0, 5) || ''
+    return (timeA || '').localeCompare(timeB || '')
+  })
+
+  const actionableCount = actionableItems.length
 
   const handleQuickStatus = async (e: React.MouseEvent, job: Job, newStatus: JobStatus) => {
     e.stopPropagation()
@@ -141,8 +178,8 @@ export default function TodaySchedule({
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/20">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground leading-tight">Today's Schedule</h2>
-          {todayJobs.length > 0 && (
-            <span className="text-xs text-slate-500 dark:text-slate-400">({todayJobs.length})</span>
+          {actionableCount > 0 && (
+            <span className="text-xs text-slate-500 dark:text-slate-400">({actionableCount})</span>
           )}
         </div>
         <button
@@ -162,87 +199,119 @@ export default function TodaySchedule({
               <div key={i} className="h-14 bg-slate-100 dark:bg-slate-800 rounded-lg animate-pulse" />
             ))}
           </div>
-        ) : todayJobs.length === 0 ? (
+        ) : actionableCount === 0 ? (
           <div className="py-3 text-center">
-            <p className="text-sm text-slate-500 dark:text-slate-400">No jobs scheduled today</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">No jobs or appointments scheduled today</p>
           </div>
         ) : (
           <div className="space-y-1 py-1">
-            {visible.map(job => {
-              const cfg = STATUS_CONFIG[job.status]
-              const Icon = cfg.icon
-              const isUpdating = updatingId === job.id
+            {actionableItems.map(item => {
+              if (item.type === 'job') {
+                const job = item.data
+                const cfg = STATUS_CONFIG[job.status]
+                const Icon = cfg.icon
+                const isUpdating = updatingId === job.id
 
-              return (
-                <div
-                  key={job.id}
-                  className={`group flex items-center gap-2.5 pl-2.5 pr-2 py-2 rounded-lg border-l-2 ${cfg.row} bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors`}
-                >
-                  {/* Status icon */}
-                  <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${
-                    job.status === 'in_progress' ? 'text-amber-500' :
-                    job.status === 'completed' ? 'text-green-500' :
-                    'text-blue-400'
-                  }`} />
+                return (
+                  <div
+                    key={job.id}
+                    className={`group flex items-center gap-2.5 pl-2.5 pr-2 py-2 rounded-lg border-l-2 ${cfg.row} bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors`}
+                  >
+                    {/* Status icon */}
+                    <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${
+                      job.status === 'in_progress' ? 'text-amber-500' :
+                      job.status === 'completed' ? 'text-green-500' :
+                      'text-blue-400'
+                    }`} />
 
-                  {/* Time + info */}
-                  <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onJobClick(job)}>
-                    <div className="flex items-baseline gap-1.5">
-                      {job.scheduled_time && (
-                        <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 tabular-nums flex-shrink-0">
-                          {formatTime(job.scheduled_time)}
+                    {/* Time + info */}
+                    <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onJobClick(job)}>
+                      <div className="flex items-baseline gap-1.5">
+                        {job.scheduled_time && (
+                          <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 tabular-nums flex-shrink-0">
+                            {formatTime(job.scheduled_time)}
+                          </span>
+                        )}
+                        <span className="text-xs font-semibold text-slate-900 dark:text-foreground truncate">{job.title}</span>
+                      </div>
+                      {job.customer_name && (
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{job.customer_name}</p>
+                      )}
+                    </div>
+
+                    {/* Quick actions */}
+                    <div className="flex items-center gap-1 flex-shrink-0 opacity-90 group-hover:opacity-100 transition-opacity">
+                      {cfg.nextStatus && (
+                        <button
+                          onClick={(e) => handleQuickStatus(e, job, cfg.nextStatus!)}
+                          disabled={isUpdating}
+                          className={`px-2 py-0.5 text-[10px] font-semibold rounded-md transition-all active:scale-95 disabled:opacity-50 ${
+                            cfg.nextStatus === 'in_progress'
+                              ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/50'
+                              : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50'
+                          }`}
+                          title={cfg.nextLabel ?? ''}
+                        >
+                          {isUpdating ? (
+                            <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                          ) : (
+                            cfg.nextLabel
+                          )}
+                        </button>
+                      )}
+                      {!cfg.nextStatus && job.status !== 'cancelled' && (
+                        <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${cfg.pill}`}>
+                          {cfg.label}
                         </span>
                       )}
-                      <span className="text-xs font-semibold text-slate-900 dark:text-foreground truncate">{job.title}</span>
                     </div>
-                    {job.customer_name && (
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{job.customer_name}</p>
-                    )}
                   </div>
+                )
+              } else {
+                // Calendar event
+                const event = item.data
+                const eventTime = event.start?.dateTime?.split('T')[1]?.slice(0, 5)
+                
+                return (
+                  <div
+                    key={event.id}
+                    className="group flex items-center gap-2.5 pl-2.5 pr-2 py-2 rounded-lg border-l-2 border-l-purple-400 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors"
+                  >
+                    {/* Calendar icon */}
+                    <div className="w-3.5 h-3.5 flex-shrink-0 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                      <div className="w-2 h-2 rounded-full bg-purple-500 dark:bg-purple-400" />
+                    </div>
 
-                  {/* Quick actions */}
-                  <div className="flex items-center gap-1 flex-shrink-0 opacity-90 group-hover:opacity-100 transition-opacity">
-                    {cfg.nextStatus && (
-                      <button
-                        onClick={(e) => handleQuickStatus(e, job, cfg.nextStatus!)}
-                        disabled={isUpdating}
-                        className={`px-2 py-0.5 text-[10px] font-semibold rounded-md transition-all active:scale-95 disabled:opacity-50 ${
-                          cfg.nextStatus === 'in_progress'
-                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/50'
-                            : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50'
-                        }`}
-                        title={cfg.nextLabel ?? ''}
-                      >
-                        {isUpdating ? (
-                          <Loader2 className="w-2.5 h-2.5 animate-spin" />
-                        ) : (
-                          cfg.nextLabel
+                    {/* Time + info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-1.5">
+                        {eventTime && (
+                          <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 tabular-nums flex-shrink-0">
+                            {formatTime(eventTime)}
+                          </span>
                         )}
-                      </button>
-                    )}
-                    {!cfg.nextStatus && job.status !== 'cancelled' && (
-                      <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${cfg.pill}`}>
-                        {cfg.label}
-                      </span>
-                    )}
+                        <span className="text-xs font-semibold text-slate-900 dark:text-foreground truncate">{event.summary}</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">Calendar appointment</p>
+                    </div>
                   </div>
-                </div>
-              )
+                )
+              }
             })}
 
             {/* Cancelled — collapsed by default */}
-            {cancelled.length > 0 && (
+            {cancelledJobs.length > 0 && (
               <div>
                 <button
                   onClick={() => setShowCancelled(v => !v)}
                   className="w-full flex items-center gap-1.5 py-1.5 px-1 text-[11px] text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
                 >
                   {showCancelled ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                  {cancelled.length} cancelled
+                  {cancelledJobs.length} cancelled
                 </button>
                 {showCancelled && (
                   <div className="space-y-1.5">
-                    {cancelled.map(job => (
+                    {cancelledJobs.map(job => (
                       <div
                         key={job.id}
                         className="group flex items-center gap-3 pl-3 pr-2 py-2.5 rounded-lg border-l-2 border-l-slate-300 bg-slate-50 dark:bg-slate-800/30 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors opacity-60"
@@ -284,7 +353,7 @@ export default function TodaySchedule({
                   {getTomorrowLabel()}
                   {tomorrowJobs.length > 0 ? (
                     <span className="ml-1.5 font-medium text-slate-700 dark:text-slate-300">
-                      {tomorrowJobs.length} {tomorrowJobs.length === 1 ? 'job' : 'jobs'} scheduled
+                      {tomorrowJobs.length === 1 ? '1 job' : `${tomorrowJobs.length} jobs`}
                     </span>
                   ) : (
                     <span className="ml-1.5">— nothing scheduled</span>

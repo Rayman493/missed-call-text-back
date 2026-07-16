@@ -708,6 +708,7 @@ export default function SchedulePage() {
                   <div className="hidden lg:block order-2 lg:order-1">
                     <TodaySchedule
                       jobs={jobs}
+                      calendarEvents={events}
                       isLoading={isLoadingJobs}
                       onJobClick={(job) => { setSelectedJob(job); setIsJobDetailsOpen(true) }}
                       onNewJob={openNewJob}
