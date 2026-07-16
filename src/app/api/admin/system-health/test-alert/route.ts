@@ -38,21 +38,16 @@ export async function POST(request: NextRequest) {
     const action = body.action || 'trigger'
 
     if (action === 'resolve') {
-      // Fully reset the test condition for immediate re-triggering
+      // Delete the test-only row to fully reset the condition for immediate re-triggering
       // This only affects the hardcoded test condition, not real operational alerts
-      const { error: resetError } = await supabase
+      // The next trigger will recreate the row through the normal atomic claim path
+      const { error: deleteError } = await supabase
         .from('operational_alerts')
-        .update({
-          current_state: 'resolved',
-          resolved_at: new Date().toISOString(),
-          last_alerted_at: null,
-          alert_count_for_period: 0,
-          alert_count_period_start: null,
-        })
+        .delete()
         .eq('condition_id', TEST_CONDITION_ID)
 
-      if (resetError) {
-        console.error('[Test Alert] Reset error:', resetError)
+      if (deleteError) {
+        console.error('[Test Alert] Delete error:', deleteError)
         return NextResponse.json({ error: 'Failed to reset test alert' }, { status: 500 })
       }
       

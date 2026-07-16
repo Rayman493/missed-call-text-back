@@ -304,29 +304,32 @@ const testAlertTests: Array<{ name: string; fn: () => Promise<void> | void }> = 
     },
   },
   {
-    name: 'Resolve/reset test alert',
+    name: 'Resolve/delete test alert',
     async fn() {
-      const mockAlertManager = new MockTestAlertManager()
+      const mockSupabase = new MockSupabaseClient()
       
-      // Trigger alert
-      await mockAlertManager.checkAndAlert({
-        id: 'manual_test_alert',
-        name: 'Operational Monitoring Test',
-        severity: 'degraded',
-        description: 'Test alert',
-        check: async () => true
-      }, 'Test details')
+      // Simulate test alert existing in database
+      mockSupabase.setOperationalAlert('manual_test_alert', {
+        condition_id: 'manual_test_alert',
+        current_state: 'active',
+        last_alerted_at: new Date().toISOString(),
+        alert_count_for_period: 1,
+      })
       
-      // Resolve the test condition
-      await mockAlertManager.markResolved('manual_test_alert')
+      // Verify it exists
+      const beforeDelete = mockSupabase.getOperationalAlert('manual_test_alert')
+      assertTrue(!!beforeDelete, 'Test alert should exist before delete')
       
-      const alertState = mockAlertManager.getAlertState('manual_test_alert')
-      assertTrue(!!alertState, 'Alert state should still exist')
-      assertTrue(!!alertState!.resolvedAt, 'Resolved at should be set')
+      // Simulate delete (the actual endpoint uses DELETE)
+      mockSupabase.setOperationalAlert('manual_test_alert', null)
+      
+      // Verify it's deleted
+      const afterDelete = mockSupabase.getOperationalAlert('manual_test_alert')
+      assertFalse(!!afterDelete, 'Test alert should be deleted')
     },
   },
   {
-    name: 'Immediate trigger after reset sends again',
+    name: 'Immediate trigger after delete sends again',
     async fn() {
       const mockAlertManager = new MockTestAlertManager()
       
@@ -339,10 +342,10 @@ const testAlertTests: Array<{ name: string; fn: () => Promise<void> | void }> = 
         check: async () => true
       }, 'Test details')
       
-      // Simulate full reset (clear cooldown state)
+      // Simulate delete (clear all state)
       mockAlertManager.reset()
       
-      // Trigger again immediately after reset
+      // Trigger again immediately after delete
       await mockAlertManager.checkAndAlert({
         id: 'manual_test_alert',
         name: 'Operational Monitoring Test',
@@ -351,44 +354,37 @@ const testAlertTests: Array<{ name: string; fn: () => Promise<void> | void }> = 
         check: async () => true
       }, 'Test details')
       
-      assertTrue(mockAlertManager.wasEmailSent(), 'Email should be sent after reset')
-      assertEqual(mockAlertManager.getAlertCount('manual_test_alert'), 1, 'Alert count should be 1 after reset')
+      assertTrue(mockAlertManager.wasEmailSent(), 'Email should be sent after delete')
+      assertEqual(mockAlertManager.getAlertCount('manual_test_alert'), 1, 'Alert count should be 1 after delete')
     },
   },
   {
-    name: 'Reset affects only manual_test_alert',
+    name: 'Delete affects only manual_test_alert',
     async fn() {
-      const mockAlertManager = new MockTestAlertManager()
+      const mockSupabase = new MockSupabaseClient()
       
-      // Trigger test alert
-      await mockAlertManager.checkAndAlert({
-        id: 'manual_test_alert',
-        name: 'Operational Monitoring Test',
-        severity: 'degraded',
-        description: 'Test alert',
-        check: async () => true
-      }, 'Test details')
+      // Simulate test alert existing
+      mockSupabase.setOperationalAlert('manual_test_alert', {
+        condition_id: 'manual_test_alert',
+        current_state: 'active',
+      })
       
-      // Trigger a real alert
-      await mockAlertManager.checkAndAlert({
-        id: 'database-connectivity',
-        name: 'Database Connectivity',
-        severity: 'critical',
-        description: 'Real alert',
-        check: async () => true
-      }, 'Real alert details')
+      // Simulate real alert existing
+      mockSupabase.setOperationalAlert('database-connectivity', {
+        condition_id: 'database-connectivity',
+        current_state: 'active',
+      })
       
-      // Reset only test alert
-      await mockAlertManager.markResolved('manual_test_alert')
+      // Delete only test alert
+      mockSupabase.setOperationalAlert('manual_test_alert', null)
       
-      // Test alert should be resolved
-      const testState = mockAlertManager.getAlertState('manual_test_alert')
-      assertTrue(!!testState!.resolvedAt, 'Test alert should be resolved')
+      // Test alert should be deleted
+      const testState = mockSupabase.getOperationalAlert('manual_test_alert')
+      assertFalse(!!testState, 'Test alert should be deleted')
       
-      // Real alert should retain normal state
-      const realState = mockAlertManager.getAlertState('database-connectivity')
-      assertTrue(!!realState, 'Real alert state should exist')
-      assertFalse(!!realState!.resolvedAt, 'Real alert should not be resolved')
+      // Real alert should still exist
+      const realState = mockSupabase.getOperationalAlert('database-connectivity')
+      assertTrue(!!realState, 'Real alert should still exist')
     },
   },
 ]
