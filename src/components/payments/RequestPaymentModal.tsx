@@ -258,8 +258,23 @@ export default function RequestPaymentModal({
       })
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to create payment request')
+        const contentType = response.headers.get('content-type')
+        let errorMessage = 'Failed to create payment request'
+        
+        if (contentType && contentType.includes('application/json')) {
+          try {
+            const error = await response.json()
+            errorMessage = error.error || errorMessage
+          } catch (e) {
+            console.error('Failed to parse error JSON:', e)
+          }
+        } else {
+          const text = await response.text()
+          console.error('Non-JSON error response:', text)
+          errorMessage = 'Server error creating payment request'
+        }
+        
+        throw new Error(errorMessage)
       }
 
       onClose()
