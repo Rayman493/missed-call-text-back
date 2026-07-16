@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { X, Calendar, Briefcase, User } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import DatePicker from '@/components/ui/DatePicker'
+import TimePicker from '@/components/ui/TimePicker'
 
 interface Task {
   id: string
@@ -19,7 +21,7 @@ interface Task {
 interface NewTaskModalProps {
   isOpen: boolean
   onClose: () => void
-  onTaskCreated: () => void
+  onTaskCreated: (isNew?: boolean) => void
   taskToEdit?: Task | null
 }
 
@@ -141,7 +143,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
         throw new Error(error.error || 'Failed to save task')
       }
 
-      onTaskCreated()
+      onTaskCreated(!taskToEdit)
       handleClose()
     } catch (error) {
       console.error('[NewTaskModal] Failed to save task:', error)
@@ -177,7 +179,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
         throw new Error(error.error || 'Failed to update task')
       }
 
-      onTaskCreated()
+      onTaskCreated(false)
       handleClose()
     } catch (error) {
       console.error('[NewTaskModal] Failed to toggle task completion:', error)
@@ -249,28 +251,18 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
-                Due Date
-              </label>
-              <input
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white dark:bg-slate-800 text-slate-900 dark:text-foreground"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
-                Due Time
-              </label>
-              <input
-                type="time"
-                value={dueTime}
-                onChange={(e) => setDueTime(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white dark:bg-slate-800 text-slate-900 dark:text-foreground"
-              />
-            </div>
+            <DatePicker
+              value={dueDate}
+              onChange={setDueDate}
+              label="Due Date"
+              placeholder="Select date"
+            />
+            <TimePicker
+              value={dueTime}
+              onChange={setDueTime}
+              label="Due Time"
+              placeholder="Select time"
+            />
           </div>
 
           <div>

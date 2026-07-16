@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { CheckCircle2, Clock, AlertCircle, Plus, X, Edit2, Trash2 } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import NewTaskModal from './NewTaskModal'
+import Toast from '@/components/Toast'
 
 interface Task {
   id: string
@@ -27,12 +28,21 @@ type TaskFilter = 'all' | 'active' | 'overdue' | 'future' | 'completed'
 export default function TasksTab({ onNewJob }: TasksTabProps) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [filter, setFilter] = useState<TaskFilter>('active')
+  const [filter, setFilter] = useState<TaskFilter>('all')
   const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info'; isVisible: boolean }>({
+    message: '',
+    type: 'success',
+    isVisible: false
+  })
   const supabase = createBrowserClient()
 
   const todayStr = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD in local timezone
+
+  const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
+    setToast({ message, type, isVisible: true })
+  }
 
   useEffect(() => {
     fetchTasks()
@@ -190,6 +200,16 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
       {/* Filter Tabs */}
       <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
         <button
+          onClick={() => setFilter('all')}
+          className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+            filter === 'all'
+              ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground'
+          }`}
+        >
+          All
+        </button>
+        <button
           onClick={() => setFilter('active')}
           className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
             filter === 'active'
@@ -228,16 +248,6 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
           }`}
         >
           Completed
-        </button>
-        <button
-          onClick={() => setFilter('all')}
-          className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-            filter === 'all'
-              ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground'
-          }`}
-        >
-          All
         </button>
       </div>
 
@@ -354,9 +364,12 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
       <NewTaskModal
         isOpen={isNewTaskModalOpen}
         onClose={() => setIsNewTaskModalOpen(false)}
-        onTaskCreated={() => {
+        onTaskCreated={(isNew) => {
           fetchTasks()
           setIsNewTaskModalOpen(false)
+          if (isNew) {
+            showToast('Task created')
+          }
         }}
       />
 
@@ -365,13 +378,24 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
         <NewTaskModal
           isOpen={!!editingTask}
           onClose={() => setEditingTask(null)}
-          onTaskCreated={() => {
+          onTaskCreated={(isNew) => {
             fetchTasks()
             setEditingTask(null)
+            if (!isNew) {
+              showToast('Task updated')
+            }
           }}
           taskToEdit={editingTask}
         />
       )}
+
+      {/* Toast */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={() => setToast(prev => ({ ...prev, isVisible: false }))}
+      />
     </div>
   )
 }
