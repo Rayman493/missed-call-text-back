@@ -66,21 +66,19 @@ export default function NewJobModal({
               </div>
             </button>
 
-            {/* Create New Customer - Secondary Action */}
+            {/* Create New Customer */}
             <button
               onClick={() => { onClose(); onCreateCustomer() }}
-              className="w-full flex items-start gap-3 p-3 rounded-xl border border-border/30 bg-muted/30 hover:border-border hover:bg-muted transition-all group active:scale-[0.98]"
+              className="w-full flex items-start gap-3 p-3 rounded-xl border border-border/50 bg-muted/50 hover:border-border hover:bg-muted transition-all text-left group active:scale-[0.98]"
             >
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 group-hover:bg-slate-200 dark:group-hover:bg-slate-700 flex items-center justify-center flex-shrink-0 transition-colors">
-                  <Users className="w-4 h-4 text-slate-500 dark:text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">Create a New Customer</p>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 leading-relaxed">
-                    Add a customer now, then continue creating the job.
-                  </p>
-                </div>
+              <div className="w-8 h-8 rounded-xl bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center flex-shrink-0 transition-colors">
+                <Users className="w-4.5 h-4.5 text-muted-foreground group-hover:text-primary transition-colors" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Create a New Customer</p>
+                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                  Add a customer now, then continue creating the job.
+                </p>
               </div>
             </button>
             </div>
