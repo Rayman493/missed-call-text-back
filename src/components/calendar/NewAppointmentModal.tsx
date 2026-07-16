@@ -155,7 +155,10 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
             <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/10">
               <Plus className="w-4 h-4 text-primary" />
             </div>
-            <h2 id="appointment-title" className="text-base font-semibold text-foreground tracking-tight">New Appointment</h2>
+            <div>
+              <h2 id="appointment-title" className="text-base font-semibold text-foreground tracking-tight">New Appointment</h2>
+              <p className="text-xs text-slate-400 dark:text-slate-500">Add something to your calendar without creating a customer job.</p>
+            </div>
           </div>
           <button
             onClick={handleCancel}

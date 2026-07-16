@@ -170,9 +170,14 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">
-          Tasks
-        </h2>
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">
+            Tasks
+          </h2>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+            Keep track of smaller to-dos, reminders, and follow-ups.
+          </p>
+        </div>
         <button
           onClick={() => setIsNewTaskModalOpen(true)}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"

@@ -23,6 +23,7 @@ interface Job {
   scheduled_date: string | null
   scheduled_time: string | null
   status: string
+  google_calendar_event_id: string | null
 }
 
 interface CalendarEvent {
@@ -143,7 +144,11 @@ export default function TodayCommandCenter({
     const eventDateRaw = event.start?.dateTime || event.start?.date
     if (!eventDateRaw) return false
     const eventDate = eventDateRaw.split('T')[0]
-    return eventDate === todayStr
+    if (eventDate !== todayStr) return false
+    
+    // Deduplicate: exclude calendar events that are linked to today's jobs
+    const isLinkedToJob = todayJobs.some(job => job.google_calendar_event_id === event.id)
+    return !isLinkedToJob
   })
 
   const upcomingJobs = jobs
@@ -175,6 +180,9 @@ export default function TodayCommandCenter({
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400">
             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+          </p>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+            Your daily overview of what needs attention and what's coming up.
           </p>
         </div>
         <div className="flex gap-2">

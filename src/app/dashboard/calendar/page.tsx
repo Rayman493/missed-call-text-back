@@ -850,6 +850,16 @@ export default function SchedulePage() {
                   {/* Connected State — Calendar Tab */}
                   {calendarConnected && scheduleTab === 'calendar' && (
                     <div>
+                      {/* Calendar Header */}
+                      <div className="mb-4">
+                        <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">
+                          Calendar
+                        </h2>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                          See when your jobs and appointments are scheduled.
+                        </p>
+                      </div>
+
                       {/* Token Expired Warning Banner - show first if needed */}
                       {tokenExpired && (
                         <div className="mb-4">

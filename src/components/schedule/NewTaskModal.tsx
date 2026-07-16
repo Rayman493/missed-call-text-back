@@ -46,6 +46,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
   const [jobs, setJobs] = useState<Job[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isTogglingComplete, setIsTogglingComplete] = useState(false)
   const supabase = createBrowserClient()
 
   useEffect(() => {
@@ -149,6 +150,42 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
     }
   }
 
+  const handleToggleComplete = async () => {
+    if (!taskToEdit) return
+
+    setIsTogglingComplete(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) return
+
+      const response = await fetch(`/api/tasks/${taskToEdit.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          completed: !taskToEdit.completed,
+          completed_at: !taskToEdit.completed ? new Date().toISOString() : null,
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to update task')
+      }
+
+      onTaskCreated()
+      handleClose()
+    } catch (error) {
+      console.error('[NewTaskModal] Failed to toggle task completion:', error)
+    } finally {
+      setIsTogglingComplete(false)
+    }
+  }
+
   const handleClose = () => {
     setTitle('')
     setNotes('')
@@ -173,7 +210,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
       <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">
-            New Task
+            {taskToEdit ? 'Edit Task' : 'New Task'}
           </h2>
           <button
             onClick={handleClose}
@@ -272,6 +309,20 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
             </select>
           </div>
 
+          {/* Completion Toggle - Only in Edit Mode */}
+          {taskToEdit && (
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={handleToggleComplete}
+                disabled={isTogglingComplete}
+                className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isTogglingComplete ? 'Updating...' : (taskToEdit.completed ? 'Reopen Task' : 'Mark as Complete')}
+              </button>
+            </div>
+          )}
+
           <div className="flex gap-3 pt-2">
             <button
               type="button"
@@ -285,7 +336,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
               disabled={isSaving || !title.trim()}
               className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSaving ? 'Creating...' : 'Create Task'}
+              {isSaving ? (taskToEdit ? 'Saving...' : 'Creating...') : (taskToEdit ? 'Save Changes' : 'Create Task')}
             </button>
           </div>
         </form>
