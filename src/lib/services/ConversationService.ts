@@ -107,7 +107,7 @@ export class ConversationService {
 
     // Step 2: No existing conversation, create new one
     console.log('[ConversationService.findOrCreateConversation] No existing conversation found, creating new one')
-    
+
     const { data: newConversation, error: createError } = await supabaseAdmin
       .from('conversations')
       .insert({
@@ -120,8 +120,36 @@ export class ConversationService {
       .select()
       .single()
 
-    if (createError || !newConversation) {
+    if (createError) {
+      // Handle unique constraint violation (23505) - concurrent insertion race condition
+      if (createError.code === '23505') {
+        console.log('[ConversationService.findOrCreateConversation] Unique constraint violation - retrying lookup for concurrent insert')
+
+        // Retry lookup to find the conversation that was created concurrently
+        const { data: retryConversations, error: retryError } = await supabaseAdmin
+          .from('conversations')
+          .select('id, lead_id, business_id, status, source, started_at, last_activity_at, created_at, messages(id)')
+          .eq('lead_id', lead_id)
+          .eq('business_id', business_id)
+          .order('created_at', { ascending: true })
+          .limit(1)
+
+        if (retryError || !retryConversations || retryConversations.length === 0) {
+          console.error('[ConversationService.findOrCreateConversation] Retry lookup failed after constraint violation:', retryError)
+          return { conversation: null, conversationId: null, isNew: false }
+        }
+
+        const canonicalConversation = retryConversations[0]
+        console.log('[ConversationService.findOrCreateConversation] Reusing conversation from concurrent insert:', canonicalConversation.id)
+        return { conversation: canonicalConversation as Conversation, conversationId: canonicalConversation.id, isNew: false }
+      }
+
       console.error('[ConversationService.findOrCreateConversation] Failed to create conversation:', createError)
+      return { conversation: null, conversationId: null, isNew: false }
+    }
+
+    if (!newConversation) {
+      console.error('[ConversationService.findOrCreateConversation] Failed to create conversation - no data returned')
       return { conversation: null, conversationId: null, isNew: false }
     }
 

@@ -1504,7 +1504,7 @@ export const db = {
     // This is used when reactivating completed customers to start a fresh conversation
     if (forceNew) {
       console.log('[GET OR CREATE CONVERSATION] forceNew=true - creating new conversation without lookup')
-      
+
       const { data: newConversation, error: createError } = await supabaseAdmin
         .from('conversations')
         .insert({
@@ -1515,9 +1515,37 @@ export const db = {
         .select('id')
         .single()
 
-      if (createError || !newConversation) {
-        console.error('[GET OR CREATE CONVERSATION] Failed to create conversation:', createError)
-        throw new Error(`Failed to create conversation: ${createError?.message || 'Unknown error'}`)
+      if (createError) {
+        // Handle unique constraint violation (23505) - concurrent insertion race condition
+        if (createError.code === '23505') {
+          console.log('[GET OR CREATE CONVERSATION] forceNew path - unique constraint violation, falling back to existing conversation')
+
+          // Retry lookup to find the conversation that was created concurrently
+          const { data: retryConversations, error: retryError } = await supabaseAdmin
+            .from('conversations')
+            .select('id, status, created_at, messages(id)')
+            .eq('lead_id', leadId)
+            .eq('business_id', businessId)
+            .order('created_at', { ascending: true })
+            .limit(1)
+
+          if (retryError || !retryConversations || retryConversations.length === 0) {
+            console.error('[GET OR CREATE CONVERSATION] forceNew path - retry lookup failed after constraint violation:', retryError)
+            throw new Error(`Failed to create conversation (forceNew) and retry lookup failed: ${retryError?.message || 'Unknown error'}`)
+          }
+
+          const canonicalConversation = retryConversations[0]
+          console.log('[GET OR CREATE CONVERSATION] forceNew path - reusing conversation from concurrent insert:', canonicalConversation.id)
+          return { conversationId: canonicalConversation.id, isNew: false }
+        }
+
+        console.error('[GET OR CREATE CONVERSATION] forceNew path - Failed to create conversation:', createError)
+        throw new Error(`Failed to create conversation (forceNew): ${createError?.message || 'Unknown error'}`)
+      }
+
+      if (!newConversation) {
+        console.error('[GET OR CREATE CONVERSATION] forceNew path - Failed to create conversation - no data returned')
+        throw new Error('Failed to create conversation (forceNew): No data returned')
       }
 
       console.log('[GET OR CREATE CONVERSATION] Created new conversation (forceNew):', newConversation.id)
@@ -1556,7 +1584,7 @@ export const db = {
 
     // Step 2: No existing conversation, create new one
     console.log('[GET OR CREATE CONVERSATION] No existing conversation found, creating new one')
-    
+
     const { data: newConversation, error: createError } = await supabaseAdmin
       .from('conversations')
       .insert({
@@ -1567,9 +1595,37 @@ export const db = {
       .select('id')
       .single()
 
-    if (createError || !newConversation) {
+    if (createError) {
+      // Handle unique constraint violation (23505) - concurrent insertion race condition
+      if (createError.code === '23505') {
+        console.log('[GET OR CREATE CONVERSATION] Unique constraint violation - retrying lookup for concurrent insert')
+        
+        // Retry lookup to find the conversation that was created concurrently
+        const { data: retryConversations, error: retryError } = await supabaseAdmin
+          .from('conversations')
+          .select('id, status, created_at, messages(id)')
+          .eq('lead_id', leadId)
+          .eq('business_id', businessId)
+          .order('created_at', { ascending: true })
+          .limit(1)
+
+        if (retryError || !retryConversations || retryConversations.length === 0) {
+          console.error('[GET OR CREATE CONVERSATION] Retry lookup failed after constraint violation:', retryError)
+          throw new Error(`Failed to create conversation and retry lookup failed: ${retryError?.message || 'Unknown error'}`)
+        }
+
+        const canonicalConversation = retryConversations[0]
+        console.log('[GET OR CREATE CONVERSATION] Reusing conversation from concurrent insert:', canonicalConversation.id)
+        return { conversationId: canonicalConversation.id, isNew: false }
+      }
+
       console.error('[GET OR CREATE CONVERSATION] Failed to create conversation:', createError)
       throw new Error(`Failed to create conversation: ${createError?.message || 'Unknown error'}`)
+    }
+
+    if (!newConversation) {
+      console.error('[GET OR CREATE CONVERSATION] Failed to create conversation - no data returned')
+      throw new Error('Failed to create conversation: No data returned')
     }
 
     console.log('[GET OR CREATE CONVERSATION] Created new conversation:', newConversation.id)
