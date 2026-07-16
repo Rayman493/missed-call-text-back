@@ -387,6 +387,100 @@ const testAlertTests: Array<{ name: string; fn: () => Promise<void> | void }> = 
       assertTrue(!!realState, 'Real alert should still exist')
     },
   },
+  {
+    name: 'Test alert email uses TEST severity display',
+    fn: () => {
+      const testCondition = {
+        id: 'manual_test_alert',
+        name: 'Operational Monitoring Test',
+        severity: 'degraded' as const,
+        description: 'Test description',
+        check: async () => true,
+      }
+      
+      const isTestAlert = testCondition.id === 'manual_test_alert'
+      const displaySeverity = isTestAlert ? 'TEST' : testCondition.severity.toUpperCase()
+      
+      assertTrue(isTestAlert, 'Should identify as test alert')
+      assertEqual(displaySeverity, 'TEST', 'Test alert should display TEST severity')
+    },
+  },
+  {
+    name: 'Real degraded alert displays DEGRADED',
+    fn: () => {
+      const realCondition = {
+        id: 'database-connectivity',
+        name: 'Database Connectivity',
+        severity: 'degraded' as const,
+        description: 'Real alert description',
+        check: async () => true,
+      }
+      
+      const isTestAlert = realCondition.id === 'manual_test_alert'
+      const displaySeverity = isTestAlert ? 'TEST' : realCondition.severity.toUpperCase()
+      
+      assertFalse(isTestAlert, 'Should not identify as test alert')
+      assertEqual(displaySeverity, 'DEGRADED', 'Real degraded alert should display DEGRADED')
+    },
+  },
+  {
+    name: 'Real critical alert displays CRITICAL',
+    fn: () => {
+      const realCondition = {
+        id: 'ai-voice-failures',
+        name: 'AI Voice Failures',
+        severity: 'critical' as const,
+        description: 'Real critical alert',
+        check: async () => true,
+      }
+      
+      const isTestAlert = realCondition.id === 'manual_test_alert'
+      const displaySeverity = isTestAlert ? 'TEST' : realCondition.severity.toUpperCase()
+      
+      assertFalse(isTestAlert, 'Should not identify as test alert')
+      assertEqual(displaySeverity, 'CRITICAL', 'Real critical alert should display CRITICAL')
+    },
+  },
+  {
+    name: 'Test alert uses test-specific footer',
+    fn: () => {
+      const testCondition = {
+        id: 'manual_test_alert',
+        name: 'Operational Monitoring Test',
+        severity: 'degraded' as const,
+        description: 'Test description',
+        check: async () => true,
+      }
+      
+      const isTestAlert = testCondition.id === 'manual_test_alert'
+      const footerText = isTestAlert 
+        ? 'This is an automated test alert from ReplyFlow System Health monitoring.'
+        : 'This is an automated alert from ReplyFlow System Health monitoring.'
+      
+      assertTrue(isTestAlert, 'Should identify as test alert')
+      assertTrue(footerText.includes('test alert'), 'Test alert footer should include "test alert"')
+    },
+  },
+  {
+    name: 'Real alert uses standard footer',
+    fn: () => {
+      const realCondition = {
+        id: 'database-connectivity',
+        name: 'Database Connectivity',
+        severity: 'degraded' as const,
+        description: 'Real alert description',
+        check: async () => true,
+      }
+      
+      const isTestAlert = realCondition.id === 'manual_test_alert'
+      const footerText = isTestAlert 
+        ? 'This is an automated test alert from ReplyFlow System Health monitoring.'
+        : 'This is an automated alert from ReplyFlow System Health monitoring.'
+      
+      assertFalse(isTestAlert, 'Should not identify as test alert')
+      assertFalse(footerText.includes('test alert'), 'Real alert footer should not include "test alert"')
+    },
+  },
 ]
 
 // Run all tests

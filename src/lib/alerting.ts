@@ -149,6 +149,13 @@ export class AlertManager {
       ? `[TEST] ReplyFlow Alert: ${condition.name}`
       : `[${condition.severity.toUpperCase()}] ReplyFlow Alert: ${condition.name}`
 
+    // Display TEST instead of DEGRADED for test alerts
+    const displaySeverity = isTestAlert ? 'TEST' : condition.severity.toUpperCase()
+    // Use test-specific footer for test alerts
+    const footerText = isTestAlert 
+      ? 'This is an automated test alert from ReplyFlow System Health monitoring.'
+      : 'This is an automated alert from ReplyFlow System Health monitoring.'
+
     try {
       await this.resend.emails.send({
         from: fromEmail,
@@ -156,13 +163,13 @@ export class AlertManager {
         subject,
         html: `
           <h2>${condition.name}</h2>
-          <p><strong>Severity:</strong> ${condition.severity.toUpperCase()}</p>
+          <p><strong>Severity:</strong> ${displaySeverity}</p>
           <p><strong>Description:</strong> ${condition.description}</p>
           <p><strong>Details:</strong></p>
           <pre>${details}</pre>
           <p><strong>Time:</strong> ${new Date().toISOString()}</p>
           <hr>
-          <p><small>This is an automated alert from ReplyFlow System Health monitoring.</small></p>
+          <p><small>${footerText}</small></p>
         `,
       })
       console.log(`[AlertManager] Alert email sent for condition: ${condition.id}`)
