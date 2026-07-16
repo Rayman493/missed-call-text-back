@@ -1,5 +1,21 @@
 import { sanitizeCustomerName, sanitizeServiceRequested, sanitizeAdditionalDetails, sanitizeServiceAddress, sanitizeTiming } from './content-sanitization'
 
+// Helper function to detect if a string looks like a phone number
+function looksLikePhoneNumber(text: string): boolean {
+  if (!text || typeof text !== 'string') return false;
+  
+  const cleaned = text.replace(/[\s\-\(\)\+]/g, '');
+  
+  // Phone numbers are typically 10+ digits
+  if (cleaned.length < 10) return false;
+  
+  // Check if mostly digits (at least 80%)
+  const digitCount = (cleaned.match(/\d/g) || []).length;
+  const digitRatio = digitCount / cleaned.length;
+  
+  return digitRatio >= 0.8;
+}
+
 // Helper function to safely trim and capitalize text
 // This is a low-level helper that does NOT apply conversational filler removal
 export const safeTrimAndCapitalize = (text: string | null | undefined): string => {
@@ -48,6 +64,12 @@ export const normalizeCustomerName = (text: string | null | undefined): string =
   if (!text || text.trim() === '') return 'Not collected';
   
   const original = text.trim();
+  
+  // Reject if the value looks like a phone number
+  if (looksLikePhoneNumber(original)) {
+    return 'Not collected';
+  }
+  
   let normalized = original;
   
   // Name-specific conversational prefixes (strictly anchored)

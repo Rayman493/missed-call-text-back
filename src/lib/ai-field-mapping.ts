@@ -6,6 +6,22 @@
 
 import { normalizeCustomerName, normalizeServiceReason, normalizeAddress, normalizeTiming, normalizeAdditionalDetails, safeTrimAndCapitalize } from './ai-intake-formatter'
 
+// Helper function to detect if a string looks like a phone number
+function looksLikePhoneNumber(text: string): boolean {
+  if (!text || typeof text !== 'string') return false;
+  
+  const cleaned = text.replace(/[\s\-\(\)\+]/g, '');
+  
+  // Phone numbers are typically 10+ digits
+  if (cleaned.length < 10) return false;
+  
+  // Check if mostly digits (at least 80%)
+  const digitCount = (cleaned.match(/\d/g) || []).length;
+  const digitRatio = digitCount / cleaned.length;
+  
+  return digitRatio >= 0.8;
+}
+
 /**
  * Apply sentence capitalization to a string
  * Only capitalizes the first character if it's lowercase
@@ -277,9 +293,23 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
     return null
   }
 
+  // Pick function that filters out phone numbers (for customer name field)
+  const pickNotPhone = (...candidates: (string | null | undefined)[]): string | null => {
+    for (const c of candidates) {
+      if (c && typeof c === 'string' && c.trim()) {
+        const trimmed = c.trim()
+        // Skip if it looks like a phone number
+        if (!looksLikePhoneNumber(trimmed)) {
+          return trimmed
+        }
+      }
+    }
+    return null
+  }
+
   // FIELD SELECTION TRACE - Log which field is selected in fallback chain
-  const traceFieldSelection = (fieldName: string, candidates: (string | null | undefined)[]): string | null => {
-    const selected = pick(...candidates);
+  const traceFieldSelection = (fieldName: string, candidates: (string | null | undefined)[], pickerFn: typeof pick = pick): string | null => {
+    const selected = pickerFn(...candidates);
     const selectedIndex = candidates.findIndex(c => c && typeof c === 'string' && c.trim() === selected);
     
     console.log('[FIELD SELECTION TRACE] =========================================');
@@ -308,7 +338,7 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       normalized.callerName,
       rawMetadata.name,
       extractedInfoRaw.customerName
-    ])),
+    ], pickNotPhone)),
     customerPhone: pick(
       lead?.caller_phone,
       lead?.phone,
@@ -326,7 +356,7 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       rawMetadata.serviceRequested,
       normalized.reasonForCalling,
       extractedInfoRaw.serviceRequested
-    ])),
+    ], pick)),
     additionalDetails: normalizeAdditionalDetails(pick(
       corrected.details,
       corrected.issueDescription,

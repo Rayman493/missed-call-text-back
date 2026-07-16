@@ -1297,24 +1297,27 @@ export default function SchedulePage() {
                       setNewlyCreatedLeadId(leadId)
                       setIsAddCustomerModalOpen(false)
                       
-                      // Extract customer data from lead if available
+                      // Extract customer data from lead using canonical helper
                       let customerName = undefined
                       let customerPhone = undefined
                       let serviceAddress = undefined
                       let title = undefined
                       let notes = undefined
 
-                      if (leadData && leadData.raw_metadata) {
-                        const extracted = leadData.raw_metadata.extracted_info || {}
-                        customerName = extracted.callerName || undefined
-                        customerPhone = leadData.caller_phone || undefined
-                        serviceAddress = extracted.addressOrLocation || undefined
-                        title = extracted.reasonForCalling || undefined
+                      if (leadData) {
+                        // Use getLeadAIIntake for canonical field resolution with phone number filtering
+                        const { getLeadAIIntake } = require('@/lib/ai-field-mapping')
+                        const intake = getLeadAIIntake(leadData)
+                        
+                        customerName = intake.customerName || undefined
+                        customerPhone = intake.customerPhone || undefined
+                        serviceAddress = intake.serviceAddress || undefined
+                        title = intake.serviceRequested || undefined
                         
                         const noteParts = [
-                          extracted.importantDetails,
-                          extracted.desiredCompletionTime ? `Desired completion: ${extracted.desiredCompletionTime}` : null,
-                          extracted.preferredCallbackTime ? `Best callback time: ${extracted.preferredCallbackTime}` : null,
+                          intake.additionalDetails,
+                          intake.desiredCompletion ? `Desired completion: ${intake.desiredCompletion}` : null,
+                          intake.callbackTime ? `Best callback time: ${intake.callbackTime}` : null,
                         ].filter(Boolean)
                         notes = noteParts.length > 0 ? noteParts.join('\n\n') : undefined
                       }
