@@ -798,14 +798,99 @@ export async function recycleTwilioNumberToInventory(
   }
 
   try {
-    // STEP 1: Detach from business in twilio_numbers table
-    console.log('[RECYCLE] STEP 1: Detaching number from business...');
+    // STEP 1: Verify Twilio-side configuration before marking as ready
+    console.log('[RECYCLE] STEP 1: Verifying Twilio-side configuration before recycling...');
+    
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
+    
+    let isGenuinelyReady = false;
+    let verificationDetails: any = {};
+    
+    if (accountSid && authToken) {
+      const client = Twilio(accountSid, authToken);
+      
+      try {
+        // Verify Twilio still owns the number
+        console.log('[RECYCLE] Verifying Twilio ownership...');
+        await client.incomingPhoneNumbers(phoneNumberSid).fetch();
+        verificationDetails.twilioOwnership = 'verified';
+        console.log('[RECYCLE] Twilio ownership verified');
+        
+        // Verify sender pool attachment if messaging service configured
+        if (messagingServiceSid) {
+          console.log('[RECYCLE] Verifying sender pool attachment...');
+          const senderPool = await client.messaging.v1.services(messagingServiceSid)
+            .phoneNumbers
+            .list({ limit: 100 });
+          const isInSenderPool = senderPool.some(pn => pn.sid === phoneNumberSid);
+          
+          if (isInSenderPool) {
+            verificationDetails.senderPool = 'attached';
+            console.log('[RECYCLE] Sender pool attachment verified');
+          } else {
+            verificationDetails.senderPool = 'not_attached';
+            console.log('[RECYCLE] Number not in sender pool');
+          }
+        } else {
+          verificationDetails.senderPool = 'not_configured';
+          console.log('[RECYCLE] Messaging service not configured, skipping sender pool check');
+        }
+        
+        // Check current provisioning status from database
+        console.log('[RECYCLE] Checking current provisioning status...');
+        const { data: currentNumber, error: fetchError } = await supabase
+          .from('twilio_numbers')
+          .select('provisioning_status, sms_status')
+          .eq('twilio_sid', phoneNumberSid)
+          .single();
+        
+        if (!fetchError && currentNumber) {
+          verificationDetails.provisioningStatus = currentNumber.provisioning_status;
+          verificationDetails.currentSmsStatus = currentNumber.sms_status;
+          console.log('[RECYCLE] Current provisioning status:', currentNumber.provisioning_status);
+          console.log('[RECYCLE] Current sms_status:', currentNumber.sms_status);
+          
+          // Determine readiness based on canonical logic
+          // Number is ready if: Twilio owns it, sender pool attached (if configured), provisioning_status is 'ready'
+          const senderPoolVerified = !messagingServiceSid || verificationDetails.senderPool === 'attached';
+          const provisioningReady = currentNumber.provisioning_status === 'ready';
+          
+          isGenuinelyReady = senderPoolVerified && provisioningReady;
+          
+          console.log('[RECYCLE] Readiness determination:', {
+            senderPoolVerified,
+            provisioningReady,
+            isGenuinelyReady
+          });
+        } else {
+          console.error('[RECYCLE] Failed to fetch current number status:', fetchError);
+          verificationDetails.fetchError = fetchError?.message;
+        }
+        
+      } catch (verifyError: any) {
+        console.error('[RECYCLE] Verification failed:', verifyError);
+        verificationDetails.verificationError = verifyError?.message;
+        isGenuinelyReady = false;
+      }
+    } else {
+      console.error('[RECYCLE] Missing Twilio credentials for verification');
+      verificationDetails.credentialsError = 'missing_credentials';
+      isGenuinelyReady = false;
+    }
+    
+    console.log('[RECYCLE] Verification complete:', verificationDetails);
+    console.log('[RECYCLE] Final readiness determination:', isGenuinelyReady ? 'ready' : 'pending');
+    
+    // STEP 2: Detach from business in twilio_numbers table
+    console.log('[RECYCLE] STEP 2: Detaching number from business...');
     const { error: detachError } = await supabase
       .from('twilio_numbers')
       .update({
         business_id: null,
         status: 'available',
-        sms_status: 'ready',
+        sms_status: isGenuinelyReady ? 'ready' : 'pending',
         assigned_at: null,
         detached_at: new Date().toISOString(),
         detached_reason: 'account_deletion',

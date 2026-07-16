@@ -742,6 +742,11 @@ async function purchaseNumber(
     });
     
     console.log('[PURCHASE NUMBER] ========== COMPLETE ==========');
+    
+    // Trigger background replenishment to maintain warm pool after new purchase
+    console.log('[PURCHASE NUMBER] Triggering background replenishment after new purchase');
+    triggerBackgroundReplenishment();
+    
     return {
       success: true,
       phoneNumber: purchasedNumber.phoneNumber,
