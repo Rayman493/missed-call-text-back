@@ -13,6 +13,7 @@ import CalendarGrid from '@/components/calendar/CalendarGrid'
 import EventPill from '@/components/calendar/EventPill'
 import DayDetailModal from '@/components/calendar/DayDetailModal'
 import EventDetailsModal from '@/components/calendar/EventDetailsModal'
+import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
 import UpcomingAgenda from '@/components/calendar/UpcomingAgenda'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { filterEventsByMonth } from '@/lib/calendar-date-utils'
@@ -91,6 +92,7 @@ export default function SchedulePage() {
   const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false)
   const [newlyCreatedLeadId, setNewlyCreatedLeadId] = useState<string | null>(null)
   const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false)
+  const [isNewAppointmentModalOpen, setIsNewAppointmentModalOpen] = useState(false)
   
   // Overflow menu state
   const [isCalendarOverflowOpen, setIsCalendarOverflowOpen] = useState(false)
@@ -168,15 +170,10 @@ export default function SchedulePage() {
   }
 
   const handleAddEvent = (date?: Date) => {
-    // New appointments are always tied to a customer; schedule via JobComposer
+    // Open standalone appointment modal
     const dateToUse = date || selectedDay || new Date()
     setSelectedDay(dateToUse)
-    setNewJobWorkflowTitle('New Appointment')
-    setNewJobWorkflowPrompt('Select a customer to schedule an appointment for')
-    setNewJobDefaultDate(dateToUse)
-    setEditingJob(null)
-    setJobPrefill(undefined)
-    setIsNewJobModalOpen(true)
+    setIsNewAppointmentModalOpen(true)
   }
 
   const handleConnectCalendar = async () => {
@@ -568,13 +565,8 @@ export default function SchedulePage() {
   }
 
   const handleNewAppointment = () => {
-    // Open customer-first appointment workflow
-    setNewJobWorkflowTitle('New Appointment')
-    setNewJobWorkflowPrompt('Select a customer to schedule an appointment for')
-    setNewJobDefaultDate(selectedDay || undefined)
-    setEditingJob(null)
-    setJobPrefill(undefined)
-    setIsNewJobModalOpen(true)
+    // Open standalone appointment modal
+    setIsNewAppointmentModalOpen(true)
   }
 
   const goToPreviousMonth = () => {
@@ -1344,6 +1336,19 @@ export default function SchedulePage() {
                       // Refresh tasks in TodayCommandCenter
                       // This will be handled by the component's internal fetch
                     }}
+                  />
+
+                  {/* New Appointment Modal */}
+                  <NewAppointmentModal
+                    isOpen={isNewAppointmentModalOpen}
+                    onClose={() => setIsNewAppointmentModalOpen(false)}
+                    onRefresh={async () => {
+                      // Refresh events from Google Calendar
+                      await fetchEvents()
+                      // Show success message
+                      showToast('Appointment created.', 'success')
+                    }}
+                    defaultDate={selectedDay || undefined}
                   />
 
                   {/* Job Details Modal */}
