@@ -1144,7 +1144,7 @@ export default function LeadsPage() {
             {/* Filter-specific help text - Hide on mobile */}
             {statusFilter === 'ignored' && (
               <p className="text-xs text-muted-foreground mb-4 hidden sm:block">
-                Ignored customers are hidden from your main list and can be restored for up to 30 days.
+                Ignored customers are hidden from your main list and can be restored at any time.
               </p>
             )}
             {statusFilter === 'deleted' && (
