@@ -193,6 +193,74 @@ windsurf-project-2/
 └── ios/                        # iOS native project (gitignored, macOS only)
 ```
 
+## Beginner Guide: Stop Working & Resume Later
+
+### Stop Working
+
+To safely stop your development session:
+
+1. **Stop the app:**
+   - In Android Studio, click the Stop button (red square) in the toolbar
+   - Or press Shift+F10 to stop the running app
+
+2. **Stop the emulator:**
+   - In Android Studio Device Manager, right-click on the running emulator
+   - Select "Stop"
+   - Or close the emulator window directly
+
+3. **Close Android Studio:**
+   - File > Exit
+   - Or close the Android Studio window
+
+### Resume Later
+
+To resume your Android mobile preview development:
+
+1. **Open PowerShell:**
+   - Press Windows key, type "PowerShell"
+   - Open "Windows PowerShell"
+
+2. **Navigate to the project:**
+   ```bash
+   cd C:\Users\Drago\CascadeProjects\windsurf-project-2
+   ```
+
+3. **Open Android Studio:**
+   ```bash
+   npx cap open android
+   ```
+
+4. **Start the emulator:**
+   - In Android Studio, click the Device Manager icon (phone icon in toolbar)
+   - Find the "Pixel 6 API 35" emulator
+   - Click the Play button to start it
+   - Wait for the emulator to fully boot (Android home screen should appear)
+
+5. **Run the app:**
+   - In Android Studio, ensure "app" is selected in the configuration dropdown
+   - Click the Run button (green play icon)
+   - Or press Shift+F10
+   - The app will install and launch on the emulator
+
+### Important Notes
+
+**Emulator Internet Issues:**
+- If the emulator internet behaves strangely (no network, WebView won't load), perform a **Cold Boot**:
+  - In Device Manager, right-click on the emulator
+  - Select "Cold Boot Now"
+  - Wait for the emulator to restart
+  - This resolves most network-related emulator issues
+
+**Known Working Environment:**
+- **API 35 Pixel 6** is the currently known-working preview environment
+- Use this emulator configuration for reliable testing
+
+**Emulator Issues to Ignore:**
+- The initial API 37 emulator experienced WebView renderer/GPU problems
+- These issues are emulator-specific and not evidence of an application bug
+- Do not treat API 37 WebView problems as application defects
+- Use API 35 for consistent preview testing
+
 ## Troubleshooting
 
 ### Android build fails

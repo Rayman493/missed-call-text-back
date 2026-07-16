@@ -3,7 +3,7 @@ import { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.replyflowhq.app',
   appName: 'ReplyFlow',
-  webDir: 'out',
+  webDir: 'public',
   server: {
     // For internal preview, point to hosted ReplyFlow application
     // This avoids static export complexity and allows quick iteration

@@ -18,8 +18,16 @@ out/
 build/
 dist/
 
-# Capacitor
-android/
+# Capacitor - ignore generated build outputs and machine-specific files
+android/.gradle/
+android/.idea/
+android/build/
+android/app/build/
+android/local.properties
+android/capacitor-cordova-android-plugins/
+android/.externalNativeBuild/
+android/.cxx/
+
 ios/
 
 # Runtime data

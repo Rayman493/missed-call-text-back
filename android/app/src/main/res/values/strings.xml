@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ReplyFlow</string>
+    <string name="title_activity_main">ReplyFlow</string>
+    <string name="package_name">com.replyflowhq.app</string>
+    <string name="custom_url_scheme">com.replyflowhq.app</string>
+</resources>
