@@ -2,7 +2,7 @@
  * Shared Cron Authentication Helper
  * 
  * Provides canonical authentication for all cron endpoints.
- * Uses CRON_SECRET environment variable with Bearer token authentication.
+ * Uses CRON_SECRET environment variable with multiple authentication methods.
  * 
  * Usage:
  *   import { verifyCronRequest } from '@/lib/cron-auth'
@@ -13,10 +13,10 @@
  *   }
  * 
  * Vercel Cron Behavior:
- * Vercel Cron does NOT automatically send CRON_SECRET in headers.
- * The cron job must be configured to send: Authorization: Bearer <CRON_SECRET>
+ * Vercel Cron Jobs automatically send CRON_SECRET in the x-vercel-cron-secret header.
+ * Manual requests should use Authorization: Bearer <CRON_SECRET>.
  * 
- * For manual testing, include the header or use query param (for local dev only).
+ * For local testing, use ?secret=<CRON_SECRET> query param.
  */
 
 import { NextRequest } from 'next/server'
@@ -32,6 +32,7 @@ export interface CronAuthResult {
  * 
  * Accepts:
  * - Authorization: Bearer <CRON_SECRET> header (preferred, production)
+ * - x-vercel-cron-secret: <CRON_SECRET> header (Vercel Cron Jobs)
  * - ?secret=<CRON_SECRET> query param (for local testing only)
  * 
  * Rejects:
@@ -55,7 +56,22 @@ export function verifyCronRequest(request: NextRequest): CronAuthResult {
     }
   }
 
-  // Check Authorization header (preferred method)
+  // Check Vercel Cron header (for Vercel Cron Jobs)
+  const vercelCronSecret = request.headers.get('x-vercel-cron-secret')
+  if (vercelCronSecret) {
+    if (vercelCronSecret === cronSecret) {
+      return { authorized: true }
+    }
+
+    console.error('[Cron Auth] Invalid secret in x-vercel-cron-secret header')
+    return {
+      authorized: false,
+      error: 'Unauthorized',
+      status: 401,
+    }
+  }
+
+  // Check Authorization header (preferred method for manual requests)
   const authHeader = request.headers.get('authorization')
   if (authHeader) {
     if (!authHeader.startsWith('Bearer ')) {
