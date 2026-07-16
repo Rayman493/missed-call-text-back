@@ -8,7 +8,7 @@
 import WebSocket from 'ws';
 import { log, LogLevel } from './logger';
 import { OPENAI_REALTIME_MODEL, createOpenAIRealtimeUrl } from './realtime-model';
-import { OPENAI_TRANSCRIPTION_MODEL, OPENAI_REALTIME_VOICE } from './model-config';
+import { OPENAI_TRANSCRIPTION_MODEL, OPENAI_REALTIME_VOICE, OPENAI_REALTIME_FALLBACK_MODEL, isFallbackError, createFallbackState } from './model-config';
 
 // Log ws package version
 console.log('[OPENAI] ws package version:', require('ws/package.json').version);
@@ -52,6 +52,8 @@ export class OpenAIRealtimeClient {
   private sessionUpdatedReceived: boolean = false;
   private currentTranscript: string = ''; // Track assistant transcript for validation
   private audioForwardingBlocked: boolean = false; // Block audio if validation fails
+  private fallbackState = createFallbackState(); // Per-call fallback state
+  private currentModel: string; // Track which model is currently active
 
   constructor(config: OpenAIConfig) {
     this.config = {
@@ -59,27 +61,64 @@ export class OpenAIRealtimeClient {
       voice: config.voice || OPENAI_REALTIME_VOICE,
       ...config,
     };
+    this.currentModel = this.config.model || OPENAI_REALTIME_MODEL;
   }
 
   /**
-   * Connect to OpenAI Realtime API
+   * Connect to OpenAI Realtime API with fallback support
    */
-  connect(): Promise<void> {
+  async connect(): Promise<void> {
     // Connection state guard: prevent multiple simultaneous connections
     if (this.connectionState === ConnectionState.CONNECTING) {
       log(LogLevel.WARN, 'Connection already in progress');
-      return Promise.reject(new Error('Connection already in progress'));
+      throw new Error('Connection already in progress');
     }
 
     if (this.connectionState === ConnectionState.CONNECTED) {
       log(LogLevel.INFO, 'Already connected');
-      return Promise.resolve();
+      return;
     }
 
     this.connectionState = ConnectionState.CONNECTING;
 
+    try {
+      // Attempt primary connection
+      await this.attemptConnection(this.currentModel, false);
+      log(LogLevel.INFO, '[FAILOVER] Primary model connection successful');
+    } catch (primaryError) {
+      log(LogLevel.ERROR, '[FAILOVER] Primary model connection failed', primaryError as Error);
+      
+      // Check if error qualifies for fallback
+      if (isFallbackError(primaryError) && this.fallbackState.canAttemptRealtimeFallback()) {
+        log(LogLevel.INFO, '[FAILOVER] Error qualifies for fallback, attempting fallback model');
+        this.fallbackState.markRealtimeFallbackAttempted();
+        
+        try {
+          // Attempt fallback connection
+          this.currentModel = OPENAI_REALTIME_FALLBACK_MODEL;
+          await this.attemptConnection(this.currentModel, true);
+          log(LogLevel.INFO, '[FAILOVER] Fallback model connection successful');
+        } catch (fallbackError) {
+          log(LogLevel.ERROR, '[FAILOVER] Fallback model connection failed', fallbackError as Error);
+          this.connectionState = ConnectionState.ERROR;
+          throw new Error('Both primary and fallback models failed');
+        }
+      } else {
+        // Error does not qualify for fallback or fallback already attempted
+        log(LogLevel.ERROR, '[FAILOVER] Error does not qualify for fallback or fallback already attempted');
+        this.connectionState = ConnectionState.ERROR;
+        throw primaryError;
+      }
+    }
+  }
+
+  /**
+   * Attempt connection to a specific model
+   */
+  private attemptConnection(model: string, isFallback: boolean): Promise<void> {
     return new Promise((resolve, reject) => {
-      log(LogLevel.INFO, 'Connecting to OpenAI Realtime API');
+      log(LogLevel.INFO, isFallback ? '[FAILOVER] Connecting to fallback model' : 'Connecting to OpenAI Realtime API');
+      console.log(`[OPENAI REALTIME MODEL] ${model} ${isFallback ? '(FALLBACK)' : '(PRIMARY)'}`);
 
       // Log API key presence without logging the key itself
       log(LogLevel.INFO, '[AI POC] OpenAI key present', {
@@ -87,8 +126,7 @@ export class OpenAIRealtimeClient {
         length: this.config.apiKey?.length,
       });
 
-      const wsUrl = createOpenAIRealtimeUrl();
-      console.log('[OPENAI REALTIME MODEL]', OPENAI_REALTIME_MODEL);
+      const wsUrl = `wss://api.openai.com/v1/realtime?model=${encodeURIComponent(model)}`;
       const headers = {
         'Authorization': `Bearer ${this.config.apiKey}`,
       };
@@ -128,7 +166,7 @@ export class OpenAIRealtimeClient {
         
         log(LogLevel.INFO, '[OPENAI] websocket object created');
         log(LogLevel.INFO, '[OPENAI] full websocket URL', { url: wsUrl });
-        log(LogLevel.INFO, '[OPENAI] exact model being used', { model: OPENAI_REALTIME_MODEL });
+        log(LogLevel.INFO, '[OPENAI] exact model being used', { model });
 
         // Log readyState every second for 15 seconds
         let readyStateCheckCount = 0;
@@ -191,7 +229,11 @@ export class OpenAIRealtimeClient {
           log(LogLevel.ERROR, '[AI POC] OpenAI websocket error', error as Error);
           this.connectionState = ConnectionState.ERROR;
           this.clearTimeout();
-          reject(error);
+          
+          // Store error for fallback classification and reject with error object
+          const errorObj = error as any;
+          errorObj.lastError = error;
+          reject(errorObj);
         });
 
         this.ws.on('close', (code, reason) => {
@@ -213,6 +255,15 @@ export class OpenAIRealtimeClient {
             statusCode: response.statusCode,
             headers: response.headers,
           });
+          
+          // Handle HTTP-level errors (like invalid model)
+          if (response.statusCode >= 400) {
+            const error = new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`);
+            (error as any).type = 'invalid_request_error';
+            (error as any).code = 'http_error';
+            (error as any).statusCode = response.statusCode;
+            reject(error);
+          }
         });
 
         console.log('[OPENAI] listeners attached');
@@ -452,6 +503,9 @@ export class OpenAIRealtimeClient {
           param: message.error?.param,
         });
         log(LogLevel.ERROR, '[AI POC] OpenAI error', message.error);
+        
+        // Store error for fallback classification
+        (this.ws as any).lastError = message.error;
         break;
       case 'response.created':
         console.log('[OPENAI RESPONSE] response.created received');
