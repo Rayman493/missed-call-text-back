@@ -147,13 +147,14 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
             <div className="space-y-3 sm:space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Phone Number <span className="text-red-500">*</span>
+                  Customer Name
                 </label>
                 <input
-                  type="tel"
-                  value={formData.phoneNumber}
-                  onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                  placeholder="+1 (555) 123-4567"
+                  type="text"
+                  autoComplete="name"
+                  value={formData.customerName}
+                  onChange={(e) => handleInputChange('customerName', e.target.value)}
+                  placeholder="John Smith"
                   className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
                   disabled={isSubmitting}
                 />
@@ -161,13 +162,14 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Customer Name
+                  Phone Number <span className="text-red-500">*</span>
                 </label>
                 <input
-                  type="text"
-                  value={formData.customerName}
-                  onChange={(e) => handleInputChange('customerName', e.target.value)}
-                  placeholder="John Smith"
+                  type="tel"
+                  autoComplete="tel"
+                  value={formData.phoneNumber}
+                  onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+                  placeholder="+1 (555) 123-4567"
                   className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
                   disabled={isSubmitting}
                 />
