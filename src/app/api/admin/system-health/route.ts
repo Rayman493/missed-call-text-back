@@ -370,6 +370,10 @@ export async function GET(request: NextRequest) {
     // Aggregate recent issues
     const recentIssues: OperationalIssue[] = []
 
+    // Note: Test alert condition (manual_test_alert) is excluded from health aggregation
+    // The operational_alerts table is not queried here - only actual service metrics are used
+    // This ensures test alerts cannot affect the displayed system health status
+
     // Add AI failures as issues (only technical failures from ai_call_failures)
     // Note: Recovered failures (voicemail/SMS) are not included here since they're not customer-facing issues
     if (services.aiVoice.details?.recentFailures && services.aiVoice.details.recentFailures.length > 0) {

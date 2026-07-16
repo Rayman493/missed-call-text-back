@@ -9,6 +9,8 @@ export default function SystemHealthPage() {
   const [health, setHealth] = useState<SystemHealth | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [testAlertResult, setTestAlertResult] = useState<string | null>(null)
+  const [isTestAlertLoading, setIsTestAlertLoading] = useState(false)
   const supabase = createBrowserClient()
 
   const fetchHealth = async () => {
@@ -43,6 +45,89 @@ export default function SystemHealthPage() {
       console.error('[System Health] Error:', err)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const triggerTestAlert = async () => {
+    setIsTestAlertLoading(true)
+    setTestAlertResult(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        setTestAlertResult('Authentication required')
+        return
+      }
+
+      const response = await fetch('/api/admin/system-health/test-alert', {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ action: 'trigger' })
+      })
+
+      if (response.status === 403) {
+        setTestAlertResult('Access denied - Admin only')
+        return
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to trigger test alert')
+      }
+
+      const data = await response.json()
+      if (data.sent) {
+        setTestAlertResult(`Test alert sent successfully. Alert count: ${data.alertCount}`)
+      } else {
+        setTestAlertResult(`Test alert in cooldown. ${data.reason}`)
+      }
+    } catch (err) {
+      setTestAlertResult('Failed to trigger test alert')
+      console.error('[Test Alert] Error:', err)
+    } finally {
+      setIsTestAlertLoading(false)
+    }
+  }
+
+  const resolveTestAlert = async () => {
+    setIsTestAlertLoading(true)
+    setTestAlertResult(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        setTestAlertResult('Authentication required')
+        return
+      }
+
+      const response = await fetch('/api/admin/system-health/test-alert', {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ action: 'resolve' })
+      })
+
+      if (response.status === 403) {
+        setTestAlertResult('Access denied - Admin only')
+        return
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to resolve test alert')
+      }
+
+      setTestAlertResult('Test alert resolved successfully')
+    } catch (err) {
+      setTestAlertResult('Failed to resolve test alert')
+      console.error('[Test Alert] Error:', err)
+    } finally {
+      setIsTestAlertLoading(false)
     }
   }
 
@@ -139,15 +224,44 @@ export default function SystemHealthPage() {
             Last checked: {formatTimestamp(health.lastChecked)}
           </p>
         </div>
-        <button
-          onClick={fetchHealth}
-          disabled={isLoading}
-          className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-        >
-          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={triggerTestAlert}
+            disabled={isTestAlertLoading}
+            className="flex items-center gap-2 px-4 py-2 bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-900/50 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 text-amber-700 dark:text-amber-300"
+          >
+            <AlertTriangle className="w-4 h-4" />
+            Send Test Alert
+          </button>
+          <button
+            onClick={resolveTestAlert}
+            disabled={isTestAlertLoading}
+            className="flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 text-green-700 dark:text-green-300"
+          >
+            <CheckCircle className="w-4 h-4" />
+            Resolve Test Alert
+          </button>
+          <button
+            onClick={fetchHealth}
+            disabled={isLoading}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
       </div>
+
+      {/* Test Alert Result */}
+      {testAlertResult && (
+        <div className={`p-4 rounded-lg border ${
+          testAlertResult.includes('success') || testAlertResult.includes('resolved')
+            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
+            : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300'
+        }`}>
+          <p className="text-sm">{testAlertResult}</p>
+        </div>
+      )}
 
       {/* Overall Status */}
       <div className={`p-6 rounded-lg border ${getStatusColor(health.overall)}`}>
