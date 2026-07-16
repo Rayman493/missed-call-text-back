@@ -1,4 +1,4 @@
-import { Home, Users, Calendar, CreditCard, Settings, ExternalLink, LogOut, CreditCard as BillingIcon, Voicemail } from 'lucide-react'
+import { Home, Users, Calendar, CreditCard, Settings, ExternalLink, LogOut, CreditCard as BillingIcon, Voicemail, Activity } from 'lucide-react'
 import { LucideIcon } from 'lucide-react'
 
 export interface NavItem {
@@ -15,6 +15,7 @@ export interface AccountMenuItem {
   external?: boolean
   action?: 'billing' | 'signout'
   variant?: 'default' | 'danger'
+  adminOnly?: boolean
 }
 
 export const primaryNavItems: NavItem[] = [
@@ -55,6 +56,12 @@ export const accountMenuItems: AccountMenuItem[] = [
     label: 'Account Settings',
     icon: Settings,
     href: '/dashboard/settings',
+  },
+  {
+    label: 'System Health',
+    icon: Activity,
+    href: '/dashboard/admin/system-health',
+    adminOnly: true,
   },
   {
     label: 'Billing',

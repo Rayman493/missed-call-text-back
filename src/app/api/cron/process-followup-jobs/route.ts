@@ -4,6 +4,7 @@ import { sendSms } from "@/lib/twilio";
 import { isIgnoredContact } from "@/lib/ignored-contacts";
 import { hasBillingAccess } from "@/lib/manual-access";
 import { isCompleteAIIntake } from "@/lib/ai-intake-completion";
+import { verifyCronRequest } from "@/lib/cron-auth";
 
 // Helper function to validate environment variables
 function getRequiredEnvVar(name: string): string {
@@ -22,23 +23,10 @@ const supabase = createClient(
 
 export async function POST(request: Request) {
   try {
-    // Verify CRON_SECRET for cron job protection
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      console.error('[Security] Unauthorized request to /api/cron/process-followup-jobs - missing CRON_SECRET')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const expectedSecret = process.env.CRON_SECRET
-    if (!expectedSecret) {
-      console.error('[Security] CRON_SECRET not configured')
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
-    }
-
-    const providedSecret = authHeader.replace('Bearer ', '')
-    if (providedSecret !== expectedSecret) {
-      console.error('[Security] Invalid CRON_SECRET provided to /api/cron/process-followup-jobs')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // Verify cron secret using shared helper
+    const authResult = verifyCronRequest(request as any)
+    if (!authResult.authorized) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status })
     }
 
     console.log('[Cron] Authorized cron request to /api/cron/process-followup-jobs');

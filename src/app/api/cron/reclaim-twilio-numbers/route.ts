@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { hasActiveManualAccess } from '@/lib/manual-access'
 import { isSystemPhoneNumber } from '@/lib/twilio-assignment'
+import { verifyCronRequest } from '@/lib/cron-auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,18 +15,10 @@ const PROTECTED_TWILIO_NUMBERS = (process.env.PROTECTED_TWILIO_NUMBERS || '').sp
  * Runs daily to release numbers after 30-day grace period
  */
 export async function GET(request: NextRequest) {
-  // Verify cron secret
-  const authHeader = request.headers.get('authorization')
-  const cronSecret = process.env.CRON_SECRET
-
-  if (!cronSecret) {
-    console.error('[TWILIO RECLAIM] CRON_SECRET not configured')
-    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
-  }
-
-  if (authHeader !== `Bearer ${cronSecret}`) {
-    console.error('[TWILIO RECLAIM] Unauthorized cron access attempt')
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // Verify cron secret using shared helper
+  const authResult = verifyCronRequest(request)
+  if (!authResult.authorized) {
+    return NextResponse.json({ error: authResult.error }, { status: authResult.status })
   }
 
   // Check for dry-run mode

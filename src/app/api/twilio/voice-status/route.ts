@@ -1193,6 +1193,67 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
 
       autoReplySent = !!dispatchResult.twilioMessageSid
 
+      // FINAL RECOVERY OUTCOME INSTRUMENTATION
+      // Update final_recovery_outcome based on actual customer-facing result
+      // Monotonic: only moves toward recovery (null → ai_success → voicemail_success → sms_success)
+      if (aiCallRecord) {
+        let finalRecoveryOutcome: string | null = null
+
+        if (aiCallRecord.outcome === 'completed') {
+          // AI successfully handled the call
+          finalRecoveryOutcome = 'ai_success'
+        } else if (autoReplySent) {
+          // SMS was sent - this is the final recovery mechanism
+          finalRecoveryOutcome = 'sms_success'
+        } else if (aiCallRecord.outcome === 'voicemail_fallback') {
+          // Voicemail was used but SMS not sent (yet or failed)
+          finalRecoveryOutcome = 'voicemail_success'
+        } else if (aiCallRecord.outcome === 'ai_failed' || aiCallRecord.outcome === 'caller_hung_up') {
+          // AI failed with no recovery
+          finalRecoveryOutcome = 'unrecovered'
+        }
+
+        // Only update if we have a definitive outcome and it's not already set to a better recovery
+        if (finalRecoveryOutcome) {
+          const currentOutcome = (aiCallRecord as any).final_recovery_outcome
+          
+          // Monotonic update: only upgrade recovery level
+          const recoveryPriority = {
+            'ai_success': 3,
+            'voicemail_success': 2,
+            'sms_success': 1,
+            'unrecovered': 0
+          }
+          
+          const currentPriority = currentOutcome ? recoveryPriority[currentOutcome as keyof typeof recoveryPriority] || 0 : -1
+          const newPriority = recoveryPriority[finalRecoveryOutcome as keyof typeof recoveryPriority] || 0
+          
+          if (newPriority > currentPriority) {
+            try {
+              const { error: updateError } = await supabase
+                .from('ai_call_records')
+                .update({ final_recovery_outcome: finalRecoveryOutcome })
+                .eq('id', aiCallRecord.id)
+
+              if (updateError) {
+                console.error('[FINAL RECOVERY OUTCOME] Failed to update:', updateError)
+              } else {
+                console.log('[FINAL RECOVERY OUTCOME] Updated:', {
+                  callSid: CallSid,
+                  aiCallRecordId: aiCallRecord.id,
+                  previousOutcome: currentOutcome,
+                  newOutcome: finalRecoveryOutcome,
+                  aiOutcome: aiCallRecord.outcome,
+                  smsSent: autoReplySent
+                })
+              }
+            } catch (updateException) {
+              console.error('[FINAL RECOVERY OUTCOME] Exception updating:', updateException)
+            }
+          }
+        }
+      }
+
       console.log('[Twilio Voice Status Webhook] Automatic SMS dispatch result', {
         callSid: CallSid,
         leadId: lead.id,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { verifyCronRequest } from '@/lib/cron-auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,18 +10,10 @@ export const dynamic = 'force-dynamic'
  * Runs daily to move expired reservations to available pool
  */
 export async function GET(request: NextRequest) {
-  // Verify cron secret
-  const authHeader = request.headers.get('authorization')
-  const cronSecret = process.env.CRON_SECRET
-
-  if (!cronSecret) {
-    console.error('[EXPIRED RESERVATIONS] CRON_SECRET not configured')
-    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
-  }
-
-  if (authHeader !== `Bearer ${cronSecret}`) {
-    console.error('[EXPIRED RESERVATIONS] Unauthorized cron access attempt')
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // Verify cron secret using shared helper
+  const authResult = verifyCronRequest(request)
+  if (!authResult.authorized) {
+    return NextResponse.json({ error: authResult.error }, { status: authResult.status })
   }
 
   // Check for dry-run mode

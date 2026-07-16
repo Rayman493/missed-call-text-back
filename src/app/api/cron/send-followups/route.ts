@@ -8,6 +8,7 @@ import { isIgnoredContact } from '@/lib/ignored-contacts'
 import { hasBillingAccess } from '@/lib/manual-access'
 import { promoteLeadToActiveIfNew } from '@/lib/lead-lifecycle'
 import { isCompleteAIIntake } from '@/lib/ai-intake-completion'
+import { verifyCronRequest } from '@/lib/cron-auth'
 
 // Helper function to check if a date is during business hours
 function isDuringBusinessHours(date: Date, timezone: string): boolean {
@@ -59,32 +60,20 @@ const supabase = createClient(
 
 export async function POST(req: NextRequest) {
   try {
-    // Verify CRON_SECRET for cron job protection
-    const { searchParams } = new URL(req.url)
-    const secret = searchParams.get('secret')
-    const authHeader = req.headers.get('authorization')
-    const cronHeader = req.headers.get('x-vercel-cron')
+    // Verify cron secret using shared helper
+    const authResult = verifyCronRequest(req)
+    if (!authResult.authorized) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status })
+    }
 
+    console.log('[Cron] Authorized cron request to /api/cron/send-followups');
+    
+    // Rate limiting check (secret-based)
     const expectedSecret = process.env.CRON_SECRET
     if (!expectedSecret) {
       console.error('[Security] CRON_SECRET not configured')
       return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
     }
-
-    const isAuthorized =
-      cronHeader === '1' ||
-      secret === expectedSecret ||
-      authHeader === `Bearer ${expectedSecret}`
-
-    if (!isAuthorized) {
-      console.error('[Security] Unauthorized request to /api/cron/send-followups')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    console.log('[Cron] Authorized cron request to /api/cron/send-followups');
-    console.log('[cron] Manual trigger authorized:', secret === expectedSecret ? 'true' : 'false'); // Don't log the actual secret
-    
-    // Rate limiting check (secret-based)
     const rateLimitResult = await checkCronRateLimit(expectedSecret);
     if (!rateLimitResult.success) {
       console.warn('[Cron] Rate limit exceeded');
@@ -682,30 +671,13 @@ export async function POST(req: NextRequest) {
 // Also support GET for testing (but it should also process, not just list)
 export async function GET(req: NextRequest) {
   try {
-    // Verify CRON_SECRET for cron job protection
-    const { searchParams } = new URL(req.url)
-    const secret = searchParams.get('secret')
-    const authHeader = req.headers.get('authorization')
-    const cronHeader = req.headers.get('x-vercel-cron')
-
-    const expectedSecret = process.env.CRON_SECRET
-    if (!expectedSecret) {
-      console.error('[Security] CRON_SECRET not configured')
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
-    }
-
-    const isAuthorized =
-      cronHeader === '1' ||
-      secret === expectedSecret ||
-      authHeader === `Bearer ${expectedSecret}`
-
-    if (!isAuthorized) {
-      console.error('[Security] Unauthorized request to /api/cron/send-followups GET')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // Verify cron secret using shared helper
+    const authResult = verifyCronRequest(req)
+    if (!authResult.authorized) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status })
     }
 
     console.log('[Cron] Authorized cron request to /api/cron/send-followups GET');
-    console.log('[cron] Manual trigger authorized:', secret === expectedSecret ? 'true' : 'false'); // Don't log the actual secret
     console.log('[send-followups] GET request - processing follow-ups')
 
     // For GET, also process follow-ups (same logic as POST)

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendOffboardingReminderEmail } from '@/lib/email'
 import { sendSms } from '@/lib/twilio'
+import { verifyCronRequest } from '@/lib/cron-auth'
 
 // Reminder schedule:
 // - Initial: sent immediately upon account deletion (handled in delete account flow)
@@ -14,11 +15,10 @@ const MAX_REMINDERS = 2 // Maximum 2 reminders (total of 3 messages: initial + 2
 
 export async function GET(request: NextRequest) {
   try {
-    // Verify cron secret to prevent unauthorized access
-    const authHeader = request.headers.get('authorization')
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      console.error('[Offboarding Reminders] Unauthorized access attempt')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // Verify cron secret using shared helper
+    const authResult = verifyCronRequest(request)
+    if (!authResult.authorized) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status })
     }
 
     console.log('[Offboarding Reminders] Starting reminder scheduler')

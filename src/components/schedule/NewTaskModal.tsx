@@ -5,6 +5,7 @@ import { X, Calendar, Briefcase, User } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import DatePicker from '@/components/ui/DatePicker'
 import TimePicker from '@/components/ui/TimePicker'
+import { getLeadDisplayName } from '@/lib/utils'
 
 interface Task {
   id: string
@@ -209,10 +210,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
   }
 
   const getLeadName = (lead: Lead) => {
-    if (lead.raw_metadata?.customer_name) {
-      return lead.raw_metadata.customer_name
-    }
-    return lead.caller_phone
+    return getLeadDisplayName(lead)
   }
 
   if (!isOpen) return null

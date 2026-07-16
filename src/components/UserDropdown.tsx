@@ -11,6 +11,7 @@ import { handleBillingAction } from '@/lib/billing'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { ChevronDown, CreditCard, LayoutDashboard, LogOut, MessageCircle, ReceiptText, Settings, User, Home, X } from 'lucide-react'
 import { accountMenuItems } from '@/lib/navigation-config'
+import { isAdmin } from '@/lib/admin'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
 
 export default function UserDropdown() {
@@ -31,11 +32,13 @@ export default function UserDropdown() {
   const currentPlan = business?.subscription_price_id ? 'Paid plan' : business?.subscription_status || 'No plan'
   const trialStatus = business?.trial_ends_at ? `Trial ends ${new Date(business.trial_ends_at).toLocaleDateString()}` : business?.subscription_status || 'No trial active'
   const isHomepage = pathname === '/'
-  const desktopAccountMenuItems = accountMenuItems.map(item => (
-    isHomepage && item.label === 'View Homepage'
-      ? { ...item, label: 'Go to Dashboard', href: '/dashboard', external: false, icon: LayoutDashboard }
-      : item
-  ))
+  const desktopAccountMenuItems = accountMenuItems
+    .filter(item => !item.adminOnly || isAdmin(user?.id))
+    .map(item => (
+      isHomepage && item.label === 'View Homepage'
+        ? { ...item, label: 'Go to Dashboard', href: '/dashboard', external: false, icon: LayoutDashboard }
+        : item
+    ))
 
   // Lock body scroll when Assistant is open
   useEffect(() => {
