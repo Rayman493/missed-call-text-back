@@ -185,9 +185,7 @@ export async function POST(request: Request) {
       priceId: !!priceId,
       priceIdValue: priceId,
       nodeEnv: process.env.NODE_ENV,
-      hasStripeSecretKey: !!stripeSecretKey,
-      stripeSecretKeyPrefix: stripeSecretKey ? stripeSecretKey.substring(0, 8) : null,
-      stripeSecretKeyMode: stripeSecretKey?.startsWith('sk_live_') ? 'live' : stripeSecretKey?.startsWith('sk_test_') ? 'test' : 'unknown'
+      hasStripeSecretKey: !!stripeSecretKey
     });
 
     if (!priceId) {
