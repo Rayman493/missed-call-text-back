@@ -35,6 +35,7 @@ import { getBusinessOnboardingState, BusinessData } from '@/lib/onboarding-state
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { getManualAccessStatus, getManualAccessDisplayInfo } from '@/lib/manual-access'
 import ImportContactsModal from '@/components/ImportContactsModal'
+import FollowUpSettings from '@/components/FollowUpSettings'
 import { getDefaultOutOfOfficeTemplate } from '@/lib/out-of-office'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { CreditCard, Mail, MessageSquare, Trash2, AlertTriangle, FileText, Clock, CheckCircle } from 'lucide-react'
@@ -85,6 +86,9 @@ export default function SettingsContent() {
     showToast(message, 'success')
   }
 
+  // Follow-up settings modal state
+  const [showFollowUpSettings, setShowFollowUpSettings] = useState(false)
+
   // Change password modal state
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
   const [newPassword, setNewPassword] = useState('')
@@ -121,7 +125,7 @@ export default function SettingsContent() {
 
   const supabase = createBrowserClient()
 
-  useBodyScrollLock(showAddModal || showDeleteModal || showChangePasswordModal)
+  useBodyScrollLock(showAddModal || showDeleteModal || showChangePasswordModal || showFollowUpSettings)
 
   // Time input refs for better UX
   const openTimeInputRef = useRef<HTMLInputElement>(null)
@@ -1702,15 +1706,15 @@ export default function SettingsContent() {
                           Schedule follow-up texts for quiet leads.
                         </p>
                       </div>
-                      <Link
-                        href="/dashboard/settings/follow-ups"
+                      <button
+                        onClick={() => setShowFollowUpSettings(true)}
                         className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
                       >
                         Configure
                         <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
-                      </Link>
+                      </button>
                     </div>
                   </div>
 
@@ -2769,6 +2773,15 @@ export default function SettingsContent() {
             isOpen={showImportModal}
             onClose={() => setShowImportModal(false)}
             onImportSuccess={handleImportSuccess}
+          />
+
+          {/* Follow-Up Settings Modal */}
+          <FollowUpSettings
+            isOpen={showFollowUpSettings}
+            onClose={() => setShowFollowUpSettings(false)}
+            onSave={() => {
+              showToast('✓ Settings saved', 'success')
+            }}
           />
 
           {/* Toast Container */}
