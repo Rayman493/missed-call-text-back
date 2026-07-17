@@ -30,6 +30,8 @@ import TodayCommandCenter from '@/components/schedule/TodayCommandCenter'
 import NewTaskModal from '@/components/schedule/NewTaskModal'
 import TasksTab from '@/components/schedule/TasksTab'
 import type { Job, JobStatus, JobPrefill } from '@/components/jobs/JobComposer'
+import { openOAuthFlow } from '@/capacitor/oauth'
+import { isCapacitorNative } from '@/capacitor/init'
 
 interface CalendarEvent {
   id: string
@@ -189,9 +191,17 @@ export default function SchedulePage() {
         throw new Error(errorData.error || 'Failed to initiate Google Calendar connection')
       }
 
-      const data = await response.json()
-      // Redirect to Google OAuth URL
-      window.location.href = data.authUrl
+      const data = await response.json() as { authUrl: string }
+      
+      // Use Capacitor OAuth helper for native environment, standard redirect for web
+      const callbackUrl = `${window.location.origin}/dashboard/calendar?calendar=connected`
+      await openOAuthFlow(data.authUrl, callbackUrl)
+      
+      // Reset connecting state after OAuth flow is initiated
+      // The connection status will be refreshed when the app resumes or when the OAuth callback is handled
+      setTimeout(() => {
+        setIsConnecting(false)
+      }, 2000)
     } catch (error) {
       console.error('Failed to connect calendar:', error)
       showToast('Failed to connect calendar', 'error')
@@ -517,6 +527,46 @@ export default function SchedulePage() {
   useEffect(() => {
     if (business) {
       fetchCalendarStatus()
+    }
+  }, [business])
+
+  // Refresh connection status when app resumes (Capacitor only)
+  useEffect(() => {
+    if (!isCapacitorNative()) return
+
+    const handleAppStateChange = async () => {
+      console.log('[Calendar Page] App resumed, refreshing connection status')
+      await fetchCalendarStatus()
+    }
+
+    // Listen for app state changes
+    const setupAppStateListener = async () => {
+      try {
+        const { App } = await import('@capacitor/app')
+        await App.addListener('appStateChange', async ({ isActive }) => {
+          if (isActive) {
+            console.log('[Calendar Page] App became active')
+            await handleAppStateChange()
+          }
+        })
+      } catch (error) {
+        console.error('[Calendar Page] Failed to set up app state listener:', error)
+      }
+    }
+
+    setupAppStateListener()
+
+    return () => {
+      // Cleanup listener on unmount
+      const removeListener = async () => {
+        try {
+          const { App } = await import('@capacitor/app')
+          await App.removeAllListeners()
+        } catch (error) {
+          console.error('[Calendar Page] Failed to remove app state listener:', error)
+        }
+      }
+      removeListener()
     }
   }, [business])
 

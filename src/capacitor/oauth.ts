@@ -1,31 +1,41 @@
 /**
  * Capacitor OAuth Helper
- * 
+ *
  * This file provides Capacitor-specific OAuth handling for external browser flows.
- * For the initial preview, we'll use the existing web OAuth flows since we're using
- * the hosted approach. This file prepares for future Capacitor Browser plugin integration.
+ * For native environments, uses Capacitor Browser plugin to open OAuth in system browser.
+ * For web environments, uses standard browser navigation.
  */
 
 import { isCapacitorNative } from './init';
 
 /**
  * Open OAuth URL in external browser
- * 
+ *
  * For web: Opens in same window/tab
- * For Capacitor: Will use Capacitor Browser plugin (to be added later)
- * 
+ * For Capacitor: Opens in system browser using Capacitor Browser plugin
+ *
  * @param url - The OAuth URL to open
- * @param callbackUrl - The URL to redirect back to after OAuth completion
+ * @param callbackUrl - The URL to redirect back to after OAuth completion (for deep-link return)
  */
 export async function openOAuthFlow(url: string, callbackUrl: string): Promise<void> {
   console.log('[OAuth] Opening OAuth flow:', { url, callbackUrl, isNative: isCapacitorNative() });
 
   if (isCapacitorNative()) {
-    // TODO: Implement Capacitor Browser plugin integration
-    // For now, use window.open which will open in system browser on mobile
-    console.log('[OAuth] Native environment - would use Capacitor Browser plugin');
-    console.log('[OAuth] Falling back to window.open for now');
-    window.open(url, '_blank');
+    // Native environment: Use Capacitor Browser plugin to open in system browser
+    try {
+      const { Browser } = await import('@capacitor/browser');
+      console.log('[OAuth] Opening in system browser using Capacitor Browser plugin');
+      
+      // Open OAuth URL in system browser
+      await Browser.open({ url });
+      
+      console.log('[OAuth] System browser opened successfully');
+    } catch (error) {
+      console.error('[OAuth] Failed to open system browser:', error);
+      console.log('[OAuth] Falling back to window.open');
+      // Fallback to window.open if Browser plugin fails
+      window.open(url, '_blank');
+    }
   } else {
     // Web: Open in same window
     window.location.href = url;
