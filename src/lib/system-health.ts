@@ -26,6 +26,7 @@ export interface SystemHealth {
     twilioSms: ServiceHealth
     stripe: ServiceHealth
     provisioning: ServiceHealth
+    twilioNumberConsistency: ServiceHealth
   }
   recentIssues: OperationalIssue[]
 }

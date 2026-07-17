@@ -481,7 +481,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-border/50">
+        <div className="px-5 py-3 border-t border-border/50">
           {error && (
             <div className="mb-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
@@ -497,14 +497,14 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                 <button
                   onClick={handleDeleteCancel}
                   disabled={isDeleting}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-2 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDeleteConfirm}
                   disabled={isDeleting}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {isDeleting ? (
                     <>
@@ -526,14 +526,14 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                 <button
                   onClick={handleCancelEdit}
                   disabled={isSaving}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-2 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveChanges}
                   disabled={isSaving}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-2 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {isSaving ? (
                     <>
@@ -553,7 +553,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
             <div className="flex gap-2">
               <button
                 onClick={openGoogleCalendar}
-                className="flex-1 px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 border border-border/50"
+                className="flex-1 px-4 py-2 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 border border-border/50"
               >
                 <ExternalLink className="w-4 h-4" />
                 <span>Open in Google Calendar</span>
@@ -562,14 +562,14 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                 <>
                   <button
                     onClick={handleEditClick}
-                    className="flex-1 px-4 py-2.5 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
+                    className="flex-1 px-4 py-2 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
                   >
                     <Pencil className="w-4 h-4" />
                     <span>Edit</span>
                   </button>
                   <button
                     onClick={handleDeleteClick}
-                    className="px-4 py-2.5 text-sm font-medium bg-red-600/10 hover:bg-red-600/20 text-red-400 hover:text-red-300 rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 border border-red-500/30"
+                    className="px-4 py-2 text-sm font-medium bg-red-600/10 hover:bg-red-600/20 text-red-400 hover:text-red-300 rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 border border-red-500/30"
                   >
                     <Trash2 className="w-4 h-4" />
                     <span>Delete</span>

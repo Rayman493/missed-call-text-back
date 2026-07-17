@@ -243,56 +243,7 @@ export default function TodayCommandCenter({
         </div>
       </div>
 
-      {/* Overdue Tasks */}
-      {overdueTasks.length > 0 && (
-        <div className="bg-card rounded-lg border border-amber-200/70 dark:border-amber-900/30 p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">
-              Overdue Tasks
-            </h3>
-            <span className="text-xs text-amber-600 dark:text-amber-400">
-              ({overdueTasks.length})
-            </span>
-          </div>
-          <div className="space-y-2">
-            {overdueTasks.map(task => (
-              <div
-                key={task.id}
-                className="flex items-start gap-3 p-2 rounded-lg bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/20"
-              >
-                <button
-                  onClick={() => toggleTaskComplete(task.id, task.completed)}
-                  className="mt-0.5 flex-shrink-0 w-5 h-5 rounded border-2 border-amber-400 dark:border-amber-500 hover:bg-amber-200 dark:hover:bg-amber-900/30 transition-colors flex items-center justify-center"
-                >
-                  {task.completed && (
-                    <CheckCircle2 className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-                  )}
-                </button>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-900 dark:text-foreground">
-                    {task.title}
-                  </p>
-                  {task.due_date && (
-                    <p className="text-xs text-amber-600 dark:text-amber-400">
-                      Due {formatDate(task.due_date)}
-                      {task.due_time && ` at ${formatTime(task.due_time)}`}
-                    </p>
-                  )}
-                </div>
-                <button
-                  onClick={() => deleteTask(task.id)}
-                  className="flex-shrink-0 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Today's Tasks */}
+      {/* Today's Tasks - Moved to top for higher visual priority */}
       <div className="bg-card rounded-lg border border-slate-200/70 dark:border-slate-700/50 p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -359,6 +310,55 @@ export default function TodayCommandCenter({
           </div>
         )}
       </div>
+
+      {/* Overdue Tasks - Moved below Today's Tasks */}
+      {overdueTasks.length > 0 && (
+        <div className="bg-card rounded-lg border border-amber-200/70 dark:border-amber-900/30 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">
+              Overdue Tasks
+            </h3>
+            <span className="text-xs text-amber-600 dark:text-amber-400">
+              ({overdueTasks.length})
+            </span>
+          </div>
+          <div className="space-y-2">
+            {overdueTasks.map(task => (
+              <div
+                key={task.id}
+                className="flex items-start gap-3 p-2 rounded-lg bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/20"
+              >
+                <button
+                  onClick={() => toggleTaskComplete(task.id, task.completed)}
+                  className="mt-0.5 flex-shrink-0 w-5 h-5 rounded border-2 border-amber-400 dark:border-amber-500 hover:bg-amber-200 dark:hover:bg-amber-900/30 transition-colors flex items-center justify-center"
+                >
+                  {task.completed && (
+                    <CheckCircle2 className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                  )}
+                </button>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-900 dark:text-foreground">
+                    {task.title}
+                  </p>
+                  {task.due_date && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                      Due {formatDate(task.due_date)}
+                      {task.due_time && ` at ${formatTime(task.due_time)}`}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={() => deleteTask(task.id)}
+                  className="flex-shrink-0 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Today's Schedule */}
       <div className="bg-card rounded-lg border border-slate-200/70 dark:border-slate-700/50 p-4">

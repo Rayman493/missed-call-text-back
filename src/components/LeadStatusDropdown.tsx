@@ -158,19 +158,24 @@ export default function LeadStatusDropdown({
           align="end"
           side="bottom"
           sideOffset={8}
-          collisionPadding={12}
+          collisionPadding={{
+            top: 12,
+            right: 12,
+            bottom: 80, // Account for bottom navigation (64px + safe-area padding)
+            left: 12,
+          }}
           avoidCollisions
-          className="w-[280px] max-w-[calc(100vw-24px)] max-h-[min(420px,calc(100dvh-120px))] bg-card border border-border/50 rounded-lg shadow-xl shadow-black/10 dark:shadow-black/30 overflow-y-auto overscroll-contain z-[10000]"
+          className="w-[280px] max-w-[calc(100vw-24px)] max-h-[min(420px,calc(100dvh-140px))] bg-card border border-border/50 rounded-lg shadow-xl shadow-black/10 dark:shadow-black/30 overflow-y-auto overscroll-contain z-[10000]"
         >
           {allStatuses.map((status: LeadLifecycleStatus) => (
             <DropdownMenuItem
               key={status}
               onSelect={() => handleStatusSelect(status)}
               disabled={isUpdating}
-              className="w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:bg-muted/50 cursor-pointer"
+              className="w-full px-2.5 py-2 text-left hover:bg-muted/50 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:bg-muted/50 cursor-pointer rounded-md"
             >
-              <span className="text-xs">{getStatusIcon(status)}</span>
-              <div className="flex-1">
+              <span className="text-xs flex-shrink-0">{getStatusIcon(status)}</span>
+              <div className="flex-1 min-w-0">
                 <div className="text-xs font-medium text-foreground">
                   {getLeadStatusLabel(status)}
                 </div>

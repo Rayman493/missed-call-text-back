@@ -133,6 +133,7 @@ export default function UserDropdown() {
       const rect = triggerRef.current.getBoundingClientRect()
       const isMobile = window.innerWidth < 640
       const viewportPadding = 12
+      const bottomNavHeight = 80 // Account for bottom navigation (64px + safe-area padding)
 
       const desiredWidth = isMobile ? 320 : 288
       const dropdownWidth = Math.min(
@@ -147,8 +148,17 @@ export default function UserDropdown() {
         window.innerWidth - dropdownWidth - viewportPadding
       )
 
+      // Calculate top position with bottom collision detection
+      const availableHeightBelow = window.innerHeight - rect.bottom - bottomNavHeight
+      const dropdownHeightEstimate = 400 // Estimated max height
+      const shouldPositionAbove = availableHeightBelow < dropdownHeightEstimate && rect.top > dropdownHeightEstimate
+
+      const top = shouldPositionAbove 
+        ? rect.top - dropdownHeightEstimate - 8 
+        : rect.bottom + 8
+
       setDropdownPosition({
-        top: rect.bottom + 8,
+        top,
         left,
         width: dropdownWidth
       })
@@ -166,6 +176,7 @@ export default function UserDropdown() {
         const rect = triggerRef.current.getBoundingClientRect()
         const isMobile = window.innerWidth < 640
         const viewportPadding = 12
+        const bottomNavHeight = 80 // Account for bottom navigation (64px + safe-area padding)
 
         const desiredWidth = isMobile ? 320 : 288
         const dropdownWidth = Math.min(
@@ -180,8 +191,17 @@ export default function UserDropdown() {
           window.innerWidth - dropdownWidth - viewportPadding
         )
 
+        // Calculate top position with bottom collision detection
+        const availableHeightBelow = window.innerHeight - rect.bottom - bottomNavHeight
+        const dropdownHeightEstimate = 400 // Estimated max height
+        const shouldPositionAbove = availableHeightBelow < dropdownHeightEstimate && rect.top > dropdownHeightEstimate
+
+        const top = shouldPositionAbove 
+          ? rect.top - dropdownHeightEstimate - 8 
+          : rect.bottom + 8
+
         setDropdownPosition({
-          top: rect.bottom + 8,
+          top,
           left,
           width: dropdownWidth
         })
@@ -295,23 +315,23 @@ export default function UserDropdown() {
             <div className="h-px bg-border/50" />
 
             {/* Menu items */}
-            <div className="px-2 py-1">
+            <div className="px-1.5 py-1">
               <Link
                 href="/dashboard/settings"
                 role="menuitem"
                 onClick={() => setIsOpen(false)}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+                className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
               >
-                <Settings className="h-4 w-4 text-slate-400" />
+                <Settings className="h-4 w-4 text-slate-400 flex-shrink-0" />
                 Account Settings
               </Link>
               <button
                 type="button"
                 role="menuitem"
                 onClick={handleManageBilling}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+                className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
               >
-                <ReceiptText className="h-4 w-4 text-slate-400" />
+                <ReceiptText className="h-4 w-4 text-slate-400 flex-shrink-0" />
                 Billing
               </button>
               <button
@@ -321,46 +341,46 @@ export default function UserDropdown() {
                   setIsOpen(false)
                   setIsAssistantOpen(true)
                 }}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+                className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
               >
-                <MessageCircle className="h-4 w-4 text-slate-400" />
+                <MessageCircle className="h-4 w-4 text-slate-400 flex-shrink-0" />
                 ReplyFlow Assistant
               </button>
               <Link
                 href={isHomepage ? '/dashboard' : '/'}
                 role="menuitem"
                 onClick={() => setIsOpen(false)}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+                className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
               >
-                <Home className="h-4 w-4 text-slate-400" />
+                <Home className="h-4 w-4 text-slate-400 flex-shrink-0" />
                 {isHomepage ? 'Go to Dashboard' : 'View Homepage'}
               </Link>
             </div>
 
-            <div className="h-px bg-slate-700" />
+            <div className="h-px bg-slate-700 mx-2" />
 
             {/* Danger section */}
-            <div className="px-2 py-1.5">
+            <div className="px-1.5 py-1">
               <button
                 type="button"
                 role="menuitem"
                 onClick={handleSignOut}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-red-400 transition-colors hover:bg-slate-800"
+                className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium text-red-400 transition-colors hover:bg-slate-800"
               >
-                <LogOut className="h-4 w-4" />
+                <LogOut className="h-4 w-4 flex-shrink-0" />
                 Sign Out
               </button>
             </div>
           </div>
 
           {/* Desktop dropdown - portal rendered */}
-          <div ref={desktopDropdownContentRef} className="hidden sm:block fixed z-[1000] bg-card rounded-xl shadow-xl shadow-black/10 dark:shadow-black/30 border border-border/50 py-2 animate-in fade-in slide-in-from-top-2 duration-200" style={dropdownPosition ? {
+          <div ref={desktopDropdownContentRef} className="hidden sm:block fixed z-[1000] bg-card rounded-xl shadow-xl shadow-black/10 dark:shadow-black/30 border border-border/50 py-1.5 animate-in fade-in slide-in-from-top-2 duration-200" style={dropdownPosition ? {
             top: `${dropdownPosition.top}px`,
             left: `${dropdownPosition.left}px`,
             width: `${dropdownPosition.width}px`
           } : undefined}>
             {/* Business Info Section */}
-            <div className="px-4 py-3 border-b border-border/50">
+            <div className="px-3 py-2 border-b border-border/50">
               <p className="text-sm font-semibold text-foreground truncate">
                 {business?.name || 'Business'}
               </p>
@@ -370,7 +390,7 @@ export default function UserDropdown() {
             </div>
 
             {/* Navigation Items */}
-            <div className="py-1">
+            <div className="py-1 px-1">
               {desktopAccountMenuItems.map((item) => {
                 const Icon = item.icon
                 const isDanger = item.variant === 'danger'
@@ -390,22 +410,22 @@ export default function UserDropdown() {
                     key={item.label}
                     href={item.href}
                     onClick={() => setIsOpen(false)}
-                    className="w-full px-4 py-2.5 text-left text-sm text-slate-200 hover:bg-slate-800 transition-colors flex items-center gap-3"
+                    className="w-full px-2.5 py-2 text-left text-sm text-slate-200 hover:bg-slate-800 transition-colors flex items-center gap-2.5 rounded-md"
                   >
-                    <Icon className="w-4 h-4 text-slate-400" />
+                    <Icon className="w-4 h-4 text-slate-400 flex-shrink-0" />
                     {item.label}
                   </Link>
                 ) : (
                   <button
                     key={item.label}
                     onClick={handleClick}
-                    className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-3 ${
+                    className={`w-full px-2.5 py-2 text-left text-sm transition-colors flex items-center gap-2.5 rounded-md ${
                       isDanger
                         ? 'text-red-400 hover:text-red-300 hover:bg-slate-800'
                         : 'text-slate-200 hover:bg-slate-800'
                     }`}
                   >
-                    <Icon className={`w-4 h-4 ${isDanger ? '' : 'text-slate-400'}`} />
+                    <Icon className={`w-4 h-4 flex-shrink-0 ${isDanger ? '' : 'text-slate-400'}`} />
                     {item.label}
                   </button>
                 )
@@ -429,9 +449,9 @@ export default function UserDropdown() {
                         setIsOpen(false)
                         setIsAssistantOpen(true)
                       }}
-                      className="w-full px-4 py-2.5 text-left text-sm text-slate-200 hover:bg-slate-800 transition-colors flex items-center gap-3"
+                      className="w-full px-2.5 py-2 text-left text-sm text-slate-200 hover:bg-slate-800 transition-colors flex items-center gap-2.5 rounded-md"
                     >
-                      <MessageCircle className="w-4 h-4 text-slate-400" />
+                      <MessageCircle className="w-4 h-4 text-slate-400 flex-shrink-0" />
                       ReplyFlow Assistant
                     </button>
                   </div>

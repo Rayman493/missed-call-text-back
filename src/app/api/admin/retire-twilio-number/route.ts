@@ -86,7 +86,9 @@ export async function POST(request: NextRequest) {
         status: 'retired',
         business_id: null, // Unassign from business
         released_at: new Date().toISOString(),
-        last_error: reason || 'Retired by admin'
+        last_error: reason || 'Retired by admin',
+        detached_at: new Date().toISOString(),
+        detached_reason: reason || 'admin_retired'
       })
       .eq('phone_number', phoneNumber)
 

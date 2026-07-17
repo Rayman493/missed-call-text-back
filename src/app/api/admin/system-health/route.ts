@@ -376,6 +376,90 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Twilio Number State Consistency - detect businesses with provisioning_status=completed but inconsistent twilio_numbers
+    try {
+      const { data: inconsistentBusinesses, error: consistencyError } = await supabase
+        .from('businesses')
+        .select(`
+          id,
+          name,
+          twilio_phone_number,
+          twilio_phone_number_sid,
+          provisioning_status,
+          twilio_numbers (
+            id,
+            phone_number,
+            twilio_sid,
+            business_id,
+            status
+          )
+        `)
+        .eq('provisioning_status', 'completed')
+        .not('twilio_phone_number', 'is', null)
+
+      const inconsistentCount = inconsistentBusinesses?.filter(b => {
+        const twilioNumber = b.twilio_numbers?.[0]
+        // Business is inconsistent if:
+        // 1. No twilio_numbers row exists
+        // 2. twilio_numbers row has business_id != business.id
+        // 3. twilio_numbers row has status in ['retired', 'released', 'error', 'failed']
+        // 4. twilio_numbers row has phone_number != business.twilio_phone_number
+        // 5. twilio_numbers row has twilio_sid != business.twilio_phone_number_sid
+        return !twilioNumber ||
+               twilioNumber.business_id !== b.id ||
+               ['retired', 'released', 'error', 'failed'].includes(twilioNumber.status) ||
+               twilioNumber.phone_number !== b.twilio_phone_number ||
+               twilioNumber.twilio_sid !== b.twilio_phone_number_sid
+      }).length || 0
+
+      const inconsistentBusinessesList = inconsistentBusinesses?.filter(b => {
+        const twilioNumber = b.twilio_numbers?.[0]
+        return !twilioNumber ||
+               twilioNumber.business_id !== b.id ||
+               ['retired', 'released', 'error', 'failed'].includes(twilioNumber.status) ||
+               twilioNumber.phone_number !== b.twilio_phone_number ||
+               twilioNumber.twilio_sid !== b.twilio_phone_number_sid
+      }).map(b => ({
+        id: b.id,
+        name: b.name,
+        phone_number: b.twilio_phone_number,
+        twilio_sid: b.twilio_phone_number_sid,
+        twilio_number_status: b.twilio_numbers?.[0]?.status,
+        twilio_number_business_id: b.twilio_numbers?.[0]?.business_id,
+      })) || []
+
+      let consistencyStatus: HealthStatus = 'healthy'
+      let consistencySummary = 'Twilio number state consistent across businesses and inventory'
+
+      if (consistencyError) {
+        consistencyStatus = 'unknown'
+        consistencySummary = 'Unable to determine Twilio number state consistency'
+      } else if (inconsistentCount > 0) {
+        consistencyStatus = 'critical'
+        consistencySummary = `${inconsistentCount} businesses have inconsistent Twilio number state`
+      }
+
+      services.twilioNumberConsistency = {
+        name: 'Twilio Number State Consistency',
+        status: consistencyStatus,
+        summary: consistencySummary,
+        lastActivity: now.toISOString(),
+        failureCount: inconsistentCount,
+        unknownReason: consistencyStatus === 'unknown' && consistencyError ? 'query_error' : undefined,
+        details: {
+          inconsistentBusinesses: inconsistentBusinessesList,
+        },
+      }
+    } catch (e) {
+      services.twilioNumberConsistency = {
+        name: 'Twilio Number State Consistency',
+        status: 'unknown',
+        summary: 'Unable to check Twilio number state consistency',
+        lastActivity: null,
+        unknownReason: 'query_error',
+      }
+    }
+
     // Aggregate recent issues
     const recentIssues: OperationalIssue[] = []
 
@@ -467,6 +551,7 @@ export async function GET(request: NextRequest) {
         twilioSms: services.twilioSms,
         stripe: services.stripe,
         provisioning: services.provisioning,
+        twilioNumberConsistency: services.twilioNumberConsistency,
       },
       recentIssues,
     }
