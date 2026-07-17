@@ -11,6 +11,7 @@ import HomepageInteractiveDemo from '@/components/HomepageInteractiveDemo'
 import HomepageAuthRedirect from '@/components/HomepageAuthRedirect'
 import HomepageCTA from '@/components/HomepageCTA'
 import ScrollAnimation from '@/components/ScrollAnimation'
+import NativeLandingRedirect from '@/components/NativeLandingRedirect'
 
 // Structured Data for Google Search
 function StructuredData() {
@@ -105,6 +106,7 @@ export default async function Home() {
   return (
     <>
       <StructuredData />
+      <NativeLandingRedirect />
       <HomepageAuthRedirect />
       <PageBackground>
         <SSRSafeNavbar forceDark={true} />
