@@ -218,7 +218,9 @@ export default function ConversationComposer({
               onChange={handleTextareaChange}
               onKeyDown={handleKeyDown}
               placeholder="Type a message..."
-              className={`flex-1 px-3 py-2.5 bg-transparent text-slate-100 dark:text-slate-100 resize-none focus:outline-none text-base leading-relaxed h-11 placeholder:text-slate-500 dark:placeholder:text-slate-500 ${
+              autoCapitalize="sentences"
+              autoComplete="off"
+              className={`flex-1 px-3 py-2.5 bg-transparent text-slate-100 dark:text-slate-100 resize-none focus:outline-none text-base leading-relaxed h-11 placeholder:text-slate-500 dark:placeholder:text-slate-500 scrollbar-hide ${
                 isAtMaxHeight ? 'overflow-y-auto' : 'overflow-y-hidden'
               }`}
               rows={1}

@@ -231,7 +231,9 @@ export default function MobileConversationComposer({
                 onKeyDown={handleKeyDown}
                 placeholder="Type a message..."
                 disabled={sending}
-                className={`w-full bg-transparent border-none resize-none focus:outline-none placeholder:text-slate-500 text-base leading-relaxed py-2.5 px-1 max-h-32 text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed ${
+                autoCapitalize="sentences"
+                autoComplete="off"
+                className={`w-full bg-transparent border-none resize-none focus:outline-none placeholder:text-slate-500 text-base leading-relaxed py-2.5 px-1 max-h-32 text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed scrollbar-hide ${
                   isAtMaxHeight ? 'overflow-y-auto' : 'overflow-y-hidden'
                 }`}
                 rows={1}
