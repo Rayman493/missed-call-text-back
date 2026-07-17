@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { X, Calendar, Clock, MapPin, FileText, ExternalLink, Trash2, AlertTriangle, Save, Pencil } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 const supabase = createBrowserClient()
 
@@ -30,6 +31,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
   const [showConfirm, setShowConfirm] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  useBodyScrollLock(isOpen)
   
   // Editable form state
   const [editedSummary, setEditedSummary] = useState(event.summary)

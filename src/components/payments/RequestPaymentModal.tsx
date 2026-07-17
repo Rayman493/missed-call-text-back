@@ -5,6 +5,7 @@ import { X } from 'lucide-react'
 import { formatCurrency, formatPhoneNumber } from '@/lib/utils'
 import { getLeadAIIntake } from '@/lib/ai-field-mapping'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 interface Lead {
   id: string
@@ -49,6 +50,7 @@ export default function RequestPaymentModal({
   const [isCreatingPayment, setIsCreatingPayment] = useState(false)
   const [error, setError] = useState('')
   const [leads, setLeads] = useState<Lead[]>([])
+  useBodyScrollLock(isOpen)
 
   // Determine which payment methods are configured
   const isStripeConfigured = business?.stripe_connect_status === 'connected' && business?.stripe_charges_enabled === true
