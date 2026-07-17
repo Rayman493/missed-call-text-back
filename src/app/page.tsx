@@ -11,7 +11,7 @@ import HomepageInteractiveDemo from '@/components/HomepageInteractiveDemo'
 import HomepageAuthRedirect from '@/components/HomepageAuthRedirect'
 import HomepageCTA from '@/components/HomepageCTA'
 import ScrollAnimation from '@/components/ScrollAnimation'
-import NativeLandingRedirect from '@/components/NativeLandingRedirect'
+import NativeLandingWrapper from '@/components/NativeLandingWrapper'
 
 // Structured Data for Google Search
 function StructuredData() {
@@ -106,10 +106,10 @@ export default async function Home() {
   return (
     <>
       <StructuredData />
-      <NativeLandingRedirect />
-      <HomepageAuthRedirect />
-      <PageBackground>
-        <SSRSafeNavbar forceDark={true} />
+      <NativeLandingWrapper>
+        <HomepageAuthRedirect />
+        <PageBackground>
+          <SSRSafeNavbar forceDark={true} />
 
       {/* Hero Section - SAFE VERSION WITHOUT FRAMER-MOTION */}
       <HomepageErrorBoundary>
@@ -851,6 +851,7 @@ export default async function Home() {
       </HomepageErrorBoundary>
       <Footer />
       </PageBackground>
+      </NativeLandingWrapper>
     </>
   )
 }
