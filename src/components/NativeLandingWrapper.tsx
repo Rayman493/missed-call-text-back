@@ -56,8 +56,8 @@ export default function NativeLandingWrapper({ children }: { children: React.Rea
       console.log('[NativeLandingWrapper] User authenticated, redirecting to /dashboard')
       router.replace('/dashboard')
     } else {
-      console.log('[NativeLandingWrapper] User not authenticated, redirecting to /login')
-      router.replace('/login')
+      console.log('[NativeLandingWrapper] User not authenticated, redirecting to /auth')
+      router.replace('/auth')
     }
   }, [pathname, user, authLoading, router])
 
