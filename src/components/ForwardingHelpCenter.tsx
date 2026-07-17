@@ -229,7 +229,9 @@ export default function ForwardingHelpCenter({ phoneNumber }: ForwardingHelpCent
   const handleOpenDialer = (dialCode: string) => {
     const encodedCode = dialCode.replace(/\*/g, '%2A').replace(/#/g, '%23')
     const telUrl = `tel:${encodedCode}`
-    window.location.href = telUrl
+    // Use window.open with _blank for Capacitor compatibility
+    // Capacitor handles tel: URLs by opening the system dialer
+    window.open(telUrl, '_blank')
   }
 
   const toggleSection = (section: string) => {

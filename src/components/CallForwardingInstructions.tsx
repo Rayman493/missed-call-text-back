@@ -6,6 +6,7 @@ import { X, PhoneForwarded, Phone, Check } from 'lucide-react'
 import Link from 'next/link'
 import ForwardingHelpCenter from './ForwardingHelpCenter'
 import { useAuth } from '@/contexts/AuthContext'
+import { createBrowserClient } from '@/lib/supabase/browser'
 
 interface CallForwardingInstructionsProps {
   phoneNumber: string
@@ -21,6 +22,7 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
   const [alreadyConfirmed, setAlreadyConfirmed] = useState(false)
   const bodyRef = useRef<HTMLDivElement>(null)
   const { user } = useAuth()
+  const supabase = createBrowserClient()
 
   useEffect(() => {
     setMounted(true)
@@ -58,10 +60,19 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
 
     setIsConfirming(true)
     try {
+      // Get Supabase session access token
+      const { data: { session } } = await supabase.auth.getSession()
+      const accessToken = session?.access_token
+
+      if (!accessToken) {
+        console.error('[CallForwardingInstructions] No access token available')
+        return
+      }
+
       const response = await fetch('/api/onboarding/confirm-forwarding-instructions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${await user.getIdToken()}`,
+          'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ businessId }),
@@ -76,6 +87,9 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
         setTimeout(() => {
           onClose()
         }, 500)
+      } else {
+        const errorData = await response.json()
+        console.error('[CallForwardingInstructions] API error:', errorData)
       }
     } catch (error) {
       console.error('[CallForwardingInstructions] Failed to confirm forwarding:', error)
