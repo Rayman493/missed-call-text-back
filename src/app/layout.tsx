@@ -4,6 +4,7 @@ import './globals.css'
 import ProvidersWrapper from '@/components/ProvidersWrapper'
 import GlobalErrorBoundary from '@/components/GlobalErrorBoundary'
 import { CapacitorInitializer } from '@/components/capacitor/CapacitorInitializer'
+import NativeOfflineBoundary from '@/components/NativeOfflineBoundary'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -98,9 +99,11 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} antialiased`}>
         <CapacitorInitializer />
-        <GlobalErrorBoundary>
-          <ProvidersWrapper>{children}</ProvidersWrapper>
-        </GlobalErrorBoundary>
+        <NativeOfflineBoundary>
+          <GlobalErrorBoundary>
+            <ProvidersWrapper>{children}</ProvidersWrapper>
+          </GlobalErrorBoundary>
+        </NativeOfflineBoundary>
       </body>
     </html>
   )
