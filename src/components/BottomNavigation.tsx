@@ -78,10 +78,10 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
         window.innerWidth - dropdownWidth - viewportPadding
       )
 
-      // Estimate dropdown height (3 items + divider ≈ 130px)
-      const estimatedDropdownHeight = 130
-      // Position dropdown 8px above the More button (dropdown bottom = button top - 8px)
-      const spacing = 8
+      // Estimate dropdown height (2 items + divider ≈ 95px)
+      const estimatedDropdownHeight = 95
+      // Position dropdown 12px above the More button (dropdown bottom = button top - 12px)
+      const spacing = 12
       const unclampedTop = rect.top - estimatedDropdownHeight - spacing
 
       // Clamp top to keep dropdown fully visible, but prefer unclamped position
