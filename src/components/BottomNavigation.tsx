@@ -9,6 +9,8 @@ import { Home, Users, Calendar, CreditCard, Settings, ExternalLink, LogOut, X, M
 import { primaryNavItems, accountMenuItems } from '@/lib/navigation-config'
 import { handleBillingAction } from '@/lib/billing'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
+import { Capacitor } from '@capacitor/core'
+import { Browser } from '@capacitor/browser'
 
 interface BottomNavigationProps {
   onLogout?: () => void
@@ -57,6 +59,25 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
       console.error('[MOBILE LOGOUT ERROR] Sign out error:', error)
     }
     setIsMoreMenuOpen(false)
+  }
+
+  const handleViewHomepage = async () => {
+    setIsMoreMenuOpen(false)
+    
+    // Check if running in Capacitor native environment
+    const isNative = Capacitor.isNativePlatform()
+    
+    if (isNative) {
+      // Native: Open external browser with dedicated public marketing route
+      try {
+        await Browser.open({ url: 'https://www.replyflowhq.com/home' })
+      } catch (error) {
+        console.error('[VIEW HOMEPAGE] Failed to open external browser:', error)
+      }
+    } else {
+      // Web: Navigate to root route (existing behavior)
+      router.push('/')
+    }
   }
 
   // Calculate dropdown position when opening
@@ -246,14 +267,13 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
               <Settings className="h-4 w-4 text-slate-400" />
               Settings
             </Link>
-            <Link
-              href="/"
-              onClick={() => setIsMoreMenuOpen(false)}
+            <button
+              onClick={handleViewHomepage}
               className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors duration-150 hover:bg-slate-800 hover:text-white"
             >
               <ExternalLink className="h-4 w-4 text-slate-400" />
               View Homepage
-            </Link>
+            </button>
             <div className="h-px bg-slate-700 my-1" />
             <button
               onClick={handleLogout}
