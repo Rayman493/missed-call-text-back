@@ -75,15 +75,20 @@ export default function AssistantMobileShell({ isOpen, context, onClose }: Assis
   return createPortal(
     <div className="fixed inset-0 z-[100] md:hidden">
       <div className="absolute inset-0 bg-black/55" onClick={onClose} />
-      {/* Bottom sheet: grows upward from bottom, capped by usable viewport height */}
+      {/* Centered sheet with equal top/bottom breathing room inside safe areas */}
       <div
-        className="absolute left-0 right-0 flex flex-col justify-end overflow-hidden"
+        className="absolute inset-0 flex items-center justify-center overflow-hidden"
         style={{
-          bottom: 'env(safe-area-inset-bottom)',
-          maxHeight: 'calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px)',
+          paddingTop: 'calc(env(safe-area-inset-top) + 16px)',
+          paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)',
         }}
       >
-        <div className="bg-white dark:bg-slate-800 rounded-t-2xl shadow-2xl overflow-hidden flex flex-col">
+        <div
+          className="w-full bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+          style={{
+            maxHeight: 'calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 32px)',
+          }}
+        >
           <ReplyFlowAssistant context={context} onClose={onClose} />
         </div>
       </div>
