@@ -242,13 +242,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null)
       setAccessToken(null)
 
-      // Clear push service access token
+      // Clear push service access token and registration state
       if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
         try {
           const { pushService } = await import('@/lib/push-service')
-          pushService.setAccessToken('')
+          pushService.clearRegistrationState()
         } catch (error) {
-          console.error('[Auth] Failed to clear push access token:', error)
+          console.error('[Auth] Failed to clear push registration state:', error)
         }
       }
 

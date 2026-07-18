@@ -29,7 +29,8 @@ export async function initializeCapacitor() {
 
   try {
     // Initialize Status Bar
-    await StatusBar.setStyle({ style: Style.Dark });
+    await StatusBar.setStyle({ style: Style.Dark })
+    console.log('[Capacitor] Status bar configured');
     await StatusBar.setBackgroundColor({ color: '#ffffff' });
     console.log('[Capacitor] Status bar configured');
 

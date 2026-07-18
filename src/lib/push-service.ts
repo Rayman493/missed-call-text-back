@@ -38,7 +38,39 @@ class PushService {
   private currentToken: string | null = null
   private currentPlatform: 'android' | 'ios' | null = null
   private accessToken: string | null = null
-  private registrationAttempted = false
+  private registrationStatus: 'none' | 'in-flight' | 'succeeded' | 'failed' = 'none'
+
+  /**
+   * Check if registration should be attempted
+   */
+  private shouldAttemptRegistration(): boolean {
+    const hasFCMToken = !!this.currentToken
+    const hasAccessToken = !!this.accessToken
+    const hasPlatform = !!this.currentPlatform
+    const canAttempt = this.registrationStatus === 'none' || this.registrationStatus === 'failed'
+
+    console.log('[PUSH SERVICE] Registration check:', {
+      hasFCMToken,
+      hasAccessToken,
+      hasPlatform,
+      registrationStatus: this.registrationStatus,
+      canAttempt
+    })
+
+    return hasFCMToken && hasAccessToken && hasPlatform && canAttempt
+  }
+
+  /**
+   * Attempt registration if conditions are met
+   */
+  private maybeRegisterDevice(): void {
+    if (this.shouldAttemptRegistration()) {
+      console.log('[PUSH SERVICE] Conditions met, attempting registration')
+      this.registerDeviceWithServer(this.currentToken!)
+    } else {
+      console.log('[PUSH SERVICE] Conditions not met for registration')
+    }
+  }
 
   /**
    * Set the authenticated access token from AuthContext
@@ -47,18 +79,12 @@ class PushService {
   setAccessToken(token: string): void {
     console.log('[PUSH SERVICE] setAccessToken called, token present:', token ? 'yes' : 'no')
     console.log('[PUSH SERVICE] FCM token cached:', this.currentToken ? 'yes' : 'no')
+    console.log('[PUSH SERVICE] Current registration status:', this.registrationStatus)
     
     this.accessToken = token
     
-    // If we have both tokens and haven't registered yet, register now
-    if (this.currentToken && this.currentPlatform && token && !this.registrationAttempted) {
-      console.log('[PUSH SERVICE] Both tokens available, triggering registration')
-      this.registerDeviceWithServer(this.currentToken)
-    } else if (!this.currentToken) {
-      console.log('[PUSH SERVICE] FCM token not yet available, will register when received')
-    } else if (this.registrationAttempted) {
-      console.log('[PUSH SERVICE] Registration already attempted, skipping')
-    }
+    // Attempt registration if conditions are met
+    this.maybeRegisterDevice()
   }
 
   /**
@@ -179,16 +205,10 @@ class PushService {
       })
       this.currentToken = token.value
       console.log('[PUSH SERVICE] Access token cached:', this.accessToken ? 'yes' : 'no')
+      console.log('[PUSH SERVICE] Current registration status:', this.registrationStatus)
       
-      // If we have access token, register now
-      if (this.accessToken && !this.registrationAttempted) {
-        console.log('[PUSH SERVICE] Access token available, triggering registration')
-        this.registerDeviceWithServer(token.value)
-      } else if (!this.accessToken) {
-        console.log('[PUSH SERVICE] Access token not yet available, will register when received')
-      } else if (this.registrationAttempted) {
-        console.log('[PUSH SERVICE] Registration already attempted, skipping')
-      }
+      // Attempt registration if conditions are met
+      this.maybeRegisterDevice()
     })
 
     // Listen for registration errors
@@ -227,12 +247,12 @@ class PushService {
     }
 
     // Prevent duplicate registration attempts
-    if (this.registrationAttempted) {
-      console.log('[PUSH SERVICE] Registration already attempted, skipping duplicate')
+    if (this.registrationStatus === 'in-flight') {
+      console.log('[PUSH SERVICE] Registration already in-flight, skipping duplicate')
       return
     }
 
-    this.registrationAttempted = true
+    this.registrationStatus = 'in-flight'
 
     try {
       console.log('[PUSH SERVICE] Server registration started', {
@@ -279,17 +299,20 @@ class PushService {
         if (response.status === 401) {
           console.log('[PUSH SERVICE] User not authenticated, caching token for retry')
           this.currentToken = token // Store token for retry
-          this.registrationAttempted = false // Reset to allow retry
+          this.registrationStatus = 'failed' // Allow retry
+        } else {
+          this.registrationStatus = 'failed' // Allow retry for other errors
         }
       } else {
         const result = await response.json()
         console.log('[PUSH SERVICE] Server registration success:', {
           deviceId: result.device?.id
         })
+        this.registrationStatus = 'succeeded'
       }
     } catch (error) {
       console.error('[PUSH SERVICE] Server registration error:', error)
-      this.registrationAttempted = false // Reset to allow retry on error
+      this.registrationStatus = 'failed' // Allow retry on error
     }
   }
 
@@ -306,6 +329,16 @@ class PushService {
 
     console.log('[PUSH SERVICE] Retrying server registration')
     await this.registerDeviceWithServer(this.currentToken)
+  }
+
+  /**
+   * Clear registration state (called on sign-out)
+   */
+  clearRegistrationState(): void {
+    console.log('[PUSH SERVICE] Clearing registration state')
+    this.registrationStatus = 'none'
+    this.currentToken = null
+    this.accessToken = null
   }
 
   /**

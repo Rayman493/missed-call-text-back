@@ -51,7 +51,21 @@ export async function middleware(req: NextRequest) {
   )
 
   // Get authenticated user for secure identity verification
-  const { data: { user } } = await supabase.auth.getUser()
+  let user: any = null
+  try {
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    user = authUser
+  } catch (error: any) {
+    // Handle stale refresh token errors gracefully
+    if (error?.message?.includes('refresh_token_not_found') || error?.message?.includes('Refresh Token Not Found')) {
+      console.log('[MIDDLEWARE] Stale refresh token detected, clearing auth cookies')
+      // Clear auth cookies by setting them to expire
+      res.cookies.delete('sb-access-token')
+      res.cookies.delete('sb-refresh-token')
+    } else {
+      console.error('[MIDDLEWARE] Session check error:', error)
+    }
+  }
 
   console.log('[MIDDLEWARE SESSION CHECK]', {
     from: pathname + search,
