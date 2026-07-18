@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBusiness } from '@/contexts/BusinessContext'
+import { clearAnonymousAppState } from '@/lib/clear-anonymous-state'
 import BrandIcon from '@/components/BrandIcon'
 import AppBackButton from '@/components/AppBackButton'
 
@@ -222,40 +223,10 @@ export default function CompleteSetupPage() {
           console.error('[CompleteSetup] Supabase sign out error:', signOutError)
         }
         
-        // Clear auth and business caches from local/session storage
+        // Clear all ReplyFlow onboarding/business cached state so a fresh signup
+        // in the same browser cannot inherit stale data.
         if (typeof window !== 'undefined') {
-          const keysToClear = [
-            'replyflow_business_verified',
-            'onboarding_status',
-            'businessSetupPending',
-            'pendingOnboarding',
-            'supabase.auth.token',
-            'sb-' + window.location.hostname + '-auth-token',
-          ]
-          keysToClear.forEach(key => {
-            try {
-              sessionStorage.removeItem(key)
-              localStorage.removeItem(key)
-            } catch (e) {
-              console.error('[CompleteSetup] Error clearing cache key:', key, e)
-            }
-          })
-          
-          // Also clear any Supabase auth keys with common prefixes
-          try {
-            Object.keys(localStorage).forEach(key => {
-              if (key.startsWith('sb-') && key.includes('auth-token')) {
-                localStorage.removeItem(key)
-              }
-            })
-            Object.keys(sessionStorage).forEach(key => {
-              if (key.startsWith('sb-') && key.includes('auth-token')) {
-                sessionStorage.removeItem(key)
-              }
-            })
-          } catch (e) {
-            console.error('[CompleteSetup] Error clearing Supabase auth cache:', e)
-          }
+          clearAnonymousAppState()
         }
         
         // Redirect to homepage

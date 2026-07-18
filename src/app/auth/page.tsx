@@ -363,46 +363,11 @@ function AuthContent() {
 
       console.log('[Auth] Client signed in successfully')
       
-      // Verify business row exists before calling checkout
-      console.log('[Auth] Verifying business row exists before checkout...')
-      const { data: business, error: businessError } = await supabase
-        .from('businesses')
-        .select('*')
-        .eq('user_id', signInData.session.user.id)
-        .maybeSingle()
-      
-      console.log('[Auth] Business verification result:', { business: !!business, businessId: business?.id, error: businessError })
-      
-      if (!business || businessError) {
-        console.error('[Auth] Business row not found after signup - redirecting to onboarding')
-        setError('Account created! Please complete your business profile to continue.')
-        setIsSignIn(true)
-        setLoading(false)
-        setIsSubmitting(false)
-        isSubmittingRef.current = false
-        setIsCreatingCheckout(false)
-        isCreatingCheckoutRef.current = false
-        return
-      }
-
-      // Hard guard: verified business_id must match complete-signup business_id
-      if (business.id !== businessIdFromCompleteSignup) {
-        console.error('[Auth] Business ID mismatch:', { 
-          fromCompleteSignup: businessIdFromCompleteSignup, 
-          fromDatabase: business.id 
-        })
-        setError('Account created but business verification failed. Please sign in to complete your profile.')
-        setIsSignIn(true)
-        setLoading(false)
-        setIsSubmitting(false)
-        isSubmittingRef.current = false
-        setIsCreatingCheckout(false)
-        isCreatingCheckoutRef.current = false
-        return
-      }
-      
-      // Create Stripe Checkout session for trial
-      console.log('[Auth] Starting checkout for verified business_id:', business.id)
+      // The business row was already created atomically by /api/auth/complete-signup.
+      // We avoid a redundant client-side RLS-sensitive lookup here; the checkout
+      // endpoint performs its own service-role lookup and will tell us if the row
+      // is genuinely missing.
+      console.log('[Auth] Starting checkout for business_id from complete-signup:', businessIdFromCompleteSignup)
       
       // Guard against duplicate checkout calls
       if (isCreatingCheckout || isCreatingCheckoutRef.current) {

@@ -132,67 +132,18 @@ export default function OnboardingPage() {
           redirectTarget = '/onboarding/new-onboarding'
           redirectReason = 'Has active subscription, continue setup'
         }
-        // If has number but no active subscription, check profile completeness
-        else if (hasNumber && !hasActiveSub) {
-          if (!profileComplete) {
-            // Business exists but profile incomplete - redirect to onboarding to complete profile
-            console.log('[Onboarding] Business exists but profile incomplete, redirecting to onboarding', { hasName, hasPhone })
-            redirectTarget = '/onboarding'
-            redirectReason = 'Business exists but profile incomplete'
-          } else {
-            // Profile complete, trigger checkout session to resume at Step 2 (payment)
-            const checkoutResponse = await fetch('/api/stripe/create-checkout-session', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                checkout_mode: 'trial',
-              }),
-            })
-
-            if (checkoutResponse.ok) {
-              const checkoutData = await checkoutResponse.json()
-              if (checkoutData.url) {
-                window.location.href = checkoutData.url
-                return
-              }
-            }
-            // If checkout fails, go to dashboard where user can try again
-            redirectTarget = '/dashboard'
-            redirectReason = 'Business exists with number, checkout failed'
-          }
+        // If has business but no active subscription and profile is complete, resume on
+        // the dedicated checkout resume page instead of auto-firing Stripe here.
+        else if (profileComplete && !hasActiveSub) {
+          console.log('[Onboarding] Business profile complete but no active subscription, redirecting to complete-setup')
+          redirectTarget = '/complete-setup'
+          redirectReason = 'Business exists, resume checkout'
         }
-        // If has business but no number and no active subscription, check profile completeness
-        else if (!hasNumber && !hasActiveSub) {
-          if (!profileComplete) {
-            // Business exists but profile incomplete - redirect to onboarding to complete profile
-            console.log('[Onboarding] Business exists but profile incomplete, redirecting to onboarding', { hasName, hasPhone })
-            redirectTarget = '/onboarding'
-            redirectReason = 'Business exists but profile incomplete'
-          } else {
-            // Profile complete, trigger checkout session to resume at Step 2 (payment)
-            const checkoutResponse = await fetch('/api/stripe/create-checkout-session', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                checkout_mode: 'trial',
-              }),
-            })
-
-            if (checkoutResponse.ok) {
-              const checkoutData = await checkoutResponse.json()
-              if (checkoutData.url) {
-                window.location.href = checkoutData.url
-                return
-              }
-            }
-            // If checkout fails, go to dashboard where user can try again
-            redirectTarget = '/dashboard'
-            redirectReason = 'Business exists, checkout failed'
-          }
+        // Business exists but profile incomplete - stay on onboarding to complete profile
+        else if (!profileComplete) {
+          console.log('[Onboarding] Business exists but profile incomplete, staying on onboarding', { hasName, hasPhone })
+          redirectTarget = '/onboarding'
+          redirectReason = 'Business exists but profile incomplete'
         }
         // Otherwise, go to dashboard
         else {
