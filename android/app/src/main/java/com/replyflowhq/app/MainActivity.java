@@ -16,6 +16,7 @@ import android.view.ViewGroup;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import com.getcapacitor.BridgeActivity;
@@ -259,12 +260,17 @@ public class MainActivity extends BridgeActivity {
         iconContainerParams.setMargins(0, 0, 0, 32);
         iconContainer.setLayoutParams(iconContainerParams);
 
-        // Offline icon (using text as placeholder - would use drawable if available)
-        TextView iconText = new TextView(context);
-        iconText.setText("📵");
-        iconText.setTextSize(48);
-        iconText.setGravity(Gravity.CENTER);
-        iconContainer.addView(iconText);
+        // Offline icon using vector drawable
+        ImageView iconView = new ImageView(context);
+        iconView.setImageResource(R.drawable.ic_wifi_off);
+        iconView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(
+            64,
+            64
+        );
+        iconParams.gravity = Gravity.CENTER;
+        iconView.setLayoutParams(iconParams);
+        iconContainer.addView(iconView);
 
         layout.addView(iconContainer, iconContainerParams);
 
