@@ -216,8 +216,8 @@ public class MainActivity extends BridgeActivity {
         logoView.setImageResource(R.drawable.ic_replyflow_logo);
         logoView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         LinearLayout.LayoutParams logoLayoutParams = new LinearLayout.LayoutParams(
-            120,
-            120
+            144,
+            144
         );
         logoLayoutParams.gravity = Gravity.CENTER;
         logoLayoutParams.setMargins(0, 0, 0, 32);
