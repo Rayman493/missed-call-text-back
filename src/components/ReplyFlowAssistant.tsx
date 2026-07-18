@@ -249,7 +249,7 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
   }
 
   return (
-    <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 w-full h-full flex flex-col overflow-hidden ${className}`}>
+    <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 w-full flex flex-col overflow-hidden min-h-0 ${className}`}>
       {/* Sticky Header */}
       <div className="sticky top-0 z-30 bg-white/95 dark:bg-slate-800/95 backdrop-blur border-b border-slate-200/80 dark:border-slate-700/80 p-3 sm:p-4 flex-shrink-0">
         {/* Header */}

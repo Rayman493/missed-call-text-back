@@ -66,21 +66,21 @@ export default function FloatingHelpButton({ context }: FloatingHelpButtonProps)
       {/* Modal */}
       {isOpen && (
         <>
-          {/* Mobile: Bottom sheet with proper scroll structure */}
+          {/* Mobile: Bottom sheet with strict bounded height */}
           <div className="fixed inset-0 z-[9999] flex items-end justify-center md:hidden">
             <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsOpen(false)} style={{ touchAction: 'none' }} />
-            <div className="relative w-full flex flex-col max-h-[calc(100dvh-5rem-env(safe-area-inset-bottom))]">
-              <div className="bg-white dark:bg-slate-800 rounded-t-2xl shadow-2xl overflow-hidden flex flex-col h-full">
+            <div className="relative w-full flex flex-col h-[calc(100dvh-5rem-env(safe-area-inset-bottom))]">
+              <div className="bg-white dark:bg-slate-800 rounded-t-2xl shadow-2xl overflow-hidden flex flex-col min-h-0">
                 <ReplyFlowAssistant context={context} onClose={() => setIsOpen(false)} />
               </div>
             </div>
           </div>
 
-          {/* Desktop: Floating right-side drawer with margins */}
-          <div className="fixed inset-0 z-[9999] hidden md:flex">
+          {/* Desktop: Centered modal */}
+          <div className="fixed inset-0 z-[9999] hidden md:flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsOpen(false)} style={{ touchAction: 'none' }} />
-            <div className="relative m-4 ml-auto flex flex-col max-h-[calc(100vh-2rem)]">
-              <div className="bg-white dark:bg-slate-800 shadow-2xl overflow-hidden flex flex-col h-full w-[420px] max-w-[420px] rounded-2xl">
+            <div className="relative w-full max-w-[480px] max-h-[calc(100dvh-2rem)] flex flex-col">
+              <div className="bg-white dark:bg-slate-800 shadow-2xl overflow-hidden flex flex-col min-h-0 rounded-2xl">
                 <ReplyFlowAssistant context={context} onClose={() => setIsOpen(false)} />
               </div>
             </div>
