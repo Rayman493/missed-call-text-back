@@ -7,6 +7,7 @@ import { hasActiveSubscription, hasActiveTrial, deriveSetupState } from '@/lib/s
 import { CheckCircle, AlertTriangle, ChevronDown, ChevronUp, ArrowRight, Loader2, HelpCircle, X, Phone, RotateCcw } from 'lucide-react'
 import { formatPhoneNumber } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
+import { useBusiness } from '@/contexts/BusinessContext'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
 import AssistantMobileShell from '@/components/AssistantMobileShell'
 import CallForwardingInstructions from '@/components/CallForwardingInstructions'
@@ -43,6 +44,7 @@ export default function SetupStatusCard({
   const [showForwardingInstructions, setShowForwardingInstructions] = useState(false)
   const [expandedStep, setExpandedStep] = useState<number | null>(null)
   const { user } = useAuth()
+  const { refreshBusiness } = useBusiness()
   const setupState = deriveSetupState(business, missedCallCount)
   const hasSubscription = hasActiveSubscription(business)
   
@@ -250,19 +252,14 @@ export default function SetupStatusCard({
       onClose={() => setShowForwardingInstructions(false)}
       businessId={business?.id}
       onConfirm={async () => {
-        // Refresh business data after confirmation
-        if (business?.id) {
-          try {
-            const response = await fetch(`/api/businesses/${business.id}`)
-            if (response.ok) {
-              const data = await response.json()
-              // Trigger a re-render by setting expandedStep
-              setExpandedStep(3)
-            }
-          } catch (error) {
-            console.error('[SetupStatusCard] Failed to refresh business data:', error)
-          }
+        // Refresh authoritative business state from BusinessContext after a successful
+        // forwarding confirmation. A refresh failure must not reverse the confirmed UI state.
+        try {
+          await refreshBusiness(true)
+        } catch (error) {
+          console.error('[SetupStatusCard] Business refresh after forwarding confirmation failed, continuing with confirmed state:', error)
         }
+        setExpandedStep(3)
       }}
     />
   ) : null
@@ -932,30 +929,6 @@ export default function SetupStatusCard({
         )}
       </div>
 
-      {showForwardingInstructions && (
-        <CallForwardingInstructions
-          phoneNumber={business?.twilio_phone_number || ''}
-          isOpen={showForwardingInstructions}
-          onClose={() => setShowForwardingInstructions(false)}
-          businessId={business?.id}
-          onConfirm={async () => {
-            // Refresh business data after confirmation
-            if (business?.id) {
-              try {
-                const response = await fetch(`/api/businesses/${business.id}`)
-                if (response.ok) {
-                  const data = await response.json()
-                  // The parent component will need to update business state
-                  // For now, we'll trigger a re-render by setting expandedStep
-                  setExpandedStep(3)
-                }
-              } catch (error) {
-                console.error('[SetupStatusCard] Failed to refresh business data:', error)
-              }
-            }
-          }}
-        />
-      )}
 
       {isAssistantOpen && (
         <>
