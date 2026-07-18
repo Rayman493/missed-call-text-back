@@ -203,24 +203,24 @@ export default function DatePicker({
       </button>
 
       {isOpen && !disabled && (
-        <div className="absolute z-50 mt-2 bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 w-full max-w-[340px]">
+        <div className="absolute z-50 mt-2 bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 w-[360px] max-w-[calc(100vw-2rem)] sm:w-auto sm:max-w-[420px]">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
+          <div className="flex items-center justify-between px-4 py-3 sm:p-4 border-b border-slate-200 dark:border-slate-700">
             <button
               type="button"
               onClick={() => navigateMonth('prev')}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
               aria-label="Previous month"
             >
               <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
             </button>
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">
+            <h3 className="text-base sm:text-sm font-semibold text-slate-900 dark:text-foreground">
               {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
             </h3>
             <button
               type="button"
               onClick={() => navigateMonth('next')}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
               aria-label="Next month"
             >
               <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
@@ -228,11 +228,11 @@ export default function DatePicker({
           </div>
 
           {/* Day headers */}
-          <div className="grid grid-cols-7 gap-0.5 px-4 pt-4 pb-2">
+          <div className="grid grid-cols-7 gap-1 px-4 pt-3 pb-2">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
               <div 
                 key={day} 
-                className={`text-xs font-semibold text-center py-2 ${
+                className={`text-xs font-semibold text-center py-1.5 ${
                   index === 0 || index === 6
                     ? 'text-slate-400 dark:text-slate-500'
                     : 'text-slate-500 dark:text-slate-400'
@@ -244,14 +244,14 @@ export default function DatePicker({
           </div>
 
           {/* Calendar grid */}
-          <div className="grid grid-cols-7 gap-0.5 px-4 pb-4">
+          <div className="grid grid-cols-7 gap-1 px-4 pb-4">
             {days.map((dayInfo, index) => (
               <button
                 key={index}
                 type="button"
                 onClick={() => dayInfo.isCurrentMonth && selectDate(dayInfo.date)}
                 disabled={!dayInfo.isCurrentMonth}
-                className={`aspect-square flex items-center justify-center text-sm rounded-lg transition-colors ${
+                className={`aspect-square min-w-[40px] min-h-[40px] flex items-center justify-center text-sm rounded-lg transition-colors ${
                   !dayInfo.isCurrentMonth
                     ? 'text-slate-300 dark:text-slate-600 cursor-default'
                     : isSelectedDate(dayInfo.date)
