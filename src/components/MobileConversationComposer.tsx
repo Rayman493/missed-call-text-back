@@ -30,6 +30,42 @@ export default function MobileConversationComposer({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dropZoneRef = useRef<HTMLDivElement>(null)
+  const rowContainerRef = useRef<HTMLDivElement>(null)
+  const sendButtonRef = useRef<HTMLButtonElement>(null)
+
+  // Temporary diagnostics to prove actual rendered path and attributes on Android
+  React.useEffect(() => {
+    const ta = textareaRef.current
+    const row = rowContainerRef.current
+    const send = sendButtonRef.current
+    const attachBtn = fileInputRef.current?.previousElementSibling as HTMLElement | null
+    if (!ta || !row || !send) return
+    const logAttrs = {
+      tagName: ta.tagName,
+      autocapitalize: ta.getAttribute('autocapitalize'),
+      autocorrect: (ta as any).autocorrect ?? ta.getAttribute('autocorrect'),
+      spellcheck: ta.getAttribute('spellcheck'),
+      autocomplete: ta.getAttribute('autocomplete'),
+      inputmode: ta.getAttribute('inputmode'),
+      contentEditable: (ta as any).isContentEditable,
+      disabled: ta.disabled,
+      readOnly: (ta as any).readOnly,
+      className: ta.className,
+    }
+    const widths = {
+      rowWidth: row.getBoundingClientRect().width,
+      paddingLeft: parseFloat(getComputedStyle(row).paddingLeft || '0'),
+      paddingRight: parseFloat(getComputedStyle(row).paddingRight || '0'),
+      gap: parseFloat(getComputedStyle(row).columnGap || '0'),
+      attachBtnWidth: attachBtn ? attachBtn.getBoundingClientRect().width : 0,
+      textareaWrapperWidth: ta.parentElement ? ta.parentElement.getBoundingClientRect().width : 0,
+      sendBtnWidth: send.getBoundingClientRect().width,
+    }
+    // eslint-disable-next-line no-console
+    console.log('[ComposerDiag Mobile] attrs', logAttrs)
+    // eslint-disable-next-line no-console
+    console.log('[ComposerDiag Mobile] widths(px)', widths)
+  }, [])
 
   // Clear images when onClearImages is called
   React.useEffect(() => {
@@ -198,7 +234,7 @@ export default function MobileConversationComposer({
 
           {/* iPhone-style Composer Row */}
           <div
-            ref={dropZoneRef}
+            ref={rowContainerRef}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
             className="flex items-center gap-2 rounded-3xl border border-white/10 bg-white/[0.045] px-2.5 py-3 shadow-[0_1px_0_rgba(255,255,255,0.04),0_12px_36px_rgba(2,6,23,0.32)] transition-all duration-200 focus-within:border-blue-400/40 focus-within:bg-white/[0.065]"
@@ -229,11 +265,12 @@ export default function MobileConversationComposer({
                 value={message}
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
-                placeholder="Type a message..."
+                placeholder="TYPE HERE TEST 7429 - MOBILE"
                 disabled={sending}
                 autoCapitalize="sentences"
                 autoComplete="on"
                 spellCheck={true}
+                data-testid="composer-textarea-mobile"
                 className={`w-full bg-transparent border-none resize-none focus:outline-none placeholder:text-slate-500 text-base leading-relaxed py-2.5 px-1 max-h-32 text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed ${
                   isAtMaxHeight ? 'overflow-y-auto' : 'overflow-y-hidden'
                 }`}
@@ -256,6 +293,7 @@ export default function MobileConversationComposer({
             
             {/* iPhone-style Send Button */}
             <button
+              ref={sendButtonRef}
               onClick={handleSend}
               disabled={sending || !(message.trim() || images.length > 0)}
               className={`flex-shrink-0 w-10 h-10 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center disabled:cursor-not-allowed ${

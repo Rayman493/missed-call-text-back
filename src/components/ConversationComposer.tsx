@@ -28,6 +28,7 @@ export default function ConversationComposer({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dropZoneRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const sendButtonRef = useRef<HTMLButtonElement>(null)
 
   // Clear images when onClearImages is called
   React.useEffect(() => {
@@ -217,7 +218,7 @@ export default function ConversationComposer({
               value={message}
               onChange={handleTextareaChange}
               onKeyDown={handleKeyDown}
-              placeholder="Type a message..."
+              placeholder="TYPE HERE TEST 7429 - DESKTOP"
               autoCapitalize="sentences"
               autoComplete="on"
               spellCheck={true}
@@ -232,8 +233,10 @@ export default function ConversationComposer({
                 msOverflowStyle: 'none'
               }}
               disabled={sending}
+              data-testid="composer-textarea-desktop"
             />
             <button
+              ref={sendButtonRef}
               type="button"
               onClick={handleSend}
               disabled={sending || !hasContent}
