@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 
 interface ModalProps {
@@ -71,13 +72,12 @@ export default function Modal({ isOpen, onClose, children, title, className = ''
 
   if (!isOpen) return null
 
-  return (
+  const modalContent = (
     <div
-      className={`fixed inset-0 z-50 flex ${alignTopOnMobile ? 'items-start md:items-center' : 'items-center'} justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200`}
+      className={`fixed inset-0 z-[60] flex ${alignTopOnMobile ? 'items-start md:items-center' : 'items-center'} justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200`}
       style={alignTopOnMobile ? {
-        // Safe-area aware top/bottom padding to avoid status bar and bottom nav/system nav
+        // Safe-area aware top padding to avoid status bar
         paddingTop: `calc(env(safe-area-inset-top) + ${mobileTopOffsetPx}px)`,
-        paddingBottom: `calc(env(safe-area-inset-bottom) + ${mobileBottomOffsetPx}px)`,
       } : undefined}
       onClick={handleBackdropClick}
     >
@@ -114,4 +114,6 @@ export default function Modal({ isOpen, onClose, children, title, className = ''
       </div>
     </div>
   )
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : null
 }
