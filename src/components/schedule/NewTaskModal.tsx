@@ -255,6 +255,9 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
               placeholder="Add any details about this task..."
               rows={3}
               className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white dark:bg-slate-800 text-slate-900 dark:text-foreground resize-none"
+              autoCapitalize="sentences"
+              autoCorrect="on"
+              spellCheck={true}
             />
           </div>
 

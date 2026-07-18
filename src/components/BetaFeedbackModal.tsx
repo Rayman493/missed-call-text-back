@@ -149,6 +149,9 @@ export default function BetaFeedbackModal({ isOpen, onClose }: BetaFeedbackModal
                 placeholder="Describe your feedback in detail..."
                 required
                 disabled={isSubmitting}
+                autoCapitalize="sentences"
+                autoCorrect="on"
+                spellCheck={true}
               />
             </div>
 

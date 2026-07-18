@@ -248,6 +248,9 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
                   rows={3}
                   className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none resize-none"
                   disabled={isSubmitting}
+                  autoCapitalize="sentences"
+                  autoCorrect="on"
+                  spellCheck={true}
                 />
               </div>
             </div>

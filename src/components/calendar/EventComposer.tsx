@@ -276,6 +276,9 @@ export default function EventComposer({ isOpen, onClose, onSave, selectedDate, p
                 placeholder="Add notes or description..."
                 rows={3}
                 className="w-full pl-10 pr-3 py-2.5 bg-slate-800/50 border border-slate-700/60 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all"
+                autoCapitalize="sentences"
+                autoCorrect="on"
+                spellCheck={true}
               />
             </div>
           </div>

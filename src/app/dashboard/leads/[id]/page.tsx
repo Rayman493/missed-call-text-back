@@ -4217,6 +4217,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   value={leadData?.notes || ''}
                   onChange={(e) => setLeadData((prev: any) => ({ ...prev, notes: e.target.value }))}
                   className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-background resize-none"
+                  autoCapitalize="sentences"
+                  autoCorrect="on"
+                  spellCheck={true}
+                  inputMode="text"
                   rows={3}
                   placeholder="Enter notes about this customer"
                 />

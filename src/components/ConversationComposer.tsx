@@ -218,7 +218,7 @@ export default function ConversationComposer({
               value={message}
               onChange={handleTextareaChange}
               onKeyDown={handleKeyDown}
-              placeholder="TYPE HERE TEST 7429 - DESKTOP"
+              placeholder="Type a message..."
               autoCapitalize="sentences"
               autoComplete="on"
               spellCheck={true}
@@ -233,7 +233,6 @@ export default function ConversationComposer({
                 msOverflowStyle: 'none'
               }}
               disabled={sending}
-              data-testid="composer-textarea-desktop"
             />
             <button
               ref={sendButtonRef}

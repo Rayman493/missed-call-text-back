@@ -431,6 +431,9 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 className="w-full min-h-[80px] px-3 py-2 text-sm font-medium text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
                 rows={3}
                 placeholder="Service requested"
+                autoCapitalize="sentences"
+                autoCorrect="on"
+                spellCheck={true}
               />
             ) : (
               <p className="text-sm font-semibold text-foreground leading-relaxed">
@@ -466,6 +469,9 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                   className="w-full min-h-[120px] px-3 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
                   rows={5}
                   placeholder="Additional details"
+                  autoCapitalize="sentences"
+                  autoCorrect="on"
+                  spellCheck={true}
                 />
               ) : (
                 <p className="text-sm text-foreground leading-relaxed">
@@ -500,6 +506,9 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                       className="w-full min-h-[64px] px-3 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
                       rows={3}
                       placeholder="Service address"
+                      autoCapitalize="sentences"
+                      autoCorrect="on"
+                      spellCheck={true}
                     />
                   ) : (
                     <p className="text-sm text-foreground leading-snug">
@@ -527,6 +536,9 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                     className="w-full min-h-[64px] px-3 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
                     rows={3}
                     placeholder="Best time to call"
+                    autoCapitalize="sentences"
+                    autoCorrect="on"
+                    spellCheck={true}
                   />
                 ) : (
                   <p className="text-sm text-foreground leading-snug">
@@ -553,6 +565,9 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                     className="w-full min-h-[64px] px-3 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
                     rows={3}
                     placeholder="Desired completion"
+                    autoCapitalize="sentences"
+                    autoCorrect="on"
+                    spellCheck={true}
                   />
                 ) : (
                   <p className="text-sm text-foreground leading-snug">
