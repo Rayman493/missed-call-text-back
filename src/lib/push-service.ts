@@ -33,6 +33,8 @@ export interface PushNotification {
 
 class PushService {
   private isInitialized = false
+  private isInitializing = false
+  private listenersSetup = false
   private currentToken: string | null = null
   private currentPlatform: 'android' | 'ios' | null = null
 
@@ -41,47 +43,52 @@ class PushService {
    * This should be called once during app initialization
    */
   async initialize(): Promise<void> {
-    console.log('[PUSH SERVICE] initialize() called')
-    console.log('[PUSH SERVICE] Capacitor.isNativePlatform():', Capacitor.isNativePlatform())
-    console.log('[PUSH SERVICE] Capacitor.getPlatform():', Capacitor.getPlatform())
-    
-    // Only initialize on native platforms
-    if (!Capacitor.isNativePlatform()) {
-      console.log('[PUSH SERVICE] Web platform detected, skipping native push initialization')
+    // Prevent concurrent initialization
+    if (this.isInitializing) {
+      console.log('[PUSH SERVICE] Already initializing, skipping')
       return
     }
 
+    // Prevent re-initialization
     if (this.isInitialized) {
       console.log('[PUSH SERVICE] Already initialized, skipping')
       return
     }
 
+    // Only initialize on native platforms
+    if (!Capacitor.isNativePlatform()) {
+      console.log('[PUSH SERVICE] Web platform, skipping')
+      return
+    }
+
+    this.isInitializing = true
+
     try {
-      console.log('[PUSH SERVICE] Starting native push notification initialization')
-
-      // Determine platform
+      console.log('[PUSH SERVICE] Starting initialization')
       this.currentPlatform = Capacitor.getPlatform() === 'android' ? 'android' : 'ios'
-      console.log('[PUSH SERVICE] Platform determined:', this.currentPlatform)
+      console.log('[PUSH SERVICE] Platform:', this.currentPlatform)
 
-      // Set up listeners FIRST (before registration to catch the token event)
-      console.log('[PUSH SERVICE] Setting up listeners')
-      this.setupListeners()
-      console.log('[PUSH SERVICE] Listeners set up')
+      // Set up listeners only once
+      if (!this.listenersSetup) {
+        console.log('[PUSH SERVICE] Setting up listeners')
+        this.setupListeners()
+        this.listenersSetup = true
+      }
 
       // Request permission
       console.log('[PUSH SERVICE] Requesting permission')
       await this.requestPermission()
-      console.log('[PUSH SERVICE] Permission request completed')
 
       // Register for push notifications
-      console.log('[PUSH SERVICE] Registering for push notifications')
+      console.log('[PUSH SERVICE] Registering')
       await this.register()
-      console.log('[PUSH SERVICE] Registration completed')
 
       this.isInitialized = true
       console.log('[PUSH SERVICE] Initialization complete')
     } catch (error) {
       console.error('[PUSH SERVICE] Initialization failed:', error)
+    } finally {
+      this.isInitializing = false
     }
   }
 
@@ -90,28 +97,28 @@ class PushService {
    */
   async requestPermission(): Promise<boolean> {
     if (!Capacitor.isNativePlatform()) {
-      console.log('[PUSH SERVICE] Web platform, permission request skipped')
+      console.log('[PUSH SERVICE] Web platform, skipping permission')
       return false
     }
 
     try {
-      console.log('[PUSH SERVICE] Checking current permission state')
+      console.log('[PUSH SERVICE] Checking permission state')
       const currentPermissions = await PushNotifications.checkPermissions()
-      console.log('[PUSH SERVICE] Current permission state:', currentPermissions)
+      console.log('[PUSH SERVICE] Current state:', currentPermissions.receive)
 
-      console.log('[PUSH SERVICE] Requesting push permission')
+      console.log('[PUSH SERVICE] Requesting permission')
       const result = await PushNotifications.requestPermissions()
-      console.log('[PUSH SERVICE] Permission request result:', result)
+      console.log('[PUSH SERVICE] Result:', result.receive)
       
       if (result.receive === 'granted') {
         console.log('[PUSH SERVICE] Permission granted')
         return true
       } else {
-        console.log('[PUSH SERVICE] Permission denied or not granted, state:', result.receive)
+        console.log('[PUSH SERVICE] Permission denied')
         return false
       }
     } catch (error) {
-      console.error('[PUSH SERVICE] Permission request failed:', error)
+      console.error('[PUSH SERVICE] Permission failed:', error)
       return false
     }
   }
@@ -221,14 +228,15 @@ class PushService {
   /**
    * Retry device registration after authentication
    * This should be called when the user signs in
+   * Only retries server registration, not the full permission/FCM flow
    */
   async retryRegistration(): Promise<void> {
     if (!this.currentToken || !this.currentPlatform) {
-      console.log('[PUSH SERVICE] No token available for retry')
+      console.log('[PUSH SERVICE] No token for retry')
       return
     }
 
-    console.log('[PUSH SERVICE] Retrying device registration after authentication')
+    console.log('[PUSH SERVICE] Retrying server registration')
     await this.registerDeviceWithServer(this.currentToken)
   }
 

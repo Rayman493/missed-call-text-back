@@ -22,6 +22,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [isClient, setIsClient] = useState(false)
   const authSubscriptionRef = useRef<any>(null)
+  const pushRetryRef = useRef(false)
   const router = useRouter()
   const pathname = usePathname()
   const initialLoadRef = useRef(true)
@@ -94,13 +95,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (typeof window !== 'undefined') {
             sessionStorage.setItem('replyflow_auth_cache', 'authenticated')
           }
-          // Retry push device registration after authentication
-          if (typeof window !== 'undefined' && (window as any).Capacitor?.isNative) {
+          // Retry push device registration after authentication (only once)
+          if (typeof window !== 'undefined' && (window as any).Capacitor?.isNative && !pushRetryRef.current) {
+            pushRetryRef.current = true
             try {
               const { pushService } = await import('@/lib/push-service')
               await pushService.retryRegistration()
             } catch (error) {
-              console.error('[Auth] Push registration retry failed:', error)
+              console.error('[Auth] Push retry failed:', error)
             }
           }
         } else {
@@ -110,6 +112,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (typeof window !== 'undefined') {
             sessionStorage.removeItem('replyflow_auth_cache')
           }
+          // Reset push retry flag on sign out
+          pushRetryRef.current = false
         }
       })
     }

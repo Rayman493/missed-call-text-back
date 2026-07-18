@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { initializeCapacitor, isCapacitorNative } from '@/capacitor/init';
 
 /**
@@ -13,13 +13,17 @@ import { initializeCapacitor, isCapacitorNative } from '@/capacitor/init';
  * Does nothing when running in a regular web browser.
  */
 export function CapacitorInitializer() {
-  const [retryCount, setRetryCount] = useState(0);
+  const initializedRef = useRef(false);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Initialize Capacitor only in native environment
+    // Prevent multiple initialization attempts
+    if (initializedRef.current) {
+      return;
+    }
+
     const init = async () => {
-      console.log('[CapacitorInitializer] Component mounted, checking platform');
-      console.log('[CapacitorInitializer] window.Capacitor:', (window as any).Capacitor);
+      console.log('[CapacitorInitializer] Checking platform');
       
       // Wait for Capacitor to be available (it might load asynchronously)
       const maxRetries = 5;
@@ -30,21 +34,21 @@ export function CapacitorInitializer() {
         console.log('[CapacitorInitializer] isCapacitorNative():', isNative, 'attempt:', currentRetry + 1);
         
         if (isNative) {
-          console.log('[CapacitorInitializer] Initializing Capacitor in native environment');
+          console.log('[CapacitorInitializer] Initializing Capacitor');
+          initializedRef.current = true;
           try {
             await initializeCapacitor();
-            console.log('[CapacitorInitializer] Capacitor initialization completed');
+            console.log('[CapacitorInitializer] Initialization completed');
           } catch (error) {
-            console.error('[CapacitorInitializer] Capacitor initialization failed:', error);
+            console.error('[CapacitorInitializer] Initialization failed:', error);
           }
         } else if (currentRetry < maxRetries) {
           // Capacitor might not be ready yet, retry
           currentRetry++;
-          setRetryCount(currentRetry);
-          console.log('[CapacitorInitializer] Capacitor not ready, retrying in 100ms...');
-          setTimeout(checkAndInit, 100);
+          console.log('[CapacitorInitializer] Retrying in 100ms...');
+          timerRef.current = setTimeout(checkAndInit, 100);
         } else {
-          console.log('[CapacitorInitializer] Max retries reached, running in web browser or Capacitor not available');
+          console.log('[CapacitorInitializer] Max retries reached, web mode');
         }
       };
 
@@ -52,7 +56,15 @@ export function CapacitorInitializer() {
     };
 
     init();
-  }, [retryCount]);
+
+    // Cleanup timer on unmount
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, []); // Empty dependency array - run once on mount
 
   // This component doesn't render anything
   return null;
