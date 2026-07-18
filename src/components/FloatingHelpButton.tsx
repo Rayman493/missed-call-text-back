@@ -17,15 +17,17 @@ export default function FloatingHelpButton({ context }: FloatingHelpButtonProps)
   // Lock body scroll when modal is open
   useEffect(() => {
     if (isOpen) {
+      const originalBodyOverflow = document.body.style.overflow
+      const originalHtmlOverflow = document.documentElement.style.overflow
+      const originalBodyTouchAction = document.body.style.touchAction
       document.body.style.overflow = 'hidden'
+      document.documentElement.style.overflow = 'hidden'
       document.body.style.touchAction = 'none'
-    } else {
-      document.body.style.overflow = ''
-      document.body.style.touchAction = ''
-    }
-    return () => {
-      document.body.style.overflow = ''
-      document.body.style.touchAction = ''
+      return () => {
+        document.body.style.overflow = originalBodyOverflow
+        document.documentElement.style.overflow = originalHtmlOverflow
+        document.body.style.touchAction = originalBodyTouchAction
+      }
     }
   }, [isOpen])
 
@@ -64,21 +66,21 @@ export default function FloatingHelpButton({ context }: FloatingHelpButtonProps)
       {/* Modal */}
       {isOpen && (
         <>
-          {/* Mobile: Bottom sheet with proper safe-area handling */}
+          {/* Mobile: Bottom sheet with proper scroll structure */}
           <div className="fixed inset-0 z-[9999] flex items-end justify-center md:hidden">
             <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsOpen(false)} style={{ touchAction: 'none' }} />
-            <div className="relative w-full flex flex-col">
-              <div className="bg-white dark:bg-slate-800 rounded-t-2xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-5rem-env(safe-area-inset-bottom))]">
+            <div className="relative w-full flex flex-col max-h-[calc(100dvh-5rem-env(safe-area-inset-bottom))]">
+              <div className="bg-white dark:bg-slate-800 rounded-t-2xl shadow-2xl overflow-hidden flex flex-col h-full">
                 <ReplyFlowAssistant context={context} onClose={() => setIsOpen(false)} />
               </div>
             </div>
           </div>
 
-          {/* Desktop: Right-side drawer */}
+          {/* Desktop: Floating right-side drawer with margins */}
           <div className="fixed inset-0 z-[9999] hidden md:flex">
             <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsOpen(false)} style={{ touchAction: 'none' }} />
-            <div className="relative ml-auto flex flex-col h-full">
-              <div className="bg-white dark:bg-slate-800 shadow-2xl overflow-hidden flex flex-col h-full w-[420px] max-w-[420px]">
+            <div className="relative m-4 ml-auto flex flex-col max-h-[calc(100vh-2rem)]">
+              <div className="bg-white dark:bg-slate-800 shadow-2xl overflow-hidden flex flex-col h-full w-[420px] max-w-[420px] rounded-2xl">
                 <ReplyFlowAssistant context={context} onClose={() => setIsOpen(false)} />
               </div>
             </div>
