@@ -51,7 +51,16 @@ export default function AchievementsModal({ isOpen, onClose, achievements }: Ach
   }, [achievements, activeCategory])
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="All Achievements" className="max-w-2xl">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="All Achievements"
+      className="max-w-2xl"
+      alignTopOnMobile
+      mobileTopOffsetPx={20}
+      mobileBottomOffsetPx={96}
+      contentMaxHeight="calc(100dvh - (env(safe-area-inset-top) + 20px) - (env(safe-area-inset-bottom) + 96px) - 24px)"
+    >
       <div className="px-5 py-4 border-b border-border/50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">

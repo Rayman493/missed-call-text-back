@@ -9,9 +9,16 @@ interface ModalProps {
   children: React.ReactNode
   title?: string
   className?: string
+  // When true, aligns modal to the top on small screens with safe-area aware padding.
+  alignTopOnMobile?: boolean
+  // Optional pixel offsets to fine-tune top/bottom spacing on mobile (excluding safe areas).
+  mobileTopOffsetPx?: number
+  mobileBottomOffsetPx?: number
+  // Optional override for internal scroll container max-height CSS value.
+  contentMaxHeight?: string
 }
 
-export default function Modal({ isOpen, onClose, children, title, className = '' }: ModalProps) {
+export default function Modal({ isOpen, onClose, children, title, className = '', alignTopOnMobile = false, mobileTopOffsetPx = 16, mobileBottomOffsetPx = 80, contentMaxHeight }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null)
   const previousScrollPosition = useRef<number>(0)
 
@@ -66,7 +73,12 @@ export default function Modal({ isOpen, onClose, children, title, className = ''
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+      className={`fixed inset-0 z-50 flex ${alignTopOnMobile ? 'items-start md:items-center' : 'items-center'} justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200`}
+      style={alignTopOnMobile ? {
+        // Safe-area aware top/bottom padding to avoid status bar and bottom nav/system nav
+        paddingTop: `calc(env(safe-area-inset-top) + ${mobileTopOffsetPx}px)`,
+        paddingBottom: `calc(env(safe-area-inset-bottom) + ${mobileBottomOffsetPx}px)`,
+      } : undefined}
       onClick={handleBackdropClick}
     >
       <div
@@ -96,7 +108,7 @@ export default function Modal({ isOpen, onClose, children, title, className = ''
           </div>
         )}
         
-        <div className="overflow-y-auto flex-1" style={{ maxHeight: 'calc(100dvh-8rem)' }}>
+        <div className="overflow-y-auto flex-1" style={{ maxHeight: contentMaxHeight || 'calc(100dvh-8rem)' }}>
           {children}
         </div>
       </div>
