@@ -10,6 +10,7 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import { Keyboard } from '@capacitor/keyboard';
 import { Preferences } from '@capacitor/preferences';
 import { SplashScreen } from '@capacitor/splash-screen';
+import { Capacitor } from '@capacitor/core';
 import { pushService } from '@/lib/push-service';
 
 /**
@@ -17,8 +18,8 @@ import { pushService } from '@/lib/push-service';
  */
 export async function initializeCapacitor() {
   // Only initialize if running in Capacitor native environment
-  const isCapacitor = (window as any).Capacitor?.isNative;
-  
+  const isCapacitor = Capacitor.isNativePlatform();
+
   if (!isCapacitor) {
     console.log('[Capacitor] Not running in native environment, skipping initialization');
     return;
@@ -137,14 +138,14 @@ function handleBackButton(canGoBack: boolean) {
  * Check if running in Capacitor native environment
  */
 export function isCapacitorNative(): boolean {
-  return (window as any).Capacitor?.isNative === true;
+  return Capacitor.isNativePlatform();
 }
 
 /**
  * Get Capacitor platform (android, ios, web)
  */
 export function getCapacitorPlatform(): string {
-  return (window as any).Capacitor?.getPlatform() || 'web';
+  return Capacitor.getPlatform() || 'web';
 }
 
 /**

@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { Capacitor } from '@capacitor/core'
 import { pushService } from '@/lib/push-service'
 
 const supabase = createBrowserClient()
@@ -96,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             sessionStorage.setItem('replyflow_auth_cache', 'authenticated')
           }
           // Retry push device registration after authentication (only once)
-          if (typeof window !== 'undefined' && (window as any).Capacitor?.isNative && !pushRetryRef.current) {
+          if (typeof window !== 'undefined' && Capacitor.isNativePlatform() && !pushRetryRef.current) {
             pushRetryRef.current = true
             try {
               const { pushService } = await import('@/lib/push-service')
