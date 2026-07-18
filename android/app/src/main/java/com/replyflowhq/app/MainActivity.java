@@ -52,6 +52,8 @@ public class MainActivity extends BridgeActivity {
 
         // Get the Capacitor WebView
         webView = getBridge().getWebView();
+        boolean captureInput = getBridge().getConfig().isInputCaptured();
+        Log.i("ReplyFlowIME", "captureInput=" + captureInput + ", webViewClass=" + (webView != null ? webView.getClass().getName() : "null"));
 
         // Check network connectivity at startup
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
