@@ -75,17 +75,17 @@ export default async function Home() {
     }
   )
 
-  const { data, error } = await supabase.auth.getSession()
-  const session = data?.session
+  const { data: userData, error: userError } = await supabase.auth.getUser()
+  const user = userData?.user
 
   // If user is signed in, check if they have an incomplete signup business
   // If business exists but subscription_status is null, redirect to /complete-setup
-  if (session?.user) {
+  if (user) {
     try {
       const { data: business, error: businessError } = await supabase
         .from('businesses')
         .select('id, subscription_status')
-        .eq('user_id', session.user.id)
+        .eq('user_id', user.id)
         .limit(1)
         .maybeSingle()
 

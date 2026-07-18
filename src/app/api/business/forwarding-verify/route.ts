@@ -22,10 +22,10 @@ export async function POST(request: NextRequest) {
       }
     )
     
-    // Get user session
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    // Get authenticated user
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
 
-    if (sessionError || !session) {
+    if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     const { data: business, error: businessError } = await supabase
       .from('businesses')
       .select('id, forwarding_verified')
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .single()
 
     if (businessError || !business) {
@@ -93,10 +93,10 @@ export async function GET(request: NextRequest) {
       }
     )
     
-    // Get user session
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    // Get authenticated user
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
 
-    if (sessionError || !session) {
+    if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
     const { data: business, error: businessError } = await supabase
       .from('businesses')
       .select('forwarding_verified')
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .single()
 
     if (businessError || !business) {

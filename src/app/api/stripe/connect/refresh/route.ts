@@ -15,21 +15,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Stripe is not configured' }, { status: 500 })
     }
 
-    // Get user from session using server client
+    // Get authenticated user using secure getUser()
     const supabase = createServerSupabaseClient()
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
 
-    if (sessionError) {
-      console.error('[STRIPE CONNECT REFRESH] Session error:', sessionError)
+    if (userError || !user) {
+      console.error('[STRIPE CONNECT REFRESH] Auth user error:', userError)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!session) {
-      console.log('[STRIPE CONNECT REFRESH] No session found')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    console.log('[STRIPE CONNECT REFRESH] Authenticated user:', session.user.id)
+    console.log('[STRIPE CONNECT REFRESH] Authenticated user:', user.id)
 
     // Get business_id from request body
     const body = await request.json()
@@ -44,7 +39,7 @@ export async function POST(request: Request) {
       .from('businesses')
       .select('id, user_id, stripe_connect_account_id')
       .eq('id', business_id)
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .single()
 
     if (businessError || !business) {

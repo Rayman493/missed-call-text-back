@@ -66,15 +66,15 @@ export async function GET(request: Request) {
       await supabase.auth.exchangeCodeForSession(code)
       console.log('[Auth Callback] Auth session established successfully')
       
-      // Get the user's session to fetch their business
-      const { data: { session } } = await supabase.auth.getSession()
+      // Get authenticated user to fetch their business
+      const { data: { user } } = await supabase.auth.getUser()
       
-      if (session?.user) {
+      if (user) {
         console.log('[ROUTING AUDIT DEBUG]', {
           location: 'auth/callback/route.ts',
           guardName: 'AuthCallback',
           currentPath: '/auth/callback',
-          userId: session.user.id,
+          userId: user.id,
           sessionExists: true,
           authLoading: false,
           businessLoading: 'fetching...',
@@ -93,7 +93,7 @@ export async function GET(request: Request) {
           const { data, error } = await supabase
             .from('businesses')
             .select('id, twilio_phone_number, onboarding_status')
-            .eq('user_id', session.user.id)
+            .eq('user_id', user.id)
             .single()
           business = data
           businessError = error
@@ -113,7 +113,7 @@ export async function GET(request: Request) {
           
           console.log('[POST LOGIN BUSINESS QUERY]', {
             location: 'src/app/auth/callback/route.ts',
-            userId: session.user.id,
+            userId: user.id,
             sessionExists: true,
             businessFound: !!business,
             businessId: business?.id,
@@ -127,7 +127,7 @@ export async function GET(request: Request) {
             functionName: 'GET handler',
             currentPath: '/auth/callback',
             redirectTarget,
-            userId: session.user.id,
+            userId: user.id,
             sessionExists: true,
             authLoading: false,
             businessLoading: 'complete',
@@ -145,7 +145,7 @@ export async function GET(request: Request) {
             location: 'auth/callback/route.ts',
             guardName: 'AuthCallback',
             currentPath: '/auth/callback',
-            userId: session.user.id,
+            userId: user.id,
             sessionExists: true,
             authLoading: false,
             businessLoading: 'complete',
@@ -168,7 +168,7 @@ export async function GET(request: Request) {
           functionName: 'GET handler',
           currentPath: '/auth/callback',
           redirectTarget,
-          userId: session.user.id,
+          userId: user.id,
           sessionExists: true,
           authLoading: false,
           businessLoading: 'complete',
@@ -186,7 +186,7 @@ export async function GET(request: Request) {
           location: 'auth/callback/route.ts',
           guardName: 'AuthCallback',
           currentPath: '/auth/callback',
-          userId: session.user.id,
+          userId: user.id,
           sessionExists: true,
           authLoading: false,
           businessLoading: 'complete',
