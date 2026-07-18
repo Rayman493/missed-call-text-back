@@ -27,6 +27,7 @@ public class MainActivity extends BridgeActivity {
     private WebView webView;
     private ConnectivityManager.NetworkCallback networkCallback;
     private boolean isWaitingForNetwork = false;
+    private String appUrl;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -46,13 +47,28 @@ public class MainActivity extends BridgeActivity {
 
         // Get the Capacitor WebView
         webView = getBridge().getWebView();
+        appUrl = webView.getUrl();
+
+        // Check network connectivity BEFORE WebView starts loading
+        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        boolean hasValidatedNetwork = isNetworkAvailable(connectivityManager);
+
+        if (!hasValidatedNetwork) {
+            // Hide WebView immediately to prevent raw error page from showing
+            webView.setVisibility(View.GONE);
+            showOfflineScreen();
+            isWaitingForNetwork = true;
+        }
 
         // Set custom WebViewClient to handle load errors
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
-                // Show offline screen on load errors
-                showOfflineScreen();
+                // Only show offline screen if we're not already waiting for network
+                // This prevents showing offline screen after network has recovered but load failed
+                if (!isWaitingForNetwork) {
+                    showOfflineScreen();
+                }
             }
 
             @Override
@@ -63,7 +79,7 @@ public class MainActivity extends BridgeActivity {
             }
         });
 
-        // Check network connectivity at startup and set up network callback
+        // Set up network callback to detect connectivity changes
         setupNetworkMonitoring();
     }
 
@@ -74,27 +90,21 @@ public class MainActivity extends BridgeActivity {
             return;
         }
 
-        // Check initial connectivity
-        if (!isNetworkAvailable(connectivityManager)) {
-            // Show offline screen immediately if no network at startup
-            showOfflineScreen();
-            isWaitingForNetwork = true;
-        }
-
         // Set up network callback to detect connectivity changes
         NetworkRequest networkRequest = new NetworkRequest.Builder()
             .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
             .build();
 
         networkCallback = new ConnectivityManager.NetworkCallback() {
             @Override
             public void onAvailable(Network network) {
-                // Network became available
+                // Network became available with validated internet access
                 if (isWaitingForNetwork) {
                     isWaitingForNetwork = false;
                     runOnUiThread(() -> {
                         hideOfflineScreen();
-                        webView.reload();
+                        loadAppUrl();
                     });
                 }
             }
@@ -102,11 +112,20 @@ public class MainActivity extends BridgeActivity {
             @Override
             public void onLost(Network network) {
                 // Network lost - show offline screen
+                isWaitingForNetwork = true;
                 runOnUiThread(() -> showOfflineScreen());
             }
         };
 
         connectivityManager.registerNetworkCallback(networkRequest, networkCallback);
+    }
+
+    private void loadAppUrl() {
+        if (appUrl != null && !appUrl.isEmpty()) {
+            webView.loadUrl(appUrl);
+        } else {
+            webView.reload();
+        }
     }
 
     private boolean isNetworkAvailable(ConnectivityManager connectivityManager) {
@@ -117,7 +136,8 @@ public class MainActivity extends BridgeActivity {
             }
             NetworkCapabilities capabilities = connectivityManager.getNetworkCapabilities(network);
             return capabilities != null &&
-                   capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+                   capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                   capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
         } else {
             // Fallback for older Android versions
             android.net.NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
@@ -244,8 +264,8 @@ public class MainActivity extends BridgeActivity {
             LinearLayout.LayoutParams.WRAP_CONTENT
         );
         retryButton.setOnClickListener(v -> {
-            // Reload the WebView
-            webView.reload();
+            // Reload the WebView using the safe loadAppUrl method
+            loadAppUrl();
         });
         layout.addView(retryButton, buttonParams);
 
