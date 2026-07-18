@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     const { data: business, error: businessError } = await supabaseAdmin
       .from('businesses')
       .select('id')
-      .eq('owner_id', user.id)
+      .eq('user_id', user.id)
       .single()
 
     if (businessError || !business) {
