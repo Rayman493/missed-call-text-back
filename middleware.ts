@@ -50,13 +50,13 @@ export async function middleware(req: NextRequest) {
     }
   )
 
-  // Refresh session if expired
-  const { data: { session } } = await supabase.auth.getSession()
+  // Get authenticated user for secure identity verification
+  const { data: { user } } = await supabase.auth.getUser()
 
   console.log('[MIDDLEWARE SESSION CHECK]', {
     from: pathname + search,
-    hasSession: !!session,
-    userId: session?.user?.id,
+    hasUser: !!user,
+    userId: user?.id,
     method: req.method,
     hasCheckoutSuccess,
     isMobile,
@@ -65,7 +65,7 @@ export async function middleware(req: NextRequest) {
 
   console.log('[MIDDLEWARE REQUEST ANALYSIS]', {
     pathname,
-    hasSession: !!session,
+    hasUser: !!user,
     method: req.method,
     hasCheckoutSuccess,
     isBillingReturn,
@@ -93,7 +93,7 @@ export async function middleware(req: NextRequest) {
   if (isPublicRoute) {
     console.log('[PUBLIC ROUTE ALLOWED]', {
       pathname,
-      hasSession: !!session,
+      hasUser: !!user,
       reason: 'Route is in publicRoutes allowlist'
     })
     return res
@@ -103,18 +103,18 @@ export async function middleware(req: NextRequest) {
   const authRoutes = ['/signup', '/login', '/auth/signin', '/auth/signup']
   const isAuthRoute = authRoutes.some(route => pathname === route || pathname === route + '/')
 
-  if (isAuthRoute && session) {
+  if (isAuthRoute && user) {
     console.log('[Middleware] Authenticated user on auth page, redirecting to dashboard')
     return NextResponse.redirect(new URL('/dashboard', req.url))
   }
 
   // Special handling for homepage - redirect authenticated users
   if (pathname === '/') {
-    if (session) {
+    if (user) {
       console.log('[MIDDLEWARE REDIRECT SIGNED IN TO DASHBOARD]', {
         pathname,
-        hasSession: !!session,
-        userId: session?.user?.id
+        hasUser: !!user,
+        userId: user?.id
       })
       
       // Check for last visited dashboard route from cookie
@@ -139,7 +139,7 @@ export async function middleware(req: NextRequest) {
     // Not authenticated - allow homepage access
     console.log('[ROUTE CHECK]', {
       pathname,
-      hasSession: !!session,
+      hasUser: !!user,
       action: 'Allowing homepage access for unauthenticated user'
     })
     return res
@@ -163,7 +163,7 @@ export async function middleware(req: NextRequest) {
       search,
       isBillingReturn,
       hasStripeSession,
-      hasSession: !!session,
+      hasUser: !!user,
       isMobile,
       timestamp: new Date().toISOString()
     })
@@ -174,11 +174,11 @@ export async function middleware(req: NextRequest) {
   // Give session restoration a chance to complete
   const billingReturned = url.searchParams.get('billing') === 'returned'
 
-  if (isProtectedRoute && !session && !billingReturned && !hasCheckoutSuccess) {
+  if (isProtectedRoute && !user && !billingReturned && !hasCheckoutSuccess) {
     console.log('[MIDDLEWARE PROTECTED ROUTE REDIRECT]', {
       pathname,
       search,
-      hasSession: !!session,
+      hasUser: !!user,
       isBillingReturn,
       hasStripeSession,
       hasCheckoutSuccess,
@@ -190,7 +190,7 @@ export async function middleware(req: NextRequest) {
       from: pathname,
       to: '/auth/signin',
       reason: 'Protected route without session',
-      hasSession: false,
+      hasUser: false,
       billingReturned,
       isMobile,
       component: 'Middleware',
@@ -200,11 +200,11 @@ export async function middleware(req: NextRequest) {
   }
 
   // Allow checkout success requests through for client-side recovery
-  if (isProtectedRoute && !session && hasCheckoutSuccess) {
+  if (isProtectedRoute && !user && hasCheckoutSuccess) {
     console.log('[MIDDLEWARE CHECKOUT RECOVERY ALLOWED]', {
       pathname,
       search,
-      hasSession: false,
+      hasUser: false,
       hasCheckoutSuccess: true,
       billingReturned,
       isMobile,
@@ -214,7 +214,7 @@ export async function middleware(req: NextRequest) {
 
   console.log('[MIDDLEWARE ALLOWING ACCESS]', {
     pathname,
-    hasSession: !!session,
+    hasUser: !!user,
     isProtectedRoute,
     hasCheckoutSuccess,
     isMobile,
