@@ -2,6 +2,11 @@ package com.replyflowhq.app;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.NetworkRequest;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -15,11 +20,12 @@ import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.Plugin;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import android.os.Build;
 
 public class MainActivity extends BridgeActivity {
     private View offlineView;
     private WebView webView;
+    private ConnectivityManager.NetworkCallback networkCallback;
+    private boolean isWaitingForNetwork = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -55,6 +61,79 @@ public class MainActivity extends BridgeActivity {
                 hideOfflineScreen();
             }
         });
+
+        // Check network connectivity at startup and set up network callback
+        setupNetworkMonitoring();
+    }
+
+    private void setupNetworkMonitoring() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        if (connectivityManager == null) {
+            return;
+        }
+
+        // Check initial connectivity
+        if (!isNetworkAvailable(connectivityManager)) {
+            // Show offline screen immediately if no network at startup
+            showOfflineScreen();
+            isWaitingForNetwork = true;
+        }
+
+        // Set up network callback to detect connectivity changes
+        NetworkRequest networkRequest = new NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build();
+
+        networkCallback = new ConnectivityManager.NetworkCallback() {
+            @Override
+            public void onAvailable(Network network) {
+                // Network became available
+                if (isWaitingForNetwork) {
+                    isWaitingForNetwork = false;
+                    runOnUiThread(() -> {
+                        hideOfflineScreen();
+                        webView.reload();
+                    });
+                }
+            }
+
+            @Override
+            public void onLost(Network network) {
+                // Network lost - show offline screen
+                runOnUiThread(() -> showOfflineScreen());
+            }
+        };
+
+        connectivityManager.registerNetworkCallback(networkRequest, networkCallback);
+    }
+
+    private boolean isNetworkAvailable(ConnectivityManager connectivityManager) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            android.net.Network network = connectivityManager.getActiveNetwork();
+            if (network == null) {
+                return false;
+            }
+            NetworkCapabilities capabilities = connectivityManager.getNetworkCapabilities(network);
+            return capabilities != null &&
+                   capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+        } else {
+            // Fallback for older Android versions
+            android.net.NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
+            return networkInfo != null && networkInfo.isConnected();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Unregister network callback to prevent memory leaks
+        if (networkCallback != null) {
+            ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (connectivityManager != null) {
+                connectivityManager.unregisterNetworkCallback(networkCallback);
+            }
+        }
     }
 
     private void showOfflineScreen() {
