@@ -152,20 +152,93 @@ export async function POST(request: Request) {
     // Delete dependent records safely if a business exists.
     if (business) {
       console.log('[delete-incomplete-signup] Cleaning up dependent records for business:', business.id)
-      const dependentTables = [
-        'conversations',
-        'leads',
-        'messages',
-        'call_events',
-        'ai_call_records',
+
+      // 1) Messages/media are not directly scoped by business_id.
+      // messages: conversation_id (and lead_id)
+      // message_media: message_id
+      try {
+        // Fetch conversation IDs for this business
+        const { data: conversations } = await supabaseAdmin
+          .from('conversations')
+          .select('id')
+          .eq('business_id', business.id)
+
+        const conversationIds = (conversations || []).map((c: any) => c.id)
+
+        // If we have conversation IDs, delete message_media then messages by conversation
+        if (conversationIds.length > 0) {
+          // Get message IDs for message_media cleanup
+          const { data: conversationMessages } = await supabaseAdmin
+            .from('messages')
+            .select('id')
+            .in('conversation_id', conversationIds)
+
+          const messageIds = (conversationMessages || []).map((m: any) => m.id)
+
+          if (messageIds.length > 0) {
+            const { error: mmErr } = await supabaseAdmin
+              .from('message_media')
+              .delete()
+              .in('message_id', messageIds)
+            if (mmErr) {
+              console.warn('[delete-incomplete-signup] message_media cleanup warning:', mmErr.message)
+            }
+          }
+
+          const { error: msgByConvErr } = await supabaseAdmin
+            .from('messages')
+            .delete()
+            .in('conversation_id', conversationIds)
+          if (msgByConvErr) {
+            console.warn('[delete-incomplete-signup] messages (by conversation_id) cleanup warning:', msgByConvErr.message)
+          }
+        }
+
+        // Also fetch lead IDs and delete any messages scoped only by lead_id (no conversation)
+        const { data: leads } = await supabaseAdmin
+          .from('leads')
+          .select('id')
+          .eq('business_id', business.id)
+
+        const leadIds = (leads || []).map((l: any) => l.id)
+        if (leadIds.length > 0) {
+          const { error: msgByLeadErr } = await supabaseAdmin
+            .from('messages')
+            .delete()
+            .in('lead_id', leadIds)
+          if (msgByLeadErr) {
+            console.warn('[delete-incomplete-signup] messages (by lead_id) cleanup warning:', msgByLeadErr.message)
+          }
+        }
+
+        // Now delete conversations (parents) for this business
+        const { error: convErr } = await supabaseAdmin
+          .from('conversations')
+          .delete()
+          .eq('business_id', business.id)
+        if (convErr) {
+          console.warn('[delete-incomplete-signup] conversations cleanup warning:', convErr.message)
+        }
+      } catch (err: any) {
+        console.warn('[delete-incomplete-signup] Conversation/message cleanup skipped:', err?.message || err)
+      }
+
+      // 2) Tables directly scoped by business_id
+      const tablesByBusinessId = [
         'follow_up_jobs',
+        'notifications',
+        'ai_call_records',
+        'voicemail_recordings',
+        'call_events',
+        'ai_call_failures',
         'personal_voicemails',
         'ignored_contacts',
-      ]
-      for (const table of dependentTables) {
+      ] as const
+
+      for (const table of tablesByBusinessId) {
         try {
           const { error: dependentError } = await supabaseAdmin
-            .from(table)
+            .from(table as string)
             .delete()
             .eq('business_id', business.id)
           if (dependentError) {
@@ -174,6 +247,19 @@ export async function POST(request: Request) {
         } catch (err: any) {
           console.warn(`[delete-incomplete-signup] ${table} cleanup skipped:`, err?.message || err)
         }
+      }
+
+      // 3) Finally delete leads for this business
+      try {
+        const { error: leadsErr } = await supabaseAdmin
+          .from('leads')
+          .delete()
+          .eq('business_id', business.id)
+        if (leadsErr) {
+          console.warn('[delete-incomplete-signup] leads cleanup warning:', leadsErr.message)
+        }
+      } catch (err: any) {
+        console.warn('[delete-incomplete-signup] leads cleanup skipped:', err?.message || err)
       }
     }
 
