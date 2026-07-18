@@ -55,6 +55,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const { data: { session }, error } = await supabase.auth.getSession()
         
+        console.log('[Auth] Initial getSession result:', session ? 'session present' : 'no session')
+        console.log('[Auth] Initial access token present:', session?.access_token ? 'yes' : 'no')
+        
         if (error) {
           console.error('[Auth] Session restore error:', error)
         }
@@ -62,9 +65,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session) {
           setSession(session)
           setUser(session.user)
+          setAccessToken(session.access_token)
           // Cache authenticated state
           if (typeof window !== 'undefined') {
             sessionStorage.setItem('replyflow_auth_cache', 'authenticated')
+          }
+          // Set access token in push service for native
+          if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
+            try {
+              const { pushService } = await import('@/lib/push-service')
+              console.log('[Auth] Calling pushService.setAccessToken from initial session')
+              pushService.setAccessToken(session.access_token)
+            } catch (error) {
+              console.error('[Auth] Failed to set push access token:', error)
+            }
           }
         } else {
           // Clear cache if no session
@@ -90,7 +104,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Listen to auth state changes - only once
     if (!authSubscriptionRef.current && supabase) {
-      authSubscriptionRef.current = supabase.auth.onAuthStateChange(async (_event: any, session: any) => {
+      authSubscriptionRef.current = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
+        console.log('[Auth] Auth state change event:', event)
+        console.log('[Auth] Session present:', session ? 'yes' : 'no')
+        console.log('[Auth] Access token present:', session?.access_token ? 'yes' : 'no')
+        
         if (session) {
           setSession(session)
           setUser(session.user)
@@ -103,6 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
             try {
               const { pushService } = await import('@/lib/push-service')
+              console.log('[Auth] Calling pushService.setAccessToken from auth state change')
               pushService.setAccessToken(session.access_token)
             } catch (error) {
               console.error('[Auth] Failed to set push access token:', error)

@@ -38,18 +38,26 @@ class PushService {
   private currentToken: string | null = null
   private currentPlatform: 'android' | 'ios' | null = null
   private accessToken: string | null = null
+  private registrationAttempted = false
 
   /**
    * Set the authenticated access token from AuthContext
    * This should be called when the user signs in
    */
   setAccessToken(token: string): void {
+    console.log('[PUSH SERVICE] setAccessToken called, token present:', token ? 'yes' : 'no')
+    console.log('[PUSH SERVICE] FCM token cached:', this.currentToken ? 'yes' : 'no')
+    
     this.accessToken = token
-    console.log('[PUSH SERVICE] Access token set from AuthContext')
-    // If we have a cached FCM token, try to register it now
-    if (this.currentToken && this.currentPlatform) {
-      console.log('[PUSH SERVICE] Cached FCM token available, registering now')
+    
+    // If we have both tokens and haven't registered yet, register now
+    if (this.currentToken && this.currentPlatform && token && !this.registrationAttempted) {
+      console.log('[PUSH SERVICE] Both tokens available, triggering registration')
       this.registerDeviceWithServer(this.currentToken)
+    } else if (!this.currentToken) {
+      console.log('[PUSH SERVICE] FCM token not yet available, will register when received')
+    } else if (this.registrationAttempted) {
+      console.log('[PUSH SERVICE] Registration already attempted, skipping')
     }
   }
 
@@ -170,8 +178,17 @@ class PushService {
         tokenPrefix: token.value.substring(0, 8) + '...'
       })
       this.currentToken = token.value
-      console.log('[PUSH SERVICE] Calling server registration')
-      this.registerDeviceWithServer(token.value)
+      console.log('[PUSH SERVICE] Access token cached:', this.accessToken ? 'yes' : 'no')
+      
+      // If we have access token, register now
+      if (this.accessToken && !this.registrationAttempted) {
+        console.log('[PUSH SERVICE] Access token available, triggering registration')
+        this.registerDeviceWithServer(token.value)
+      } else if (!this.accessToken) {
+        console.log('[PUSH SERVICE] Access token not yet available, will register when received')
+      } else if (this.registrationAttempted) {
+        console.log('[PUSH SERVICE] Registration already attempted, skipping')
+      }
     })
 
     // Listen for registration errors
@@ -209,6 +226,14 @@ class PushService {
       return
     }
 
+    // Prevent duplicate registration attempts
+    if (this.registrationAttempted) {
+      console.log('[PUSH SERVICE] Registration already attempted, skipping duplicate')
+      return
+    }
+
+    this.registrationAttempted = true
+
     try {
       console.log('[PUSH SERVICE] Server registration started', {
         platform: this.currentPlatform,
@@ -229,7 +254,7 @@ class PushService {
 
       console.log('[PUSH SERVICE] Request headers:', {
         hasAuth: !!accessToken,
-        contentType: headers['Content-Type']
+        hasContentType: !!headers['Content-Type']
       })
 
       const response = await fetch('/api/push/register-device', {
@@ -254,6 +279,7 @@ class PushService {
         if (response.status === 401) {
           console.log('[PUSH SERVICE] User not authenticated, caching token for retry')
           this.currentToken = token // Store token for retry
+          this.registrationAttempted = false // Reset to allow retry
         }
       } else {
         const result = await response.json()
@@ -263,6 +289,7 @@ class PushService {
       }
     } catch (error) {
       console.error('[PUSH SERVICE] Server registration error:', error)
+      this.registrationAttempted = false // Reset to allow retry on error
     }
   }
 
