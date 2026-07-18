@@ -124,8 +124,10 @@ export async function sendPushForNotification(notification: {
       },
       data: payload as any,
       android: {
-        channelId: 'replyflow-high',
         priority: 'high' as const,
+        notification: {
+          channelId: 'replyflow-high',
+        },
       },
       token: '', // Will be set per device
     }
@@ -242,8 +244,10 @@ export async function sendTestPush(
         actionUrl,
       } as any,
       android: {
-        channelId: 'replyflow-high',
         priority: 'high' as const,
+        notification: {
+          channelId: 'replyflow-high',
+        },
       },
       token,
     }
