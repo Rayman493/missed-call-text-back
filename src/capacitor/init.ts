@@ -81,6 +81,7 @@ export async function initializeCapacitor() {
 /**
  * Handle deep links from external sources
  * Deep links can be:
+ * - Custom scheme: replyflow://calendar?status=connected
  * - Custom scheme: replyflow://dashboard/leads/123
  * - Universal/App Links: https://www.replyflowhq.com/dashboard/leads/123
  */
@@ -89,10 +90,19 @@ function handleDeepLink(url: string) {
 
   try {
     const urlObj = new URL(url);
-    
+
     // Handle custom scheme (replyflow://)
     if (urlObj.protocol === 'replyflow:') {
-      // Convert custom scheme to web URL
+      // Special handling for calendar deep link
+      if (urlObj.pathname === '/calendar' || urlObj.pathname === 'calendar') {
+        const queryParams = urlObj.search;
+        const webUrl = `https://www.replyflowhq.com/dashboard/calendar${queryParams}`;
+        console.log('[Capacitor] Calendar deep link, navigating to:', webUrl);
+        window.location.href = webUrl;
+        return;
+      }
+
+      // Convert other custom schemes to web URL
       const webUrl = url.replace('replyflow://', 'https://www.replyflowhq.com/');
       console.log('[Capacitor] Converting custom scheme to web URL:', webUrl);
       window.location.href = webUrl;
