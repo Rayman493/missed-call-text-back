@@ -53,13 +53,11 @@ export async function POST(request: Request) {
       forwardingVerifiedBefore: business.forwarding_verified
     })
 
-    // Persist the canonical forwarding-complete state.
-    // forwarding_verified is the operational source of truth used by the Dashboard.
+    // Persist Step 2 confirmation only. Do NOT mark forwarding_verified here.
+    // Forwarding verification (operational) must only be set after a successful test/missed call.
     const { data: updatedBusiness, error: updateError } = await supabaseAdmin
       .from('businesses')
       .update({
-        forwarding_verified: true,
-        forwarding_verified_at: new Date().toISOString(),
         forwarding_instructions_confirmed_at: new Date().toISOString(),
         call_forwarding_enabled: true,
         phone_setup_completed_at: new Date().toISOString()
@@ -82,7 +80,7 @@ export async function POST(request: Request) {
     console.log('[Confirm Forwarding Instructions] After update:', {
       businessId: updatedBusiness.id,
       userId: user.id,
-      forwardingVerifiedAfter: updatedBusiness.forwarding_verified,
+      forwardingVerifiedAfter: updatedBusiness.forwarding_verified, // remains unchanged here
       forwardingVerifiedAt: updatedBusiness.forwarding_verified_at,
       forwardingInstructionsConfirmedAt: updatedBusiness.forwarding_instructions_confirmed_at
     })
