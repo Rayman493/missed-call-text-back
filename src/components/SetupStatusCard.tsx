@@ -121,6 +121,7 @@ export default function SetupStatusCard({
           },
           body: JSON.stringify({
             checkout_mode: 'paid', // Use paid mode for trial-used users
+            checkout_source: 'setup-status-card',
           }),
         })
         
@@ -439,6 +440,8 @@ export default function SetupStatusCard({
     const isProvisioning = business?.provisioning_status === 'pending' || business?.provisioning_status === 'provisioning'
     const isTrialing = hasActiveTrial(business)
     const trialEndDate = business?.trial_ends_at ? new Date(business.trial_ends_at).toLocaleDateString() : null
+    // Step 2 completion uses confirmed instructions OR operational verification
+    const forwardingStep2Complete = hasConfirmedForwardingInstructions
 
     const handleContinueSetup = () => {
       if (!forwardingActuallyVerified) {
@@ -504,12 +507,12 @@ export default function SetupStatusCard({
               </div>
             </div>
 
-            {/* Call Forwarding */}
+            {/* Call Forwarding (Step 2 visual completion) */}
             <div className="bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${forwardingActuallyVerified ? 'bg-green-500' : 'bg-gray-500'}`}>
-                    {forwardingActuallyVerified ? (
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${forwardingStep2Complete ? 'bg-green-500' : 'bg-gray-500'}`}>
+                    {forwardingStep2Complete ? (
                       <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
@@ -519,12 +522,12 @@ export default function SetupStatusCard({
                   </div>
                   <div>
                     <span className="text-white text-sm font-medium">Call Forwarding</span>
-                    <span className={`text-xs block ${forwardingActuallyVerified ? 'text-green-200' : 'text-gray-300'}`}>
-                      {forwardingActuallyVerified ? 'Active' : 'Set Up'}
+                    <span className={`text-xs block ${forwardingStep2Complete ? 'text-green-200' : 'text-gray-300'}`}>
+                      {forwardingStep2Complete ? 'Complete' : 'Set Up'}
                     </span>
                   </div>
                 </div>
-                {!forwardingActuallyVerified && hasNumber && (
+                {!forwardingStep2Complete && hasNumber && (
                   <button
                     type="button"
                     onClick={() => setShowForwardingInstructions(true)}
@@ -568,13 +571,13 @@ export default function SetupStatusCard({
               onClick={handleContinueSetup}
               className="inline-flex items-center justify-center px-6 py-3 bg-white hover:bg-green-50 text-green-600 text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
             >
-              {forwardingActuallyVerified ? 'Test Your Setup' : 'Continue Setup'}
+              {forwardingStep2Complete ? 'Test Your Setup' : 'Continue Setup'}
               <ArrowRight className="w-4 h-4 ml-2" />
             </button>
           )}
 
           {/* Inline test guidance when forwarding is verified but test not complete */}
-          {forwardingActuallyVerified && !hasCompletedTestCall && expandedStep === 3 && (
+          {forwardingStep2Complete && !hasCompletedTestCall && expandedStep === 3 && (
             <div className="bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 p-4">
               <p className="text-green-100 text-sm">
                 From another phone, call your business number and let it go to voicemail. ReplyFlow will capture the missed call and send a test text.
