@@ -1028,7 +1028,6 @@ export default function DashboardContent() {
                     business={business}
                     setupHealth={setupHealth}
                     missedCallCount={missedCallCount}
-                    leads={processedLeads}
                   />
                 </SectionErrorBoundary>
 

@@ -18,7 +18,6 @@ interface SetupStatusCardProps {
     aiIntakeReady?: boolean
   }
   missedCallCount?: number
-  leads?: any[]
 }
 
 type CardState =
@@ -33,10 +32,8 @@ type CardState =
 export default function SetupStatusCard({
   business,
   setupHealth,
-  missedCallCount = 0,
-  leads = []
+  missedCallCount = 0
 }: SetupStatusCardProps) {
-  const [isExpanded, setIsExpanded] = useState(false)
   const [userHasToggled, setUserHasToggled] = useState(false)
   const [isOpeningBilling, setIsOpeningBilling] = useState(false)
   const [billingError, setBillingError] = useState<string | null>(null)
@@ -49,11 +46,12 @@ export default function SetupStatusCard({
   const hasSubscription = hasActiveSubscription(business)
   
   // Check if actual test call has been completed
-  // Use multiple signals: explicit test completion, call events count, or actual leads captured
+  // Use persisted forwarding_verified as primary signal (set when real leads are captured)
+  // Fall back to explicit test completion or call events count
   const hasCompletedTestCall = Boolean(
+    business?.forwarding_verified === true ||
     business?.first_test_call_completed_at ||
-    missedCallCount > 0 ||
-    (leads && leads.length > 0)
+    missedCallCount > 0
   )
 
   // Check if user has confirmed forwarding instructions
@@ -193,7 +191,7 @@ export default function SetupStatusCard({
   }
   
   const cardState = getCardState()
-  
+
   // Auto-expand during setup states and success state, collapse after setup
   const shouldAutoExpand =
     cardState === 'setup-incomplete' ||
@@ -201,6 +199,15 @@ export default function SetupStatusCard({
     cardState === 'critical-issue' ||
     cardState === 'setup-complete-success' ||
     cardState === 'subscription-active'
+
+  // Initialize isExpanded based on actual card state to prevent race condition
+  // If business data is not loaded yet, default to collapsed to avoid false positive expansion
+  const [isExpanded, setIsExpanded] = useState(() => {
+    // Only auto-expand if we have enough data to make a reliable determination
+    const hasEnoughData = business?.id && (business?.forwarding_verified !== undefined || business?.subscription_status !== undefined)
+    if (!hasEnoughData) return false
+    return shouldAutoExpand
+  })
 
   React.useEffect(() => {
     // Reset userHasToggled when setup completes to allow auto-collapse
