@@ -94,7 +94,7 @@ export default function FloatingHelpButton({ context }: FloatingHelpButtonProps)
               style={{ top: 'calc(env(safe-area-inset-top) + 16px)', bottom: 'env(safe-area-inset-bottom)' }}
             >
               <div className="bg-white dark:bg-slate-800 rounded-t-2xl shadow-2xl overflow-hidden flex flex-col h-full min-h-0">
-                <ReplyFlowAssistant context={context} onClose={() => setIsOpen(false)} />
+                <ReplyFlowAssistant className="h-full" context={context} onClose={() => setIsOpen(false)} />
               </div>
             </div>
           </div>

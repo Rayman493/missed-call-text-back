@@ -988,6 +988,7 @@ export default function SetupStatusCard({
             >
               <div className="bg-white dark:bg-slate-800 rounded-t-2xl shadow-2xl overflow-hidden flex flex-col h-full min-h-0">
                 <ReplyFlowAssistant
+                  className="h-full"
                   context={{ currentPage: 'dashboard' }}
                   onClose={() => setIsAssistantOpen(false)}
                 />
