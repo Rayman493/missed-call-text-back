@@ -278,6 +278,26 @@ export class NotificationServiceServer {
       }
     }
 
+    // Idempotency check for ai_intake_completed by leadId
+    if (data && data.leadId && type === 'ai_intake_completed') {
+      const { data: existingNotification } = await supabaseAdmin
+        .from('notifications')
+        .select('id')
+        .eq('business_id', businessId)
+        .eq('type', type)
+        .eq('data->>leadId', data.leadId)
+        .maybeSingle()
+
+      if (existingNotification) {
+        console.log('[NOTIFICATIONS IDEMPOTENT SKIP]', { 
+          businessId, 
+          type, 
+          leadId: data.leadId 
+        })
+        return true
+      }
+    }
+
     console.log('[NOTIFICATIONS INSERT PAYLOAD]', { 
       businessId, 
       type, 
@@ -317,6 +337,7 @@ export class NotificationServiceServer {
       // This is fire-and-forget - failures are logged but don't affect the business event
       setImmediate(async () => {
         try {
+          console.log('[PUSH] delivery triggered');
           const notification = {
             id: '', // We don't have the ID from the insert, but FCM doesn't need it
             business_id: businessId,

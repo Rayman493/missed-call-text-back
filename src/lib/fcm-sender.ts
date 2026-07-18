@@ -103,6 +103,7 @@ export async function sendPushForNotification(notification: {
     }
 
     console.log('[FCM SENDER] Found active devices:', devices.length)
+    console.log('[PUSH] enabled device count:', devices.length)
 
     // Deduplicate tokens (in case of duplicate registrations)
     const uniqueTokens = new Set(devices.map(d => d.push_token))

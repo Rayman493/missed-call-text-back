@@ -11,6 +11,7 @@ import { hasAiSummaryBeenSent } from '@/lib/sms-decision'
 import { dispatchAutomaticCustomerSms } from '@/lib/auto-sms-dispatcher'
 import { isCompleteAIIntake } from '@/lib/ai-intake-completion'
 import { isPersonalVoicemailCall, isUpdateVoicemailCall } from '@/lib/call-pipeline-classification'
+import { notificationServiceServer } from '@/lib/notifications-server'
 
 // Transcript spam detection patterns
 const AUTOMATED_PATTERNS = [
@@ -1357,6 +1358,35 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
           console.log('[FOLLOWUP SKIP REASON] =========================================');
           jobsCreated = []
           hasPendingJob = false
+
+          // Create notification for AI intake completion
+          console.log('[AI INTAKE COMPLETE] canonical completion reached');
+          console.log('[AI INTAKE COMPLETE] lead resolved:', lead.id);
+          console.log('[AI INTAKE COMPLETE] business resolved:', business.id);
+          console.log('[AI INTAKE COMPLETE] aiCallRecordId:', aiCallRecord.id);
+          console.log('[AI INTAKE COMPLETE] outcome:', aiCallRecord.outcome);
+
+          try {
+            console.log('[AI INTAKE COMPLETE] notification creation started');
+
+            const extracted = normalizeExtractedInfo(aiCallRecord.extracted_info || {})
+            const leadName = extracted.callerName || From
+            const serviceRequested = extracted.reasonForCalling
+
+            await notificationServiceServer.notifyAiIntakeCompleted(
+              business.id,
+              leadName,
+              From,
+              lead.id,
+              serviceRequested
+            )
+
+            console.log('[AI INTAKE COMPLETE] notification created or already exists');
+            console.log('[AI INTAKE COMPLETE] notification creation success');
+          } catch (notificationError) {
+            console.error('[AI INTAKE COMPLETE] notification creation error:', notificationError);
+            // Don't let notification failures break the webhook processing
+          }
 
           // Optional cleanup: cancel any pending follow-up jobs that may have been created earlier
           try {
