@@ -213,7 +213,7 @@ public class MainActivity extends BridgeActivity {
 
         // ReplyFlow R logo
         ImageView logoView = new ImageView(context);
-        logoView.setImageResource(R.mipmap.ic_launcher_foreground);
+        logoView.setImageResource(R.drawable.ic_replyflow_logo);
         logoView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         LinearLayout.LayoutParams logoLayoutParams = new LinearLayout.LayoutParams(
             96,
