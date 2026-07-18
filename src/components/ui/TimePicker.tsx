@@ -22,7 +22,10 @@ export default function TimePicker({
 }: TimePickerProps) {
   const [isOpen, setIsOpen] = useState(false)
   const pickerRef = useRef<HTMLDivElement>(null)
-  const dropdownRef = useRef<HTMLDivElement>(null)
+  const hourListRef = useRef<HTMLDivElement>(null)
+  const minuteListRef = useRef<HTMLDivElement>(null)
+  const [draftHour, setDraftHour] = useState<string | null>(null)
+  const [draftMinute, setDraftMinute] = useState<string | null>(null)
 
   // Close on outside click
   useEffect(() => {
@@ -52,53 +55,49 @@ export default function TimePicker({
     }
   }, [isOpen])
 
-  // Generate time options in 15-minute increments from 6:00 AM to 8:00 PM
-  const generateTimeOptions = () => {
-    const options: { label: string; value: string }[] = []
-    
-    for (let hour = 6; hour <= 20; hour++) {
-      for (let minute of [0, 15, 30, 45]) {
-        const hour24 = hour
-        const hour12 = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour)
-        const ampm = hour >= 12 ? 'PM' : 'AM'
-        const minuteStr = minute === 0 ? '00' : String(minute)
-        const value24 = `${String(hour24).padStart(2, '0')}:${minuteStr}`
-        const label12 = `${hour12}:${minuteStr} ${ampm}`
-        
-        options.push({ label: label12, value: value24 })
-      }
-    }
-    
-    return options
-  }
+  // 24-hour hours and minutes
+  const hours = Array.from({ length: 24 }, (_, h) => String(h).padStart(2, '0'))
+  const minutes = Array.from({ length: 60 }, (_, m) => String(m).padStart(2, '0'))
 
-  const timeOptions = generateTimeOptions()
-
-  // Scroll selected time into view when dropdown opens
+  // Initialize draft selection when opening
   useEffect(() => {
-    if (isOpen && dropdownRef.current && value) {
-      const selectedIndex = timeOptions.findIndex(option => option.value === value)
-      if (selectedIndex >= 0) {
-        const selectedElement = dropdownRef.current.children[selectedIndex] as HTMLElement
-        if (selectedElement) {
-          selectedElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-        }
+    if (isOpen) {
+      if (value && /^\d{2}:\d{2}$/.test(value)) {
+        const [h, m] = value.split(':')
+        setDraftHour(h)
+        setDraftMinute(m)
+      } else {
+        setDraftHour(null)
+        setDraftMinute(null)
       }
     }
-  }, [isOpen, value, timeOptions])
+  }, [isOpen, value])
+
+  // Scroll selected hour/minute into view when open
+  useEffect(() => {
+    if (!isOpen) return
+    if (draftHour && hourListRef.current) {
+      const idx = hours.indexOf(draftHour)
+      const el = hourListRef.current.children[idx] as HTMLElement
+      if (el) el.scrollIntoView({ block: 'center' })
+    }
+    if (draftMinute && minuteListRef.current) {
+      const idx = minutes.indexOf(draftMinute)
+      const el = minuteListRef.current.children[idx] as HTMLElement
+      if (el) el.scrollIntoView({ block: 'center' })
+    }
+  }, [isOpen, draftHour, draftMinute])
 
   const formatTimeDisplay = (timeStr: string) => {
     if (!timeStr) return ''
-    const [hours, minutes] = timeStr.split(':')
-    const hour = parseInt(hours, 10)
-    const ampm = hour >= 12 ? 'PM' : 'AM'
-    const hour12 = hour % 12 || 12
-    return `${hour12}:${minutes} ${ampm}`
+    return timeStr // show 24-hour format within this picker
   }
 
-  const selectTime = (timeValue: string) => {
-    onChange(timeValue)
-    setIsOpen(false)
+  const tryCommitTime = (h: string | null, m: string | null) => {
+    if (h != null && m != null) {
+      onChange(`${h}:${m}`)
+      setIsOpen(false)
+    }
   }
 
   const clearTime = () => {
@@ -142,30 +141,65 @@ export default function TimePicker({
       </button>
 
       {isOpen && !disabled && (
-        <div className="absolute z-50 mt-2 bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 w-full max-h-[320px] overflow-y-auto">
-          <div className="p-1" ref={dropdownRef}>
-            {timeOptions.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => selectTime(option.value)}
-                className={`w-full px-4 py-2.5 text-sm rounded-lg transition-colors text-left ${
-                  value === option.value
-                    ? 'bg-blue-600 text-white font-medium'
-                    : 'text-slate-900 dark:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
+        <div className="absolute z-50 mt-2 bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 w-[360px] max-w-[calc(100vw-2rem)] sm:w-auto sm:max-w-[420px]">
+          <div className="p-3">
+            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">Select time (24-hour)</label>
+            <div className="flex items-stretch gap-2">
+              {/* Hour column */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-slate-500">Hour</span>
+                  <span className="text-xs font-mono text-slate-600 dark:text-slate-400">{draftHour ?? '--'}</span>
+                </div>
+                <div ref={hourListRef} className="max-h-[220px] overflow-y-auto rounded-md border border-slate-200 dark:border-slate-700">
+                  {hours.map(h => (
+                    <button
+                      key={h}
+                      type="button"
+                      onClick={() => { setDraftHour(h); tryCommitTime(h, draftMinute) }}
+                      className={`w-full px-3 py-2 text-sm font-mono text-left transition-colors ${
+                        draftHour === h
+                          ? 'bg-blue-600 text-white'
+                          : 'text-slate-900 dark:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      {h}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center text-slate-400">:</div>
+              {/* Minute column */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-slate-500">Minute</span>
+                  <span className="text-xs font-mono text-slate-600 dark:text-slate-400">{draftMinute ?? '--'}</span>
+                </div>
+                <div ref={minuteListRef} className="max-h-[220px] overflow-y-auto rounded-md border border-slate-200 dark:border-slate-700">
+                  {minutes.map(m => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => { setDraftMinute(m); tryCommitTime(draftHour, m) }}
+                      className={`w-full px-3 py-2 text-sm font-mono text-left transition-colors ${
+                        draftMinute === m
+                          ? 'bg-blue-600 text-white'
+                          : 'text-slate-900 dark:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
-          
           {!required && (
-            <div className="border-t border-slate-200 dark:border-slate-700 p-1">
+            <div className="border-t border-slate-200 dark:border-slate-700 p-2">
               <button
                 type="button"
                 onClick={clearTime}
-                className="w-full px-4 py-2.5 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-left"
+                className="w-full px-3 py-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors text-left"
               >
                 Clear
               </button>
