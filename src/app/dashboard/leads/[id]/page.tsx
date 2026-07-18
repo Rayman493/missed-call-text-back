@@ -3616,7 +3616,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   ))}
                 </div>
               )}
-              <div className="flex items-center gap-2 bg-slate-900/50 dark:bg-slate-950/50 border border-slate-700/50 dark:border-slate-800/50 rounded-2xl p-2.5 shadow-lg hover:shadow-xl transition-all duration-200 focus-within:ring-2 focus-within:ring-blue-500/40 focus-within:border-blue-500/60 focus-within:bg-slate-900/70 dark:focus-within:bg-slate-950/70">
+              <div className="flex items-center gap-1.5 bg-slate-900/50 dark:bg-slate-950/50 border border-slate-700/50 dark:border-slate-800/50 rounded-2xl p-2 shadow-lg hover:shadow-xl transition-all duration-200 focus-within:ring-2 focus-within:ring-blue-500/40 focus-within:border-blue-500/60 focus-within:bg-slate-900/70 dark:focus-within:bg-slate-950/70">
                 {/* Image Upload Button */}
                 <button
                   type="button"
@@ -3642,13 +3642,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     onKeyDown={handleMobileKeyDown}
+                    onFocus={() => { try { (window as any).RFDiag?.logIME?.() } catch {} }}
                     placeholder="Type a message..."
                     autoCapitalize="sentences"
                     autoCorrect="on"
                     spellCheck={true}
                     autoComplete="on"
                     enterKeyHint="send"
-                    className="composer-textarea-no-scrollbar w-full min-h-[44px] max-h-[120px] px-3 py-2.5 bg-transparent text-slate-100 dark:text-slate-100 resize-none focus:outline-none text-base leading-relaxed h-11 placeholder:text-slate-500 dark:placeholder:text-slate-500"
+                    className="composer-textarea-no-scrollbar w-full min-h-[44px] max-h-[120px] px-2 py-2.5 bg-transparent text-slate-100 dark:text-slate-100 resize-none focus:outline-none text-base leading-relaxed h-11 placeholder:text-slate-500 dark:placeholder:text-slate-500"
                     rows={1}
                     disabled={sending}
                   />
@@ -3656,7 +3657,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <button
                   onClick={() => handleSendMessage(mobileImages.length > 0 ? mobileImages : undefined)}
                   disabled={(!message.trim() && mobileImages.length === 0) || sending}
-                  className={`px-4 py-2.5 rounded-xl font-semibold transition-all duration-200 shadow-sm hover:shadow flex items-center gap-1.5 flex-none h-11 disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-slate-900 ${
+                  className={`px-3 py-2.5 rounded-xl font-semibold transition-all duration-200 shadow-sm hover:shadow flex items-center gap-1.5 flex-none h-11 disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-slate-900 ${
                     (message.trim() || mobileImages.length > 0) && !sending
                       ? 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white shadow-md hover:shadow-lg'
                       : 'bg-slate-700/50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-500 hover:bg-slate-700/70 dark:hover:bg-slate-800/70 disabled:cursor-not-allowed'
