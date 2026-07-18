@@ -24,16 +24,6 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
   const moreButtonRef = useRef<HTMLButtonElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // Hide bottom nav on public pages or when assistant is open
-  const isPublicPage = pathname === '/' || 
-                       pathname === '/faq' || 
-                       pathname === '/privacy' || 
-                       pathname === '/terms' || 
-                       pathname === '/compliance' || 
-                       pathname === '/demo' ||
-                       pathname === '/auth' ||
-                       pathname?.startsWith('/signup')
-
   // Check if any assistant is open via data attribute
   const [isAnyAssistantOpen, setIsAnyAssistantOpen] = useState(false)
 
@@ -49,31 +39,6 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
 
     return () => observer.disconnect()
   }, [])
-
-  if (isPublicPage || isAnyAssistantOpen) {
-    return null
-  }
-
-  const isActive = (href: string) => {
-    // When More menu is open, don't highlight any nav items (only More button should be active)
-    if (isMoreMenuOpen) {
-      return false
-    }
-    if (href === '/dashboard') {
-      return pathname === '/dashboard'
-    }
-    return pathname?.startsWith(href)
-  }
-
-  const handleLogout = async () => {
-    try {
-      await signOut({ manual: true })
-      router.push('/')
-    } catch (error) {
-      console.error('[MOBILE LOGOUT ERROR] Sign out error:', error)
-    }
-    setIsMoreMenuOpen(false)
-  }
 
   // Calculate dropdown position when opening
   useEffect(() => {
@@ -197,6 +162,41 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
       document.removeEventListener('keydown', handleEscapeKey)
     }
   }, [isMoreMenuOpen])
+
+  // Hide bottom nav on public pages or when assistant is open
+  const isPublicPage = pathname === '/' || 
+                       pathname === '/faq' || 
+                       pathname === '/privacy' || 
+                       pathname === '/terms' || 
+                       pathname === '/compliance' || 
+                       pathname === '/demo' ||
+                       pathname === '/auth' ||
+                       pathname?.startsWith('/signup')
+
+  if (isPublicPage || isAnyAssistantOpen) {
+    return null
+  }
+
+  const isActive = (href: string) => {
+    // When More menu is open, don't highlight any nav items (only More button should be active)
+    if (isMoreMenuOpen) {
+      return false
+    }
+    if (href === '/dashboard') {
+      return pathname === '/dashboard'
+    }
+    return pathname?.startsWith(href)
+  }
+
+  const handleLogout = async () => {
+    try {
+      await signOut({ manual: true })
+      router.push('/')
+    } catch (error) {
+      console.error('[MOBILE LOGOUT ERROR] Sign out error:', error)
+    }
+    setIsMoreMenuOpen(false)
+  }
 
   return (
     <>
