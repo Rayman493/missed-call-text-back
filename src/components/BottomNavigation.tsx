@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
-import { Home, Users, Calendar, CreditCard, Settings, LogOut, MessageCircle } from 'lucide-react'
+import { Home, Users, Calendar, CreditCard, Settings, LogOut, MessageCircle, ExternalLink } from 'lucide-react'
 import { primaryNavItems, accountMenuItems } from '@/lib/navigation-config'
 import { handleBillingAction } from '@/lib/billing'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
@@ -27,6 +27,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
 
   // Check if any assistant is open via data attribute
   const [isAnyAssistantOpen, setIsAnyAssistantOpen] = useState(false)
+  const [isNativePlatform, setIsNativePlatform] = useState(false)
 
   useEffect(() => {
     const checkAssistantOpen = () => {
@@ -39,6 +40,20 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
     observer.observe(document.body, { attributes: true, attributeFilter: ['data-assistant-open'] })
 
     return () => observer.disconnect()
+  }, [])
+
+  // Detect if running in native Capacitor environment
+  useEffect(() => {
+    const checkNativePlatform = async () => {
+      try {
+        const mod = await import('@capacitor/core')
+        const { Capacitor } = mod as any
+        setIsNativePlatform(Capacitor.isNativePlatform())
+      } catch {
+        setIsNativePlatform(false)
+      }
+    }
+    checkNativePlatform()
   }, [])
 
   // Measure real rendered dropdown height and position it above the More button,
@@ -282,6 +297,19 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                 <MessageCircle className="h-4 w-4 text-slate-400" />
                 ReplyFlow Assistant
               </button>
+              {!isNativePlatform && (
+                <Link
+                  href="/"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setIsMoreMenuOpen(false)
+                  }}
+                  className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors duration-150 hover:bg-slate-800 hover:text-white"
+                >
+                  <ExternalLink className="h-4 w-4 text-slate-400" />
+                  Public Home
+                </Link>
+              )}
               <div className="h-px bg-slate-700 my-1" />
               <button
                 type="button"
