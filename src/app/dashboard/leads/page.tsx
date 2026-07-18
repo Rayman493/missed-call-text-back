@@ -981,7 +981,7 @@ export default function LeadsPage() {
             </div>
 
             {/* Customers Header - Compact on mobile */}
-            <div className="mb-3 sm:mb-6">
+            <div className="mb-2 sm:mb-4">
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
                 <div>
                   <h2 className="text-xl sm:text-2xl font-semibold text-foreground tracking-tight">
@@ -991,15 +991,6 @@ export default function LeadsPage() {
                     Manage conversations, requests, jobs and customer history.
                   </p>
                 </div>
-                <button
-                  onClick={() => setShowAddCustomerModal(true)}
-                  className="inline-flex w-fit items-center gap-1.5 px-3 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs sm:text-sm font-medium rounded-lg transition-colors shadow-sm whitespace-nowrap"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  <span>Add</span>
-                </button>
               </div>
             </div>
 
@@ -1075,6 +1066,12 @@ export default function LeadsPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowAddCustomerModal(true)}
+                  className="text-sm text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap"
+                >
+                  + Add Customer
+                </button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
