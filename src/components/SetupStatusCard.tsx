@@ -8,6 +8,7 @@ import { CheckCircle, AlertTriangle, ChevronDown, ChevronUp, ArrowRight, Loader2
 import { formatPhoneNumber } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
+import AssistantMobileShell from '@/components/AssistantMobileShell'
 import CallForwardingInstructions from '@/components/CallForwardingInstructions'
 
 interface SetupStatusCardProps {
@@ -66,57 +67,6 @@ export default function SetupStatusCard({
       setSuccessDismissed(dismissed === 'true')
     }
   }, [business?.id])
-
-  // Lock body scroll when assistant is open and handle Android/back navigation to close overlay first
-  React.useEffect(() => {
-    if (typeof window === 'undefined') return
-
-    let capListener: { remove: () => void } | undefined
-    const originalBodyOverflow = document.body.style.overflow
-    const originalHtmlOverflow = document.documentElement.style.overflow
-
-    if (isAssistantOpen) {
-      // Body/html scroll lock and global signal for bottom nav hiding
-      document.body.style.overflow = 'hidden'
-      document.documentElement.style.overflow = 'hidden'
-      document.body.setAttribute('data-assistant-open', 'true')
-
-      // Push a history state so Android Back / browser back triggers popstate we can intercept
-      try {
-        window.history.pushState({ rfAssistant: true }, '')
-      } catch {}
-
-      const onPopState = () => {
-        // Close assistant instead of navigating away
-        setIsAssistantOpen(false)
-      }
-      window.addEventListener('popstate', onPopState)
-
-      // Try Capacitor App back button if available (no hard dependency)
-      ;(async () => {
-        try {
-          const mod = await import('@capacitor/app')
-          const { App } = mod as any
-          capListener = await App.addListener('backButton', () => {
-            setIsAssistantOpen(false)
-          })
-        } catch {}
-      })()
-
-      return () => {
-        window.removeEventListener('popstate', onPopState)
-        capListener?.remove?.()
-        document.body.style.overflow = originalBodyOverflow
-        document.documentElement.style.overflow = originalHtmlOverflow
-        document.body.removeAttribute('data-assistant-open')
-      }
-    }
-
-    // Cleanup if not open
-    return () => {
-      capListener?.remove?.()
-    }
-  }, [isAssistantOpen])
 
   // Handle dismissing the success state
   const handleDismissSuccess = () => {
@@ -978,23 +928,12 @@ export default function SetupStatusCard({
 
       {isAssistantOpen && (
         <>
-          {/* Mobile: Bottom sheet with full viewport height minus safe areas and small top margin (bottom nav hidden) */}
-          <div className="fixed inset-0 z-[100] md:hidden">
-            <div className="absolute inset-0 bg-black/55" onClick={() => setIsAssistantOpen(false)} />
-            {/* Bounded sheet region using explicit top/bottom with safe-area + small inset */}
-            <div
-              className="absolute left-0 right-0 flex flex-col"
-              style={{ top: 'calc(env(safe-area-inset-top) + 16px)', bottom: 'env(safe-area-inset-bottom)' }}
-            >
-              <div className="bg-white dark:bg-slate-800 rounded-t-2xl shadow-2xl overflow-hidden flex flex-col h-full min-h-0">
-                <ReplyFlowAssistant
-                  className="h-full"
-                  context={{ currentPage: 'dashboard' }}
-                  onClose={() => setIsAssistantOpen(false)}
-                />
-              </div>
-            </div>
-          </div>
+          {/* Mobile: shared bottom-sheet shell (portals to body to escape z-10 stacking context) */}
+          <AssistantMobileShell
+            isOpen={isAssistantOpen}
+            context={{ currentPage: 'dashboard' }}
+            onClose={() => setIsAssistantOpen(false)}
+          />
 
           {/* Desktop: Centered modal */}
           <div className="fixed inset-0 z-[100] hidden md:flex items-center justify-center p-4">

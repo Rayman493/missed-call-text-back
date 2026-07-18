@@ -9,6 +9,7 @@ import { Home, Users, Calendar, CreditCard, Settings, LogOut, MessageCircle } fr
 import { primaryNavItems, accountMenuItems } from '@/lib/navigation-config'
 import { handleBillingAction } from '@/lib/billing'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
+import AssistantMobileShell from '@/components/AssistantMobileShell'
 
 interface BottomNavigationProps {
   onLogout?: () => void
@@ -276,15 +277,11 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
       )}
 
       {isAssistantOpen && (
-        <div className="fixed inset-0 z-[100] flex items-end justify-center p-3 lg:hidden">
-          <div className="absolute inset-0 bg-black/55" onClick={() => setIsAssistantOpen(false)} />
-          <div className="relative mb-24 w-full max-w-lg">
-            <ReplyFlowAssistant
-              context={{ currentPage: 'dashboard' }}
-              onClose={() => setIsAssistantOpen(false)}
-            />
-          </div>
-        </div>
+        <AssistantMobileShell
+          isOpen={isAssistantOpen}
+          context={{ currentPage: 'dashboard' }}
+          onClose={() => setIsAssistantOpen(false)}
+        />
       )}
     </>
   )

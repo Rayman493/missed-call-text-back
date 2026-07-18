@@ -13,6 +13,7 @@ import { ChevronDown, CreditCard, LayoutDashboard, LogOut, MessageCircle, Receip
 import { accountMenuItems } from '@/lib/navigation-config'
 import { isAdmin } from '@/lib/admin'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
+import AssistantMobileShell from '@/components/AssistantMobileShell'
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false)
@@ -39,21 +40,6 @@ export default function UserDropdown() {
         ? { ...item, label: 'Go to Dashboard', href: '/dashboard', external: false, icon: LayoutDashboard }
         : item
     ))
-
-  // Lock body scroll when Assistant is open
-  useEffect(() => {
-    if (isAssistantOpen) {
-      document.body.style.overflow = 'hidden'
-      document.body.style.touchAction = 'none'
-    } else {
-      document.body.style.overflow = ''
-      document.body.style.touchAction = ''
-    }
-    return () => {
-      document.body.style.overflow = ''
-      document.body.style.touchAction = ''
-    }
-  }, [isAssistantOpen])
 
   // Validate Supabase session on mount and when user changes
   useEffect(() => {
@@ -463,27 +449,32 @@ export default function UserDropdown() {
         document.body
       )}
 
-      {isAssistantOpen && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-end justify-center md:items-center md:justify-center p-4">
-          {/* Backdrop - prevents scroll and bleed-through */}
-          <div 
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm" 
-            onClick={() => setIsAssistantOpen(false)}
-            style={{ touchAction: 'none' }}
+      {isAssistantOpen && typeof document !== 'undefined' && (
+        <>
+          {/* Mobile: shared bottom-sheet shell */}
+          <AssistantMobileShell
+            isOpen={isAssistantOpen}
+            context={{ currentPage: 'dashboard' }}
+            onClose={() => setIsAssistantOpen(false)}
           />
-          {/* Modal container */}
-          <div className="relative w-full max-w-lg max-h-[calc(100dvh-32px)] flex flex-col">
-            {/* Mobile: Centered modal with safe areas */}
-            <div className="md:hidden bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-32px)]">
-              <ReplyFlowAssistant context={{ currentPage: 'dashboard' }} onClose={() => setIsAssistantOpen(false)} />
-            </div>
-            {/* Desktop: Centered modal */}
-            <div className="hidden md:block bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden max-h-[80vh]">
-              <ReplyFlowAssistant context={{ currentPage: 'dashboard' }} onClose={() => setIsAssistantOpen(false)} />
-            </div>
-          </div>
-        </div>,
-        document.body
+
+          {/* Desktop: centered modal */}
+          {createPortal(
+            <div className="fixed inset-0 z-[9999] hidden md:flex items-center justify-center p-4">
+              <div
+                className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                onClick={() => setIsAssistantOpen(false)}
+                style={{ touchAction: 'none' }}
+              />
+              <div className="relative w-full max-w-lg max-h-[calc(100dvh-32px)] flex flex-col">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden max-h-[80vh]">
+                  <ReplyFlowAssistant context={{ currentPage: 'dashboard' }} onClose={() => setIsAssistantOpen(false)} />
+                </div>
+              </div>
+            </div>,
+            document.body
+          )}
+        </>
       )}
     </>
   )

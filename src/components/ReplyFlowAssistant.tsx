@@ -248,10 +248,17 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
     )
   }
 
+  // Reset internal scroll position whenever the assistant mounts so header is always visible
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0
+    }
+  }, [])
+
   return (
-    <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 w-full flex flex-col overflow-hidden min-h-0 ${className}`}>
-      {/* Sticky Header */}
-      <div className="sticky top-0 z-30 bg-white/95 dark:bg-slate-800/95 backdrop-blur border-b border-slate-200/80 dark:border-slate-700/80 p-3 sm:p-4 flex-shrink-0">
+    <div data-rf-assistant-root className={`bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 w-full flex flex-col overflow-hidden min-h-0 ${className}`}>
+      {/* Fixed header */}
+      <div className="flex-shrink-0 z-30 bg-white/95 dark:bg-slate-800/95 backdrop-blur border-b border-slate-200/80 dark:border-slate-700/80 p-3 sm:p-4">
         {/* Header */}
         <div className="flex items-start gap-2.5 mb-2.5">
           <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0">
