@@ -36,7 +36,7 @@ export default function PasswordInput({
         placeholder={placeholder}
         required={required}
         autoComplete={autoComplete}
-        className={`w-full px-4 py-3 border border-slate-600/80 dark:border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 dark:bg-slate-800/50 text-slate-100 dark:text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80 pr-12 ${className}`}
+        className={`w-full px-4 py-3 border border-slate-600/80 dark:border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 dark:bg-slate-800/50 text-slate-100 dark:text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80 pr-12 text-base leading-normal font-sans align-middle ${className}`}
       />
       <button
         type="button"
