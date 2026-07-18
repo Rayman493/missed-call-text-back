@@ -13,6 +13,9 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.Plugin;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.os.Build;
 
 public class MainActivity extends BridgeActivity {
     private View offlineView;
@@ -21,6 +24,18 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Create notification channel for Android O+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                "replyflow-high",
+                "ReplyFlow Alerts",
+                NotificationManager.IMPORTANCE_HIGH
+            );
+            channel.setDescription("High-value ReplyFlow notifications");
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            manager.createNotificationChannel(channel);
+        }
 
         // Get the Capacitor WebView
         webView = getBridge().getWebView();

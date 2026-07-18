@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { sendPushForNotification } from '@/lib/fcm-sender'
 import { normalizePunctuation } from '@/lib/utils'
 
 export interface Notification {
@@ -311,6 +312,27 @@ export class NotificationServiceServer {
       return false
     } else {
       console.log('[NOTIFICATIONS INSERT SUCCESS]', { businessId, type })
+
+      // Send push notification asynchronously (best-effort, does not block)
+      // This is fire-and-forget - failures are logged but don't affect the business event
+      setImmediate(async () => {
+        try {
+          const notification = {
+            id: '', // We don't have the ID from the insert, but FCM doesn't need it
+            business_id: businessId,
+            type,
+            title: notificationData.title,
+            message: message || notificationData.message,
+            action_url: actionUrl || notificationData.action_url,
+            data,
+          }
+          await sendPushForNotification(notification)
+        } catch (pushError) {
+          console.error('[NOTIFICATIONS PUSH ERROR]', pushError)
+          // Push failures are logged but do not affect the notification creation success
+        }
+      })
+
       return true
     }
   }

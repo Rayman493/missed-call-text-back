@@ -389,6 +389,7 @@ function AuthContent() {
           },
           body: JSON.stringify({
             checkout_mode: 'trial',
+            checkout_source: 'auth-signup',
           }),
         })
 

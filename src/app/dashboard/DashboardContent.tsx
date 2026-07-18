@@ -687,6 +687,7 @@ export default function DashboardContent() {
         },
         body: JSON.stringify({
           checkout_mode: checkoutMode,
+          checkout_source: 'dashboard',
         }),
       })
       const data = await response.json()

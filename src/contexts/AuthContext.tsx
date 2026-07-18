@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { pushService } from '@/lib/push-service'
 
 const supabase = createBrowserClient()
 
@@ -85,13 +86,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Listen to auth state changes - only once
     if (!authSubscriptionRef.current && supabase) {
-      authSubscriptionRef.current = supabase.auth.onAuthStateChange((_event: any, session: any) => {
+      authSubscriptionRef.current = supabase.auth.onAuthStateChange(async (_event: any, session: any) => {
         if (session) {
           setSession(session)
           setUser(session.user)
           // Update cache on auth state change
           if (typeof window !== 'undefined') {
             sessionStorage.setItem('replyflow_auth_cache', 'authenticated')
+          }
+          // Retry push device registration after authentication
+          if (typeof window !== 'undefined' && (window as any).Capacitor?.isNative) {
+            try {
+              const { pushService } = await import('@/lib/push-service')
+              await pushService.retryRegistration()
+            } catch (error) {
+              console.error('[Auth] Push registration retry failed:', error)
+            }
           }
         } else {
           setSession(null)
@@ -184,6 +194,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('[LOGOUT] Local storage cleared', {
           keysRemoved: localKeysToRemove.length
         })
+      }
+
+      // Unregister push device (native only)
+      try {
+        await pushService.unregisterDevice()
+        console.log('[LOGOUT] Push device unregistered')
+      } catch (error) {
+        console.warn('[LOGOUT] Failed to unregister push device:', error)
       }
 
       // Sign out from Supabase if available

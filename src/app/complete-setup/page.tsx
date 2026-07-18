@@ -173,6 +173,7 @@ export default function CompleteSetupPage() {
         },
         body: JSON.stringify({
           checkout_mode: 'trial',
+          checkout_source: 'complete-setup',
         }),
       })
 

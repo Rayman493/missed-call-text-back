@@ -305,6 +305,7 @@ export default function OnboardingPage() {
         },
         body: JSON.stringify({
           checkout_mode: 'trial',
+          checkout_source: 'onboarding',
         }),
       })
 

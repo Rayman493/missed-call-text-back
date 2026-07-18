@@ -10,6 +10,7 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import { Keyboard } from '@capacitor/keyboard';
 import { Preferences } from '@capacitor/preferences';
 import { SplashScreen } from '@capacitor/splash-screen';
+import { pushService } from '@/lib/push-service';
 
 /**
  * Initialize Capacitor plugins and set up event listeners
@@ -66,6 +67,10 @@ export async function initializeCapacitor() {
     });
 
     console.log('[Capacitor] Native plugins initialized successfully');
+
+    // Initialize push notification service
+    console.log('[Capacitor] Initializing push notification service');
+    await pushService.initialize();
   } catch (error) {
     console.error('[Capacitor] Error initializing native plugins:', error);
   }

@@ -13,14 +13,16 @@ export async function POST(request: Request) {
   try {
     console.log('[stripe-checkout] Starting checkout session creation');
     
-    // Parse request body to get checkout mode
+    // Parse request body to get checkout mode and optional source label
     const body = await request.json().catch(() => ({}))
     const checkoutMode = body.checkout_mode || 'trial' // Default to trial for backward compatibility
+    const checkoutSource = body.checkout_source || 'unspecified'
     
     console.log('[stripe-checkout] Request body parsed:', {
       rawBody: body,
       checkout_mode_from_body: body.checkout_mode,
       finalCheckoutMode: checkoutMode,
+      checkout_source: checkoutSource,
     })
     
     console.log('[stripe-checkout] Checkout mode:', checkoutMode);
@@ -52,6 +54,10 @@ export async function POST(request: Request) {
     )
     
     console.log('[stripe-checkout] Supabase client initialized');
+    console.log('[stripe-checkout] Request headers:', {
+      referer: request.headers.get('referer'),
+      origin: request.headers.get('origin')
+    })
 
     const { data: { user } } = await supabase.auth.getUser()
     console.log('[stripe-checkout] User authentication result:', { user: !!user, userId: user?.id, email: user?.email });
