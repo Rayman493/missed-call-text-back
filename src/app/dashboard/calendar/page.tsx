@@ -108,6 +108,7 @@ export default function SchedulePage() {
       if (calendarStatus === 'connected') {
         showToast('Google Calendar connected successfully!', 'success')
         setTokenExpired(false)
+        setScheduleTab('calendar') // Switch to Calendar tab after successful connection
         window.history.replaceState({}, '', '/dashboard/calendar')
       } else if (calendarStatus === 'error') {
         showToast('Failed to connect Google Calendar. Please try again.', 'error')
