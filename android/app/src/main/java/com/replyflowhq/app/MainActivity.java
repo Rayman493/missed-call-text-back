@@ -216,11 +216,11 @@ public class MainActivity extends BridgeActivity {
         logoView.setImageResource(R.drawable.ic_replyflow_logo);
         logoView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         LinearLayout.LayoutParams logoLayoutParams = new LinearLayout.LayoutParams(
-            144,
-            144
+            240,
+            240
         );
         logoLayoutParams.gravity = Gravity.CENTER;
-        logoLayoutParams.setMargins(0, 0, 0, 32);
+        logoLayoutParams.setMargins(0, 0, 0, 40);
         logoView.setLayoutParams(logoLayoutParams);
         layout.addView(logoView, logoLayoutParams);
 
@@ -229,18 +229,18 @@ public class MainActivity extends BridgeActivity {
         iconView.setImageResource(R.drawable.ic_replyflow_wifi_off);
         iconView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(
-            96,
-            96
+            160,
+            160
         );
         iconParams.gravity = Gravity.CENTER;
-        iconParams.setMargins(0, 0, 0, 32);
+        iconParams.setMargins(0, 0, 0, 40);
         iconView.setLayoutParams(iconParams);
         layout.addView(iconView, iconParams);
 
         // Main message
         TextView messageText = new TextView(context);
         messageText.setText("You're offline");
-        messageText.setTextSize(28);
+        messageText.setTextSize(30);
         messageText.setTextColor(Color.WHITE);
         messageText.setTypeface(null, android.graphics.Typeface.BOLD);
         messageText.setGravity(Gravity.CENTER);
@@ -248,26 +248,26 @@ public class MainActivity extends BridgeActivity {
             LinearLayout.LayoutParams.WRAP_CONTENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         );
-        messageParams.setMargins(0, 0, 0, 20);
+        messageParams.setMargins(0, 0, 0, 24);
         layout.addView(messageText, messageParams);
 
         // Subtitle - updated to reflect automatic reconnection
         TextView subtitleText = new TextView(context);
         subtitleText.setText("Check your internet connection.\nReplyFlow will reconnect automatically.");
-        subtitleText.setTextSize(16);
+        subtitleText.setTextSize(18);
         subtitleText.setTextColor(Color.parseColor("#94a3b8")); // slate-400
         subtitleText.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams subtitleParams = new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         );
-        subtitleParams.setMargins(0, 0, 0, 24);
+        subtitleParams.setMargins(0, 0, 0, 32);
         layout.addView(subtitleText, subtitleParams);
 
         // Supporting text
         TextView supportingText = new TextView(context);
         supportingText.setText("ReplyFlow requires an internet connection to load your latest customers, messages, jobs, and schedule.");
-        supportingText.setTextSize(14);
+        supportingText.setTextSize(15);
         supportingText.setTextColor(Color.parseColor("#64748b")); // slate-500
         supportingText.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams supportingParams = new LinearLayout.LayoutParams(
