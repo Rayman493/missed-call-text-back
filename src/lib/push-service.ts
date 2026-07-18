@@ -151,14 +151,17 @@ class PushService {
 
     // Listen for token registration
     PushNotifications.addListener('registration', (token) => {
-      console.log('[PUSH SERVICE] Push registration success, token:', token.value)
+      console.log('[PUSH SERVICE] FCM registration event received', {
+        tokenPrefix: token.value.substring(0, 8) + '...'
+      })
       this.currentToken = token.value
+      console.log('[PUSH SERVICE] Calling server registration')
       this.registerDeviceWithServer(token.value)
     })
 
     // Listen for registration errors
     PushNotifications.addListener('registrationError', (error) => {
-      console.error('[PUSH SERVICE] Push registration error:', error.error)
+      console.error('[PUSH SERVICE] FCM registration error:', error.error)
     })
 
     // Listen for incoming push notifications (app in foreground)
@@ -192,16 +195,42 @@ class PushService {
     }
 
     try {
-      console.log('[PUSH SERVICE] Registering device with server', {
+      console.log('[PUSH SERVICE] Server registration started', {
         platform: this.currentPlatform,
-        token: token.substring(0, 20) + '...'
+        tokenPrefix: token.substring(0, 8) + '...'
+      })
+
+      // Get Supabase session for Bearer token auth
+      let accessToken: string | null = null
+      try {
+        const { createClient } = await import('@supabase/supabase-js')
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        )
+        const { data: { session } } = await supabase.auth.getSession()
+        accessToken = session?.access_token || null
+        console.log('[PUSH SERVICE] Session access token:', accessToken ? 'present' : 'missing')
+      } catch (error) {
+        console.error('[PUSH SERVICE] Failed to get session:', error)
+      }
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      }
+
+      if (accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`
+      }
+
+      console.log('[PUSH SERVICE] Request headers:', {
+        hasAuth: !!accessToken,
+        contentType: headers['Content-Type']
       })
 
       const response = await fetch('/api/push/register-device', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           pushToken: token,
           platform: this.currentPlatform,
@@ -209,19 +238,27 @@ class PushService {
         })
       })
 
+      console.log('[PUSH SERVICE] Server response status:', response.status)
+
       if (!response.ok) {
         const error = await response.json()
-        console.error('[PUSH SERVICE] Device registration failed:', error)
+        console.error('[PUSH SERVICE] Server registration failed:', {
+          status: response.status,
+          error: error.error || 'Unknown error'
+        })
         // If unauthorized, the user is not authenticated - we'll retry when they sign in
         if (response.status === 401) {
           console.log('[PUSH SERVICE] User not authenticated, will retry on sign-in')
           this.currentToken = token // Store token for retry
         }
       } else {
-        console.log('[PUSH SERVICE] Device registered successfully')
+        const result = await response.json()
+        console.log('[PUSH SERVICE] Server registration success:', {
+          deviceId: result.device?.id
+        })
       }
     } catch (error) {
-      console.error('[PUSH SERVICE] Device registration error:', error)
+      console.error('[PUSH SERVICE] Server registration error:', error)
     }
   }
 
