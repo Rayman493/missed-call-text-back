@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
@@ -125,7 +126,7 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    protected void onDestroy() {
+    public void onDestroy() {
         super.onDestroy();
         // Unregister network callback to prevent memory leaks
         if (networkCallback != null) {
@@ -140,15 +141,15 @@ public class MainActivity extends BridgeActivity {
         if (offlineView == null) {
             offlineView = createOfflineView();
         }
-        
+
         if (offlineView.getParent() == null) {
-            // Add offline view to the root layout
-            LinearLayout rootLayout = (LinearLayout) webView.getParent();
+            // Add offline view to the root layout using generic ViewGroup
+            ViewGroup rootLayout = (ViewGroup) webView.getParent();
             if (rootLayout != null) {
                 rootLayout.addView(offlineView, 0);
             }
         }
-        
+
         webView.setVisibility(View.GONE);
         offlineView.setVisibility(View.VISIBLE);
     }
