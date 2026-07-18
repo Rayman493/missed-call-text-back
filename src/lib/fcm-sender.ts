@@ -210,7 +210,7 @@ export async function sendTestPush(
   title: string,
   body: string,
   actionUrl: string
-): Promise<{ success: boolean; message: string }> {
+): Promise<{ success: boolean; message: string; details?: any }> {
   try {
     // Get active enabled push devices for this business
     const { data: devices, error: devicesError } = await supabaseAdmin
@@ -231,33 +231,89 @@ export async function sendTestPush(
     // Get Firebase messaging instance
     const messaging = getMessaging()
 
-    // Send to first device only (for testing)
-    const token = devices[0].push_token
-    const message = {
-      notification: {
-        title,
-        body,
-      },
-      data: {
-        notificationId: 'test-' + Date.now(),
-        type: 'test',
-        actionUrl,
-      } as any,
-      android: {
-        priority: 'high' as const,
-        notification: {
-          channelId: 'replyflow-high',
-        },
-      },
-      token,
+    // Send to all devices (not just first one)
+    const results = await Promise.allSettled(
+      devices.map(async (device) => {
+        try {
+          const message = {
+            notification: {
+              title,
+              body,
+            },
+            data: {
+              notificationId: 'test-' + Date.now(),
+              type: 'test',
+              actionUrl,
+            } as any,
+            android: {
+              priority: 'high' as const,
+              notification: {
+                channelId: 'replyflow-high',
+              },
+            },
+            token: device.push_token,
+          }
+
+          const messageId = await messaging.send(message)
+          console.log('[FCM SENDER] Test push sent successfully:', messageId)
+          return { success: true, token: device.push_token }
+        } catch (error: any) {
+          console.error('[FCM SENDER] Test push failed for token:', device.push_token.substring(0, 20) + '...', error)
+          
+          // Check if token is invalid/unregistered
+          if (error.code === 'messaging/registration-token-not-registered' ||
+              error.code === 'messaging/invalid-registration-token') {
+            console.log('[FCM SENDER] Disabling invalid token:', device.push_token.substring(0, 20) + '...')
+            await disableInvalidToken(device.push_token)
+          }
+          
+          return { success: false, token: device.push_token, error: error.message }
+        }
+      })
+    )
+
+    // Calculate delivery summary
+    const successful = results.filter(r => r.status === 'fulfilled' && (r.value as any).success).length
+    const failed = results.filter(r => r.status === 'rejected' || !(r.value as any).success).length
+    const staleTokensDisabled = results.filter(r => 
+      r.status === 'fulfilled' && 
+      !(r.value as any).success && 
+      (r.value as any).error?.includes('NotRegistered')
+    ).length
+
+    console.log('[FCM SENDER] Test push delivery complete:', {
+      total: results.length,
+      successful,
+      failed,
+      staleTokensDisabled,
+    })
+
+    // Return success if at least one device received the push
+    if (successful > 0) {
+      return { 
+        success: true, 
+        message: `Test push sent to ${successful} device(s)`,
+        details: {
+          attempted: results.length,
+          succeeded: successful,
+          failed,
+          staleTokensDisabled,
+        }
+      }
+    } else {
+      return { 
+        success: false, 
+        message: `Test push failed for all ${results.length} device(s)`,
+        details: {
+          attempted: results.length,
+          succeeded: 0,
+          failed,
+          staleTokensDisabled,
+        }
+      }
     }
-
-    const messageId = await messaging.send(message)
-    console.log('[FCM SENDER] Test push sent:', messageId)
-
-    return { success: true, message: 'Test push sent successfully' }
   } catch (error: any) {
-    console.error('[FCM SENDER] Test push failed:', error)
+    console.error('[FCM SENDER] Test push unexpected error:', error)
     return { success: false, message: error.message || 'Test push failed' }
   }
 }
