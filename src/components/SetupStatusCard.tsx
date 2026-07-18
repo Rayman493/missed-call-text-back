@@ -847,13 +847,13 @@ export default function SetupStatusCard({
         {(cardState === 'setup-complete' || cardState === 'healthy') && (
           <div className="flex flex-col gap-2">
             <div className="flex gap-2">
-              <Link
-                href="/setup/phone-forwarding?mode=review"
+              <button
+                onClick={() => setShowForwardingInstructions(true)}
                 className="inline-flex items-center justify-center px-4 py-2.5 bg-secondary hover:bg-secondary/80 text-secondary-foreground text-sm font-medium rounded-lg transition-colors"
               >
                 <Settings className="w-4 h-4 mr-2" />
                 Setup
-              </Link>
+              </button>
               <button
                 onClick={() => setIsAssistantOpen(true)}
                 className="inline-flex items-center justify-center px-4 py-2.5 bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground text-sm font-medium rounded-lg transition-colors"
