@@ -263,6 +263,16 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
               <Settings className="h-4 w-4 text-slate-400" />
               Settings
             </Link>
+            <button
+              onClick={() => {
+                setIsMoreMenuOpen(false)
+                setIsAssistantOpen(true)
+              }}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-slate-300 transition-colors duration-150 hover:bg-slate-800 hover:text-white"
+            >
+              <MessageCircle className="h-4 w-4 text-slate-400" />
+              ReplyFlow Assistant
+            </button>
             <div className="h-px bg-slate-700 my-1" />
             <button
               onClick={handleLogout}
