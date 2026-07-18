@@ -76,9 +76,11 @@ export default function SetupStatusCard({
       const originalHtmlOverflow = document.documentElement.style.overflow
       document.body.style.overflow = 'hidden'
       document.documentElement.style.overflow = 'hidden'
+      document.body.setAttribute('data-assistant-open', 'true')
       return () => {
         document.body.style.overflow = originalBodyOverflow
         document.documentElement.style.overflow = originalHtmlOverflow
+        document.body.removeAttribute('data-assistant-open')
       }
     }
   }, [isAssistantOpen])
@@ -911,10 +913,10 @@ export default function SetupStatusCard({
 
       {isAssistantOpen && (
         <>
-          {/* Mobile: Bottom sheet with strict bounded height */}
+          {/* Mobile: Bottom sheet with full viewport height (bottom nav hidden) */}
           <div className="fixed inset-0 z-[100] flex items-end justify-center md:hidden">
             <div className="absolute inset-0 bg-black/55" onClick={() => setIsAssistantOpen(false)} />
-            <div className="relative w-full flex flex-col h-[calc(100dvh-5rem-env(safe-area-inset-bottom))]">
+            <div className="relative w-full flex flex-col h-[calc(100dvh-env(safe-area-inset-bottom))]">
               <div className="bg-white dark:bg-slate-800 rounded-t-2xl shadow-2xl overflow-hidden flex flex-col min-h-0">
                 <ReplyFlowAssistant
                   context={{ currentPage: 'dashboard' }}

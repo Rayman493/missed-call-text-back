@@ -23,10 +23,12 @@ export default function FloatingHelpButton({ context }: FloatingHelpButtonProps)
       document.body.style.overflow = 'hidden'
       document.documentElement.style.overflow = 'hidden'
       document.body.style.touchAction = 'none'
+      document.body.setAttribute('data-assistant-open', 'true')
       return () => {
         document.body.style.overflow = originalBodyOverflow
         document.documentElement.style.overflow = originalHtmlOverflow
         document.body.style.touchAction = originalBodyTouchAction
+        document.body.removeAttribute('data-assistant-open')
       }
     }
   }, [isOpen])
@@ -66,10 +68,10 @@ export default function FloatingHelpButton({ context }: FloatingHelpButtonProps)
       {/* Modal */}
       {isOpen && (
         <>
-          {/* Mobile: Bottom sheet with strict bounded height */}
+          {/* Mobile: Bottom sheet with full viewport height (bottom nav hidden) */}
           <div className="fixed inset-0 z-[9999] flex items-end justify-center md:hidden">
             <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsOpen(false)} style={{ touchAction: 'none' }} />
-            <div className="relative w-full flex flex-col h-[calc(100dvh-5rem-env(safe-area-inset-bottom))]">
+            <div className="relative w-full flex flex-col h-[calc(100dvh-env(safe-area-inset-bottom))]">
               <div className="bg-white dark:bg-slate-800 rounded-t-2xl shadow-2xl overflow-hidden flex flex-col min-h-0">
                 <ReplyFlowAssistant context={context} onClose={() => setIsOpen(false)} />
               </div>

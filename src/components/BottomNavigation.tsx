@@ -24,7 +24,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
   const moreButtonRef = useRef<HTMLButtonElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // Hide bottom nav on public pages
+  // Hide bottom nav on public pages or when assistant is open
   const isPublicPage = pathname === '/' || 
                        pathname === '/faq' || 
                        pathname === '/privacy' || 
@@ -34,7 +34,23 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                        pathname === '/auth' ||
                        pathname?.startsWith('/signup')
 
-  if (isPublicPage) {
+  // Check if any assistant is open via data attribute
+  const [isAnyAssistantOpen, setIsAnyAssistantOpen] = useState(false)
+
+  useEffect(() => {
+    const checkAssistantOpen = () => {
+      setIsAnyAssistantOpen(document.body.getAttribute('data-assistant-open') === 'true')
+    }
+
+    checkAssistantOpen()
+
+    const observer = new MutationObserver(checkAssistantOpen)
+    observer.observe(document.body, { attributes: true, attributeFilter: ['data-assistant-open'] })
+
+    return () => observer.disconnect()
+  }, [])
+
+  if (isPublicPage || isAnyAssistantOpen) {
     return null
   }
 
