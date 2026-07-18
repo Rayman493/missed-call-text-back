@@ -28,11 +28,14 @@ export async function POST(request: Request) {
       }
     )
 
-    // Get current authenticated user
+    // STAGE 1: current-user lookup
     const { data: { user }, error: userError } = await supabase.auth.getUser()
 
     if (userError || !user) {
-      console.error('[delete-incomplete-signup] No authenticated user found')
+      console.error('[delete-incomplete-signup] No authenticated user found', {
+        code: (userError as any)?.code,
+        message: (userError as any)?.message
+      })
       return NextResponse.json(
         { error: 'You must be signed in to delete your account' },
         { status: 401 }
@@ -60,6 +63,7 @@ export async function POST(request: Request) {
       )
     }
 
+    // STAGE 2: password verification
     console.log('[delete-incomplete-signup] Verifying password')
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: user.email,
@@ -67,7 +71,10 @@ export async function POST(request: Request) {
     })
 
     if (signInError) {
-      console.error('[delete-incomplete-signup] Password verification failed:', signInError.message)
+      console.error('[delete-incomplete-signup] Password verification failed:', {
+        code: (signInError as any)?.code,
+        message: (signInError as any)?.message
+      })
       return NextResponse.json(
         { error: 'Incorrect password' },
         { status: 403 }
@@ -78,6 +85,7 @@ export async function POST(request: Request) {
 
     // Find the optional business row for this user. Use maybeSingle so a missing
     // business is treated as "nothing to clean up", not as a server error.
+    // STAGE 3: optional business lookup
     const { data: business, error: businessError } = await supabaseAdmin
       .from('businesses')
       .select('id, subscription_status, user_id, twilio_phone_number_sid, stripe_customer_id, stripe_subscription_id')
@@ -86,7 +94,12 @@ export async function POST(request: Request) {
       .maybeSingle()
 
     if (businessError) {
-      console.error('[delete-incomplete-signup] Error fetching business:', businessError)
+      console.error('[delete-incomplete-signup] Error fetching business:', {
+        code: (businessError as any)?.code,
+        message: (businessError as any)?.message,
+        details: (businessError as any)?.details,
+        hint: (businessError as any)?.hint
+      })
       return NextResponse.json(
         { error: 'Could not fetch business record' },
         { status: 500 }
@@ -130,6 +143,7 @@ export async function POST(request: Request) {
 
     // Delete optional Stripe customer/subscription data only where appropriate.
     // For incomplete signups there should be none, but clean up if present.
+    // STAGE 5: Stripe cleanup (optional)
     if (business?.stripe_customer_id) {
       try {
         const { default: getStripe } = await import('@/lib/stripe')
@@ -145,11 +159,14 @@ export async function POST(request: Request) {
           console.log('[delete-incomplete-signup] Deleted Stripe customer:', business.stripe_customer_id)
         }
       } catch (stripeError: any) {
-        console.warn('[delete-incomplete-signup] Stripe cleanup skipped/optional:', stripeError?.message || stripeError)
+        console.warn('[delete-incomplete-signup] Stripe cleanup skipped/optional:', {
+          message: stripeError?.message || String(stripeError),
+          code: stripeError?.code
+        })
       }
     }
 
-    // Delete dependent records safely if a business exists.
+    // STAGE 4: dependent cleanup (only if business exists)
     if (business) {
       console.log('[delete-incomplete-signup] Cleaning up dependent records for business:', business.id)
 
@@ -263,7 +280,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // Delete business row (if exists). Missing row is treated as already deleted.
+    // STAGE 7: business deletion (if exists)
     if (business) {
       console.log('[delete-incomplete-signup] Deleting business row:', business.id)
       const { error: deleteBusinessError } = await supabaseAdmin
@@ -273,7 +290,12 @@ export async function POST(request: Request) {
         .eq('user_id', user.id)
 
       if (deleteBusinessError) {
-        console.error('[delete-incomplete-signup] Error deleting business:', deleteBusinessError)
+        console.error('[delete-incomplete-signup] Error deleting business:', {
+          code: (deleteBusinessError as any)?.code,
+          message: (deleteBusinessError as any)?.message,
+          details: (deleteBusinessError as any)?.details,
+          hint: (deleteBusinessError as any)?.hint
+        })
         return NextResponse.json(
           { error: 'Could not delete business record' },
           { status: 500 }
@@ -281,9 +303,10 @@ export async function POST(request: Request) {
       }
       console.log('[delete-incomplete-signup] Business row deleted')
     } else {
-      console.log('[delete-incomplete-signup] No business row found, skipping business deletion')
+      console.log('[delete-incomplete-signup] No business row found; skipping resource cleanup and business deletion')
     }
 
+    // STAGE 8: auth admin user deletion
     // Delete auth user using an isolated service-role client to avoid any shared
     // singleton state issues. If the user does not exist, treat it as already deleted.
     console.log('[delete-incomplete-signup] Deleting auth user:', user.id)
@@ -302,17 +325,26 @@ export async function POST(request: Request) {
     try {
       const { data: userCheck, error: userCheckError } = await isolatedAdminClient.auth.admin.getUserById(user.id)
       if (userCheckError || !userCheck.user) {
-        console.log('[delete-incomplete-signup] Auth user already deleted or not found:', user.id)
+        console.log('[delete-incomplete-signup] Auth user already deleted or not found:', {
+          userId: user.id,
+          code: (userCheckError as any)?.code,
+          message: (userCheckError as any)?.message
+        })
         return NextResponse.json({ ok: true, message: 'Account deleted successfully' })
       }
     } catch (checkError: any) {
-      console.warn('[delete-incomplete-signup] Could not verify auth user existence before delete:', checkError?.message || checkError)
+      console.warn('[delete-incomplete-signup] Could not verify auth user existence before delete:', {
+        message: checkError?.message || String(checkError)
+      })
     }
 
     const { error: deleteAuthError } = await isolatedAdminClient.auth.admin.deleteUser(user.id)
 
     if (deleteAuthError) {
-      console.error('[delete-incomplete-signup] Error deleting auth user:', deleteAuthError)
+      console.error('[delete-incomplete-signup] Error deleting auth user:', {
+        code: (deleteAuthError as any)?.code,
+        message: (deleteAuthError as any)?.message
+      })
 
       // Best-effort idempotency: if the user cannot be found anymore, we still
       // treat the deletion as successful.
