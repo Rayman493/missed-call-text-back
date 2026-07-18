@@ -8,14 +8,10 @@ import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 import android.os.Build;
 import android.os.Bundle;
-import android.text.InputType;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.inputmethod.EditorInfo;
-import android.view.inputmethod.InputConnection;
-import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.ImageView;
@@ -24,7 +20,6 @@ import android.widget.TextView;
 import com.getcapacitor.BridgeActivity;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import java.lang.reflect.Method;
 
 public class MainActivity extends BridgeActivity {
     private static final String TAG = "ReplyFlowOffline";
@@ -52,14 +47,8 @@ public class MainActivity extends BridgeActivity {
             manager.createNotificationChannel(channel);
         }
 
-        // Get the Capacitor WebView
+        // Get the Capacitor WebView (used for offline overlay parent)
         webView = getBridge().getWebView();
-        boolean captureInput = getBridge().getConfig().isInputCaptured();
-        Log.i("ReplyFlowIME", "captureInput=" + captureInput + ", webViewClass=" + (webView != null ? webView.getClass().getName() : "null"));
-        if (webView != null) {
-            // Development-only diagnostics: allow JS to request IME flag logging
-            webView.addJavascriptInterface(new RFDiag(), "RFDiag");
-        }
 
         // Check network connectivity at startup
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -289,41 +278,5 @@ public class MainActivity extends BridgeActivity {
         return layout;
     }
 
-    // ===== Development diagnostics: IME flags for active WebView =====
-    private void logWebViewEditorInfo() {
-        if (webView == null) {
-            Log.w("ReplyFlowIME", "webView is null");
-            return;
-        }
-        try {
-            Method m = WebView.class.getDeclaredMethod("onCreateInputConnection", EditorInfo.class);
-            m.setAccessible(true);
-            EditorInfo out = new EditorInfo();
-            InputConnection ic = (InputConnection) m.invoke(webView, out);
-            int it = out.inputType;
-            int ime = out.imeOptions;
-            boolean isText = (it & InputType.TYPE_MASK_CLASS) == InputType.TYPE_CLASS_TEXT;
-            boolean capSentences = (it & InputType.TYPE_TEXT_FLAG_CAP_SENTENCES) != 0;
-            boolean autoCorrect = (it & InputType.TYPE_TEXT_FLAG_AUTO_CORRECT) != 0;
-            boolean noSuggestions = (it & InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS) != 0;
-            boolean multiLine = (it & InputType.TYPE_TEXT_FLAG_MULTI_LINE) != 0;
-
-            Log.i("ReplyFlowIME", "EditorInfo: inputType=" + it
-                    + ", imeOptions=" + ime
-                    + ", TYPE_CLASS_TEXT=" + isText
-                    + ", CAP_SENTENCES=" + capSentences
-                    + ", AUTO_CORRECT=" + autoCorrect
-                    + ", NO_SUGGESTIONS=" + noSuggestions
-                    + ", MULTI_LINE=" + multiLine);
-        } catch (Throwable t) {
-            Log.e("ReplyFlowIME", "Failed to reflect onCreateInputConnection", t);
-        }
-    }
-
-    private class RFDiag {
-        @JavascriptInterface
-        public void logIME() {
-            runOnUiThread(() -> logWebViewEditorInfo());
-        }
-    }
+    // (Diagnostics removed)
 }

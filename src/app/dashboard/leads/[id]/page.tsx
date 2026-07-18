@@ -3642,7 +3642,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     onKeyDown={handleMobileKeyDown}
-                    onFocus={() => { try { (window as any).RFDiag?.logIME?.() } catch {} }}
                     placeholder="Type a message..."
                     autoCapitalize="sentences"
                     autoCorrect="on"
