@@ -353,20 +353,40 @@ class PushService {
     try {
       console.log('[PUSH SERVICE] Unregistering device from server')
 
+      // Use cached access token from AuthContext for Bearer auth
+      const accessToken = this.accessToken
+      console.log('[PUSH SERVICE] Access token from cache:', accessToken ? 'present' : 'missing')
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      }
+
+      if (accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`
+      }
+
+      console.log('[PUSH SERVICE] Unregister request headers:', {
+        hasAuth: !!accessToken,
+        hasContentType: !!headers['Content-Type']
+      })
+
       const response = await fetch('/api/push/unregister-device', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           pushToken: this.currentToken,
           platform: this.currentPlatform
         })
       })
 
+      console.log('[PUSH SERVICE] Unregister response status:', response.status)
+
       if (!response.ok) {
         const error = await response.json()
-        console.error('[PUSH SERVICE] Device unregistration failed:', error)
+        console.error('[PUSH SERVICE] Device unregistration failed:', {
+          status: response.status,
+          error: error.error || 'Unknown error'
+        })
       } else {
         console.log('[PUSH SERVICE] Device unregistered successfully')
         this.currentToken = null
