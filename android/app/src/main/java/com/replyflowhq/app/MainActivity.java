@@ -28,6 +28,8 @@ public class MainActivity extends BridgeActivity {
     private ConnectivityManager.NetworkCallback networkCallback;
     private boolean isWaitingForNetwork = false;
     private boolean hasLoadedSuccessfully = false;
+    private android.os.Handler loadCheckHandler;
+    private Runnable loadCheckRunnable;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -82,11 +84,9 @@ public class MainActivity extends BridgeActivity {
                 // Network became available with validated internet access
                 if (isWaitingForNetwork && !hasLoadedSuccessfully) {
                     isWaitingForNetwork = false;
-                    hasLoadedSuccessfully = true;
                     runOnUiThread(() -> {
-                        hideOfflineScreen();
-                        // Let Capacitor handle the reload naturally
-                        // Do not manually loadUrl to avoid breaking deep links and session restoration
+                        // Start checking for successful page load
+                        startLoadCheck();
                     });
                 }
             }
@@ -97,7 +97,10 @@ public class MainActivity extends BridgeActivity {
                 // Once loaded, let React/Capacitor handle runtime offline
                 if (!hasLoadedSuccessfully) {
                     isWaitingForNetwork = true;
-                    runOnUiThread(() -> showOfflineScreen());
+                    runOnUiThread(() -> {
+                        stopLoadCheck();
+                        showOfflineScreen();
+                    });
                 }
             }
         };
@@ -125,12 +128,47 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        stopLoadCheck();
         // Unregister network callback to prevent memory leaks
         if (networkCallback != null) {
             ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
             if (connectivityManager != null) {
                 connectivityManager.unregisterNetworkCallback(networkCallback);
             }
+        }
+    }
+
+    private void startLoadCheck() {
+        stopLoadCheck(); // Clear any existing check
+        loadCheckHandler = new android.os.Handler();
+        loadCheckRunnable = new Runnable() {
+            @Override
+            public void run() {
+                // Check if WebView has loaded successfully
+                if (webView != null && webView.getProgress() == 100) {
+                    String url = webView.getUrl();
+                    // Check if we're on the actual app URL (not an error page)
+                    if (url != null && url.contains("replyflowhq.com") && !url.contains("error")) {
+                        hasLoadedSuccessfully = true;
+                        hideOfflineScreen();
+                        stopLoadCheck();
+                        return;
+                    }
+                }
+                // Continue checking if not loaded yet
+                if (loadCheckHandler != null) {
+                    loadCheckHandler.postDelayed(this, 200); // Check every 200ms
+                }
+            }
+        };
+        loadCheckHandler.postDelayed(loadCheckRunnable, 500); // Start checking after 500ms
+    }
+
+    private void stopLoadCheck() {
+        if (loadCheckHandler != null && loadCheckRunnable != null) {
+            loadCheckHandler.removeCallbacks(loadCheckRunnable);
+            loadCheckHandler = null;
+            loadCheckRunnable = null;
         }
     }
 
