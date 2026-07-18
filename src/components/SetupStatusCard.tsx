@@ -256,6 +256,31 @@ export default function SetupStatusCard({
     }
   }, [cardState, hasConfirmedForwardingInstructions, hasCompletedTestCall])
   
+  // Shared forwarding instructions modal portal available for all render branches
+  const modalPortal = showForwardingInstructions ? (
+    <CallForwardingInstructions
+      phoneNumber={business?.twilio_phone_number || ''}
+      isOpen={showForwardingInstructions}
+      onClose={() => setShowForwardingInstructions(false)}
+      businessId={business?.id}
+      onConfirm={async () => {
+        // Refresh business data after confirmation
+        if (business?.id) {
+          try {
+            const response = await fetch(`/api/businesses/${business.id}`)
+            if (response.ok) {
+              const data = await response.json()
+              // Trigger a re-render by setting expandedStep
+              setExpandedStep(3)
+            }
+          } catch (error) {
+            console.error('[SetupStatusCard] Failed to refresh business data:', error)
+          }
+        }
+      }}
+    />
+  ) : null
+  
   // Collapsed overview for setup-incomplete (user may manually collapse)
   if (!isExpanded && cardState === 'setup-incomplete') {
     const currentStep = !business?.twilio_phone_number
@@ -265,7 +290,9 @@ export default function SetupStatusCard({
         : 'Step 3 of 3'
 
     return (
-      <div className="bg-card text-card-foreground rounded-xl shadow-lg border border-border/50 hover:shadow-md transition-all">
+      <>
+        {modalPortal}
+        <div className="bg-card text-card-foreground rounded-xl shadow-lg border border-border/50 hover:shadow-md transition-all">
         <div className="flex items-center justify-between gap-3 p-3 sm:p-3.5">
           <div className="flex items-center gap-2.5 flex-1 min-w-0">
             <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -291,14 +318,17 @@ export default function SetupStatusCard({
             <ChevronDown className="w-3.5 h-3.5" />
           </button>
         </div>
-      </div>
+        </div>
+      </>
     )
   }
 
   // Collapsed overview for completed/healthy state with persistent Review access
   if (!isExpanded && (cardState === 'setup-complete' || cardState === 'healthy')) {
     return (
-      <div className="bg-card text-card-foreground rounded-xl shadow-lg border border-border/50 hover:shadow-md transition-all">
+      <>
+        {modalPortal}
+        <div className="bg-card text-card-foreground rounded-xl shadow-lg border border-border/50 hover:shadow-md transition-all">
         <div className="flex items-center justify-between gap-2 p-3 sm:p-3.5">
           <div className="flex items-center gap-2.5 flex-1 min-w-0">
             <div className="w-8 h-8 bg-green-500/15 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -334,7 +364,8 @@ export default function SetupStatusCard({
             </button>
           </div>
         </div>
-      </div>
+        </div>
+      </>
     )
   }
 
@@ -622,6 +653,7 @@ export default function SetupStatusCard({
   // Render main card (for setup states)
   return (
     <div className="bg-card text-card-foreground rounded-2xl shadow-xl border border-border/50 ring-1 ring-border/50">
+      {modalPortal}
       <div className="flex flex-col gap-3 sm:gap-4 p-4 sm:p-5">
         {/* MODE 1: Setup Incomplete */}
         {cardState === 'setup-incomplete' && (
@@ -916,7 +948,7 @@ export default function SetupStatusCard({
           {/* Mobile: Bottom sheet with full viewport height minus safe areas and small top margin (bottom nav hidden) */}
           <div className="fixed inset-0 z-[100] flex items-end justify-center md:hidden">
             <div className="absolute inset-0 bg-black/55" onClick={() => setIsAssistantOpen(false)} />
-            <div className="relative w-full flex flex-col h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] mt-4">
+            <div className="relative w-full flex flex-col h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1.25rem)] mt-5">
               <div className="bg-white dark:bg-slate-800 rounded-t-2xl shadow-2xl overflow-hidden flex flex-col min-h-0">
                 <ReplyFlowAssistant
                   context={{ currentPage: 'dashboard' }}
