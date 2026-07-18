@@ -223,6 +223,32 @@ export default function SetupStatusCard({
     }
   }, [cardState])
 
+  // Light polling while number is provisioning or pending
+  React.useEffect(() => {
+    const hasActiveOrTrial = business?.subscription_status === 'trialing' || business?.subscription_status === 'active' || business?.subscription_status === 'beta' || business?.subscription_status === 'comped'
+    const numberMissing = !business?.twilio_phone_number
+    const provisioningNonTerminal = business?.provisioning_status === 'pending' || business?.provisioning_status === 'provisioning' || business?.provisioning_status == null
+
+    if (!business?.id || !hasActiveOrTrial || !numberMissing || !provisioningNonTerminal) return
+
+    let attempts = 0
+    const maxAttempts = 36 // ~3 minutes at 5s interval
+    const interval = setInterval(async () => {
+      attempts += 1
+      try {
+        await refreshBusiness(true)
+      } catch (e) {
+        // Silently continue; UI remains accessible
+      }
+      const stop = !!business?.twilio_phone_number || business?.provisioning_status === 'completed' || business?.provisioning_status === 'failed' || attempts >= maxAttempts
+      if (stop) {
+        clearInterval(interval)
+      }
+    }, 5000)
+
+    return () => clearInterval(interval)
+  }, [business?.id, business?.subscription_status, business?.twilio_phone_number, business?.provisioning_status, refreshBusiness])
+
   React.useEffect(() => {
     // Only auto-expand if user hasn't manually toggled
     if (!userHasToggled) {
@@ -500,7 +526,7 @@ export default function SetupStatusCard({
                   <div>
                     <span className="text-white text-sm font-medium">ReplyFlow Number</span>
                     <span className={`text-xs block ${hasNumber ? 'text-green-200' : isProvisioning ? 'text-yellow-200' : 'text-gray-300'}`}>
-                      {hasNumber ? 'Connected' : isProvisioning ? 'Connecting' : 'Pending'}
+                      {hasNumber ? 'Connected' : isProvisioning ? 'Setting up…' : 'Pending'}
                     </span>
                   </div>
                 </div>
