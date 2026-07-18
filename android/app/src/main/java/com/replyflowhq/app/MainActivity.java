@@ -216,41 +216,26 @@ public class MainActivity extends BridgeActivity {
         logoView.setImageResource(R.drawable.ic_replyflow_logo);
         logoView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         LinearLayout.LayoutParams logoLayoutParams = new LinearLayout.LayoutParams(
-            96,
-            96
+            120,
+            120
         );
         logoLayoutParams.gravity = Gravity.CENTER;
-        logoLayoutParams.setMargins(0, 0, 0, 48);
+        logoLayoutParams.setMargins(0, 0, 0, 32);
         logoView.setLayoutParams(logoLayoutParams);
         layout.addView(logoView, logoLayoutParams);
-
-        // Offline icon container (circular background)
-        LinearLayout iconContainer = new LinearLayout(context);
-        iconContainer.setOrientation(LinearLayout.VERTICAL);
-        iconContainer.setGravity(Gravity.CENTER);
-        iconContainer.setBackgroundColor(Color.parseColor("#1e293b")); // slate-800
-        // Make it circular by setting equal dimensions
-        int iconSize = 144;
-        LinearLayout.LayoutParams iconContainerParams = new LinearLayout.LayoutParams(
-            iconSize,
-            iconSize
-        );
-        iconContainerParams.setMargins(0, 0, 0, 48);
-        iconContainer.setLayoutParams(iconContainerParams);
 
         // Offline icon using vector drawable
         ImageView iconView = new ImageView(context);
         iconView.setImageResource(R.drawable.ic_replyflow_wifi_off);
         iconView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(
-            80,
-            80
+            96,
+            96
         );
         iconParams.gravity = Gravity.CENTER;
+        iconParams.setMargins(0, 0, 0, 32);
         iconView.setLayoutParams(iconParams);
-        iconContainer.addView(iconView);
-
-        layout.addView(iconContainer, iconContainerParams);
+        layout.addView(iconView, iconParams);
 
         // Main message
         TextView messageText = new TextView(context);
