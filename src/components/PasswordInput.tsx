@@ -32,14 +32,17 @@ export default function PasswordInput({
       <input
         id={id}
         name={name}
-        type={showPassword ? 'text' : 'password'}
+        type="text"
         value={value}
         onChange={onChange}
         placeholder={placeholder}
         required={required}
         autoComplete={autoComplete}
         disabled={disabled}
-        className={`w-full px-4 py-3 border border-slate-600/80 dark:border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 dark:bg-slate-800/50 text-slate-100 dark:text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80 pr-12 text-base leading-normal font-sans align-middle disabled:opacity-50 ${className}`}
+        style={{
+          WebkitTextSecurity: showPassword ? 'none' : 'disc',
+        } as React.CSSProperties}
+        className={`w-full px-4 py-3 h-12 border border-slate-600/80 dark:border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 dark:bg-slate-800/50 text-slate-100 dark:text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80 pr-12 text-base leading-normal font-sans disabled:opacity-50 ${className}`}
       />
       <button
         type="button"
