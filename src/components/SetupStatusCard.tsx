@@ -537,6 +537,16 @@ export default function SetupStatusCard({
                     <ArrowRight className="w-3 h-3" />
                   </button>
                 )}
+                {forwardingStep2Complete && hasNumber && (
+                  <button
+                    type="button"
+                    onClick={() => setShowForwardingInstructions(true)}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-green-50 text-green-600 text-xs font-medium rounded-lg transition-colors"
+                  >
+                    Review
+                    <ArrowRight className="w-3 h-3" />
+                  </button>
+                )}
               </div>
             </div>
 
