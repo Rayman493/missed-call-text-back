@@ -13,6 +13,7 @@ interface AuthContextType {
   loading: boolean
   user: any
   signOut: (options?: { manual?: boolean }) => Promise<void>
+  accessToken: string | null
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -22,6 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [isClient, setIsClient] = useState(false)
+  const [accessToken, setAccessToken] = useState<string | null>(null)
   const authSubscriptionRef = useRef<any>(null)
   const pushRetryRef = useRef(false)
   const router = useRouter()
@@ -92,23 +94,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session) {
           setSession(session)
           setUser(session.user)
+          setAccessToken(session.access_token)
           // Update cache on auth state change
           if (typeof window !== 'undefined') {
             sessionStorage.setItem('replyflow_auth_cache', 'authenticated')
           }
-          // Retry push device registration after authentication (only once)
-          if (typeof window !== 'undefined' && Capacitor.isNativePlatform() && !pushRetryRef.current) {
-            pushRetryRef.current = true
+          // Set access token in push service for Bearer auth
+          if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
             try {
               const { pushService } = await import('@/lib/push-service')
-              await pushService.retryRegistration()
+              pushService.setAccessToken(session.access_token)
             } catch (error) {
-              console.error('[Auth] Push retry failed:', error)
+              console.error('[Auth] Failed to set push access token:', error)
             }
           }
         } else {
           setSession(null)
           setUser(null)
+          setAccessToken(null)
           // Clear cache on sign out
           if (typeof window !== 'undefined') {
             sessionStorage.removeItem('replyflow_auth_cache')
@@ -218,6 +221,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Clear auth state
       setSession(null)
       setUser(null)
+      setAccessToken(null)
+
+      // Clear push service access token
+      if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
+        try {
+          const { pushService } = await import('@/lib/push-service')
+          pushService.setAccessToken('')
+        } catch (error) {
+          console.error('[Auth] Failed to clear push access token:', error)
+        }
+      }
 
       console.log('[LOGOUT] Auth state cleared')
 
@@ -241,7 +255,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ session, loading, user, signOut }}>
+    <AuthContext.Provider value={{ session, loading, user, signOut, accessToken }}>
       {children}
     </AuthContext.Provider>
   )

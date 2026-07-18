@@ -37,6 +37,21 @@ class PushService {
   private listenersSetup = false
   private currentToken: string | null = null
   private currentPlatform: 'android' | 'ios' | null = null
+  private accessToken: string | null = null
+
+  /**
+   * Set the authenticated access token from AuthContext
+   * This should be called when the user signs in
+   */
+  setAccessToken(token: string): void {
+    this.accessToken = token
+    console.log('[PUSH SERVICE] Access token set from AuthContext')
+    // If we have a cached FCM token, try to register it now
+    if (this.currentToken && this.currentPlatform) {
+      console.log('[PUSH SERVICE] Cached FCM token available, registering now')
+      this.registerDeviceWithServer(this.currentToken)
+    }
+  }
 
   /**
    * Initialize the push notification service
@@ -200,20 +215,9 @@ class PushService {
         tokenPrefix: token.substring(0, 8) + '...'
       })
 
-      // Get Supabase session for Bearer token auth
-      let accessToken: string | null = null
-      try {
-        const { createClient } = await import('@supabase/supabase-js')
-        const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        )
-        const { data: { session } } = await supabase.auth.getSession()
-        accessToken = session?.access_token || null
-        console.log('[PUSH SERVICE] Session access token:', accessToken ? 'present' : 'missing')
-      } catch (error) {
-        console.error('[PUSH SERVICE] Failed to get session:', error)
-      }
+      // Use cached access token from AuthContext
+      const accessToken = this.accessToken
+      console.log('[PUSH SERVICE] Access token from cache:', accessToken ? 'present' : 'missing')
 
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -248,7 +252,7 @@ class PushService {
         })
         // If unauthorized, the user is not authenticated - we'll retry when they sign in
         if (response.status === 401) {
-          console.log('[PUSH SERVICE] User not authenticated, will retry on sign-in')
+          console.log('[PUSH SERVICE] User not authenticated, caching token for retry')
           this.currentToken = token // Store token for retry
         }
       } else {
