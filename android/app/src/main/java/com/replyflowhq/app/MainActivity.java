@@ -214,7 +214,8 @@ public class MainActivity extends BridgeActivity {
         // ReplyFlow R logo
         ImageView logoView = new ImageView(context);
         logoView.setImageResource(R.drawable.ic_replyflow_logo);
-        logoView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        logoView.setScaleType(ImageView.ScaleType.FIT_XY);
+        logoView.setAdjustViewBounds(true);
         LinearLayout.LayoutParams logoLayoutParams = new LinearLayout.LayoutParams(
             400,
             400
@@ -227,7 +228,7 @@ public class MainActivity extends BridgeActivity {
         // Offline icon using vector drawable
         ImageView iconView = new ImageView(context);
         iconView.setImageResource(R.drawable.ic_material_wifi_off);
-        iconView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        iconView.setScaleType(ImageView.ScaleType.FIT_XY);
         LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(
             240,
             240
