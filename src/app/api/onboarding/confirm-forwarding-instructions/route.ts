@@ -34,33 +34,64 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Business ID required' }, { status: 400 })
     }
 
-    // Verify business ownership
+    // Verify business ownership and fetch current row
     const { data: business, error: businessError } = await supabaseAdmin
       .from('businesses')
-      .select('id, user_id')
+      .select('id, user_id, forwarding_verified')
       .eq('id', businessId)
       .eq('user_id', user.id)
       .single()
 
     if (businessError || !business) {
+      console.error('[Confirm Forwarding Instructions] Business lookup failed:', { businessId, userId: user.id, businessError })
       return NextResponse.json({ error: 'Business not found or access denied' }, { status: 404 })
     }
 
-    // Update forwarding_instructions_confirmed_at
-    const { error: updateError } = await supabaseAdmin
+    console.log('[Confirm Forwarding Instructions] Before update:', {
+      businessId: business.id,
+      userId: user.id,
+      forwardingVerifiedBefore: business.forwarding_verified
+    })
+
+    // Persist the canonical forwarding-complete state.
+    // forwarding_verified is the operational source of truth used by the Dashboard.
+    const { data: updatedBusiness, error: updateError } = await supabaseAdmin
       .from('businesses')
       .update({
-        forwarding_instructions_confirmed_at: new Date().toISOString()
+        forwarding_verified: true,
+        forwarding_verified_at: new Date().toISOString(),
+        forwarding_instructions_confirmed_at: new Date().toISOString(),
+        call_forwarding_enabled: true,
+        phone_setup_completed_at: new Date().toISOString()
       })
       .eq('id', businessId)
       .eq('user_id', user.id)
+      .select('id, forwarding_verified, forwarding_verified_at, forwarding_instructions_confirmed_at')
+      .single()
 
-    if (updateError) {
-      console.error('[Confirm Forwarding Instructions] Update error:', updateError)
-      return NextResponse.json({ error: 'Failed to update forwarding instructions confirmation' }, { status: 500 })
+    if (updateError || !updatedBusiness) {
+      console.error('[Confirm Forwarding Instructions] Update failed or matched zero rows:', {
+        businessId,
+        userId: user.id,
+        updateError,
+        updatedBusiness
+      })
+      return NextResponse.json({ error: 'Failed to update forwarding status' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true })
+    console.log('[Confirm Forwarding Instructions] After update:', {
+      businessId: updatedBusiness.id,
+      userId: user.id,
+      forwardingVerifiedAfter: updatedBusiness.forwarding_verified,
+      forwardingVerifiedAt: updatedBusiness.forwarding_verified_at,
+      forwardingInstructionsConfirmedAt: updatedBusiness.forwarding_instructions_confirmed_at
+    })
+
+    return NextResponse.json({
+      success: true,
+      businessId: updatedBusiness.id,
+      forwarding_verified: updatedBusiness.forwarding_verified
+    })
   } catch (error) {
     console.error('[Confirm Forwarding Instructions] Exception:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

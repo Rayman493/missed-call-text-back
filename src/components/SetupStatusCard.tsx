@@ -55,8 +55,11 @@ export default function SetupStatusCard({
     missedCallCount > 0
   )
 
-  // Check if user has confirmed forwarding instructions
+  // Check if user has confirmed forwarding instructions.
+  // forwarding_verified is the canonical operational source of truth;
+  // forwarding_instructions_confirmed_at is retained as a legacy fallback.
   const hasConfirmedForwardingInstructions = Boolean(
+    business?.forwarding_verified === true ||
     business?.forwarding_instructions_confirmed_at
   )
 
