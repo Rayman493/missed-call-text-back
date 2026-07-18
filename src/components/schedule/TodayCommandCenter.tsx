@@ -192,15 +192,7 @@ export default function TodayCommandCenter({
             Your daily overview of what needs attention and what's coming up.
           </p>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={onNewTask}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            New Task
-          </button>
-        </div>
+        {/* Removed top-level New Task button to align with section-level actions */}
       </div>
 
       {/* Summary Stats */}
@@ -255,6 +247,12 @@ export default function TodayCommandCenter({
               ({todayTasks.length})
             </span>
           </div>
+          <button
+            onClick={onNewTask}
+            className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            + Add Task
+          </button>
         </div>
         {isLoadingTasks ? (
           <div className="space-y-2">
