@@ -18,6 +18,7 @@ interface SetupStatusCardProps {
     aiIntakeReady?: boolean
   }
   missedCallCount?: number
+  leads?: any[]
 }
 
 type CardState =
@@ -32,7 +33,8 @@ type CardState =
 export default function SetupStatusCard({
   business,
   setupHealth,
-  missedCallCount = 0
+  missedCallCount = 0,
+  leads = []
 }: SetupStatusCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [userHasToggled, setUserHasToggled] = useState(false)
@@ -47,9 +49,11 @@ export default function SetupStatusCard({
   const hasSubscription = hasActiveSubscription(business)
   
   // Check if actual test call has been completed
+  // Use multiple signals: explicit test completion, call events count, or actual leads captured
   const hasCompletedTestCall = Boolean(
     business?.first_test_call_completed_at ||
-    missedCallCount > 0
+    missedCallCount > 0 ||
+    (leads && leads.length > 0)
   )
 
   // Check if user has confirmed forwarding instructions

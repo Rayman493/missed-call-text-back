@@ -1024,10 +1024,11 @@ export default function DashboardContent() {
 
                 {/* Single Collapsible Setup/Status Card - Consolidates all onboarding/health/status banners */}
                 <SectionErrorBoundary sectionName="SetupStatusCard">
-                  <SetupStatusCard 
-                    business={business} 
+                  <SetupStatusCard
+                    business={business}
                     setupHealth={setupHealth}
                     missedCallCount={missedCallCount}
+                    leads={processedLeads}
                   />
                 </SectionErrorBoundary>
 
