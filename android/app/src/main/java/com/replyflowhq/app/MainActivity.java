@@ -168,36 +168,68 @@ public class MainActivity extends BridgeActivity {
         layout.setBackgroundColor(Color.parseColor("#020617")); // slate-950
         layout.setPadding(48, 48, 48, 48);
 
-        // Logo text
+        // Logo with ReplyFlow and HQ branding
+        LinearLayout logoLayout = new LinearLayout(context);
+        logoLayout.setOrientation(LinearLayout.HORIZONTAL);
+        logoLayout.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams logoLayoutParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        logoLayoutParams.setMargins(0, 0, 0, 32);
+
         TextView logoText = new TextView(context);
         logoText.setText("ReplyFlow");
         logoText.setTextSize(24);
         logoText.setTextColor(Color.WHITE);
-        logoText.setGravity(Gravity.CENTER);
-        LinearLayout.LayoutParams logoParams = new LinearLayout.LayoutParams(
+        logoText.setTypeface(null, android.graphics.Typeface.BOLD);
+        LinearLayout.LayoutParams logoTextParams = new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         );
-        logoParams.setMargins(0, 0, 0, 32);
-        layout.addView(logoText, logoParams);
+        logoLayout.addView(logoText, logoTextParams);
 
-        // Offline icon (using text as simple placeholder)
+        TextView hqText = new TextView(context);
+        hqText.setText("HQ");
+        hqText.setTextSize(24);
+        hqText.setTextColor(Color.parseColor("#60a5fa")); // blue-400
+        hqText.setTypeface(null, android.graphics.Typeface.BOLD);
+        LinearLayout.LayoutParams hqTextParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        hqTextParams.setMargins(4, 0, 0, 0);
+        logoLayout.addView(hqText, hqTextParams);
+
+        layout.addView(logoLayout, logoLayoutParams);
+
+        // Offline icon container (circle background)
+        LinearLayout iconContainer = new LinearLayout(context);
+        iconContainer.setOrientation(LinearLayout.VERTICAL);
+        iconContainer.setGravity(Gravity.CENTER);
+        iconContainer.setBackgroundColor(Color.parseColor("#1e293b")); // slate-800
+        iconContainer.setPadding(32, 32, 32, 32);
+        LinearLayout.LayoutParams iconContainerParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        iconContainerParams.setMargins(0, 0, 0, 24);
+
+        // Offline icon (using text as placeholder - would use drawable if available)
         TextView iconText = new TextView(context);
         iconText.setText("📵");
         iconText.setTextSize(48);
         iconText.setGravity(Gravity.CENTER);
-        LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.WRAP_CONTENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        );
-        iconParams.setMargins(0, 0, 0, 24);
-        layout.addView(iconText, iconParams);
+        iconContainer.addView(iconText);
+
+        layout.addView(iconContainer, iconContainerParams);
 
         // Main message
         TextView messageText = new TextView(context);
         messageText.setText("You're offline");
-        messageText.setTextSize(20);
+        messageText.setTextSize(24);
         messageText.setTextColor(Color.WHITE);
+        messageText.setTypeface(null, android.graphics.Typeface.BOLD);
         messageText.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams messageParams = new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -234,10 +266,11 @@ public class MainActivity extends BridgeActivity {
 
         // Try Again button
         Button retryButton = new Button(context);
-        retryButton.setText("Try Again");
+        retryButton.setText("TRY AGAIN");
         retryButton.setBackgroundColor(Color.parseColor("#2563eb")); // blue-600
         retryButton.setTextColor(Color.WHITE);
         retryButton.setPadding(48, 24, 48, 24);
+        retryButton.setAllCaps(false);
         LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
