@@ -2413,8 +2413,8 @@ export default function SettingsContent() {
 
           {/* Delete Account Modal */}
           {showDeleteModal && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[80] p-4 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-4">
-              <div className="bg-white dark:bg-slate-900 rounded-xl max-w-lg w-full max-h-[calc(100dvh-7rem-env(safe-area-inset-bottom))] sm:max-h-[85vh] flex flex-col shadow-2xl">
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[80] p-4 overscroll-contain">
+              <div className="bg-white dark:bg-slate-900 rounded-xl max-w-lg w-full max-h-[calc(100dvh-7rem-env(safe-area-inset-bottom))] sm:max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
                 {/* Fixed Header */}
                 <div className="flex-shrink-0 p-6 border-b border-slate-200/70 dark:border-slate-700/50">
                   <div className="flex items-start gap-4">
@@ -2433,7 +2433,7 @@ export default function SettingsContent() {
                 </div>
 
                 {/* Scrollable Body */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4 overscroll-contain pb-24 sm:pb-6">
                   {/* What happens on deletion */}
                   <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-4">
                     <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
