@@ -438,6 +438,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [isSavingNotes, setIsSavingNotes] = useState(false)
   const [showLeadInfo, setShowLeadInfo] = useState(false)
   const [internalNotesExpanded, setInternalNotesExpanded] = useState(false)
+  const [autoFocusNotes, setAutoFocusNotes] = useState(false)
   const [highlightedTimelineItemId, setHighlightedTimelineItemId] = useState<string | null>(null)
   const conversationContainerRef = useRef<HTMLDivElement>(null)
   const mobileConversationContainerRef = useRef<HTMLDivElement>(null)
@@ -480,6 +481,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       }
     }
   }, [showLeadInfo])
+
+  // Reset notes autofocus flag when the customer info modal closes
+  useEffect(() => {
+    if (!showCustomerInfoModal) {
+      setAutoFocusNotes(false)
+    }
+  }, [showCustomerInfoModal])
   
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth', force = false, isInitialLoad = false) => {
     // Guard against SSR
@@ -2141,6 +2149,29 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <span className="hidden sm:inline">Add Job</span>
                     <span className="sm:hidden">Add Job</span>
                   </button>
+          {/* Internal Notes quick entry/visibility */}
+          <div className="mt-3 bg-muted/30 border border-border/50 rounded-lg p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-sm font-medium text-foreground">Internal Notes</div>
+                <div className="text-[11px] text-muted-foreground">Private to your business. Customers cannot see these notes.</div>
+                {Boolean((leadData?.notes || '').trim()) && (
+                  <div className="mt-1 text-xs text-muted-foreground line-clamp-2 break-words">
+                    {(leadData?.notes || '').trim()}
+                  </div>
+                )}
+              </div>
+              <div className="flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => { setShowCustomerInfoModal(true); setAutoFocusNotes(true) }}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-muted text-foreground text-xs font-medium rounded-md border border-border/60 transition-colors"
+                >
+                  {Boolean((leadData?.notes || '').trim()) ? 'Review' : 'Add note'}
+                </button>
+              </div>
+            </div>
+          </div>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -4171,7 +4202,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <label className="block text-sm font-medium text-foreground mb-1">
                   Notes
                 </label>
+                <p className="text-[11px] text-muted-foreground mb-2">Private to your business. Customers cannot see these notes.</p>
                 <textarea
+                  autoFocus={autoFocusNotes}
                   value={leadData?.notes || ''}
                   onChange={(e) => setLeadData((prev: any) => ({ ...prev, notes: e.target.value }))}
                   className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-background resize-none"
