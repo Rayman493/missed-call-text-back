@@ -79,15 +79,21 @@ export async function POST(request: NextRequest) {
 
     console.log('[PUSH DEVICE REGISTRATION] Looking up business for user:', user.id)
 
-    // Get the user's business_id from the businesses table
+    // Get the user's business_id from the businesses table using canonical user_id column
     const { data: business, error: businessError } = await supabaseAdmin
       .from('businesses')
       .select('id')
-      .eq('owner_id', user.id)
+      .eq('user_id', user.id)
       .single()
 
     if (businessError || !business) {
       console.error('[PUSH DEVICE REGISTRATION] Business lookup failed:', businessError?.message)
+      console.log('[PUSH DEVICE REGISTRATION] Business lookup details:', {
+        userId: user.id,
+        errorCode: businessError?.code,
+        errorMessage: businessError?.message,
+        businessFound: !!business
+      })
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
