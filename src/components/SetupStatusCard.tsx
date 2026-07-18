@@ -67,6 +67,19 @@ export default function SetupStatusCard({
     }
   }, [business?.id])
 
+  // Lock body scroll when assistant is open
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    if (isAssistantOpen) {
+      const originalOverflow = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+      return () => {
+        document.body.style.overflow = originalOverflow
+      }
+    }
+  }, [isAssistantOpen])
+
   // Handle dismissing the success state
   const handleDismissSuccess = () => {
     if (business?.id) {
@@ -894,31 +907,33 @@ export default function SetupStatusCard({
       )}
 
       {isAssistantOpen && (
-        <div className="fixed inset-0 z-[100] flex items-end justify-center p-3 md:hidden">
-          <div className="absolute inset-0 bg-black/55" onClick={() => setIsAssistantOpen(false)} />
-          <div className="relative w-full max-w-lg max-h-[calc(100dvh-5rem-env(safe-area-inset-bottom))] flex flex-col">
-            <div className="bg-white dark:bg-slate-800 rounded-t-2xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-5rem-env(safe-area-inset-bottom))]">
-              <ReplyFlowAssistant
-                context={{ currentPage: 'dashboard' }}
-                onClose={() => setIsAssistantOpen(false)}
-              />
+        <>
+          {/* Mobile: Bottom sheet with proper safe-area handling */}
+          <div className="fixed inset-0 z-[100] flex items-end justify-center md:hidden">
+            <div className="absolute inset-0 bg-black/55" onClick={() => setIsAssistantOpen(false)} />
+            <div className="relative w-full flex flex-col">
+              <div className="bg-white dark:bg-slate-800 rounded-t-2xl shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-5rem-env(safe-area-inset-bottom))]">
+                <ReplyFlowAssistant
+                  context={{ currentPage: 'dashboard' }}
+                  onClose={() => setIsAssistantOpen(false)}
+                />
+              </div>
             </div>
           </div>
-        </div>
-      )}
 
-      {isAssistantOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 hidden md:block">
-          <div className="absolute inset-0 bg-black/55" onClick={() => setIsAssistantOpen(false)} />
-          <div className="relative w-full max-w-lg max-h-[85vh] flex flex-col">
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden max-h-[85vh]">
-              <ReplyFlowAssistant
-                context={{ currentPage: 'dashboard' }}
-                onClose={() => setIsAssistantOpen(false)}
-              />
+          {/* Desktop: Right-side drawer */}
+          <div className="fixed inset-0 z-[100] hidden md:flex">
+            <div className="absolute inset-0 bg-black/55" onClick={() => setIsAssistantOpen(false)} />
+            <div className="relative ml-auto flex flex-col h-full">
+              <div className="bg-white dark:bg-slate-800 shadow-2xl overflow-hidden flex flex-col h-full w-[420px] max-w-[420px]">
+                <ReplyFlowAssistant
+                  context={{ currentPage: 'dashboard' }}
+                  onClose={() => setIsAssistantOpen(false)}
+                />
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   )
