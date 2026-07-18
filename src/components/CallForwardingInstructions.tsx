@@ -110,7 +110,7 @@ export default function CallForwardingInstructions({ phoneNumber, isOpen, onClos
       }}
     >
       <div
-        className="relative bg-card text-card-foreground w-full max-w-2xl rounded-2xl shadow-2xl border border-border/50 flex flex-col max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2rem)] overflow-hidden ring-1 ring-border/50"
+        className="relative bg-card text-card-foreground w-full max-w-2xl rounded-2xl shadow-2xl border border-border/50 flex flex-col max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2rem)] sm:max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-2.5rem)] overflow-hidden ring-1 ring-border/50"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"

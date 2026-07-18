@@ -913,10 +913,10 @@ export default function SetupStatusCard({
 
       {isAssistantOpen && (
         <>
-          {/* Mobile: Bottom sheet with full viewport height (bottom nav hidden) */}
+          {/* Mobile: Bottom sheet with full viewport height minus safe areas and small top margin (bottom nav hidden) */}
           <div className="fixed inset-0 z-[100] flex items-end justify-center md:hidden">
             <div className="absolute inset-0 bg-black/55" onClick={() => setIsAssistantOpen(false)} />
-            <div className="relative w-full flex flex-col h-[calc(100dvh-env(safe-area-inset-bottom))]">
+            <div className="relative w-full flex flex-col h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] mt-4">
               <div className="bg-white dark:bg-slate-800 rounded-t-2xl shadow-2xl overflow-hidden flex flex-col min-h-0">
                 <ReplyFlowAssistant
                   context={{ currentPage: 'dashboard' }}
