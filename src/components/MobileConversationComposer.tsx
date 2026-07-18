@@ -201,13 +201,13 @@ export default function MobileConversationComposer({
             ref={dropZoneRef}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
-            className="flex items-center gap-2 rounded-3xl border border-white/10 bg-white/[0.045] px-3 py-3 shadow-[0_1px_0_rgba(255,255,255,0.04),0_12px_36px_rgba(2,6,23,0.32)] transition-all duration-200 focus-within:border-blue-400/40 focus-within:bg-white/[0.065]"
+            className="flex items-center gap-2 rounded-3xl border border-white/10 bg-white/[0.045] px-2.5 py-3 shadow-[0_1px_0_rgba(255,255,255,0.04),0_12px_36px_rgba(2,6,23,0.32)] transition-all duration-200 focus-within:border-blue-400/40 focus-within:bg-white/[0.065]"
           >
             {/* Attachment Button */}
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-2 text-slate-400 hover:text-slate-200 hover:bg-white/10 transition-all duration-200 flex-shrink-0 rounded-xl h-10 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2"
+              className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-white/10 transition-all duration-200 flex-shrink-0 rounded-xl h-10 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2"
               disabled={sending}
               aria-label="Add image"
             >
@@ -223,7 +223,7 @@ export default function MobileConversationComposer({
             />
 
             {/* Message Input */}
-            <div className="flex-1 relative min-w-0">
+            <div className="flex-1 relative min-w-0 overflow-hidden">
               <textarea
                 ref={textareaRef}
                 value={message}
@@ -248,7 +248,7 @@ export default function MobileConversationComposer({
               
               {/* Character Count (optional) */}
               {message.length > 1000 && (
-                <div className="absolute bottom-1 right-1 text-xs text-muted-foreground">
+                <div className="absolute bottom-1 right-1 text-xs text-muted-foreground bg-slate-950/80 px-1.5 py-0.5 rounded">
                   {message.length}/1600
                 </div>
               )}

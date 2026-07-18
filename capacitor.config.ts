@@ -17,7 +17,7 @@ const config: CapacitorConfig = {
   // Note: Deep linking is configured in AndroidManifest.xml (Android) and Info.plist (iOS)
   android: {
     allowMixedContent: true,
-    captureInput: true,
+    captureInput: false,
     webContentsDebuggingEnabled: true,
   },
   ios: {
