@@ -7,6 +7,7 @@ import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 import { isCompleteAIIntake } from '@/lib/ai-intake-completion'
 import { cancelPendingFollowUpsForLead } from '@/lib/follow-ups'
 import { formatReturnDate } from '@/lib/out-of-office'
+import { notificationServiceServer } from '@/lib/notifications-server'
 
 
 export const dynamic = 'force-dynamic'
@@ -541,6 +542,41 @@ export async function POST(request: NextRequest) {
           console.log('[AI CONFIRMATION SMS] Cancelled follow-ups:', cancelled)
         } catch (cancelError) {
           console.error('[AI CONFIRMATION SMS] Error cancelling follow-ups:', cancelError)
+        }
+
+        // Create notification for AI intake completion
+        try {
+          console.log('[AI INTAKE NOTIFICATION CREATE ATTEMPT]', {
+            businessId,
+            leadId,
+            callerPhone,
+            aiOutcome,
+            extractedInfo
+          })
+
+          const leadName = extracted.callerName || callerPhone
+          const serviceRequested = extracted.reasonForCalling
+
+          await notificationServiceServer.notifyAiIntakeCompleted(
+            businessId,
+            leadName,
+            callerPhone,
+            leadId,
+            serviceRequested
+          )
+
+          console.log('[AI INTAKE NOTIFICATION CREATE SUCCESS]', {
+            businessId,
+            leadId,
+            type: 'ai_intake_completed'
+          })
+        } catch (notificationError) {
+          console.error('[AI INTAKE NOTIFICATION CREATE ERROR]', {
+            businessId,
+            leadId,
+            error: notificationError
+          })
+          // Don't let notification failures break the SMS dispatch
         }
       }
 
