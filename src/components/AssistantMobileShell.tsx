@@ -77,7 +77,7 @@ export default function AssistantMobileShell({ isOpen, context, onClose }: Assis
       <div className="absolute inset-0 bg-black/55" onClick={onClose} />
       {/* Centered sheet with equal top/bottom breathing room inside safe areas */}
       <div
-        className="absolute inset-0 flex items-center justify-center overflow-hidden"
+        className="absolute inset-0 flex items-center justify-center overflow-hidden px-4"
         style={{
           paddingTop: 'calc(env(safe-area-inset-top) + 16px)',
           paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)',
