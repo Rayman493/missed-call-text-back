@@ -141,7 +141,7 @@ export default function TimePicker({
       </button>
 
       {isOpen && !disabled && (
-        <div className="absolute z-50 mt-2 bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 w-[360px] max-w-[calc(100vw-2rem)] sm:w-auto sm:max-w-[420px]">
+        <div className="absolute right-0 mt-2 z-50 bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 w-[min(360px,calc(100vw-2rem))] sm:w-auto sm:max-w-[420px]">
           <div className="p-3">
             <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">Select time (24-hour)</label>
             <div className="flex items-stretch gap-2">
