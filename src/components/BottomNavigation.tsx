@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -21,7 +21,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
   const { signOut } = useAuth()
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false)
   const [isAssistantOpen, setIsAssistantOpen] = useState(false)
-  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null)
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null)
   const moreButtonRef = useRef<HTMLButtonElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -41,90 +41,59 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
     return () => observer.disconnect()
   }, [])
 
-  // Calculate dropdown position when opening
-  useEffect(() => {
-    if (isMoreMenuOpen && moreButtonRef.current) {
-      const rect = moreButtonRef.current.getBoundingClientRect()
-      const viewportPadding = 12
-      const safeBottom = 16
-      const desiredWidth = 224
-      const dropdownWidth = Math.min(
-        desiredWidth,
-        window.innerWidth - viewportPadding * 2
-      )
+  // Measure real rendered dropdown height and position it above the More button,
+  // clamped to keep the full menu inside the usable viewport.
+  useLayoutEffect(() => {
+    if (!isMoreMenuOpen || !moreButtonRef.current || !dropdownRef.current) return
 
-      const unclampedLeft = rect.right - dropdownWidth
+    const rect = moreButtonRef.current.getBoundingClientRect()
+    const menuHeight = dropdownRef.current.offsetHeight
+    const viewportPadding = 12
+    const spacing = 12
+    const safeBottom = 16
+    const bottomNavHeight = 80
+    const desiredWidth = 224
+    const dropdownWidth = Math.min(desiredWidth, window.innerWidth - viewportPadding * 2)
 
-      const left = Math.min(
-        Math.max(unclampedLeft, viewportPadding),
-        window.innerWidth - dropdownWidth - viewportPadding
-      )
+    const unclampedLeft = rect.right - dropdownWidth
+    const left = Math.min(
+      Math.max(unclampedLeft, viewportPadding),
+      window.innerWidth - dropdownWidth - viewportPadding
+    )
 
-      // Estimate dropdown height (2 items + divider ≈ 95px)
-      const estimatedDropdownHeight = 95
-      // Position dropdown 12px above the More button (dropdown bottom = button top - 12px)
-      const spacing = 12
-      const unclampedTop = rect.top - estimatedDropdownHeight - spacing
+    const unclampedTop = rect.top - menuHeight - spacing
+    const maxTop = window.innerHeight - bottomNavHeight - menuHeight - spacing - safeBottom
+    const top = Math.max(viewportPadding, Math.min(unclampedTop, maxTop))
 
-      // Clamp top to keep dropdown fully visible, but prefer unclamped position
-      // Also ensure dropdown doesn't overlap bottom navigation (add safeBottom buffer)
-      const bottomNavHeight = 80 // Approximate bottom navigation height
-      const maxTop = window.innerHeight - bottomNavHeight - estimatedDropdownHeight - spacing - safeBottom
-      const top = Math.max(
-        viewportPadding,
-        Math.min(unclampedTop, maxTop)
-      )
-
-      setDropdownPosition({
-        top,
-        left
-      })
-    } else if (!isMoreMenuOpen) {
-      setDropdownPosition(null)
-    }
+    setDropdownPosition({ top, left, width: dropdownWidth })
   }, [isMoreMenuOpen])
 
-  // Update position on resize and scroll
+  // Keep the menu pinned to the More button on resize/scroll.
   useEffect(() => {
     if (!isMoreMenuOpen) return
 
     const updatePosition = () => {
-      if (moreButtonRef.current) {
+      if (moreButtonRef.current && dropdownRef.current) {
         const rect = moreButtonRef.current.getBoundingClientRect()
+        const menuHeight = dropdownRef.current.offsetHeight
         const viewportPadding = 12
+        const spacing = 12
         const safeBottom = 16
+        const bottomNavHeight = 80
         const desiredWidth = 224
-        const dropdownWidth = Math.min(
-          desiredWidth,
-          window.innerWidth - viewportPadding * 2
-        )
+        const dropdownWidth = Math.min(desiredWidth, window.innerWidth - viewportPadding * 2)
 
         const unclampedLeft = rect.right - dropdownWidth
-
         const left = Math.min(
           Math.max(unclampedLeft, viewportPadding),
           window.innerWidth - dropdownWidth - viewportPadding
         )
 
-        // Estimate dropdown height (3 items + divider ≈ 130px)
-        const estimatedDropdownHeight = 130
-        // Position dropdown 8px above the More button (dropdown bottom = button top - 8px)
-        const spacing = 8
-        const unclampedTop = rect.top - estimatedDropdownHeight - spacing
+        const unclampedTop = rect.top - menuHeight - spacing
+        const maxTop = window.innerHeight - bottomNavHeight - menuHeight - spacing - safeBottom
+        const top = Math.max(viewportPadding, Math.min(unclampedTop, maxTop))
 
-        // Clamp top to keep dropdown fully visible, but prefer unclamped position
-        // Also ensure dropdown doesn't overlap bottom navigation (add safeBottom buffer)
-        const bottomNavHeight = 80 // Approximate bottom navigation height
-        const maxTop = window.innerHeight - bottomNavHeight - estimatedDropdownHeight - spacing - safeBottom
-        const top = Math.max(
-          viewportPadding,
-          Math.min(unclampedTop, maxTop)
-        )
-
-        setDropdownPosition({
-          top,
-          left
-        })
+        setDropdownPosition({ top, left, width: dropdownWidth })
       }
     }
 
@@ -137,17 +106,9 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
     }
   }, [isMoreMenuOpen])
 
-  // Close dropdown on outside click
+  // Close dropdown on Escape.
   useEffect(() => {
     if (!isMoreMenuOpen) return
-
-    const handleClickOutside = (event: MouseEvent) => {
-      const isClickInsideTrigger = moreButtonRef.current?.contains(event.target as Node)
-      const isClickInsideDropdown = dropdownRef.current?.contains(event.target as Node)
-      if (!isClickInsideTrigger && !isClickInsideDropdown) {
-        setIsMoreMenuOpen(false)
-      }
-    }
 
     const handleEscapeKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -155,12 +116,36 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
     document.addEventListener('keydown', handleEscapeKey)
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
       document.removeEventListener('keydown', handleEscapeKey)
+    }
+  }, [isMoreMenuOpen])
+
+  // Intercept Android / browser back button while More menu is open.
+  useEffect(() => {
+    if (typeof window === 'undefined' || !isMoreMenuOpen) return
+
+    try {
+      window.history.pushState({ rfMoreMenu: true }, '')
+    } catch {}
+
+    const onPopState = () => setIsMoreMenuOpen(false)
+    window.addEventListener('popstate', onPopState)
+
+    let capListener: { remove: () => void } | undefined
+    ;(async () => {
+      try {
+        const mod = await import('@capacitor/app')
+        const { App } = mod as any
+        capListener = await App.addListener('backButton', () => setIsMoreMenuOpen(false))
+      } catch {}
+    })()
+
+    return () => {
+      window.removeEventListener('popstate', onPopState)
+      capListener?.remove?.()
     }
   }, [isMoreMenuOpen])
 
@@ -246,41 +231,50 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
 
       {/* Compact Dropdown Menu - Mobile Only */}
       {isMoreMenuOpen && typeof document !== 'undefined' && createPortal(
-        <div
-          ref={dropdownRef}
-          className="fixed z-[1000] w-56 overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 shadow-2xl lg:hidden"
-          style={dropdownPosition ? {
-            top: `${dropdownPosition.top}px`,
-            left: `${dropdownPosition.left}px`
-          } : undefined}
-        >
-          <div className="py-1">
-            <Link
-              href="/dashboard/settings"
-              onClick={() => setIsMoreMenuOpen(false)}
-              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors duration-150 hover:bg-slate-800 hover:text-white"
-            >
-              <Settings className="h-4 w-4 text-slate-400" />
-              Settings
-            </Link>
-            <button
-              onClick={() => {
-                setIsMoreMenuOpen(false)
-                setIsAssistantOpen(true)
-              }}
-              className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-slate-300 transition-colors duration-150 hover:bg-slate-800 hover:text-white"
-            >
-              <MessageCircle className="h-4 w-4 text-slate-400" />
-              ReplyFlow Assistant
-            </button>
-            <div className="h-px bg-slate-700 my-1" />
-            <button
-              onClick={handleLogout}
-              className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-red-400 transition-colors duration-150 hover:bg-slate-800"
-            >
-              <LogOut className="h-4 w-4" />
-              Sign Out
-            </button>
+        <div className="fixed inset-0 z-[1000] lg:hidden">
+          {/* Backdrop captures taps outside the menu */}
+          <div
+            className="absolute inset-0 bg-black/0"
+            onClick={() => setIsMoreMenuOpen(false)}
+            aria-hidden="true"
+          />
+          <div
+            ref={dropdownRef}
+            className="absolute z-[1001] overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 shadow-2xl pointer-events-auto"
+            style={dropdownPosition ? {
+              top: `${dropdownPosition.top}px`,
+              left: `${dropdownPosition.left}px`,
+              width: `${dropdownPosition.width}px`
+            } : undefined}
+          >
+            <div className="py-1">
+              <Link
+                href="/dashboard/settings"
+                onClick={() => setIsMoreMenuOpen(false)}
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors duration-150 hover:bg-slate-800 hover:text-white"
+              >
+                <Settings className="h-4 w-4 text-slate-400" />
+                Settings
+              </Link>
+              <button
+                onClick={() => {
+                  setIsMoreMenuOpen(false)
+                  setIsAssistantOpen(true)
+                }}
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-slate-300 transition-colors duration-150 hover:bg-slate-800 hover:text-white"
+              >
+                <MessageCircle className="h-4 w-4 text-slate-400" />
+                ReplyFlow Assistant
+              </button>
+              <div className="h-px bg-slate-700 my-1" />
+              <button
+                onClick={handleLogout}
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-red-400 transition-colors duration-150 hover:bg-slate-800"
+              >
+                <LogOut className="h-4 w-4" />
+                Sign Out
+              </button>
+            </div>
           </div>
         </div>,
         document.body
