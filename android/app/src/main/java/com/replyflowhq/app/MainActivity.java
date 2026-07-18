@@ -209,7 +209,7 @@ public class MainActivity extends BridgeActivity {
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setGravity(Gravity.CENTER);
         layout.setBackgroundColor(Color.parseColor("#020617")); // slate-950
-        layout.setPadding(32, 32, 32, 32);
+        layout.setPadding(40, 40, 40, 40);
 
         // Logo with ReplyFlow and HQ branding
         LinearLayout logoLayout = new LinearLayout(context);
@@ -219,11 +219,11 @@ public class MainActivity extends BridgeActivity {
             LinearLayout.LayoutParams.WRAP_CONTENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         );
-        logoLayoutParams.setMargins(0, 0, 0, 32);
+        logoLayoutParams.setMargins(0, 0, 0, 40);
 
         TextView logoText = new TextView(context);
         logoText.setText("ReplyFlow");
-        logoText.setTextSize(24);
+        logoText.setTextSize(22);
         logoText.setTextColor(Color.WHITE);
         logoText.setTypeface(null, android.graphics.Typeface.BOLD);
         LinearLayout.LayoutParams logoTextParams = new LinearLayout.LayoutParams(
@@ -234,7 +234,7 @@ public class MainActivity extends BridgeActivity {
 
         TextView hqText = new TextView(context);
         hqText.setText("HQ");
-        hqText.setTextSize(24);
+        hqText.setTextSize(22);
         hqText.setTextColor(Color.parseColor("#60a5fa")); // blue-400
         hqText.setTypeface(null, android.graphics.Typeface.BOLD);
         LinearLayout.LayoutParams hqTextParams = new LinearLayout.LayoutParams(
@@ -252,12 +252,12 @@ public class MainActivity extends BridgeActivity {
         iconContainer.setGravity(Gravity.CENTER);
         iconContainer.setBackgroundColor(Color.parseColor("#1e293b")); // slate-800
         // Make it circular by setting equal dimensions
-        int iconSize = 120;
+        int iconSize = 112;
         LinearLayout.LayoutParams iconContainerParams = new LinearLayout.LayoutParams(
             iconSize,
             iconSize
         );
-        iconContainerParams.setMargins(0, 0, 0, 32);
+        iconContainerParams.setMargins(0, 0, 0, 40);
         iconContainer.setLayoutParams(iconContainerParams);
 
         // Offline icon using vector drawable
@@ -265,8 +265,8 @@ public class MainActivity extends BridgeActivity {
         iconView.setImageResource(R.drawable.ic_wifi_off);
         iconView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(
-            64,
-            64
+            56,
+            56
         );
         iconParams.gravity = Gravity.CENTER;
         iconView.setLayoutParams(iconParams);
@@ -277,7 +277,7 @@ public class MainActivity extends BridgeActivity {
         // Main message
         TextView messageText = new TextView(context);
         messageText.setText("You're offline");
-        messageText.setTextSize(24);
+        messageText.setTextSize(22);
         messageText.setTextColor(Color.WHITE);
         messageText.setTypeface(null, android.graphics.Typeface.BOLD);
         messageText.setGravity(Gravity.CENTER);
@@ -285,12 +285,12 @@ public class MainActivity extends BridgeActivity {
             LinearLayout.LayoutParams.WRAP_CONTENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         );
-        messageParams.setMargins(0, 0, 0, 12);
+        messageParams.setMargins(0, 0, 0, 16);
         layout.addView(messageText, messageParams);
 
         // Subtitle - updated to reflect automatic reconnection
         TextView subtitleText = new TextView(context);
-        subtitleText.setText("Check your internet connection. ReplyFlow will reconnect automatically.");
+        subtitleText.setText("Check your internet connection.\nReplyFlow will reconnect automatically.");
         subtitleText.setTextSize(14);
         subtitleText.setTextColor(Color.parseColor("#94a3b8")); // slate-400
         subtitleText.setGravity(Gravity.CENTER);
@@ -298,7 +298,7 @@ public class MainActivity extends BridgeActivity {
             LinearLayout.LayoutParams.WRAP_CONTENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         );
-        subtitleParams.setMargins(0, 0, 0, 16);
+        subtitleParams.setMargins(0, 0, 0, 20);
         layout.addView(subtitleText, subtitleParams);
 
         // Supporting text
