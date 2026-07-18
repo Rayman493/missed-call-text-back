@@ -11,6 +11,7 @@ interface PasswordInputProps {
   required?: boolean
   autoComplete?: string
   className?: string
+  disabled?: boolean
 }
 
 export default function PasswordInput({
@@ -22,6 +23,7 @@ export default function PasswordInput({
   required = false,
   autoComplete = 'current-password',
   className = '',
+  disabled = false,
 }: PasswordInputProps) {
   const [showPassword, setShowPassword] = useState(false)
 
@@ -36,12 +38,14 @@ export default function PasswordInput({
         placeholder={placeholder}
         required={required}
         autoComplete={autoComplete}
-        className={`w-full px-4 py-3 border border-slate-600/80 dark:border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 dark:bg-slate-800/50 text-slate-100 dark:text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80 pr-12 text-base leading-normal font-sans align-middle ${className}`}
+        disabled={disabled}
+        className={`w-full px-4 py-3 border border-slate-600/80 dark:border-slate-600/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-slate-800/50 dark:bg-slate-800/50 text-slate-100 dark:text-slate-100 placeholder:text-slate-500/80 transition-all hover:border-slate-500/80 pr-12 text-base leading-normal font-sans align-middle disabled:opacity-50 ${className}`}
       />
       <button
         type="button"
         onClick={() => setShowPassword(!showPassword)}
-        className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400/70 hover:text-slate-300 transition-colors p-2 rounded-md hover:bg-slate-700/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+        disabled={disabled}
+        className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400/70 hover:text-slate-300 transition-colors p-2 rounded-md hover:bg-slate-700/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
         aria-label={showPassword ? 'Hide password' : 'Show password'}
       >
         {showPassword ? (
