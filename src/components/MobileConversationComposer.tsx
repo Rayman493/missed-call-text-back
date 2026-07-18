@@ -201,13 +201,13 @@ export default function MobileConversationComposer({
             ref={dropZoneRef}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
-            className="flex items-center gap-3 rounded-3xl border border-white/10 bg-white/[0.045] px-4 py-3 shadow-[0_1px_0_rgba(255,255,255,0.04),0_12px_36px_rgba(2,6,23,0.32)] transition-all duration-200 focus-within:border-blue-400/40 focus-within:bg-white/[0.065]"
+            className="flex items-center gap-2 rounded-3xl border border-white/10 bg-white/[0.045] px-3 py-3 shadow-[0_1px_0_rgba(255,255,255,0.04),0_12px_36px_rgba(2,6,23,0.32)] transition-all duration-200 focus-within:border-blue-400/40 focus-within:bg-white/[0.065]"
           >
             {/* Attachment Button */}
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-2.5 text-slate-400 hover:text-slate-200 hover:bg-white/10 transition-all duration-200 flex-shrink-0 rounded-xl h-11 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2"
+              className="p-2 text-slate-400 hover:text-slate-200 hover:bg-white/10 transition-all duration-200 flex-shrink-0 rounded-xl h-10 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2"
               disabled={sending}
               aria-label="Add image"
             >
@@ -223,7 +223,7 @@ export default function MobileConversationComposer({
             />
 
             {/* Message Input */}
-            <div className="flex-1 relative">
+            <div className="flex-1 relative min-w-0">
               <textarea
                 ref={textareaRef}
                 value={message}
@@ -232,12 +232,18 @@ export default function MobileConversationComposer({
                 placeholder="Type a message..."
                 disabled={sending}
                 autoCapitalize="sentences"
-                autoComplete="off"
-                className={`w-full bg-transparent border-none resize-none focus:outline-none placeholder:text-slate-500 text-base leading-relaxed py-2.5 px-1 max-h-32 text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed scrollbar-hide ${
+                autoComplete="on"
+                spellCheck={true}
+                className={`w-full bg-transparent border-none resize-none focus:outline-none placeholder:text-slate-500 text-base leading-relaxed py-2.5 px-1 max-h-32 text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed ${
                   isAtMaxHeight ? 'overflow-y-auto' : 'overflow-y-hidden'
                 }`}
                 rows={1}
-                style={{ fieldSizing: 'content', minHeight: '44px' }}
+                style={{ 
+                  fieldSizing: 'content', 
+                  minHeight: '44px',
+                  scrollbarWidth: 'none',
+                  msOverflowStyle: 'none'
+                }}
               />
               
               {/* Character Count (optional) */}
@@ -252,7 +258,7 @@ export default function MobileConversationComposer({
             <button
               onClick={handleSend}
               disabled={sending || !(message.trim() || images.length > 0)}
-              className={`flex-shrink-0 w-11 h-11 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center disabled:cursor-not-allowed ${
+              className={`flex-shrink-0 w-10 h-10 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center disabled:cursor-not-allowed ${
                 (message.trim() || images.length > 0) && !sending
                   ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-[0_10px_25px_rgba(37,99,235,0.35)] hover:from-blue-500 hover:to-cyan-500 hover:shadow-[0_14px_34px_rgba(37,99,235,0.42)]'
                   : 'bg-white/8 hover:bg-white/10 text-slate-500 ring-1 ring-white/10'
