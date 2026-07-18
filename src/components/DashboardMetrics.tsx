@@ -150,7 +150,6 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         .select('id, status, cancelled_reason')
         .eq('business_id', business.id)
         .gte('created_at', thirtyDaysAgo)
-        .is('deleted_at', null)
 
       const followUpsSent = followUpJobs?.filter((f: any) => f.status === 'sent').length || 0
       const followUpsCancelled = followUpJobs?.filter((f: any) => f.status === 'cancelled' && f.cancelled_reason === 'customer_replied').length || 0

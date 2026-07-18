@@ -440,8 +440,19 @@ export default function SetupStatusCard({
     const isTrialing = hasActiveTrial(business)
     const trialEndDate = business?.trial_ends_at ? new Date(business.trial_ends_at).toLocaleDateString() : null
 
+    const handleContinueSetup = () => {
+      if (!forwardingActuallyVerified) {
+        setShowForwardingInstructions(true)
+      } else if (!hasCompletedTestCall) {
+        // Forwarding is done; surface test guidance.
+        setExpandedStep(3)
+      }
+    }
+
     return (
-      <div className="bg-gradient-to-br from-green-600 to-emerald-700 dark:from-green-700 dark:to-emerald-800 rounded-2xl p-6 sm:p-8 shadow-2xl border border-green-500/30">
+      <>
+        {modalPortal}
+        <div className="bg-gradient-to-br from-green-600 to-emerald-700 dark:from-green-700 dark:to-emerald-800 rounded-2xl p-6 sm:p-8 shadow-2xl border border-green-500/30">
         <div className="flex flex-col gap-6">
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0">
@@ -514,13 +525,14 @@ export default function SetupStatusCard({
                   </div>
                 </div>
                 {!forwardingActuallyVerified && hasNumber && (
-                  <Link
-                    href="/setup/phone-forwarding"
+                  <button
+                    type="button"
+                    onClick={() => setShowForwardingInstructions(true)}
                     className="inline-flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-green-50 text-green-600 text-xs font-medium rounded-lg transition-colors"
                   >
                     Setup
                     <ArrowRight className="w-3 h-3" />
-                  </Link>
+                  </button>
                 )}
               </div>
             </div>
@@ -550,17 +562,33 @@ export default function SetupStatusCard({
           </div>
 
           {/* CTA */}
-          {hasNumber && !forwardingActuallyVerified && (
-            <Link
-              href="/setup/phone-forwarding"
+          {hasNumber && !hasCompletedTestCall && (
+            <button
+              type="button"
+              onClick={handleContinueSetup}
               className="inline-flex items-center justify-center px-6 py-3 bg-white hover:bg-green-50 text-green-600 text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
             >
-              Continue Setup
+              {forwardingActuallyVerified ? 'Test Your Setup' : 'Continue Setup'}
               <ArrowRight className="w-4 h-4 ml-2" />
-            </Link>
+            </button>
+          )}
+
+          {/* Inline test guidance when forwarding is verified but test not complete */}
+          {forwardingActuallyVerified && !hasCompletedTestCall && expandedStep === 3 && (
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 p-4">
+              <p className="text-green-100 text-sm">
+                From another phone, call your business number and let it go to voicemail. ReplyFlow will capture the missed call and send a test text.
+              </p>
+              {business?.business_phone_number && (
+                <p className="text-white font-mono text-base mt-2">
+                  {formatPhoneNumber(business.business_phone_number)}
+                </p>
+              )}
+            </div>
           )}
         </div>
       </div>
+      </>
     )
   }
 
