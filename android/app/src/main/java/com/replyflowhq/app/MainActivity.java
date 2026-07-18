@@ -226,7 +226,7 @@ public class MainActivity extends BridgeActivity {
 
         // Offline icon using vector drawable
         ImageView iconView = new ImageView(context);
-        iconView.setImageResource(R.drawable.ic_replyflow_wifi_off);
+        iconView.setImageResource(R.drawable.ic_material_wifi_off);
         iconView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(
             160,
