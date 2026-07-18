@@ -218,7 +218,7 @@ public class MainActivity extends BridgeActivity {
             LinearLayout.LayoutParams.WRAP_CONTENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         );
-        logoLayoutParams.setMargins(0, 0, 0, 24);
+        logoLayoutParams.setMargins(0, 0, 0, 32);
 
         TextView logoText = new TextView(context);
         logoText.setText("ReplyFlow");
@@ -245,17 +245,19 @@ public class MainActivity extends BridgeActivity {
 
         layout.addView(logoLayout, logoLayoutParams);
 
-        // Offline icon container (rounded background)
+        // Offline icon container (circular background)
         LinearLayout iconContainer = new LinearLayout(context);
         iconContainer.setOrientation(LinearLayout.VERTICAL);
         iconContainer.setGravity(Gravity.CENTER);
         iconContainer.setBackgroundColor(Color.parseColor("#1e293b")); // slate-800
-        iconContainer.setPadding(28, 28, 28, 28);
+        // Make it circular by setting equal dimensions
+        int iconSize = 120;
         LinearLayout.LayoutParams iconContainerParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.WRAP_CONTENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
+            iconSize,
+            iconSize
         );
-        iconContainerParams.setMargins(0, 0, 0, 20);
+        iconContainerParams.setMargins(0, 0, 0, 32);
+        iconContainer.setLayoutParams(iconContainerParams);
 
         // Offline icon (using text as placeholder - would use drawable if available)
         TextView iconText = new TextView(context);
@@ -277,12 +279,12 @@ public class MainActivity extends BridgeActivity {
             LinearLayout.LayoutParams.WRAP_CONTENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         );
-        messageParams.setMargins(0, 0, 0, 8);
+        messageParams.setMargins(0, 0, 0, 12);
         layout.addView(messageText, messageParams);
 
-        // Subtitle
+        // Subtitle - updated to reflect automatic reconnection
         TextView subtitleText = new TextView(context);
-        subtitleText.setText("Check your internet connection and try again.");
+        subtitleText.setText("Check your internet connection. ReplyFlow will reconnect automatically.");
         subtitleText.setTextSize(14);
         subtitleText.setTextColor(Color.parseColor("#94a3b8")); // slate-400
         subtitleText.setGravity(Gravity.CENTER);
@@ -290,7 +292,7 @@ public class MainActivity extends BridgeActivity {
             LinearLayout.LayoutParams.WRAP_CONTENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         );
-        subtitleParams.setMargins(0, 0, 0, 12);
+        subtitleParams.setMargins(0, 0, 0, 16);
         layout.addView(subtitleText, subtitleParams);
 
         // Supporting text
@@ -303,36 +305,8 @@ public class MainActivity extends BridgeActivity {
             LinearLayout.LayoutParams.WRAP_CONTENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         );
-        supportingParams.setMargins(0, 0, 0, 20);
+        supportingParams.setMargins(0, 0, 0, 0);
         layout.addView(supportingText, supportingParams);
-
-        // Try Again button
-        Button retryButton = new Button(context);
-        retryButton.setText("TRY AGAIN");
-        retryButton.setBackgroundColor(Color.parseColor("#2563eb")); // blue-600
-        retryButton.setTextColor(Color.WHITE);
-        retryButton.setPadding(48, 24, 48, 24);
-        retryButton.setAllCaps(false);
-        LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.WRAP_CONTENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        );
-        retryButton.setOnClickListener(v -> {
-            // Try Again button: check connectivity and trigger recovery if available
-            Log.d(TAG, "Try Again tapped");
-            ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-            boolean hasValidatedNetwork = isNetworkAvailable(connectivityManager);
-            Log.d(TAG, "Try Again: validated network=" + hasValidatedNetwork);
-
-            if (hasValidatedNetwork) {
-                // Network is now available, trigger recovery
-                triggerRecovery();
-            } else {
-                // Still offline, keep offline screen visible
-                Log.d(TAG, "Try Again: still offline, keeping offline screen");
-            }
-        });
-        layout.addView(retryButton, buttonParams);
 
         return layout;
     }
