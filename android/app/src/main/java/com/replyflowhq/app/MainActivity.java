@@ -216,11 +216,11 @@ public class MainActivity extends BridgeActivity {
         logoView.setImageResource(R.drawable.ic_replyflow_logo);
         logoView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         LinearLayout.LayoutParams logoLayoutParams = new LinearLayout.LayoutParams(
-            240,
-            240
+            400,
+            400
         );
         logoLayoutParams.gravity = Gravity.CENTER;
-        logoLayoutParams.setMargins(0, 0, 0, 40);
+        logoLayoutParams.setMargins(0, 0, 0, 32);
         logoView.setLayoutParams(logoLayoutParams);
         layout.addView(logoView, logoLayoutParams);
 
@@ -229,11 +229,11 @@ public class MainActivity extends BridgeActivity {
         iconView.setImageResource(R.drawable.ic_material_wifi_off);
         iconView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(
-            160,
-            160
+            240,
+            240
         );
         iconParams.gravity = Gravity.CENTER;
-        iconParams.setMargins(0, 0, 0, 40);
+        iconParams.setMargins(0, 0, 0, 36);
         iconView.setLayoutParams(iconParams);
         layout.addView(iconView, iconParams);
 
