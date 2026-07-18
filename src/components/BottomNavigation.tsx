@@ -149,6 +149,13 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
     }
   }, [isMoreMenuOpen])
 
+  // If nav is hidden (e.g. assistant opened), ensure More menu state is also closed.
+  useEffect(() => {
+    if (isAnyAssistantOpen && isMoreMenuOpen) {
+      setIsMoreMenuOpen(false)
+    }
+  }, [isAnyAssistantOpen, isMoreMenuOpen])
+
   // Hide bottom nav on public pages or when assistant is open
   const isPublicPage = pathname === '/' || 
                        pathname === '/faq' || 
@@ -159,9 +166,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                        pathname === '/auth' ||
                        pathname?.startsWith('/signup')
 
-  if (isPublicPage || isAnyAssistantOpen) {
-    return null
-  }
+  const hideNav = isPublicPage || isAnyAssistantOpen
 
   const isActive = (href: string) => {
     // When More menu is open, don't highlight any nav items (only More button should be active)
@@ -186,8 +191,10 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
 
   return (
     <>
-      {/* Bottom Navigation Bar - Mobile Only - Improved touch targets */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 pb-safe lg:hidden">
+      {!hideNav && (
+        <>
+          {/* Bottom Navigation Bar - Mobile Only - Improved touch targets */}
+          <nav className="fixed bottom-0 left-0 right-0 z-50 pb-safe lg:hidden">
         <div className="mx-auto max-w-7xl px-2 pb-2 sm:px-4" style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
           <div className="flex h-16 items-center justify-around rounded-3xl border border-white/10 bg-slate-950/88 px-1 shadow-[0_1px_0_rgba(255,255,255,0.07),0_-20px_70px_rgba(2,6,23,0.62)] backdrop-blur-2xl">
             {primaryNavItems.map((item) => {
@@ -292,6 +299,8 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
           </div>
         </div>,
         document.body
+      )}
+        </>
       )}
 
       {isAssistantOpen && (
