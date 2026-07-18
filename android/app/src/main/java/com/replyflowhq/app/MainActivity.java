@@ -8,6 +8,7 @@ import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -23,12 +24,14 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 
 public class MainActivity extends BridgeActivity {
+    private static final String TAG = "ReplyFlowOffline";
     private View offlineView;
     private WebView webView;
     private ConnectivityManager.NetworkCallback networkCallback;
     private boolean isWaitingForNetwork = false;
     private boolean hasLoadedSuccessfully = false;
     private boolean launchedInOfflineState = false;
+    private boolean isRecreating = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -56,6 +59,7 @@ public class MainActivity extends BridgeActivity {
         if (!hasValidatedNetwork) {
             // Show offline screen immediately if no network at startup
             // This covers the WebView before Capacitor's initial load completes
+            Log.d(TAG, "Cold-start offline detected");
             showOfflineScreen();
             isWaitingForNetwork = true;
             launchedInOfflineState = true;
@@ -81,20 +85,35 @@ public class MainActivity extends BridgeActivity {
         networkCallback = new ConnectivityManager.NetworkCallback() {
             @Override
             public void onAvailable(Network network) {
-                // Network became available with validated internet access
-                // Only restart if we launched in offline state and haven't loaded successfully yet
-                if (isWaitingForNetwork && !hasLoadedSuccessfully && launchedInOfflineState) {
-                    isWaitingForNetwork = false;
-                    runOnUiThread(() -> {
-                        // Recreate activity to perform fresh normal startup
-                        // This preserves WebView storage, cookies, and auth state
-                        recreate();
-                    });
+                Log.d(TAG, "onAvailable: network available");
+                // Check if this network has validated internet
+                NetworkCapabilities capabilities = connectivityManager.getNetworkCapabilities(network);
+                if (capabilities != null) {
+                    boolean hasInternet = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+                    boolean hasValidated = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+                    Log.d(TAG, "onAvailable: INTERNET=" + hasInternet + ", VALIDATED=" + hasValidated);
+
+                    if (hasInternet && hasValidated) {
+                        triggerRecovery();
+                    }
+                }
+            }
+
+            @Override
+            public void onCapabilitiesChanged(Network network, NetworkCapabilities networkCapabilities) {
+                Log.d(TAG, "onCapabilitiesChanged");
+                boolean hasInternet = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+                boolean hasValidated = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+                Log.d(TAG, "onCapabilitiesChanged: INTERNET=" + hasInternet + ", VALIDATED=" + hasValidated);
+
+                if (hasInternet && hasValidated) {
+                    triggerRecovery();
                 }
             }
 
             @Override
             public void onLost(Network network) {
+                Log.d(TAG, "onLost: network lost");
                 // Only show offline screen if we haven't loaded successfully yet
                 // Once loaded, let React/Capacitor handle runtime offline
                 if (!hasLoadedSuccessfully) {
@@ -105,6 +124,24 @@ public class MainActivity extends BridgeActivity {
         };
 
         connectivityManager.registerNetworkCallback(networkRequest, networkCallback);
+        Log.d(TAG, "Network callback registered");
+    }
+
+    private void triggerRecovery() {
+        Log.d(TAG, "triggerRecovery: isWaitingForNetwork=" + isWaitingForNetwork + ", hasLoadedSuccessfully=" + hasLoadedSuccessfully + ", launchedInOfflineState=" + launchedInOfflineState + ", isRecreating=" + isRecreating);
+
+        if (isWaitingForNetwork && !hasLoadedSuccessfully && launchedInOfflineState && !isRecreating) {
+            isWaitingForNetwork = false;
+            isRecreating = true;
+            Log.d(TAG, "Recreate triggered");
+            runOnUiThread(() -> {
+                // Recreate activity to perform fresh normal startup
+                // This preserves WebView storage, cookies, and auth state
+                recreate();
+            });
+        } else {
+            Log.d(TAG, "Recreate skipped: conditions not met");
+        }
     }
 
     private boolean isNetworkAvailable(ConnectivityManager connectivityManager) {
@@ -281,8 +318,19 @@ public class MainActivity extends BridgeActivity {
             LinearLayout.LayoutParams.WRAP_CONTENT
         );
         retryButton.setOnClickListener(v -> {
-            // Reload the WebView
-            webView.reload();
+            // Try Again button: check connectivity and trigger recovery if available
+            Log.d(TAG, "Try Again tapped");
+            ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            boolean hasValidatedNetwork = isNetworkAvailable(connectivityManager);
+            Log.d(TAG, "Try Again: validated network=" + hasValidatedNetwork);
+
+            if (hasValidatedNetwork) {
+                // Network is now available, trigger recovery
+                triggerRecovery();
+            } else {
+                // Still offline, keep offline screen visible
+                Log.d(TAG, "Try Again: still offline, keeping offline screen");
+            }
         });
         layout.addView(retryButton, buttonParams);
 
