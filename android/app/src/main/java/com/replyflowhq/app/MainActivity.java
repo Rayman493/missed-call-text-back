@@ -27,7 +27,7 @@ public class MainActivity extends BridgeActivity {
     private WebView webView;
     private ConnectivityManager.NetworkCallback networkCallback;
     private boolean isWaitingForNetwork = false;
-    private String appUrl;
+    private boolean hasLoadedSuccessfully = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -47,37 +47,17 @@ public class MainActivity extends BridgeActivity {
 
         // Get the Capacitor WebView
         webView = getBridge().getWebView();
-        appUrl = webView.getUrl();
 
-        // Check network connectivity BEFORE WebView starts loading
+        // Check network connectivity at startup
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         boolean hasValidatedNetwork = isNetworkAvailable(connectivityManager);
 
         if (!hasValidatedNetwork) {
-            // Hide WebView immediately to prevent raw error page from showing
-            webView.setVisibility(View.GONE);
+            // Show offline screen immediately if no network at startup
+            // This covers the WebView before Capacitor's initial load completes
             showOfflineScreen();
             isWaitingForNetwork = true;
         }
-
-        // Set custom WebViewClient to handle load errors
-        webView.setWebViewClient(new WebViewClient() {
-            @Override
-            public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
-                // Only show offline screen if we're not already waiting for network
-                // This prevents showing offline screen after network has recovered but load failed
-                if (!isWaitingForNetwork) {
-                    showOfflineScreen();
-                }
-            }
-
-            @Override
-            public void onPageFinished(WebView view, String url) {
-                super.onPageFinished(view, url);
-                // Hide offline screen when page loads successfully
-                hideOfflineScreen();
-            }
-        });
 
         // Set up network callback to detect connectivity changes
         setupNetworkMonitoring();
@@ -100,32 +80,29 @@ public class MainActivity extends BridgeActivity {
             @Override
             public void onAvailable(Network network) {
                 // Network became available with validated internet access
-                if (isWaitingForNetwork) {
+                if (isWaitingForNetwork && !hasLoadedSuccessfully) {
                     isWaitingForNetwork = false;
+                    hasLoadedSuccessfully = true;
                     runOnUiThread(() -> {
                         hideOfflineScreen();
-                        loadAppUrl();
+                        // Let Capacitor handle the reload naturally
+                        // Do not manually loadUrl to avoid breaking deep links and session restoration
                     });
                 }
             }
 
             @Override
             public void onLost(Network network) {
-                // Network lost - show offline screen
-                isWaitingForNetwork = true;
-                runOnUiThread(() -> showOfflineScreen());
+                // Only show offline screen if we haven't loaded successfully yet
+                // Once loaded, let React/Capacitor handle runtime offline
+                if (!hasLoadedSuccessfully) {
+                    isWaitingForNetwork = true;
+                    runOnUiThread(() -> showOfflineScreen());
+                }
             }
         };
 
         connectivityManager.registerNetworkCallback(networkRequest, networkCallback);
-    }
-
-    private void loadAppUrl() {
-        if (appUrl != null && !appUrl.isEmpty()) {
-            webView.loadUrl(appUrl);
-        } else {
-            webView.reload();
-        }
     }
 
     private boolean isNetworkAvailable(ConnectivityManager connectivityManager) {
@@ -264,8 +241,8 @@ public class MainActivity extends BridgeActivity {
             LinearLayout.LayoutParams.WRAP_CONTENT
         );
         retryButton.setOnClickListener(v -> {
-            // Reload the WebView using the safe loadAppUrl method
-            loadAppUrl();
+            // Reload the WebView
+            webView.reload();
         });
         layout.addView(retryButton, buttonParams);
 
