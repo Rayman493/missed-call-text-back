@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { sendTestPush } from '@/lib/fcm-sender'
+import { sendTestPush } from '@/lib/push-delivery'
 
 /**
  * Test Push Notification Endpoint
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
-    // Send test push
+    // Send test push through unified delivery (Android via FCM, iOS via APNs if configured)
     const result = await sendTestPush(
       business.id,
       'ReplyFlow Test Push',
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         businessId: business.id,
       })
-      return NextResponse.json({ success: true, message: result.message })
+      return NextResponse.json({ success: true, message: result.message, details: result.details })
     } else {
       console.error('[TEST PUSH] Failed', result.message)
       return NextResponse.json({ error: result.message }, { status: 500 })

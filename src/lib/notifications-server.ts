@@ -1,5 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { sendPushForNotification } from '@/lib/fcm-sender'
+import { sendPushForNotification } from '@/lib/push-delivery'
 import { normalizePunctuation } from '@/lib/utils'
 
 export interface Notification {
@@ -337,9 +337,9 @@ export class NotificationServiceServer {
       // This is fire-and-forget - failures are logged but don't affect the business event
       setImmediate(async () => {
         try {
-          console.log('[PUSH] delivery triggered');
+          console.log('[PUSH] delivery triggered')
           const notification = {
-            id: '', // We don't have the ID from the insert, but FCM doesn't need it
+            id: '', // We don't have the inserted row id here; delivery modules do not require it for transport
             business_id: businessId,
             type,
             title: notificationData.title,

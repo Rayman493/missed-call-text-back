@@ -175,6 +175,67 @@ export async function sendPushForNotification(notification: {
 }
 
 /**
+ * Send an FCM notification to a provided list of tokens.
+ * Mirrors the payload used in sendPushForNotification and applies the same
+ * invalid token handling logic.
+ */
+export async function sendToFcmTokens(
+  tokens: string[],
+  opts: { title: string; body: string; payload: PushPayload }
+): Promise<{ attempted: number; successful: number; failed: number }> {
+  const summary = { attempted: 0, successful: 0, failed: 0 }
+
+  if (!tokens || tokens.length === 0) return summary
+
+  // Deduplicate tokens
+  const uniqueTokens = Array.from(new Set(tokens))
+  summary.attempted = uniqueTokens.length
+
+  const messaging = getMessaging()
+
+  const fcmMessageBase = {
+    notification: {
+      title: opts.title,
+      body: opts.body,
+    },
+    data: opts.payload as any,
+    android: {
+      priority: 'high' as const,
+      notification: {
+        channelId: 'replyflow-high',
+      },
+    },
+    token: '',
+  }
+
+  const results = await Promise.allSettled(
+    uniqueTokens.map(async (token) => {
+      try {
+        const message = { ...fcmMessageBase, token }
+        await messaging.send(message as any)
+        return { success: true, token }
+      } catch (error: any) {
+        // Handle invalid token disabling
+        if (
+          error?.code === 'messaging/registration-token-not-registered' ||
+          error?.code === 'messaging/invalid-registration-token'
+        ) {
+          await disableInvalidToken(token)
+        }
+        return { success: false, token }
+      }
+    })
+  )
+
+  for (const r of results) {
+    if (r.status === 'fulfilled' && (r.value as any).success) summary.successful++
+    else summary.failed++
+  }
+
+  return summary
+}
+
+/**
  * Disable an invalid push token
  * 
  * @param token - The invalid FCM token to disable
