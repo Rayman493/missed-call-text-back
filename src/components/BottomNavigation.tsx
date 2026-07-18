@@ -49,8 +49,8 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
     const rect = moreButtonRef.current.getBoundingClientRect()
     const menuHeight = dropdownRef.current.offsetHeight
     const viewportPadding = 12
-    const spacing = 12
-    const safeBottom = 16
+    const spacing = 6
+    const safeBottom = 8
     const bottomNavHeight = 80
     const desiredWidth = 224
     const dropdownWidth = Math.min(desiredWidth, window.innerWidth - viewportPadding * 2)
@@ -77,8 +77,8 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
         const rect = moreButtonRef.current.getBoundingClientRect()
         const menuHeight = dropdownRef.current.offsetHeight
         const viewportPadding = 12
-        const spacing = 12
-        const safeBottom = 16
+        const spacing = 6
+        const safeBottom = 8
         const bottomNavHeight = 80
         const desiredWidth = 224
         const dropdownWidth = Math.min(desiredWidth, window.innerWidth - viewportPadding * 2)
@@ -250,16 +250,21 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
             <div className="py-1">
               <Link
                 href="/dashboard/settings"
-                onClick={() => setIsMoreMenuOpen(false)}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsMoreMenuOpen(false)
+                }}
                 className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors duration-150 hover:bg-slate-800 hover:text-white"
               >
                 <Settings className="h-4 w-4 text-slate-400" />
                 Settings
               </Link>
               <button
-                onClick={() => {
-                  setIsMoreMenuOpen(false)
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
                   setIsAssistantOpen(true)
+                  setIsMoreMenuOpen(false)
                 }}
                 className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-slate-300 transition-colors duration-150 hover:bg-slate-800 hover:text-white"
               >
@@ -268,7 +273,12 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
               </button>
               <div className="h-px bg-slate-700 my-1" />
               <button
-                onClick={handleLogout}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsMoreMenuOpen(false)
+                  handleLogout()
+                }}
                 className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-medium text-red-400 transition-colors duration-150 hover:bg-slate-800"
               >
                 <LogOut className="h-4 w-4" />
