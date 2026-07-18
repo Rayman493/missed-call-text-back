@@ -420,6 +420,44 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [isJobComposerOpen, setIsJobComposerOpen] = useState(false)
   const [jobPrefill, setJobPrefill] = useState<JobPrefill | undefined>(undefined)
 
+  // Diagnostics for active mobile composer path (Android)
+  const activeComposerRowRef = useRef<HTMLDivElement>(null)
+  const activeComposerTextareaRef = useRef<HTMLTextAreaElement>(null)
+  const activeComposerSendBtnRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    const ta = activeComposerTextareaRef.current
+    const row = activeComposerRowRef.current
+    const send = activeComposerSendBtnRef.current
+    if (!ta || !row || !send) return
+    const logAttrs = {
+      tagName: ta.tagName,
+      autocapitalize: ta.getAttribute('autocapitalize'),
+      autocorrect: (ta as any).autocorrect ?? ta.getAttribute('autocorrect'),
+      spellcheck: ta.getAttribute('spellcheck'),
+      autocomplete: ta.getAttribute('autocomplete'),
+      inputmode: ta.getAttribute('inputmode'),
+      contentEditable: (ta as any).isContentEditable,
+      disabled: ta.disabled,
+      readOnly: (ta as any).readOnly,
+      className: ta.className,
+    }
+    const styles = getComputedStyle(row)
+    const widths = {
+      rowWidth: row.getBoundingClientRect().width,
+      paddingLeft: parseFloat(styles.paddingLeft || '0'),
+      paddingRight: parseFloat(styles.paddingRight || '0'),
+      gap: parseFloat(styles.columnGap || '0'),
+      attachBtnWidth: (row.querySelector('button') as HTMLElement | null)?.getBoundingClientRect().width || 0,
+      textareaWrapperWidth: ta.parentElement ? ta.parentElement.getBoundingClientRect().width : 0,
+      sendBtnWidth: send.getBoundingClientRect().width,
+    }
+    // eslint-disable-next-line no-console
+    console.log('[ComposerDiag ACTIVE] attrs', logAttrs)
+    // eslint-disable-next-line no-console
+    console.log('[ComposerDiag ACTIVE] widths(px)', widths)
+  }, [])
+
   // Realtime subscription management
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null)
   const currentLeadIdRef = useRef<string | null>(null)
@@ -3614,7 +3652,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   ))}
                 </div>
               )}
-              <div className="flex items-center gap-2 bg-slate-900/50 dark:bg-slate-950/50 border border-slate-700/50 dark:border-slate-800/50 rounded-2xl p-2.5 shadow-lg hover:shadow-xl transition-all duration-200 focus-within:ring-2 focus-within:ring-blue-500/40 focus-within:border-blue-500/60 focus-within:bg-slate-900/70 dark:focus-within:bg-slate-950/70">
+              <div ref={activeComposerRowRef} className="flex items-center gap-2 bg-slate-900/50 dark:bg-slate-950/50 border border-slate-700/50 dark:border-slate-800/50 rounded-2xl p-2.5 shadow-lg hover:shadow-xl transition-all duration-200 focus-within:ring-2 focus-within:ring-blue-500/40 focus-within:border-blue-500/60 focus-within:bg-slate-900/70 dark:focus-within:bg-slate-950/70">
                 {/* Image Upload Button */}
                 <button
                   type="button"
@@ -3636,15 +3674,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   className="hidden"
                 />
                 <textarea
+                  ref={activeComposerTextareaRef}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyDown={handleMobileKeyDown}
-                  placeholder="Type a message..."
+                  placeholder="TYPE HERE TEST 7429 - ACTIVE"
                   className="flex-1 min-h-[44px] max-h-[120px] px-3 py-2.5 bg-transparent text-slate-100 dark:text-slate-100 resize-none focus:outline-none text-base leading-relaxed h-11 placeholder:text-slate-500 dark:placeholder:text-slate-500"
                   rows={1}
                   disabled={sending}
                 />
                 <button
+                  ref={activeComposerSendBtnRef}
                   onClick={() => handleSendMessage(mobileImages.length > 0 ? mobileImages : undefined)}
                   disabled={(!message.trim() && mobileImages.length === 0) || sending}
                   className={`px-4 py-2.5 rounded-xl font-semibold transition-all duration-200 shadow-sm hover:shadow flex items-center gap-1.5 flex-shrink-0 h-11 disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-slate-900 ${
