@@ -496,3 +496,15 @@ html.light select:-moz-autofill:focus {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;  /* Chrome, Safari, and Opera */
 }
+
+/* Composer textarea: hide scrollbar chrome but preserve scrolling */
+.composer-textarea-no-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.composer-textarea-no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Android WebView */
+  width: 0;
+  height: 0;
+}
