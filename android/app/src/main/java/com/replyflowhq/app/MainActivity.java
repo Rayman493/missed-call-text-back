@@ -211,40 +211,18 @@ public class MainActivity extends BridgeActivity {
         layout.setBackgroundColor(Color.parseColor("#020617")); // slate-950
         layout.setPadding(40, 40, 40, 40);
 
-        // Logo with ReplyFlow and HQ branding
-        LinearLayout logoLayout = new LinearLayout(context);
-        logoLayout.setOrientation(LinearLayout.HORIZONTAL);
-        logoLayout.setGravity(Gravity.CENTER);
+        // ReplyFlow R logo
+        ImageView logoView = new ImageView(context);
+        logoView.setImageResource(R.mipmap.ic_launcher_foreground);
+        logoView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         LinearLayout.LayoutParams logoLayoutParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.WRAP_CONTENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
+            96,
+            96
         );
-        logoLayoutParams.setMargins(0, 0, 0, 40);
-
-        TextView logoText = new TextView(context);
-        logoText.setText("ReplyFlow");
-        logoText.setTextSize(22);
-        logoText.setTextColor(Color.WHITE);
-        logoText.setTypeface(null, android.graphics.Typeface.BOLD);
-        LinearLayout.LayoutParams logoTextParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.WRAP_CONTENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        );
-        logoLayout.addView(logoText, logoTextParams);
-
-        TextView hqText = new TextView(context);
-        hqText.setText("HQ");
-        hqText.setTextSize(22);
-        hqText.setTextColor(Color.parseColor("#60a5fa")); // blue-400
-        hqText.setTypeface(null, android.graphics.Typeface.BOLD);
-        LinearLayout.LayoutParams hqTextParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.WRAP_CONTENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        );
-        hqTextParams.setMargins(4, 0, 0, 0);
-        logoLayout.addView(hqText, hqTextParams);
-
-        layout.addView(logoLayout, logoLayoutParams);
+        logoLayoutParams.gravity = Gravity.CENTER;
+        logoLayoutParams.setMargins(0, 0, 0, 48);
+        logoView.setLayoutParams(logoLayoutParams);
+        layout.addView(logoView, logoLayoutParams);
 
         // Offline icon container (circular background)
         LinearLayout iconContainer = new LinearLayout(context);
@@ -252,21 +230,21 @@ public class MainActivity extends BridgeActivity {
         iconContainer.setGravity(Gravity.CENTER);
         iconContainer.setBackgroundColor(Color.parseColor("#1e293b")); // slate-800
         // Make it circular by setting equal dimensions
-        int iconSize = 112;
+        int iconSize = 144;
         LinearLayout.LayoutParams iconContainerParams = new LinearLayout.LayoutParams(
             iconSize,
             iconSize
         );
-        iconContainerParams.setMargins(0, 0, 0, 40);
+        iconContainerParams.setMargins(0, 0, 0, 48);
         iconContainer.setLayoutParams(iconContainerParams);
 
         // Offline icon using vector drawable
         ImageView iconView = new ImageView(context);
-        iconView.setImageResource(R.drawable.ic_wifi_off);
+        iconView.setImageResource(R.drawable.ic_replyflow_wifi_off);
         iconView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(
-            56,
-            56
+            80,
+            80
         );
         iconParams.gravity = Gravity.CENTER;
         iconView.setLayoutParams(iconParams);
@@ -277,7 +255,7 @@ public class MainActivity extends BridgeActivity {
         // Main message
         TextView messageText = new TextView(context);
         messageText.setText("You're offline");
-        messageText.setTextSize(22);
+        messageText.setTextSize(28);
         messageText.setTextColor(Color.WHITE);
         messageText.setTypeface(null, android.graphics.Typeface.BOLD);
         messageText.setGravity(Gravity.CENTER);
@@ -285,26 +263,26 @@ public class MainActivity extends BridgeActivity {
             LinearLayout.LayoutParams.WRAP_CONTENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         );
-        messageParams.setMargins(0, 0, 0, 16);
+        messageParams.setMargins(0, 0, 0, 20);
         layout.addView(messageText, messageParams);
 
         // Subtitle - updated to reflect automatic reconnection
         TextView subtitleText = new TextView(context);
         subtitleText.setText("Check your internet connection.\nReplyFlow will reconnect automatically.");
-        subtitleText.setTextSize(14);
+        subtitleText.setTextSize(16);
         subtitleText.setTextColor(Color.parseColor("#94a3b8")); // slate-400
         subtitleText.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams subtitleParams = new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         );
-        subtitleParams.setMargins(0, 0, 0, 20);
+        subtitleParams.setMargins(0, 0, 0, 24);
         layout.addView(subtitleText, subtitleParams);
 
         // Supporting text
         TextView supportingText = new TextView(context);
         supportingText.setText("ReplyFlow requires an internet connection to load your latest customers, messages, jobs, and schedule.");
-        supportingText.setTextSize(12);
+        supportingText.setTextSize(14);
         supportingText.setTextColor(Color.parseColor("#64748b")); // slate-500
         supportingText.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams supportingParams = new LinearLayout.LayoutParams(
