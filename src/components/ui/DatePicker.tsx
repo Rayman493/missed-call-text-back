@@ -203,9 +203,9 @@ export default function DatePicker({
       </button>
 
       {isOpen && !disabled && (
-        <div className="absolute z-50 mt-2 bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 w-[360px] max-w-[calc(100vw-2rem)] sm:w-auto sm:max-w-[420px]">
+        <div className="absolute z-50 mt-2 bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 w-[360px] max-w-[calc(100vw-2rem)] sm:w-[400px]">
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 sm:p-4 border-b border-slate-200 dark:border-slate-700">
+          <div className="flex items-center justify-between px-4 py-3 sm:px-5 sm:py-4 border-b border-slate-200 dark:border-slate-700">
             <button
               type="button"
               onClick={() => navigateMonth('prev')}
@@ -228,7 +228,7 @@ export default function DatePicker({
           </div>
 
           {/* Day headers */}
-          <div className="grid grid-cols-7 gap-1 px-4 pt-3 pb-2">
+          <div className="grid grid-cols-7 gap-1 px-4 sm:px-5 pt-3 pb-2">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
               <div 
                 key={day} 
@@ -244,7 +244,7 @@ export default function DatePicker({
           </div>
 
           {/* Calendar grid */}
-          <div className="grid grid-cols-7 gap-1 px-4 pb-4">
+          <div className="grid grid-cols-7 gap-1 px-4 sm:px-5 pb-4">
             {days.map((dayInfo, index) => (
               <button
                 key={index}
@@ -269,7 +269,7 @@ export default function DatePicker({
           </div>
 
           {/* Footer actions */}
-          <div className="flex items-center justify-between p-4 border-t border-slate-200 dark:border-slate-700">
+          <div className="flex items-center justify-between px-4 sm:px-5 py-4 border-t border-slate-200 dark:border-slate-700">
             <button
               type="button"
               onClick={selectToday}
