@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import { timelineEvents } from '@/lib/event-timeline'
 import { notificationServiceServer } from '@/lib/notifications-server'
 
@@ -8,27 +8,29 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET
 const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI
 
 export async function GET(request: NextRequest) {
-  console.log('[CALENDAR IMPORT START] Google Calendar Callback request received')
+  console.log('[GOOGLE OAUTH] callback received')
   const searchParams = request.nextUrl.searchParams
   const code = searchParams.get('code')
   const state = searchParams.get('state')
   const error = searchParams.get('error')
 
-  console.log('[Google Calendar Callback] Params:', { hasCode: !!code, hasState: !!state, error })
+  console.log('[GOOGLE OAUTH] code present:', !!code ? 'yes' : 'no')
+  console.log('[GOOGLE OAUTH] state present:', !!state ? 'yes' : 'no')
+  console.log('[GOOGLE OAUTH] error:', error)
 
   // Handle OAuth errors
   if (error) {
-    console.error('[Google Calendar Callback] OAuth error:', error)
+    console.error('[GOOGLE OAUTH] OAuth error:', error)
     return NextResponse.redirect(new URL('/dashboard/calendar?calendar=error', request.url))
   }
 
   if (!code) {
-    console.log('[Google Calendar Callback] No code provided')
+    console.log('[GOOGLE OAUTH] No code provided')
     return NextResponse.redirect(new URL('/dashboard/calendar?calendar=error', request.url))
   }
 
   if (!state) {
-    console.log('[Google Calendar Callback] No state provided')
+    console.log('[GOOGLE OAUTH] No state provided')
     return NextResponse.redirect(new URL('/dashboard/calendar?calendar=error', request.url))
   }
 
@@ -49,8 +51,8 @@ export async function GET(request: NextRequest) {
     let stateData
     try {
       stateData = JSON.parse(Buffer.from(state, 'base64').toString())
-      console.log('[Google Calendar Callback] Decoded state:', { hasBusinessId: !!stateData.business_id, hasTimestamp: !!stateData.timestamp })
-      
+      console.log('[GOOGLE OAUTH] state valid:', !!stateData.business_id ? 'yes' : 'no')
+
       if (!stateData.business_id || !stateData.timestamp) {
         throw new Error('Invalid state')
       }
@@ -59,17 +61,17 @@ export async function GET(request: NextRequest) {
       const stateAge = Date.now() - stateData.timestamp
       const MAX_STATE_AGE_MS = 5 * 60 * 1000 // 5 minutes
       if (stateAge > MAX_STATE_AGE_MS) {
-        console.error('[Google Calendar Callback] State expired, age:', stateAge, 'ms')
+        console.error('[GOOGLE OAUTH] State expired, age:', stateAge, 'ms')
         throw new Error('State expired')
       }
-      console.log('[Google Calendar Callback] State validated, age:', stateAge, 'ms')
+      console.log('[GOOGLE OAUTH] state validated, age:', stateAge, 'ms')
     } catch (error) {
-      console.error('[Google Calendar Callback] Invalid state:', error)
+      console.error('[GOOGLE OAUTH] Invalid state:', error)
       return NextResponse.redirect(new URL('/dashboard/calendar?calendar=error', request.url))
     }
 
     // Exchange authorization code for tokens
-    console.log('[Google Calendar Callback] Exchanging code for tokens')
+    console.log('[GOOGLE OAUTH] token exchange started')
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: {
@@ -86,62 +88,60 @@ export async function GET(request: NextRequest) {
 
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text()
-      console.error('[Google Calendar Callback] Token exchange failed:', tokenResponse.status, errorText)
+      console.error('[GOOGLE OAUTH] token exchange failure:', tokenResponse.status, errorText)
       return NextResponse.redirect(new URL('/dashboard/calendar?calendar=error', request.url))
     }
 
     const tokenData = await tokenResponse.json()
-    console.log('[Google Calendar Callback] Token exchange successful:', { hasAccessToken: !!tokenData.access_token, hasRefreshToken: !!tokenData.refresh_token, expiresIn: tokenData.expires_in })
+    console.log('[GOOGLE OAUTH] token exchange success')
+    console.log('[GOOGLE OAUTH] refresh token present:', !!tokenData.refresh_token ? 'yes' : 'no')
 
-    // Get the user's session
-    const supabase = createServerSupabaseClient()
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-
-    if (userError) {
-      console.error('[Google Calendar Callback] Auth error:', userError)
-      return NextResponse.redirect(new URL('/dashboard/calendar?calendar=error', request.url))
-    }
-
-    if (!user) {
-      console.log('[Google Calendar Callback] No user found')
-      return NextResponse.redirect(new URL('/dashboard/calendar?calendar=error', request.url))
-    }
-
-    console.log('[Google Calendar Callback] Authenticated user:', user.id)
-
-    // Verify business ownership
-    const { data: business, error: businessError } = await supabase
+    // Verify business exists using admin client (no session required)
+    console.log('[GOOGLE OAUTH] user/business resolved from state:', stateData.business_id)
+    const { data: business, error: businessError } = await supabaseAdmin
       .from('businesses')
-      .select('id')
+      .select('id, user_id')
       .eq('id', stateData.business_id)
-      .eq('user_id', user.id)
       .single()
 
-    if (businessError) {
-      console.error('[Google Calendar Callback] Business lookup error:', businessError)
+    if (businessError || !business) {
+      console.error('[GOOGLE OAUTH] business lookup failed:', businessError)
       return NextResponse.redirect(new URL('/dashboard/calendar?calendar=error', request.url))
     }
 
-    if (!business) {
-      console.log('[Google Calendar Callback] Business not found or unauthorized')
-      return NextResponse.redirect(new URL('/dashboard/calendar?calendar=error', request.url))
-    }
-
-    console.log('[Google Calendar Callback] Business verified:', business.id)
+    console.log('[GOOGLE OAUTH] business verified:', business.id)
 
     // Calculate expiry time
     const expiresAt = new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString()
-    console.log('[Google Calendar Callback] Token expires at:', expiresAt)
+    console.log('[GOOGLE OAUTH] token expires at:', expiresAt)
+
+    // Preserve existing refresh token if Google doesn't return a new one
+    // Google only returns refresh token on first consent with access_type=offline
+    let refreshToken = tokenData.refresh_token
+    if (!refreshToken) {
+      console.log('[GOOGLE OAUTH] No refresh token returned, checking existing')
+      const { data: existingIntegration } = await supabaseAdmin
+        .from('calendar_integrations')
+        .select('refresh_token')
+        .eq('business_id', business.id)
+        .eq('provider', 'google')
+        .single()
+
+      if (existingIntegration?.refresh_token) {
+        refreshToken = existingIntegration.refresh_token
+        console.log('[GOOGLE OAUTH] Preserved existing refresh token')
+      }
+    }
 
     // Upsert calendar integration
-    console.log('[Google Calendar Callback] Upserting integration')
-    const { error: upsertError } = await supabase
+    console.log('[GOOGLE OAUTH] database persistence started')
+    const { error: upsertError } = await supabaseAdmin
       .from('calendar_integrations')
       .upsert({
         business_id: business.id,
         provider: 'google',
         access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token,
+        refresh_token: refreshToken,
         token_type: tokenData.token_type || 'Bearer',
         expires_at: expiresAt,
         scope: tokenData.scope,
@@ -150,14 +150,14 @@ export async function GET(request: NextRequest) {
       })
 
     if (upsertError) {
-      console.error('[Google Calendar Callback] Failed to save integration:', upsertError)
+      console.error('[GOOGLE OAUTH] database persistence failure:', upsertError)
       return NextResponse.redirect(new URL('/dashboard/calendar?calendar=error', request.url))
     }
 
-    console.log('[CALENDAR IMPORT SUCCESS] Integration saved successfully')
+    console.log('[GOOGLE OAUTH] database persistence success')
 
     // Get the calendar integration to retrieve calendar_email
-    const { data: savedIntegration } = await supabase
+    const { data: savedIntegration } = await supabaseAdmin
       .from('calendar_integrations')
       .select('calendar_email')
       .eq('business_id', business.id)
@@ -167,26 +167,36 @@ export async function GET(request: NextRequest) {
     // Create timeline event for calendar connection
     try {
       await timelineEvents.calendarConnected(business.id, savedIntegration?.calendar_email)
-      console.log('[CALENDAR CALLBACK] Timeline event created successfully')
+      console.log('[GOOGLE OAUTH] timeline event created')
     } catch (timelineError) {
-      console.error('[CALENDAR CALLBACK] Failed to create timeline event:', timelineError)
+      console.error('[GOOGLE OAUTH] timeline event failed:', timelineError)
       // Non-critical error, continue
     }
 
     // Create notification for calendar connection
     try {
       await notificationServiceServer.notifyCalendarConnected(business.id, savedIntegration?.calendar_email)
-      console.log('[CALENDAR CALLBACK] Notification created successfully')
+      console.log('[GOOGLE OAUTH] notification created')
     } catch (notificationError) {
-      console.error('[CALENDAR CALLBACK] Failed to create notification:', notificationError)
+      console.error('[GOOGLE OAUTH] notification failed:', notificationError)
       // Non-critical error, continue
     }
 
-    console.log('[GOOGLE CALENDAR FETCH] Calendar integration ready for event fetching')
-    return NextResponse.redirect(new URL('/dashboard/calendar?calendar=connected', request.url))
+    // Detect native app context and redirect accordingly
+    const userAgent = request.headers.get('user-agent') || ''
+    const isNativeApp = userAgent.includes('Capacitor') || userAgent.includes('ReplyFlow')
+
+    if (isNativeApp) {
+      console.log('[GOOGLE OAUTH] native return redirect')
+      // Use app link to return to native app
+      const appLink = `replyflow://calendar?status=connected&business_id=${business.id}`
+      return NextResponse.redirect(new URL(appLink))
+    } else {
+      console.log('[GOOGLE OAUTH] web return redirect')
+      return NextResponse.redirect(new URL('/dashboard/calendar?calendar=connected', request.url))
+    }
   } catch (error) {
-    console.error('[CALENDAR IMPORT ERROR] Unexpected error in callback flow:', error)
-    console.error('[GOOGLE AUTH STATUS] OAuth callback failed')
+    console.error('[GOOGLE OAUTH] unexpected error:', error)
     return NextResponse.redirect(new URL('/dashboard/calendar?calendar=error', request.url))
   }
 }
