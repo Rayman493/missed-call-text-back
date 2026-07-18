@@ -135,6 +135,7 @@ function AuthContent() {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('[Auth] sign-in started')
     setLoading(true)
     setError('')
     setErrorDisplay(null)
@@ -146,6 +147,8 @@ function AuthContent() {
       })
 
       if (error) throw error
+
+      console.log('[Auth] sign-in succeeded')
 
       // Listen for SIGNED_IN event
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: any) => {

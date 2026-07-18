@@ -29,6 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   const initialLoadRef = useRef(true)
+  const lastSignInTimeRef = useRef<number>(0)
 
   useEffect(() => {
     setIsClient(true)
@@ -52,6 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Restore session on app load
     const restoreSession = async () => {
+      console.log('[Auth] startup session restore started')
       try {
         const { data: { session }, error } = await supabase.auth.getSession()
         
@@ -60,6 +62,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (error) {
           console.error('[Auth] Session restore error:', error)
+          // Check for refresh_token_not_found error and clear stale auth state
+          if (error?.message?.includes('refresh_token_not_found') || error?.message?.includes('Refresh Token Not Found')) {
+            console.log('[Auth] stale session detected - clearing Supabase auth state from localStorage')
+            // Clear all Supabase keys from localStorage
+            if (typeof window !== 'undefined') {
+              const keysToRemove: string[] = []
+              for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i)
+                if (key && key.startsWith('sb-')) {
+                  keysToRemove.push(key)
+                }
+              }
+              keysToRemove.forEach(key => localStorage.removeItem(key))
+              console.log('[Auth] stale session cleanup completed - removed', keysToRemove.length, 'Supabase keys')
+            }
+          }
         }
         
         if (session) {
@@ -89,6 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error('[Auth] Session restore failed:', error)
       } finally {
+        console.log('[Auth] startup session restore completed')
         setLoading(false)
         initialLoadRef.current = false
       }
@@ -105,9 +124,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Listen to auth state changes - only once
     if (!authSubscriptionRef.current && supabase) {
       authSubscriptionRef.current = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
-        console.log('[Auth] Auth state change event:', event)
+        console.log('[Auth] auth event:', event)
         console.log('[Auth] Session present:', session ? 'yes' : 'no')
         console.log('[Auth] Access token present:', session?.access_token ? 'yes' : 'no')
+        
+        if (event === 'SIGNED_IN' && session) {
+          console.log('[Auth] sign-in succeeded')
+          // Track sign-in time to prevent race condition with delayed stale SIGNED_OUT events
+          lastSignInTimeRef.current = Date.now()
+          const currentSessionId = session.access_token?.substring(0, 10)
+          console.log('[Auth] new session ID:', currentSessionId)
+        }
+        
+        // Prevent race condition: ignore SIGNED_OUT events within 2 seconds of a sign-in
+        // This handles the case where a stale refresh request fails after a fresh sign-in
+        if (event === 'SIGNED_OUT' && !session) {
+          const timeSinceSignIn = Date.now() - lastSignInTimeRef.current
+          if (timeSinceSignIn < 2000) {
+            console.log('[Auth] ignoring delayed SIGNED_OUT event (race condition protection)', { timeSinceSignIn })
+            return // Don't clear the fresh session
+          }
+        }
         
         if (session) {
           setSession(session)
