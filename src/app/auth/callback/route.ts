@@ -44,6 +44,7 @@ export async function GET(request: Request) {
 
   if (code) {
     const cookieStore = cookies()
+    console.log('[SUPABASE SSR SOURCE] auth-callback')
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
       console.log('[PUSH DEVICE REGISTRATION] Bearer auth result:', user ? 'success' : 'failed')
     } else {
       console.log('[PUSH DEVICE REGISTRATION] No Bearer token, trying cookie auth')
+      console.log('[SUPABASE SSR SOURCE] push-register-device (cookie auth)')
       // Fallback to cookie auth
       const cookieStore = cookies()
       const supabase = createServerClient(

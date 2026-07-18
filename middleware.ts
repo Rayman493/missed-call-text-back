@@ -33,6 +33,8 @@ export async function middleware(req: NextRequest) {
     timestamp: new Date().toISOString()
   })
 
+  console.log('[SUPABASE SSR SOURCE] middleware')
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

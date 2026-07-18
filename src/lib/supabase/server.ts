@@ -13,6 +13,8 @@ export function createServerSupabaseClient() {
     throw new Error('Missing Supabase environment variables')
   }
 
+  console.log('[SUPABASE SSR SOURCE] server-client helper')
+
   return createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
