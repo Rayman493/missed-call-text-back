@@ -2433,7 +2433,7 @@ export default function SettingsContent() {
                 </div>
 
                 {/* Scrollable Body */}
-                <div className="flex-1 min-h-0 overflow-y-scroll p-6 space-y-4 overscroll-contain pb-24 sm:pb-6" style={{ touchAction: 'pan-y' }}>
+                <div className="flex-1 min-h-0 overflow-y-scroll p-6 space-y-4 overscroll-contain pb-24 sm:pb-6" style={{ touchAction: 'pan-y' }} data-scroll-lock-allow>
                   {/* What happens on deletion */}
                   <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-4">
                     <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
