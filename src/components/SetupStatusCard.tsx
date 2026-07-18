@@ -227,6 +227,88 @@ export default function SetupStatusCard({
     }
   }, [cardState, hasConfirmedForwardingInstructions, hasCompletedTestCall])
   
+  // Collapsed overview for setup-incomplete (user may manually collapse)
+  if (!isExpanded && cardState === 'setup-incomplete') {
+    const currentStep = !business?.twilio_phone_number
+      ? 'Step 1 of 3'
+      : !hasConfirmedForwardingInstructions
+        ? 'Step 2 of 3'
+        : 'Step 3 of 3'
+
+    return (
+      <div className="bg-card text-card-foreground rounded-xl shadow-lg border border-border/50 hover:shadow-md transition-all">
+        <div className="flex items-center justify-between gap-3 p-3 sm:p-3.5">
+          <div className="flex items-center gap-2.5 flex-1 min-w-0">
+            <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 text-primary" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3a1 1 0 00.293.707l2 2a1 1 0 101.414-1.414L11 9.586V7z" clipRule="evenodd"/></svg>
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-sm sm:text-base font-semibold text-foreground leading-tight">Complete Setup</h3>
+              <p className="text-muted-foreground text-xs mt-0.5 leading-tight">{currentStep}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            aria-label="Expand setup"
+            aria-expanded={false}
+            onClick={(e) => {
+              e.preventDefault()
+              setUserHasToggled(true)
+              setIsExpanded(true)
+            }}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground text-xs sm:text-sm font-medium rounded-lg transition-colors cursor-pointer flex-shrink-0"
+          >
+            Expand
+            <ChevronDown className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Collapsed overview for completed/healthy state with persistent Review access
+  if (!isExpanded && (cardState === 'setup-complete' || cardState === 'healthy')) {
+    return (
+      <div className="bg-card text-card-foreground rounded-xl shadow-lg border border-border/50 hover:shadow-md transition-all">
+        <div className="flex items-center justify-between gap-2 p-3 sm:p-3.5">
+          <div className="flex items-center gap-2.5 flex-1 min-w-0">
+            <div className="w-8 h-8 bg-green-500/15 rounded-lg flex items-center justify-center flex-shrink-0">
+              <CheckCircle className="w-4 h-4 text-green-600" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-sm sm:text-base font-semibold text-foreground leading-tight">ReplyFlow Ready</h3>
+              <p className="text-muted-foreground text-xs mt-0.5 leading-tight">Setup completed</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowForwardingInstructions(true)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-secondary hover:bg-secondary/80 text-secondary-foreground text-xs font-medium rounded-lg transition-colors"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              Review
+            </button>
+            <button
+              type="button"
+              aria-label="Expand setup details"
+              aria-expanded={false}
+              onClick={(e) => {
+                e.preventDefault()
+                setUserHasToggled(true)
+                setIsExpanded(true)
+              }}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground text-xs sm:text-sm font-medium rounded-lg transition-colors cursor-pointer"
+            >
+              Expand
+              <ChevronDown className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   // Render billing blocker state
   if (cardState === 'billing-blocker') {
     const isTrialUsed = business?.onboarding_status === 'trial_used' || business?.subscription_status === 'trial_expired'
@@ -506,40 +588,7 @@ export default function SetupStatusCard({
       </div>
     )
   }
-
-  // Render collapsed state (after setup is complete)
-  if (!isExpanded && (cardState === 'setup-complete' || cardState === 'healthy')) {
-    return (
-      <div className="bg-card text-card-foreground rounded-xl shadow-lg border border-border/50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
-        <div className="flex items-center justify-between gap-3 p-3 sm:p-3.5">
-          <div className="flex items-center gap-2.5 flex-1">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-green-500/15 rounded-lg flex items-center justify-center">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-              </div>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-sm sm:text-base font-semibold text-foreground leading-tight">ReplyFlow is protecting your business</h3>
-              <p className="text-muted-foreground text-xs mt-0.5 leading-tight">Missed calls will be captured automatically.</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              setUserHasToggled(true)
-              setIsExpanded(true)
-            }}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground text-xs sm:text-sm font-medium rounded-lg transition-colors cursor-pointer flex-shrink-0"
-          >
-            View Details
-            <ChevronDown className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
-    )
-  }
+  
   
   // Render main card (for setup states)
   return (
@@ -558,13 +607,33 @@ export default function SetupStatusCard({
                   {!hasConfirmedForwardingInstructions ? 'Step 2 of 3' : 'Step 3 of 3'}
                 </p>
               </div>
+              <button
+                type="button"
+                aria-label="Collapse setup"
+                aria-expanded={isExpanded}
+                onClick={(e) => {
+                  e.preventDefault()
+                  setUserHasToggled(true)
+                  setIsExpanded(false)
+                }}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground text-xs sm:text-sm font-medium rounded-lg transition-colors cursor-pointer flex-shrink-0"
+              >
+                Collapse
+                <ChevronUp className="w-3.5 h-3.5" />
+              </button>
             </div>
 
             {/* Setup Progress with Progressive Disclosure */}
             <div className="space-y-2">
-              {/* Step 1: Always Complete - Compact */}
-              <div className="bg-muted/30 border border-border/50 rounded-xl p-3 sm:p-4">
-                <div className="flex items-center gap-3">
+              {/* Step 1: ReplyFlow Number Ready - Accordion */}
+              <div className="bg-muted/30 border border-border/50 rounded-xl overflow-hidden">
+                <button
+                  type="button"
+                  aria-label="Toggle step 1 details"
+                  aria-expanded={expandedStep === 1}
+                  onClick={() => setExpandedStep(expandedStep === 1 ? null : 1)}
+                  className="w-full flex items-center gap-3 p-3 sm:p-4 text-left hover:bg-muted/40 transition-colors"
+                >
                   <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
                     <svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -572,117 +641,136 @@ export default function SetupStatusCard({
                   </div>
                   <div className="flex-1">
                     <span className="text-foreground text-sm font-medium">ReplyFlow number ready</span>
-                    {expandedStep === 1 && (
-                      <p className="text-muted-foreground text-xs mt-1">
-                        Your ReplyFlow number is ready to receive forwarded missed calls.
-                      </p>
-                    )}
                   </div>
-                  {expandedStep === 1 && business?.twilio_phone_number && (
-                    <span className="text-foreground font-mono text-sm font-semibold tabular-nums flex-shrink-0">
-                      {formatPhoneNumber(business.twilio_phone_number)}
-                    </span>
+                  {expandedStep === 1 ? (
+                    <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                   )}
-                </div>
-              </div>
-
-              {/* Step 2: Call Forwarding - Expandable */}
-              <div className={`border rounded-xl overflow-hidden transition-all duration-200 ${
-                !hasConfirmedForwardingInstructions
-                  ? 'bg-primary/5 border-l-4 border-l-primary border-y border-r border-border/50 shadow-sm'
-                  : 'bg-muted/30 border-border/50'
-              }`}>
-                {!hasConfirmedForwardingInstructions ? (
-                  // Expanded current step
-                  <div className="p-3 sm:p-4">
-                    <div className="flex items-start gap-3 mb-3">
-                      <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center flex-shrink-0 shadow-sm shadow-primary/30 mt-0.5">
-                        <span className="text-primary-foreground text-sm font-bold">2</span>
+                </button>
+                {expandedStep === 1 && (
+                  <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-0">
+                    <p className="text-muted-foreground text-sm mb-2">
+                      Your ReplyFlow number is ready to receive forwarded missed calls.
+                    </p>
+                    {business?.twilio_phone_number && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-foreground font-mono text-sm font-semibold tabular-nums">
+                          {formatPhoneNumber(business.twilio_phone_number)}
+                        </span>
                       </div>
-                      <div className="flex-1">
-                        <h3 className="text-foreground text-sm font-semibold mb-1">Set up call forwarding</h3>
-                        <p className="text-muted-foreground text-sm">
-                          Forward missed calls from your business phone to ReplyFlow.
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => setShowForwardingInstructions(true)}
-                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold rounded-lg transition-all shadow-sm hover:shadow"
-                    >
-                      View setup instructions
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  // Compact completed step
-                  <div className="bg-muted/30 border border-border/50 rounded-xl p-3 sm:p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
-                        <svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                      <div className="flex-1">
-                        <span className="text-foreground text-sm font-medium">Call forwarding setup confirmed</span>
-                      </div>
-                      <button
-                        onClick={() => setShowForwardingInstructions(true)}
-                        className="text-xs text-primary hover:text-primary/80 underline underline-offset-2 transition-colors flex-shrink-0"
-                      >
-                        Review
-                      </button>
-                    </div>
+                    )}
                   </div>
                 )}
               </div>
 
-              {/* Step 3: Test Setup - Expandable when current */}
+              {/* Step 2: Call Forwarding - Accordion */}
+              <div className={`border rounded-xl overflow-hidden transition-all duration-200 ${
+                !hasConfirmedForwardingInstructions && expandedStep === 2
+                  ? 'bg-primary/5 border-l-4 border-l-primary border-y border-r border-border/50 shadow-sm'
+                  : 'bg-muted/30 border-border/50'
+              }`}>
+                <button
+                  type="button"
+                  aria-label="Toggle step 2 details"
+                  aria-expanded={expandedStep === 2}
+                  onClick={() => setExpandedStep(expandedStep === 2 ? null : 2)}
+                  className="w-full flex items-center gap-3 p-3 sm:p-4 text-left hover:bg-muted/40 transition-colors"
+                >
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    hasConfirmedForwardingInstructions
+                      ? 'bg-green-500/20'
+                      : 'bg-primary shadow-sm shadow-primary/30'
+                  }`}>
+                    {hasConfirmedForwardingInstructions ? (
+                      <svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    ) : (
+                      <span className="text-primary-foreground text-sm font-bold">2</span>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <span className="text-foreground text-sm font-medium">
+                      {hasConfirmedForwardingInstructions ? 'Call forwarding setup confirmed' : 'Set up call forwarding'}
+                    </span>
+                  </div>
+                  {expandedStep === 2 ? (
+                    <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  )}
+                </button>
+                {expandedStep === 2 && (
+                  <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-0">
+                    <p className="text-muted-foreground text-sm mb-3">
+                      Forward missed calls from your business phone to ReplyFlow.
+                    </p>
+                    <button
+                      onClick={() => setShowForwardingInstructions(true)}
+                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold rounded-lg transition-all shadow-sm hover:shadow"
+                    >
+                      {hasConfirmedForwardingInstructions ? 'Review setup instructions' : 'View setup instructions'}
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Step 3: Test Setup - Accordion */}
               {hasConfirmedForwardingInstructions && (
                 <div className={`border rounded-xl overflow-hidden transition-all duration-200 ${
-                  !hasCompletedTestCall
+                  !hasCompletedTestCall && expandedStep === 3
                     ? 'bg-muted/40 border-border/60 shadow-sm'
                     : 'bg-muted/30 border-border/50'
                 }`}>
-                  {!hasCompletedTestCall ? (
-                    // Expanded current step
-                    <div className="p-3 sm:p-4">
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className="w-6 h-6 rounded-full bg-background border-2 border-primary/40 flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <span className="text-primary text-sm font-semibold">3</span>
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-foreground text-sm font-semibold mb-1">Test your setup</h3>
-                          <p className="text-muted-foreground text-sm mb-2">
-                            From another phone, call your business number once to test your setup.
-                          </p>
-                          {business?.business_phone_number && (
-                            <div className="flex items-center gap-3 mb-2">
-                              <Phone className="w-5 h-5 text-foreground flex-shrink-0" />
-                              <span className="text-foreground font-mono text-lg font-semibold tabular-nums tracking-tight">
-                                {formatPhoneNumber(business.business_phone_number)}
-                              </span>
-                            </div>
-                          )}
-                          <p className="text-muted-foreground text-xs">
-                            Use any phone other than your business phone to confirm the missed call reaches ReplyFlow.
-                          </p>
-                        </div>
-                      </div>
+                  <button
+                    type="button"
+                    aria-label="Toggle step 3 details"
+                    aria-expanded={expandedStep === 3}
+                    onClick={() => setExpandedStep(expandedStep === 3 ? null : 3)}
+                    className="w-full flex items-center gap-3 p-3 sm:p-4 text-left hover:bg-muted/40 transition-colors"
+                  >
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      hasCompletedTestCall
+                        ? 'bg-green-500/20'
+                        : 'bg-background border-2 border-primary/40'
+                    }`}>
+                      {hasCompletedTestCall ? (
+                        <svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      ) : (
+                        <span className="text-primary text-sm font-semibold">3</span>
+                      )}
                     </div>
-                  ) : (
-                    // Compact completed step
-                    <div className="bg-muted/30 border border-border/50 rounded-xl p-3 sm:p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
-                          <svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
+                    <div className="flex-1">
+                      <span className="text-foreground text-sm font-medium">
+                        {hasCompletedTestCall ? 'Test completed' : 'Test your setup'}
+                      </span>
+                    </div>
+                    {expandedStep === 3 ? (
+                      <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    )}
+                  </button>
+                  {expandedStep === 3 && (
+                    <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-0">
+                      <p className="text-muted-foreground text-sm mb-2">
+                        From another phone, call your business number once to test your setup.
+                      </p>
+                      {business?.business_phone_number && (
+                        <div className="flex items-center gap-3 mb-2">
+                          <Phone className="w-5 h-5 text-foreground flex-shrink-0" />
+                          <span className="text-foreground font-mono text-lg font-semibold tabular-nums tracking-tight">
+                            {formatPhoneNumber(business.business_phone_number)}
+                          </span>
                         </div>
-                        <div className="flex-1">
-                          <span className="text-foreground text-sm font-medium">Test completed</span>
-                        </div>
-                      </div>
+                      )}
+                      <p className="text-muted-foreground text-xs">
+                        Use any phone other than your business phone to confirm the missed call reaches ReplyFlow.
+                      </p>
                     </div>
                   )}
                 </div>
@@ -722,6 +810,20 @@ export default function SetupStatusCard({
                   </p>
                 </div>
               </div>
+              <button
+                type="button"
+                aria-label="Collapse setup details"
+                aria-expanded={isExpanded}
+                onClick={(e) => {
+                  e.preventDefault()
+                  setUserHasToggled(true)
+                  setIsExpanded(false)
+                }}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground text-xs sm:text-sm font-medium rounded-lg transition-colors cursor-pointer flex-shrink-0"
+              >
+                Collapse
+                <ChevronUp className="w-3.5 h-3.5" />
+              </button>
             </div>
 
             {/* Supporting message - no false monitoring claims */}
