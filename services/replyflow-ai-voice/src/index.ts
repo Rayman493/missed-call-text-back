@@ -3420,12 +3420,12 @@ function isValidCustomerName(name: string): boolean {
 // Helper function to normalize extracted field names to session intake field names
 function normalizeExtractedFields(extractedFields: any): any {
   if (!extractedFields) return {};
-  
+
   console.log('[NORMALIZE EXTRACTED FIELDS] =========================================');
   console.log('[NORMALIZE EXTRACTED FIELDS] Original keys:', Object.keys(extractedFields));
   console.log('[NORMALIZE EXTRACTED FIELDS] Timestamp:', new Date().toISOString());
   console.log('[NORMALIZE EXTRACTED FIELDS] =========================================');
-  
+
   const normalized = {
     customerName: extractedFields.callerName || extractedFields.customerName,
     serviceRequested: extractedFields.reasonForCalling || extractedFields.serviceRequested,
@@ -3434,12 +3434,69 @@ function normalizeExtractedFields(extractedFields: any): any {
     desiredCompletionTime: extractedFields.desiredCompletionTime,
     callbackTime: extractedFields.preferredCallbackTime || extractedFields.callbackTime,
     summary: extractedFields.summary
-  };
-  
+  } as any;
+
+  // Minimal post-processing to separate combined utterances like "Ryan, I need my grass cut"
+  // Only apply if service is empty or both fields are the same string
+  try {
+    const nameVal: string | undefined = normalized.customerName;
+    const serviceVal: string | undefined = normalized.serviceRequested;
+
+    const stripNamePrefixes = (s: string) => s
+      .replace(/^(?:hi|hello|hey)[,\s]+/i, '')
+      .replace(/^(?:my name is|my name's|name is|i am|i'm|this is|it is|it's)\s+/i, '')
+      .trim();
+
+    const stripServicePrefixes = (s: string) => s
+      .replace(/^(?:i want to|i would like to|i'd like to|i need to|i need|i'm looking to|i am looking to|looking to|calling about|i'm calling about|i am calling about|need someone to|to get my|get my)\s+/i, '')
+      .replace(/^[.,;:]\s*/, '')
+      .trim();
+
+    const attemptSplit = (text: string): { name?: string; service?: string } => {
+      const trimmed = text.trim();
+      // Strategy 1: Comma-separated "Name, service ..."
+      const commaIdx = trimmed.indexOf(',');
+      if (commaIdx > 0 && commaIdx < trimmed.length - 1) {
+        const left = stripNamePrefixes(trimmed.slice(0, commaIdx).trim());
+        const right = stripServicePrefixes(trimmed.slice(commaIdx + 1).trim()).replace(/[.,;]\s*$/, '');
+        if (left && right && left.toLowerCase() !== right.toLowerCase()) {
+          return { name: left, service: right };
+        }
+      }
+
+      // Strategy 2: "I'm/This is/Name is X and I need Y" patterns
+      const m = trimmed.match(/^(?:hi[,\s]+)?(?:(?:this is|my name is|my name's|name is|i am|i'm)\s+)?(.+?)[,\.]?\s*(?:and\s+)?(?:i\s+(?:need|want|would like|am looking to|am looking for)|i'm\s+(?:looking to|looking for))\s+(?:to\s+)?(.+)$/i);
+      if (m) {
+        const left = stripNamePrefixes(m[1]).replace(/[.,;:]\s*$/, '');
+        const right = stripServicePrefixes(m[2]).replace(/[.,;:]\s*$/, '');
+        if (left && right && left.toLowerCase() !== right.toLowerCase()) {
+          return { name: left, service: right };
+        }
+      }
+
+      return {};
+    };
+
+    if (typeof nameVal === 'string') {
+      const needsSplit = !serviceVal || (typeof serviceVal === 'string' && serviceVal.trim() && serviceVal.trim().toLowerCase() === nameVal.trim().toLowerCase());
+      if (needsSplit) {
+        const split = attemptSplit(nameVal);
+        if (split.name || split.service) {
+          if (split.name) normalized.customerName = split.name;
+          if (split.service && (!normalized.serviceRequested || normalized.serviceRequested.toLowerCase() === nameVal.trim().toLowerCase())) {
+            normalized.serviceRequested = split.service;
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.log('[NORMALIZE EXTRACTED FIELDS] post-processing error (non-fatal):', e instanceof Error ? e.message : e);
+  }
+
   console.log('[NORMALIZE EXTRACTED FIELDS] Normalized keys:', Object.keys(normalized));
   console.log('[NORMALIZE EXTRACTED FIELDS] Normalized values:', JSON.stringify(normalized, null, 2));
   console.log('[NORMALIZE EXTRACTED FIELDS] =========================================');
-  
+
   return normalized;
 }
 
@@ -3502,6 +3559,41 @@ function buildCanonicalExtractedInfo(
       desiredCompletion: '',
       callbackTime: '',
     }
+  }
+
+  // Repair combined name+service if necessary prior to sanitization
+  try {
+    const stripNamePrefixes = (s: string) => s
+      .replace(/^(?:hi|hello|hey)[,\s]+/i, '')
+      .replace(/^(?:my name is|my name's|name is|i am|i'm|this is|it is|it's)\s+/i, '')
+      .trim();
+    const stripServicePrefixes = (s: string) => s
+      .replace(/^(?:i want to|i would like to|i'd like to|i need to|i need|i'm looking to|i am looking to|looking to|calling about|i'm calling about|i am calling about|need someone to|to get my|get my)\s+/i, '')
+      .replace(/^[.,;:]\s*/, '')
+      .trim();
+    const sameOrEmpty = !fields.serviceRequested || (fields.customerName && typeof fields.customerName === 'string' && typeof fields.serviceRequested === 'string' && fields.customerName.trim().toLowerCase() === fields.serviceRequested.trim().toLowerCase());
+    if (fields.customerName && typeof fields.customerName === 'string' && sameOrEmpty) {
+      const text = fields.customerName.trim();
+      const commaIdx = text.indexOf(',');
+      if (commaIdx > 0 && commaIdx < text.length - 1) {
+        const left = stripNamePrefixes(text.slice(0, commaIdx).trim());
+        const right = stripServicePrefixes(text.slice(commaIdx + 1).trim()).replace(/[.,;]\s*$/, '');
+        if (left && right && left.toLowerCase() !== right.toLowerCase()) {
+          fields = { ...fields, customerName: left, serviceRequested: fields.serviceRequested || right };
+        }
+      } else {
+        const m = text.match(/^(?:hi[,\s]+)?(?:(?:this is|my name is|my name's|name is|i am|i'm)\s+)?(.+?)[,\.]?\s*(?:and\s+)?(?:i\s+(?:need|want|would like|am looking to|am looking for)|i'm\s+(?:looking to|looking for))\s+(?:to\s+)?(.+)$/i);
+        if (m) {
+          const left = stripNamePrefixes(m[1]).replace(/[.,;:]\s*$/, '');
+          const right = stripServicePrefixes(m[2]).replace(/[.,;:]\s*$/, '');
+          if (left && right && left.toLowerCase() !== right.toLowerCase()) {
+            fields = { ...fields, customerName: left, serviceRequested: fields.serviceRequested || right };
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.log('[CANONICAL INFO REPAIR] error (non-fatal):', e instanceof Error ? e.message : e);
   }
 
   return {
