@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 interface FollowUpConfig {
   step: number
@@ -59,6 +60,35 @@ export default function FollowUpSettings({ isOpen, onClose, onSave }: FollowUpSe
       loadSettings()
     }
   }, [isOpen])
+
+  // Lock background scroll when modal is open
+  useBodyScrollLock(isOpen)
+
+  // Close on Android Back / browser Back before navigating away
+  useEffect(() => {
+    if (!isOpen) return
+
+    try {
+      window.history.pushState({ rfFollowUps: true }, '')
+    } catch {}
+
+    const onPopState = () => onClose()
+    window.addEventListener('popstate', onPopState)
+
+    let capListener: { remove: () => void } | undefined
+    ;(async () => {
+      try {
+        const mod = await import('@capacitor/app')
+        const { App } = mod as any
+        capListener = await App.addListener('backButton', () => onClose())
+      } catch {}
+    })()
+
+    return () => {
+      window.removeEventListener('popstate', onPopState)
+      capListener?.remove?.()
+    }
+  }, [isOpen, onClose])
 
   const loadSettings = async () => {
     try {
@@ -191,8 +221,12 @@ export default function FollowUpSettings({ isOpen, onClose, onSave }: FollowUpSe
           </button>
         </div>
 
-        {/* Content */}
-        <div className="overflow-y-auto flex-1 px-5 py-4">
+        {/* Content (scrollable) */}
+        <div
+          data-scroll-lock-allow
+          className="overflow-y-auto flex-1 min-h-0 px-5 py-4"
+          style={{ maxHeight: 'calc(100dvh - 8rem)', WebkitOverflowScrolling: 'touch' }}
+        >
           {loading ? (
             <div className="space-y-4">
               {[1, 2, 3].map(i => (
@@ -311,6 +345,9 @@ export default function FollowUpSettings({ isOpen, onClose, onSave }: FollowUpSe
                           className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
                           placeholder="Enter your follow-up message..."
                           disabled={!followUp.enabled}
+                          autoCapitalize="sentences"
+                          autoCorrect="on"
+                          spellCheck={true}
                         />
                         <div className="flex items-center justify-between mt-1">
                           <p className="text-xs text-muted-foreground">
