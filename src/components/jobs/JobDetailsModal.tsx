@@ -8,6 +8,42 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatCurrency } from '@/lib/utils'
 import { useBusiness } from '@/contexts/BusinessContext'
 import RequestPaymentModal from '@/components/payments/RequestPaymentModal'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+
+function NestedCancelConfirm({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
+  // Intercept Android Back and browser Back so the nested confirm closes first
+  useEffect(() => {
+    try {
+      window.history.pushState({ rfNestedCancelConfirm: true }, '')
+    } catch {}
+
+    const onPopState = () => onClose()
+    window.addEventListener('popstate', onPopState)
+
+    let capListener: { remove: () => void } | undefined
+    ;(async () => {
+      try {
+        const mod = await import('@capacitor/app')
+        const { App } = mod as any
+        capListener = await App.addListener('backButton', () => onClose())
+      } catch {}
+    })()
+
+    return () => {
+      window.removeEventListener('popstate', onPopState)
+      capListener?.remove?.()
+    }
+  }, [onClose])
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[70] animate-in fade-in duration-200" onClick={onClose} />
+      <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+        {children}
+      </div>
+    </>
+  )
+}
 
 interface JobDetailsModalProps {
   isOpen: boolean
@@ -77,6 +113,35 @@ export default function JobDetailsModal({
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const [isCancellingPayment, setIsCancellingPayment] = useState(false)
+
+  // Lock background scroll when main modal is open
+  useBodyScrollLock(isOpen)
+
+  // Intercept Android Back / browser Back to close main modal first
+  useEffect(() => {
+    if (!isOpen) return
+
+    try {
+      window.history.pushState({ rfJobDetails: true }, '')
+    } catch {}
+
+    const onPopState = () => onClose()
+    window.addEventListener('popstate', onPopState)
+
+    let capListener: { remove: () => void } | undefined
+    ;(async () => {
+      try {
+        const mod = await import('@capacitor/app')
+        const { App } = mod as any
+        capListener = await App.addListener('backButton', () => onClose())
+      } catch {}
+    })()
+
+    return () => {
+      window.removeEventListener('popstate', onPopState)
+      capListener?.remove?.()
+    }
+  }, [isOpen, onClose])
 
   // Fetch payment request when modal opens or job changes
   useEffect(() => {
@@ -225,7 +290,7 @@ export default function JobDetailsModal({
     <>
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] animate-in fade-in duration-200" onClick={onClose} />
       <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-        <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-lg max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+        <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
           {/* Header */}
           <div className="flex items-start justify-between px-5 py-4 border-b border-border/50">
             <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -253,7 +318,7 @@ export default function JobDetailsModal({
           </div>
 
           {/* Details */}
-          <div className="p-5 space-y-5">
+          <div data-scroll-lock-allow className="p-5 space-y-5 overflow-y-auto flex-1 min-h-0" style={{ WebkitOverflowScrolling: 'touch' }}>
             {/* Customer */}
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Customer</p>
@@ -511,8 +576,7 @@ export default function JobDetailsModal({
       {/* Cancel Payment Confirmation */}
       {showCancelConfirm && (
         <>
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[70] animate-in fade-in duration-200" onClick={() => setShowCancelConfirm(false)} />
-          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <NestedCancelConfirm onClose={() => setShowCancelConfirm(false)}>
             <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-sm animate-in zoom-in-95 duration-200">
               <div className="p-5">
                 <h3 className="text-lg font-semibold text-foreground mb-2">Cancel Payment Request?</h3>
@@ -537,7 +601,7 @@ export default function JobDetailsModal({
                 </div>
               </div>
             </div>
-          </div>
+          </NestedCancelConfirm>
         </>
       )}
     </>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { X, Calendar, Clock, MapPin, FileText, AlertTriangle, Plus } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 const supabase = createBrowserClient()
 
@@ -46,6 +47,35 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
     if (isOpen) {
       document.addEventListener('keydown', handleEscape)
       return () => document.removeEventListener('keydown', handleEscape)
+    }
+  }, [isOpen, onClose])
+
+  // Lock background scroll while open
+  useBodyScrollLock(isOpen)
+
+  // Intercept Android Back / browser Back to close modal first
+  useEffect(() => {
+    if (!isOpen) return
+
+    try {
+      window.history.pushState({ rfNewAppointment: true }, '')
+    } catch {}
+
+    const onPopState = () => onClose()
+    window.addEventListener('popstate', onPopState)
+
+    let capListener: { remove: () => void } | undefined
+    ;(async () => {
+      try {
+        const mod = await import('@capacitor/app')
+        const { App } = mod as any
+        capListener = await App.addListener('backButton', () => onClose())
+      } catch {}
+    })()
+
+    return () => {
+      window.removeEventListener('popstate', onPopState)
+      capListener?.remove?.()
     }
   }, [isOpen, onClose])
 
@@ -162,7 +192,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
         }
       }}
     >
-      <div className="bg-card rounded-2xl border border-border/50 shadow-2xl shadow-black/10 dark:shadow-black/30 w-full max-w-md max-h-[80vh] flex flex-col animate-in zoom-in-95 duration-200">
+      <div className="bg-card rounded-2xl border border-border/50 shadow-2xl shadow-black/10 dark:shadow-black/30 w-full max-w-md max-h-[calc(100dvh-2rem)] md:max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
           <div className="flex items-center gap-2.5">
@@ -184,7 +214,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
         </div>
 
         {/* Form */}
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div data-scroll-lock-allow className="flex-1 min-h-0 overflow-y-auto px-5 py-4" style={{ WebkitOverflowScrolling: 'touch' }}>
           <div className="space-y-4">
             {/* Title */}
             <div className="flex items-start gap-3">

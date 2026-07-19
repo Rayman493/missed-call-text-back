@@ -101,6 +101,29 @@ export default function PaymentsPage() {
   const [paymentToMarkPaid, setPaymentToMarkPaid] = useState<PaymentRequest | null>(null)
   useBodyScrollLock(showPaymentModal)
 
+  // Lock background scroll when mark-paid confirm is open as well
+  useBodyScrollLock(showMarkPaidConfirm)
+
+  // Intercept Android Back/browser Back to close mark-paid confirm first
+  useEffect(() => {
+    if (!showMarkPaidConfirm) return
+    try { window.history.pushState({ rfMarkPaidConfirm: true }, '') } catch {}
+    const onPopState = () => setShowMarkPaidConfirm(false)
+    window.addEventListener('popstate', onPopState)
+    let capListener: { remove: () => void } | undefined
+    ;(async () => {
+      try {
+        const mod = await import('@capacitor/app')
+        const { App } = mod as any
+        capListener = await App.addListener('backButton', () => setShowMarkPaidConfirm(false))
+      } catch {}
+    })()
+    return () => {
+      window.removeEventListener('popstate', onPopState)
+      capListener?.remove?.()
+    }
+  }, [showMarkPaidConfirm])
+
   // Determine which payment methods are configured
   const isStripeConfigured = business?.stripe_connect_status === 'connected' && business?.stripe_charges_enabled === true
   const isVenmoConfigured = business?.venmo_username && business.venmo_username.length > 0
@@ -948,8 +971,8 @@ export default function PaymentsPage() {
 
         {/* Mark as Paid Confirmation Modal */}
         {showMarkPaidConfirm && paymentToMarkPaid && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-700">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowMarkPaidConfirm(false)}>
+            <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-700" onClick={(e) => e.stopPropagation()}>
               <h3 className="text-lg font-semibold text-white mb-2">Confirm Payment Received</h3>
               <p className="text-gray-400 text-sm mb-4">
                 Confirm that you received this payment through {paymentToMarkPaid.payment_provider === 'paypal' ? 'PayPal' : 'Venmo'}.
