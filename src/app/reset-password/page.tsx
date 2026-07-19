@@ -7,6 +7,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import Footer from '@/components/Footer'
 import BrandIcon from '@/components/BrandIcon'
 import PasswordInput from '@/components/PasswordInput'
+import { isCapacitorNative } from '@/capacitor/init'
 
 const supabase = createBrowserClient()
 

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import Footer from '@/components/Footer'
 import BrandIcon from '@/components/BrandIcon'
+import { isCapacitorNative } from '@/capacitor/init'
 
 const supabase = createBrowserClient()
 
@@ -52,13 +53,23 @@ export default function ForgotPasswordPage() {
         <div className="max-w-md w-full space-y-8">
           {/* Header */}
           <div className="text-center">
-            <Link href="/" className="inline-flex items-center gap-2 justify-center mb-8">
-              <BrandIcon size={32} />
-              <span className="text-2xl font-bold text-white">
-                <span className="text-white">ReplyFlow</span>
-                <span className="text-blue-400">HQ</span>
-              </span>
-            </Link>
+            {!isCapacitorNative() ? (
+              <Link href="/" className="inline-flex items-center gap-2 justify-center mb-8">
+                <BrandIcon size={32} />
+                <span className="text-2xl font-bold text-white">
+                  <span className="text-white">ReplyFlow</span>
+                  <span className="text-blue-400">HQ</span>
+                </span>
+              </Link>
+            ) : (
+              <div className="inline-flex items-center gap-2 justify-center mb-8">
+                <BrandIcon size={32} />
+                <span className="text-2xl font-bold text-white">
+                  <span className="text-white">ReplyFlow</span>
+                  <span className="text-blue-400">HQ</span>
+                </span>
+              </div>
+            )}
             
             <h2 className="text-3xl font-bold text-white">
               Reset your password

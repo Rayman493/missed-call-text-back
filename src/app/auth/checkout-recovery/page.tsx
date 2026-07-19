@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { isCapacitorNative } from '@/capacitor/init'
 
 export default function CheckoutRecoveryPage() {
   const router = useRouter()
@@ -13,18 +14,20 @@ export default function CheckoutRecoveryPage() {
   return (
     <div className="min-h-screen bg-slate-950 dark:bg-slate-950 flex flex-col">
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-4 sm:py-8">
-        {/* Back to Homepage Link */}
-        <div className="w-full max-w-md sm:max-w-[480px] mb-4">
-          <Link 
-            href="/"
-            className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-300 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Back to Homepage
-          </Link>
-        </div>
+        {/* Back to Homepage Link (web only) */}
+        {!isCapacitorNative() && (
+          <div className="w-full max-w-md sm:max-w-[480px] mb-4">
+            <Link 
+              href="/"
+              className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-300 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Back to Homepage
+            </Link>
+          </div>
+        )}
         
         <div className="w-full max-w-md sm:max-w-[480px] bg-gradient-to-b from-slate-900 to-slate-900/95 dark:from-slate-900 dark:to-slate-900/95 border border-slate-700/50 dark:border-slate-700/50 rounded-2xl shadow-xl shadow-blue-900/5 p-6 sm:p-8 md:p-10 backdrop-blur-sm">
           <div className="text-center">
