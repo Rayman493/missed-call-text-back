@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { CheckCircle2, Clock, AlertCircle, Plus, X, Edit2, Trash2 } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import NewTaskModal from './NewTaskModal'
@@ -40,6 +40,7 @@ type TaskFilter = 'all' | 'active' | 'overdue' | 'future' | 'completed'
 export default function TasksTab({ onNewJob }: TasksTabProps) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const hasLoadedOnceRef = useRef(false)
   const [filter, setFilter] = useState<TaskFilter>('all')
   const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
@@ -83,6 +84,12 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
       setIsLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (!isLoading) {
+      hasLoadedOnceRef.current = true
+    }
+  }, [isLoading])
 
   const toggleTaskComplete = async (taskId: string, completed: boolean) => {
     try {
@@ -208,8 +215,13 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground flex items-center gap-2">
             Tasks
+            {isLoading && hasLoadedOnceRef.current && (
+              <span className="inline-flex items-center justify-center w-4 h-4">
+                <span className="w-3.5 h-3.5 border-2 border-slate-300 dark:border-slate-600 border-t-transparent rounded-full animate-spin" />
+              </span>
+            )}
           </h2>
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
             Keep track of smaller to-dos, reminders, and follow-ups.
@@ -279,7 +291,7 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
       </div>
 
       {/* Task List */}
-      {isLoading ? (
+      {isLoading && !hasLoadedOnceRef.current ? (
         <div className="space-y-2">
           {[1, 2, 3, 4, 5].map(i => (
             <div key={i} className="h-16 bg-slate-100 dark:bg-slate-800 rounded-lg animate-pulse" />

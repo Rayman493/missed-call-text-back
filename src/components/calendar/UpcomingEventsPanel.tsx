@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { Clock, MapPin, ExternalLink, Calendar as CalendarIcon } from 'lucide-react'
 
 interface CalendarEvent {
@@ -16,6 +17,12 @@ interface UpcomingEventsPanelProps {
 }
 
 export default function UpcomingEventsPanel({ events, isLoading }: UpcomingEventsPanelProps) {
+  const hasLoadedOnceRef = useRef(false)
+  useEffect(() => {
+    if (!isLoading) {
+      hasLoadedOnceRef.current = true
+    }
+  }, [isLoading])
   const formatDate = (dateStr: string | undefined) => {
     if (!dateStr) return ''
     const date = new Date(dateStr)
@@ -173,11 +180,16 @@ export default function UpcomingEventsPanel({ events, isLoading }: UpcomingEvent
 
   return (
     <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6 h-fit">
-      <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-4">
+      <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-4 flex items-center gap-2">
         Upcoming
+        {isLoading && hasLoadedOnceRef.current && (
+          <span className="inline-flex items-center justify-center w-4 h-4">
+            <span className="w-3.5 h-3.5 border-2 border-slate-300 dark:border-slate-600 border-t-transparent rounded-full animate-spin" />
+          </span>
+        )}
       </h2>
       
-      {isLoading ? (
+      {isLoading && !hasLoadedOnceRef.current ? (
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
         </div>

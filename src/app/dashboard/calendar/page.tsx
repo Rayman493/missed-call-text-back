@@ -1504,6 +1504,12 @@ function JobsTab({
   onNewJob: () => void
   onJobClick: (job: Job) => void
 }) {
+  const hasLoadedOnceRef = useRef(false)
+  useEffect(() => {
+    if (!isLoading) {
+      hasLoadedOnceRef.current = true
+    }
+  }, [isLoading])
   const active = jobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress')
   const completed = jobs.filter(j => j.status === 'completed')
   const cancelled = jobs.filter(j => j.status === 'cancelled')
@@ -1567,7 +1573,7 @@ function JobsTab({
     )
   }
 
-  if (isLoading) {
+  if (isLoading && !hasLoadedOnceRef.current) {
     return (
       <div className="space-y-3">
         {[1, 2, 3].map(i => (
@@ -1582,7 +1588,13 @@ function JobsTab({
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-3 mb-4">
         <div>
-          <h2 className="text-base font-semibold text-slate-900 dark:text-foreground">Jobs</h2>
+          <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-foreground">Jobs
+            {isLoading && hasLoadedOnceRef.current && (
+              <span className="inline-flex items-center justify-center w-3.5 h-3.5">
+                <span className="w-3 h-3 border-2 border-slate-300 dark:border-slate-600 border-t-transparent rounded-full animate-spin" />
+              </span>
+            )}
+          </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 max-w-sm">
             Manage the customer work you're doing from scheduled to completed.
           </p>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Plus, ChevronDown, ChevronUp, CheckCircle2, Loader2, Circle, XCircle } from 'lucide-react'
 import type { Job, JobStatus } from './JobComposer'
 
@@ -102,6 +102,12 @@ export default function TodaySchedule({
 }: TodayScheduleProps) {
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [showCancelled, setShowCancelled] = useState(false)
+  const hasLoadedOnceRef = useRef(false)
+  useEffect(() => {
+    if (!isLoading) {
+      hasLoadedOnceRef.current = true
+    }
+  }, [isLoading])
 
   const todayKey = getTodayKey()
   const tomorrowKey = getTomorrowKey()
@@ -193,7 +199,7 @@ export default function TodaySchedule({
 
       {/* Body */}
       <div className="px-3 py-2">
-        {isLoading ? (
+        {isLoading && !hasLoadedOnceRef.current ? (
           <div className="space-y-2 py-1">
             {[1, 2, 3].map(i => (
               <div key={i} className="h-14 bg-slate-100 dark:bg-slate-800 rounded-lg animate-pulse" />
