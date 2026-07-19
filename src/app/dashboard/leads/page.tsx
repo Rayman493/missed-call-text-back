@@ -234,7 +234,7 @@ export default function LeadsPage() {
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const { checkoutMode, isLoading: eligibilityLoading } = useTrialEligibility()
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false)
-  const [deletedFilter, setDeletedFilter] = useState(false)
+  // Note: removed unused deletedFilter state to simplify filtering state
 
   // Handle query parameters for return flow
   const addCustomer = searchParams?.get('addCustomer')
@@ -1066,16 +1066,28 @@ export default function LeadsPage() {
                 </div>
               </div>
               <div className="flex items-center justify-between gap-2 w-full sm:w-auto">
-                {/* Left group: Status filter + Refresh */}
+                {/* Left group: Secondary filters + Refresh */}
                 <div className="flex items-center gap-2">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button
                         type="button"
                         className="px-3 py-2 sm:px-4 sm:py-2 bg-background border border-border/50 rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all cursor-pointer flex items-center gap-2 hover:bg-muted/50 data-[state=open]:ring-2 data-[state=open]:ring-offset-2 data-[state=open]:ring-primary"
+                        title={statusFilter === 'all' ? 'More filters' : getStatusFilterLabel(statusFilter)}
                       >
-                        <span className="text-xs">{getStatusFilterIcon(statusFilter)}</span>
-                        <span className="whitespace-nowrap">{getStatusFilterLabel(statusFilter)}</span>
+                        {statusFilter === 'all' ? (
+                          <>
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L15 12.414V19a1 1 0 01-1.447.894l-2-1A1 1 0 0111 18v-5.586L3.293 6.707A1 1 0 013 6V4z" />
+                            </svg>
+                            <span className="whitespace-nowrap">More filters</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-xs">{getStatusFilterIcon(statusFilter)}</span>
+                            <span className="whitespace-nowrap">{getStatusFilterLabel(statusFilter)}</span>
+                          </>
+                        )}
                         <svg 
                           className="w-3 h-3 transition-transform duration-200 data-[state=open]:rotate-180" 
                           fill="none" 
