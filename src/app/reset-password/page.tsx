@@ -253,13 +253,23 @@ export default function ResetPasswordPage() {
         <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8">
           <div className="max-w-md w-full space-y-8 text-center">
             <div>
-              <Link href="/" className="inline-flex items-center gap-2 justify-center mb-8">
-                <BrandIcon size={32} />
-                <span className="text-2xl font-bold text-white">
-                  <span className="text-white">ReplyFlow</span>
-                  <span className="text-blue-400">HQ</span>
-                </span>
-              </Link>
+              {!isCapacitorNative() ? (
+                <Link href="/" className="inline-flex items-center gap-2 justify-center mb-8">
+                  <BrandIcon size={32} />
+                  <span className="text-2xl font-bold text-white">
+                    <span className="text-white">ReplyFlow</span>
+                    <span className="text-blue-400">HQ</span>
+                  </span>
+                </Link>
+              ) : (
+                <div className="inline-flex items-center gap-2 justify-center mb-8">
+                  <BrandIcon size={32} />
+                  <span className="text-2xl font-bold text-white">
+                    <span className="text-white">ReplyFlow</span>
+                    <span className="text-blue-400">HQ</span>
+                  </span>
+                </div>
+              )}
               
               <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -304,13 +314,23 @@ export default function ResetPasswordPage() {
         <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8">
           <div className="max-w-md w-full space-y-8 text-center">
             <div>
-              <Link href="/" className="inline-flex items-center gap-2 justify-center mb-8">
-                <BrandIcon size={32} />
-                <span className="text-2xl font-bold text-white">
-                  <span className="text-white">ReplyFlow</span>
-                  <span className="text-blue-400">HQ</span>
-                </span>
-              </Link>
+              {!isCapacitorNative() ? (
+                <Link href="/" className="inline-flex items-center gap-2 justify-center mb-8">
+                  <BrandIcon size={32} />
+                  <span className="text-2xl font-bold text-white">
+                    <span className="text-white">ReplyFlow</span>
+                    <span className="text-blue-400">HQ</span>
+                  </span>
+                </Link>
+              ) : (
+                <div className="inline-flex items-center gap-2 justify-center mb-8">
+                  <BrandIcon size={32} />
+                  <span className="text-2xl font-bold text-white">
+                    <span className="text-white">ReplyFlow</span>
+                    <span className="text-blue-400">HQ</span>
+                  </span>
+                </div>
+              )}
               
               <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -347,13 +367,23 @@ export default function ResetPasswordPage() {
           <div className="max-w-md w-full space-y-8">
             {/* Header */}
             <div className="text-center">
-              <Link href="/" className="inline-flex items-center gap-2 justify-center mb-8">
-                <BrandIcon size={32} />
-                <span className="text-2xl font-bold text-white">
-                  <span className="text-white">ReplyFlow</span>
-                  <span className="text-blue-400">HQ</span>
-                </span>
-              </Link>
+              {!isCapacitorNative() ? (
+                <Link href="/" className="inline-flex items-center gap-2 justify-center mb-8">
+                  <BrandIcon size={32} />
+                  <span className="text-2xl font-bold text-white">
+                    <span className="text-white">ReplyFlow</span>
+                    <span className="text-blue-400">HQ</span>
+                  </span>
+                </Link>
+              ) : (
+                <div className="inline-flex items-center gap-2 justify-center mb-8">
+                  <BrandIcon size={32} />
+                  <span className="text-2xl font-bold text-white">
+                    <span className="text-white">ReplyFlow</span>
+                    <span className="text-blue-400">HQ</span>
+                  </span>
+                </div>
+              )}
               
               <h2 className="text-3xl font-bold text-white">
                 Set new password
