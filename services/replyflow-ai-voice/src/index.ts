@@ -3604,16 +3604,17 @@ function buildCanonicalExtractedInfo(
       'additionalDetails',
       fields.additionalDetails ||
       fields.issueDescription ||
+      fields.importantDetails ||
       ''
     ),
-    serviceAddress: sanitizeEnglishIntakeField('serviceAddress', fields.serviceAddress || ''),
+    serviceAddress: sanitizeEnglishIntakeField('serviceAddress', fields.serviceAddress || fields.addressOrLocation || ''),
     desiredCompletion: sanitizeEnglishIntakeField(
       'desiredCompletion',
       fields.desiredCompletion ||
       fields.desiredCompletionTime ||
       ''
     ),
-    callbackTime: sanitizeEnglishIntakeField('callbackTime', fields.callbackTime || ''),
+    callbackTime: sanitizeEnglishIntakeField('callbackTime', fields.callbackTime || fields.preferredCallbackTime || ''),
   }
 }
 
