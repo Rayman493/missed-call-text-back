@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { X, MessageCircle, CheckCircle } from 'lucide-react'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 interface BetaFeedbackModalProps {
   isOpen: boolean
@@ -14,6 +15,52 @@ export default function BetaFeedbackModal({ isOpen, onClose }: BetaFeedbackModal
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [catOpen, setCatOpen] = useState(false)
+  const catButtonRef = useRef<HTMLButtonElement | null>(null)
+  const catMenuRef = useRef<HTMLDivElement | null>(null)
+
+  // Lock background scroll when modal is open
+  useBodyScrollLock(isOpen)
+
+  // Close category menu on outside click or Escape
+  useEffect(() => {
+    if (!catOpen) return
+    const onDocClick = (e: MouseEvent) => {
+      const t = e.target as Node
+      if (catMenuRef.current && !catMenuRef.current.contains(t) && catButtonRef.current && !catButtonRef.current.contains(t)) {
+        setCatOpen(false)
+      }
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setCatOpen(false)
+    }
+    document.addEventListener('mousedown', onDocClick)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDocClick)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [catOpen])
+
+  // Android Back closes modal first
+  useEffect(() => {
+    if (!isOpen || typeof window === 'undefined') return
+    try { window.history.pushState({ rfBetaFeedback: true }, '') } catch {}
+    const onPop = () => { onClose() }
+    window.addEventListener('popstate', onPop)
+    let capListener: { remove: () => void } | undefined
+    ;(async () => {
+      try {
+        const mod = await import('@capacitor/app')
+        const { App } = mod as any
+        capListener = await App.addListener('backButton', () => onClose())
+      } catch {}
+    })()
+    return () => {
+      window.removeEventListener('popstate', onPop)
+      capListener?.remove?.()
+    }
+  }, [isOpen, onClose])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -74,7 +121,7 @@ export default function BetaFeedbackModal({ isOpen, onClose }: BetaFeedbackModal
       />
 
       {/* Modal */}
-      <div className="relative bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+      <div className="relative bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200" data-scroll-lock-allow>
         {/* Header */}
         <div className="sticky top-0 bg-card border-b border-border/50 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -115,24 +162,60 @@ export default function BetaFeedbackModal({ isOpen, onClose }: BetaFeedbackModal
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Category Dropdown */}
-            <div>
-              <label htmlFor="category" className="block text-sm font-medium text-foreground mb-2">
+            <div className="relative">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Category <span className="text-red-500">*</span>
               </label>
-              <select
-                id="category"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3 py-2 bg-muted/50 border border-border/50 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                required
+              <button
+                ref={catButtonRef}
+                type="button"
+                onClick={() => setCatOpen((v) => !v)}
+                className="w-full px-3 py-2 bg-muted/50 border border-border/50 rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary flex items-center justify-between"
                 disabled={isSubmitting}
+                aria-haspopup="listbox"
+                aria-expanded={catOpen}
               >
-                <option value="">Select a category</option>
-                <option value="bug_report">Bug Report</option>
-                <option value="feature_request">Feature Request</option>
-                <option value="general_feedback">General Feedback</option>
-                <option value="other">Other</option>
-              </select>
+                <span className={category ? '' : 'text-muted-foreground'}>
+                  {category === 'bug_report' && 'Bug Report'}
+                  {category === 'feature_request' && 'Feature Request'}
+                  {category === 'general_feedback' && 'General Feedback'}
+                  {category === 'other' && 'Other'}
+                  {!category && 'Select a category'}
+                </span>
+                <svg className={`w-4 h-4 transition-transform ${catOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {catOpen && (
+                <div
+                  ref={catMenuRef}
+                  className="absolute z-[100] mt-2 w-full bg-card border border-border/50 rounded-lg shadow-xl max-h-[min(50vh,320px)] overflow-y-auto"
+                  role="listbox"
+                >
+                  {[
+                    { value: 'bug_report', label: 'Bug Report' },
+                    { value: 'feature_request', label: 'Feature Request' },
+                    { value: 'general_feedback', label: 'General Feedback' },
+                    { value: 'other', label: 'Other' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => { setCategory(opt.value); setCatOpen(false) }}
+                      className={`w-full text-left px-3 py-2 hover:bg-muted/50 flex items-center justify-between ${category === opt.value ? 'text-foreground' : 'text-muted-foreground'}`}
+                      role="option"
+                      aria-selected={category === opt.value}
+                    >
+                      <span>{opt.label}</span>
+                      {category === opt.value && (
+                        <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Message Textarea */}

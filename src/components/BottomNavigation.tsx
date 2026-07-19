@@ -28,6 +28,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
   // Check if any assistant is open via data attribute
   const [isAnyAssistantOpen, setIsAnyAssistantOpen] = useState(false)
   const [isNativePlatform, setIsNativePlatform] = useState(false)
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false)
 
   useEffect(() => {
     const checkAssistantOpen = () => {
@@ -38,6 +39,23 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
 
     const observer = new MutationObserver(checkAssistantOpen)
     observer.observe(document.body, { attributes: true, attributeFilter: ['data-assistant-open'] })
+
+    return () => observer.disconnect()
+  }, [])
+
+  // Observe body class changes to detect Capacitor keyboard visibility (CapacitorInitializer toggles 'keyboard-open')
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    const body = document.body
+
+    // Initial state
+    setIsKeyboardOpen(body.classList.contains('keyboard-open'))
+
+    const observer = new MutationObserver(() => {
+      const open = body.classList.contains('keyboard-open')
+      setIsKeyboardOpen(open)
+    })
+    observer.observe(body, { attributes: true, attributeFilter: ['class'] })
 
     return () => observer.disconnect()
   }, [])
@@ -181,7 +199,19 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                        pathname === '/auth' ||
                        pathname?.startsWith('/signup')
 
-  const hideNav = isPublicPage || isAnyAssistantOpen
+  const hideNav = isPublicPage || isAnyAssistantOpen || (isNativePlatform && isKeyboardOpen)
+
+  // Ensure body has an attribute to indicate bottom nav visibility for any layout that wishes to react
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    if (hideNav) {
+      document.body.setAttribute('data-bottom-nav-hidden', 'true')
+      // Close the More menu when hiding the nav (e.g., keyboard opened)
+      if (isMoreMenuOpen) setIsMoreMenuOpen(false)
+    } else {
+      document.body.removeAttribute('data-bottom-nav-hidden')
+    }
+  }, [hideNav, isMoreMenuOpen])
 
   const isActive = (href: string) => {
     // When More menu is open, don't highlight any nav items (only More button should be active)
