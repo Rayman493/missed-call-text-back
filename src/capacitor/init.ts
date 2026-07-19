@@ -132,17 +132,38 @@ function handleDeepLink(url: string) {
  * Handle Android hardware back button
  */
 function handleBackButton(canGoBack: boolean) {
-  // If there's navigation history, let the WebView handle it
-  if (canGoBack) {
-    console.log('[Capacitor] Allowing WebView to handle back button');
-    // The WebView will handle navigation back
-    return;
-  }
+  try {
+    // If there's navigation history, navigate back in the WebView
+    if (canGoBack) {
+      console.log('[Capacitor] Navigating back via WebView history');
+      window.history.back();
+      return;
+    }
 
-  // If no navigation history, this is the root - could show exit confirmation
-  console.log('[Capacitor] At root, back button pressed');
-  // For now, don't exit immediately - let user confirm or handle differently
-  // Could show a confirmation dialog before exiting
+    // No WebView history available – determine safe fallback behavior
+    const path = typeof window !== 'undefined' ? window.location.pathname : '/';
+
+    // If we're on a non-root in-app route without history, fall back to Dashboard
+    // Examples: /analytics, /dashboard/leads, /dashboard/calendar, /dashboard/payments, /dashboard/settings, lead detail, etc.
+    const isDashboardSubroute = path.startsWith('/dashboard/') || (path.startsWith('/dashboard') && path !== '/dashboard');
+    if (path === '/analytics' || isDashboardSubroute) {
+      console.log('[Capacitor] No history on in-app route, falling back to /dashboard');
+      window.location.href = '/dashboard';
+      return;
+    }
+
+    // At the true root/home with no history – allow app exit
+    if (path === '/dashboard') {
+      console.log('[Capacitor] At dashboard root with no history, exiting app');
+      App.exitApp();
+      return;
+    }
+
+    // Default: do nothing special
+    console.log('[Capacitor] Back button pressed at root context without specific fallback');
+  } catch (error) {
+    console.error('[Capacitor] Error handling back button:', error);
+  }
 }
 
 /**
