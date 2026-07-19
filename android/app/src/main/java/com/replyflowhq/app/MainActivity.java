@@ -6,6 +6,7 @@ import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
@@ -14,10 +15,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.WebResourceError;
+import android.webkit.WebResourceRequest;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.BridgeWebViewClient;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 
@@ -50,6 +54,52 @@ public class MainActivity extends BridgeActivity {
         // Get the Capacitor WebView (used for offline overlay parent)
         webView = getBridge().getWebView();
 
+        // Attach a BridgeWebViewClient to observe page lifecycle and mark successful initialization
+        webView.setWebViewClient(new BridgeWebViewClient(getBridge()) {
+            @Override
+            public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+                super.onPageStarted(view, url, favicon);
+                try {
+                    Uri uri = Uri.parse(url);
+                    String host = uri.getHost();
+                    String path = uri.getPath();
+                    Log.d(TAG, "onPageStarted: host=" + host + ", path=" + path);
+                } catch (Exception e) {
+                    Log.d(TAG, "onPageStarted: url parse error");
+                }
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                boolean wasLoaded = hasLoadedSuccessfully;
+                hasLoadedSuccessfully = true;
+                try {
+                    Uri uri = Uri.parse(url);
+                    String host = uri.getHost();
+                    String path = uri.getPath();
+                    Log.d(TAG, "onPageFinished: host=" + host + ", path=" + path + ", hasLoadedSuccessfully " + (wasLoaded ? "(already true)" : "false -> true"));
+                } catch (Exception e) {
+                    Log.d(TAG, "onPageFinished: url parse error, hasLoadedSuccessfully set true");
+                }
+                runOnUiThread(() -> hideOfflineScreen());
+            }
+
+            @Override
+            public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
+                super.onReceivedError(view, errorCode, description, failingUrl);
+                Log.d(TAG, "onReceivedError(legacy): code=" + errorCode + ", mainFrame=unknown");
+            }
+
+            @Override
+            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                super.onReceivedError(view, request, error);
+                boolean isMainFrame = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && request != null && request.isForMainFrame();
+                int code = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && error != null ? error.getErrorCode() : -1;
+                Log.d(TAG, "onReceivedError: code=" + code + ", mainFrame=" + isMainFrame);
+            }
+        });
+
         // Check network connectivity at startup
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         boolean hasValidatedNetwork = isNetworkAvailable(connectivityManager);
@@ -58,7 +108,7 @@ public class MainActivity extends BridgeActivity {
             // Show offline screen immediately if no network at startup
             // This covers the WebView before Capacitor's initial load completes
             Log.d(TAG, "Cold-start offline detected");
-            showOfflineScreen();
+            showOfflineScreen("cold_start_no_network");
             isWaitingForNetwork = true;
             launchedInOfflineState = true;
         }
@@ -93,6 +143,10 @@ public class MainActivity extends BridgeActivity {
 
                     if (hasInternet && hasValidated) {
                         triggerRecovery();
+                        runOnUiThread(() -> {
+                            Log.d(TAG, "onAvailable: validated network present, hiding offline view if visible");
+                            hideOfflineScreen();
+                        });
                     }
                 }
             }
@@ -106,6 +160,10 @@ public class MainActivity extends BridgeActivity {
 
                 if (hasInternet && hasValidated) {
                     triggerRecovery();
+                    runOnUiThread(() -> {
+                        Log.d(TAG, "onCapabilitiesChanged: validated network present, hiding offline view if visible");
+                        hideOfflineScreen();
+                    });
                 }
             }
 
@@ -116,7 +174,7 @@ public class MainActivity extends BridgeActivity {
                 // Once loaded, let React/Capacitor handle runtime offline
                 if (!hasLoadedSuccessfully) {
                     isWaitingForNetwork = true;
-                    runOnUiThread(() -> showOfflineScreen());
+                    runOnUiThread(() -> showOfflineScreen("network_lost_before_first_load"));
                 }
             }
         };
@@ -171,7 +229,14 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
-    private void showOfflineScreen() {
+    private void showOfflineScreen(String reason) {
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        boolean validated = isNetworkAvailable(cm);
+        Log.d(TAG, "showOfflineScreen requested: reason=" + reason + ", hasLoadedSuccessfully=" + hasLoadedSuccessfully + ", validatedNetwork=" + validated);
+        if (validated) {
+            Log.d(TAG, "Skip showOfflineScreen: validated network present");
+            return;
+        }
         if (offlineView == null) {
             offlineView = createOfflineView();
         }
@@ -191,6 +256,10 @@ public class MainActivity extends BridgeActivity {
 
         webView.setVisibility(View.GONE);
         offlineView.setVisibility(View.VISIBLE);
+    }
+
+    private void showOfflineScreen() {
+        showOfflineScreen("unspecified");
     }
 
     private void hideOfflineScreen() {
