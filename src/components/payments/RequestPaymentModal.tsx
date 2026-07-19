@@ -52,6 +52,32 @@ export default function RequestPaymentModal({
   const [leads, setLeads] = useState<Lead[]>([])
   useBodyScrollLock(isOpen)
 
+  // Close on Android back and browser back while open
+  useEffect(() => {
+    if (!isOpen) return
+
+    try {
+      window.history.pushState({ rfPaymentRequest: true }, '')
+    } catch {}
+
+    const onPopState = () => onClose()
+    window.addEventListener('popstate', onPopState)
+
+    let capListener: { remove: () => void } | undefined
+    ;(async () => {
+      try {
+        const mod = await import('@capacitor/app')
+        const { App } = mod as any
+        capListener = await App.addListener('backButton', () => onClose())
+      } catch {}
+    })()
+
+    return () => {
+      window.removeEventListener('popstate', onPopState)
+      capListener?.remove?.()
+    }
+  }, [isOpen, onClose])
+
   // Determine which payment methods are configured
   const isStripeConfigured = business?.stripe_connect_status === 'connected' && business?.stripe_charges_enabled === true
   const isVenmoConfigured = business?.venmo_username && business.venmo_username.length > 0
