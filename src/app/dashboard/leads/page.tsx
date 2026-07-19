@@ -300,8 +300,8 @@ export default function LeadsPage() {
         `)
         .eq('business_id', business.id)
 
-      // Apply deleted filter
-      if (deletedFilter) {
+      // Apply deleted filter derived from statusFilter
+      if (statusFilter === 'deleted') {
         query = query.not('deleted_at', 'is', null)
       } else {
         query = query.is('deleted_at', null)
@@ -309,8 +309,8 @@ export default function LeadsPage() {
 
       // Filter out ignored leads (automated robocalls) from normal customer workflow
       // This prevents spam calls from cluttering the lead list while preserving audit visibility
-      // Only exclude ignored leads when NOT in deleted filter mode and NOT when status filter is 'ignored'
-      if (!deletedFilter && statusFilter !== 'ignored') {
+      // Only exclude ignored leads when NOT showing deleted and NOT when status filter is 'ignored'
+      if (statusFilter !== 'deleted' && statusFilter !== 'ignored') {
         query = query.neq('status', 'ignored')
       }
 
@@ -357,7 +357,7 @@ export default function LeadsPage() {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [business?.id, supabase, deletedFilter, statusFilter])
+  }, [business?.id, supabase, statusFilter])
 
   // Handle lead status change from overview page
   const handleLeadStatusChange = async (leadId: string, newStatus: LeadLifecycleStatus) => {
