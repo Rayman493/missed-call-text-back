@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import Modal from '@/components/ui/Modal'
 import { Trophy, Star, Target, Zap, CheckCircle2, Lock } from 'lucide-react'
 
@@ -49,6 +49,33 @@ export default function AchievementsModal({ isOpen, onClose, achievements }: Ach
     if (activeCategory === 'all') return achievements
     return achievements.filter(a => a.category === activeCategory)
   }, [achievements, activeCategory])
+
+  // Intercept Android and browser back while modal is open to close it first.
+  useEffect(() => {
+    if (!isOpen) return
+
+    // Push a history state so browser/Android Back triggers popstate we can intercept
+    try {
+      window.history.pushState({ rfAchievements: true }, '')
+    } catch {}
+
+    const onPopState = () => onClose()
+    window.addEventListener('popstate', onPopState)
+
+    let capListener: { remove: () => void } | undefined
+    ;(async () => {
+      try {
+        const mod = await import('@capacitor/app')
+        const { App } = mod as any
+        capListener = await App.addListener('backButton', () => onClose())
+      } catch {}
+    })()
+
+    return () => {
+      window.removeEventListener('popstate', onPopState)
+      capListener?.remove?.()
+    }
+  }, [isOpen, onClose])
 
   return (
     <Modal

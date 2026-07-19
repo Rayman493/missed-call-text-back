@@ -23,15 +23,73 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
         const supabase = createBrowserClient()
         const businessPhone = business.twilio_phone_number || ''
 
-        const [firstLeadRes, leadCountRes, firstReplyRes, replyCountRes, firstFollowUpRes, followUpsCountRes, jobsCompletedCountRes, tasksCompletedCountRes] = await Promise.all([
+        // Parallel, head-only count queries and earliest timestamps for firsts
+        const [
+          // Leads & Replies
+          firstLeadRes,
+          leadCountRes,
+          firstReplyRes,
+          replyCountRes,
+          // Follow-ups
+          firstFollowUpRes,
+          followUpsCountRes,
+          followUpsCancelledByReplyCountRes,
+          // Jobs & Tasks
+          jobsCompletedCountRes,
+          jobsCountRes,
+          jobsScheduledCountRes,
+          firstJobRes,
+          firstScheduledJobRes,
+          tasksCompletedCountRes,
+          // Messaging (outbound)
+          firstOutboundRes,
+          outboundCountRes,
+          // AI & Voicemail
+          firstAiCompletedRes,
+          aiCompletedCountRes,
+          firstVoicemailRes,
+          voicemailCountRes,
+          // Payments
+          firstPaymentRequestedRes,
+          firstPaymentPaidRes,
+          paymentRequestsCountRes,
+          paymentsPaidCountRes,
+          // Integrations
+          calendarConnectedRes,
+        ] = await Promise.all([
+          // Leads
           supabase.from('leads').select('created_at').eq('business_id', business.id).order('created_at', { ascending: true }).limit(1).maybeSingle(),
           supabase.from('leads').select('*', { count: 'exact', head: true }).eq('business_id', business.id),
+          // Replies (inbound to business phone)
           supabase.from('messages').select('created_at').eq('to_phone', businessPhone).eq('direction', 'inbound').order('created_at', { ascending: true }).limit(1).maybeSingle(),
           supabase.from('messages').select('*', { count: 'exact', head: true }).eq('to_phone', businessPhone).eq('direction', 'inbound'),
+          // Follow-ups
           supabase.from('follow_up_jobs').select('created_at').eq('business_id', business.id).eq('status', 'sent').order('created_at', { ascending: true }).limit(1).maybeSingle(),
           supabase.from('follow_up_jobs').select('*', { count: 'exact', head: true }).eq('business_id', business.id).eq('status', 'sent'),
+          supabase.from('follow_up_jobs').select('*', { count: 'exact', head: true }).eq('business_id', business.id).eq('status', 'cancelled').eq('cancelled_reason', 'customer_replied'),
+          // Jobs & tasks
           supabase.from('jobs').select('*', { count: 'exact', head: true }).eq('business_id', business.id).eq('status', 'completed'),
+          supabase.from('jobs').select('*', { count: 'exact', head: true }).eq('business_id', business.id),
+          supabase.from('jobs').select('*', { count: 'exact', head: true }).eq('business_id', business.id).not('google_calendar_event_id', 'is', null),
+          supabase.from('jobs').select('created_at').eq('business_id', business.id).order('created_at', { ascending: true }).limit(1).maybeSingle(),
+          supabase.from('jobs').select('created_at').eq('business_id', business.id).not('google_calendar_event_id', 'is', null).order('created_at', { ascending: true }).limit(1).maybeSingle(),
           supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('business_id', business.id).eq('completed', true),
+          // Outbound messages
+          supabase.from('messages').select('created_at').eq('from_phone', businessPhone).eq('direction', 'outbound').order('created_at', { ascending: true }).limit(1).maybeSingle(),
+          supabase.from('messages').select('*', { count: 'exact', head: true }).eq('from_phone', businessPhone).eq('direction', 'outbound'),
+          // AI intake completed
+          supabase.from('ai_call_records').select('created_at').eq('business_id', business.id).in('outcome', ['completed', 'completed_intake']).order('created_at', { ascending: true }).limit(1).maybeSingle(),
+          supabase.from('ai_call_records').select('*', { count: 'exact', head: true }).eq('business_id', business.id).in('outcome', ['completed', 'completed_intake']),
+          // Voicemails
+          supabase.from('voicemail_recordings').select('created_at').eq('business_id', business.id).order('created_at', { ascending: true }).limit(1).maybeSingle(),
+          supabase.from('voicemail_recordings').select('*', { count: 'exact', head: true }).eq('business_id', business.id),
+          // Payments
+          supabase.from('payment_requests').select('requested_at').eq('business_id', business.id).order('requested_at', { ascending: true }).limit(1).maybeSingle(),
+          supabase.from('payment_requests').select('paid_at').eq('business_id', business.id).not('paid_at', 'is', null).order('paid_at', { ascending: true }).limit(1).maybeSingle(),
+          supabase.from('payment_requests').select('*', { count: 'exact', head: true }).eq('business_id', business.id),
+          supabase.from('payment_requests').select('*', { count: 'exact', head: true }).eq('business_id', business.id).eq('status', 'paid'),
+          // Integrations
+          supabase.from('calendar_integrations').select('created_at').eq('business_id', business.id).eq('provider', 'google').limit(1).maybeSingle(),
         ])
 
         const firstLeadAt = (firstLeadRes as any)?.data?.created_at as string | undefined
@@ -40,8 +98,24 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
         const replyCount = (replyCountRes as any)?.count as number | null
         const firstFollowUpAt = (firstFollowUpRes as any)?.data?.created_at as string | undefined
         const followUpsSentCount = (followUpsCountRes as any)?.count as number | null
+        const followUpsRecoveredCount = (followUpsCancelledByReplyCountRes as any)?.count as number | null
         const jobsCompletedCount = (jobsCompletedCountRes as any)?.count as number | null
+        const jobsTotalCount = (jobsCountRes as any)?.count as number | null
+        const jobsScheduledCount = (jobsScheduledCountRes as any)?.count as number | null
+        const firstJobAt = (firstJobRes as any)?.data?.created_at as string | undefined
+        const firstScheduledJobAt = (firstScheduledJobRes as any)?.data?.created_at as string | undefined
         const tasksCompletedCount = (tasksCompletedCountRes as any)?.count as number | null
+        const firstOutboundAt = (firstOutboundRes as any)?.data?.created_at as string | undefined
+        const outboundCount = (outboundCountRes as any)?.count as number | null
+        const firstAiCompletedAt = (firstAiCompletedRes as any)?.data?.created_at as string | undefined
+        const aiCompletedCount = (aiCompletedCountRes as any)?.count as number | null
+        const firstVoicemailAt = (firstVoicemailRes as any)?.data?.created_at as string | undefined
+        const voicemailCount = (voicemailCountRes as any)?.count as number | null
+        const firstPaymentRequestedAt = (firstPaymentRequestedRes as any)?.data?.requested_at as string | undefined
+        const firstPaymentPaidAt = (firstPaymentPaidRes as any)?.data?.paid_at as string | undefined
+        const paymentRequestsCount = (paymentRequestsCountRes as any)?.count as number | null
+        const paymentsPaidCount = (paymentsPaidCountRes as any)?.count as number | null
+        const calendarConnectedAt = (calendarConnectedRes as any)?.data?.created_at as string | undefined
 
         const daysSinceCreation = business?.created_at
           ? Math.floor((new Date().getTime() - new Date(business.created_at).getTime()) / (1000 * 60 * 60 * 24))
@@ -49,28 +123,65 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
 
         const defs: (Omit<AchievementItem, 'earned' | 'earnedAt' | 'progressCurrent' | 'progressTarget'> & {
           target?: number
-          metric?: 'leads' | 'replies' | 'followups' | 'jobsCompleted' | 'tasksCompleted' | 'days'
+          metric?:
+            | 'leads' | 'replies' | 'followups' | 'jobsCompleted' | 'tasksCompleted' | 'days'
+            | 'outbound' | 'aiCompleted' | 'voicemails' | 'paymentsPaid'
         })[] = [
+          // Getting Started / Setup
           { id: 'first_lead', title: 'First Customer Recovered', description: 'Captured your first missed call', icon: 'star', category: 'Getting Started' },
           { id: 'first_reply', title: 'First Customer Reply', description: 'Customer responded to your instant text', icon: 'star', category: 'Getting Started' },
           { id: 'first_followup', title: 'First Follow-Up Sent', description: 'Automated follow-up message delivered', icon: 'zap', category: 'Getting Started' },
+          { id: 'setup_forwarding', title: 'Forwarding Verified', description: 'Call forwarding to ReplyFlow confirmed', icon: 'star', category: 'Getting Started' },
+          { id: 'calendar_connected', title: 'Calendar Connected', description: 'Google Calendar connected successfully', icon: 'star', category: 'Integrations' },
+          { id: 'first_outbound', title: 'First Message Sent', description: 'Sent your first outbound message', icon: 'target', category: 'Communication' },
 
+          // Customer Growth
           { id: 'leads_5', title: '5 Customers Recovered', description: 'Successfully captured 5 missed calls', icon: 'trophy', category: 'Customer Growth', target: 5, metric: 'leads' },
           { id: 'leads_10', title: '10 Customers Recovered', description: 'Successfully captured 10 missed calls', icon: 'trophy', category: 'Customer Growth', target: 10, metric: 'leads' },
           { id: 'leads_25', title: '25 Customers Recovered', description: 'Successfully captured 25 missed calls', icon: 'trophy', category: 'Customer Growth', target: 25, metric: 'leads' },
           { id: 'leads_50', title: '50 Customers Recovered', description: 'Successfully captured 50 missed calls', icon: 'trophy', category: 'Customer Growth', target: 50, metric: 'leads' },
           { id: 'leads_100', title: '100 Customers Recovered', description: 'Successfully captured 100 missed calls', icon: 'trophy', category: 'Customer Growth', target: 100, metric: 'leads' },
+          { id: 'leads_500', title: '500 Customers Recovered', description: 'Successfully captured 500 missed calls', icon: 'trophy', category: 'Customer Growth', target: 500, metric: 'leads' },
 
+          // Communication milestones
           { id: 'replies_10', title: '10 Customer Replies', description: '10 customers have responded to your messages', icon: 'target', category: 'Communication', target: 10, metric: 'replies' },
           { id: 'replies_50', title: '50 Customer Replies', description: '50 customers have responded to your messages', icon: 'target', category: 'Communication', target: 50, metric: 'replies' },
+          { id: 'replies_200', title: '200 Customer Replies', description: '200 customers have responded to your messages', icon: 'target', category: 'Communication', target: 200, metric: 'replies' },
+          { id: 'outbound_100', title: '100 Messages Sent', description: 'Sent 100 outbound messages', icon: 'target', category: 'Communication', target: 100, metric: 'outbound' },
 
+          // Follow-ups
+          { id: 'followups_10', title: '10 Follow-Ups Sent', description: 'Delivered 10 automated follow-ups', icon: 'zap', category: 'Follow-Ups', target: 10, metric: 'followups' },
+          { id: 'followups_50', title: '50 Follow-Ups Sent', description: 'Delivered 50 automated follow-ups', icon: 'zap', category: 'Follow-Ups', target: 50, metric: 'followups' },
+
+          // Jobs & Scheduling
+          { id: 'job_created_1', title: 'First Job Created', description: 'Created your first job', icon: 'star', category: 'Jobs & Revenue' },
           { id: 'job_completed_1', title: 'First Job Completed', description: 'Mark your first job as completed', icon: 'trophy', category: 'Jobs & Revenue', target: 1, metric: 'jobsCompleted' },
           { id: 'jobs_completed_10', title: '10 Jobs Completed', description: 'Complete 10 jobs', icon: 'trophy', category: 'Jobs & Revenue', target: 10, metric: 'jobsCompleted' },
+          { id: 'jobs_completed_25', title: '25 Jobs Completed', description: 'Complete 25 jobs', icon: 'trophy', category: 'Jobs & Revenue', target: 25, metric: 'jobsCompleted' },
+          { id: 'jobs_completed_50', title: '50 Jobs Completed', description: 'Complete 50 jobs', icon: 'trophy', category: 'Jobs & Revenue', target: 50, metric: 'jobsCompleted' },
+          { id: 'first_scheduled_job', title: 'First Scheduled Job', description: 'Scheduled your first job on calendar', icon: 'star', category: 'Scheduling' },
 
+          // AI & Voicemail
+          { id: 'first_ai_completed', title: 'First AI Intake Completed', description: 'Completed your first AI phone intake', icon: 'star', category: 'AI Voice' },
+          { id: 'ai_completed_10', title: '10 AI Intakes Completed', description: 'Completed 10 AI phone intakes', icon: 'trophy', category: 'AI Voice', target: 10, metric: 'aiCompleted' },
+          { id: 'ai_completed_50', title: '50 AI Intakes Completed', description: 'Completed 50 AI phone intakes', icon: 'trophy', category: 'AI Voice', target: 50, metric: 'aiCompleted' },
+          { id: 'first_voicemail', title: 'First Voicemail Captured', description: 'Captured your first voicemail', icon: 'star', category: 'Voicemail' },
+          { id: 'voicemails_10', title: '10 Voicemails Captured', description: 'Captured 10 voicemails', icon: 'trophy', category: 'Voicemail', target: 10, metric: 'voicemails' },
+          { id: 'voicemails_50', title: '50 Voicemails Captured', description: 'Captured 50 voicemails', icon: 'trophy', category: 'Voicemail', target: 50, metric: 'voicemails' },
+
+          // Payments
+          { id: 'first_payment_requested', title: 'First Payment Requested', description: 'Sent your first payment request', icon: 'star', category: 'Payments' },
+          { id: 'first_payment_received', title: 'First Payment Received', description: 'Received your first payment', icon: 'trophy', category: 'Payments' },
+          { id: 'payments_paid_10', title: '10 Payments Received', description: 'Received 10 customer payments', icon: 'trophy', category: 'Payments', target: 10, metric: 'paymentsPaid' },
+
+          // Organization
           { id: 'task_completed_1', title: 'First Task Completed', description: 'Complete your first task', icon: 'star', category: 'Organization', target: 1, metric: 'tasksCompleted' },
 
+          // Milestones (time-based)
           { id: 'one_week_active', title: '1 Week Active', description: 'ReplyFlow has been protecting your business for a week', icon: 'star', category: 'Milestones', target: 7, metric: 'days' },
           { id: 'one_month_active', title: '1 Month Active', description: 'ReplyFlow has been protecting your business for a month', icon: 'trophy', category: 'Milestones', target: 30, metric: 'days' },
+          { id: 'three_months_active', title: '3 Months Active', description: 'Consistent protection for 3 months', icon: 'trophy', category: 'Milestones', target: 90, metric: 'days' },
+          { id: 'six_months_active', title: '6 Months Active', description: 'Consistent protection for 6 months', icon: 'trophy', category: 'Milestones', target: 180, metric: 'days' },
         ]
 
         const built: AchievementItem[] = defs.map(def => {
@@ -81,12 +192,25 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
           if (def.metric === 'jobsCompleted') current = jobsCompletedCount || 0
           if (def.metric === 'tasksCompleted') current = tasksCompletedCount || 0
           if (def.metric === 'days') current = daysSinceCreation
+          if (def.metric === 'outbound') current = outboundCount || 0
+          if (def.metric === 'aiCompleted') current = aiCompletedCount || 0
+          if (def.metric === 'voicemails') current = voicemailCount || 0
+          if (def.metric === 'paymentsPaid') current = paymentsPaidCount || 0
 
           const earned = (() => {
             if (!def.metric) {
               if (def.id === 'first_lead') return Boolean(firstLeadAt)
               if (def.id === 'first_reply') return Boolean(firstReplyAt)
               if (def.id === 'first_followup') return Boolean(firstFollowUpAt)
+              if (def.id === 'setup_forwarding') return Boolean(business?.forwarding_verified)
+              if (def.id === 'calendar_connected') return Boolean(calendarConnectedAt)
+              if (def.id === 'first_outbound') return Boolean(firstOutboundAt)
+              if (def.id === 'job_created_1') return (jobsTotalCount || 0) > 0 || Boolean(firstJobAt)
+              if (def.id === 'first_scheduled_job') return Boolean(firstScheduledJobAt)
+              if (def.id === 'first_ai_completed') return Boolean(firstAiCompletedAt)
+              if (def.id === 'first_voicemail') return Boolean(firstVoicemailAt)
+              if (def.id === 'first_payment_requested') return Boolean(firstPaymentRequestedAt)
+              if (def.id === 'first_payment_received') return Boolean(firstPaymentPaidAt)
               return false
             }
             const target = def.target || 0
@@ -97,6 +221,14 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
             if (def.id === 'first_lead') return firstLeadAt
             if (def.id === 'first_reply') return firstReplyAt
             if (def.id === 'first_followup') return firstFollowUpAt
+            if (def.id === 'calendar_connected') return calendarConnectedAt
+            if (def.id === 'first_outbound') return firstOutboundAt
+            if (def.id === 'job_created_1') return firstJobAt
+            if (def.id === 'first_scheduled_job') return firstScheduledJobAt
+            if (def.id === 'first_ai_completed') return firstAiCompletedAt
+            if (def.id === 'first_voicemail') return firstVoicemailAt
+            if (def.id === 'first_payment_requested') return firstPaymentRequestedAt
+            if (def.id === 'first_payment_received') return firstPaymentPaidAt
             return undefined
           })()
 
