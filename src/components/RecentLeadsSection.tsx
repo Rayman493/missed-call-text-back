@@ -33,7 +33,7 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
     const fetchLeads = async () => {
       setLoading(true)
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('leads')
           .select(`
             *,
@@ -75,7 +75,6 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
           `)
           .eq('business_id', businessId)
           .is('deleted_at', null)
-          .neq('status', 'ignored')
           .order('last_message_at', { ascending: false, nullsFirst: false })
           .order('first_contact_at', { ascending: false, nullsFirst: false })
           .order('created_at', { ascending: false })
