@@ -5537,6 +5537,79 @@ async function endCallCleanly(ws: any, twilioHandler: any) {
   }
 }
 
+// Helper function to get or create conversation with 23505 race recovery
+async function getOrCreateConversation(supabase: any, leadId: string, businessId: string, status: string = 'active'): Promise<{ id: string } | null> {
+  console.log('[CONVERSATION GET_OR_CREATE]', { leadId, businessId, status });
+
+  // Lookup existing conversation by lead_id
+  const { data: existingConversation, error: conversationLookupError } = await supabase
+    .from('conversations')
+    .select('*')
+    .eq('lead_id', leadId)
+    .maybeSingle();
+
+  if (existingConversation) {
+    console.log('[CONVERSATION FOUND]', { conversationId: existingConversation.id });
+    return existingConversation;
+  }
+
+  if (conversationLookupError && conversationLookupError.code !== 'PGRST116') {
+    console.log('[CONVERSATION LOOKUP ERROR]', conversationLookupError);
+    throw conversationLookupError;
+  }
+
+  // No existing conversation, attempt to insert
+  const conversationInsertPayload = {
+    lead_id: leadId,
+    business_id: businessId,
+    status: status,
+  };
+
+  console.log('[CONVERSATION INSERT ATTEMPT]', { payload: conversationInsertPayload });
+  const result = await supabase
+    .from('conversations')
+    .insert(conversationInsertPayload)
+    .select()
+    .single();
+
+  if (result.error) {
+    // Check for 23505 duplicate key error (race condition)
+    if (result.error.code === '23505' || result.error.message?.includes('duplicate key')) {
+      console.log('[CONVERSATION RACE RECOVERY]', { 
+        message: 'Detected duplicate conversation creation race (23505), fetching canonical conversation',
+        leadId, 
+        businessId 
+      });
+
+      // Fetch the canonical existing conversation created by the racing request
+      const { data: canonicalConversation, error: fetchError } = await supabase
+        .from('conversations')
+        .select('*')
+        .eq('lead_id', leadId)
+        .eq('business_id', businessId)
+        .maybeSingle();
+
+      if (canonicalConversation) {
+        console.log('[CONVERSATION RACE RECOVERED]', { conversationId: canonicalConversation.id });
+        return canonicalConversation;
+      } else {
+        console.log('[CONVERSATION RACE RECOVERY FAILED]', { 
+          message: 'Failed to find canonical conversation after 23505 error',
+          fetchError: fetchError?.message || 'none'
+        });
+        throw result.error; // Surface the original error if follow-up lookup fails
+      }
+    } else {
+      // Non-23505 errors retain normal error handling
+      console.log('[CONVERSATION INSERT ERROR]', result.error);
+      throw result.error;
+    }
+  }
+
+  console.log('[CONVERSATION INSERT SUCCESS]', { conversationId: result.data.id });
+  return result.data;
+}
+
 // Simple mode handler - isolated V1 AI intake flow
 function handleSimpleModeConnection(ws: WebSocket, req: any) {
   // Extract parameters from URL
@@ -8011,18 +8084,11 @@ Reply to this message if you'd like to update or add any information.
         return;
       }
 
-      const { data: conversation, error: conversationError } = await supabase
-        .from('conversations')
-        .insert({
-          lead_id: lead.id,
-          business_id: state.businessId,
-          status: 'active',
-        })
-        .select()
-        .single();
+      // Use the race-recovery helper function
+      const conversation = await getOrCreateConversation(supabase, lead.id, state.businessId, 'active');
 
-      if (conversationError || !conversation) {
-        console.log('[SILENT SMS FAILED] reason: conversation_creation_failed -', conversationError?.message || 'conversation_not_created');
+      if (!conversation) {
+        console.log('[SILENT SMS FAILED] reason: conversation_creation_failed - conversation is null');
         return;
       }
 
@@ -12283,47 +12349,17 @@ Return only JSON, no other text.`;
             leadId: lead.id,
             operation: 'conversation upsert for ai_call_records linking'
           });
-          // Lookup existing conversation by lead_id
-          const { data: existingConversation, error: conversationLookupError } = await supabase
-            .from('conversations')
-            .select('*')
-            .eq('lead_id', lead.id)
-            .maybeSingle();
-
-          let conversationError;
-
-          if (existingConversation) {
-            conversation = existingConversation;
-            console.log('[AI CONVERSATION FOUND]', { conversationId: conversation.id });
-          } else {
-            const result = await supabase
-              .from('conversations')
-              .insert({
-                business_id: sessionBusinessId,
-                lead_id: lead.id,
-                status: 'open',
-                last_activity_at: new Date().toISOString(),
-              })
-              .select()
-              .single();
-            conversation = result.data;
-            conversationError = result.error;
-          }
-
-          console.log('[AI CONVERSATION LOOKUP RESULT]', { 
-            conversationId: conversation?.id || 'null',
-            conversationError: conversationError?.message || 'none',
-            leadId: lead.id
-          });
-
-          if (conversationError) {
+          
+          // Use the race-recovery helper function
+          conversation = await getOrCreateConversation(supabase, lead.id, sessionBusinessId, 'open');
+          
+          if (!conversation) {
             console.log('[COMPLETE FINALIZATION STEP 5 FAILED] =========================================');
             console.log('[COMPLETE FINALIZATION STEP 5 FAILED] Conversation creation failed');
-            console.log('[COMPLETE FINALIZATION STEP 5 FAILED] Error:', conversationError.message);
+            console.log('[COMPLETE FINALIZATION STEP 5 FAILED] Error: conversation is null');
             console.log('[COMPLETE FINALIZATION STEP 5 FAILED] Timestamp:', new Date().toISOString());
             console.log('[COMPLETE FINALIZATION STEP 5 FAILED] =========================================');
-            console.log('[AI CONVERSATION UPSERT FAILED]', conversationError);
-            throw conversationError;
+            throw new Error('Conversation creation returned null');
           }
         }
 
@@ -16814,39 +16850,14 @@ Return only JSON, no other text.`;
                 console.log('[AI LEAD UPSERTED]', { leadId: lead.id });
 
                 // Create or update conversation
-                const conversationInsertPayload = {
-                  lead_id: lead.id,
-                  business_id: sessionBusinessId,
-                  status: 'active',
-                };
-                console.log('[CONVERSATION CREATE START]', { payload: conversationInsertPayload });
+                console.log('[CONVERSATION CREATE START]', { leadId: lead.id, businessId: sessionBusinessId });
                 
-                // Lookup existing conversation by lead_id
-                const { data: existingConversation, error: conversationLookupError } = await supabase
-                  .from('conversations')
-                  .select('*')
-                  .eq('lead_id', lead.id)
-                  .maybeSingle();
-
-                let conversation;
-                let conversationError;
-
-                if (existingConversation) {
-                  conversation = existingConversation;
-                  console.log('[CONVERSATION FOUND]', { conversationId: conversation.id });
-                } else {
-                  const result = await supabase
-                    .from('conversations')
-                    .insert(conversationInsertPayload)
-                    .select()
-                    .single();
-                  conversation = result.data;
-                  conversationError = result.error;
-                }
-
-                if (conversationError) {
-                  console.log('[CONVERSATION CREATE ERROR]', { error: conversationError.message });
-                  throw conversationError;
+                // Use the race-recovery helper function
+                const conversation = await getOrCreateConversation(supabase, lead.id, sessionBusinessId, 'active');
+                
+                if (!conversation) {
+                  console.log('[CONVERSATION CREATE ERROR]', { error: 'conversation is null' });
+                  throw new Error('Conversation creation returned null');
                 }
                 console.log('[CONVERSATION CREATE SUCCESS]', { conversationId: conversation.id });
                 console.log('[AI CONVERSATION UPDATED]', { conversationId: conversation.id });
@@ -17257,37 +17268,15 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
                     throw fallbackLeadError;
                   }
 
-                  // Lookup existing conversation by lead_id
-                  const { data: existingFallbackConversation, error: fallbackConversationLookupError } = await supabase
-                    .from('conversations')
-                    .select('*')
-                    .eq('lead_id', fallbackLead.id)
-                    .maybeSingle();
-
-                  let fallbackConversation;
-                  let fallbackConversationError;
-
-                  if (existingFallbackConversation) {
-                    fallbackConversation = existingFallbackConversation;
-                    console.log('[AI INGEST] existing fallback conversation found', { conversationId: fallbackConversation.id });
-                  } else {
-                    const result = await supabase
-                      .from('conversations')
-                      .insert({
-                        lead_id: fallbackLead.id,
-                        business_id: sessionBusinessId,
-                        status: 'active',
-                      })
-                      .select()
-                      .single();
-                    fallbackConversation = result.data;
-                    fallbackConversationError = result.error;
+                  // Use the race-recovery helper function
+                  const fallbackConversation = await getOrCreateConversation(supabase, fallbackLead.id, sessionBusinessId, 'active');
+                  
+                  if (!fallbackConversation) {
+                    console.log('[AI INGEST] fallback conversation creation error', { error: 'conversation is null' });
+                    throw new Error('Fallback conversation creation returned null');
                   }
-
-                  if (fallbackConversationError) {
-                    console.log('[AI INGEST] fallback conversation creation error', fallbackConversationError);
-                    throw fallbackConversationError;
-                  }
+                  
+                  console.log('[AI INGEST] fallback conversation result', { conversationId: fallbackConversation.id });
 
                   console.log('[AI INGEST] creating fallback AI call record with populated IDs...');
                   const fallbackInsertPayload = {
@@ -17559,22 +17548,14 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
                   callerPhone
                 });
                 
-                // Create conversation
-                const { data: emergencyConversation, error: emergencyConversationError } = await supabase
-                  .from('conversations')
-                  .insert({
-                    lead_id: emergencyLead.id,
-                    business_id: businessId,
-                    status: 'active',
-                  })
-                  .select()
-                  .single();
-                
-                if (emergencyConversationError) {
-                  console.log('[EMERGENCY LEAD RECOVERY] Emergency conversation creation failed', emergencyConversationError);
+                // Use the race-recovery helper function
+                const emergencyConversation = await getOrCreateConversation(supabase, emergencyLead.id, businessId, 'active');
+
+                if (!emergencyConversation) {
+                  console.log('[EMERGENCY LEAD RECOVERY] Emergency conversation creation failed', { error: 'conversation is null' });
                   return;
                 }
-                
+
                 // Create AI call record for emergency recovery
                 const { error: emergencyRecordError } = await supabase
                   .from('ai_call_records')
