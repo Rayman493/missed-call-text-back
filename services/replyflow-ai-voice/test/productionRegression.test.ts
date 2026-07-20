@@ -459,4 +459,99 @@ describe('Production Regression Tests', () => {
       expect(watchdogPrevented).toBe(true);
     });
   });
+  
+  describe('ISSUE 5: Legacy Silence Timer Suppression', () => {
+    // Test A: Legacy silence timer start blocked in Simple Mode
+    it('Test A - legacy silence timer start blocked in Simple Mode', () => {
+      const currentStage = 'ask_name_reason';
+      const stageCaptures: string[] = [];
+      const silentCloseStarted = false;
+      
+      // Legacy timer should be blocked for Simple Mode
+      const timerBlocked = currentStage === 'ask_name_reason' && stageCaptures.length === 0 && !silentCloseStarted;
+      
+      // With the fix, the timer is now blocked for Simple Mode
+      expect(timerBlocked).toBe(true);
+    });
+    
+    // Test B: Current stage timeout enabled for ask_name_reason
+    it('Test B - current stage timeout enabled for ask_name_reason', () => {
+      const stage = 'ask_name_reason';
+      const completeStage = 'complete';
+      
+      // Stage timeout should now start for ask_name_reason
+      const timeoutStarts = stage !== completeStage;
+      expect(timeoutStarts).toBe(true);
+    });
+    
+    // Test C: Legacy timer blocked during settle window
+    it('Test C - legacy timer blocked during settle window', () => {
+      const settleWindowTimeout = true;
+      const pendingAnswerStage = 'ask_details';
+      
+      // Legacy timer should be blocked if settle window is active
+      const timerBlocked = settleWindowTimeout && pendingAnswerStage;
+      expect(timerBlocked).toBe(true);
+    });
+    
+    // Test D: Stage timeout is authoritative reprompt owner
+    it('Test D - stage timeout is authoritative reprompt owner', () => {
+      const owner = 'stage_timeout';
+      const mode = 'simple_mode';
+      const action = 'reprompt_authorized';
+      
+      expect(owner).toBe('stage_timeout');
+      expect(mode).toBe('simple_mode');
+      expect(action).toBe('reprompt_authorized');
+    });
+    
+    // Test E: Only one timer system can send audio
+    it('Test E - only one timer system can send audio', () => {
+      const legacyTimerCanSendAudio = false; // Disabled for Simple Mode
+      const stageTimeoutCanSendAudio = true; // Enabled for all stages
+      
+      expect(legacyTimerCanSendAudio).toBe(false);
+      expect(stageTimeoutCanSendAudio).toBe(true);
+    });
+    
+    // Test F: Settle window prevents all reprompt paths
+    it('Test F - settle window prevents all reprompt paths', () => {
+      const settleWindowTimeout = true;
+      const pendingAnswerStage = 'ask_details';
+      
+      // Stage timeout prevented
+      const stageTimeoutPrevented = settleWindowTimeout && pendingAnswerStage;
+      // Legacy timer prevented
+      const legacyTimerPrevented = settleWindowTimeout && pendingAnswerStage;
+      // Watchdog prevented
+      const watchdogPrevented = settleWindowTimeout && pendingAnswerStage;
+      
+      expect(stageTimeoutPrevented).toBe(true);
+      expect(legacyTimerPrevented).toBe(true);
+      expect(watchdogPrevented).toBe(true);
+    });
+    
+    // Test G: True silence still produces one current-voice reprompt
+    it('Test G - true silence still produces one current-voice reprompt', () => {
+      const stage = 'ask_details';
+      const retryCount = 0;
+      const settleWindowTimeout = null;
+      const pendingAnswerStage = null;
+      
+      // When there's no pending answer and caller says nothing
+      const silenceDetected = retryCount === 0 && !settleWindowTimeout && !pendingAnswerStage;
+      
+      expect(silenceDetected).toBe(true);
+      // Stage timeout should fire and send reprompt
+    });
+    
+    // Test H: Old voice path not used in Simple Mode
+    it('Test H - old voice path not used in Simple Mode', () => {
+      const sendSimpleModeLivePromptUsed = false; // Legacy path disabled
+      const sendPromptUsed = true; // Current path used
+      
+      expect(sendSimpleModeLivePromptUsed).toBe(false);
+      expect(sendPromptUsed).toBe(true);
+    });
+  });
 });

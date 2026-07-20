@@ -6577,6 +6577,17 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     if (retryCount === 0) {
       state.silenceRetryCountByStage[stage] = 1;
       
+      console.log('[REPROMPT OWNER] =========================================');
+      console.log('[REPROMPT OWNER] callSid:', state.callSid);
+      console.log('[REPROMPT OWNER] mode:', 'simple_mode');
+      console.log('[REPROMPT OWNER] stage:', stage);
+      console.log('[REPROMPT OWNER] turnId:', state.currentTurnId);
+      console.log('[REPROMPT OWNER] owner:', 'stage_timeout');
+      console.log('[REPROMPT OWNER] action:', 'reprompt_authorized');
+      console.log('[REPROMPT OWNER] reason:', 'silence_timeout_detected');
+      console.log('[REPROMPT OWNER] Timestamp:', new Date().toISOString());
+      console.log('[REPROMPT OWNER] =========================================');
+      
       console.log('[STAGE TIMEOUT] =========================================');
       console.log('[STAGE TIMEOUT] event: reprompt_triggered');
       console.log('[STAGE TIMEOUT] logicalStage:', stage);
@@ -7885,6 +7896,22 @@ Reply to this message if you'd like to update or add any information.
   };
 
   const startInitialSilentTimeout = () => {
+    // LEGACY SILENCE TIMER DISABLED FOR SIMPLE MODE
+    // The current stage-timeout system (handleStageTimeout) is now the authoritative
+    // reprompt owner for all Simple Mode stages, including ask_name_reason.
+    // This prevents duplicate timer systems and ensures consistent audio delivery
+    // through sendPrompt with proper idempotency (:reprompt-N identity).
+    console.log('[LEGACY SILENCE TIMER] =========================================');
+    console.log('[LEGACY SILENCE TIMER] event: start_blocked_simple_mode');
+    console.log('[LEGACY SILENCE TIMER] reason: simple_mode_uses_stage_timeout_owner');
+    console.log('[LEGACY SILENCE TIMER] callSid:', state.callSid);
+    console.log('[LEGACY SILENCE TIMER] currentStage:', state.currentStage);
+    console.log('[LEGACY SILENCE TIMER] Timestamp:', new Date().toISOString());
+    console.log('[LEGACY SILENCE TIMER] =========================================');
+    return;
+    
+    // Original legacy timer logic (disabled):
+    /*
     if (state.currentStage !== 'ask_name_reason' || state.stageCaptures.length > 0 || state.silentCloseStarted) {
       return;
     }
@@ -7894,6 +7921,18 @@ Reply to this message if you'd like to update or add any information.
     console.log('[SIMPLE MODE] event: silent_timeout_started');
     state.silentTimeout = setTimeout(() => {
       console.log('[SILENCE TIMER FIRED]');
+      
+      // Prevent legacy timer from firing during settle window
+      if (state.settleWindowTimeout && state.pendingAnswerStage) {
+        console.log('[LEGACY SILENCE TIMER] =========================================');
+        console.log('[LEGACY SILENCE TIMER] event: fire_blocked_settle_window');
+        console.log('[LEGACY SILENCE TIMER] reason: pending_answer_in_settle_window');
+        console.log('[LEGACY SILENCE TIMER] pendingAnswerStage:', state.pendingAnswerStage);
+        console.log('[LEGACY SILENCE TIMER] Timestamp:', new Date().toISOString());
+        console.log('[LEGACY SILENCE TIMER] =========================================');
+        return;
+      }
+      
       if (state.stageCaptures.length > 0 || state.silentCloseStarted) {
         console.log('[SILENCE REPROMPT SKIPPED] reason:', state.stageCaptures.length > 0 ? 'user_spoke' : 'silent_close_already_started');
         return;
@@ -7920,6 +7959,7 @@ Reply to this message if you'd like to update or add any information.
         console.log('[SIMPLE MODE] Error triggering silent close:', error);
       });
     }, 15000);
+    */
   };
 
   // Stage-aware answer validation to reject filler, incomplete, or non-responsive answers
@@ -8522,12 +8562,11 @@ Reply to this message if you'd like to update or add any information.
         console.log('[MARK WATCHDOG] =========================================');
         logSimple('cached_prompt_complete', { stage });
 
-        if (stage === 'ask_name_reason') {
-          startInitialSilentTimeout();
-        }
-
-        // Start stage timeout for regular intake stages
-        if (stage !== 'complete' && stage !== 'ask_name_reason') {
+        // LEGACY SILENCE TIMER DISABLED - current stage-timeout is now authoritative for all stages
+        // Including ask_name_reason. This prevents duplicate timer systems.
+        
+        // Start stage timeout for all intake stages (including ask_name_reason)
+        if (stage !== 'complete') {
           startStageTimeout();
         }
 
