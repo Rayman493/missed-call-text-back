@@ -5599,6 +5599,14 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     rawFirstStageTranscript: null as string | null,
     // Turn tracking to prevent stale callbacks
     currentTurnId: 0 as number,
+    // Idempotency tracking for prompt delivery to prevent duplicate sends
+    sentPrompts: new Set<string>(),
+    // Cross-stage attribution: track which stage was active when speech started
+    speechStartedStage: null as string | null,
+    speechStartedTurnId: 0 as number,
+    // Continuation tracking: when waiting for caller to complete answer
+    waitingForContinuation: false as boolean,
+    continuationTimeout: null as NodeJS.Timeout | null,
   };
 
   // Track consecutive transcription failures per stage (module scope)
@@ -7822,18 +7830,180 @@ Reply to this message if you'd like to update or add any information.
     }, 15000);
   };
 
+  // Stage-aware answer validation to reject filler, incomplete, or non-responsive answers
+  const validateStageAnswer = (stage: string, transcript: string, existingIntakeData?: typeof state.intakeData): { accepted: boolean; rejectionReason?: string } => {
+    const trimmed = transcript.trim().toLowerCase();
+    
+    // Helper to check if text is filler-only
+    const isFillerOnly = (text: string): boolean => {
+      const fillerWords = ['yeah', 'yep', 'yes', 'uh', 'um', 'okay', 'ok', 'alright', 'sure', 'fine', 'sorry', 'well', 'so', 'hold on', 'one second', 'let me think', 'a minute'];
+      const words = text.replace(/[.,!?]/g, '').split(/\s+/).filter(w => w.length > 0);
+      if (words.length === 0) return true;
+      if (words.length > 3) return false; // More than 3 words is likely not just filler
+      return words.every(w => fillerWords.some(f => w === f || w.startsWith(f)));
+    };
+    
+    // Helper to check if text is clearly incomplete
+    const isIncomplete = (text: string): boolean => {
+      // Check for trailing ellipsis or cutoff
+      if (text.endsWith('...') || text.endsWith('..')) return true;
+      // Check for very short fragments that seem cutoff
+      if (text.length < 5 && !/\d/.test(text)) return true;
+      // Check for "it's" without completion
+      if (text.startsWith("it's") && text.length < 10) return true;
+      return false;
+    };
+    
+    // Helper to check if text has service-like content
+    const hasServiceContent = (text: string): boolean => {
+      const serviceIndicators = ['need', 'want', 'looking for', 'help with', 'service', 'repair', 'install', 'issue', 'problem', 'question', 'broken', 'not working', 'furnace', 'ac', 'heating', 'cooling', 'plumbing', 'electrical'];
+      return serviceIndicators.some(ind => text.includes(ind));
+    };
+    
+    // Helper to check if text has name-like content
+    const hasNameContent = (text: string): boolean => {
+      const nameIndicators = ['my name is', "i'm", 'i am', 'this is', 'call me'];
+      return nameIndicators.some(ind => text.includes(ind));
+    };
+    
+    // Stage-specific validation
+    switch (stage) {
+      case 'ask_name_reason':
+        // Check existing intake state for ask_name_reason
+        const hasExistingName = existingIntakeData?.customerName && existingIntakeData.customerName.trim().length > 0;
+        const hasExistingService = existingIntakeData?.serviceRequested && existingIntakeData.serviceRequested.trim().length > 0;
+        
+        // If both name and service are already captured, any non-filler answer is acceptable
+        if (hasExistingName && hasExistingService) {
+          if (isFillerOnly(trimmed)) {
+            return { accepted: false, rejectionReason: 'filler_only' };
+          }
+          return { accepted: true };
+        }
+        
+        // If name is already captured but service is missing, allow service-only answers
+        if (hasExistingName && !hasExistingService) {
+          // Strip filler prefix and check for service content
+          const fillerWords = ['yeah', 'yep', 'yes', 'uh', 'um', 'okay', 'ok', 'alright', 'sure', 'fine', 'sorry', 'well', 'so'];
+          const afterFiller = trimmed.replace(new RegExp(`^(${fillerWords.join('|')})\\s*[,.]?\\s*`, 'i'), '').trim();
+          
+          // If after removing filler, we have service content, accept it
+          if (hasServiceContent(afterFiller) && afterFiller.length >= 3) {
+            return { accepted: true };
+          }
+          
+          // If it's filler-only, reject
+          if (isFillerOnly(trimmed)) {
+            return { accepted: false, rejectionReason: 'filler_only' };
+          }
+          
+          // If no service content detected, still accept (merge logic will handle it)
+          return { accepted: true };
+        }
+        
+        // If service is already captured but name is missing, allow name-only answers
+        if (!hasExistingName && hasExistingService) {
+          if (isFillerOnly(trimmed)) {
+            return { accepted: false, rejectionReason: 'filler_only' };
+          }
+          if (hasNameContent(trimmed) || trimmed.length >= 2) {
+            return { accepted: true };
+          }
+          return { accepted: false, rejectionReason: 'no_name_content' };
+        }
+        
+        // If both are missing, require at least name or service content
+        if (!hasExistingName && !hasExistingService) {
+          if (isFillerOnly(trimmed)) {
+            return { accepted: false, rejectionReason: 'filler_only' };
+          }
+          if (hasNameContent(trimmed) || hasServiceContent(trimmed)) {
+            return { accepted: true };
+          }
+          // Accept if it's not filler-only (merge logic will extract what it can)
+          return { accepted: true };
+        }
+        
+        return { accepted: true };
+        
+      case 'ask_details':
+        // Reject filler-only or very short non-responses
+        if (isFillerOnly(trimmed)) {
+          return { accepted: false, rejectionReason: 'filler_only' };
+        }
+        if (trimmed.length < 3) {
+          return { accepted: false, rejectionReason: 'too_short' };
+        }
+        return { accepted: true };
+        
+      case 'ask_location':
+        // Reject filler-only responses
+        if (isFillerOnly(trimmed)) {
+          return { accepted: false, rejectionReason: 'filler_only' };
+        }
+        // Reject clearly incomplete fragments
+        if (isIncomplete(trimmed)) {
+          return { accepted: false, rejectionReason: 'incomplete' };
+        }
+        return { accepted: true };
+        
+      case 'ask_completion_time':
+        // Reject filler-only
+        if (isFillerOnly(trimmed)) {
+          return { accepted: false, rejectionReason: 'filler_only' };
+        }
+        // Reject clearly incomplete timing fragments like "it's five"
+        if (isIncomplete(trimmed)) {
+          return { accepted: false, rejectionReason: 'incomplete_timing' };
+        }
+        // Accept meaningful timing expressions
+        const timingPatterns = [
+          /as soon as possible/i,
+          /today/i,
+          /tomorrow/i,
+          /this week/i,
+          /next week/i,
+          /morning/i,
+          /afternoon/i,
+          /evening/i,
+          /\d+\s*(hour|day|week)/i
+        ];
+        const hasTimingPattern = timingPatterns.some(p => p.test(trimmed));
+        // If it's short and has no timing pattern, reject
+        if (trimmed.length < 10 && !hasTimingPattern) {
+          return { accepted: false, rejectionReason: 'no_timing_pattern' };
+        }
+        return { accepted: true };
+        
+      case 'ask_callback_time':
+        // Reject filler-only
+        if (isFillerOnly(trimmed)) {
+          return { accepted: false, rejectionReason: 'filler_only' };
+        }
+        // Accept any meaningful response for callback time
+        return { accepted: true };
+        
+      default:
+        return { accepted: true };
+    }
+  };
+
   // Helper to send prompt using cached PCMU audio or Realtime response.create
   const sendPrompt = async (stage: string, promptKeyOverride?: string, source?: string, turnId?: number) => {
     // Turn ID validation: prevent stale callbacks from sending prompts
     if (turnId !== undefined && turnId < state.currentTurnId) {
-      console.log('[ASK_NAME_REASON STALE CALLBACK BLOCKED] =========================================');
-      console.log('[ASK_NAME_REASON STALE CALLBACK BLOCKED] callbackTurnId:', turnId);
-      console.log('[ASK_NAME_REASON STALE CALLBACK BLOCKED] currentTurnId:', state.currentTurnId);
-      console.log('[ASK_NAME_REASON STALE CALLBACK BLOCKED] source:', source);
-      console.log('[ASK_NAME_REASON STALE CALLBACK BLOCKED] action: prompt_send_blocked');
-      console.log('[ASK_NAME_REASON STALE CALLBACK BLOCKED] reason: stale_turn_id');
-      console.log('[ASK_NAME_REASON STALE CALLBACK BLOCKED] Timestamp:', new Date().toISOString());
-      console.log('[ASK_NAME_REASON STALE CALLBACK BLOCKED] =========================================');
+      console.log('[PROMPT IDEMPOTENCY] =========================================');
+      console.log('[PROMPT IDEMPOTENCY] event: prompt_send_blocked_stale_turn');
+      console.log('[PROMPT IDEMPOTENCY] callSid:', state.callSid);
+      console.log('[PROMPT IDEMPOTENCY] callbackTurnId:', turnId);
+      console.log('[PROMPT IDEMPOTENCY] currentTurnId:', state.currentTurnId);
+      console.log('[PROMPT IDEMPOTENCY] source:', source);
+      console.log('[PROMPT IDEMPOTENCY] logicalStage:', stage);
+      console.log('[PROMPT IDEMPOTENCY] selectedPromptKey:', promptKeyOverride || stage);
+      console.log('[PROMPT IDEMPOTENCY] action: blocked');
+      console.log('[PROMPT IDEMPOTENCY] reason: stale_turn_id');
+      console.log('[PROMPT IDEMPOTENCY] Timestamp:', new Date().toISOString());
+      console.log('[PROMPT IDEMPOTENCY] =========================================');
       return;
     }
 
@@ -7843,6 +8013,43 @@ Reply to this message if you'd like to update or add any information.
       console.log('[SIMPLE MODE] No prompt for stage:', stage, 'promptKey:', promptKey);
       return;
     }
+
+    // Idempotency guard: prevent duplicate sends for the same logical delivery
+    // Delivery identity: callSid + authorizedTurnId + selectedPromptKey
+    const authorizedTurnId = turnId !== undefined ? turnId : state.currentTurnId;
+    const deliveryIdentity = `${state.callSid}:${authorizedTurnId}:${promptKey}`;
+    
+    if (state.sentPrompts.has(deliveryIdentity)) {
+      console.log('[PROMPT IDEMPOTENCY] =========================================');
+      console.log('[PROMPT IDEMPOTENCY] event: prompt_send_blocked_duplicate');
+      console.log('[PROMPT IDEMPOTENCY] callSid:', state.callSid);
+      console.log('[PROMPT IDEMPOTENCY] deliveryIdentity:', deliveryIdentity);
+      console.log('[PROMPT IDEMPOTENCY] authorizedTurnId:', authorizedTurnId);
+      console.log('[PROMPT IDEMPOTENCY] currentTurnId:', state.currentTurnId);
+      console.log('[PROMPT IDEMPOTENCY] logicalStage:', stage);
+      console.log('[PROMPT IDEMPOTENCY] selectedPromptKey:', promptKey);
+      console.log('[PROMPT IDEMPOTENCY] source:', source);
+      console.log('[PROMPT IDEMPOTENCY] action: blocked');
+      console.log('[PROMPT IDEMPOTENCY] reason: duplicate_delivery');
+      console.log('[PROMPT IDEMPOTENCY] Timestamp:', new Date().toISOString());
+      console.log('[PROMPT IDEMPOTENCY] =========================================');
+      return;
+    }
+
+    // Mark this delivery as sent
+    state.sentPrompts.add(deliveryIdentity);
+    console.log('[PROMPT IDEMPOTENCY] =========================================');
+    console.log('[PROMPT IDEMPOTENCY] event: prompt_send_allowed');
+    console.log('[PROMPT IDEMPOTENCY] callSid:', state.callSid);
+    console.log('[PROMPT IDEMPOTENCY] deliveryIdentity:', deliveryIdentity);
+    console.log('[PROMPT IDEMPOTENCY] authorizedTurnId:', authorizedTurnId);
+    console.log('[PROMPT IDEMPOTENCY] currentTurnId:', state.currentTurnId);
+    console.log('[PROMPT IDEMPOTENCY] logicalStage:', stage);
+    console.log('[PROMPT IDEMPOTENCY] selectedPromptKey:', promptKey);
+    console.log('[PROMPT IDEMPOTENCY] source:', source);
+    console.log('[PROMPT IDEMPOTENCY] action: allowed');
+    console.log('[PROMPT IDEMPOTENCY] Timestamp:', new Date().toISOString());
+    console.log('[PROMPT IDEMPOTENCY] =========================================');
 
     console.log('[ASK_NAME_REASON PROMPT SEND AUTHORIZED] =========================================');
     console.log('[ASK_NAME_REASON PROMPT SEND AUTHORIZED] turnId:', turnId || 'none');
@@ -8629,6 +8836,11 @@ Reply to this message if you'd like to update or add any information.
             if (!state.firstSpeechStartedAfterPromptAt) {
               state.firstSpeechStartedAfterPromptAt = speechStartedAt;
             }
+            
+            // Track originating stage for cross-stage attribution prevention
+            state.speechStartedStage = state.currentStage;
+            state.speechStartedTurnId = state.currentTurnId;
+            
             console.log('[AUDIO PIPELINE] =========================================');
             console.log('[AUDIO PIPELINE] event: input_audio_buffer.speech_started');
             console.log('[AUDIO PIPELINE] timestamp:', speechStartedAt);
@@ -8638,6 +8850,10 @@ Reply to this message if you'd like to update or add any information.
             console.log('[AUDIO PIPELINE] promptAudioSentAt:', state.promptAudioSentAt || 0);
             console.log('[AUDIO PIPELINE] elapsedMsSincePromptComplete:', state.promptAudioSentAt ? speechStartedAt - state.promptAudioSentAt : null);
             console.log('[AUDIO PIPELINE] elapsedMsSincePromptStart:', state.promptAudioStartedAt ? speechStartedAt - state.promptAudioStartedAt : null);
+            console.log('[AUDIO PIPELINE] speechStartedStage:', state.speechStartedStage);
+            console.log('[AUDIO PIPELINE] speechStartedTurnId:', state.speechStartedTurnId);
+            console.log('[AUDIO PIPELINE] currentStage:', state.currentStage);
+            console.log('[AUDIO PIPELINE] currentTurnId:', state.currentTurnId);
             console.log('[AUDIO PIPELINE] =========================================');
             state.inSpeechSegment = true;
             state.audioAppendBlockedLogged = false;
@@ -9147,14 +9363,38 @@ Reply to this message if you'd like to update or add any information.
             const transcript = message.transcript || '';
             state.transcript += ' ' + transcript;
 
+            // Use originating stage for attribution (speech started stage)
+            const originatingStage = state.speechStartedStage || state.currentStage;
+            const originatingTurnId = state.speechStartedTurnId || state.currentTurnId;
+
             console.log('[INTAKE PIPELINE] Transcript reached stage processor', {
+              originatingStage: originatingStage,
               currentStage: state.currentStage,
               transcript: transcript
             })
 
-            // Log transcription decision
+            // Cross-stage attribution validation
+            const stageMismatch = originatingStage !== state.currentStage;
+            if (stageMismatch) {
+              console.log('[TURN ATTRIBUTION] =========================================');
+              console.log('[TURN ATTRIBUTION] callSid:', state.callSid);
+              console.log('[TURN ATTRIBUTION] speechStartedStage:', originatingStage);
+              console.log('[TURN ATTRIBUTION] committedStage:', originatingStage);
+              console.log('[TURN ATTRIBUTION] transcriptionCompletedStage:', state.currentStage);
+              console.log('[TURN ATTRIBUTION] processingStage:', originatingStage);
+              console.log('[TURN ATTRIBUTION] stageMismatch:', true);
+              console.log('[TURN ATTRIBUTION] speechStartedTurnId:', originatingTurnId);
+              console.log('[TURN ATTRIBUTION] currentTurnId:', state.currentTurnId);
+              console.log('[TURN ATTRIBUTION] transcript:', transcript);
+              console.log('[TURN ATTRIBUTION] finalAttributedStage:', originatingStage);
+              console.log('[TURN ATTRIBUTION] action: using_originating_stage_for_attribution');
+              console.log('[TURN ATTRIBUTION] Timestamp:', new Date().toISOString());
+              console.log('[TURN ATTRIBUTION] =========================================');
+            }
+
+            // Log transcription decision using originating stage
             const stages = ['ask_name_reason', 'ask_details', 'ask_location', 'ask_completion_time', 'ask_callback_time'];
-            const currentIndex = stages.indexOf(state.currentStage);
+            const currentIndex = stages.indexOf(originatingStage);
             const isValidStage = currentIndex !== -1;
             const isFinalStage = currentIndex === stages.length - 1;
             const timeSinceTtsCompleteMs = state.ttsCompleteTime ? Date.now() - state.ttsCompleteTime : -1;
@@ -9174,10 +9414,87 @@ Reply to this message if you'd like to update or add any information.
             } else if (!isValidStage) {
               accepted = false;
               ignoredReason = 'invalid_stage';
+            } else {
+              // Stage-aware validation: check if transcript is a valid answer for the originating stage
+              const validationResult = validateStageAnswer(originatingStage, meaningfulTranscript, state.intakeData);
+              if (!validationResult.accepted) {
+                accepted = false;
+                ignoredReason = validationResult.rejectionReason || 'stage_validation_failed';
+                
+                console.log('[ANSWER VALIDATION] =========================================');
+                console.log('[ANSWER VALIDATION] callSid:', state.callSid);
+                console.log('[ANSWER VALIDATION] originatingStage:', originatingStage);
+                console.log('[ANSWER VALIDATION] currentStage:', state.currentStage);
+                console.log('[ANSWER VALIDATION] originatingTurnId:', originatingTurnId);
+                console.log('[ANSWER VALIDATION] currentTurnId:', state.currentTurnId);
+                console.log('[ANSWER VALIDATION] transcript:', meaningfulTranscript);
+                console.log('[ANSWER VALIDATION] accepted:', false);
+                console.log('[ANSWER VALIDATION] rejectionReason:', validationResult.rejectionReason);
+                console.log('[ANSWER VALIDATION] action: rejected_no_persistence_no_advancement');
+                console.log('[ANSWER VALIDATION] Timestamp:', new Date().toISOString());
+                console.log('[ANSWER VALIDATION] =========================================');
+                
+                console.log('[ANSWER CONTINUATION] =========================================');
+                console.log('[ANSWER CONTINUATION] fragment:', meaningfulTranscript);
+                console.log('[ANSWER CONTINUATION] stage:', originatingStage);
+                console.log('[ANSWER CONTINUATION] waitingForContinuation:', true);
+                console.log('[ANSWER CONTINUATION] action: extending_stage_timeout_for_continuation');
+                console.log('[ANSWER CONTINUATION] Timestamp:', new Date().toISOString());
+                console.log('[ANSWER CONTINUATION] =========================================');
+                
+                // Extend stage timeout to allow caller to complete answer
+                state.waitingForContinuation = true;
+                if (state.continuationTimeout) {
+                  clearTimeout(state.continuationTimeout);
+                }
+                // Give caller 5 more seconds to complete their answer
+                state.continuationTimeout = setTimeout(() => {
+                  state.waitingForContinuation = false;
+                  console.log('[ANSWER CONTINUATION] =========================================');
+                  console.log('[ANSWER CONTINUATION] event: continuation_timeout_expired');
+                  console.log('[ANSWER CONTINUATION] stage:', state.currentStage);
+                  console.log('[ANSWER CONTINUATION] action: no_longer_waiting_for_continuation');
+                  console.log('[ANSWER CONTINUATION] Timestamp:', new Date().toISOString());
+                  console.log('[ANSWER CONTINUATION] =========================================');
+                }, 5000);
+                
+                // Do not persist, do not advance, do not increment turn
+                // Allow caller to continue naturally on same stage
+                return;
+              } else {
+                console.log('[ANSWER VALIDATION] =========================================');
+                console.log('[ANSWER VALIDATION] callSid:', state.callSid);
+                console.log('[ANSWER VALIDATION] originatingStage:', originatingStage);
+                console.log('[ANSWER VALIDATION] currentStage:', state.currentStage);
+                console.log('[ANSWER VALIDATION] originatingTurnId:', originatingTurnId);
+                console.log('[ANSWER VALIDATION] currentTurnId:', state.currentTurnId);
+                console.log('[ANSWER VALIDATION] transcript:', meaningfulTranscript);
+                console.log('[ANSWER VALIDATION] accepted:', true);
+                console.log('[ANSWER VALIDATION] rejectionReason:', 'none');
+                console.log('[ANSWER VALIDATION] action: accepted_persistence_allowed');
+                console.log('[ANSWER VALIDATION] Timestamp:', new Date().toISOString());
+                console.log('[ANSWER VALIDATION] =========================================');
+                
+                // Clear continuation tracking since we got a valid answer
+                if (state.waitingForContinuation) {
+                  state.waitingForContinuation = false;
+                  if (state.continuationTimeout) {
+                    clearTimeout(state.continuationTimeout);
+                    state.continuationTimeout = null;
+                  }
+                  console.log('[ANSWER CONTINUATION] =========================================');
+                  console.log('[ANSWER CONTINUATION] event: continuation_completed');
+                  console.log('[ANSWER CONTINUATION] stage:', originatingStage);
+                  console.log('[ANSWER CONTINUATION] action: valid_answer_received');
+                  console.log('[ANSWER CONTINUATION] Timestamp:', new Date().toISOString());
+                  console.log('[ANSWER CONTINUATION] =========================================');
+                }
+              }
             }
 
             console.log('[SIMPLE MODE] =========================================');
             console.log('[SIMPLE MODE] event: transcription_decision');
+            console.log('[SIMPLE MODE] originatingStage:', originatingStage);
             console.log('[SIMPLE MODE] currentStage:', state.currentStage);
             console.log('[SIMPLE MODE] transcript:', transcript);
             console.log('[SIMPLE MODE] assistantSpeaking:', state.assistantSpeaking);
@@ -9186,23 +9503,25 @@ Reply to this message if you'd like to update or add any information.
             console.log('[SIMPLE MODE] timeSinceTtsCompleteMs:', timeSinceTtsCompleteMs);
             console.log('[SIMPLE MODE] =========================================');
 
-            logSimple('user_transcription', { transcript: transcript.substring(0, 50), stage: state.currentStage });
+            logSimple('user_transcription', { transcript: transcript.substring(0, 50), stage: originatingStage });
 
             // Generate turn ID for this transcription event
-            const turnId = state.currentTurnId;
+            const turnId = originatingTurnId;
             console.log('[NAME_ONLY_TRACE] =========================================');
             console.log('[NAME_ONLY_TRACE] event: transcription_received');
             console.log('[NAME_ONLY_TRACE] callSid:', state.callSid);
             console.log('[NAME_ONLY_TRACE] sourceTranscript:', transcript);
             console.log('[NAME_ONLY_TRACE] sourceTurnId:', turnId);
+            console.log('[NAME_ONLY_TRACE] originatingTurnId:', originatingTurnId);
             console.log('[NAME_ONLY_TRACE] currentTurnIdBefore:', state.currentTurnId);
-            console.log('[NAME_ONLY_TRACE] logicalStage:', state.currentStage);
+            console.log('[NAME_ONLY_TRACE] logicalStage:', originatingStage);
             console.log('[NAME_ONLY_TRACE] customerNameBefore:', state.intakeData.customerName);
             console.log('[NAME_ONLY_TRACE] serviceRequestedBefore:', state.intakeData.serviceRequested);
             console.log('[NAME_ONLY_TRACE] Timestamp:', new Date().toISOString());
             console.log('[NAME_ONLY_TRACE] =========================================');
 
-            const fieldName = accepted ? storeStageCapture(state.currentStage, meaningfulTranscript, 'openai_transcription_completed') : null;
+            // Use originating stage for storage and processing
+            const fieldName = accepted ? storeStageCapture(originatingStage, meaningfulTranscript, 'openai_transcription_completed') : null;
             
             // Track turn ID for targeted reprompt authorization
             // Initialize with current turn ID, will be updated after successful processing
@@ -9285,7 +9604,7 @@ Reply to this message if you'd like to update or add any information.
             // Only advance immediately if assistant is not speaking and stage is valid
             if (accepted && !state.assistantSpeaking) {
               // Stage-level validation for ask_name_reason: require both customerName AND serviceRequested
-              if (state.currentStage === 'ask_name_reason') {
+              if (originatingStage === 'ask_name_reason') {
                 const hasValidCustomerName = !!state.intakeData.customerName && state.intakeData.customerName.trim() !== '';
                 const hasValidServiceRequested = !!state.intakeData.serviceRequested && state.intakeData.serviceRequested.trim() !== '';
                 
@@ -9306,6 +9625,7 @@ Reply to this message if you'd like to update or add any information.
                   console.log('[STAGE TRANSITION] =========================================');
                   console.log('[STAGE TRANSITION] event: stage_advanced');
                   console.log('[STAGE TRANSITION] trigger: user_transcription_accepted');
+                  console.log('[STAGE TRANSITION] originatingStage:', originatingStage);
                   console.log('[STAGE TRANSITION] previousStage:', previousStage);
                   console.log('[STAGE TRANSITION] nextStage:', nextStage);
                   console.log('[STAGE TRANSITION] transcript:', transcript);
@@ -9321,6 +9641,7 @@ Reply to this message if you'd like to update or add any information.
                   console.log('[STAGE TRANSITION] =========================================');
                   console.log('[STAGE TRANSITION] event: reprompt_triggered');
                   console.log('[STAGE TRANSITION] trigger: ask_name_reason_missing_fields');
+                  console.log('[STAGE TRANSITION] originatingStage:', originatingStage);
                   console.log('[STAGE TRANSITION] currentStage:', state.currentStage);
                   console.log('[STAGE TRANSITION] hasValidCustomerName:', hasValidCustomerName);
                   console.log('[STAGE TRANSITION] hasValidServiceRequested:', hasValidServiceRequested);
@@ -9392,6 +9713,7 @@ Reply to this message if you'd like to update or add any information.
                 console.log('[STAGE TRANSITION] =========================================');
                 console.log('[STAGE TRANSITION] event: stage_advanced');
                 console.log('[STAGE TRANSITION] trigger: user_transcription_accepted');
+                console.log('[STAGE TRANSITION] originatingStage:', originatingStage);
                 console.log('[STAGE TRANSITION] turnId:', authorizedTurnId);
                 console.log('[STAGE TRANSITION] previousStage:', previousStage);
                 console.log('[STAGE TRANSITION] nextStage:', nextStage);
@@ -9405,6 +9727,7 @@ Reply to this message if you'd like to update or add any information.
                 console.log('[ASK_NAME_REASON ROUTING DECISION] =========================================');
                 console.log('[ASK_NAME_REASON ROUTING DECISION] turnId:', authorizedTurnId);
                 console.log('[ASK_NAME_REASON ROUTING DECISION] action: advance_to_next_stage');
+                console.log('[ASK_NAME_REASON ROUTING DECISION] originatingStage:', originatingStage);
                 console.log('[ASK_NAME_REASON ROUTING DECISION] previousStage:', previousStage);
                 console.log('[ASK_NAME_REASON ROUTING DECISION] nextStage:', nextStage);
                 console.log('[ASK_NAME_REASON ROUTING DECISION] source:', 'normal_stage_advancement');
@@ -9552,6 +9875,45 @@ Reply to this message if you'd like to update or add any information.
         // Handle prompt completion marks (for regular intake stages)
         if (message.mark?.name && message.mark.name.startsWith('prompt-complete-')) {
           const stage = message.mark.name.replace('prompt-complete-', '');
+          console.log('[MARK VALIDATION] =========================================');
+          console.log('[MARK VALIDATION] event: prompt_mark_received');
+          console.log('[MARK VALIDATION] callSid:', state.callSid);
+          console.log('[MARK VALIDATION] markName:', message.mark.name);
+          console.log('[MARK VALIDATION] markStage:', stage);
+          console.log('[MARK VALIDATION] currentStage:', state.currentStage);
+          console.log('[MARK VALIDATION] currentTurnId:', state.currentTurnId);
+          console.log('[MARK VALIDATION] assistantSpeaking:', state.assistantSpeaking);
+          console.log('[MARK VALIDATION] Timestamp:', new Date().toISOString());
+          console.log('[MARK VALIDATION] =========================================');
+          
+          // Validate that the mark is for the current stage
+          if (stage !== state.currentStage) {
+            console.log('[MARK VALIDATION] =========================================');
+            console.log('[MARK VALIDATION] event: mark_ignored_stale');
+            console.log('[MARK VALIDATION] callSid:', state.callSid);
+            console.log('[MARK VALIDATION] markName:', message.mark.name);
+            console.log('[MARK VALIDATION] markStage:', stage);
+            console.log('[MARK VALIDATION] currentStage:', state.currentStage);
+            console.log('[MARK VALIDATION] currentTurnId:', state.currentTurnId);
+            console.log('[MARK VALIDATION] action: ignored');
+            console.log('[MARK VALIDATION] reason: stale_mark_stage_mismatch');
+            console.log('[MARK VALIDATION] Timestamp:', new Date().toISOString());
+            console.log('[MARK VALIDATION] =========================================');
+            return; // Ignore stale mark - do not mutate state
+          }
+          
+          console.log('[MARK VALIDATION] =========================================');
+          console.log('[MARK VALIDATION] event: mark_accepted_valid');
+          console.log('[MARK VALIDATION] callSid:', state.callSid);
+          console.log('[MARK VALIDATION] markName:', message.mark.name);
+          console.log('[MARK VALIDATION] markStage:', stage);
+          console.log('[MARK VALIDATION] currentStage:', state.currentStage);
+          console.log('[MARK VALIDATION] currentTurnId:', state.currentTurnId);
+          console.log('[MARK VALIDATION] action: accepted');
+          console.log('[MARK VALIDATION] reason: stage_match');
+          console.log('[MARK VALIDATION] Timestamp:', new Date().toISOString());
+          console.log('[MARK VALIDATION] =========================================');
+          
           console.log('[SIMPLE MODE] =========================================');
           console.log('[SIMPLE MODE] event: prompt_mark_received');
           console.log('[SIMPLE MODE] stage:', stage);
