@@ -236,9 +236,9 @@ const parseNameAndService = (text: string, existingService?: string): { customer
     // Extract name from first sentence
     let name = '';
     const namePatterns = [
-      /(?:hi|hello|hey)[,\s]*(?:this is|i am|i'm|my name is|my name's)\s+([a-z\s]+?)(?:\.|$)/i,
-      /(?:this is|i am|i'm|my name is|my name's)\s+([a-z\s]+?)(?:\.|$)/i,
-      /^([a-z\s]+?)(?:\.|$)/i
+      /(?:hi|hello|hey)[,\s]*(?:this is|i am|i'm|my name is|my name's)[,\s]*(?:(?:uh|um|yeah|well|actually)[,\s]+)*([a-z\s]+?)(?:\.|,|;|\band\b|$)/i,
+      /(?:this is|i am|i'm|my name is|my name's)[,\s]*(?:(?:uh|um|yeah|well|actually)[,\s]+)*([a-z\s]+?)(?:\.|,|;|\band\b|$)/i,
+      /^([a-z\s]+?)(?:\.|,|;|\band\b|$)/i
     ];
     
     for (const pattern of namePatterns) {
@@ -347,8 +347,8 @@ const parseNameAndService = (text: string, existingService?: string): { customer
   let service = existingService ?? '';
 
   const namePatterns = [
-    /(?:hi|hello|hey)[,\s]*(?:this is|i am|i'm|my name is|my name's)\s+([a-z\s]+?)(?:\.|$)/i,
-    /(?:this is|i am|i'm|my name is|my name's)\s+([a-z\s]+?)(?:\.|$)/i
+    /(?:hi|hello|hey)[,\s]*(?:this is|i am|i'm|my name is|my name's)[,\s]*(?:(?:uh|um|yeah|well|actually)[,\s]+)*([a-z\s]+?)(?:\.|,|;|\band\b|$)/i,
+    /(?:this is|i am|i'm|my name is|my name's)[,\s]*(?:(?:uh|um|yeah|well|actually)[,\s]+)*([a-z\s]+?)(?:\.|,|;|\band\b|$)/i
   ];
 
   for (const pattern of namePatterns) {
@@ -368,6 +368,19 @@ const parseNameAndService = (text: string, existingService?: string): { customer
     if (match && match[1] && !service) {
       service = match[1].trim();
       break;
+    }
+  }
+
+  // If we extracted a service but not a name, try deriving name from the left portion
+  if (service && !name) {
+    const idx = parseText.toLowerCase().indexOf(service.toLowerCase());
+    if (idx > 0) {
+      let left = parseText.slice(0, idx).trim();
+      // Remove trailing punctuation and common leading intros
+      left = left.replace(/[.,;:]+\s*$/i, '').trim();
+      left = left.replace(/^(?:hi|hello|hey)[,\s]+/i, '').trim();
+      left = left.replace(/^(?:my name is|my name's|name is|i am|i'm|this is)[,\s]*(?:(?:uh|um|yeah|well|actually)[,\s]+)*/i, '').trim();
+      name = left;
     }
   }
 
@@ -461,6 +474,82 @@ const testCases = [
     input: "Yesenia Noel, my sink is clogged.",
     expectedName: "Yesenia Noel",
     expectedService: "my sink is clogged"
+  },
+  // Targeted regressions for natural name intros with fillers/commas
+  {
+    description: "Natural intro: Ryan, I need some landscaping work done.",
+    input: "Ryan, I need some landscaping work done.",
+    expectedName: "Ryan",
+    expectedService: "I need some landscaping work done"
+  },
+  {
+    description: "Natural intro: My name is Ryan and I need some landscaping work done.",
+    input: "My name is Ryan and I need some landscaping work done.",
+    expectedName: "Ryan",
+    expectedService: "some landscaping work done"
+  },
+  {
+    description: "Natural intro with filler: Yeah, my name is Ryan, and I need some landscaping work done.",
+    input: "Yeah, my name is Ryan, and I need some landscaping work done.",
+    expectedName: "Ryan",
+    expectedService: "some landscaping work done"
+  },
+  {
+    description: "Natural intro with filler between intro and name: Yeah, my name is, uh, Ryan, and I need some landscaping work done.",
+    input: "Yeah, my name is, uh, Ryan, and I need some landscaping work done.",
+    expectedName: "Ryan",
+    expectedService: "some landscaping work done"
+  },
+  {
+    description: "Filler then name + reason in two sentences: Uh, my name is Ryan. I need my lawn cut.",
+    input: "Uh, my name is Ryan. I need my lawn cut.",
+    expectedName: "Ryan",
+    expectedService: "I need my lawn cut."
+  },
+  {
+    description: "I'm NAME with reason: I'm Ryan, and I'm calling because my sink is leaking.",
+    input: "I'm Ryan, and I'm calling because my sink is leaking.",
+    expectedName: "Ryan",
+    expectedService: "my sink is leaking."
+  },
+  {
+    description: "This is NAME with reason: This is Ryan. I need someone to look at my roof.",
+    input: "This is Ryan. I need someone to look at my roof.",
+    expectedName: "Ryan",
+    expectedService: "someone to look at my roof."
+  },
+  // Defensive: intros should not become names on their own
+  {
+    description: "Defensive: Intro-only 'my name is' should not extract a name",
+    input: "my name is",
+    expectedName: "",
+    expectedService: "",
+    expectNameValid: false,
+    expectServiceValid: false
+  },
+  {
+    description: "Defensive: Intro-only 'name is' should not extract a name",
+    input: "name is",
+    expectedName: "",
+    expectedService: "",
+    expectNameValid: false,
+    expectServiceValid: false
+  },
+  {
+    description: "Defensive: Intro-only 'I am' should not extract a name",
+    input: "I am",
+    expectedName: "",
+    expectedService: "",
+    expectNameValid: false,
+    expectServiceValid: false
+  },
+  {
+    description: "Defensive: Intro-only 'This is' should not extract a name",
+    input: "This is",
+    expectedName: "",
+    expectedService: "",
+    expectNameValid: false,
+    expectServiceValid: false
   },
   // Filler prefix regression tests
   {

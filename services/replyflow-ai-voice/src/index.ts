@@ -3397,6 +3397,12 @@ function isValidCustomerName(name: string): boolean {
     'morning', 'afternoon', 'evening', 'today', 'tomorrow', 'week'
   ];
   
+  // Reject generic introductory scaffolding that is not a name
+  const introScaffolding = /^(?:my name is|name is|i am|i'm|this is)\b/i;
+  if (introScaffolding.test(name.trim())) {
+    return false;
+  }
+
   // Check if name is blocked
   if (blockedValues.some(blocked => trimmedName === blocked || trimmedName.includes(blocked))) {
     return false;
@@ -5628,6 +5634,10 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     lastDetectedSpeechAt: 0,
     lastSpeechStoppedAt: 0,
     lastTranscriptionCompletedAt: 0,
+    // One-time VAD grace for settle finalization (ask_details only)
+    settleGraceTimeout: null as NodeJS.Timeout | null,
+    settleGraceGeneration: 0,
+    settleGraceUsedForGeneration: 0,
   };
 
   // Track consecutive transcription failures per stage (module scope)
@@ -5764,7 +5774,8 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         const stripNamePrefix = (s: string): string =>
           s
             .replace(/^(?:hi|hello|hey)[,\s]+/i, '')
-            .replace(/^(?:my name is|my name's|name is|i am|i'm|this is|it is|it's)\s+/i, '')
+            // Allow commas and short fillers immediately after the intro before the real name
+            .replace(/^(?:my name is|my name's|name is|i am|i'm|this is|it is|it's)[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*/i, '')
             .replace(/\s+here$/i, '')
             .trim();
 
@@ -5821,8 +5832,8 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
           
           // Check if first sentence is a name introduction
           const nameIntroPatterns = [
-            /^(?:hi|hello|hey)[,\s]+(?:this is|my name is|my name's|name is|i am|i'm)\s+(.+)$/i,
-            /^(?:this is|my name is|my name's|name is|i am|i'm)\s+(.+)$/i,
+            /^(?:hi|hello|hey)[,\s]+(?:this is|my name is|my name's|name is|i am|i'm)[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*(.+)$/i,
+            /^(?:this is|my name is|my name's|name is|i am|i'm)[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*(.+)$/i,
             /^([a-z][a-z' -]{1,40}?)\s+here$/i,
           ];
           
@@ -5972,14 +5983,14 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
         // Extract name first using explicit name patterns
         const namePatterns = [
-          /^(?:hi|hello|hey)[,\s]+my name is\s+(.+?)(?:\.|,|;|\band\b|$)/i,
-          /^my name is\s+(.+?)(?:\.|,|;|\band\b|$)/i,
-          /^my name's\s+(.+?)(?:\.|,|;|\band\b|$)/i,
-          /^name is\s+(.+?)(?:\.|,|;|\band\b|$)/i,
-          /^i am\s+(.+?)(?:\.|,|;|\band\b|$)/i,
-          /^i'm\s+(.+?)(?:\.|,|;|\band\b|$)/i,
-          /^this is\s+(.+?)(?:\.|,|;|\band\b|$)/i,
-          /^it is\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^(?:hi|hello|hey)[,\s]+my name is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^my name is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^my name's[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^name is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^i am[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^i'm[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^this is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^it is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*(.+?)(?:\.|,|;|\band\b|$)/i,
           /^([a-z][a-z' -]{1,40}?)\s+here(?:\.|,|;|\band\b|$)/i,
           /^([a-z][a-z' -]{1,40}?)\.(?:\s|$)/i,
         ];
@@ -7256,14 +7267,14 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
       // Extract name first using explicit name patterns
       const namePatterns = [
-        /^(?:hi|hello|hey)[,\s]+my name is\s+(.+?)(?:\.|,|;|\band\b|$)/i,
-        /^my name is\s+(.+?)(?:\.|,|;|\band\b|$)/i,
-        /^my name's\s+(.+?)(?:\.|,|;|\band\b|$)/i,
-        /^name is\s+(.+?)(?:\.|,|;|\band\b|$)/i,
-        /^i am\s+(.+?)(?:\.|,|;|\band\b|$)/i,
-        /^i'm\s+(.+?)(?:\.|,|;|\band\b|$)/i,
-        /^this is\s+(.+?)(?:\.|,|;|\band\b|$)/i,
-        /^it is\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+        /^(?:hi|hello|hey)[,\s]+my name is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*([^.,;]+?)(?=\.|,|;|\band\b|$)/i,
+        /^my name is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*([^.,;]+?)(?=\.|,|;|\band\b|$)/i,
+        /^my name's[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*([^.,;]+?)(?=\.|,|;|\band\b|$)/i,
+        /^name is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*([^.,;]+?)(?=\.|,|;|\band\b|$)/i,
+        /^i am[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*([^.,;]+?)(?=\.|,|;|\band\b|$)/i,
+        /^i'm[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*([^.,;]+?)(?=\.|,|;|\band\b|$)/i,
+        /^this is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*([^.,;]+?)(?=\.|,|;|\band\b|$)/i,
+        /^it is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*([^.,;]+?)(?=\.|,|;|\band\b|$)/i,
         /^([a-z][a-z' -]{1,40}?)\s+here(?:\.|,|;|\band\b|$)/i,
         /^([a-z][a-z' -]{1,40}?)\.(?:\s|$)/i,
       ];
@@ -9362,7 +9373,7 @@ Reply to this message if you'd like to update or add any information.
               console.log('[CONTINUATION DETECTION TIMING] callerAudioResumedAt:', state.lastInboundAudioAt);
               console.log('[CONTINUATION DETECTION TIMING] speechStartedEventAt:', speechStartedAt);
               console.log('[CONTINUATION DETECTION TIMING] delayBetweenAudioAndSpeechStarted:', delayBetweenAudioAndSpeechStarted);
-              console.log('[CONTINUATION DETECTION TIMING] settleDeadlineAt:', (state.settleWindowTimeout as any)._idleStart ? (state.settleWindowTimeout as any)._idleStart + (state.pendingAnswerStage === 'ask_details' ? 2200 : 1500) : 'unknown');
+              console.log('[CONTINUATION DETECTION TIMING] settleDeadlineAt:', (state.settleWindowTimeout as any)._idleStart ? (state.settleWindowTimeout as any)._idleStart + (state.pendingAnswerStage === 'ask_details' ? 3000 : 1500) : 'unknown');
               console.log('[CONTINUATION DETECTION TIMING] wouldHaveMissedDeadline:', delayBetweenAudioAndSpeechStarted > 0 ? 'audio_before_speech_started' : 'speech_started_first');
               console.log('[CONTINUATION DETECTION TIMING] action:', 'continuation_speech_detected');
               console.log('[CONTINUATION DETECTION TIMING] =========================================');
@@ -9396,6 +9407,20 @@ Reply to this message if you'd like to update or add any information.
               console.log('[LOGICAL TURN LIFECYCLE] settleGeneration:', state.settleGeneration);
               console.log('[LOGICAL TURN LIFECYCLE] timestamp:', new Date().toISOString());
               console.log('[LOGICAL TURN LIFECYCLE] =========================================');
+            }
+
+            // If a one-time grace is active for this same stage/turn, cancel it upon new speech
+            if (state.settleGraceTimeout && state.pendingAnswerStage === state.currentStage && state.pendingAnswerTurnId === state.currentTurnId) {
+              clearTimeout(state.settleGraceTimeout);
+              state.settleGraceTimeout = null;
+              console.log('[SETTLE GRACE] =========================================');
+              console.log('[SETTLE GRACE] event: grace_cancelled_on_speech_start');
+              console.log('[SETTLE GRACE] stage:', state.currentStage);
+              console.log('[SETTLE GRACE] turnId:', state.currentTurnId);
+              console.log('[SETTLE GRACE] settleGeneration:', state.settleGeneration);
+              console.log('[SETTLE GRACE] speechGeneration:', state.speechGeneration);
+              console.log('[SETTLE GRACE] timestamp:', new Date().toISOString());
+              console.log('[SETTLE GRACE] =========================================');
             }
             
             console.log('[AUDIO PIPELINE] =========================================');
@@ -10267,6 +10292,193 @@ Reply to this message if you'd like to update or add any information.
                       console.log('[LOGICAL TURN LIFECYCLE] timestamp:', new Date().toISOString());
                       console.log('[LOGICAL TURN LIFECYCLE] =========================================');
                       return;
+                    }
+
+                    // FINALIZATION GATE: ensure logical turn is genuinely idle before finalizing
+                    // Evidence of continuation should block finalization and allow continuation to proceed
+                    const sameTurnSpeechActive = !!state.inSpeechSegment &&
+                      state.speechStartedStage === originatingStage &&
+                      state.speechStartedTurnId === originatingTurnId;
+                    const pendingTranscription = !!state.transcriptionPending;
+                    const speechOngoingNoStop = state.lastDetectedSpeechAt && (!state.lastSpeechStoppedAt || state.lastSpeechStoppedAt < state.lastDetectedSpeechAt);
+
+                    let finalizationAllowed = true;
+                    let blockedReason = '';
+                    if (sameTurnSpeechActive) {
+                      finalizationAllowed = false;
+                      blockedReason = 'same_turn_speech_active';
+                    } else if (pendingTranscription) {
+                      finalizationAllowed = false;
+                      blockedReason = 'transcription_pending';
+                    } else if (speechOngoingNoStop) {
+                      finalizationAllowed = false;
+                      blockedReason = 'speech_started_no_stop_detected';
+                    }
+
+                    console.log('[SETTLE FINALIZATION GATE] =========================================');
+                    console.log('[SETTLE FINALIZATION GATE] callSid:', state.callSid);
+                    console.log('[SETTLE FINALIZATION GATE] stage:', originatingStage);
+                    console.log('[SETTLE FINALIZATION GATE] turnId:', originatingTurnId);
+                    console.log('[SETTLE FINALIZATION GATE] capturedSettleGeneration:', capturedGeneration);
+                    console.log('[SETTLE FINALIZATION GATE] currentSettleGeneration:', state.settleGeneration);
+                    console.log('[SETTLE FINALIZATION GATE] speechGeneration:', state.speechGeneration);
+                    console.log('[SETTLE FINALIZATION GATE] pendingTranscriptionGeneration:', state.pendingTranscriptionGeneration);
+                    console.log('[SETTLE FINALIZATION GATE] transcriptionPending:', pendingTranscription);
+                    console.log('[SETTLE FINALIZATION GATE] speechStartedStage:', state.speechStartedStage);
+                    console.log('[SETTLE FINALIZATION GATE] speechStartedTurnId:', state.speechStartedTurnId);
+                    console.log('[SETTLE FINALIZATION GATE] lastDetectedSpeechAt:', state.lastDetectedSpeechAt);
+                    console.log('[SETTLE FINALIZATION GATE] lastSpeechStoppedAt:', state.lastSpeechStoppedAt);
+                    console.log('[SETTLE FINALIZATION GATE] lastInboundAudioAt:', state.lastInboundAudioAt);
+                    console.log('[SETTLE FINALIZATION GATE] currentStage:', state.currentStage);
+                    console.log('[SETTLE FINALIZATION GATE] currentTurnId:', state.currentTurnId);
+                    console.log('[SETTLE FINALIZATION GATE] inSpeechSegment:', !!state.inSpeechSegment);
+                    console.log('[SETTLE FINALIZATION GATE] graceAlreadyUsed:', state.settleGraceUsedForGeneration === state.settleGeneration);
+                    console.log('[SETTLE FINALIZATION GATE] finalizationAllowed:', finalizationAllowed);
+                    console.log('[SETTLE FINALIZATION GATE] blockedReason:', finalizationAllowed ? 'none' : blockedReason);
+                    console.log('[SETTLE FINALIZATION GATE] =========================================');
+
+                    // If continuation evidence exists, block immediately (no grace)
+                    if (!finalizationAllowed) {
+                      console.log('[SETTLE FINALIZATION GATE] action:', 'blocked_' + blockedReason);
+                      // Do not finalize. Allow continuation to complete and normal transcription flow
+                      // The next completed transcription will restart the 3000ms settle window.
+                      return;
+                    }
+
+                    // No continuation signals: for ask_details only, enter a one-time short VAD grace before finalizing
+                    if (originatingStage === 'ask_details') {
+                      // Only create grace once per settleGeneration
+                      if (!state.settleGraceTimeout && state.settleGraceUsedForGeneration !== state.settleGeneration) {
+                        const graceCapturedSettleGen = state.settleGeneration;
+                        const graceCapturedSpeechGen = state.speechGeneration;
+                        const GRACE_MS = 400;
+                        console.log('[SETTLE FINALIZATION GATE] action:', 'enter_vad_grace_period');
+                        state.settleGraceGeneration = graceCapturedSettleGen;
+                        state.settleGraceUsedForGeneration = graceCapturedSettleGen;
+                        state.settleGraceTimeout = setTimeout(() => {
+                          // Validate generation and ownership again
+                          if (graceCapturedSettleGen !== state.settleGeneration) {
+                            console.log('[SETTLE FINALIZATION GATE] action:', 'blocked_stale_generation');
+                            state.settleGraceTimeout = null;
+                            return;
+                          }
+                          if (state.speechGeneration !== graceCapturedSpeechGen) {
+                            console.log('[SETTLE FINALIZATION GATE] action:', 'blocked_new_speech_generation');
+                            state.settleGraceTimeout = null;
+                            return;
+                          }
+                          if (state.pendingAnswerStage !== originatingStage || state.pendingAnswerTurnId !== originatingTurnId) {
+                            console.log('[SETTLE FINALIZATION GATE] action:', 'blocked_stage_or_turn_changed');
+                            state.settleGraceTimeout = null;
+                            return;
+                          }
+                          // Re-check strong continuation signals at grace expiry
+                          const sameTurnSpeechActive2 = !!state.inSpeechSegment && state.speechStartedStage === originatingStage && state.speechStartedTurnId === originatingTurnId;
+                          const pendingTranscription2 = !!state.transcriptionPending;
+                          const speechOngoingNoStop2 = state.lastDetectedSpeechAt && (!state.lastSpeechStoppedAt || state.lastSpeechStoppedAt < state.lastDetectedSpeechAt);
+
+                          if (sameTurnSpeechActive2) {
+                            console.log('[SETTLE FINALIZATION GATE] action:', 'blocked_active_speech');
+                            state.settleGraceTimeout = null;
+                            return;
+                          }
+                          if (pendingTranscription2) {
+                            console.log('[SETTLE FINALIZATION GATE] action:', 'blocked_pending_transcription');
+                            state.settleGraceTimeout = null;
+                            return;
+                          }
+                          if (speechOngoingNoStop2) {
+                            console.log('[SETTLE FINALIZATION GATE] action:', 'blocked_active_speech');
+                            state.settleGraceTimeout = null;
+                            return;
+                          }
+                          // Grace expired with no continuation - finalize now
+                          console.log('[SETTLE FINALIZATION GATE] action:', 'grace_expired_finalize');
+                          state.settleGraceTimeout = null;
+                          // Perform finalization here (same as below)
+                          const finalAnswer = state.pendingAnswerSegments.join(' ');
+                          const finalSegmentCount = state.pendingAnswerSegments.length;
+
+                          console.log('[ANSWER SETTLE WINDOW] =========================================');
+                          console.log('[ANSWER SETTLE WINDOW] callSid:', state.callSid);
+                          console.log('[ANSWER SETTLE WINDOW] stage:', state.pendingAnswerStage);
+                          console.log('[ANSWER SETTLE WINDOW] turnId:', state.pendingAnswerTurnId);
+                          console.log('[ANSWER SETTLE WINDOW] segmentCount:', finalSegmentCount);
+                          console.log('[ANSWER SETTLE WINDOW] finalAccumulatedAnswer:', finalAnswer);
+                          console.log('[ANSWER SETTLE WINDOW] action:', 'settle_completed_finalize');
+                          console.log('[ANSWER SETTLE WINDOW] timestamp:', new Date().toISOString());
+                          console.log('[ANSWER SETTLE WINDOW] =========================================');
+
+                          console.log('[LOGICAL TURN LIFECYCLE] =========================================');
+                          console.log('[LOGICAL TURN LIFECYCLE] event: finalization_authorized');
+                          console.log('[LOGICAL TURN LIFECYCLE] callSid:', state.callSid);
+                          console.log('[LOGICAL TURN LIFECYCLE] pendingAnswerStage:', state.pendingAnswerStage);
+                          console.log('[LOGICAL TURN LIFECYCLE] pendingAnswerTurnId:', state.pendingAnswerTurnId);
+                          console.log('[LOGICAL TURN LIFECYCLE] settleGeneration:', graceCapturedSettleGen);
+                          console.log('[LOGICAL TURN LIFECYCLE] segmentCount:', finalSegmentCount);
+                          console.log('[LOGICAL TURN LIFECYCLE] timestamp:', new Date().toISOString());
+                          console.log('[LOGICAL TURN LIFECYCLE] =========================================');
+
+                          const fieldName = storeStageCapture(state.pendingAnswerStage!, finalAnswer, 'settle_window_finalization');
+
+                          console.log('[ANSWER FINALIZATION] =========================================');
+                          console.log('[ANSWER FINALIZATION] stage:', state.pendingAnswerStage);
+                          console.log('[ANSWER FINALIZATION] turnId:', state.pendingAnswerTurnId);
+                          console.log('[ANSWER FINALIZATION] segmentCount:', finalSegmentCount);
+                          console.log('[ANSWER FINALIZATION] finalAccumulatedAnswer:', finalAnswer);
+                          console.log('[ANSWER FINALIZATION] persistedField:', fieldName);
+                          console.log('[ANSWER FINALIZATION] timestamp:', new Date().toISOString());
+                          console.log('[ANSWER FINALIZATION] =========================================');
+
+                          clearSilentTimeout('settle_window_finalization');
+                          clearStageTimeout();
+                          state.currentTurnId++;
+
+                          const finalStage = state.pendingAnswerStage!;
+                          state.pendingAnswerStage = null;
+                          state.pendingAnswerSegments = [];
+                          state.pendingAnswerTurnId = 0;
+                          state.settleWindowTimeout = null;
+                          state.answerAcceptedForStage = null;
+                          state.answerAcceptedTurnId = 0;
+
+                          const stages = ['ask_name_reason', 'ask_details', 'ask_location', 'ask_completion_time', 'ask_callback_time'];
+                          const currentIndex = stages.indexOf(finalStage);
+                          if (currentIndex !== -1 && currentIndex < stages.length - 1) {
+                            const nextStage = stages[currentIndex + 1];
+                            state.currentStage = nextStage;
+                            console.log('[ANSWER FINALIZATION] stageAdvanced:', true);
+                            console.log('[ANSWER FINALIZATION] nextStage:', nextStage);
+
+                            console.log('[ANSWER ACCEPTANCE DURABLE] =========================================');
+                            console.log('[ANSWER ACCEPTANCE DURABLE] event: answer_accepted_flag_cleared');
+                            console.log('[ANSWER ACCEPTANCE DURABLE] callSid:', state.callSid);
+                            console.log('[ANSWER ACCEPTANCE DURABLE] finalStage:', finalStage);
+                            console.log('[ANSWER ACCEPTANCE DURABLE] nextStage:', nextStage);
+                            console.log('[ANSWER ACCEPTANCE DURABLE] reason: stage_advanced');
+                            console.log('[ANSWER ACCEPTANCE DURABLE] timestamp:', new Date().toISOString());
+                            console.log('[ANSWER ACCEPTANCE DURABLE] =========================================');
+
+                            sendPrompt(state.currentStage);
+                          }
+
+                          console.log('[LOGICAL TURN LIFECYCLE] =========================================');
+                          console.log('[LOGICAL TURN LIFECYCLE] event: logical_turn_finalized');
+                          console.log('[LOGICAL TURN LIFECYCLE] callSid:', state.callSid);
+                          console.log('[LOGICAL TURN LIFECYCLE] finalizedStage:', finalStage);
+                          console.log('[LOGICAL TURN LIFECYCLE] nextStage:', state.currentStage);
+                          console.log('[LOGICAL TURN LIFECYCLE] timestamp:', new Date().toISOString());
+                          console.log('[LOGICAL TURN LIFECYCLE] =========================================');
+                        }, GRACE_MS);
+                        // Exit now, finalization will occur after grace if still idle
+                        return;
+                      } else if (state.settleGraceTimeout) {
+                        // Grace already in effect; do nothing and let it complete deterministically
+                        return;
+                      } else {
+                        // Grace already used for this settle generation; finalize immediately
+                        console.log('[SETTLE FINALIZATION GATE] action:', 'finalize_now_grace_already_used');
+                      }
                     }
                     
                     // Settle window expired - finalize the accumulated answer
