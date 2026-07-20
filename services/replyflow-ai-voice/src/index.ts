@@ -5618,6 +5618,10 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     // Per-speech-generation transcription tracking to prevent overlap bugs
     speechGeneration: 0,
     pendingTranscriptionGeneration: 0,
+    // Durable answer acceptance flag to prevent duplicate same-stage prompts
+    // Set to true when a valid answer is accepted, cleared only on stage change
+    answerAcceptedForStage: null as string | null,
+    answerAcceptedTurnId: 0 as number,
     // Caller audio activity timing for pause detection
     lastInboundAudioAt: 0,
     lastDetectedSpeechAt: 0,
@@ -6325,7 +6329,52 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         capturedAnswer = parseResult.customerName;
         extractedField = 'customerName';
       }
-    } else {
+    }
+    
+    // FIELD WRITE INVARIANT PROTECTION
+    // Prevent late transcriptions from overwriting finalized fields
+    const stageFinalized = state.answerAcceptedForStage && state.answerAcceptedForStage !== stage;
+    
+    console.log('[FIELD WRITE INVARIANT] =========================================');
+    console.log('[FIELD WRITE INVARIANT] callSid:', state.callSid);
+    console.log('[FIELD WRITE INVARIANT] stage:', stage);
+    console.log('[FIELD WRITE INVARIANT] field:', extractedField);
+    console.log('[FIELD WRITE INVARIANT] existingValue:', state.intakeData[extractedField]);
+    console.log('[FIELD WRITE INVARIANT] incomingValue:', capturedAnswer);
+    console.log('[FIELD WRITE INVARIANT] stageFinalized:', stageFinalized);
+    console.log('[FIELD WRITE INVARIANT] answerAcceptedForStage:', state.answerAcceptedForStage);
+    console.log('[FIELD WRITE INVARIANT] currentStage:', state.currentStage);
+    console.log('[FIELD WRITE INVARIANT] source:', source);
+    
+    if (stageFinalized && state.intakeData[extractedField]) {
+      console.log('[FIELD WRITE INVARIANT] allowed:', false);
+      console.log('[FIELD WRITE INVARIANT] reason: stage_finalized_field_already_set');
+      console.log('[FIELD WRITE INVARIANT] action: write_blocked');
+      console.log('[FIELD WRITE INVARIANT] timestamp:', new Date().toISOString());
+      console.log('[FIELD WRITE INVARIANT] =========================================');
+      
+      // Still store in stageCaptures for audit trail, but don't overwrite intakeData
+      const capture = {
+        stage,
+        rawTranscript,
+        capturedAnswer,
+        extractedField,
+        source,
+        timestamp: new Date().toISOString(),
+        blocked: true,
+        blockReason: 'stage_finalized_field_already_set'
+      };
+      state.stageCaptures.push(capture);
+      return extractedField; // Return the field name but don't mutate state
+    }
+    
+    console.log('[FIELD WRITE INVARIANT] allowed:', true);
+    console.log('[FIELD WRITE INVARIANT] reason:', 'field_writeable');
+    console.log('[FIELD WRITE INVARIANT] action: write_proceeding');
+    console.log('[FIELD WRITE INVARIANT] timestamp:', new Date().toISOString());
+    console.log('[FIELD WRITE INVARIANT] =========================================');
+    
+    if (!stage || stage !== 'ask_name_reason') {
       state.intakeData[extractedField] = capturedAnswer;
     }
 
@@ -8132,6 +8181,8 @@ Reply to this message if you'd like to update or add any information.
 
   // Helper to send prompt using cached PCMU audio or Realtime response.create
   const sendPrompt = async (stage: string, promptKeyOverride?: string, source?: string, turnId?: number, deliveryAttempt?: number) => {
+    const authorizedAt = Date.now();
+    
     console.log('[REPROMPT ARGUMENT TRACE] =========================================');
     console.log('[REPROMPT ARGUMENT TRACE] location: sendPrompt_entry');
     console.log('[REPROMPT ARGUMENT TRACE] callSid:', state.callSid);
@@ -8140,6 +8191,7 @@ Reply to this message if you'd like to update or add any information.
     console.log('[REPROMPT ARGUMENT TRACE] source:', source);
     console.log('[REPROMPT ARGUMENT TRACE] turnId:', turnId);
     console.log('[REPROMPT ARGUMENT TRACE] deliveryAttempt:', deliveryAttempt);
+    console.log('[REPROMPT ARGUMENT TRACE] authorizedAt:', authorizedAt);
     console.log('[REPROMPT ARGUMENT TRACE] Timestamp:', new Date().toISOString());
     console.log('[REPROMPT ARGUMENT TRACE] =========================================');
     
@@ -8243,23 +8295,26 @@ Reply to this message if you'd like to update or add any information.
     console.log('[PROMPT SOURCE TRACE] pendingAnswerStage:', state.pendingAnswerStage);
     console.log('[PROMPT SOURCE TRACE] answerAccepted:', !!state.pendingAnswerStage);
     console.log('[PROMPT SOURCE TRACE] finalizationPending:', !!state.settleWindowTimeout);
+    console.log('[PROMPT SOURCE TRACE] answerAcceptedForStage:', state.answerAcceptedForStage);
+    console.log('[PROMPT SOURCE TRACE] answerAcceptedTurnId:', state.answerAcceptedTurnId);
     console.log('[PROMPT SOURCE TRACE] action:', 'prompt_delivery_authorized');
     console.log('[PROMPT SOURCE TRACE] timestamp:', new Date().toISOString());
     console.log('[PROMPT SOURCE TRACE] =========================================');
     
-    // Block stale same-stage prompts after answer acceptance
-    // Once a valid answer is accepted and pending finalization, no new same-stage prompt should be allowed
-    if (stage === state.pendingAnswerStage && state.pendingAnswerStage === state.currentStage && state.settleWindowTimeout) {
+    // Block stale same-stage prompts after answer acceptance using durable flag
+    // This guard works even if pendingAnswerStage/settleWindowTimeout are cleared during finalization
+    if (stage === state.answerAcceptedForStage && stage === state.currentStage && state.answerAcceptedTurnId === state.currentTurnId) {
       console.log('[PROMPT STALENESS GUARD] =========================================');
-      console.log('[PROMPT STALENESS GUARD] event: prompt_blocked_stale_same_stage');
+      console.log('[PROMPT STALENESS GUARD] event: prompt_blocked_stale_same_stage_durable');
       console.log('[PROMPT STALENESS GUARD] callSid:', state.callSid);
       console.log('[PROMPT STALENESS GUARD] requestedStage:', stage);
       console.log('[PROMPT STALENESS GUARD] currentStage:', state.currentStage);
-      console.log('[PROMPT STALENESS GUARD] pendingAnswerStage:', state.pendingAnswerStage);
-      console.log('[PROMPT STALENESS GUARD] settleWindowActive:', true);
+      console.log('[PROMPT STALENESS GUARD] answerAcceptedForStage:', state.answerAcceptedForStage);
+      console.log('[PROMPT STALENESS GUARD] answerAcceptedTurnId:', state.answerAcceptedTurnId);
+      console.log('[PROMPT STALENESS GUARD] currentTurnId:', state.currentTurnId);
       console.log('[PROMPT STALENESS GUARD] promptKey:', promptKey);
       console.log('[PROMPT STALENESS GUARD] source:', source);
-      console.log('[PROMPT STALENESS GUARD] reason: answer_already_accepted_pending_finalization');
+      console.log('[PROMPT STALENESS GUARD] reason: answer_already_accepted_for_current_stage_and_turn');
       console.log('[PROMPT STALENESS GUARD] action: blocked');
       console.log('[PROMPT STALENESS GUARD] timestamp:', new Date().toISOString());
       console.log('[PROMPT STALENESS GUARD] =========================================');
@@ -8413,6 +8468,7 @@ Reply to this message if you'd like to update or add any information.
         const audioBuffer = Buffer.from(cachedAudio, 'base64');
         const expectedChunks = Math.ceil(audioBuffer.length / chunkSize);
         let totalChunks = 0;
+        let authorizationDelayMs = 0; // Declare outside loop for use in last chunk logging
 
         console.log('[AUDIO TIMING] =========================================');
         console.log('[AUDIO TIMING] event: prompt_audio_started');
@@ -8452,10 +8508,36 @@ Reply to this message if you'd like to update or add any information.
         }
 
         for (let i = 0; i < audioBuffer.length; i += chunkSize) {
+          // Prompt audio lifecycle logging - track first chunk send
+          if (i === 0) {
+            const firstChunkAt = Date.now();
+            authorizationDelayMs = firstChunkAt - authorizedAt;
+            
+            console.log('[PROMPT AUDIO LIFECYCLE] =========================================');
+            console.log('[PROMPT AUDIO LIFECYCLE] event: first_audio_chunk_queued');
+            console.log('[PROMPT AUDIO LIFECYCLE] callSid:', state.callSid);
+            console.log('[PROMPT AUDIO LIFECYCLE] stage:', stage);
+            console.log('[PROMPT AUDIO LIFECYCLE] promptKey:', promptKey);
+            console.log('[PROMPT AUDIO LIFECYCLE] deliveryIdentity:', deliveryIdentity);
+            console.log('[PROMPT AUDIO LIFECYCLE] authorizedAt:', authorizedAt);
+            console.log('[PROMPT AUDIO LIFECYCLE] firstChunkAt:', firstChunkAt);
+            console.log('[PROMPT AUDIO LIFECYCLE] authorizationDelayMs:', authorizationDelayMs);
+            console.log('[PROMPT AUDIO LIFECYCLE] currentStage:', state.currentStage);
+            console.log('[PROMPT AUDIO LIFECYCLE] currentTurnId:', state.currentTurnId);
+            console.log('[PROMPT AUDIO LIFECYCLE] answerAcceptedForStage:', state.answerAcceptedForStage);
+            console.log('[PROMPT AUDIO LIFECYCLE] timestamp:', new Date().toISOString());
+            console.log('[PROMPT AUDIO LIFECYCLE] =========================================');
+          }
+          
           // Pre-media-send validation: check if stage has changed since authorization
           if (i === 0) {
             const stageChanged = stage !== state.currentStage;
             const turnChanged = authorizedTurnId !== state.currentTurnId;
+            
+            // Check if a valid answer has already been accepted for this stage/turn
+            // This blocks stale prompts that were authorized before answer acceptance
+            const answerAlreadyAccepted = state.answerAcceptedForStage === stage && 
+                                          state.answerAcceptedTurnId === authorizedTurnId;
             
             console.log('[PROMPT PRE-SEND VALIDATION] =========================================');
             console.log('[PROMPT PRE-SEND VALIDATION] callSid:', state.callSid);
@@ -8466,10 +8548,22 @@ Reply to this message if you'd like to update or add any information.
             console.log('[PROMPT PRE-SEND VALIDATION] deliveryIdentity:', deliveryIdentity);
             console.log('[PROMPT PRE-SEND VALIDATION] stageChanged:', stageChanged);
             console.log('[PROMPT PRE-SEND VALIDATION] turnChanged:', turnChanged);
+            console.log('[PROMPT PRE-SEND VALIDATION] answerAcceptedForStage:', state.answerAcceptedForStage);
+            console.log('[PROMPT PRE-SEND VALIDATION] answerAcceptedTurnId:', state.answerAcceptedTurnId);
+            console.log('[PROMPT PRE-SEND VALIDATION] answerAlreadyAccepted:', answerAlreadyAccepted);
             
-            if (stageChanged || turnChanged) {
+            if (stageChanged || turnChanged || answerAlreadyAccepted) {
+              let reason = '';
+              if (stageChanged) {
+                reason = 'stage_changed_since_authorization';
+              } else if (turnChanged) {
+                reason = 'turn_changed_since_authorization';
+              } else {
+                reason = 'answer_already_accepted_for_stage';
+              }
+              
               console.log('[PROMPT PRE-SEND VALIDATION] allowed:', false);
-              console.log('[PROMPT PRE-SEND VALIDATION] reason:', stageChanged ? 'stage_changed_since_authorization' : 'turn_changed_since_authorization');
+              console.log('[PROMPT PRE-SEND VALIDATION] reason:', reason);
               console.log('[PROMPT PRE-SEND VALIDATION] action:', 'blocked_stale_delivery');
               console.log('[PROMPT PRE-SEND VALIDATION] timestamp:', new Date().toISOString());
               console.log('[PROMPT PRE-SEND VALIDATION] =========================================');
@@ -8509,6 +8603,29 @@ Reply to this message if you'd like to update or add any information.
           };
           ws.send(JSON.stringify(mediaMessage));
           totalChunks++;
+          
+          // Prompt audio lifecycle logging - track last chunk send
+          if (i + chunkSize >= audioBuffer.length) {
+            const lastChunkAt = Date.now();
+            const totalAudioDurationMs = authorizationDelayMs + (totalChunks * 20);
+            
+            console.log('[PROMPT AUDIO LIFECYCLE] =========================================');
+            console.log('[PROMPT AUDIO LIFECYCLE] event: last_audio_chunk_queued');
+            console.log('[PROMPT AUDIO LIFECYCLE] callSid:', state.callSid);
+            console.log('[PROMPT AUDIO LIFECYCLE] stage:', stage);
+            console.log('[PROMPT AUDIO LIFECYCLE] promptKey:', promptKey);
+            console.log('[PROMPT AUDIO LIFECYCLE] deliveryIdentity:', deliveryIdentity);
+            console.log('[PROMPT AUDIO LIFECYCLE] authorizedAt:', authorizedAt);
+            console.log('[PROMPT AUDIO LIFECYCLE] lastChunkAt:', lastChunkAt);
+            console.log('[PROMPT AUDIO LIFECYCLE] totalChunks:', totalChunks);
+            console.log('[PROMPT AUDIO LIFECYCLE] totalAudioDurationMs:', totalAudioDurationMs);
+            console.log('[PROMPT AUDIO LIFECYCLE] currentStage:', state.currentStage);
+            console.log('[PROMPT AUDIO LIFECYCLE] currentTurnId:', state.currentTurnId);
+            console.log('[PROMPT AUDIO LIFECYCLE] answerAcceptedForStage:', state.answerAcceptedForStage);
+            console.log('[PROMPT AUDIO LIFECYCLE] timestamp:', new Date().toISOString());
+            console.log('[PROMPT AUDIO LIFECYCLE] =========================================');
+          }
+          
           // Send at real-time rate (20ms chunks)
           await new Promise(resolve => setTimeout(resolve, 20));
         }
@@ -9887,6 +10004,47 @@ Reply to this message if you'd like to update or add any information.
                     state.pendingAnswerSegments.push(meaningfulTranscript);
                   }
                   
+                  // Set durable answer accepted flag on first valid answer
+                  // This flag persists even if pendingAnswerStage is cleared during finalization
+                  if (!state.answerAcceptedForStage || state.answerAcceptedForStage !== originatingStage) {
+                    state.answerAcceptedForStage = originatingStage;
+                    state.answerAcceptedTurnId = originatingTurnId;
+                    
+                    console.log('[ANSWER ACCEPTANCE DURABLE] =========================================');
+                    console.log('[ANSWER ACCEPTANCE DURABLE] event: answer_accepted_for_stage');
+                    console.log('[ANSWER ACCEPTANCE DURABLE] callSid:', state.callSid);
+                    console.log('[ANSWER ACCEPTANCE DURABLE] stage:', originatingStage);
+                    console.log('[ANSWER ACCEPTANCE DURABLE] turnId:', originatingTurnId);
+                    console.log('[ANSWER ACCEPTANCE DURABLE] answerAcceptedForStage:', state.answerAcceptedForStage);
+                    console.log('[ANSWER ACCEPTANCE DURABLE] answerAcceptedTurnId:', state.answerAcceptedTurnId);
+                    console.log('[ANSWER ACCEPTANCE DURABLE] timestamp:', new Date().toISOString());
+                    console.log('[ANSWER ACCEPTANCE DURABLE] =========================================');
+                    
+                    // Immediately cancel stage timeout and transcription watchdog when answer is accepted
+                    // This prevents them from firing reprompts after a valid answer has been received
+                    if (state.stageTimeout) {
+                      clearTimeout(state.stageTimeout);
+                      state.stageTimeout = null;
+                      console.log('[STAGE TIMEOUT] =========================================');
+                      console.log('[STAGE TIMEOUT] event: timeout_cancelled_answer_accepted');
+                      console.log('[STAGE TIMEOUT] stage:', originatingStage);
+                      console.log('[STAGE TIMEOUT] reason: valid_answer_received');
+                      console.log('[STAGE TIMEOUT] Timestamp:', new Date().toISOString());
+                      console.log('[STAGE TIMEOUT] =========================================');
+                    }
+                    
+                    if (state.transcriptionWatchdogTimeout) {
+                      clearTimeout(state.transcriptionWatchdogTimeout);
+                      state.transcriptionWatchdogTimeout = null;
+                      console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+                      console.log('[TRANSCRIPTION WATCHDOG] event: watchdog_cancelled_answer_accepted');
+                      console.log('[TRANSCRIPTION WATCHDOG] stage:', originatingStage);
+                      console.log('[TRANSCRIPTION WATCHDOG] reason: valid_answer_received');
+                      console.log('[TRANSCRIPTION WATCHDOG] Timestamp:', new Date().toISOString());
+                      console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+                    }
+                  }
+                  
                   // Cancel any existing settle window and increment generation
                   if (state.settleWindowTimeout) {
                     clearTimeout(state.settleWindowTimeout);
@@ -10044,6 +10202,9 @@ Reply to this message if you'd like to update or add any information.
                     state.pendingAnswerSegments = [];
                     state.pendingAnswerTurnId = 0;
                     state.settleWindowTimeout = null;
+                    // Clear durable answer acceptance flag when stage advances
+                    state.answerAcceptedForStage = null;
+                    state.answerAcceptedTurnId = 0;
                     
                     // Advance to next stage using the captured stage (before clearing)
                     const stages = ['ask_name_reason', 'ask_details', 'ask_location', 'ask_completion_time', 'ask_callback_time'];
@@ -10053,6 +10214,16 @@ Reply to this message if you'd like to update or add any information.
                       state.currentStage = nextStage;
                       console.log('[ANSWER FINALIZATION] stageAdvanced:', true);
                       console.log('[ANSWER FINALIZATION] nextStage:', nextStage);
+                      
+                      console.log('[ANSWER ACCEPTANCE DURABLE] =========================================');
+                      console.log('[ANSWER ACCEPTANCE DURABLE] event: answer_accepted_flag_cleared');
+                      console.log('[ANSWER ACCEPTANCE DURABLE] callSid:', state.callSid);
+                      console.log('[ANSWER ACCEPTANCE DURABLE] finalStage:', finalStage);
+                      console.log('[ANSWER ACCEPTANCE DURABLE] nextStage:', nextStage);
+                      console.log('[ANSWER ACCEPTANCE DURABLE] reason: stage_advanced');
+                      console.log('[ANSWER ACCEPTANCE DURABLE] timestamp:', new Date().toISOString());
+                      console.log('[ANSWER ACCEPTANCE DURABLE] =========================================');
+                      
                       sendPrompt(state.currentStage);
                     }
                     
