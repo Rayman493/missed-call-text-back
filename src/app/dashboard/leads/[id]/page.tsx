@@ -2898,95 +2898,95 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       sideOffset={8}
                       collisionPadding={12}
                       avoidCollisions
-                      className="z-[10000] w-[300px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-2xl border border-border/40 bg-popover shadow-[0_8px_30px_rgb(0,0,0,0.12),0_4px_12px_rgb(0,0,0,0.08)]"
+                      className="z-[10000] w-[280px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-xl border border-border/50 bg-popover/95 backdrop-blur-sm shadow-[0_4px_20px_rgb(0,0,0,0.15),0_2px_8px_rgb(0,0,0,0.10)]"
                     >
                       {/* Conversation Actions Group */}
-                      <div className="px-2 py-3">
-                        <div className="px-3 py-2 mb-1 text-[11px] font-bold text-muted-foreground/80 uppercase tracking-wider">
+                      <div className="px-2 py-2">
+                        <div className="px-2.5 py-1.5 mb-0.5 text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-[0.15em]">
                           Conversation Actions
                         </div>
                         {canDialPhone && (
                           <DropdownMenuItem
                             onSelect={() => handleNativeCall()}
-                            className="w-full px-3 py-3 text-left text-base font-medium text-foreground hover:bg-muted/70 flex items-center gap-3 transition-colors rounded-xl outline-none focus:bg-muted/70 cursor-pointer min-h-[52px]"
+                            className="w-full px-2 py-2 text-left text-sm font-medium text-foreground hover:bg-accent/50 flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-accent/50 cursor-pointer min-h-[40px] group"
                           >
-                            <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg bg-muted/50">
-                              <PhoneCall className="w-5 h-5 stroke-[1.8]" />
+                            <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-md bg-accent/40 group-hover:bg-accent/60 transition-colors">
+                              <PhoneCall className="w-4 h-4 stroke-[2]" />
                             </div>
-                            <div className="flex-1">
-                              <div>Call Customer</div>
-                              <div className="text-xs text-muted-foreground font-normal">Call this customer</div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm">Call Customer</div>
+                              <div className="text-[11px] text-muted-foreground/80 font-normal">Call this customer</div>
                             </div>
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuItem
                           onSelect={() => handleCreateJobClick()}
-                          className="w-full px-3 py-3 text-left text-base font-medium text-foreground hover:bg-muted/70 flex items-center gap-3 transition-colors rounded-xl outline-none focus:bg-muted/70 cursor-pointer min-h-[52px]"
+                          className="w-full px-2 py-2 text-left text-sm font-medium text-foreground hover:bg-accent/50 flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-accent/50 cursor-pointer min-h-[40px] group"
                         >
-                          <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg bg-muted/50">
-                            <ClipboardPlus className="w-5 h-5 stroke-[1.8]" />
+                          <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-md bg-accent/40 group-hover:bg-accent/60 transition-colors">
+                            <ClipboardPlus className="w-4 h-4 stroke-[2]" />
                           </div>
-                          <div className="flex-1">
-                            <div>Create Job</div>
-                            <div className="text-xs text-muted-foreground font-normal">Create a new job for this customer</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm">Create Job</div>
+                            <div className="text-[11px] text-muted-foreground/80 font-normal">Create a new job for this customer</div>
                           </div>
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onSelect={() => handleAppointmentClick()}
-                          className="w-full px-3 py-3 text-left text-base font-medium text-foreground hover:bg-muted/70 flex items-center gap-3 transition-colors rounded-xl outline-none focus:bg-muted/70 cursor-pointer min-h-[52px]"
+                          className="w-full px-2 py-2 text-left text-sm font-medium text-foreground hover:bg-accent/50 flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-accent/50 cursor-pointer min-h-[40px] group"
                         >
-                          <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg bg-muted/50">
-                            <CalendarDays className="w-5 h-5 stroke-[1.8]" />
+                          <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-md bg-accent/40 group-hover:bg-accent/60 transition-colors">
+                            <CalendarDays className="w-4 h-4 stroke-[2]" />
                           </div>
-                          <div className="flex-1">
-                            <div>Schedule</div>
-                            <div className="text-xs text-muted-foreground font-normal">Book an appointment</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm">Schedule</div>
+                            <div className="text-[11px] text-muted-foreground/80 font-normal">Book an appointment</div>
                           </div>
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onSelect={() => setShowPaymentModal(true)}
                           disabled={!business || getAvailableProviders(business).length === 0}
-                          className="w-full px-3 py-3 text-left text-base font-medium text-foreground hover:bg-muted/70 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 transition-colors rounded-xl outline-none focus:bg-muted/70 cursor-pointer min-h-[52px]"
+                          className="w-full px-2 py-2 text-left text-sm font-medium text-foreground hover:bg-accent/50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-accent/50 cursor-pointer min-h-[40px] group"
                         >
-                          <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg bg-muted/50">
-                            <CreditCard className="w-5 h-5 stroke-[1.8]" />
+                          <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-md bg-accent/40 group-hover:bg-accent/60 transition-colors">
+                            <CreditCard className="w-4 h-4 stroke-[2]" />
                           </div>
-                          <div className="flex-1">
-                            <div>Request Payment</div>
-                            <div className="text-xs text-muted-foreground font-normal">Send a payment request</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm">Request Payment</div>
+                            <div className="text-[11px] text-muted-foreground/80 font-normal">Send a payment request</div>
                           </div>
                         </DropdownMenuItem>
                       </div>
 
-                      <DropdownMenuSeparator className="bg-border/20 my-1" />
+                      <DropdownMenuSeparator className="bg-border/30 my-0.5" />
 
                       {/* Tools Group */}
-                      <div className="px-2 py-3">
+                      <div className="px-2 py-2">
                         <DropdownMenuItem
                           onSelect={() => {
                             setMobileInternalNotesExpanded(true)
                             setShowLeadInfo(true)
                           }}
-                          className="w-full px-3 py-3 text-left text-base font-medium text-foreground hover:bg-muted/70 flex items-center gap-3 transition-colors rounded-xl outline-none focus:bg-muted/70 cursor-pointer min-h-[52px]"
+                          className="w-full px-2 py-2 text-left text-sm font-medium text-foreground hover:bg-accent/50 flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-accent/50 cursor-pointer min-h-[40px] group"
                         >
-                          <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg bg-muted/50">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-md bg-accent/40 group-hover:bg-accent/60 transition-colors">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                           </div>
-                          <div className="flex-1">
-                            <div>Internal Notes</div>
-                            <div className="text-xs text-muted-foreground font-normal">View or edit notes</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm">Internal Notes</div>
+                            <div className="text-[11px] text-muted-foreground/80 font-normal">View or edit notes</div>
                           </div>
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onSelect={() => handleRefresh()}
                           disabled={refreshing}
-                          className="w-full px-3 py-3 text-left text-base font-medium text-foreground hover:bg-muted/70 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 transition-colors rounded-xl outline-none focus:bg-muted/70 cursor-pointer min-h-[52px]"
+                          className="w-full px-2 py-2 text-left text-sm font-medium text-foreground hover:bg-accent/50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-accent/50 cursor-pointer min-h-[40px] group"
                         >
-                          <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg bg-muted/50">
+                          <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-md bg-accent/40 group-hover:bg-accent/60 transition-colors">
                             <svg
-                              className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`}
+                              className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`}
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -2994,46 +2994,46 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
                           </div>
-                          <div className="flex-1">
-                            <div>Refresh</div>
-                            <div className="text-xs text-muted-foreground font-normal">Reload conversation data</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm">Refresh</div>
+                            <div className="text-[11px] text-muted-foreground/80 font-normal">Reload conversation data</div>
                           </div>
                         </DropdownMenuItem>
                       </div>
 
-                      <DropdownMenuSeparator className="bg-border/20 my-1" />
+                      <DropdownMenuSeparator className="bg-border/30 my-0.5" />
 
                       {/* Customer Actions Group */}
-                      <div className="px-2 py-3">
+                      <div className="px-2 py-2">
                         {getLeadLifecycleStatus(leadData || lead) !== 'ignored' && (
                           <DropdownMenuItem
                             onSelect={() => handleStatusUpdate('ignored')}
-                            className="w-full px-3 py-3 text-left text-base font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-50/50 dark:hover:bg-amber-950/30 flex items-center gap-3 transition-colors rounded-xl outline-none focus:bg-amber-50/50 dark:focus:bg-amber-950/30 cursor-pointer min-h-[52px]"
+                            className="w-full px-2 py-2 text-left text-sm font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-950/20 dark:hover:bg-amber-950/30 flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-amber-950/20 dark:focus:bg-amber-950/30 cursor-pointer min-h-[40px] group"
                           >
-                            <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg bg-amber-100/50 dark:bg-amber-900/30">
-                              <svg className="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-md bg-amber-500/10 dark:bg-amber-500/15 group-hover:bg-amber-500/15 dark:group-hover:bg-amber-500/20 transition-colors">
+                              <svg className="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                               </svg>
                             </div>
-                            <div className="flex-1">
-                              <div>Ignore Customer</div>
-                              <div className="text-xs text-muted-foreground/70 font-normal">Hide from your active workflow</div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm">Ignore Customer</div>
+                              <div className="text-[11px] text-muted-foreground/70 font-normal">Hide from your active workflow</div>
                             </div>
                           </DropdownMenuItem>
                         )}
                         {getLeadLifecycleStatus(leadData || lead) === 'ignored' && (
                           <DropdownMenuItem
                             onSelect={() => handleStatusUpdate('active')}
-                            className="w-full px-3 py-3 text-left text-base font-medium text-foreground hover:bg-muted/70 flex items-center gap-3 transition-colors rounded-xl outline-none focus:bg-muted/70 cursor-pointer min-h-[52px]"
+                            className="w-full px-2 py-2 text-left text-sm font-medium text-foreground hover:bg-accent/50 flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-accent/50 cursor-pointer min-h-[40px] group"
                           >
-                            <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg bg-muted/50">
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-md bg-accent/40 group-hover:bg-accent/60 transition-colors">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                               </svg>
                             </div>
-                            <div className="flex-1">
-                              <div>Restore Customer</div>
-                              <div className="text-xs text-muted-foreground font-normal">Return to your active workflow</div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm">Restore Customer</div>
+                              <div className="text-[11px] text-muted-foreground/80 font-normal">Return to your active workflow</div>
                             </div>
                           </DropdownMenuItem>
                         )}
@@ -3164,81 +3164,81 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         sideOffset={8}
                         collisionPadding={12}
                         avoidCollisions
-                        className="z-[10000] w-[300px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-2xl border border-border/40 bg-popover shadow-[0_8px_30px_rgb(0,0,0,0.12),0_4px_12px_rgb(0,0,0,0.08)]"
+                        className="z-[10000] w-[280px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-xl border border-border/50 bg-popover/95 backdrop-blur-sm shadow-[0_4px_20px_rgb(0,0,0,0.15),0_2px_8px_rgb(0,0,0,0.10)]"
                       >
                         {/* Conversation Actions Group */}
-                        <div className="px-2 py-3">
-                          <div className="px-3 py-2 mb-1 text-[11px] font-bold text-muted-foreground/80 uppercase tracking-wider">
+                        <div className="px-2 py-2">
+                          <div className="px-2.5 py-1.5 mb-0.5 text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-[0.15em]">
                             Conversation Actions
                           </div>
                           <DropdownMenuItem
                             onSelect={() => handleCreateJobClick()}
-                            className="w-full px-3 py-3 text-left text-base font-medium text-foreground hover:bg-muted/70 flex items-center gap-3 transition-colors rounded-xl outline-none focus:bg-muted/70 cursor-pointer min-h-[52px]"
+                            className="w-full px-2 py-2 text-left text-sm font-medium text-foreground hover:bg-accent/50 flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-accent/50 cursor-pointer min-h-[40px] group"
                           >
-                            <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg bg-muted/50">
-                              <ClipboardPlus className="w-5 h-5 stroke-[1.8]" />
+                            <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-md bg-accent/40 group-hover:bg-accent/60 transition-colors">
+                              <ClipboardPlus className="w-4 h-4 stroke-[2]" />
                             </div>
-                            <div className="flex-1">
-                              <div>Create Job</div>
-                              <div className="text-xs text-muted-foreground font-normal">Create a new job for this customer</div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm">Create Job</div>
+                              <div className="text-[11px] text-muted-foreground/80 font-normal">Create a new job for this customer</div>
                             </div>
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onSelect={() => handleAppointmentClick()}
-                            className="w-full px-3 py-3 text-left text-base font-medium text-foreground hover:bg-muted/70 flex items-center gap-3 transition-colors rounded-xl outline-none focus:bg-muted/70 cursor-pointer min-h-[52px]"
+                            className="w-full px-2 py-2 text-left text-sm font-medium text-foreground hover:bg-accent/50 flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-accent/50 cursor-pointer min-h-[40px] group"
                           >
-                            <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg bg-muted/50">
-                              <CalendarDays className="w-5 h-5 stroke-[1.8]" />
+                            <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-md bg-accent/40 group-hover:bg-accent/60 transition-colors">
+                              <CalendarDays className="w-4 h-4 stroke-[2]" />
                             </div>
-                            <div className="flex-1">
-                              <div>Schedule</div>
-                              <div className="text-xs text-muted-foreground font-normal">Book an appointment</div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm">Schedule</div>
+                              <div className="text-[11px] text-muted-foreground/80 font-normal">Book an appointment</div>
                             </div>
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onSelect={() => setShowPaymentModal(true)}
                             disabled={!business || getAvailableProviders(business).length === 0}
-                            className="w-full px-3 py-3 text-left text-base font-medium text-foreground hover:bg-muted/70 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 transition-colors rounded-xl outline-none focus:bg-muted/70 cursor-pointer min-h-[52px]"
+                            className="w-full px-2 py-2 text-left text-sm font-medium text-foreground hover:bg-accent/50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-accent/50 cursor-pointer min-h-[40px] group"
                           >
-                            <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg bg-muted/50">
-                              <CreditCard className="w-5 h-5 stroke-[1.8]" />
+                            <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-md bg-accent/40 group-hover:bg-accent/60 transition-colors">
+                              <CreditCard className="w-4 h-4 stroke-[2]" />
                             </div>
-                            <div className="flex-1">
-                              <div>Request Payment</div>
-                              <div className="text-xs text-muted-foreground font-normal">Send a payment request</div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm">Request Payment</div>
+                              <div className="text-[11px] text-muted-foreground/80 font-normal">Send a payment request</div>
                             </div>
                           </DropdownMenuItem>
                         </div>
 
-                        <DropdownMenuSeparator className="bg-border/20 my-1" />
+                        <DropdownMenuSeparator className="bg-border/30 my-0.5" />
 
                         {/* Tools Group */}
-                        <div className="px-2 py-3">
+                        <div className="px-2 py-2">
                           <DropdownMenuItem
                             onSelect={() => {
                               setInternalNotesExpanded(true)
                               setShowLeadInfo(true)
                             }}
-                            className="w-full px-3 py-3 text-left text-base font-medium text-foreground hover:bg-muted/70 flex items-center gap-3 transition-colors rounded-xl outline-none focus:bg-muted/70 cursor-pointer min-h-[52px]"
+                            className="w-full px-2 py-2 text-left text-sm font-medium text-foreground hover:bg-accent/50 flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-accent/50 cursor-pointer min-h-[40px] group"
                           >
-                            <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg bg-muted/50">
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-md bg-accent/40 group-hover:bg-accent/60 transition-colors">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                               </svg>
                             </div>
-                            <div className="flex-1">
-                              <div>Internal Notes</div>
-                              <div className="text-xs text-muted-foreground font-normal">View or edit notes</div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm">Internal Notes</div>
+                              <div className="text-[11px] text-muted-foreground/80 font-normal">View or edit notes</div>
                             </div>
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onSelect={() => handleRefresh()}
                             disabled={refreshing}
-                            className="w-full px-3 py-3 text-left text-base font-medium text-foreground hover:bg-muted/70 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 transition-colors rounded-xl outline-none focus:bg-muted/70 cursor-pointer min-h-[52px]"
+                            className="w-full px-2 py-2 text-left text-sm font-medium text-foreground hover:bg-accent/50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-accent/50 cursor-pointer min-h-[40px] group"
                           >
-                            <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg bg-muted/50">
+                            <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-md bg-accent/40 group-hover:bg-accent/60 transition-colors">
                               <svg
-                                className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`}
+                                className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`}
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -3246,46 +3246,46 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                               </svg>
                             </div>
-                            <div className="flex-1">
-                              <div>Refresh</div>
-                              <div className="text-xs text-muted-foreground font-normal">Reload conversation data</div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm">Refresh</div>
+                              <div className="text-[11px] text-muted-foreground/80 font-normal">Reload conversation data</div>
                             </div>
                           </DropdownMenuItem>
                         </div>
 
-                        <DropdownMenuSeparator className="bg-border/20 my-1" />
+                        <DropdownMenuSeparator className="bg-border/30 my-0.5" />
 
                         {/* Customer Actions Group */}
-                        <div className="px-2 py-3">
+                        <div className="px-2 py-2">
                           {getLeadLifecycleStatus(leadData || lead) !== 'ignored' && (
                             <DropdownMenuItem
                               onSelect={() => handleStatusUpdate('ignored')}
-                              className="w-full px-3 py-3 text-left text-base font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-50/50 dark:hover:bg-amber-950/30 flex items-center gap-3 transition-colors rounded-xl outline-none focus:bg-amber-50/50 dark:focus:bg-amber-950/30 cursor-pointer min-h-[52px]"
+                              className="w-full px-2 py-2 text-left text-sm font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-950/20 dark:hover:bg-amber-950/30 flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-amber-950/20 dark:focus:bg-amber-950/30 cursor-pointer min-h-[40px] group"
                             >
-                              <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg bg-amber-100/50 dark:bg-amber-900/30">
-                                <svg className="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-md bg-amber-500/10 dark:bg-amber-500/15 group-hover:bg-amber-500/15 dark:group-hover:bg-amber-500/20 transition-colors">
+                                <svg className="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                 </svg>
                               </div>
-                              <div className="flex-1">
-                                <div>Ignore Customer</div>
-                                <div className="text-xs text-muted-foreground/70 font-normal">Hide from your active workflow</div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm">Ignore Customer</div>
+                                <div className="text-[11px] text-muted-foreground/70 font-normal">Hide from your active workflow</div>
                               </div>
                             </DropdownMenuItem>
                           )}
                           {getLeadLifecycleStatus(leadData || lead) === 'ignored' && (
                             <DropdownMenuItem
                               onSelect={() => handleStatusUpdate('active')}
-                              className="w-full px-3 py-3 text-left text-base font-medium text-foreground hover:bg-muted/70 flex items-center gap-3 transition-colors rounded-xl outline-none focus:bg-muted/70 cursor-pointer min-h-[52px]"
+                              className="w-full px-2 py-2 text-left text-sm font-medium text-foreground hover:bg-accent/50 flex items-center gap-3 transition-colors rounded-lg outline-none focus:bg-accent/50 cursor-pointer min-h-[40px] group"
                             >
-                              <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg bg-muted/50">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-md bg-accent/40 group-hover:bg-accent/60 transition-colors">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                 </svg>
                               </div>
-                              <div className="flex-1">
-                                <div>Restore Customer</div>
-                                <div className="text-xs text-muted-foreground font-normal">Return to your active workflow</div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm">Restore Customer</div>
+                                <div className="text-[11px] text-muted-foreground/80 font-normal">Return to your active workflow</div>
                               </div>
                             </DropdownMenuItem>
                           )}
