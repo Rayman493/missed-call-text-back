@@ -6925,15 +6925,37 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     };
 
     // Helper function to parse caller name and service from name/reason answer
-    const parseNameAndService = (text: string, existingService?: string): { customerName: string; serviceRequested: string } => {
+    const parseNameAndService = (text: string, existingService?: string, existingName?: string): { customerName: string; serviceRequested: string } => {
       if (!text || typeof text !== 'string') {
-        return { customerName: '', serviceRequested: existingService ?? 'General inquiry' };
+        return { customerName: existingName ?? '', serviceRequested: existingService ?? 'General inquiry' };
       }
 
       const trimmed = text.trim();
-      let customerName = trimmed;
+      let customerName = existingName ?? trimmed;
       let serviceRequested = existingService ?? '';
       let parserRuleMatched = 'none';
+
+      // Strip conversational fillers helper
+      const stripConversationalFillers = (s: string): string => {
+        const fillerPattern = /^(?:(?:yeah|yep|yes|uh|um|well|so|okay|ok|alright|hi|hey)(?=[,\s]|$)[,\s]*){1,2}/i;
+        return s.replace(fillerPattern, '').trim();
+      };
+
+      // If name was already extracted but service is missing, treat as service-only continuation
+      if (existingName && !existingService) {
+        console.log('[COMPLETION REPAIR SERVICE-ONLY CONTINUATION] =========================================');
+        console.log('[COMPLETION REPAIR SERVICE-ONLY CONTINUATION] existingName:', existingName);
+        console.log('[COMPLETION REPAIR SERVICE-ONLY CONTINUATION] rawInput:', trimmed);
+        console.log('[COMPLETION REPAIR SERVICE-ONLY CONTINUATION] action: treat_as_service_reason_continuation');
+        console.log('[COMPLETION REPAIR SERVICE-ONLY CONTINUATION] Timestamp:', new Date().toISOString());
+        console.log('[COMPLETION REPAIR SERVICE-ONLY CONTINUATION] =========================================');
+        
+        const normalizedInput = stripConversationalFillers(trimmed);
+        serviceRequested = normalizedInput;
+        customerName = existingName;
+        parserRuleMatched = 'service_only_continuation';
+        return { customerName, serviceRequested };
+      }
 
       // Common prefixes to strip from a name candidate
       const stripNamePrefix = (s: string): string =>
@@ -7338,10 +7360,12 @@ Reply to this message if you'd like to update or add any information.
           rawCustomerName:  state.intakeData.customerName,
           rawServiceRequested: state.intakeData.serviceRequested,
           alreadyHasService,
+          alreadyHasName: existingCustomerNameValid,
         });
         const parseResult = parseNameAndService(
           repairSource,
-          alreadyHasService ? state.intakeData.serviceRequested : undefined
+          alreadyHasService ? state.intakeData.serviceRequested : undefined,
+          existingCustomerNameValid ? state.intakeData.customerName : undefined
         );
         console.log('[parseNameAndService output]', parseResult);
         
