@@ -33,6 +33,44 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
     const fetchLeads = async () => {
       setLoading(true)
       try {
+        console.log('[RecentLeadsSection DIAGNOSTIC] Starting fetch', { businessId })
+
+        // DIAGNOSTIC QUERY 1: Only business_id, no other filters
+        const { data: diagnosticData, error: diagnosticError } = await supabase
+          .from('leads')
+          .select('id, business_id, status, deleted_at, created_at, caller_phone')
+          .eq('business_id', businessId)
+          .limit(10)
+
+        console.log('[RecentLeadsSection DIAGNOSTIC] Query with only business_id', {
+          businessId,
+          rowCount: diagnosticData?.length || 0,
+          error: diagnosticError?.message,
+          sampleData: diagnosticData?.map((l: any) => ({
+            id: l.id,
+            business_id: l.business_id,
+            status: l.status,
+            deleted_at: l.deleted_at,
+            caller_phone: l.caller_phone,
+            created_at: l.created_at
+          }))
+        })
+
+        // DIAGNOSTIC QUERY 2: Query for Ryan lead by phone number
+        const { data: ryanLead, error: ryanError } = await supabase
+          .from('leads')
+          .select('id, business_id, status, deleted_at, created_at, caller_phone, last_message_at, first_contact_at')
+          .eq('caller_phone', '+14122533598')
+          .limit(1)
+
+        console.log('[RecentLeadsSection DIAGNOSTIC] Ryan lead query', {
+          phone: '+14122533598',
+          found: !!ryanLead && ryanLead.length > 0,
+          error: ryanError?.message,
+          data: ryanLead?.[0] || null
+        })
+
+        // MAIN QUERY: Current production query with all filters
         const { data, error } = await supabase
           .from('leads')
           .select(`
@@ -79,6 +117,23 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
           .order('first_contact_at', { ascending: false, nullsFirst: false })
           .order('created_at', { ascending: false })
           .or('status.is.null,status.neq.ignored')
+
+        console.log('[RecentLeadsSection DIAGNOSTIC] Main query with all filters', {
+          businessId,
+          filters: ['business_id', 'deleted_at IS NULL', 'status IS NULL OR status != ignored'],
+          rowCount: data?.length || 0,
+          error: error?.message,
+          sampleData: data?.slice(0, 3).map((l: any) => ({
+            id: l.id,
+            business_id: l.business_id,
+            status: l.status,
+            deleted_at: l.deleted_at,
+            caller_phone: l.caller_phone,
+            created_at: l.created_at,
+            last_message_at: l.last_message_at,
+            first_contact_at: l.first_contact_at
+          }))
+        })
 
         // Normalize ai_call_records to aiCallRecords for UI compatibility
         const normalizedLeads = (data || []).map((lead: any) => ({
