@@ -5612,7 +5612,9 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     pendingAnswerSegments: [] as string[],
     pendingAnswerTurnId: 0 as number,
     settleWindowTimeout: null as NodeJS.Timeout | null,
-    settleWindowMs: 1500 as number, // 1.5 second grace period for natural pauses
+    settleWindowMs: 1500,
+    settleGeneration: 0,
+    transcriptionPending: false,
   };
 
   // Track consecutive transcription failures per stage (module scope)
@@ -9023,6 +9025,7 @@ Reply to this message if you'd like to update or add any information.
             // Track originating stage for cross-stage attribution prevention
             state.speechStartedStage = state.currentStage;
             state.speechStartedTurnId = state.currentTurnId;
+            state.transcriptionPending = true;
             
             // Cancel settle window if new speech starts during continuation
             if (state.settleWindowTimeout && state.pendingAnswerStage) {
@@ -9040,6 +9043,18 @@ Reply to this message if you'd like to update or add any information.
               
               clearTimeout(state.settleWindowTimeout);
               state.settleWindowTimeout = null;
+              state.settleGeneration++; // Increment generation to invalidate stale settle callbacks
+              
+              console.log('[LOGICAL TURN LIFECYCLE] =========================================');
+              console.log('[LOGICAL TURN LIFECYCLE] event: continuation_speech_started');
+              console.log('[LOGICAL TURN LIFECYCLE] callSid:', state.callSid);
+              console.log('[LOGICAL TURN LIFECYCLE] currentStage:', state.currentStage);
+              console.log('[LOGICAL TURN LIFECYCLE] currentTurnId:', state.currentTurnId);
+              console.log('[LOGICAL TURN LIFECYCLE] pendingAnswerStage:', state.pendingAnswerStage);
+              console.log('[LOGICAL TURN LIFECYCLE] pendingAnswerTurnId:', state.pendingAnswerTurnId);
+              console.log('[LOGICAL TURN LIFECYCLE] settleGeneration:', state.settleGeneration);
+              console.log('[LOGICAL TURN LIFECYCLE] timestamp:', new Date().toISOString());
+              console.log('[LOGICAL TURN LIFECYCLE] =========================================');
             }
             
             console.log('[AUDIO PIPELINE] =========================================');
@@ -9575,6 +9590,7 @@ Reply to this message if you'd like to update or add any information.
             // User transcription completed
             const transcript = message.transcript || '';
             state.transcript += ' ' + transcript;
+            state.transcriptionPending = false;
 
             // Use originating stage for attribution (speech started stage)
             const originatingStage = state.speechStartedStage || state.currentStage;
@@ -9720,14 +9736,28 @@ Reply to this message if you'd like to update or add any information.
                     state.pendingAnswerSegments.push(meaningfulTranscript);
                   }
                   
-                  // Cancel any existing settle window
+                  // Cancel any existing settle window and increment generation
                   if (state.settleWindowTimeout) {
                     clearTimeout(state.settleWindowTimeout);
                     state.settleWindowTimeout = null;
                   }
+                  state.settleGeneration++; // Increment generation to invalidate stale callbacks
+                  const capturedGeneration = state.settleGeneration;
                   
                   const accumulatedAnswer = state.pendingAnswerSegments.join(' ');
                   const segmentCount = state.pendingAnswerSegments.length;
+                  
+                  console.log('[LOGICAL TURN LIFECYCLE] =========================================');
+                  console.log('[LOGICAL TURN LIFECYCLE] event: pending_answer_started');
+                  console.log('[LOGICAL TURN LIFECYCLE] callSid:', state.callSid);
+                  console.log('[LOGICAL TURN LIFECYCLE] currentStage:', state.currentStage);
+                  console.log('[LOGICAL TURN LIFECYCLE] currentTurnId:', state.currentTurnId);
+                  console.log('[LOGICAL TURN LIFECYCLE] pendingAnswerStage:', state.pendingAnswerStage);
+                  console.log('[LOGICAL TURN LIFECYCLE] pendingAnswerTurnId:', state.pendingAnswerTurnId);
+                  console.log('[LOGICAL TURN LIFECYCLE] settleGeneration:', capturedGeneration);
+                  console.log('[LOGICAL TURN LIFECYCLE] segmentCount:', segmentCount);
+                  console.log('[LOGICAL TURN LIFECYCLE] timestamp:', new Date().toISOString());
+                  console.log('[LOGICAL TURN LIFECYCLE] =========================================');
                   
                   console.log('[ANSWER SETTLE WINDOW] =========================================');
                   console.log('[ANSWER SETTLE WINDOW] callSid:', state.callSid);
@@ -9743,6 +9773,35 @@ Reply to this message if you'd like to update or add any information.
                   
                   // Start settle window
                   state.settleWindowTimeout = setTimeout(() => {
+                    // Generation guard: prevent stale callbacks from finalizing
+                    if (capturedGeneration !== state.settleGeneration) {
+                      console.log('[LOGICAL TURN LIFECYCLE] =========================================');
+                      console.log('[LOGICAL TURN LIFECYCLE] event: stale_settle_callback_blocked');
+                      console.log('[LOGICAL TURN LIFECYCLE] callSid:', state.callSid);
+                      console.log('[LOGICAL TURN LIFECYCLE] capturedGeneration:', capturedGeneration);
+                      console.log('[LOGICAL TURN LIFECYCLE] currentGeneration:', state.settleGeneration);
+                      console.log('[LOGICAL TURN LIFECYCLE] reason: generation_mismatch');
+                      console.log('[LOGICAL TURN LIFECYCLE] timestamp:', new Date().toISOString());
+                      console.log('[LOGICAL TURN LIFECYCLE] =========================================');
+                      return;
+                    }
+                    
+                    // Stage guard: prevent finalization if stage has already changed
+                    if (state.pendingAnswerStage !== originatingStage || 
+                        state.pendingAnswerTurnId !== originatingTurnId) {
+                      console.log('[LOGICAL TURN LIFECYCLE] =========================================');
+                      console.log('[LOGICAL TURN LIFECYCLE] event: finalization_blocked_stage_mismatch');
+                      console.log('[LOGICAL TURN LIFECYCLE] callSid:', state.callSid);
+                      console.log('[LOGICAL TURN LIFECYCLE] expectedStage:', originatingStage);
+                      console.log('[LOGICAL TURN LIFECYCLE] expectedTurnId:', originatingTurnId);
+                      console.log('[LOGICAL TURN LIFECYCLE] currentPendingStage:', state.pendingAnswerStage);
+                      console.log('[LOGICAL TURN LIFECYCLE] currentPendingTurnId:', state.pendingAnswerTurnId);
+                      console.log('[LOGICAL TURN LIFECYCLE] reason: stage_or_turn_changed');
+                      console.log('[LOGICAL TURN LIFECYCLE] timestamp:', new Date().toISOString());
+                      console.log('[LOGICAL TURN LIFECYCLE] =========================================');
+                      return;
+                    }
+                    
                     // Settle window expired - finalize the accumulated answer
                     const finalAnswer = state.pendingAnswerSegments.join(' ');
                     const finalSegmentCount = state.pendingAnswerSegments.length;
@@ -9756,6 +9815,16 @@ Reply to this message if you'd like to update or add any information.
                     console.log('[ANSWER SETTLE WINDOW] action:', 'settle_completed_finalize');
                     console.log('[ANSWER SETTLE WINDOW] timestamp:', new Date().toISOString());
                     console.log('[ANSWER SETTLE WINDOW] =========================================');
+                    
+                    console.log('[LOGICAL TURN LIFECYCLE] =========================================');
+                    console.log('[LOGICAL TURN LIFECYCLE] event: finalization_authorized');
+                    console.log('[LOGICAL TURN LIFECYCLE] callSid:', state.callSid);
+                    console.log('[LOGICAL TURN LIFECYCLE] pendingAnswerStage:', state.pendingAnswerStage);
+                    console.log('[LOGICAL TURN LIFECYCLE] pendingAnswerTurnId:', state.pendingAnswerTurnId);
+                    console.log('[LOGICAL TURN LIFECYCLE] settleGeneration:', capturedGeneration);
+                    console.log('[LOGICAL TURN LIFECYCLE] segmentCount:', finalSegmentCount);
+                    console.log('[LOGICAL TURN LIFECYCLE] timestamp:', new Date().toISOString());
+                    console.log('[LOGICAL TURN LIFECYCLE] =========================================');
                     
                     // Store the accumulated answer
                     const fieldName = storeStageCapture(state.pendingAnswerStage, finalAnswer, 'settle_window_finalization');
@@ -9774,15 +9843,16 @@ Reply to this message if you'd like to update or add any information.
                     clearStageTimeout();
                     state.currentTurnId++;
                     
-                    // Clear pending answer state
+                    // Clear pending answer state (AFTER using it for stage advancement)
+                    const finalStage = state.pendingAnswerStage;
                     state.pendingAnswerStage = null;
                     state.pendingAnswerSegments = [];
                     state.pendingAnswerTurnId = 0;
                     state.settleWindowTimeout = null;
                     
-                    // Advance to next stage
+                    // Advance to next stage using the captured stage (before clearing)
                     const stages = ['ask_name_reason', 'ask_details', 'ask_location', 'ask_completion_time', 'ask_callback_time'];
-                    const currentIndex = stages.indexOf(state.pendingAnswerStage || originatingStage);
+                    const currentIndex = stages.indexOf(finalStage);
                     if (currentIndex !== -1 && currentIndex < stages.length - 1) {
                       const nextStage = stages[currentIndex + 1];
                       state.currentStage = nextStage;
@@ -9790,6 +9860,14 @@ Reply to this message if you'd like to update or add any information.
                       console.log('[ANSWER FINALIZATION] nextStage:', nextStage);
                       sendPrompt(state.currentStage);
                     }
+                    
+                    console.log('[LOGICAL TURN LIFECYCLE] =========================================');
+                    console.log('[LOGICAL TURN LIFECYCLE] event: logical_turn_finalized');
+                    console.log('[LOGICAL TURN LIFECYCLE] callSid:', state.callSid);
+                    console.log('[LOGICAL TURN LIFECYCLE] finalizedStage:', finalStage);
+                    console.log('[LOGICAL TURN LIFECYCLE] nextStage:', state.currentStage);
+                    console.log('[LOGICAL TURN LIFECYCLE] timestamp:', new Date().toISOString());
+                    console.log('[LOGICAL TURN LIFECYCLE] =========================================');
                   }, state.settleWindowMs);
                   
                   // Don't persist or advance immediately - wait for settle window
@@ -10014,6 +10092,52 @@ Reply to this message if you'd like to update or add any information.
                 // Normal stage advancement for other stages
                 const previousStage = state.currentStage;
                 const nextStage = stages[currentIndex + 1];
+                
+                // Stage advancement invariant guard: prevent nonsensical transitions
+                const isNonsensicalTransition = previousStage === nextStage;
+                const isStaleTransition = originatingStage !== previousStage;
+                
+                console.log('[STAGE ADVANCEMENT INVARIANT] =========================================');
+                console.log('[STAGE ADVANCEMENT INVARIANT] expectedStage:', originatingStage);
+                console.log('[STAGE ADVANCEMENT INVARIANT] expectedTurnId:', originatingTurnId);
+                console.log('[STAGE ADVANCEMENT INVARIANT] currentStage:', state.currentStage);
+                console.log('[STAGE ADVANCEMENT INVARIANT] currentTurnId:', state.currentTurnId);
+                console.log('[STAGE ADVANCEMENT INVARIANT] pendingAnswerStage:', state.pendingAnswerStage);
+                console.log('[STAGE ADVANCEMENT INVARIANT] pendingAnswerTurnId:', state.pendingAnswerTurnId);
+                console.log('[STAGE ADVANCEMENT INVARIANT] previousStage:', previousStage);
+                console.log('[STAGE ADVANCEMENT INVARIANT] nextStage:', nextStage);
+                console.log('[STAGE ADVANCEMENT INVARIANT] isNonsensicalTransition:', isNonsensicalTransition);
+                console.log('[STAGE ADVANCEMENT INVARIANT] isStaleTransition:', isStaleTransition);
+                console.log('[STAGE ADVANCEMENT INVARIANT] allowed:', !isNonsensicalTransition && !isStaleTransition);
+                console.log('[STAGE ADVANCEMENT INVARIANT] reason:', isNonsensicalTransition ? 'nonsensical_same_stage' : isStaleTransition ? 'stale_originating_stage' : 'valid_transition');
+                console.log('[STAGE ADVANCEMENT INVARIANT] timestamp:', new Date().toISOString());
+                console.log('[STAGE ADVANCEMENT INVARIANT] =========================================');
+                
+                if (isNonsensicalTransition) {
+                  console.log('[STAGE ADVANCEMENT INVARIANT] =========================================');
+                  console.log('[STAGE ADVANCEMENT INVARIANT] event: stage_advancement_blocked');
+                  console.log('[STAGE ADVANCEMENT INVARIANT] reason: nonsensical_same_stage_transition');
+                  console.log('[STAGE ADVANCEMENT INVARIANT] originatingStage:', originatingStage);
+                  console.log('[STAGE ADVANCEMENT INVARIANT] previousStage:', previousStage);
+                  console.log('[STAGE ADVANCEMENT INVARIANT] nextStage:', nextStage);
+                  console.log('[STAGE ADVANCEMENT INVARIANT] action: no_stage_change');
+                  console.log('[STAGE ADVANCEMENT INVARIANT] timestamp:', new Date().toISOString());
+                  console.log('[STAGE ADVANCEMENT INVARIANT] =========================================');
+                  return; // Block nonsensical transition
+                }
+                
+                if (isStaleTransition) {
+                  console.log('[STAGE ADVANCEMENT INVARIANT] =========================================');
+                  console.log('[STAGE ADVANCEMENT INVARIANT] event: stage_advancement_blocked');
+                  console.log('[STAGE ADVANCEMENT INVARIANT] reason: stale_originating_stage');
+                  console.log('[STAGE ADVANCEMENT INVARIANT] originatingStage:', originatingStage);
+                  console.log('[STAGE ADVANCEMENT INVARIANT] currentStage:', state.currentStage);
+                  console.log('[STAGE ADVANCEMENT INVARIANT] action: transcription_belongs_to_old_stage');
+                  console.log('[STAGE ADVANCEMENT INVARIANT] timestamp:', new Date().toISOString());
+                  console.log('[STAGE ADVANCEMENT INVARIANT] =========================================');
+                  return; // Block stale transition
+                }
+                
                 state.currentStage = nextStage;
                 
                 console.log('[STAGE TRANSITION] =========================================');

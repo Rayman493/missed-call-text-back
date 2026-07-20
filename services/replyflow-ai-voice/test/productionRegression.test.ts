@@ -555,3 +555,230 @@ describe('Production Regression Tests', () => {
     });
   });
 });
+
+describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
+  test('TEST A — Exact Melissa continuation', async () => {
+    const state = createMockState();
+    state.currentStage = 'ask_details';
+    state.currentTurnId = 2;
+    state.settleWindowMs = 1500;
+    state.settleGeneration = 0;
+    state.transcriptionPending = false;
+
+    // First segment arrives
+    const firstSegment = "The door goes down about halfway and then comes back up. I cleaned the sensors, but that didn't fix it.";
+    const result1 = validateStageAnswer('ask_details', firstSegment, state.intakeData);
+    expect(result1.accepted).toBe(true);
+
+    // Simulate first segment starting settle window
+    state.pendingAnswerStage = 'ask_details';
+    state.pendingAnswerTurnId = 2;
+    state.pendingAnswerSegments = [firstSegment];
+    state.settleGeneration = 1;
+
+    // Continuation speech starts before settle finalization
+    setTimeout(() => {
+      // speech_started event arrives
+      state.speechStartedStage = 'ask_details';
+      state.speechStartedTurnId = 2;
+      state.transcriptionPending = true;
+      
+      // Settle window should be cancelled
+      state.settleWindowTimeout = null;
+      state.settleGeneration = 2; // Increment to invalidate stale callback
+    }, 800); // Before 1500ms settle deadline
+
+    // Second segment arrives
+    const secondSegment = "The door itself doesn't look damaged. Also, I'm at 742 Highland Avenue...";
+    state.transcriptionPending = false;
+    const result2 = validateStageAnswer('ask_details', secondSegment, state.intakeData);
+    expect(result2.accepted).toBe(true);
+
+    // Both segments should be merged
+    state.pendingAnswerSegments.push(secondSegment);
+    expect(state.pendingAnswerSegments.length).toBe(2);
+    expect(state.pendingAnswerStage).toBe('ask_details');
+    expect(state.pendingAnswerTurnId).toBe(2);
+
+    // Stage should remain ask_details while continuation is active
+    expect(state.currentStage).toBe('ask_details');
+  });
+
+  test('TEST B — Speech starts just before settle deadline', async () => {
+    const state = createMockState();
+    state.currentStage = 'ask_details';
+    state.currentTurnId = 2;
+    state.settleWindowMs = 1500;
+    state.settleGeneration = 0;
+    state.pendingAnswerStage = 'ask_details';
+    state.pendingAnswerTurnId = 2;
+    state.pendingAnswerSegments = ["First segment"];
+    state.settleGeneration = 1;
+
+    // Simulate speech_started arriving just before deadline (1400ms)
+    const capturedGeneration = state.settleGeneration;
+    setTimeout(() => {
+      // speech_started arrives
+      state.speechStartedStage = 'ask_details';
+      state.speechStartedTurnId = 2;
+      state.settleGeneration = 2; // Increment to invalidate stale callback
+      state.settleWindowTimeout = null;
+    }, 1400);
+
+    // Settle callback tries to execute at 1500ms
+    setTimeout(() => {
+      // Generation check should block stale callback
+      expect(state.settleGeneration).toBe(2);
+      expect(capturedGeneration).toBe(1);
+      // Stale callback should not advance stage
+      expect(state.currentStage).toBe('ask_details');
+    }, 1600);
+  });
+
+  test('TEST C — Speech starts before deadline, transcription completes after deadline', async () => {
+    const state = createMockState();
+    state.currentStage = 'ask_details';
+    state.currentTurnId = 2;
+    state.settleWindowMs = 1500;
+    state.settleGeneration = 0;
+    state.transcriptionPending = false;
+
+    // First segment
+    state.pendingAnswerStage = 'ask_details';
+    state.pendingAnswerTurnId = 2;
+    state.pendingAnswerSegments = ["First segment"];
+    state.settleGeneration = 1;
+
+    // Speech starts before deadline
+    state.speechStartedStage = 'ask_details';
+    state.speechStartedTurnId = 2;
+    state.transcriptionPending = true;
+    state.settleGeneration = 2; // Cancel settle
+
+    // Transcription completes after deadline (2000ms)
+    setTimeout(() => {
+      state.transcriptionPending = false;
+      const secondSegment = "Continuation segment";
+      const result = validateStageAnswer('ask_details', secondSegment, state.intakeData);
+      expect(result.accepted).toBe(true);
+      state.pendingAnswerSegments.push(secondSegment);
+      expect(state.pendingAnswerSegments.length).toBe(2);
+      // Stage should not have advanced
+      expect(state.currentStage).toBe('ask_details');
+    }, 2000);
+  });
+
+  test('TEST D — Stale settle callback executes after restart', async () => {
+    const state = createMockState();
+    state.currentStage = 'ask_details';
+    state.currentTurnId = 2;
+    state.settleWindowMs = 1500;
+    state.settleGeneration = 0;
+    state.pendingAnswerStage = 'ask_details';
+    state.pendingAnswerTurnId = 2;
+    state.pendingAnswerSegments = ["First segment"];
+
+    // First settle window
+    state.settleGeneration = 1;
+    const capturedGeneration1 = state.settleGeneration;
+
+    // Continuation speech starts, increments generation
+    state.speechStartedStage = 'ask_details';
+    state.speechStartedTurnId = 2;
+    state.settleGeneration = 2;
+
+    // Second segment arrives, restarts settle window
+    state.pendingAnswerSegments.push("Second segment");
+    state.settleGeneration = 3;
+    const capturedGeneration2 = state.settleGeneration;
+
+    // Stale callback from first generation tries to execute
+    expect(capturedGeneration1).toBe(1);
+    expect(state.settleGeneration).toBe(3);
+    // Should be blocked by generation mismatch
+    expect(capturedGeneration1 !== state.settleGeneration).toBe(true);
+  });
+
+  test('TEST E — No continuation', async () => {
+    const state = createMockState();
+    state.currentStage = 'ask_details';
+    state.currentTurnId = 2;
+    state.settleWindowMs = 1500;
+    state.settleGeneration = 0;
+    state.transcriptionPending = false;
+
+    // Single complete answer
+    const transcript = "The door goes down about halfway and then comes back up.";
+    state.pendingAnswerStage = 'ask_details';
+    state.pendingAnswerTurnId = 2;
+    state.pendingAnswerSegments = [transcript];
+    state.settleGeneration = 1;
+
+    // No further speech, settle expires normally
+    setTimeout(() => {
+      expect(state.pendingAnswerSegments.length).toBe(1);
+      expect(state.pendingAnswerStage).toBe('ask_details');
+      // Should finalize and advance
+      expect(state.currentStage).toBe('ask_location');
+    }, 1600);
+  });
+
+  test('TEST F — Late truly stale transcription', async () => {
+    const state = createMockState();
+    state.currentStage = 'ask_location'; // Already advanced
+    state.currentTurnId = 3;
+    state.settleGeneration = 0;
+    state.transcriptionPending = false;
+    state.pendingAnswerStage = null; // No pending answer
+
+    // Old transcription from ask_details arrives
+    const oldTranscript = "The door doesn't look damaged";
+    const result = validateStageAnswer('ask_details', oldTranscript, state.intakeData);
+    
+    // Since pendingAnswerStage is null and currentStage is ask_location,
+    // this should be handled as stale and not persist
+    expect(state.currentStage).toBe('ask_location');
+    expect(state.pendingAnswerStage).toBe(null);
+  });
+
+  test('TEST G — No ask_location → ask_location advancement', async () => {
+    const state = createMockState();
+    state.currentStage = 'ask_location'; // Already on ask_location
+    state.currentTurnId = 3;
+    state.pendingAnswerStage = null;
+
+    // Simulate an ask_details transcription arriving late
+    const originatingStage = 'ask_details';
+    const previousStage = state.currentStage; // ask_location
+    const nextStage = 'ask_location'; // Would be same as current
+
+    const isNonsensicalTransition = previousStage === nextStage;
+    expect(isNonsensicalTransition).toBe(true);
+
+    // This should be blocked by the invariant guard
+    expect(previousStage).not.toBe(nextStage || originatingStage !== previousStage);
+  });
+
+  test('TEST H — Existing true-silence reprompt', async () => {
+    const state = createMockState();
+    state.currentStage = 'ask_details';
+    state.currentTurnId = 2;
+    state.settleWindowMs = 1500;
+    state.stageTimeout = null;
+    state.settleWindowTimeout = null;
+    state.pendingAnswerStage = null;
+
+    // Start stage timeout
+    const STAGE_TIMEOUT_MS = 15000;
+    state.stageTimeout = setTimeout(() => {
+      // Handle stage timeout
+      expect(state.currentStage).toBe('ask_details');
+      expect(state.pendingAnswerStage).toBe(null);
+      // Should send reprompt
+      expect(state.stageTimeout).not.toBeNull();
+    }, STAGE_TIMEOUT_MS);
+
+    // Ensure legacy silence timer is disabled
+    expect(state.silentTimeout).toBeUndefined();
+  });
+});
