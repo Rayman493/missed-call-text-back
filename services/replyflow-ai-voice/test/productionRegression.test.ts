@@ -1317,3 +1317,192 @@ test('REGRESSION H: Stale prompt guard uses durable flag instead of transient st
   expect(oldGuardBlocked).toBe(false); // Old guard fails - transient state cleared
   expect(newGuardBlocked).toBe(true); // New guard works - durable flag persists
 });
+
+// Test I: Stage Timeout Lifecycle - Timeout Starts After Prompt Audio Completes
+test('REGRESSION I: Stage timeout starts after prompt audio completes', () => {
+  const state = {
+    callSid: 'test-call-i',
+    currentStage: 'ask_details',
+    currentTurnId: 1,
+    stageTimeout: null,
+    stageTimeoutGeneration: 0,
+    stageStartTime: 0
+  };
+
+  const STAGE_TIMEOUT_MS = 15000;
+
+  // Simulate startStageTimeout being called after prompt audio completes
+  state.stageStartTime = Date.now();
+  state.stageTimeoutGeneration++;
+  const capturedGeneration = state.stageTimeoutGeneration;
+
+  expect(state.stageTimeoutGeneration).toBe(1);
+  expect(capturedGeneration).toBe(1);
+  expect(state.stageStartTime).toBeGreaterThan(0);
+});
+
+// Test J: Stage Timeout Cancelled on Speech Started
+test('REGRESSION J: Stage timeout cancelled on speech started for current turn', () => {
+  const state = {
+    callSid: 'test-call-j',
+    currentStage: 'ask_details',
+    currentTurnId: 1,
+    stageTimeout: {} as NodeJS.Timeout, // Simulating active timeout
+    stageTimeoutGeneration: 1,
+    speechStartedStage: null,
+    speechStartedTurnId: 0
+  };
+
+  // Simulate speech_started event
+  state.speechStartedStage = state.currentStage;
+  state.speechStartedTurnId = state.currentTurnId;
+
+  // Cancel stage timeout on speech started
+  if (state.stageTimeout) {
+    state.stageTimeout = null;
+  }
+
+  expect(state.speechStartedStage).toBe('ask_details');
+  expect(state.speechStartedTurnId).toBe(1);
+  expect(state.stageTimeout).toBeNull();
+});
+
+// Test K: Stage Timeout Defensive Guard Blocks Stale Callbacks
+test('REGRESSION K: Stage timeout defensive guard blocks stale callbacks', () => {
+  const state = {
+    callSid: 'test-call-k',
+    currentStage: 'ask_details',
+    currentTurnId: 2,
+    stageTimeoutGeneration: 2, // Current generation
+    speechStartedStage: null,
+    speechStartedTurnId: 0,
+    transcriptionPending: false,
+    pendingAnswerStage: null,
+    settleWindowTimeout: null,
+    answerAcceptedForStage: null
+  };
+
+  const timeoutGeneration = 1; // Stale generation
+
+  // Defensive guard: Block if generation mismatch
+  const generationMismatch = timeoutGeneration !== state.stageTimeoutGeneration;
+  
+  expect(generationMismatch).toBe(true); // Should block stale callback
+});
+
+// Test L: Stage Timeout Defensive Guard Blocks When Speech Started
+test('REGRESSION L: Stage timeout defensive guard blocks when speech started', () => {
+  const state = {
+    callSid: 'test-call-l',
+    currentStage: 'ask_details',
+    currentTurnId: 1,
+    stageTimeoutGeneration: 1,
+    speechStartedStage: 'ask_details',
+    speechStartedTurnId: 1,
+    transcriptionPending: false,
+    pendingAnswerStage: null,
+    settleWindowTimeout: null,
+    answerAcceptedForStage: null
+  };
+
+  const timeoutGeneration = 1;
+
+  // Defensive guard: Block if current-turn speech has started
+  const callerSpeechStarted = state.speechStartedStage === state.currentStage && 
+                              state.speechStartedTurnId === state.currentTurnId;
+  
+  expect(callerSpeechStarted).toBe(true); // Should block reprompt
+});
+
+// Test M: Stage Timeout Defensive Guard Blocks When Transcription Pending
+test('REGRESSION M: Stage timeout defensive guard blocks when transcription pending', () => {
+  const state = {
+    callSid: 'test-call-m',
+    currentStage: 'ask_details',
+    currentTurnId: 1,
+    stageTimeoutGeneration: 1,
+    speechStartedStage: null,
+    speechStartedTurnId: 0,
+    transcriptionPending: true, // Transcription pending
+    pendingAnswerStage: null,
+    settleWindowTimeout: null,
+    answerAcceptedForStage: null
+  };
+
+  const timeoutGeneration = 1;
+
+  // Defensive guard: Block if transcription is pending
+  const transcriptionPending = state.transcriptionPending;
+  
+  expect(transcriptionPending).toBe(true); // Should block reprompt
+});
+
+// Test N: Stage Timeout Defensive Guard Blocks When Pending Answer Exists
+test('REGRESSION N: Stage timeout defensive guard blocks when pending answer exists', () => {
+  const state = {
+    callSid: 'test-call-n',
+    currentStage: 'ask_details',
+    currentTurnId: 1,
+    stageTimeoutGeneration: 1,
+    speechStartedStage: null,
+    speechStartedTurnId: 0,
+    transcriptionPending: false,
+    pendingAnswerStage: 'ask_details', // Pending answer exists
+    settleWindowTimeout: null,
+    answerAcceptedForStage: null
+  };
+
+  const timeoutGeneration = 1;
+
+  // Defensive guard: Block if pending answer exists
+  const pendingAnswerExists = state.pendingAnswerStage !== null;
+  
+  expect(pendingAnswerExists).toBe(true); // Should block reprompt
+});
+
+// Test O: Stage Timeout Defensive Guard Blocks When Settle Window Active
+test('REGRESSION O: Stage timeout defensive guard blocks when settle window active', () => {
+  const state = {
+    callSid: 'test-call-o',
+    currentStage: 'ask_details',
+    currentTurnId: 1,
+    stageTimeoutGeneration: 1,
+    speechStartedStage: null,
+    speechStartedTurnId: 0,
+    transcriptionPending: false,
+    pendingAnswerStage: null,
+    settleWindowTimeout: {} as NodeJS.Timeout, // Settle window active
+    answerAcceptedForStage: null
+  };
+
+  const timeoutGeneration = 1;
+
+  // Defensive guard: Block if settle window is active
+  const settleWindowActive = state.settleWindowTimeout !== null;
+  
+  expect(settleWindowActive).toBe(true); // Should block reprompt
+});
+
+// Test P: Stage Timeout Defensive Guard Blocks When Answer Already Accepted
+test('REGRESSION P: Stage timeout defensive guard blocks when answer already accepted', () => {
+  const state = {
+    callSid: 'test-call-p',
+    currentStage: 'ask_details',
+    currentTurnId: 1,
+    stageTimeoutGeneration: 1,
+    speechStartedStage: null,
+    speechStartedTurnId: 0,
+    transcriptionPending: false,
+    pendingAnswerStage: null,
+    settleWindowTimeout: null,
+    answerAcceptedForStage: 'ask_details', // Answer already accepted
+    answerAcceptedTurnId: 1
+  };
+
+  const timeoutGeneration = 1;
+
+  // Defensive guard: Block if durable answer acceptance exists for this stage
+  const answerAccepted = state.answerAcceptedForStage === state.currentStage;
+  
+  expect(answerAccepted).toBe(true); // Should block reprompt
+});

@@ -5566,6 +5566,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     // Stage timeout tracking
     stageStartTime: 0 as number,
     stageTimeout: null as NodeJS.Timeout | null,
+    stageTimeoutGeneration: 0 as number,
     silenceRetryCountByStage: {} as Record<string, number>,
     // Audio buffering state
     audioAccumulator: [] as Buffer[],
@@ -6591,20 +6592,117 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     }
 
     state.stageStartTime = Date.now();
+    state.stageTimeoutGeneration++; // Increment generation to invalidate stale callbacks
+    const capturedGeneration = state.stageTimeoutGeneration;
 
     // Set initial timeout
     state.stageTimeout = setTimeout(() => {
-      handleStageTimeout();
+      handleStageTimeout(capturedGeneration);
     }, STAGE_TIMEOUT_MS);
 
-    console.log('[STAGE TIMEOUT] =========================================');
-    console.log('[STAGE TIMEOUT] event: timeout_started');
-    console.log('[STAGE TIMEOUT] stage:', state.currentStage);
-    console.log('[STAGE TIMEOUT] timeoutMs:', STAGE_TIMEOUT_MS);
-    console.log('[STAGE TIMEOUT] =========================================');
+    console.log('[STAGE TIMEOUT LIFECYCLE] =========================================');
+    console.log('[STAGE TIMEOUT LIFECYCLE] event: waiting_for_answer_start');
+    console.log('[STAGE TIMEOUT LIFECYCLE] callSid:', state.callSid);
+    console.log('[STAGE TIMEOUT LIFECYCLE] stage:', state.currentStage);
+    console.log('[STAGE TIMEOUT LIFECYCLE] turnId:', state.currentTurnId);
+    console.log('[STAGE TIMEOUT LIFECYCLE] generation:', capturedGeneration);
+    console.log('[STAGE TIMEOUT LIFECYCLE] timeoutMs:', STAGE_TIMEOUT_MS);
+    console.log('[STAGE TIMEOUT LIFECYCLE] timestamp:', new Date().toISOString());
+    console.log('[STAGE TIMEOUT LIFECYCLE] =========================================');
   };
 
-  const handleStageTimeout = () => {
+  const handleStageTimeout = (timeoutGeneration: number) => {
+    console.log('[STAGE TIMEOUT LIFECYCLE] =========================================');
+    console.log('[STAGE TIMEOUT LIFECYCLE] event: timeout_callback_validation');
+    console.log('[STAGE TIMEOUT LIFECYCLE] callSid:', state.callSid);
+    console.log('[STAGE TIMEOUT LIFECYCLE] authorizedGeneration:', timeoutGeneration);
+    console.log('[STAGE TIMEOUT LIFECYCLE] currentGeneration:', state.stageTimeoutGeneration);
+    console.log('[STAGE TIMEOUT LIFECYCLE] authorizedStage:', state.currentStage);
+    console.log('[STAGE TIMEOUT LIFECYCLE] authorizedTurnId:', state.currentTurnId);
+    console.log('[STAGE TIMEOUT LIFECYCLE] speechStartedStage:', state.speechStartedStage);
+    console.log('[STAGE TIMEOUT LIFECYCLE] speechStartedTurnId:', state.speechStartedTurnId);
+    console.log('[STAGE TIMEOUT LIFECYCLE] transcriptionPending:', state.transcriptionPending);
+    console.log('[STAGE TIMEOUT LIFECYCLE] pendingAnswerStage:', state.pendingAnswerStage);
+    console.log('[STAGE TIMEOUT LIFECYCLE] settleWindowActive:', !!state.settleWindowTimeout);
+    console.log('[STAGE TIMEOUT LIFECYCLE] answerAcceptedForStage:', state.answerAcceptedForStage);
+    console.log('[STAGE TIMEOUT LIFECYCLE] timestamp:', new Date().toISOString());
+    console.log('[STAGE TIMEOUT LIFECYCLE] =========================================');
+
+    // Defensive guard: Block if generation mismatch (stale callback)
+    if (timeoutGeneration !== state.stageTimeoutGeneration) {
+      console.log('[STAGE TIMEOUT LIFECYCLE] =========================================');
+      console.log('[STAGE TIMEOUT LIFECYCLE] event: timeout_reprompt_blocked');
+      console.log('[STAGE TIMEOUT LIFECYCLE] reason: stale_generation_mismatch');
+      console.log('[STAGE TIMEOUT LIFECYCLE] action: blocked');
+      console.log('[STAGE TIMEOUT LIFECYCLE] timestamp:', new Date().toISOString());
+      console.log('[STAGE TIMEOUT LIFECYCLE] =========================================');
+      return;
+    }
+
+    // Defensive guard: Block if current-turn speech has started
+    const callerSpeechStarted = state.speechStartedStage === state.currentStage && 
+                               state.speechStartedTurnId === state.currentTurnId;
+    if (callerSpeechStarted) {
+      console.log('[STAGE TIMEOUT LIFECYCLE] =========================================');
+      console.log('[STAGE TIMEOUT LIFECYCLE] event: timeout_reprompt_blocked');
+      console.log('[STAGE TIMEOUT LIFECYCLE] reason: caller_answer_in_progress');
+      console.log('[STAGE TIMEOUT LIFECYCLE] action: blocked');
+      console.log('[STAGE TIMEOUT LIFECYCLE] timestamp:', new Date().toISOString());
+      console.log('[STAGE TIMEOUT LIFECYCLE] =========================================');
+      return;
+    }
+
+    // Defensive guard: Block if transcription is pending
+    if (state.transcriptionPending) {
+      console.log('[STAGE TIMEOUT LIFECYCLE] =========================================');
+      console.log('[STAGE TIMEOUT LIFECYCLE] event: timeout_reprompt_blocked');
+      console.log('[STAGE TIMEOUT LIFECYCLE] reason: transcription_pending');
+      console.log('[STAGE TIMEOUT LIFECYCLE] action: blocked');
+      console.log('[STAGE TIMEOUT LIFECYCLE] timestamp:', new Date().toISOString());
+      console.log('[STAGE TIMEOUT LIFECYCLE] =========================================');
+      return;
+    }
+
+    // Defensive guard: Block if pending answer exists (transient state)
+    if (state.pendingAnswerStage) {
+      console.log('[STAGE TIMEOUT LIFECYCLE] =========================================');
+      console.log('[STAGE TIMEOUT LIFECYCLE] event: timeout_reprompt_blocked');
+      console.log('[STAGE TIMEOUT LIFECYCLE] reason: pending_answer_processing');
+      console.log('[STAGE TIMEOUT LIFECYCLE] action: blocked');
+      console.log('[STAGE TIMEOUT LIFECYCLE] timestamp:', new Date().toISOString());
+      console.log('[STAGE TIMEOUT LIFECYCLE] =========================================');
+      return;
+    }
+
+    // Defensive guard: Block if settle window is active
+    if (state.settleWindowTimeout) {
+      console.log('[STAGE TIMEOUT LIFECYCLE] =========================================');
+      console.log('[STAGE TIMEOUT LIFECYCLE] event: timeout_reprompt_blocked');
+      console.log('[STAGE TIMEOUT LIFECYCLE] reason: settle_window_processing');
+      console.log('[STAGE TIMEOUT LIFECYCLE] action: blocked');
+      console.log('[STAGE TIMEOUT LIFECYCLE] timestamp:', new Date().toISOString());
+      console.log('[STAGE TIMEOUT LIFECYCLE] =========================================');
+      return;
+    }
+
+    // Defensive guard: Block if durable answer acceptance exists for this stage
+    if (state.answerAcceptedForStage === state.currentStage) {
+      console.log('[STAGE TIMEOUT LIFECYCLE] =========================================');
+      console.log('[STAGE TIMEOUT LIFECYCLE] event: timeout_reprompt_blocked');
+      console.log('[STAGE TIMEOUT LIFECYCLE] reason: answer_already_accepted');
+      console.log('[STAGE TIMEOUT LIFECYCLE] action: blocked');
+      console.log('[STAGE TIMEOUT LIFECYCLE] timestamp:', new Date().toISOString());
+      console.log('[STAGE TIMEOUT LIFECYCLE] =========================================');
+      return;
+    }
+
+    console.log('[STAGE TIMEOUT LIFECYCLE] =========================================');
+    console.log('[STAGE TIMEOUT LIFECYCLE] event: timeout_reprompt_allowed');
+    console.log('[STAGE TIMEOUT LIFECYCLE] reason: waiting_for_answer_start');
+    console.log('[STAGE TIMEOUT LIFECYCLE] action: proceeding');
+    console.log('[STAGE TIMEOUT LIFECYCLE] timestamp:', new Date().toISOString());
+    console.log('[STAGE TIMEOUT LIFECYCLE] =========================================');
+
     if (state.currentStage === 'complete' || state.completionPersistenceStarted) {
       return; // Don't timeout if we're already completing
     }
@@ -6625,7 +6723,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         state.stageTimeout = null;
       }
       state.stageTimeout = setTimeout(() => {
-        handleStageTimeout();
+        handleStageTimeout(timeoutGeneration);
       }, STAGE_TIMEOUT_MS);
       return;
     }
@@ -9225,6 +9323,22 @@ Reply to this message if you'd like to update or add any information.
             state.pendingTranscriptionGeneration = state.speechGeneration;
             state.transcriptionPending = true;
             state.lastDetectedSpeechAt = speechStartedAt;
+
+            // CRITICAL FIX: Cancel stage timeout immediately when speech starts for current turn
+            // Stage timeout only governs waiting for answer start, not answer duration
+            if (state.stageTimeout) {
+              clearTimeout(state.stageTimeout);
+              state.stageTimeout = null;
+              console.log('[STAGE TIMEOUT LIFECYCLE] =========================================');
+              console.log('[STAGE TIMEOUT LIFECYCLE] event: timeout_cancelled_on_speech_start');
+              console.log('[STAGE TIMEOUT LIFECYCLE] callSid:', state.callSid);
+              console.log('[STAGE TIMEOUT LIFECYCLE] stage:', state.currentStage);
+              console.log('[STAGE TIMEOUT LIFECYCLE] turnId:', state.currentTurnId);
+              console.log('[STAGE TIMEOUT LIFECYCLE] generation:', state.stageTimeoutGeneration);
+              console.log('[STAGE TIMEOUT LIFECYCLE] reason: caller_answer_in_progress');
+              console.log('[STAGE TIMEOUT LIFECYCLE] timestamp:', new Date().toISOString());
+              console.log('[STAGE TIMEOUT LIFECYCLE] =========================================');
+            }
             
             // TRANSCRIPTION OWNERSHIP DIAGNOSTIC LOGGING
             console.log('[TRANSCRIPTION OWNERSHIP] =========================================');
