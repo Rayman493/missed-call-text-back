@@ -46,8 +46,46 @@ export default function AchievementsModal({ isOpen, onClose, achievements }: Ach
   }, [achievements])
 
   const list = useMemo(() => {
-    if (activeCategory === 'all') return achievements
-    return achievements.filter(a => a.category === activeCategory)
+    let filtered = activeCategory === 'all'
+      ? [...achievements]
+      : achievements.filter(a => a.category === activeCategory)
+
+    // Sort achievements by meaningful user progress
+    filtered.sort((a, b) => {
+      // Priority 1: Unlocked achievements first
+      if (a.earned && !b.earned) return -1
+      if (!a.earned && b.earned) return 1
+
+      // Both unlocked: newest first by earnedAt timestamp
+      if (a.earned && b.earned) {
+        const dateA = a.earnedAt ? new Date(a.earnedAt).getTime() : 0
+        const dateB = b.earnedAt ? new Date(b.earnedAt).getTime() : 0
+        if (dateA !== dateB) return dateB - dateA
+        // Fallback to original order if timestamps equal or missing
+        return 0
+      }
+
+      // Both locked: check progress
+      const progressA = (a.progressCurrent ?? 0) / (a.progressTarget ?? 1)
+      const progressB = (b.progressCurrent ?? 0) / (b.progressTarget ?? 1)
+
+      // Priority 2: In-progress achievements before no-progress
+      const hasProgressA = progressA > 0
+      const hasProgressB = progressB > 0
+
+      if (hasProgressA && !hasProgressB) return -1
+      if (!hasProgressA && hasProgressB) return 1
+
+      // Both in-progress: highest completion percentage first
+      if (hasProgressA && hasProgressB) {
+        if (progressA !== progressB) return progressB - progressA
+      }
+
+      // Preserve original order for no-progress or equal progress
+      return 0
+    })
+
+    return filtered
   }, [achievements, activeCategory])
 
   // Intercept Android and browser back while modal is open to close it first.
