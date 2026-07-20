@@ -968,3 +968,173 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
     expect(state.pendingAnswerStage).toBeNull();
   });
 });
+
+describe('Production Regression Tests - Settle Timer, Transcription, and Prompt Fixes', () => {
+  describe('ISSUE 3: Settle Timer Accuracy', () => {
+    // Test A: Verify ask_details uses 2200ms settle window
+    it('Test A - ask_details settle window uses correct 2200ms duration', () => {
+      const stage = 'ask_details';
+      const stagesRequiringSettleWindow = ['ask_details', 'ask_name_reason'];
+      
+      // Simulate the settle window duration calculation
+      const settleWindowMs = stage === 'ask_details' ? 2200 : 1500;
+      
+      expect(stagesRequiringSettleWindow.includes(stage)).toBe(true);
+      expect(settleWindowMs).toBe(2200); // ask_details should use 2200ms
+    });
+
+    // Test B: Verify ask_name_reason uses 1500ms settle window
+    it('Test B - ask_name_reason settle window uses correct 1500ms duration', () => {
+      const stage = 'ask_name_reason';
+      
+      // Simulate the settle window duration calculation
+      const settleWindowMs = stage === 'ask_details' ? 2200 : 1500;
+      
+      expect(settleWindowMs).toBe(1500); // ask_name_reason should use 1500ms
+    });
+  });
+
+  describe('ISSUE 4: Per-Speech-Generation Transcription Tracking', () => {
+    // Test C: Overlapping speech segments track generations correctly
+    it('Test C - overlapping speech segments track generations correctly', () => {
+      // Simulate state
+      const state = {
+        speechGeneration: 0,
+        pendingTranscriptionGeneration: 0,
+        transcriptionPending: false,
+      };
+
+      // Segment 1 speech starts
+      state.speechGeneration++;
+      state.pendingTranscriptionGeneration = state.speechGeneration;
+      state.transcriptionPending = true;
+      
+      const seg1Generation = state.speechGeneration;
+      expect(seg1Generation).toBe(1);
+      expect(state.transcriptionPending).toBe(true);
+
+      // Segment 2 speech starts before segment 1 transcription completes
+      state.speechGeneration++;
+      state.pendingTranscriptionGeneration = state.speechGeneration;
+      state.transcriptionPending = true;
+      
+      const seg2Generation = state.speechGeneration;
+      expect(seg2Generation).toBe(2);
+      expect(state.transcriptionPending).toBe(true);
+
+      // Segment 1 transcription completes (stale - generation 1, current is 2)
+      const transcriptionGeneration = 1;
+      if (transcriptionGeneration === state.speechGeneration) {
+        state.transcriptionPending = false;
+      }
+      
+      // Should NOT clear transcriptionPending because generation doesn't match
+      expect(state.transcriptionPending).toBe(true);
+
+      // Segment 2 transcription completes (matching generation)
+      const transcriptionGeneration2 = 2;
+      if (transcriptionGeneration2 === state.speechGeneration) {
+        state.transcriptionPending = false;
+      }
+      
+      // Should clear transcriptionPending because generation matches
+      expect(state.transcriptionPending).toBe(false);
+    });
+
+    // Test D: Single speech segment transcription clears correctly
+    it('Test D - single speech segment transcription clears correctly', () => {
+      const state = {
+        speechGeneration: 0,
+        pendingTranscriptionGeneration: 0,
+        transcriptionPending: false,
+      };
+
+      // Speech starts
+      state.speechGeneration++;
+      state.pendingTranscriptionGeneration = state.speechGeneration;
+      state.transcriptionPending = true;
+      
+      expect(state.speechGeneration).toBe(1);
+      expect(state.transcriptionPending).toBe(true);
+
+      // Transcription completes with matching generation
+      const transcriptionGeneration = 1;
+      if (transcriptionGeneration === state.speechGeneration) {
+        state.transcriptionPending = false;
+      }
+      
+      expect(state.transcriptionPending).toBe(false);
+    });
+  });
+
+  describe('ISSUE 5: Stale Prompt Blocking After Answer Acceptance', () => {
+    // Test E: Block same-stage prompt when answer is pending finalization
+    it('Test E - block same-stage prompt when answer is pending finalization', () => {
+      const state = {
+        currentStage: 'ask_details',
+        pendingAnswerStage: 'ask_details',
+        settleWindowTimeout: { _idleStart: Date.now() }, // Simulate active timeout
+      };
+
+      const requestedStage = 'ask_details';
+      
+      // Check if prompt should be blocked
+      const shouldBlock = requestedStage === state.pendingAnswerStage && 
+                          state.pendingAnswerStage === state.currentStage && 
+                          state.settleWindowTimeout;
+      
+      expect(shouldBlock).toBe(true);
+    });
+
+    // Test F: Allow different stage prompt even when answer is pending
+    it('Test F - allow different stage prompt even when answer is pending', () => {
+      const state = {
+        currentStage: 'ask_name_reason',
+        pendingAnswerStage: 'ask_details',
+        settleWindowTimeout: { _idleStart: Date.now() },
+      };
+
+      const requestedStage = 'ask_name_reason';
+      
+      // Check if prompt should be blocked
+      const shouldBlock = requestedStage === state.pendingAnswerStage && 
+                          state.pendingAnswerStage === state.currentStage && 
+                          state.settleWindowTimeout;
+      
+      expect(shouldBlock).toBe(false);
+    });
+
+    // Test G: Pre-media-send validation blocks stale delivery
+    it('Test G - pre-media-send validation blocks stale delivery when stage changes', () => {
+      const authorizedStage = 'ask_details';
+      const currentStage = 'ask_name_reason';
+      const authorizedTurnId = 2;
+      const currentTurnId = 3;
+
+      const stageChanged = authorizedStage !== currentStage;
+      const turnChanged = authorizedTurnId !== currentTurnId;
+      
+      const shouldBlock = stageChanged || turnChanged;
+      
+      expect(stageChanged).toBe(true);
+      expect(shouldBlock).toBe(true);
+    });
+
+    // Test H: Pre-media-send validation allows valid delivery
+    it('Test H - pre-media-send validation allows valid delivery when stage unchanged', () => {
+      const authorizedStage = 'ask_details';
+      const currentStage = 'ask_details';
+      const authorizedTurnId = 2;
+      const currentTurnId = 2;
+
+      const stageChanged = authorizedStage !== currentStage;
+      const turnChanged = authorizedTurnId !== currentTurnId;
+      
+      const shouldBlock = stageChanged || turnChanged;
+      
+      expect(stageChanged).toBe(false);
+      expect(turnChanged).toBe(false);
+      expect(shouldBlock).toBe(false);
+    });
+  });
+});

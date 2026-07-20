@@ -5615,6 +5615,9 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     settleWindowMs: 1500,
     settleGeneration: 0,
     transcriptionPending: false,
+    // Per-speech-generation transcription tracking to prevent overlap bugs
+    speechGeneration: 0,
+    pendingTranscriptionGeneration: 0,
     // Caller audio activity timing for pause detection
     lastInboundAudioAt: 0,
     lastDetectedSpeechAt: 0,
@@ -8227,6 +8230,41 @@ Reply to this message if you'd like to update or add any information.
     console.log('[PROMPT IDEMPOTENCY] action: allowed');
     console.log('[PROMPT IDEMPOTENCY] Timestamp:', new Date().toISOString());
     console.log('[PROMPT IDEMPOTENCY] =========================================');
+    
+    // PROMPT SOURCE TRACE DIAGNOSTIC LOGGING
+    console.log('[PROMPT SOURCE TRACE] =========================================');
+    console.log('[PROMPT SOURCE TRACE] callSid:', state.callSid);
+    console.log('[PROMPT SOURCE TRACE] stage:', stage);
+    console.log('[PROMPT SOURCE TRACE] promptKey:', promptKey);
+    console.log('[PROMPT SOURCE TRACE] source:', source);
+    console.log('[PROMPT SOURCE TRACE] deliveryIdentity:', deliveryIdentity);
+    console.log('[PROMPT SOURCE TRACE] currentStage:', state.currentStage);
+    console.log('[PROMPT SOURCE TRACE] currentTurnId:', state.currentTurnId);
+    console.log('[PROMPT SOURCE TRACE] pendingAnswerStage:', state.pendingAnswerStage);
+    console.log('[PROMPT SOURCE TRACE] answerAccepted:', !!state.pendingAnswerStage);
+    console.log('[PROMPT SOURCE TRACE] finalizationPending:', !!state.settleWindowTimeout);
+    console.log('[PROMPT SOURCE TRACE] action:', 'prompt_delivery_authorized');
+    console.log('[PROMPT SOURCE TRACE] timestamp:', new Date().toISOString());
+    console.log('[PROMPT SOURCE TRACE] =========================================');
+    
+    // Block stale same-stage prompts after answer acceptance
+    // Once a valid answer is accepted and pending finalization, no new same-stage prompt should be allowed
+    if (stage === state.pendingAnswerStage && state.pendingAnswerStage === state.currentStage && state.settleWindowTimeout) {
+      console.log('[PROMPT STALENESS GUARD] =========================================');
+      console.log('[PROMPT STALENESS GUARD] event: prompt_blocked_stale_same_stage');
+      console.log('[PROMPT STALENESS GUARD] callSid:', state.callSid);
+      console.log('[PROMPT STALENESS GUARD] requestedStage:', stage);
+      console.log('[PROMPT STALENESS GUARD] currentStage:', state.currentStage);
+      console.log('[PROMPT STALENESS GUARD] pendingAnswerStage:', state.pendingAnswerStage);
+      console.log('[PROMPT STALENESS GUARD] settleWindowActive:', true);
+      console.log('[PROMPT STALENESS GUARD] promptKey:', promptKey);
+      console.log('[PROMPT STALENESS GUARD] source:', source);
+      console.log('[PROMPT STALENESS GUARD] reason: answer_already_accepted_pending_finalization');
+      console.log('[PROMPT STALENESS GUARD] action: blocked');
+      console.log('[PROMPT STALENESS GUARD] timestamp:', new Date().toISOString());
+      console.log('[PROMPT STALENESS GUARD] =========================================');
+      return;
+    }
 
     // Log reprompt-specific information
     if (deliveryType === 'reprompt') {
@@ -8414,6 +8452,41 @@ Reply to this message if you'd like to update or add any information.
         }
 
         for (let i = 0; i < audioBuffer.length; i += chunkSize) {
+          // Pre-media-send validation: check if stage has changed since authorization
+          if (i === 0) {
+            const stageChanged = stage !== state.currentStage;
+            const turnChanged = authorizedTurnId !== state.currentTurnId;
+            
+            console.log('[PROMPT PRE-SEND VALIDATION] =========================================');
+            console.log('[PROMPT PRE-SEND VALIDATION] callSid:', state.callSid);
+            console.log('[PROMPT PRE-SEND VALIDATION] expectedStage:', stage);
+            console.log('[PROMPT PRE-SEND VALIDATION] currentStage:', state.currentStage);
+            console.log('[PROMPT PRE-SEND VALIDATION] expectedTurnId:', authorizedTurnId);
+            console.log('[PROMPT PRE-SEND VALIDATION] currentTurnId:', state.currentTurnId);
+            console.log('[PROMPT PRE-SEND VALIDATION] deliveryIdentity:', deliveryIdentity);
+            console.log('[PROMPT PRE-SEND VALIDATION] stageChanged:', stageChanged);
+            console.log('[PROMPT PRE-SEND VALIDATION] turnChanged:', turnChanged);
+            
+            if (stageChanged || turnChanged) {
+              console.log('[PROMPT PRE-SEND VALIDATION] allowed:', false);
+              console.log('[PROMPT PRE-SEND VALIDATION] reason:', stageChanged ? 'stage_changed_since_authorization' : 'turn_changed_since_authorization');
+              console.log('[PROMPT PRE-SEND VALIDATION] action:', 'blocked_stale_delivery');
+              console.log('[PROMPT PRE-SEND VALIDATION] timestamp:', new Date().toISOString());
+              console.log('[PROMPT PRE-SEND VALIDATION] =========================================');
+              
+              // Reset assistantSpeaking to allow the conversation to continue
+              state.assistantSpeaking = false;
+              state.promptAudioStartedAt = 0;
+              return;
+            }
+            
+            console.log('[PROMPT PRE-SEND VALIDATION] allowed:', true);
+            console.log('[PROMPT PRE-SEND VALIDATION] reason:', 'stage_and_turn_still_valid');
+            console.log('[PROMPT PRE-SEND VALIDATION] action:', 'media_send_proceeding');
+            console.log('[PROMPT PRE-SEND VALIDATION] timestamp:', new Date().toISOString());
+            console.log('[PROMPT PRE-SEND VALIDATION] =========================================');
+          }
+          
           if (state.cachedPlaybackInterrupted) {
             console.log('[SIMPLE MODE] =========================================');
             console.log('[SIMPLE MODE] event: cached_prompt_playback_interrupted');
@@ -9030,8 +9103,23 @@ Reply to this message if you'd like to update or add any information.
             // Track originating stage for cross-stage attribution prevention
             state.speechStartedStage = state.currentStage;
             state.speechStartedTurnId = state.currentTurnId;
+            // Increment speech generation to track individual speech segments
+            state.speechGeneration++;
+            state.pendingTranscriptionGeneration = state.speechGeneration;
             state.transcriptionPending = true;
             state.lastDetectedSpeechAt = speechStartedAt;
+            
+            // TRANSCRIPTION OWNERSHIP DIAGNOSTIC LOGGING
+            console.log('[TRANSCRIPTION OWNERSHIP] =========================================');
+            console.log('[TRANSCRIPTION OWNERSHIP] event:', 'speech_segment_started');
+            console.log('[TRANSCRIPTION OWNERSHIP] callSid:', state.callSid);
+            console.log('[TRANSCRIPTION OWNERSHIP] stage:', state.currentStage);
+            console.log('[TRANSCRIPTION OWNERSHIP] turnId:', state.currentTurnId);
+            console.log('[TRANSCRIPTION OWNERSHIP] speechGeneration:', state.speechGeneration);
+            console.log('[TRANSCRIPTION OWNERSHIP] pendingTranscriptionGeneration:', state.pendingTranscriptionGeneration);
+            console.log('[TRANSCRIPTION OWNERSHIP] transcriptionPending:', true);
+            console.log('[TRANSCRIPTION OWNERSHIP] timestamp:', new Date().toISOString());
+            console.log('[TRANSCRIPTION OWNERSHIP] =========================================');
             
             // CONTINUATION DETECTION TIMING DIAGNOSTIC LOGGING
             if (state.settleWindowTimeout && state.pendingAnswerStage) {
@@ -9614,8 +9702,45 @@ Reply to this message if you'd like to update or add any information.
             // User transcription completed
             const transcriptionCompletedAt = Date.now();
             const transcript = message.transcript || '';
+            const transcriptionGeneration = state.speechStartedTurnId === state.currentTurnId ? state.speechGeneration : state.pendingTranscriptionGeneration;
+            
+            // TRANSCRIPTION OWNERSHIP DIAGNOSTIC LOGGING
+            console.log('[TRANSCRIPTION OWNERSHIP] =========================================');
+            console.log('[TRANSCRIPTION OWNERSHIP] event:', 'transcription_received');
+            console.log('[TRANSCRIPTION OWNERSHIP] callSid:', state.callSid);
+            console.log('[TRANSCRIPTION OWNERSHIP] stage:', state.currentStage);
+            console.log('[TRANSCRIPTION OWNERSHIP] currentTurnId:', state.currentTurnId);
+            console.log('[TRANSCRIPTION OWNERSHIP] speechStartedTurnId:', state.speechStartedTurnId);
+            console.log('[TRANSCRIPTION OWNERSHIP] transcriptionGeneration:', transcriptionGeneration);
+            console.log('[TRANSCRIPTION OWNERSHIP] currentSpeechGeneration:', state.speechGeneration);
+            console.log('[TRANSCRIPTION OWNERSHIP] pendingTranscriptionGeneration:', state.pendingTranscriptionGeneration);
+            console.log('[TRANSCRIPTION OWNERSHIP] isStale:', transcriptionGeneration !== state.speechGeneration);
+            console.log('[TRANSCRIPTION OWNERSHIP] transcriptionPending:', state.transcriptionPending);
+            console.log('[TRANSCRIPTION OWNERSHIP] timestamp:', new Date().toISOString());
+            console.log('[TRANSCRIPTION OWNERSHIP] =========================================');
+            
+            // Only clear transcriptionPending if this transcription matches the current speech generation
+            // This prevents an older transcription from clearing pending state for a newer continuation
+            if (transcriptionGeneration === state.speechGeneration) {
+              state.transcriptionPending = false;
+              console.log('[TRANSCRIPTION OWNERSHIP] =========================================');
+              console.log('[TRANSCRIPTION OWNERSHIP] event:', 'transcription_completed_matching');
+              console.log('[TRANSCRIPTION OWNERSHIP] action:', 'transcription_pending_cleared');
+              console.log('[TRANSCRIPTION OWNERSHIP] generation:', transcriptionGeneration);
+              console.log('[TRANSCRIPTION OWNERSHIP] timestamp:', new Date().toISOString());
+              console.log('[TRANSCRIPTION OWNERSHIP] =========================================');
+            } else {
+              console.log('[TRANSCRIPTION OWNERSHIP] =========================================');
+              console.log('[TRANSCRIPTION OWNERSHIP] event:', 'transcription_completed_stale');
+              console.log('[TRANSCRIPTION OWNERSHIP] action:', 'transcription_pending_preserved');
+              console.log('[TRANSCRIPTION OWNERSHIP] transcriptionGeneration:', transcriptionGeneration);
+              console.log('[TRANSCRIPTION OWNERSHIP] currentSpeechGeneration:', state.speechGeneration);
+              console.log('[TRANSCRIPTION OWNERSHIP] reason:', 'older_transcription_newer_speech_in_flight');
+              console.log('[TRANSCRIPTION OWNERSHIP] timestamp:', new Date().toISOString());
+              console.log('[TRANSCRIPTION OWNERSHIP] =========================================');
+            }
+            
             state.transcript += ' ' + transcript;
-            state.transcriptionPending = false;
             state.lastTranscriptionCompletedAt = transcriptionCompletedAt;
 
             // Use originating stage for attribution (speech started stage)
@@ -9806,6 +9931,22 @@ Reply to this message if you'd like to update or add any information.
                   console.log('[ANSWER SETTLE WINDOW] timestamp:', new Date().toISOString());
                   console.log('[ANSWER SETTLE WINDOW] =========================================');
                   
+                  // SETTLE TIMER CREATION DIAGNOSTIC LOGGING
+                  const timerCreatedAt = Date.now();
+                  const expectedFireAt = timerCreatedAt + settleWindowMs;
+                  console.log('[SETTLE TIMER CREATION] =========================================');
+                  console.log('[SETTLE TIMER CREATION] callSid:', state.callSid);
+                  console.log('[SETTLE TIMER CREATION] stage:', originatingStage);
+                  console.log('[SETTLE TIMER CREATION] turnId:', originatingTurnId);
+                  console.log('[SETTLE TIMER CREATION] selectedDelayMs:', settleWindowMs);
+                  console.log('[SETTLE TIMER CREATION] actualSetTimeoutArgument:', settleWindowMs);
+                  console.log('[SETTLE TIMER CREATION] timerSource:', 'transcription_completed_handler');
+                  console.log('[SETTLE TIMER CREATION] generation:', capturedGeneration);
+                  console.log('[SETTLE TIMER CREATION] createdAt:', timerCreatedAt);
+                  console.log('[SETTLE TIMER CREATION] expectedFireAt:', expectedFireAt);
+                  console.log('[SETTLE TIMER CREATION] timestamp:', new Date().toISOString());
+                  console.log('[SETTLE TIMER CREATION] =========================================');
+                  
                   // Start settle window
                   state.settleWindowTimeout = setTimeout(() => {
                     const settleCallbackAt = Date.now();
@@ -9922,7 +10063,7 @@ Reply to this message if you'd like to update or add any information.
                     console.log('[LOGICAL TURN LIFECYCLE] nextStage:', state.currentStage);
                     console.log('[LOGICAL TURN LIFECYCLE] timestamp:', new Date().toISOString());
                     console.log('[LOGICAL TURN LIFECYCLE] =========================================');
-                  }, state.settleWindowMs);
+                  }, settleWindowMs);
                   
                   // Don't persist or advance immediately - wait for settle window
                   return;
