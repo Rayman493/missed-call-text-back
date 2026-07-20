@@ -463,6 +463,28 @@ function isWithinBusinessHours(business: any): boolean {
   return withinBusinessHours
 }
 
+// Helper function to clear pending answer state
+// This must be called on every stage finalization to prevent cross-stage leakage
+function clearPendingAnswerState(state: any, reason: string): void {
+  console.log('[PENDING ANSWER STATE CLEARANCE] =========================================');
+  console.log('[PENDING ANSWER STATE CLEARANCE] event: state_cleared');
+  console.log('[PENDING ANSWER STATE CLEARANCE] reason:', reason);
+  console.log('[PENDING ANSWER STATE CLEARANCE] previousStage:', state.pendingAnswerStage);
+  console.log('[PENDING ANSWER STATE CLEARANCE] previousTurnId:', state.pendingAnswerTurnId);
+  console.log('[PENDING ANSWER STATE CLEARANCE] segmentCount:', state.pendingAnswerSegments?.length || 0);
+  console.log('[PENDING ANSWER STATE CLEARANCE] timestamp:', new Date().toISOString());
+  console.log('[PENDING ANSWER STATE CLEARANCE] =========================================');
+
+  state.pendingAnswerStage = null;
+  state.pendingAnswerSegments = [];
+  state.pendingAnswerTurnId = 0;
+  state.settleWindowTimeout = null;
+  state.settleGraceTimeout = null;
+  
+  // Note: answerAcceptedForStage and answerAcceptedTurnId are preserved for durable state
+  // They are cleared separately on stage advancement to maintain proper lifecycle
+}
+
 // Retry helper function for Supabase operations with exponential backoff
 async function retrySupabaseOperation<T>(
   operation: () => Promise<T>,
@@ -10164,6 +10186,22 @@ Reply to this message if you'd like to update or add any information.
                 // Settle window for long natural answers (ask_details, ask_name_reason) OR continuation speech
                 // Uses the generalized requiresSettleWindow variable computed above
                 if (requiresSettleWindow && originatingStage === state.currentStage) {
+                  // Defensive reset: if pending state belongs to a different stage/turn, clear it first
+                  if (state.pendingAnswerStage && 
+                      (state.pendingAnswerStage !== originatingStage || state.pendingAnswerTurnId !== originatingTurnId)) {
+                    console.log('[PENDING ANSWER STATE DEFENSIVE RESET] =========================================');
+                    console.log('[PENDING ANSWER STATE DEFENSIVE RESET] event: stale_pending_state_detected');
+                    console.log('[PENDING ANSWER STATE DEFENSIVE RESET] expectedStage:', originatingStage);
+                    console.log('[PENDING ANSWER STATE DEFENSIVE RESET] expectedTurnId:', originatingTurnId);
+                    console.log('[PENDING ANSWER STATE DEFENSIVE RESET] staleStage:', state.pendingAnswerStage);
+                    console.log('[PENDING ANSWER STATE DEFENSIVE RESET] staleTurnId:', state.pendingAnswerTurnId);
+                    console.log('[PENDING ANSWER STATE DEFENSIVE RESET] action: clearing_stale_state');
+                    console.log('[PENDING ANSWER STATE DEFENSIVE RESET] timestamp:', new Date().toISOString());
+                    console.log('[PENDING ANSWER STATE DEFENSIVE RESET] =========================================');
+                    
+                    clearPendingAnswerState(state, 'defensive_reset_stale_stage_turn_mismatch');
+                  }
+                  
                   // Store as pending answer and start settle window
                   const isFirstSegment = !state.pendingAnswerStage;
                   
@@ -10475,10 +10513,7 @@ Reply to this message if you'd like to update or add any information.
                           state.currentTurnId++;
 
                           const finalStage = state.pendingAnswerStage!;
-                          state.pendingAnswerStage = null;
-                          state.pendingAnswerSegments = [];
-                          state.pendingAnswerTurnId = 0;
-                          state.settleWindowTimeout = null;
+                          clearPendingAnswerState(state, 'settle_window_finalization');
                           state.answerAcceptedForStage = null;
                           state.answerAcceptedTurnId = 0;
 
@@ -10736,6 +10771,10 @@ Reply to this message if you'd like to update or add any information.
                   // Both fields valid: advance to next stage
                   const previousStage = state.currentStage;
                   const nextStage = stages[currentIndex + 1];
+                  
+                  // Clear pending answer state to prevent cross-stage leakage
+                  clearPendingAnswerState(state, 'ask_name_reason_stage_advancement');
+                  
                   state.currentStage = nextStage;
                   
                   console.log('[STAGE TRANSITION] =========================================');
@@ -10825,6 +10864,9 @@ Reply to this message if you'd like to update or add any information.
                 const previousStage = state.currentStage;
                 const nextStage = stages[currentIndex + 1];
                 
+                // Clear pending answer state to prevent cross-stage leakage
+                clearPendingAnswerState(state, 'normal_stage_advancement');
+                
                 // Stage advancement invariant guard: prevent nonsensical transitions
                 const isNonsensicalTransition = previousStage === nextStage;
                 const isStaleTransition = originatingStage !== previousStage;
@@ -10900,6 +10942,10 @@ Reply to this message if you'd like to update or add any information.
               } else if (isFinalStage) {
                 // Final stage (ask_callback_time) completed - advance to complete
                 const previousStage = state.currentStage;
+                
+                // Clear pending answer state to prevent cross-stage leakage
+                clearPendingAnswerState(state, 'final_stage_advancement_to_complete');
+                
                 state.currentStage = 'complete';
                 
                 console.log('[STAGE TRANSITION] =========================================');

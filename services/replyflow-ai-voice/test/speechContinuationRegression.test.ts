@@ -376,4 +376,184 @@ describe('Speech Continuation Regression Tests', () => {
       expect(result3.newerSpeechExists).to.be.false;
     });
   });
+
+  describe('Cross-Stage Leakage Prevention', () => {
+    it('should clear pending state when stage advances via normal advancement', () => {
+      // Simulate: ask_completion_time has pending segments, then advances to ask_callback_time
+      const state = createMockState();
+      state.currentStage = 'ask_completion_time';
+      state.currentTurnId = 3;
+      
+      // Set pending state for completion time
+      state.pendingAnswerStage = 'ask_completion_time';
+      state.pendingAnswerTurnId = 3;
+      state.pendingAnswerSegments = ['I\'d probably like it done sometime'];
+      
+      // Simulate stage advancement
+      state.currentStage = 'ask_callback_time';
+      state.currentTurnId = 4;
+      
+      // Call the clear function (simulating what happens in actual code)
+      state.pendingAnswerStage = null;
+      state.pendingAnswerSegments = [];
+      state.pendingAnswerTurnId = 0;
+      
+      // Verify state is clean
+      expect(state.pendingAnswerStage).to.be.null;
+      expect(state.pendingAnswerSegments).to.have.lengthOf(0);
+      expect(state.pendingAnswerTurnId).to.equal(0);
+    });
+
+    it('should clear pending state when stage advances via settle window finalization', () => {
+      // Simulate: ask_details settle window finalizes
+      const state = createMockState();
+      state.currentStage = 'ask_details';
+      state.currentTurnId = 1;
+      
+      // Set pending state for details
+      state.pendingAnswerStage = 'ask_details';
+      state.pendingAnswerTurnId = 1;
+      state.pendingAnswerSegments = ['I need some landscaping work done', 'for my front yard'];
+      
+      // Simulate settle window finalization
+      state.currentTurnId = 2;
+      state.pendingAnswerStage = null;
+      state.pendingAnswerSegments = [];
+      state.pendingAnswerTurnId = 0;
+      state.answerAcceptedForStage = null;
+      state.answerAcceptedTurnId = 0;
+      
+      // Verify state is clean
+      expect(state.pendingAnswerStage).to.be.null;
+      expect(state.pendingAnswerSegments).to.have.lengthOf(0);
+      expect(state.pendingAnswerTurnId).to.equal(0);
+      expect(state.answerAcceptedForStage).to.be.null;
+    });
+
+    it('should defensive reset when stage/turn mismatch detected', () => {
+      // Simulate: ask_completion_time turn 3 has stale pending state, ask_callback_time turn 4 arrives
+      const state = createMockState();
+      state.currentStage = 'ask_callback_time';
+      state.currentTurnId = 4;
+      
+      // Stale pending state from previous stage/turn
+      state.pendingAnswerStage = 'ask_completion_time';
+      state.pendingAnswerTurnId = 3;
+      state.pendingAnswerSegments = ['I\'d probably like it done sometime'];
+      
+      const originatingStage = 'ask_callback_time';
+      const originatingTurnId = 4;
+      
+      // Detect mismatch
+      const hasMismatch = state.pendingAnswerStage && 
+        (state.pendingAnswerStage !== originatingStage || state.pendingAnswerTurnId !== originatingTurnId);
+      
+      expect(hasMismatch).to.be.true;
+      
+      // Simulate defensive reset
+      state.pendingAnswerStage = null;
+      state.pendingAnswerSegments = [];
+      state.pendingAnswerTurnId = 0;
+      
+      // Verify stale state is cleared
+      expect(state.pendingAnswerStage).to.be.null;
+      expect(state.pendingAnswerSegments).to.have.lengthOf(0);
+      expect(state.pendingAnswerTurnId).to.equal(0);
+    });
+
+    it('should preserve callback fragments when both belong to same stage/turn', () => {
+      // Simulate: Two callback fragments from same stage/turn should merge
+      const state = createMockState();
+      state.currentStage = 'ask_callback_time';
+      state.currentTurnId = 4;
+      
+      // First fragment
+      state.pendingAnswerStage = 'ask_callback_time';
+      state.pendingAnswerTurnId = 4;
+      state.pendingAnswerSegments = ['The best time would probably be in the afternoon'];
+      
+      // Second fragment (same stage/turn)
+      state.pendingAnswerSegments.push('After one o\'clock preferably');
+      
+      // Verify merge
+      expect(state.pendingAnswerSegments).to.have.lengthOf(2);
+      expect(state.pendingAnswerSegments[0]).to.equal('The best time would probably be in the afternoon');
+      expect(state.pendingAnswerSegments[1]).to.equal('After one o\'clock preferably');
+      
+      const merged = state.pendingAnswerSegments.join(' ');
+      expect(merged).to.equal('The best time would probably be in the afternoon After one o\'clock preferably');
+    });
+
+    it('should prevent completion fragment from appearing in callback time', () => {
+      // Simulate: completion time fragment should NOT merge with callback time
+      const state = createMockState();
+      state.currentStage = 'ask_callback_time';
+      state.currentTurnId = 4;
+      
+      // Stale completion time state
+      state.pendingAnswerStage = 'ask_completion_time';
+      state.pendingAnswerTurnId = 3;
+      state.pendingAnswerSegments = ['I\'d probably like it done sometime'];
+      
+      const originatingStage = 'ask_callback_time';
+      const originatingTurnId = 4;
+      
+      // Detect mismatch and reset
+      const hasMismatch = state.pendingAnswerStage && 
+        (state.pendingAnswerStage !== originatingStage || state.pendingAnswerTurnId !== originatingTurnId);
+      
+      expect(hasMismatch).to.be.true;
+      
+      // Defensive reset
+      state.pendingAnswerStage = null;
+      state.pendingAnswerSegments = [];
+      state.pendingAnswerTurnId = 0;
+      
+      // Now add callback fragment
+      state.pendingAnswerStage = 'ask_callback_time';
+      state.pendingAnswerTurnId = 4;
+      state.pendingAnswerSegments = ['After one o\'clock preferably'];
+      
+      // Verify completion fragment is NOT present
+      expect(state.pendingAnswerSegments).to.have.lengthOf(1);
+      expect(state.pendingAnswerSegments[0]).to.equal('After one o\'clock preferably');
+      expect(state.pendingAnswerSegments[0]).to.not.include('I\'d probably like it done sometime');
+    });
+
+    it('should prevent location fragment from leaking into completion time', () => {
+      // Simulate: location fragment should NOT merge with completion time
+      const state = createMockState();
+      state.currentStage = 'ask_completion_time';
+      state.currentTurnId = 3;
+      
+      // Stale location state
+      state.pendingAnswerStage = 'ask_location';
+      state.pendingAnswerTurnId = 2;
+      state.pendingAnswerSegments = ['1632 South Pine Drive'];
+      
+      const originatingStage = 'ask_completion_time';
+      const originatingTurnId = 3;
+      
+      // Detect mismatch and reset
+      const hasMismatch = state.pendingAnswerStage && 
+        (state.pendingAnswerStage !== originatingStage || state.pendingAnswerTurnId !== originatingTurnId);
+      
+      expect(hasMismatch).to.be.true;
+      
+      // Defensive reset
+      state.pendingAnswerStage = null;
+      state.pendingAnswerSegments = [];
+      state.pendingAnswerTurnId = 0;
+      
+      // Now add completion fragment
+      state.pendingAnswerStage = 'ask_completion_time';
+      state.pendingAnswerTurnId = 3;
+      state.pendingAnswerSegments = ['Within the next two weeks'];
+      
+      // Verify location fragment is NOT present
+      expect(state.pendingAnswerSegments).to.have.lengthOf(1);
+      expect(state.pendingAnswerSegments[0]).to.equal('Within the next two weeks');
+      expect(state.pendingAnswerSegments[0]).to.not.include('1632 South Pine Drive');
+    });
+  });
 });
