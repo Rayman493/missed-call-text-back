@@ -3117,16 +3117,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
                 {/* Primary Actions */}
                 <div className="flex items-center gap-2">
-                  {canDialPhone && (
-                    <button
-                      onClick={handleNativeCall}
-                      className="inline-flex h-10 items-center gap-2 px-4 rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors text-sm font-medium border border-transparent"
-                      title="Call customer"
-                    >
-                      <PhoneCall className="w-4 h-4" />
-                      <span className="leading-none">Call</span>
-                    </button>
-                  )}
                   <button
                     onClick={handleCreateJobClick}
                     className="inline-flex h-10 items-center gap-2 px-4 rounded-lg text-foreground hover:bg-muted/80 transition-colors text-sm font-medium border border-transparent hover:border-border/50"
@@ -3180,6 +3170,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           <div className="px-3 py-2 mb-1 text-[11px] font-bold text-muted-foreground/80 uppercase tracking-wider">
                             Conversation Actions
                           </div>
+                          {canDialPhone && (
+                            <DropdownMenuItem
+                              onSelect={() => handleNativeCall()}
+                              className="w-full px-3 py-3 text-left text-base font-medium text-foreground hover:bg-muted/70 flex items-center gap-3 transition-colors rounded-xl outline-none focus:bg-muted/70 cursor-pointer min-h-[52px]"
+                            >
+                              <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg bg-muted/50">
+                                <PhoneCall className="w-5 h-5 stroke-[1.8]" />
+                              </div>
+                              <div className="flex-1">
+                                <div>Call Customer</div>
+                                <div className="text-xs text-muted-foreground font-normal">Call this customer</div>
+                              </div>
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem
                             onSelect={() => handleCreateJobClick()}
                             className="w-full px-3 py-3 text-left text-base font-medium text-foreground hover:bg-muted/70 flex items-center gap-3 transition-colors rounded-xl outline-none focus:bg-muted/70 cursor-pointer min-h-[52px]"
@@ -3546,19 +3550,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           <div className="space-y-2 pb-[calc(6rem+env(safe-area-inset-bottom))]">
           {/* Conversation Header - Establishes the messaging workspace */}
           <div className="px-3 pt-2 pb-1">
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Conversation</h2>
-              {canDialPhone && (
-                <button
-                  onClick={handleNativeCall}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium"
-                  title="Call customer"
-                >
-                  <PhoneCall className="w-3.5 h-3.5" />
-                  <span>Call</span>
-                </button>
-              )}
-            </div>
+            <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Conversation</h2>
             <div className="flex items-center gap-1.5 mt-1 text-[11px] text-slate-400 dark:text-slate-500">
               {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && (
                 <span>AI answered</span>
