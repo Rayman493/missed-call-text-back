@@ -1,8 +1,9 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Phone, User, MessageCircle, MapPin, Clock, AlertCircle, Pencil, Check, Loader2 } from 'lucide-react'
+import { Phone, User, MessageCircle, MapPin, Clock, AlertCircle, Pencil, Check, Loader2, FileText, Calendar } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { sentenceCase } from '@/lib/utils'
 
 interface VoicemailSummaryProps {
   leadData?: any
@@ -166,11 +167,12 @@ export default function VoicemailSummary({ leadData }: VoicemailSummaryProps) {
   const editableFields = ['callerName', 'reasonForCalling', 'importantDetails', 'addressOrLocation', 'preferredCallbackTime'] as const
 
   return (
-    <div className="bg-card border border-border/50 rounded-2xl p-4 shadow-sm">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Customer Summary</h3>
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-foreground">Customer Summary</h3>
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+          <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md font-medium">
             {sourceText}
           </span>
           {isEditMode ? (
@@ -204,67 +206,170 @@ export default function VoicemailSummary({ leadData }: VoicemailSummaryProps) {
         </div>
       </div>
 
-      <div className="space-y-2">
-        {isEditMode ? (
-          editableFields.map((field) => (
-            <div key={field} className="flex items-start gap-2">
-              <div className="flex-1 min-w-0">
-                <label className="text-xs text-muted-foreground block mb-0.5">{fieldLabels[field] || field}:</label>
-                <input
-                  type="text"
-                  value={editValues[field]}
-                  onChange={(e) => setEditValues({ ...editValues, [field]: e.target.value })}
-                  className="w-full px-2 py-1 text-xs text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder={fieldLabels[field] || field}
-                />
+      {/* Field Cards - Matching AICallDetails visual system */}
+      <div className="space-y-3">
+        {/* Name Card */}
+        {isEditMode || extractedInfo?.callerName ? (
+          <div className="bg-muted/40 rounded-xl p-4 border border-border/30">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wide">Name</span>
               </div>
+              {manualFields.has('callerName') && !isEditMode && (
+                <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md font-medium">Manual</span>
+              )}
             </div>
-          ))
-        ) : (
-          extractedFields.map((field) => {
-            const Icon = fieldIcons[field] || MessageCircle
-            const label = fieldLabels[field] || field
-            const value = extractedInfo[field]
-            const badge = getFieldBadge(field)
-            const correction = fieldCorrections?.[field]
+            {isEditMode ? (
+              <input
+                type="text"
+                value={editValues.callerName}
+                onChange={(e) => setEditValues({ ...editValues, callerName: e.target.value })}
+                className="w-full px-3 py-2 text-sm font-medium text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                placeholder="Customer name"
+              />
+            ) : (
+              <span className="text-base font-semibold text-foreground">
+                {extractedInfo?.callerName || 'Not Provided'}
+              </span>
+            )}
+          </div>
+        ) : null}
 
-            if (!value) return null
-
-            return (
-              <div key={field} className="flex items-start gap-2">
-                <Icon className="w-3.5 h-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground block">{label}:</span>
-                    {badge && (
-                      <span className={badge.className}>
-                        {badge.text}
-                      </span>
-                    )}
-                    {manualFields.has(field) && (
-                      <span className="text-[9px] px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-medium">Manual</span>
-                    )}
-                  </div>
-                  <span className="text-xs font-medium text-foreground break-words">{value}</span>
-                  {correction && correction.from && (
-                    <div className="text-[10px] text-muted-foreground mt-0.5">
-                      Previously: {correction.from}
-                    </div>
-                  )}
-                </div>
+        {/* Reason Card */}
+        {isEditMode || extractedInfo?.reasonForCalling ? (
+          <div className="bg-muted/40 rounded-xl p-4 border border-border/30">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wide">Reason</span>
               </div>
-            )
-          })
-        )}
+              {manualFields.has('reasonForCalling') && !isEditMode && (
+                <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md font-medium">Manual</span>
+              )}
+            </div>
+            {isEditMode ? (
+              <textarea
+                value={editValues.reasonForCalling}
+                onChange={(e) => setEditValues({ ...editValues, reasonForCalling: e.target.value })}
+                className="w-full min-h-[80px] px-3 py-2 text-sm font-medium text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
+                rows={3}
+                placeholder="Service requested"
+                autoCapitalize="sentences"
+                autoCorrect="on"
+                spellCheck={true}
+              />
+            ) : (
+              <p className="text-sm font-semibold text-foreground leading-relaxed">
+                {extractedInfo?.reasonForCalling ? sentenceCase(extractedInfo.reasonForCalling) : 'Not Provided'}
+              </p>
+            )}
+          </div>
+        ) : null}
+
+        {/* Details Card */}
+        {isEditMode || extractedInfo?.importantDetails ? (
+          <div className="bg-card rounded-xl p-4 border border-border/30">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="w-4 h-4 text-[15px] leading-none">📝</span>
+                <span className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wide">Details</span>
+              </div>
+              {manualFields.has('importantDetails') && !isEditMode && (
+                <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md font-medium">Manual</span>
+              )}
+            </div>
+            {isEditMode ? (
+              <textarea
+                value={editValues.importantDetails}
+                onChange={(e) => setEditValues({ ...editValues, importantDetails: e.target.value })}
+                className="w-full min-h-[120px] px-3 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
+                rows={5}
+                placeholder="Additional details"
+                autoCapitalize="sentences"
+                autoCorrect="on"
+                spellCheck={true}
+              />
+            ) : (
+              <p className="text-sm text-foreground leading-relaxed">
+                {extractedInfo?.importantDetails ? sentenceCase(extractedInfo.importantDetails) : 'Not Provided'}
+              </p>
+            )}
+          </div>
+        ) : null}
+
+        {/* Stacked Cards: Location, Callback */}
+        <div className="space-y-3">
+          {/* Location Card */}
+          {isEditMode || extractedInfo?.addressOrLocation ? (
+            <div className="bg-muted/40 rounded-xl p-4 border border-border/30">
+              <div className="flex items-center justify-between gap-1 mb-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <span className="text-xs font-semibold text-muted-foreground/80 tracking-wide">Location</span>
+                </div>
+                {manualFields.has('addressOrLocation') && !isEditMode && (
+                  <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md font-medium">Manual</span>
+                )}
+              </div>
+              {isEditMode ? (
+                <textarea
+                  value={editValues.addressOrLocation}
+                  onChange={(e) => setEditValues({ ...editValues, addressOrLocation: e.target.value })}
+                  className="w-full min-h-[64px] px-3 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
+                  rows={3}
+                  placeholder="Service address"
+                  autoCapitalize="sentences"
+                  autoCorrect="on"
+                  spellCheck={true}
+                />
+              ) : (
+                <p className="text-sm text-foreground leading-snug">
+                  {extractedInfo?.addressOrLocation || 'Not Provided'}
+                </p>
+              )}
+            </div>
+          ) : null}
+
+          {/* Callback Card */}
+          {isEditMode || extractedInfo?.preferredCallbackTime ? (
+            <div className="bg-muted/40 rounded-xl p-4 border border-border/30">
+              <div className="flex items-center justify-between gap-1 mb-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <span className="text-xs font-semibold text-muted-foreground/80 tracking-wide">Callback</span>
+                </div>
+                {manualFields.has('preferredCallbackTime') && !isEditMode && (
+                  <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md font-medium">Manual</span>
+                )}
+              </div>
+              {isEditMode ? (
+                <textarea
+                  value={editValues.preferredCallbackTime}
+                  onChange={(e) => setEditValues({ ...editValues, preferredCallbackTime: e.target.value })}
+                  className="w-full min-h-[64px] px-3 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
+                  rows={3}
+                  placeholder="Best time to call"
+                  autoCapitalize="sentences"
+                  autoCorrect="on"
+                  spellCheck={true}
+                />
+              ) : (
+                <p className="text-sm text-foreground leading-snug">
+                  {extractedInfo?.preferredCallbackTime ? sentenceCase(extractedInfo.preferredCallbackTime) : 'Not Provided'}
+                </p>
+              )}
+            </div>
+          ) : null}
+        </div>
       </div>
 
+      {/* Timestamp */}
       {(voicemailExtraction?.extractedAt || smsExtraction?.extractedAt) && (
-        <div className="mt-3 pt-2 border-t border-border/50">
-          <span className="text-[10px] text-muted-foreground">
-            Last updated {new Date(
-              (smsExtraction?.extractedAt || voicemailExtraction?.extractedAt) as string
-            ).toLocaleString()}
-          </span>
+        <div className="text-[10px] text-muted-foreground">
+          Last updated {new Date(
+            (smsExtraction?.extractedAt || voicemailExtraction?.extractedAt) as string
+          ).toLocaleString()}
         </div>
       )}
     </div>
