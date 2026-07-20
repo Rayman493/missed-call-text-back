@@ -9429,7 +9429,7 @@ Reply to this message if you'd like to update or add any information.
               console.log('[CONTINUATION DETECTION TIMING] callerAudioResumedAt:', state.lastInboundAudioAt);
               console.log('[CONTINUATION DETECTION TIMING] speechStartedEventAt:', speechStartedAt);
               console.log('[CONTINUATION DETECTION TIMING] delayBetweenAudioAndSpeechStarted:', delayBetweenAudioAndSpeechStarted);
-              console.log('[CONTINUATION DETECTION TIMING] settleDeadlineAt:', (state.settleWindowTimeout as any)._idleStart ? (state.settleWindowTimeout as any)._idleStart + (state.pendingAnswerStage === 'ask_details' ? 3000 : 1500) : 'unknown');
+              console.log('[CONTINUATION DETECTION TIMING] settleDeadlineAt:', (state.settleWindowTimeout as any)._idleStart ? (state.settleWindowTimeout as any)._idleStart + (state.pendingAnswerStage === 'ask_details' ? 2500 : 1500) : 'unknown');
               console.log('[CONTINUATION DETECTION TIMING] wouldHaveMissedDeadline:', delayBetweenAudioAndSpeechStarted > 0 ? 'audio_before_speech_started' : 'speech_started_first');
               console.log('[CONTINUATION DETECTION TIMING] action:', 'continuation_speech_detected');
               console.log('[CONTINUATION DETECTION TIMING] =========================================');
@@ -10299,11 +10299,11 @@ Reply to this message if you'd like to update or add any information.
                   const segmentCount = state.pendingAnswerSegments.length;
                   
                   // Determine settle window duration based on whether this is intrinsic or continuation
-                  // Intrinsic: ask_details: 3000ms, ask_name_reason: 1500ms
+                  // Intrinsic: ask_details: 2500ms, ask_name_reason: 1500ms
                   // Continuation: 1500ms for all stages
                   let settleWindowMs: number;
                   if (hasIntrinsicSettleWindow) {
-                    settleWindowMs = originatingStage === 'ask_details' ? 3000 : 1500;
+                    settleWindowMs = originatingStage === 'ask_details' ? 2500 : 1500;
                   } else {
                     settleWindowMs = 1500; // Continuation settle window for non-intrinsic stages
                   }
@@ -10451,7 +10451,7 @@ Reply to this message if you'd like to update or add any information.
                     if (!finalizationAllowed) {
                       console.log('[SETTLE FINALIZATION GATE] action:', 'blocked_' + blockedReason);
                       // Do not finalize. Allow continuation to complete and normal transcription flow
-                      // The next completed transcription will restart the 3000ms settle window.
+                      // The next completed transcription will restart the 2500ms settle window.
                       return;
                     }
 
