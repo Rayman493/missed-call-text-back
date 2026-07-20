@@ -178,13 +178,13 @@ export default function DatePicker({
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
-        className={`w-full px-3 py-2 border rounded-lg flex items-center justify-between gap-2 transition-colors ${
+        className={`w-full px-3 py-2 border rounded-md flex items-center justify-between gap-2 transition-colors ${
           disabled
-            ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border-slate-200 dark:border-slate-700'
-            : 'bg-white dark:bg-slate-800 text-slate-900 dark:text-foreground border-slate-200 dark:border-slate-700 hover:border-blue-500/80 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 cursor-pointer'
+            ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed border-border/30'
+            : 'bg-card text-foreground border-border/40 hover:border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-border/60 cursor-pointer'
         }`}
       >
-        <span className={value ? '' : 'text-slate-400 dark:text-slate-500'}>
+        <span className={value ? '' : 'text-muted-foreground'}>
           {value ? formatDateDisplay(value) : placeholder}
         </span>
         {value && !disabled && (
@@ -194,36 +194,36 @@ export default function DatePicker({
               e.stopPropagation()
               clearDate()
             }}
-            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
+            className="p-1 hover:bg-accent/40 rounded transition-colors"
           >
-            <X className="w-4 h-4 text-slate-400" />
+            <X className="w-4 h-4 text-muted-foreground" />
           </button>
         )}
-        {!value && <Calendar className="w-4 h-4 text-slate-400" />}
+        {!value && <Calendar className="w-4 h-4 text-muted-foreground" />}
       </button>
 
       {isOpen && !disabled && (
-        <div className="absolute z-50 mt-2 bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 w-[360px] max-w-[calc(100vw-2rem)] sm:w-[400px]">
+        <div className="absolute z-[60] mt-2 bg-popover/95 backdrop-blur-sm rounded-lg shadow-[0_4px_12px_rgb(0,0,0,0.08),0_2px_6px_rgb(0,0,0,0.05)] border border-border/40 w-[360px] max-w-[calc(100vw-2rem)] sm:w-[400px]">
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 sm:px-5 sm:py-4 border-b border-slate-200 dark:border-slate-700">
+          <div className="flex items-center justify-between px-4 py-3 sm:px-5 sm:py-4 border-b border-border/20">
             <button
               type="button"
               onClick={() => navigateMonth('prev')}
-              className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              className="p-2.5 hover:bg-accent/40 rounded-md transition-colors"
               aria-label="Previous month"
             >
-              <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+              <ChevronLeft className="w-5 h-5 text-muted-foreground" />
             </button>
-            <h3 className="text-base sm:text-sm font-semibold text-slate-900 dark:text-foreground">
+            <h3 className="text-base sm:text-sm font-semibold text-foreground">
               {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
             </h3>
             <button
               type="button"
               onClick={() => navigateMonth('next')}
-              className="p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              className="p-2.5 hover:bg-accent/40 rounded-md transition-colors"
               aria-label="Next month"
             >
-              <ChevronRight className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+              <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </button>
           </div>
 
@@ -234,8 +234,8 @@ export default function DatePicker({
                 key={day} 
                 className={`text-xs font-semibold text-center py-1.5 ${
                   index === 0 || index === 6
-                    ? 'text-slate-400 dark:text-slate-500'
-                    : 'text-slate-500 dark:text-slate-400'
+                    ? 'text-muted-foreground/60'
+                    : 'text-muted-foreground/80'
                 }`}
               >
                 {day}
@@ -251,16 +251,16 @@ export default function DatePicker({
                 type="button"
                 onClick={() => dayInfo.isCurrentMonth && selectDate(dayInfo.date)}
                 disabled={!dayInfo.isCurrentMonth}
-                className={`aspect-square min-w-[40px] min-h-[40px] flex items-center justify-center text-sm rounded-lg transition-colors ${
+                className={`aspect-square min-w-[40px] min-h-[40px] flex items-center justify-center text-sm rounded-md transition-colors ${
                   !dayInfo.isCurrentMonth
-                    ? 'text-slate-300 dark:text-slate-600 cursor-default'
+                    ? 'text-muted-foreground/30 cursor-default'
                     : isSelectedDate(dayInfo.date)
-                      ? 'bg-blue-600 text-white hover:bg-blue-700 ring-2 ring-blue-600 ring-offset-2'
+                      ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                       : dayInfo.isToday
-                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 font-medium'
+                        ? 'bg-accent/40 text-foreground hover:bg-accent/60 font-medium'
                         : isWeekend(dayInfo.date)
-                          ? 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                          : 'text-slate-900 dark:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800'
+                          ? 'text-muted-foreground/70 hover:bg-accent/30'
+                          : 'text-foreground hover:bg-accent/30'
                 }`}
               >
                 {dayInfo.day}
@@ -269,11 +269,11 @@ export default function DatePicker({
           </div>
 
           {/* Footer actions */}
-          <div className="flex items-center justify-between px-4 sm:px-5 py-4 border-t border-slate-200 dark:border-slate-700">
+          <div className="flex items-center justify-between px-4 sm:px-5 py-4 border-t border-border/20">
             <button
               type="button"
               onClick={selectToday}
-              className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors px-3 py-1.5 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20"
+              className="text-sm font-medium text-foreground hover:text-foreground/80 transition-colors px-3 py-1.5 rounded-md hover:bg-accent/40"
             >
               Today
             </button>
@@ -281,7 +281,7 @@ export default function DatePicker({
               <button
                 type="button"
                 onClick={clearDate}
-                className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground transition-colors px-3 py-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-md hover:bg-accent/40"
               >
                 Clear
               </button>

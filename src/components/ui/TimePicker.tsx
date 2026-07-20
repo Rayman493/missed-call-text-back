@@ -116,13 +116,13 @@ export default function TimePicker({
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
-        className={`w-full px-3 py-2 border rounded-lg flex items-center justify-between gap-2 transition-colors ${
+        className={`w-full px-3 py-2 border rounded-md flex items-center justify-between gap-2 transition-colors ${
           disabled
-            ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border-slate-200 dark:border-slate-700'
-            : 'bg-white dark:bg-slate-800 text-slate-900 dark:text-foreground border-slate-200 dark:border-slate-700 hover:border-blue-500/80 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 cursor-pointer'
+            ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed border-border/30'
+            : 'bg-card text-foreground border-border/40 hover:border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-border/60 cursor-pointer'
         }`}
       >
-        <span className={value ? '' : 'text-slate-400 dark:text-slate-500'}>
+        <span className={value ? '' : 'text-muted-foreground'}>
           {value ? formatTimeDisplay(value) : placeholder}
         </span>
         {value && !disabled && (
@@ -132,26 +132,26 @@ export default function TimePicker({
               e.stopPropagation()
               clearTime()
             }}
-            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
+            className="p-1 hover:bg-accent/40 rounded transition-colors"
           >
-            <X className="w-4 h-4 text-slate-400" />
+            <X className="w-4 h-4 text-muted-foreground" />
           </button>
         )}
-        {!value && <Clock className="w-4 h-4 text-slate-400" />}
+        {!value && <Clock className="w-4 h-4 text-muted-foreground" />}
       </button>
 
       {isOpen && !disabled && (
-        <div className="absolute right-0 mt-2 z-50 bg-white dark:bg-slate-900 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 w-[min(360px,calc(100vw-2rem))] sm:w-auto sm:max-w-[420px]">
+        <div className="absolute right-0 mt-2 z-[60] bg-popover/95 backdrop-blur-sm rounded-lg shadow-[0_4px_12px_rgb(0,0,0,0.08),0_2px_6px_rgb(0,0,0,0.05)] border border-border/40 w-[min(360px,calc(100vw-2rem))] sm:w-auto sm:max-w-[420px]">
           <div className="p-3">
-            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">Select time (24-hour)</label>
+            <label className="block text-xs font-medium text-muted-foreground mb-2">Select time (24-hour)</label>
             <div className="flex items-stretch gap-2">
               {/* Hour column */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-slate-500">Hour</span>
-                  <span className="text-xs font-mono text-slate-600 dark:text-slate-400">{draftHour ?? '--'}</span>
+                  <span className="text-xs text-muted-foreground/70">Hour</span>
+                  <span className="text-xs font-mono text-muted-foreground">{draftHour ?? '--'}</span>
                 </div>
-                <div ref={hourListRef} className="max-h-[220px] overflow-y-auto rounded-md border border-slate-200 dark:border-slate-700">
+                <div ref={hourListRef} className="max-h-[220px] overflow-y-auto rounded-md border border-border/30">
                   {hours.map(h => (
                     <button
                       key={h}
@@ -159,8 +159,8 @@ export default function TimePicker({
                       onClick={() => { setDraftHour(h); tryCommitTime(h, draftMinute) }}
                       className={`w-full px-3 py-2 text-sm font-mono text-left transition-colors ${
                         draftHour === h
-                          ? 'bg-blue-600 text-white'
-                          : 'text-slate-900 dark:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-foreground hover:bg-accent/40'
                       }`}
                     >
                       {h}
@@ -168,14 +168,14 @@ export default function TimePicker({
                   ))}
                 </div>
               </div>
-              <div className="flex items-center text-slate-400">:</div>
+              <div className="flex items-center text-muted-foreground/50">:</div>
               {/* Minute column */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-slate-500">Minute</span>
-                  <span className="text-xs font-mono text-slate-600 dark:text-slate-400">{draftMinute ?? '--'}</span>
+                  <span className="text-xs text-muted-foreground/70">Minute</span>
+                  <span className="text-xs font-mono text-muted-foreground">{draftMinute ?? '--'}</span>
                 </div>
-                <div ref={minuteListRef} className="max-h-[220px] overflow-y-auto rounded-md border border-slate-200 dark:border-slate-700">
+                <div ref={minuteListRef} className="max-h-[220px] overflow-y-auto rounded-md border border-border/30">
                   {minutes.map(m => (
                     <button
                       key={m}
@@ -183,8 +183,8 @@ export default function TimePicker({
                       onClick={() => { setDraftMinute(m); tryCommitTime(draftHour, m) }}
                       className={`w-full px-3 py-2 text-sm font-mono text-left transition-colors ${
                         draftMinute === m
-                          ? 'bg-blue-600 text-white'
-                          : 'text-slate-900 dark:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-foreground hover:bg-accent/40'
                       }`}
                     >
                       {m}
@@ -195,11 +195,11 @@ export default function TimePicker({
             </div>
           </div>
           {!required && (
-            <div className="border-t border-slate-200 dark:border-slate-700 p-2">
+            <div className="border-t border-border/20 p-2">
               <button
                 type="button"
                 onClick={clearTime}
-                className="w-full px-3 py-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors text-left"
+                className="w-full px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent/40 rounded-md transition-colors text-left"
               >
                 Clear
               </button>

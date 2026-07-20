@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { Business } from '@/lib/types'
 import { hasActiveSubscription, hasActiveTrial, deriveSetupState } from '@/lib/subscription-utils'
-import { CheckCircle, AlertTriangle, ChevronDown, ChevronUp, ArrowRight, Loader2, HelpCircle, X, Phone, RotateCcw } from 'lucide-react'
+import { CheckCircle, AlertTriangle, ChevronDown, ChevronUp, ArrowRight, Loader2, HelpCircle, X, Phone, RotateCcw, Check } from 'lucide-react'
 import { formatPhoneNumber } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBusiness } from '@/contexts/BusinessContext'
@@ -701,7 +701,7 @@ export default function SetupStatusCard({
   
   // Render main card (for setup states)
   return (
-    <div className="bg-card text-card-foreground rounded-2xl shadow-xl border border-border/50 ring-1 ring-border/50">
+    <div className="bg-card text-card-foreground rounded-lg shadow-[0_2px_8px_rgb(0,0,0,0.06),0_1px_3px_rgb(0,0,0,0.04)] border border-border/40">
       {modalPortal}
       <div className="flex flex-col gap-3 sm:gap-4 p-4 sm:p-5">
         {/* MODE 1: Setup Incomplete */}
@@ -938,37 +938,63 @@ export default function SetupStatusCard({
             {/* Subtle Divider */}
             <div className="h-px bg-border/20"></div>
 
-            {/* Content Area - Constrained width for readability */}
-            <div className="max-w-2xl space-y-3">
-              {/* Primary completion message */}
-              <p className="text-sm text-foreground leading-relaxed">
-                Your ReplyFlow number was set up and you completed the forwarding test.
-              </p>
-
-              {/* Secondary guidance */}
-              <div className="bg-muted/30 border border-border/30 rounded-md p-3">
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Call forwarding is managed through your phone carrier. If you change your phone service or forwarding settings, review your setup again.
+            {/* Two-zone layout for desktop */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left Zone: Primary Content */}
+              <div className="lg:col-span-2 space-y-3">
+                {/* Primary completion message */}
+                <p className="text-sm text-foreground leading-relaxed">
+                  Your ReplyFlow number was set up and you completed the forwarding test.
                 </p>
-              </div>
-            </div>
 
-            {/* Actions */}
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-1">
-              <button
-                onClick={() => setShowForwardingInstructions(true)}
-                className="inline-flex items-center justify-center px-4 py-2 bg-accent/40 hover:bg-accent/60 text-foreground text-sm font-medium rounded-md transition-colors"
-              >
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Review Setup
-              </button>
-              <button
-                onClick={() => setIsAssistantOpen(true)}
-                className="inline-flex items-center justify-center px-4 py-2 bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground text-sm font-medium rounded-md transition-colors"
-              >
-                <HelpCircle className="w-4 h-4 mr-2" />
-                Help
-              </button>
+                {/* Secondary guidance */}
+                <div className="bg-muted/30 border border-border/30 rounded-md p-3">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Call forwarding is managed through your phone carrier. If you change your phone service or forwarding settings, review your setup again.
+                  </p>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-1">
+                  <button
+                    onClick={() => setShowForwardingInstructions(true)}
+                    className="inline-flex items-center justify-center px-4 py-2 bg-accent/40 hover:bg-accent/60 text-foreground text-sm font-medium rounded-md transition-colors"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Review Setup
+                  </button>
+                  <button
+                    onClick={() => setIsAssistantOpen(true)}
+                    className="inline-flex items-center justify-center px-4 py-2 bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground text-sm font-medium rounded-md transition-colors"
+                  >
+                    <HelpCircle className="w-4 h-4 mr-2" />
+                    Help
+                  </button>
+                </div>
+              </div>
+
+              {/* Right Zone: Readiness Summary (desktop only) */}
+              <div className="hidden lg:block">
+                <div className="bg-muted/20 border border-border/20 rounded-md p-4">
+                  <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-[0.12em] mb-3">
+                    Setup verified
+                  </h3>
+                  <div className="space-y-2.5">
+                    <div className="flex items-center gap-2">
+                      <Check className="w-3.5 h-3.5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                      <span className="text-sm text-foreground">Number configured</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-3.5 h-3.5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                      <span className="text-sm text-foreground">Forwarding confirmed</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-3.5 h-3.5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                      <span className="text-sm text-foreground">Test completed</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </>
         )}

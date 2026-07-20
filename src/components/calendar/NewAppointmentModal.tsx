@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { X, Calendar, Clock, MapPin, FileText, AlertTriangle, Plus } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import DatePicker from '@/components/ui/DatePicker'
+import TimePicker from '@/components/ui/TimePicker'
 
 const supabase = createBrowserClient()
 
@@ -242,12 +244,11 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
                 <Calendar className="w-2.5 h-2.5 text-slate-400" />
               </div>
               <div className="flex-1">
-                <label className="text-xs text-slate-500 font-medium mb-1.5 block">Date *</label>
-                <input
-                  type="date"
+                <DatePicker
                   value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  onChange={setDate}
+                  placeholder="Select date"
+                  required
                 />
               </div>
             </div>
@@ -262,21 +263,19 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
                   <label className="text-xs text-slate-500 font-medium mb-1.5 block">Time *</label>
                   <div className="flex gap-2">
                     <div className="flex-1">
-                      <input
-                        type="time"
+                      <TimePicker
                         value={startTime}
-                        onChange={(e) => setStartTime(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        onChange={setStartTime}
+                        placeholder="Start time"
+                        required
                       />
                       <p className="text-[10px] text-slate-500 mt-1">Start</p>
                     </div>
                     <div className="flex-1">
-                      <input
-                        type="time"
+                      <TimePicker
                         value={endTime}
-                        onChange={(e) => setEndTime(e.target.value)}
+                        onChange={setEndTime}
                         placeholder="Auto 1hr"
-                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                       />
                       <p className="text-[10px] text-slate-500 mt-1">End (optional)</p>
                     </div>
