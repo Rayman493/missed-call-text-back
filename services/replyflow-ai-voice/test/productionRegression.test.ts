@@ -800,7 +800,7 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
     expect(state.pendingAnswerSegments).toEqual([transcript1]);
     expect(state.settleWindowTimeout).not.toBeNull();
     
-    // Simulate 1-second pause (less than 2200ms settle window for ask_details)
+    // Simulate 1-second pause (less than 3000ms settle window for ask_details)
     jest.advanceTimersByTime(1000);
     
     // No new speech started, but pause is within settle window
@@ -825,7 +825,7 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
     expect(state.pendingAnswerStage).toBe('ask_details');
     expect(state.settleWindowTimeout).not.toBeNull();
     
-    // Simulate 1.8-second pause (less than 2200ms settle window for ask_details)
+    // Simulate 1.8-second pause (less than 3000ms settle window for ask_details)
     jest.advanceTimersByTime(1800);
     
     // No new speech started, but pause is within settle window
@@ -851,16 +851,16 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
     expect(state.pendingAnswerStage).toBe('ask_details');
     expect(state.settleWindowTimeout).not.toBeNull();
     
-    // Advance past settle window (2200ms for ask_details)
-    jest.advanceTimersByTime(2200);
+    // Advance past settle + grace (3400ms for ask_details)
+    jest.advanceTimersByTime(3400);
     
     // Should finalize and advance to next stage
     expect(state.currentStage).toBe('ask_location');
     expect(state.pendingAnswerStage).toBeNull();
   });
 
-  // Test D — true completion - Caller stops speaking entirely - Expected: answer finalizes after bounded delay
-  test('ask_details with true completion should finalize after settle window', () => {
+  // Test D — true completion - Caller stops speaking entirely - Expected: answer finalizes after settle + grace
+  test('ask_details with true completion should finalize after settle + grace', () => {
     const state = createMockState();
     state.currentStage = 'ask_details';
     state.currentTurnId = 1;
@@ -876,8 +876,8 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
     
     expect(state.pendingAnswerStage).toBe('ask_details');
     
-    // Caller stops speaking entirely - advance past settle window
-    jest.advanceTimersByTime(2200);
+    // Caller stops speaking entirely - advance past settle + grace
+    jest.advanceTimersByTime(3400);
     
     // Should finalize
     expect(state.currentStage).toBe('ask_location');
@@ -935,8 +935,8 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
     
     expect(state.pendingAnswerStage).toBe('ask_details');
     
-    // True silence - no audio resume, advance past settle window
-    jest.advanceTimersByTime(2200);
+    // True silence - no audio resume, advance past settle + grace
+    jest.advanceTimersByTime(3400);
     
     // Should finalize normally
     expect(state.currentStage).toBe('ask_location');
@@ -971,16 +971,16 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
 
 describe('Production Regression Tests - Settle Timer, Transcription, and Prompt Fixes', () => {
   describe('ISSUE 3: Settle Timer Accuracy', () => {
-    // Test A: Verify ask_details uses 2200ms settle window
-    it('Test A - ask_details settle window uses correct 2200ms duration', () => {
+    // Test A: Verify ask_details uses 3000ms settle window
+    it('Test A - ask_details settle window uses correct 3000ms duration', () => {
       const stage = 'ask_details';
       const stagesRequiringSettleWindow = ['ask_details', 'ask_name_reason'];
       
       // Simulate the settle window duration calculation
-      const settleWindowMs = stage === 'ask_details' ? 2200 : 1500;
+      const settleWindowMs = stage === 'ask_details' ? 3000 : 1500;
       
       expect(stagesRequiringSettleWindow.includes(stage)).toBe(true);
-      expect(settleWindowMs).toBe(2200); // ask_details should use 2200ms
+      expect(settleWindowMs).toBe(3000); // ask_details should use 3000ms
     });
 
     // Test B: Verify ask_name_reason uses 1500ms settle window
@@ -988,7 +988,7 @@ describe('Production Regression Tests - Settle Timer, Transcription, and Prompt 
       const stage = 'ask_name_reason';
       
       // Simulate the settle window duration calculation
-      const settleWindowMs = stage === 'ask_details' ? 2200 : 1500;
+      const settleWindowMs = stage === 'ask_details' ? 3000 : 1500;
       
       expect(settleWindowMs).toBe(1500); // ask_name_reason should use 1500ms
     });
@@ -1547,22 +1547,60 @@ test('REGRESSION T: 2.8-second natural pause during ask_details does not finaliz
   expect(shouldFinalize).toBe(false); // 2.8s < 3s, should not finalize
 });
 
-// Test U: True completion finalizes at approximately 3000ms
-test('REGRESSION U: True completion finalizes at approximately 3000ms', () => {
-  const pauseDurationMs = 3100;
-  const askDetailsSettleMs = 3000;
-  
-  const shouldFinalize = pauseDurationMs >= askDetailsSettleMs;
-
-  expect(shouldFinalize).toBe(true); // 3.1s >= 3s, should finalize
+// Test U: At 3000ms, enter one-time 400ms VAD grace; do not finalize yet
+test('REGRESSION U: 3.0s point enters grace, no finalization', () => {
+  const t = 3000;
+  const settleMs = 3000;
+  const graceMs = 400;
+  const inGrace = t === settleMs;
+  const shouldFinalize = t >= settleMs + graceMs;
+  expect(inGrace).toBe(true);
+  expect(shouldFinalize).toBe(false);
 });
 
-// Test V: Continuation speech before 3000ms cancels settle callback
-test('REGRESSION V: Continuation speech before 3000ms cancels settle callback', () => {
-  const continuationSpeechMs = 2500;
-  const askDetailsSettleMs = 3000;
-  
-  const shouldCancelSettle = continuationSpeechMs < askDetailsSettleMs;
+// Test V: ~3.1s is still inside grace — no finalization
+test('REGRESSION V: ~3.1s pause remains in grace, no finalization', () => {
+  const t = 3100;
+  const settleMs = 3000;
+  const graceMs = 400;
+  const shouldFinalize = t >= settleMs + graceMs;
+  expect(shouldFinalize).toBe(false);
+});
 
-  expect(shouldCancelSettle).toBe(true); // 2.5s < 3s, should cancel settle
+// Test W: Continuation at ~3.2s during grace cancels grace; no finalization
+test('REGRESSION W: Continuation at ~3.2s cancels grace; no finalization', () => {
+  const t = 3200;
+  const settleMs = 3000;
+  const graceMs = 400;
+  let graceActive = t > settleMs && t < settleMs + graceMs; // grace window
+  const speechStarted = true; // continuation during grace
+  if (speechStarted && graceActive) {
+    graceActive = false; // grace cancelled on speech
+  }
+  const shouldFinalize = t >= settleMs + graceMs && !speechStarted;
+  expect(graceActive).toBe(false);
+  expect(shouldFinalize).toBe(false);
+});
+
+// Test X: ~3.39s without continuation is still before grace expiry — no finalization
+test('REGRESSION X: ~3.39s pause without continuation does not finalize yet', () => {
+  const t = 3390;
+  const settleMs = 3000;
+  const graceMs = 400;
+  const shouldFinalize = t >= settleMs + graceMs;
+  expect(shouldFinalize).toBe(false);
+});
+
+// Test Y: ~3.4s or after idle causes finalization exactly once
+test('REGRESSION Y: ~3.4s idle after grace expires finalizes', () => {
+  const t = 3400;
+  const settleMs = 3000;
+  const graceMs = 400;
+  const activeSpeech = false;
+  const pendingTranscription = false;
+  const newerSpeechGeneration = false;
+  const ownershipValid = true; // stage/turn unchanged
+  const graceExpired = t >= settleMs + graceMs;
+  const eligible = graceExpired && !activeSpeech && !pendingTranscription && !newerSpeechGeneration && ownershipValid;
+  expect(eligible).toBe(true);
 });
