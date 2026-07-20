@@ -5615,6 +5615,11 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     settleWindowMs: 1500,
     settleGeneration: 0,
     transcriptionPending: false,
+    // Caller audio activity timing for pause detection
+    lastInboundAudioAt: 0,
+    lastDetectedSpeechAt: 0,
+    lastSpeechStoppedAt: 0,
+    lastTranscriptionCompletedAt: 0,
   };
 
   // Track consecutive transcription failures per stage (module scope)
@@ -9026,6 +9031,23 @@ Reply to this message if you'd like to update or add any information.
             state.speechStartedStage = state.currentStage;
             state.speechStartedTurnId = state.currentTurnId;
             state.transcriptionPending = true;
+            state.lastDetectedSpeechAt = speechStartedAt;
+            
+            // CONTINUATION DETECTION TIMING DIAGNOSTIC LOGGING
+            if (state.settleWindowTimeout && state.pendingAnswerStage) {
+              const delayBetweenAudioAndSpeechStarted = state.lastInboundAudioAt ? speechStartedAt - state.lastInboundAudioAt : 0;
+              console.log('[CONTINUATION DETECTION TIMING] =========================================');
+              console.log('[CONTINUATION DETECTION TIMING] callSid:', state.callSid);
+              console.log('[CONTINUATION DETECTION TIMING] stage:', state.currentStage);
+              console.log('[CONTINUATION DETECTION TIMING] turnId:', state.currentTurnId);
+              console.log('[CONTINUATION DETECTION TIMING] callerAudioResumedAt:', state.lastInboundAudioAt);
+              console.log('[CONTINUATION DETECTION TIMING] speechStartedEventAt:', speechStartedAt);
+              console.log('[CONTINUATION DETECTION TIMING] delayBetweenAudioAndSpeechStarted:', delayBetweenAudioAndSpeechStarted);
+              console.log('[CONTINUATION DETECTION TIMING] settleDeadlineAt:', (state.settleWindowTimeout as any)._idleStart ? (state.settleWindowTimeout as any)._idleStart + (state.pendingAnswerStage === 'ask_details' ? 2200 : 1500) : 'unknown');
+              console.log('[CONTINUATION DETECTION TIMING] wouldHaveMissedDeadline:', delayBetweenAudioAndSpeechStarted > 0 ? 'audio_before_speech_started' : 'speech_started_first');
+              console.log('[CONTINUATION DETECTION TIMING] action:', 'continuation_speech_detected');
+              console.log('[CONTINUATION DETECTION TIMING] =========================================');
+            }
             
             // Cancel settle window if new speech starts during continuation
             if (state.settleWindowTimeout && state.pendingAnswerStage) {
@@ -9156,13 +9178,15 @@ Reply to this message if you'd like to update or add any information.
               state.cachedPlaybackInterrupted = true;
             }
           } else if (message.type === 'input_audio_buffer.speech_stopped') {
+            const speechStoppedAt = Date.now();
             console.log('[AUDIO PIPELINE] =========================================');
             console.log('[AUDIO PIPELINE] event: input_audio_buffer.speech_stopped');
-            console.log('[AUDIO PIPELINE] timestamp:', Date.now());
+            console.log('[AUDIO PIPELINE] timestamp:', speechStoppedAt);
             console.log('[AUDIO PIPELINE] assistantSpeaking:', state.assistantSpeaking);
             console.log('[AUDIO PIPELINE] audioBufferAppendCount:', state.audioBufferAppendCount || 0);
             console.log('[AUDIO PIPELINE] =========================================');
             state.inSpeechSegment = false;
+            state.lastSpeechStoppedAt = speechStoppedAt;
           } else if (message.type === 'input_audio_buffer.committed') {
             console.log('[AUDIO PIPELINE] =========================================');
             console.log('[AUDIO PIPELINE] event: input_audio_buffer.committed');
@@ -9588,9 +9612,11 @@ Reply to this message if you'd like to update or add any information.
           // Only handle transcription
           if (message.type === 'conversation.item.input_audio_transcription.completed') {
             // User transcription completed
+            const transcriptionCompletedAt = Date.now();
             const transcript = message.transcript || '';
             state.transcript += ' ' + transcript;
             state.transcriptionPending = false;
+            state.lastTranscriptionCompletedAt = transcriptionCompletedAt;
 
             // Use originating stage for attribution (speech started stage)
             const originatingStage = state.speechStartedStage || state.currentStage;
@@ -9747,6 +9773,13 @@ Reply to this message if you'd like to update or add any information.
                   const accumulatedAnswer = state.pendingAnswerSegments.join(' ');
                   const segmentCount = state.pendingAnswerSegments.length;
                   
+                  // Use longer settle window for ask_details to accommodate natural pauses
+                  // ask_details: 2200ms (longer for detailed descriptions)
+                  // ask_name_reason: 1500ms (shorter for name+reason)
+                  const settleWindowMs = originatingStage === 'ask_details' ? 2200 : 1500;
+                  const settleStartedAt = Date.now();
+                  const settleDeadlineAt = settleStartedAt + settleWindowMs;
+                  
                   console.log('[LOGICAL TURN LIFECYCLE] =========================================');
                   console.log('[LOGICAL TURN LIFECYCLE] event: pending_answer_started');
                   console.log('[LOGICAL TURN LIFECYCLE] callSid:', state.callSid);
@@ -9766,13 +9799,34 @@ Reply to this message if you'd like to update or add any information.
                   console.log('[ANSWER SETTLE WINDOW] transcriptSegment:', meaningfulTranscript);
                   console.log('[ANSWER SETTLE WINDOW] accumulatedAnswer:', accumulatedAnswer);
                   console.log('[ANSWER SETTLE WINDOW] segmentCount:', segmentCount);
-                  console.log('[ANSWER SETTLE WINDOW] settleWindowMs:', state.settleWindowMs);
+                  console.log('[ANSWER SETTLE WINDOW] settleWindowMs:', settleWindowMs);
+                  console.log('[ANSWER SETTLE WINDOW] settleStartedAt:', settleStartedAt);
+                  console.log('[ANSWER SETTLE WINDOW] settleDeadlineAt:', settleDeadlineAt);
                   console.log('[ANSWER SETTLE WINDOW] action:', 'settle_started');
                   console.log('[ANSWER SETTLE WINDOW] timestamp:', new Date().toISOString());
                   console.log('[ANSWER SETTLE WINDOW] =========================================');
                   
                   // Start settle window
                   state.settleWindowTimeout = setTimeout(() => {
+                    const settleCallbackAt = Date.now();
+                    
+                    // ANSWER SETTLE TIMING DIAGNOSTIC LOGGING
+                    console.log('[ANSWER SETTLE TIMING] =========================================');
+                    console.log('[ANSWER SETTLE TIMING] callSid:', state.callSid);
+                    console.log('[ANSWER SETTLE TIMING] stage:', originatingStage);
+                    console.log('[ANSWER SETTLE TIMING] turnId:', originatingTurnId);
+                    console.log('[ANSWER SETTLE TIMING] transcriptionCompletedAt:', state.lastTranscriptionCompletedAt);
+                    console.log('[ANSWER SETTLE TIMING] lastMeaningfulCallerActivityAt:', state.lastDetectedSpeechAt || state.lastSpeechStoppedAt);
+                    console.log('[ANSWER SETTLE TIMING] lastSpeechStoppedAt:', state.lastSpeechStoppedAt);
+                    console.log('[ANSWER SETTLE TIMING] lastInboundAudioAt:', state.lastInboundAudioAt);
+                    console.log('[ANSWER SETTLE TIMING] settleStartedAt:', settleStartedAt);
+                    console.log('[ANSWER SETTLE TIMING] settleDeadlineAt:', settleDeadlineAt);
+                    console.log('[ANSWER SETTLE TIMING] settleCallbackAt:', settleCallbackAt);
+                    console.log('[ANSWER SETTLE TIMING] settleWindowMs:', settleWindowMs);
+                    console.log('[ANSWER SETTLE TIMING] msSinceLastCallerActivityAtDeadline:', state.lastInboundAudioAt ? settleDeadlineAt - state.lastInboundAudioAt : 'none');
+                    console.log('[ANSWER SETTLE TIMING] action:', 'settle_callback_executed');
+                    console.log('[ANSWER SETTLE TIMING] =========================================');
+                    
                     // Generation guard: prevent stale callbacks from finalizing
                     if (capturedGeneration !== state.settleGeneration) {
                       console.log('[LOGICAL TURN LIFECYCLE] =========================================');
@@ -10229,6 +10283,7 @@ Reply to this message if you'd like to update or add any information.
 
       } else if (message.event === 'media') {
         // Caller audio - only accept if assistant is not speaking
+        state.lastInboundAudioAt = Date.now();
         if (state.mediaPacketCount === 0) {
           console.log('[OPENAI TIMING]', Date.now(), 'first_twilio_media_packet');
         }

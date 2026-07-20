@@ -781,4 +781,190 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
     // Ensure legacy silence timer is disabled
     expect(state.silentTimeout).toBeUndefined();
   });
+
+  // Test A — 1-second pause - Expected: no cutoff
+  test('ask_details with 1-second natural pause should not cutoff', () => {
+    const state = createMockState();
+    state.currentStage = 'ask_details';
+    state.currentTurnId = 1;
+    state.speechStartedStage = 'ask_details';
+    state.speechStartedTurnId = 1;
+    state.settleGeneration = 0;
+    state.pendingAnswerStage = null;
+    
+    // First transcription segment
+    const transcript1 = "The door doesn't close properly";
+    processTranscription(state, transcript1, 'ask_details', 1);
+    
+    expect(state.pendingAnswerStage).toBe('ask_details');
+    expect(state.pendingAnswerSegments).toEqual([transcript1]);
+    expect(state.settleWindowTimeout).not.toBeNull();
+    
+    // Simulate 1-second pause (less than 2200ms settle window for ask_details)
+    jest.advanceTimersByTime(1000);
+    
+    // No new speech started, but pause is within settle window
+    expect(state.settleWindowTimeout).not.toBeNull();
+    expect(state.pendingAnswerStage).toBe('ask_details');
+  });
+
+  // Test B — 1.8-second natural pause - Expected: no cutoff if within chosen policy
+  test('ask_details with 1.8-second natural pause should not cutoff', () => {
+    const state = createMockState();
+    state.currentStage = 'ask_details';
+    state.currentTurnId = 1;
+    state.speechStartedStage = 'ask_details';
+    state.speechStartedTurnId = 1;
+    state.settleGeneration = 0;
+    state.pendingAnswerStage = null;
+    
+    // First transcription segment
+    const transcript1 = "The door doesn't close properly";
+    processTranscription(state, transcript1, 'ask_details', 1);
+    
+    expect(state.pendingAnswerStage).toBe('ask_details');
+    expect(state.settleWindowTimeout).not.toBeNull();
+    
+    // Simulate 1.8-second pause (less than 2200ms settle window for ask_details)
+    jest.advanceTimersByTime(1800);
+    
+    // No new speech started, but pause is within settle window
+    expect(state.settleWindowTimeout).not.toBeNull();
+    expect(state.pendingAnswerStage).toBe('ask_details');
+  });
+
+  // Test C — short complete answer - Expected: next stage still feels responsive
+  test('ask_details with short complete answer should advance stage promptly', () => {
+    const state = createMockState();
+    state.currentStage = 'ask_details';
+    state.currentTurnId = 1;
+    state.speechStartedStage = 'ask_details';
+    state.speechStartedTurnId = 1;
+    state.settleGeneration = 0;
+    state.pendingAnswerStage = null;
+    state.intakeData = {};
+    
+    // Single short transcription
+    const transcript = "It's broken";
+    processTranscription(state, transcript, 'ask_details', 1);
+    
+    expect(state.pendingAnswerStage).toBe('ask_details');
+    expect(state.settleWindowTimeout).not.toBeNull();
+    
+    // Advance past settle window (2200ms for ask_details)
+    jest.advanceTimersByTime(2200);
+    
+    // Should finalize and advance to next stage
+    expect(state.currentStage).toBe('ask_location');
+    expect(state.pendingAnswerStage).toBeNull();
+  });
+
+  // Test D — true completion - Caller stops speaking entirely - Expected: answer finalizes after bounded delay
+  test('ask_details with true completion should finalize after settle window', () => {
+    const state = createMockState();
+    state.currentStage = 'ask_details';
+    state.currentTurnId = 1;
+    state.speechStartedStage = 'ask_details';
+    state.speechStartedTurnId = 1;
+    state.settleGeneration = 0;
+    state.pendingAnswerStage = null;
+    state.intakeData = {};
+    
+    // Complete answer
+    const transcript = "The door doesn't close properly and needs a new hinge";
+    processTranscription(state, transcript, 'ask_details', 1);
+    
+    expect(state.pendingAnswerStage).toBe('ask_details');
+    
+    // Caller stops speaking entirely - advance past settle window
+    jest.advanceTimersByTime(2200);
+    
+    // Should finalize
+    expect(state.currentStage).toBe('ask_location');
+    expect(state.pendingAnswerStage).toBeNull();
+  });
+
+  // Test E — resumed audio before VAD speech_started - Expected: finalization does not occur prematurely
+  test('ask_details with resumed audio before speech_started should extend', () => {
+    const state = createMockState();
+    state.currentStage = 'ask_details';
+    state.currentTurnId = 1;
+    state.speechStartedStage = 'ask_details';
+    state.speechStartedTurnId = 1;
+    state.settleGeneration = 0;
+    state.pendingAnswerStage = null;
+    state.lastInboundAudioAt = Date.now();
+    
+    // First transcription segment
+    const transcript1 = "The door doesn't close properly";
+    processTranscription(state, transcript1, 'ask_details', 1);
+    
+    expect(state.pendingAnswerStage).toBe('ask_details');
+    const originalSettleGeneration = state.settleGeneration;
+    
+    // Simulate resumed audio (caller starts speaking again)
+    state.lastInboundAudioAt = Date.now();
+    
+    // Simulate speech_started event (VAD detects continuation)
+    const speechStartedAt = Date.now();
+    state.speechStartedStage = 'ask_details';
+    state.speechStartedTurnId = 1;
+    state.lastDetectedSpeechAt = speechStartedAt;
+    state.transcriptionPending = true;
+    
+    // Should cancel settle window
+    expect(state.settleWindowTimeout).toBeNull();
+    expect(state.settleGeneration).toBe(originalSettleGeneration + 1);
+  });
+
+  // Test F — true silence - Expected: settle finalizes normally
+  test('ask_details with true silence should finalize normally', () => {
+    const state = createMockState();
+    state.currentStage = 'ask_details';
+    state.currentTurnId = 1;
+    state.speechStartedStage = 'ask_details';
+    state.speechStartedTurnId = 1;
+    state.settleGeneration = 0;
+    state.pendingAnswerStage = null;
+    state.intakeData = {};
+    state.lastInboundAudioAt = 0;
+    
+    // Complete answer
+    const transcript = "The door doesn't close properly";
+    processTranscription(state, transcript, 'ask_details', 1);
+    
+    expect(state.pendingAnswerStage).toBe('ask_details');
+    
+    // True silence - no audio resume, advance past settle window
+    jest.advanceTimersByTime(2200);
+    
+    // Should finalize normally
+    expect(state.currentStage).toBe('ask_location');
+    expect(state.pendingAnswerStage).toBeNull();
+  });
+
+  // Test: ask_name_reason uses 1500ms settle window (shorter than ask_details)
+  test('ask_name_reason should use 1500ms settle window', () => {
+    const state = createMockState();
+    state.currentStage = 'ask_name_reason';
+    state.currentTurnId = 1;
+    state.speechStartedStage = 'ask_name_reason';
+    state.speechStartedTurnId = 1;
+    state.settleGeneration = 0;
+    state.pendingAnswerStage = null;
+    state.intakeData = {};
+    
+    // Transcription
+    const transcript = "This is John calling about a repair";
+    processTranscription(state, transcript, 'ask_name_reason', 1);
+    
+    expect(state.pendingAnswerStage).toBe('ask_name_reason');
+    
+    // Advance past 1500ms (settle window for ask_name_reason)
+    jest.advanceTimersByTime(1500);
+    
+    // Should finalize
+    expect(state.currentStage).toBe('ask_details');
+    expect(state.pendingAnswerStage).toBeNull();
+  });
 });
