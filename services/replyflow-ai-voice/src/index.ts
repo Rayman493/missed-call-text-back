@@ -5607,6 +5607,12 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     // Continuation tracking: when waiting for caller to complete answer
     waitingForContinuation: false as boolean,
     continuationTimeout: null as NodeJS.Timeout | null,
+    // Settle window for long natural answers (ask_details, ask_name_reason)
+    pendingAnswerStage: null as string | null,
+    pendingAnswerSegments: [] as string[],
+    pendingAnswerTurnId: 0 as number,
+    settleWindowTimeout: null as NodeJS.Timeout | null,
+    settleWindowMs: 1500 as number, // 1.5 second grace period for natural pauses
   };
 
   // Track consecutive transcription failures per stage (module scope)
@@ -6542,6 +6548,27 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
   const handleStageTimeout = () => {
     if (state.currentStage === 'complete' || state.completionPersistenceStarted) {
       return; // Don't timeout if we're already completing
+    }
+
+    // Prevent timeout if we have a pending answer in settle window
+    if (state.settleWindowTimeout && state.pendingAnswerStage) {
+      console.log('[STAGE TIMEOUT] =========================================');
+      console.log('[STAGE TIMEOUT] event: timeout_prevented_pending_answer');
+      console.log('[STAGE TIMEOUT] stage:', state.currentStage);
+      console.log('[STAGE TIMEOUT] reason: pending_answer_in_settle_window');
+      console.log('[STAGE TIMEOUT] pendingAnswerStage:', state.pendingAnswerStage);
+      console.log('[STAGE TIMEOUT] Timestamp:', new Date().toISOString());
+      console.log('[STAGE TIMEOUT] =========================================');
+      
+      // Reset timeout to allow more time for continuation
+      if (state.stageTimeout) {
+        clearTimeout(state.stageTimeout);
+        state.stageTimeout = null;
+      }
+      state.stageTimeout = setTimeout(() => {
+        handleStageTimeout();
+      }, STAGE_TIMEOUT_MS);
+      return;
     }
 
     const stage = state.currentStage;
@@ -8958,6 +8985,24 @@ Reply to this message if you'd like to update or add any information.
             state.speechStartedStage = state.currentStage;
             state.speechStartedTurnId = state.currentTurnId;
             
+            // Cancel settle window if new speech starts during continuation
+            if (state.settleWindowTimeout && state.pendingAnswerStage) {
+              console.log('[CONTINUATION SPEECH] =========================================');
+              console.log('[CONTINUATION SPEECH] callSid:', state.callSid);
+              console.log('[CONTINUATION SPEECH] stage:', state.currentStage);
+              console.log('[CONTINUATION SPEECH] turnId:', state.currentTurnId);
+              console.log('[CONTINUATION SPEECH] speechStartedDuringSettle:', true);
+              console.log('[CONTINUATION SPEECH] pendingAnswerStage:', state.pendingAnswerStage);
+              console.log('[CONTINUATION SPEECH] pendingAnswerPresent:', !!state.pendingAnswerStage);
+              console.log('[CONTINUATION SPEECH] settleCancelled:', true);
+              console.log('[CONTINUATION SPEECH] action:', 'settle_cancelled_new_speech');
+              console.log('[CONTINUATION SPEECH] timestamp:', new Date().toISOString());
+              console.log('[CONTINUATION SPEECH] =========================================');
+              
+              clearTimeout(state.settleWindowTimeout);
+              state.settleWindowTimeout = null;
+            }
+            
             console.log('[AUDIO PIPELINE] =========================================');
             console.log('[AUDIO PIPELINE] event: input_audio_buffer.speech_started');
             console.log('[AUDIO PIPELINE] timestamp:', speechStartedAt);
@@ -8982,6 +9027,18 @@ Reply to this message if you'd like to update or add any information.
               clearTimeout(state.transcriptionWatchdogTimeout);
             }
             state.transcriptionWatchdogTimeout = setTimeout(() => {
+              // Prevent watchdog from firing if we have a pending answer in settle window
+              if (state.settleWindowTimeout && state.pendingAnswerStage) {
+                console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+                console.log('[TRANSCRIPTION WATCHDOG] event: watchdog_prevented_pending_answer');
+                console.log('[TRANSCRIPTION WATCHDOG] stage:', state.currentStage);
+                console.log('[TRANSCRIPTION WATCHDOG] reason: pending_answer_in_settle_window');
+                console.log('[TRANSCRIPTION WATCHDOG] pendingAnswerStage:', state.pendingAnswerStage);
+                console.log('[TRANSCRIPTION WATCHDOG] Timestamp:', new Date().toISOString());
+                console.log('[TRANSCRIPTION WATCHDOG] =========================================');
+                return;
+              }
+              
               console.log('[TRANSCRIPTION WATCHDOG] =========================================');
               console.log('[TRANSCRIPTION WATCHDOG] event: transcription_timeout');
               console.log('[TRANSCRIPTION WATCHDOG] stage:', state.currentStage);
@@ -9605,6 +9662,99 @@ Reply to this message if you'd like to update or add any information.
                   console.log('[ANSWER CONTINUATION] action: valid_answer_received');
                   console.log('[ANSWER CONTINUATION] Timestamp:', new Date().toISOString());
                   console.log('[ANSWER CONTINUATION] =========================================');
+                }
+                
+                // Settle window for long natural answers (ask_details, ask_name_reason)
+                const stagesRequiringSettleWindow = ['ask_details', 'ask_name_reason'];
+                const requiresSettleWindow = stagesRequiringSettleWindow.includes(originatingStage);
+                
+                if (requiresSettleWindow && originatingStage === state.currentStage) {
+                  // Store as pending answer and start settle window
+                  const isFirstSegment = !state.pendingAnswerStage;
+                  
+                  if (isFirstSegment) {
+                    state.pendingAnswerStage = originatingStage;
+                    state.pendingAnswerTurnId = originatingTurnId;
+                    state.pendingAnswerSegments = [meaningfulTranscript];
+                  } else {
+                    // Merge with existing segments
+                    state.pendingAnswerSegments.push(meaningfulTranscript);
+                  }
+                  
+                  // Cancel any existing settle window
+                  if (state.settleWindowTimeout) {
+                    clearTimeout(state.settleWindowTimeout);
+                    state.settleWindowTimeout = null;
+                  }
+                  
+                  const accumulatedAnswer = state.pendingAnswerSegments.join(' ');
+                  const segmentCount = state.pendingAnswerSegments.length;
+                  
+                  console.log('[ANSWER SETTLE WINDOW] =========================================');
+                  console.log('[ANSWER SETTLE WINDOW] callSid:', state.callSid);
+                  console.log('[ANSWER SETTLE WINDOW] stage:', originatingStage);
+                  console.log('[ANSWER SETTLE WINDOW] turnId:', originatingTurnId);
+                  console.log('[ANSWER SETTLE WINDOW] transcriptSegment:', meaningfulTranscript);
+                  console.log('[ANSWER SETTLE WINDOW] accumulatedAnswer:', accumulatedAnswer);
+                  console.log('[ANSWER SETTLE WINDOW] segmentCount:', segmentCount);
+                  console.log('[ANSWER SETTLE WINDOW] settleWindowMs:', state.settleWindowMs);
+                  console.log('[ANSWER SETTLE WINDOW] action:', 'settle_started');
+                  console.log('[ANSWER SETTLE WINDOW] timestamp:', new Date().toISOString());
+                  console.log('[ANSWER SETTLE WINDOW] =========================================');
+                  
+                  // Start settle window
+                  state.settleWindowTimeout = setTimeout(() => {
+                    // Settle window expired - finalize the accumulated answer
+                    const finalAnswer = state.pendingAnswerSegments.join(' ');
+                    const finalSegmentCount = state.pendingAnswerSegments.length;
+                    
+                    console.log('[ANSWER SETTLE WINDOW] =========================================');
+                    console.log('[ANSWER SETTLE WINDOW] callSid:', state.callSid);
+                    console.log('[ANSWER SETTLE WINDOW] stage:', state.pendingAnswerStage);
+                    console.log('[ANSWER SETTLE WINDOW] turnId:', state.pendingAnswerTurnId);
+                    console.log('[ANSWER SETTLE WINDOW] segmentCount:', finalSegmentCount);
+                    console.log('[ANSWER SETTLE WINDOW] finalAccumulatedAnswer:', finalAnswer);
+                    console.log('[ANSWER SETTLE WINDOW] action:', 'settle_completed_finalize');
+                    console.log('[ANSWER SETTLE WINDOW] timestamp:', new Date().toISOString());
+                    console.log('[ANSWER SETTLE WINDOW] =========================================');
+                    
+                    // Store the accumulated answer
+                    const fieldName = storeStageCapture(state.pendingAnswerStage, finalAnswer, 'settle_window_finalization');
+                    
+                    console.log('[ANSWER FINALIZATION] =========================================');
+                    console.log('[ANSWER FINALIZATION] stage:', state.pendingAnswerStage);
+                    console.log('[ANSWER FINALIZATION] turnId:', state.pendingAnswerTurnId);
+                    console.log('[ANSWER FINALIZATION] segmentCount:', finalSegmentCount);
+                    console.log('[ANSWER FINALIZATION] finalAccumulatedAnswer:', finalAnswer);
+                    console.log('[ANSWER FINALIZATION] persistedField:', fieldName);
+                    console.log('[ANSWER FINALIZATION] timestamp:', new Date().toISOString());
+                    console.log('[ANSWER FINALIZATION] =========================================');
+                    
+                    // Clear timeouts and increment turn
+                    clearSilentTimeout('settle_window_finalization');
+                    clearStageTimeout();
+                    state.currentTurnId++;
+                    
+                    // Clear pending answer state
+                    state.pendingAnswerStage = null;
+                    state.pendingAnswerSegments = [];
+                    state.pendingAnswerTurnId = 0;
+                    state.settleWindowTimeout = null;
+                    
+                    // Advance to next stage
+                    const stages = ['ask_name_reason', 'ask_details', 'ask_location', 'ask_completion_time', 'ask_callback_time'];
+                    const currentIndex = stages.indexOf(state.pendingAnswerStage || originatingStage);
+                    if (currentIndex !== -1 && currentIndex < stages.length - 1) {
+                      const nextStage = stages[currentIndex + 1];
+                      state.currentStage = nextStage;
+                      console.log('[ANSWER FINALIZATION] stageAdvanced:', true);
+                      console.log('[ANSWER FINALIZATION] nextStage:', nextStage);
+                      sendPrompt(state.currentStage);
+                    }
+                  }, state.settleWindowMs);
+                  
+                  // Don't persist or advance immediately - wait for settle window
+                  return;
                 }
               }
             }

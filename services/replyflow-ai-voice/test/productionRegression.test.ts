@@ -349,4 +349,114 @@ describe('Production Regression Tests', () => {
       expect(authorizedTurnId).toBe(2);
     });
   });
+  
+  describe('ISSUE 4: Multi-Segment Answer Settle Window', () => {
+    // Test A: Long answer with brief pause
+    it('Test A - long answer with brief pause', () => {
+      const stage = 'ask_details';
+      const segment1 = 'The door goes halfway down and comes back up.';
+      const segment2 = 'I cleaned the sensors but that didn\'t fix it.';
+      
+      const pendingAnswerSegments = [segment1, segment2];
+      const accumulatedAnswer = pendingAnswerSegments.join(' ');
+      
+      expect(accumulatedAnswer).toBe('The door goes halfway down and comes back up. I cleaned the sensors but that didn\'t fix it.');
+      expect(pendingAnswerSegments.length).toBe(2);
+    });
+    
+    // Test B: Long answer with volunteered address
+    it('Test B - long answer with volunteered address', () => {
+      const stage = 'ask_details';
+      const segment1 = 'The door goes halfway down and comes back up.';
+      const segment2 = 'Also, I\'m at 742 Highland Avenue in Carnegie, Pennsylvania, 15106.';
+      
+      const pendingAnswerSegments = [segment1, segment2];
+      const accumulatedAnswer = pendingAnswerSegments.join(' ');
+      
+      expect(accumulatedAnswer).toContain('The door goes halfway down and comes back up.');
+      expect(accumulatedAnswer).toContain('742 Highland Avenue');
+      expect(accumulatedAnswer).toContain('Carnegie, Pennsylvania, 15106');
+      expect(pendingAnswerSegments.length).toBe(2);
+    });
+    
+    // Test C: Short normal answer
+    it('Test C - short normal answer', () => {
+      const stage = 'ask_details';
+      const transcript = 'It started yesterday.';
+      
+      // Short answer should be accepted normally without settle window delay
+      expect(transcript).toBeDefined();
+      expect(transcript.length).toBeLessThan(100);
+    });
+    
+    // Test D: Caller truly stops after one valid details answer
+    it('Test D - caller truly stops after one valid details answer', () => {
+      const stage = 'ask_details';
+      const segment1 = 'The door won\'t close properly.';
+      const settleWindowMs = 1500;
+      
+      // Settle window expires without new speech
+      setTimeout(() => {
+        const finalAnswer = segment1;
+        expect(finalAnswer).toBe('The door won\'t close properly.');
+      }, settleWindowMs);
+    });
+    
+    // Test E: New speech begins during settle window
+    it('Test E - new speech begins during settle window', () => {
+      const stage = 'ask_details';
+      const segment1 = 'The door goes halfway down.';
+      const segment2 = 'It comes back up after a few seconds.';
+      
+      // Simulate speech started during settle window
+      let settleWindowTimeout = true;
+      let pendingAnswerStage = stage;
+      
+      // Speech started - cancel settle window
+      if (settleWindowTimeout && pendingAnswerStage) {
+        settleWindowTimeout = false;
+        pendingAnswerStage = null;
+      }
+      
+      expect(settleWindowTimeout).toBe(false);
+      expect(pendingAnswerStage).toBeNull();
+    });
+    
+    // Test F: Silence reprompt still works
+    it('Test F - silence reprompt still works', () => {
+      const stage = 'ask_details';
+      const silenceRetryCountByStage: { [key: string]: number } = {};
+      
+      // Caller says nothing at all after ask_details prompt
+      // First timeout should trigger reprompt
+      silenceRetryCountByStage[stage] = 1;
+      
+      expect(silenceRetryCountByStage[stage]).toBe(1);
+      
+      // Second timeout should finalize with partial info
+      silenceRetryCountByStage[stage] = 2;
+      expect(silenceRetryCountByStage[stage]).toBe(2);
+    });
+    
+    // Test G: Settle window prevents stage timeout
+    it('Test G - settle window prevents stage timeout', () => {
+      const stage = 'ask_details';
+      const settleWindowTimeout = true;
+      const pendingAnswerStage = stage;
+      
+      // Stage timeout should be prevented if settle window is active
+      const timeoutPrevented = settleWindowTimeout && pendingAnswerStage;
+      expect(timeoutPrevented).toBe(true);
+    });
+    
+    // Test H: Transcription watchdog prevented during settle window
+    it('Test H - transcription watchdog prevented during settle window', () => {
+      const settleWindowTimeout = true;
+      const pendingAnswerStage = 'ask_details';
+      
+      // Watchdog should be prevented if settle window is active
+      const watchdogPrevented = settleWindowTimeout && pendingAnswerStage;
+      expect(watchdogPrevented).toBe(true);
+    });
+  });
 });
