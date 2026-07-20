@@ -3368,7 +3368,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
 
               {/* Desktop Message Composer - Fixed to Bottom */}
-              <div className="shrink-0 pt-3">
+              <div className="shrink-0 pt-1">
                 <ConversationComposer
                   message={message}
                   setMessage={setMessage}

@@ -271,7 +271,7 @@ export default function MobileConversationComposer({
                 autoComplete="on"
                 spellCheck={true}
                 data-testid="composer-textarea-mobile"
-                className={`w-full bg-transparent border-none resize-none focus:outline-none placeholder:text-slate-500 text-base leading-relaxed py-2.5 px-1 max-h-32 text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed ${
+                className={`w-full bg-transparent border-none resize-none focus:outline-none placeholder:text-slate-500 text-base leading-normal py-2 px-1 max-h-32 text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed ${
                   isAtMaxHeight ? 'overflow-y-auto' : 'overflow-y-hidden'
                 }`}
                 rows={1}
