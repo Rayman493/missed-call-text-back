@@ -5705,13 +5705,13 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       console.log('[SIMPLE MODE EXTRACTION TRACE STAGE 2] =========================================');
 
       // Helper function to parse caller name and service from name/reason answer
-      const parseNameAndService = (text: string, existingService?: string): { customerName: string; serviceRequested: string } => {
+      const parseNameAndService = (text: string, existingService?: string, existingName?: string): { customerName: string; serviceRequested: string } => {
         if (!text || typeof text !== 'string') {
-          return { customerName: '', serviceRequested: existingService ?? '' };
+          return { customerName: existingName ?? '', serviceRequested: existingService ?? '' };
         }
 
         const trimmed = text.trim();
-        let customerName = trimmed;
+        let customerName = existingName ?? trimmed;
         let serviceRequested = existingService ?? '';
 
         // NEW: Strip harmless conversational fillers at the very beginning
@@ -5771,6 +5771,23 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
             ? trimmed.slice(0, serviceIdx).trim()
             : trimmed;
           customerName = normalizeNameCandidate(nameCandidate) || trimmed;
+          return { customerName, serviceRequested };
+        }
+
+        // NEW: If name was already extracted but service is missing, treat as service-only continuation
+        if (existingName) {
+          console.log('[PARSER SERVICE-ONLY CONTINUATION] =========================================');
+          console.log('[PARSER SERVICE-ONLY CONTINUATION] existingName:', existingName);
+          console.log('[PARSER SERVICE-ONLY CONTINUATION] rawInput:', trimmed);
+          console.log('[PARSER SERVICE-ONLY CONTINUATION] action: treat_as_service_reason_continuation');
+          console.log('[PARSER SERVICE-ONLY CONTINUATION] Timestamp:', new Date().toISOString());
+          console.log('[PARSER SERVICE-ONLY CONTINUATION] =========================================');
+          
+          // Strip conversational fillers and use the normalized text as the service
+          const normalizedInput = stripConversationalFillers(trimmed);
+          serviceRequested = normalizedInput;
+          customerName = existingName; // Preserve existing name
+          parserRuleMatched = 'service_only_continuation';
           return { customerName, serviceRequested };
         }
 
@@ -6125,7 +6142,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       console.log('[ASK_NAME_REASON MERGE DECISION] =========================================');
       
       // Parse the new transcript with awareness of existing valid fields
-      const parseResult = parseNameAndService(rawTranscript, existingServiceValid ? state.intakeData.serviceRequested : undefined);
+      const parseResult = parseNameAndService(rawTranscript, existingServiceValid ? state.intakeData.serviceRequested : undefined, existingNameValid ? state.intakeData.customerName : undefined);
 
       // FIRST-STAGE ASSIGNMENT TRACE
       console.log('[FIRST-STAGE ASSIGNMENT TRACE] =========================================');
@@ -6578,10 +6595,11 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       console.log('[STAGE TIMEOUT REPROMPT ROUTING] logicalStage:', stage);
       console.log('[STAGE TIMEOUT REPROMPT ROUTING] selectedPromptKey:', promptKeyOverride || stage);
       console.log('[STAGE TIMEOUT REPROMPT ROUTING] source:', 'stage_timeout_handler');
+      console.log('[STAGE TIMEOUT REPROMPT ROUTING] repromptAttempt:', state.silenceRetryCountByStage[stage]);
       console.log('[STAGE TIMEOUT REPROMPT ROUTING] Timestamp:', new Date().toISOString());
       console.log('[STAGE TIMEOUT REPROMPT ROUTING] =========================================');
       
-      sendPrompt(stage, promptKeyOverride, 'stage_timeout_handler', state.currentTurnId);
+      sendPrompt(stage, promptKeyOverride, 'stage_timeout_handler', state.currentTurnId, state.silenceRetryCountByStage[stage]);
     } else {
       // Second timeout: finalize with partial info
       console.log('[STAGE TIMEOUT] =========================================');
@@ -7989,7 +8007,7 @@ Reply to this message if you'd like to update or add any information.
   };
 
   // Helper to send prompt using cached PCMU audio or Realtime response.create
-  const sendPrompt = async (stage: string, promptKeyOverride?: string, source?: string, turnId?: number) => {
+  const sendPrompt = async (stage: string, promptKeyOverride?: string, source?: string, turnId?: number, deliveryAttempt?: number) => {
     // Turn ID validation: prevent stale callbacks from sending prompts
     if (turnId !== undefined && turnId < state.currentTurnId) {
       console.log('[PROMPT IDEMPOTENCY] =========================================');
@@ -8015,9 +8033,24 @@ Reply to this message if you'd like to update or add any information.
     }
 
     // Idempotency guard: prevent duplicate sends for the same logical delivery
-    // Delivery identity: callSid + authorizedTurnId + selectedPromptKey
+    // Delivery identity: callSid + authorizedTurnId + selectedPromptKey + deliveryAttempt
     const authorizedTurnId = turnId !== undefined ? turnId : state.currentTurnId;
-    const deliveryIdentity = `${state.callSid}:${authorizedTurnId}:${promptKey}`;
+    const deliveryAttemptStr = deliveryAttempt !== undefined ? `:reprompt-${deliveryAttempt}` : ':initial';
+    const deliveryIdentity = `${state.callSid}:${authorizedTurnId}:${promptKey}${deliveryAttemptStr}`;
+    
+    // Determine delivery type for logging
+    const deliveryType = deliveryAttempt !== undefined ? 'reprompt' : 'initial';
+    
+    console.log('[PROMPT DELIVERY IDENTITY] =========================================');
+    console.log('[PROMPT DELIVERY IDENTITY] callSid:', state.callSid);
+    console.log('[PROMPT DELIVERY IDENTITY] stage:', stage);
+    console.log('[PROMPT DELIVERY IDENTITY] logicalTurnId:', authorizedTurnId);
+    console.log('[PROMPT DELIVERY IDENTITY] selectedPromptKey:', promptKey);
+    console.log('[PROMPT DELIVERY IDENTITY] deliveryType:', deliveryType);
+    console.log('[PROMPT DELIVERY IDENTITY] deliveryAttempt:', deliveryAttempt ?? 'initial');
+    console.log('[PROMPT DELIVERY IDENTITY] deliveryIdentity:', deliveryIdentity);
+    console.log('[PROMPT DELIVERY IDENTITY] Timestamp:', new Date().toISOString());
+    console.log('[PROMPT DELIVERY IDENTITY] =========================================');
     
     if (state.sentPrompts.has(deliveryIdentity)) {
       console.log('[PROMPT IDEMPOTENCY] =========================================');
@@ -8047,9 +8080,25 @@ Reply to this message if you'd like to update or add any information.
     console.log('[PROMPT IDEMPOTENCY] logicalStage:', stage);
     console.log('[PROMPT IDEMPOTENCY] selectedPromptKey:', promptKey);
     console.log('[PROMPT IDEMPOTENCY] source:', source);
+    console.log('[PROMPT IDEMPOTENCY] deliveryType:', deliveryType);
+    console.log('[PROMPT IDEMPOTENCY] deliveryAttempt:', deliveryAttempt ?? 'initial');
     console.log('[PROMPT IDEMPOTENCY] action: allowed');
     console.log('[PROMPT IDEMPOTENCY] Timestamp:', new Date().toISOString());
     console.log('[PROMPT IDEMPOTENCY] =========================================');
+
+    // Log reprompt-specific information
+    if (deliveryType === 'reprompt') {
+      console.log('[REPROMPT DELIVERY] =========================================');
+      console.log('[REPROMPT DELIVERY] callSid:', state.callSid);
+      console.log('[REPROMPT DELIVERY] stage:', stage);
+      console.log('[REPROMPT DELIVERY] logicalTurnId:', authorizedTurnId);
+      console.log('[REPROMPT DELIVERY] repromptAttempt:', deliveryAttempt);
+      console.log('[REPROMPT DELIVERY] timeoutSource:', source);
+      console.log('[REPROMPT DELIVERY] deliveryIdentity:', deliveryIdentity);
+      console.log('[REPROMPT DELIVERY] deliveryAllowed:', true);
+      console.log('[REPROMPT DELIVERY] Timestamp:', new Date().toISOString());
+      console.log('[REPROMPT DELIVERY] =========================================');
+    }
 
     console.log('[ASK_NAME_REASON PROMPT SEND AUTHORIZED] =========================================');
     console.log('[ASK_NAME_REASON PROMPT SEND AUTHORIZED] turnId:', turnId || 'none');
