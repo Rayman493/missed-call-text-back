@@ -382,7 +382,7 @@ export const cachedAudioMetadata = {
 ${Object.entries(metadata).map(([key, value]) => `  ${key}: ${JSON.stringify(value)},`).join('\n')}
 } as const;`;
 
-  fs.writeFileSync('../src/cached-audio.ts', output);
+  fs.writeFileSync('src/cached-audio.ts', output);
   console.log('\n✓ Wrote to src/cached-audio.ts');
   console.log('✓ Added version tracking, checksums, and metadata');
   console.log('\n========================================');
