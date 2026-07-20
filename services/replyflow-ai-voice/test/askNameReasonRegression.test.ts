@@ -43,6 +43,43 @@ const cases = [
     expectName: "Ryan",
     expectService: "someone to look at my roof",
   },
+  // New cases for exact production transcript and filler variations (no comma)
+  {
+    desc: "8. Yeah, my name is uh Ryan, and I need some landscaping work done (exact production transcript)",
+    input: "Yeah, my name is uh Ryan, and I need some landscaping work done",
+    expectName: "Ryan",
+    expectService: "and I need some landscaping work done",
+  },
+  {
+    desc: "9. Yeah, my name is, uh, Ryan, and I need some landscaping work done (with comma)",
+    input: "Yeah, my name is, uh, Ryan, and I need some landscaping work done",
+    expectName: "Ryan",
+    expectService: "some landscaping work done",
+  },
+  {
+    desc: "10. My name is um Ryan and I need my lawn cut (no comma)",
+    input: "My name is um Ryan and I need my lawn cut",
+    expectName: "Ryan",
+    expectService: "my lawn cut",
+  },
+  {
+    desc: "11. My name is, um, Ryan and I need my lawn cut (with commas)",
+    input: "My name is, um, Ryan and I need my lawn cut",
+    expectName: "Ryan",
+    expectService: "my lawn cut",
+  },
+  {
+    desc: "12. This is uh Ryan. I need someone to look at my roof (no comma)",
+    input: "This is uh Ryan. I need someone to look at my roof",
+    expectName: "Ryan",
+    expectService: "someone to look at my roof",
+  },
+  {
+    desc: "13. I'm um Ryan, and I'm calling because my sink is leaking (no comma)",
+    input: "I'm um Ryan, and I'm calling because my sink is leaking",
+    expectName: "Ryan",
+    expectService: "and I'm calling because my sink is leaking",
+  },
 ];
 
 const negative = [
@@ -57,7 +94,11 @@ function stripFillerPrefix(s: string): string {
 }
 
 function stripNameIntro(s: string): string {
-  return s.replace(/^(?:my name is|my name's|name is|i am|i'm|this is|it is|it's)[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*/i, '').trim();
+  // Strip intro phrase first, then strip any leading fillers that follow
+  return s
+    .replace(/^(?:my name is|my name's|name is|i am|i'm|this is|it is|it's)[\s,]*/i, '')
+    .replace(/^(?:uh|um|yeah|well|actually)[\s,]+/i, '')
+    .trim();
 }
 
 function stripServicePrefix(s: string): string {
@@ -106,8 +147,8 @@ function parseNameAndServiceLike(text: string): { name: string; service: string 
     const secondSentence = sentences.slice(1).join('. ').trim();
 
     const nameIntroPatterns = [
-      /^(?:hi|hello|hey)[,\s]+(?:this is|my name is|my name's|name is|i am|i'm)[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*(.+)$/i,
-      /^(?:this is|my name is|my name's|name is|i am|i'm)[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*(.+)$/i,
+      /^(?:hi|hello|hey)[,\s]+(?:this is|my name is|my name's|name is|i am|i'm)[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+)$/i,
+      /^(?:this is|my name is|my name's|name is|i am|i'm)[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+)$/i,
       /^([a-z][a-z' -]{1,40}?)\s+here$/i,
     ];
 
@@ -193,14 +234,14 @@ function parseNameAndServiceLike(text: string): { name: string; service: string 
 
   // Name patterns (same as production, with updated comma/filler handling)
   const namePatterns = [
-    /^(?:hi|hello|hey)[,\s]+my name is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*(.+?)(?:\.|,|;|\band\b|$)/i,
-    /^my name is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*(.+?)(?:\.|,|;|\band\b|$)/i,
-    /^my name's[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*(.+?)(?:\.|,|;|\band\b|$)/i,
-    /^name is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*(.+?)(?:\.|,|;|\band\b|$)/i,
-    /^i am[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*(.+?)(?:\.|,|;|\band\b|$)/i,
-    /^i'm[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*(.+?)(?:\.|,|;|\band\b|$)/i,
-    /^this is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*(.+?)(?:\.|,|;|\band\b|$)/i,
-    /^it is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*(.+?)(?:\.|,|;|\band\b|$)/i,
+    /^(?:hi|hello|hey)[,\s]+my name is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+?)(?:\.|,|;|\band\b|$)/i,
+    /^my name is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+?)(?:\.|,|;|\band\b|$)/i,
+    /^my name's[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+?)(?:\.|,|;|\band\b|$)/i,
+    /^name is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+?)(?:\.|,|;|\band\b|$)/i,
+    /^i am[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+?)(?:\.|,|;|\band\b|$)/i,
+    /^i'm[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+?)(?:\.|,|;|\band\b|$)/i,
+    /^this is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+?)(?:\.|,|;|\band\b|$)/i,
+    /^it is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+?)(?:\.|,|;|\band\b|$)/i,
     /^([a-z][a-z' -]{1,40}?)\s+here(?:\.|,|;|\band\b|$)/i,
     /^([a-z][a-z' -]{1,40}?)\.(?:\s|$)/i,
   ];

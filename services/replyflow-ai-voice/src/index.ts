@@ -5775,7 +5775,9 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
           s
             .replace(/^(?:hi|hello|hey)[,\s]+/i, '')
             // Allow commas and short fillers immediately after the intro before the real name
-            .replace(/^(?:my name is|my name's|name is|i am|i'm|this is|it is|it's)[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*/i, '')
+            // Strip intro phrase first, then strip any leading fillers that follow
+            .replace(/^(?:my name is|my name's|name is|i am|i'm|this is|it is|it's)[\s,]*/i, '')
+            .replace(/^(?:uh|um|yeah|well|actually)[\s,]+/i, '')
             .replace(/\s+here$/i, '')
             .trim();
 
@@ -5832,8 +5834,8 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
           
           // Check if first sentence is a name introduction
           const nameIntroPatterns = [
-            /^(?:hi|hello|hey)[,\s]+(?:this is|my name is|my name's|name is|i am|i'm)[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*(.+)$/i,
-            /^(?:this is|my name is|my name's|name is|i am|i'm)[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*(.+)$/i,
+            /^(?:hi|hello|hey)[,\s]+(?:this is|my name is|my name's|name is|i am|i'm)[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+)$/i,
+            /^(?:this is|my name is|my name's|name is|i am|i'm)[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+)$/i,
             /^([a-z][a-z' -]{1,40}?)\s+here$/i,
           ];
           
@@ -5983,14 +5985,14 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
         // Extract name first using explicit name patterns
         const namePatterns = [
-          /^(?:hi|hello|hey)[,\s]+my name is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*(.+?)(?:\.|,|;|\band\b|$)/i,
-          /^my name is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*(.+?)(?:\.|,|;|\band\b|$)/i,
-          /^my name's[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*(.+?)(?:\.|,|;|\band\b|$)/i,
-          /^name is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*(.+?)(?:\.|,|;|\band\b|$)/i,
-          /^i am[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*(.+?)(?:\.|,|;|\band\b|$)/i,
-          /^i'm[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*(.+?)(?:\.|,|;|\band\b|$)/i,
-          /^this is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*(.+?)(?:\.|,|;|\band\b|$)/i,
-          /^it is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^(?:hi|hello|hey)[,\s]+my name is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^my name is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^my name's[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^name is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^i am[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^i'm[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^this is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^it is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+?)(?:\.|,|;|\band\b|$)/i,
           /^([a-z][a-z' -]{1,40}?)\s+here(?:\.|,|;|\band\b|$)/i,
           /^([a-z][a-z' -]{1,40}?)\.(?:\s|$)/i,
         ];
@@ -7267,14 +7269,14 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
       // Extract name first using explicit name patterns
       const namePatterns = [
-        /^(?:hi|hello|hey)[,\s]+my name is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*([^.,;]+?)(?=\.|,|;|\band\b|$)/i,
-        /^my name is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*([^.,;]+?)(?=\.|,|;|\band\b|$)/i,
-        /^my name's[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*([^.,;]+?)(?=\.|,|;|\band\b|$)/i,
-        /^name is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*([^.,;]+?)(?=\.|,|;|\band\b|$)/i,
-        /^i am[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*([^.,;]+?)(?=\.|,|;|\band\b|$)/i,
-        /^i'm[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*([^.,;]+?)(?=\.|,|;|\band\b|$)/i,
-        /^this is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*([^.,;]+?)(?=\.|,|;|\band\b|$)/i,
-        /^it is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]+)*([^.,;]+?)(?=\.|,|;|\band\b|$)/i,
+        /^(?:hi|hello|hey)[,\s]+my name is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*([^.,;]+?)(?=\.|,|;|\band\b|$)/i,
+        /^my name is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*([^.,;]+?)(?=\.|,|;|\band\b|$)/i,
+        /^my name's[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*([^.,;]+?)(?=\.|,|;|\band\b|$)/i,
+        /^name is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*([^.,;]+?)(?=\.|,|;|\band\b|$)/i,
+        /^i am[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*([^.,;]+?)(?=\.|,|;|\band\b|$)/i,
+        /^i'm[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*([^.,;]+?)(?=\.|,|;|\band\b|$)/i,
+        /^this is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*([^.,;]+?)(?=\.|,|;|\band\b|$)/i,
+        /^it is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*([^.,;]+?)(?=\.|,|;|\band\b|$)/i,
         /^([a-z][a-z' -]{1,40}?)\s+here(?:\.|,|;|\band\b|$)/i,
         /^([a-z][a-z' -]{1,40}?)\.(?:\s|$)/i,
       ];
