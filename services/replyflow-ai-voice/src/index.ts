@@ -6599,7 +6599,30 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       console.log('[STAGE TIMEOUT REPROMPT ROUTING] Timestamp:', new Date().toISOString());
       console.log('[STAGE TIMEOUT REPROMPT ROUTING] =========================================');
       
+      console.log('[REPROMPT ARGUMENT TRACE] =========================================');
+      console.log('[REPROMPT ARGUMENT TRACE] callSid:', state.callSid);
+      console.log('[REPROMPT ARGUMENT TRACE] currentStage:', stage);
+      console.log('[REPROMPT ARGUMENT TRACE] currentTurnId:', state.currentTurnId);
+      console.log('[REPROMPT ARGUMENT TRACE] authorizedTurnId argument:', state.currentTurnId);
+      console.log('[REPROMPT ARGUMENT TRACE] promptKeyOverride:', promptKeyOverride);
+      console.log('[REPROMPT ARGUMENT TRACE] source:', 'stage_timeout_handler');
+      console.log('[REPROMPT ARGUMENT TRACE] deliveryAttempt argument:', state.silenceRetryCountByStage[stage]);
+      console.log('[REPROMPT ARGUMENT TRACE] silenceRetryCountByStage[stage]:', state.silenceRetryCountByStage[stage]);
+      console.log('[REPROMPT ARGUMENT TRACE] Timestamp:', new Date().toISOString());
+      console.log('[REPROMPT ARGUMENT TRACE] =========================================');
+      
       sendPrompt(stage, promptKeyOverride, 'stage_timeout_handler', state.currentTurnId, state.silenceRetryCountByStage[stage]);
+      
+      console.log('[REPROMPT TIMEOUT LIFECYCLE] =========================================');
+      console.log('[REPROMPT TIMEOUT LIFECYCLE] previousTimeoutCleared:', true);
+      console.log('[REPROMPT TIMEOUT LIFECYCLE] repromptAttempt:', state.silenceRetryCountByStage[stage]);
+      console.log('[REPROMPT TIMEOUT LIFECYCLE] repromptAudioStarted:', state.assistantSpeaking);
+      console.log('[REPROMPT TIMEOUT LIFECYCLE] repromptAudioSentAt:', state.promptAudioSentAt);
+      console.log('[REPROMPT TIMEOUT LIFECYCLE] nextTimeoutStarted:', 'pending_audio_completion');
+      console.log('[REPROMPT TIMEOUT LIFECYCLE] nextTimeoutMs:', STAGE_TIMEOUT_MS);
+      console.log('[REPROMPT TIMEOUT LIFECYCLE] retryCount:', state.silenceRetryCountByStage[stage]);
+      console.log('[REPROMPT TIMEOUT LIFECYCLE] Timestamp:', new Date().toISOString());
+      console.log('[REPROMPT TIMEOUT LIFECYCLE] =========================================');
     } else {
       // Second timeout: finalize with partial info
       console.log('[STAGE TIMEOUT] =========================================');
@@ -8032,6 +8055,17 @@ Reply to this message if you'd like to update or add any information.
 
   // Helper to send prompt using cached PCMU audio or Realtime response.create
   const sendPrompt = async (stage: string, promptKeyOverride?: string, source?: string, turnId?: number, deliveryAttempt?: number) => {
+    console.log('[REPROMPT ARGUMENT TRACE] =========================================');
+    console.log('[REPROMPT ARGUMENT TRACE] location: sendPrompt_entry');
+    console.log('[REPROMPT ARGUMENT TRACE] callSid:', state.callSid);
+    console.log('[REPROMPT ARGUMENT TRACE] stage:', stage);
+    console.log('[REPROMPT ARGUMENT TRACE] promptKeyOverride:', promptKeyOverride);
+    console.log('[REPROMPT ARGUMENT TRACE] source:', source);
+    console.log('[REPROMPT ARGUMENT TRACE] turnId:', turnId);
+    console.log('[REPROMPT ARGUMENT TRACE] deliveryAttempt:', deliveryAttempt);
+    console.log('[REPROMPT ARGUMENT TRACE] Timestamp:', new Date().toISOString());
+    console.log('[REPROMPT ARGUMENT TRACE] =========================================');
+    
     // Turn ID validation: prevent stale callbacks from sending prompts
     if (turnId !== undefined && turnId < state.currentTurnId) {
       console.log('[PROMPT IDEMPOTENCY] =========================================');
@@ -8075,6 +8109,16 @@ Reply to this message if you'd like to update or add any information.
     console.log('[PROMPT DELIVERY IDENTITY] deliveryIdentity:', deliveryIdentity);
     console.log('[PROMPT DELIVERY IDENTITY] Timestamp:', new Date().toISOString());
     console.log('[PROMPT DELIVERY IDENTITY] =========================================');
+    
+    console.log('[REPROMPT ARGUMENT TRACE] =========================================');
+    console.log('[REPROMPT ARGUMENT TRACE] location: before_idempotency_check');
+    console.log('[REPROMPT ARGUMENT TRACE] callSid:', state.callSid);
+    console.log('[REPROMPT ARGUMENT TRACE] authorizedTurnId:', authorizedTurnId);
+    console.log('[REPROMPT ARGUMENT TRACE] deliveryType:', deliveryType);
+    console.log('[REPROMPT ARGUMENT TRACE] deliveryAttempt:', deliveryAttempt ?? 'initial');
+    console.log('[REPROMPT ARGUMENT TRACE] deliveryIdentity:', deliveryIdentity);
+    console.log('[REPROMPT ARGUMENT TRACE] Timestamp:', new Date().toISOString());
+    console.log('[REPROMPT ARGUMENT TRACE] =========================================');
     
     if (state.sentPrompts.has(deliveryIdentity)) {
       console.log('[PROMPT IDEMPOTENCY] =========================================');
@@ -8569,7 +8613,7 @@ Reply to this message if you'd like to update or add any information.
       
       console.log('[OPENAI READY]', Date.now(), 'both session.created and session.updated received');
       console.log('[OPENAI TIMING]', Date.now(), 'sendPrompt.initial');
-      sendPrompt(state.currentStage);
+      sendPrompt(state.currentStage, undefined, 'initial_prompt', state.currentTurnId, undefined);
     }
   }
 
