@@ -1,0 +1,12 @@
+node_modules
+npm-debug.log
+dist
+.git
+.gitignore
+fly-transcript.txt
+*.log
+.env
+.env.local
+.env.*.local
+test
+scripts
