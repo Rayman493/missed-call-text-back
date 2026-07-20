@@ -484,97 +484,95 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
             </div>
           ) : null}
 
-          {/* Compact Row: Location, Callback, Urgency */}
-          <div className="bg-muted/40 rounded-xl p-4 border border-border/30">
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              {/* Location */}
-              {isEditMode || (extractedInfo?.addressOrLocation || correctedFields?.address) ? (
-                <div className="min-w-0 space-y-2">
-                  <div className="flex items-center justify-between gap-1">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                      <span className="text-xs font-semibold text-muted-foreground/80 tracking-wide">Location</span>
-                    </div>
-                    {manualFields.has('addressOrLocation') && !isEditMode && (
-                      <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md font-medium">Manual</span>
-                    )}
-                  </div>
-                  {isEditMode ? (
-                    <textarea
-                      value={editValues.addressOrLocation}
-                      onChange={(e) => setEditValues({ ...editValues, addressOrLocation: e.target.value })}
-                      className="w-full min-h-[64px] px-3 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
-                      rows={3}
-                      placeholder="Service address"
-                      autoCapitalize="sentences"
-                      autoCorrect="on"
-                      spellCheck={true}
-                    />
-                  ) : (
-                    <p className="text-sm text-foreground leading-snug">
-                      {correctedFields?.address || extractedInfo?.addressOrLocation}
-                    </p>
-                  )}
-                </div>
-              ) : null}
-
-              {/* Callback Time */}
-              <div className="min-w-0 space-y-2">
-                <div className="flex items-center justify-between gap-1">
+          {/* Stacked Cards: Location, Callback, Completion */}
+          <div className="space-y-3">
+            {/* Location Card */}
+            {isEditMode || (extractedInfo?.addressOrLocation || correctedFields?.address) ? (
+              <div className="bg-muted/40 rounded-xl p-4 border border-border/30">
+                <div className="flex items-center justify-between gap-1 mb-2">
                   <div className="flex items-center gap-2 min-w-0">
-                    <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-xs font-semibold text-muted-foreground/80 tracking-wide">Callback</span>
+                    <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    <span className="text-xs font-semibold text-muted-foreground/80 tracking-wide">Location</span>
                   </div>
-                  {manualFields.has('preferredCallbackTime') && !isEditMode && (
+                  {manualFields.has('addressOrLocation') && !isEditMode && (
                     <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md font-medium">Manual</span>
                   )}
                 </div>
                 {isEditMode ? (
                   <textarea
-                    value={editValues.preferredCallbackTime}
-                    onChange={(e) => setEditValues({ ...editValues, preferredCallbackTime: e.target.value })}
+                    value={editValues.addressOrLocation}
+                    onChange={(e) => setEditValues({ ...editValues, addressOrLocation: e.target.value })}
                     className="w-full min-h-[64px] px-3 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
                     rows={3}
-                    placeholder="Best time to call"
+                    placeholder="Service address"
                     autoCapitalize="sentences"
                     autoCorrect="on"
                     spellCheck={true}
                   />
                 ) : (
                   <p className="text-sm text-foreground leading-snug">
-                    {sentenceCase(extractedInfo.preferredCallbackTime) || 'Not Provided'}
+                    {correctedFields?.address || extractedInfo?.addressOrLocation}
                   </p>
                 )}
               </div>
+            ) : null}
 
-              {/* Desired Completion Time */}
-              <div className="min-w-0 space-y-2">
-                <div className="flex items-center justify-between gap-1">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-xs font-semibold text-muted-foreground/80 tracking-wide">Completion</span>
-                  </div>
-                  {manualFields.has('desiredCompletionTime') && !isEditMode && (
-                    <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md font-medium">Manual</span>
-                  )}
+            {/* Callback Card */}
+            <div className="bg-muted/40 rounded-xl p-4 border border-border/30">
+              <div className="flex items-center justify-between gap-1 mb-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <span className="text-xs font-semibold text-muted-foreground/80 tracking-wide">Callback</span>
                 </div>
-                {isEditMode ? (
-                  <textarea
-                    value={editValues.desiredCompletionTime}
-                    onChange={(e) => setEditValues({ ...editValues, desiredCompletionTime: e.target.value })}
-                    className="w-full min-h-[64px] px-3 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
-                    rows={3}
-                    placeholder="Desired completion"
-                    autoCapitalize="sentences"
-                    autoCorrect="on"
-                    spellCheck={true}
-                  />
-                ) : (
-                  <p className="text-sm text-foreground leading-snug">
-                    {sentenceCase(extractedInfo.desiredCompletionTime) || 'Not Provided'}
-                  </p>
+                {manualFields.has('preferredCallbackTime') && !isEditMode && (
+                  <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md font-medium">Manual</span>
                 )}
               </div>
+              {isEditMode ? (
+                <textarea
+                  value={editValues.preferredCallbackTime}
+                  onChange={(e) => setEditValues({ ...editValues, preferredCallbackTime: e.target.value })}
+                  className="w-full min-h-[64px] px-3 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
+                  rows={3}
+                  placeholder="Best time to call"
+                  autoCapitalize="sentences"
+                  autoCorrect="on"
+                  spellCheck={true}
+                />
+              ) : (
+                <p className="text-sm text-foreground leading-snug">
+                  {sentenceCase(extractedInfo.preferredCallbackTime) || 'Not Provided'}
+                </p>
+              )}
+            </div>
+
+            {/* Completion Card */}
+            <div className="bg-muted/40 rounded-xl p-4 border border-border/30">
+              <div className="flex items-center justify-between gap-1 mb-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <span className="text-xs font-semibold text-muted-foreground/80 tracking-wide">Completion</span>
+                </div>
+                {manualFields.has('desiredCompletionTime') && !isEditMode && (
+                  <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md font-medium">Manual</span>
+                )}
+              </div>
+              {isEditMode ? (
+                <textarea
+                  value={editValues.desiredCompletionTime}
+                  onChange={(e) => setEditValues({ ...editValues, desiredCompletionTime: e.target.value })}
+                  className="w-full min-h-[64px] px-3 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
+                  rows={3}
+                  placeholder="Desired completion"
+                  autoCapitalize="sentences"
+                  autoCorrect="on"
+                  spellCheck={true}
+                />
+              ) : (
+                <p className="text-sm text-foreground leading-snug">
+                  {sentenceCase(extractedInfo.desiredCompletionTime) || 'Not Provided'}
+                </p>
+              )}
             </div>
           </div>
             </div>
