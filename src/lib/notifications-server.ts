@@ -22,7 +22,7 @@ export interface NotificationCount {
 
 // Notification templates
 export const NOTIFICATION_TEMPLATES = {
-  new_lead: (data: { leadName: string; leadPhone: string; leadId: string }) => ({
+  new_lead: (data: { leadName: string; leadPhone: string; leadId: string; callSid?: string }) => ({
     title: 'New Lead Captured',
     message: `${data.leadName} (${data.leadPhone}) is waiting for your response`,
     action_url: `/dashboard/leads/${data.leadId}`,
@@ -78,7 +78,7 @@ export const NOTIFICATION_TEMPLATES = {
     action_text: 'Listen'
   }),
 
-  ai_intake_completed: (data: { leadName: string; leadPhone: string; leadId: string; serviceRequested?: string }) => ({
+  ai_intake_completed: (data: { leadName: string; leadPhone: string; leadId: string; serviceRequested?: string; aiCallRecordId?: string }) => ({
     title: 'New AI Intake Lead',
     message: `${data.leadName || data.leadPhone || 'Customer'} requested help${data.serviceRequested ? ` with ${normalizePunctuation(data.serviceRequested)}` : ''}`,
     action_url: `/dashboard/leads/${data.leadId}`,
@@ -258,41 +258,53 @@ export class NotificationServiceServer {
       }
     }
 
-    // Idempotency check for new_lead by leadId
+    // Idempotency check for new_lead by callSid (unique per call)
     if (data && data.leadId && type === 'new_lead') {
+      // Use callSid for idempotency if available, otherwise fall back to leadId
+      const idempotencyKey = data.callSid || data.leadId
+      const idempotencyField = data.callSid ? 'callSid' : 'leadId'
+      
       const { data: existingNotification } = await supabaseAdmin
         .from('notifications')
         .select('id')
         .eq('business_id', businessId)
         .eq('type', type)
-        .eq('data->>leadId', data.leadId)
+        .eq(`data->>${idempotencyField}`, idempotencyKey)
         .maybeSingle()
 
       if (existingNotification) {
         console.log('[NOTIFICATIONS IDEMPOTENT SKIP]', { 
           businessId, 
           type, 
-          leadId: data.leadId 
+          leadId: data.leadId,
+          idempotencyField,
+          idempotencyKey
         })
         return true
       }
     }
 
-    // Idempotency check for ai_intake_completed by leadId
+    // Idempotency check for ai_intake_completed by aiCallRecordId (unique per intake)
     if (data && data.leadId && type === 'ai_intake_completed') {
+      // Use aiCallRecordId for idempotency if available, otherwise fall back to leadId
+      const idempotencyKey = data.aiCallRecordId || data.leadId
+      const idempotencyField = data.aiCallRecordId ? 'aiCallRecordId' : 'leadId'
+      
       const { data: existingNotification } = await supabaseAdmin
         .from('notifications')
         .select('id')
         .eq('business_id', businessId)
         .eq('type', type)
-        .eq('data->>leadId', data.leadId)
+        .eq(`data->>${idempotencyField}`, idempotencyKey)
         .maybeSingle()
 
       if (existingNotification) {
         console.log('[NOTIFICATIONS IDEMPOTENT SKIP]', { 
           businessId, 
           type, 
-          leadId: data.leadId 
+          leadId: data.leadId,
+          idempotencyField,
+          idempotencyKey
         })
         return true
       }
@@ -359,12 +371,12 @@ export class NotificationServiceServer {
   }
 
   // Helper methods for common notification scenarios
-  async notifyNewLead(businessId: string, leadName: string, leadPhone: string, leadId: string): Promise<boolean> {
+  async notifyNewLead(businessId: string, leadName: string, leadPhone: string, leadId: string, callSid?: string): Promise<boolean> {
     return await this.createNotification(
       businessId,
       'new_lead',
       '',
-      { leadName, leadPhone, leadId }
+      { leadName, leadPhone, leadId, callSid }
     )
   }
 
@@ -413,12 +425,12 @@ export class NotificationServiceServer {
     )
   }
 
-  async notifyAiIntakeCompleted(businessId: string, leadName: string, leadPhone: string, leadId: string, serviceRequested?: string): Promise<boolean> {
+  async notifyAiIntakeCompleted(businessId: string, leadName: string, leadPhone: string, leadId: string, serviceRequested?: string, aiCallRecordId?: string): Promise<boolean> {
     return await this.createNotification(
       businessId,
       'ai_intake_completed',
       '',
-      { leadName, leadPhone, leadId, serviceRequested }
+      { leadName, leadPhone, leadId, serviceRequested, aiCallRecordId }
     )
   }
 

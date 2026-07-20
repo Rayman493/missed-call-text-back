@@ -562,7 +562,8 @@ export async function POST(request: NextRequest) {
             leadName,
             callerPhone,
             leadId,
-            serviceRequested
+            serviceRequested,
+            latestAiCallRecord?.id
           )
 
           console.log('[AI INTAKE NOTIFICATION CREATE SUCCESS]', {

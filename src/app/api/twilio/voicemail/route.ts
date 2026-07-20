@@ -398,7 +398,8 @@ export async function POST(request: NextRequest) {
           business.id,
           'New Customer',
           normalizedCallerPhone,
-          lead.id
+          lead.id,
+          callSid
         );
         console.log('[NOTIFICATION CREATE SUCCESS]', { 
           businessId: business.id, 

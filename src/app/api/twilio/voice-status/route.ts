@@ -1378,7 +1378,8 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
               leadName,
               From,
               lead.id,
-              serviceRequested
+              serviceRequested,
+              aiCallRecord.id
             )
 
             console.log('[AI INTAKE COMPLETE] notification created or already exists');

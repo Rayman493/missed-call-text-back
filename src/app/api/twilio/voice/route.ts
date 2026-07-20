@@ -1761,7 +1761,8 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
             business.id,
             'Unknown', // lead name (can be updated later from conversation)
             normalizedCallerPhone,
-            lead.id
+            lead.id,
+            CallSid
           );
           console.log('[NOTIFICATION CREATE SUCCESS]', { 
             businessId: business.id, 
