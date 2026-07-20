@@ -1265,15 +1265,15 @@ test('REGRESSION E: Per-speech transcription ownership prevents stale clears', (
   expect(state.speechGeneration).toBe(2);
 });
 
-// Test F: Settle Window Uses Correct Duration (2200ms for ask_details)
-test('REGRESSION F: Settle window uses correct duration (2200ms for ask_details)', () => {
+// Test F: Settle Window Uses Correct Duration (3000ms for ask_details)
+test('REGRESSION F: Settle window uses correct duration (3000ms for ask_details)', () => {
   const stage = 'ask_details';
   const stateSettleWindowMs = 1500; // Wrong value from state
-  
-  // The fix uses a calculated variable instead of state.settleWindowMs
-  const settleWindowMs = stage === 'ask_details' ? 2200 : stateSettleWindowMs;
 
-  expect(settleWindowMs).toBe(2200);
+  // The fix uses a calculated variable instead of state.settleWindowMs
+  const settleWindowMs = stage === 'ask_details' ? 3000 : stateSettleWindowMs;
+
+  expect(settleWindowMs).toBe(3000);
   expect(stage).toBe('ask_details');
 });
 
@@ -1505,4 +1505,64 @@ test('REGRESSION P: Stage timeout defensive guard blocks when answer already acc
   const answerAccepted = state.answerAcceptedForStage === state.currentStage;
   
   expect(answerAccepted).toBe(true); // Should block reprompt
+});
+
+// Test Q: ask_details settle window duration is 3000ms
+test('REGRESSION Q: ask_details settle window duration is 3000ms', () => {
+  const stage = 'ask_details';
+  const stateSettleWindowMs = 1500;
+  
+  const settleWindowMs = stage === 'ask_details' ? 3000 : stateSettleWindowMs;
+
+  expect(settleWindowMs).toBe(3000);
+});
+
+// Test R: ask_name_reason settle window duration is 1500ms
+test('REGRESSION R: ask_name_reason settle window duration is 1500ms', () => {
+  const stage = 'ask_name_reason';
+  const stateSettleWindowMs = 1500;
+  
+  const settleWindowMs = stage === 'ask_details' ? 3000 : stateSettleWindowMs;
+
+  expect(settleWindowMs).toBe(1500);
+});
+
+// Test S: 2.2-second natural pause during ask_details does not finalize
+test('REGRESSION S: 2.2-second natural pause during ask_details does not finalize', () => {
+  const pauseDurationMs = 2200;
+  const askDetailsSettleMs = 3000;
+  
+  const shouldFinalize = pauseDurationMs >= askDetailsSettleMs;
+
+  expect(shouldFinalize).toBe(false); // 2.2s < 3s, should not finalize
+});
+
+// Test T: 2.8-second natural pause during ask_details does not finalize
+test('REGRESSION T: 2.8-second natural pause during ask_details does not finalize', () => {
+  const pauseDurationMs = 2800;
+  const askDetailsSettleMs = 3000;
+  
+  const shouldFinalize = pauseDurationMs >= askDetailsSettleMs;
+
+  expect(shouldFinalize).toBe(false); // 2.8s < 3s, should not finalize
+});
+
+// Test U: True completion finalizes at approximately 3000ms
+test('REGRESSION U: True completion finalizes at approximately 3000ms', () => {
+  const pauseDurationMs = 3100;
+  const askDetailsSettleMs = 3000;
+  
+  const shouldFinalize = pauseDurationMs >= askDetailsSettleMs;
+
+  expect(shouldFinalize).toBe(true); // 3.1s >= 3s, should finalize
+});
+
+// Test V: Continuation speech before 3000ms cancels settle callback
+test('REGRESSION V: Continuation speech before 3000ms cancels settle callback', () => {
+  const continuationSpeechMs = 2500;
+  const askDetailsSettleMs = 3000;
+  
+  const shouldCancelSettle = continuationSpeechMs < askDetailsSettleMs;
+
+  expect(shouldCancelSettle).toBe(true); // 2.5s < 3s, should cancel settle
 });

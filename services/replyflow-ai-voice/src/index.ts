@@ -10171,9 +10171,9 @@ Reply to this message if you'd like to update or add any information.
                   const segmentCount = state.pendingAnswerSegments.length;
                   
                   // Use longer settle window for ask_details to accommodate natural pauses
-                  // ask_details: 2200ms (longer for detailed descriptions)
+                  // ask_details: 3000ms (longer for detailed descriptions)
                   // ask_name_reason: 1500ms (shorter for name+reason)
-                  const settleWindowMs = originatingStage === 'ask_details' ? 2200 : 1500;
+                  const settleWindowMs = originatingStage === 'ask_details' ? 3000 : 1500;
                   const settleStartedAt = Date.now();
                   const settleDeadlineAt = settleStartedAt + settleWindowMs;
                   
