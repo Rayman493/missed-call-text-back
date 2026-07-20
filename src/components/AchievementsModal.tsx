@@ -126,35 +126,37 @@ export default function AchievementsModal({ isOpen, onClose, achievements }: Ach
       mobileBottomOffsetPx={20}
       contentMaxHeight="calc(100dvh - (env(safe-area-inset-top) + 20px) - (env(safe-area-inset-bottom) + 20px) - 24px)"
     >
-      <div className="px-5 py-4 border-b border-border/50">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-amber-500/10 rounded-lg flex items-center justify-center">
-              <Trophy className="w-4 h-4 text-amber-600" />
-            </div>
-            <div>
-              <div className="text-sm font-semibold text-foreground">Achievements</div>
-              <div className="text-xs text-muted-foreground">{summary.unlocked} of {summary.total} unlocked</div>
+      <div className="sticky top-0 bg-card border-b border-border/50 z-10">
+        <div className="px-5 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-amber-500/10 rounded-lg flex items-center justify-center">
+                <Trophy className="w-4 h-4 text-amber-600" />
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-foreground">Achievements</div>
+                <div className="text-xs text-muted-foreground">{summary.unlocked} of {summary.total} unlocked</div>
+              </div>
             </div>
           </div>
+          {categories.length > 2 && (
+            <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+              {categories.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  className={`px-3 py-1.5 text-xs rounded-lg border transition-colors whitespace-nowrap ${
+                    activeCategory === cat
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-muted/50 text-foreground border-border/50 hover:bg-muted'
+                  }`}
+                >
+                  {cat === 'all' ? 'All' : cat}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-        {categories.length > 2 && (
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-            {categories.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={`px-3 py-1.5 text-xs rounded-lg border transition-colors whitespace-nowrap ${
-                  activeCategory === cat
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'bg-muted/50 text-foreground border-border/50 hover:bg-muted'
-                }`}
-              >
-                {cat === 'all' ? 'All' : cat}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       <div className="p-5 space-y-3">
