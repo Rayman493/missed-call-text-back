@@ -78,6 +78,7 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
           .order('last_message_at', { ascending: false, nullsFirst: false })
           .order('first_contact_at', { ascending: false, nullsFirst: false })
           .order('created_at', { ascending: false })
+          .or('status.is.null,status.neq.ignored')
 
         // Normalize ai_call_records to aiCallRecords for UI compatibility
         const normalizedLeads = (data || []).map((lead: any) => ({
