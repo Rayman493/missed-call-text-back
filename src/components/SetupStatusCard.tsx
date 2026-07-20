@@ -338,25 +338,25 @@ export default function SetupStatusCard({
     return (
       <>
         {modalPortal}
-        <div className="bg-card text-card-foreground rounded-xl shadow-lg border border-border/50 hover:shadow-md transition-all">
-        <div className="flex items-center justify-between gap-2 p-3 sm:p-3.5">
+        <div className="bg-card text-card-foreground rounded-lg border border-border/40 shadow-[0_2px_8px_rgb(0,0,0,0.06),0_1px_3px_rgb(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgb(0,0,0,0.08),0_2px_6px_rgb(0,0,0,0.05)] transition-all">
+        <div className="flex items-center justify-between gap-3 p-3 sm:p-3.5">
           <div className="flex items-center gap-2.5 flex-1 min-w-0">
-            <div className="w-8 h-8 bg-green-500/15 rounded-lg flex items-center justify-center flex-shrink-0">
-              <CheckCircle className="w-4 h-4 text-green-600" />
+            <div className="w-7 h-7 bg-green-500/10 dark:bg-green-500/15 border border-green-200/50 dark:border-green-800/50 rounded-md flex items-center justify-center flex-shrink-0">
+              <CheckCircle className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
             </div>
             <div className="min-w-0">
               <h3 className="text-sm sm:text-base font-semibold text-foreground leading-tight">ReplyFlow Ready</h3>
               <p className="text-muted-foreground text-xs mt-0.5 leading-tight">Setup completed</p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <button
               type="button"
               onClick={() => setShowForwardingInstructions(true)}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-secondary hover:bg-secondary/80 text-secondary-foreground text-xs font-medium rounded-lg transition-colors"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-accent/40 hover:bg-accent/60 text-foreground text-xs font-medium rounded-md transition-colors"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              Review
+              Review Setup
             </button>
             <button
               type="button"
@@ -367,9 +367,8 @@ export default function SetupStatusCard({
                 setUserHasToggled(true)
                 setIsExpanded(true)
               }}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground text-xs sm:text-sm font-medium rounded-lg transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-2 py-1.5 bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground text-xs sm:text-sm font-medium rounded-md transition-colors cursor-pointer"
             >
-              Expand
               <ChevronDown className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -908,8 +907,8 @@ export default function SetupStatusCard({
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className="flex-shrink-0">
-                  <div className="w-10 h-10 bg-green-500/15 rounded-lg flex items-center justify-center">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
+                  <div className="w-9 h-9 bg-green-500/10 dark:bg-green-500/15 border border-green-200/50 dark:border-green-800/50 rounded-md flex items-center justify-center">
+                    <CheckCircle className="w-4.5 h-4.5 text-green-600 dark:text-green-400" />
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -917,7 +916,7 @@ export default function SetupStatusCard({
                     ReplyFlow Ready
                   </h1>
                   <p className="text-muted-foreground text-xs sm:text-sm mt-0.5 leading-tight">
-                    ✓ Setup completed
+                    Setup completed
                   </p>
                 </div>
               </div>
@@ -930,35 +929,42 @@ export default function SetupStatusCard({
                   setUserHasToggled(true)
                   setIsExpanded(false)
                 }}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground text-xs sm:text-sm font-medium rounded-lg transition-colors cursor-pointer flex-shrink-0"
+                className="flex items-center gap-1.5 px-2 py-1.5 bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground text-xs sm:text-sm font-medium rounded-md transition-colors cursor-pointer flex-shrink-0"
               >
-                Collapse
                 <ChevronUp className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            {/* Supporting message - no false monitoring claims */}
-            <p className="text-muted-foreground text-sm">
-              Your ReplyFlow number was set up and you completed the forwarding test.
-            </p>
+            {/* Subtle Divider */}
+            <div className="h-px bg-border/20"></div>
 
-            {/* Ongoing guidance */}
-            <p className="text-muted-foreground text-xs">
-              Call forwarding is managed through your phone carrier. If you change your phone service or forwarding settings, review your setup again.
-            </p>
+            {/* Content Area - Constrained width for readability */}
+            <div className="max-w-2xl space-y-3">
+              {/* Primary completion message */}
+              <p className="text-sm text-foreground leading-relaxed">
+                Your ReplyFlow number was set up and you completed the forwarding test.
+              </p>
 
-            {/* Actions - always visible */}
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2">
+              {/* Secondary guidance */}
+              <div className="bg-muted/30 border border-border/30 rounded-md p-3">
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Call forwarding is managed through your phone carrier. If you change your phone service or forwarding settings, review your setup again.
+                </p>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-1">
               <button
                 onClick={() => setShowForwardingInstructions(true)}
-                className="inline-flex items-center justify-center px-4 py-2.5 bg-secondary hover:bg-secondary/80 text-secondary-foreground text-sm font-medium rounded-lg transition-colors"
+                className="inline-flex items-center justify-center px-4 py-2 bg-accent/40 hover:bg-accent/60 text-foreground text-sm font-medium rounded-md transition-colors"
               >
                 <RotateCcw className="w-4 h-4 mr-2" />
                 Review Setup
               </button>
               <button
                 onClick={() => setIsAssistantOpen(true)}
-                className="inline-flex items-center justify-center px-4 py-2.5 bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground text-sm font-medium rounded-lg transition-colors"
+                className="inline-flex items-center justify-center px-4 py-2 bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground text-sm font-medium rounded-md transition-colors"
               >
                 <HelpCircle className="w-4 h-4 mr-2" />
                 Help
