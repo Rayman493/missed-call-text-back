@@ -8,7 +8,8 @@ import {
   DropdownMenuItem,
   DropdownMenuPortal,
 } from '@radix-ui/react-dropdown-menu'
-import { getLeadStatusLabel, getLeadStatusClasses, LeadLifecycleStatus } from '@/lib/lead-lifecycle'
+import { getLeadStatusLabel, getLeadStatusClasses, getLeadLifecycleConfig, LeadLifecycleStatus } from '@/lib/lead-lifecycle'
+import { Phone, MessageCircle, Calendar, CreditCard, CheckSquare, Check, X } from 'lucide-react'
 
 interface LeadStatusDropdownProps {
   currentStatus: LeadLifecycleStatus
@@ -84,21 +85,21 @@ export default function LeadStatusDropdown({
   const getStatusIcon = (status: LeadLifecycleStatus) => {
     switch (status) {
       case 'new':
-        return '📞'
+        return Phone
       case 'active':
-        return '💬'
+        return MessageCircle
       case 'scheduled':
-        return '📅'
+        return Calendar
       case 'payment_requested':
-        return '💳'
+        return CreditCard
       case 'paid':
-        return '✅'
+        return CheckSquare
       case 'completed':
-        return '✓'
+        return Check
       case 'lost':
-        return '❌'
+        return X
       default:
-        return '📋'
+        return Phone
     }
   }
 
@@ -124,6 +125,11 @@ export default function LeadStatusDropdown({
   }
 
   const allStatuses: LeadLifecycleStatus[] = ['new', 'active', 'scheduled', 'payment_requested', 'paid', 'completed', 'lost']
+  const workflowStatuses: LeadLifecycleStatus[] = ['new', 'active', 'scheduled', 'payment_requested', 'paid', 'completed']
+  const terminalStatuses: LeadLifecycleStatus[] = ['lost']
+
+  const StatusIcon = getStatusIcon(currentStatus)
+  const config = getLeadLifecycleConfig(currentStatus)
 
   return (
     <DropdownMenu>
@@ -135,9 +141,9 @@ export default function LeadStatusDropdown({
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           onClick={handleClick}
-          className={`${sizeClasses[size]} ${getLeadStatusClasses(currentStatus)} rounded-lg font-medium transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 data-[state=open]:ring-2 data-[state=open]:ring-offset-2 data-[state=open]:ring-primary`}
+          className={`${sizeClasses[size]} ${config.bgColor} ${config.color} border rounded-md font-medium transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-80 data-[state=open]:ring-2 data-[state=open]:ring-offset-2 data-[state=open]:ring-primary/50`}
         >
-          <span>{getStatusIcon(currentStatus)}</span>
+          <StatusIcon className="w-3.5 h-3.5" />
           <span>{getLeadStatusLabel(currentStatus)}</span>
           {isUpdating ? (
             <div className="animate-spin rounded-full h-3 w-3 border-b border-current"></div>
@@ -165,26 +171,89 @@ export default function LeadStatusDropdown({
             left: 12,
           }}
           avoidCollisions
-          className="w-[280px] max-w-[calc(100vw-24px)] max-h-[min(420px,calc(100dvh-140px))] bg-card border border-border/50 rounded-lg shadow-xl shadow-black/10 dark:shadow-black/30 overflow-y-auto overscroll-contain z-[10000]"
+          className="w-[260px] max-w-[calc(100vw-24px)] max-h-[min(420px,calc(100dvh-140px))] bg-popover/95 backdrop-blur-sm border border-border/40 rounded-lg shadow-[0_2px_12px_rgb(0,0,0,0.08),0_1px_4px_rgb(0,0,0,0.06)] overflow-y-auto overscroll-contain z-[10000]"
         >
-          {allStatuses.map((status: LeadLifecycleStatus) => (
-            <DropdownMenuItem
-              key={status}
-              onSelect={() => handleStatusSelect(status)}
-              disabled={isUpdating}
-              className="w-full px-2.5 py-2 text-left hover:bg-muted/50 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:bg-muted/50 cursor-pointer rounded-md"
-            >
-              <span className="text-xs flex-shrink-0">{getStatusIcon(status)}</span>
-              <div className="flex-1 min-w-0">
-                <div className="text-xs font-medium text-foreground">
-                  {getLeadStatusLabel(status)}
-                </div>
-                <div className="text-[10px] text-muted-foreground">
-                  {getStatusDescription(status)}
-                </div>
-              </div>
-            </DropdownMenuItem>
-          ))}
+          {/* Section Label */}
+          <div className="px-3 py-2">
+            <div className="px-0.5 py-1 text-[9px] font-medium text-muted-foreground/60 uppercase tracking-[0.12em]">
+              Status
+            </div>
+          </div>
+
+          {/* Workflow Statuses */}
+          <div className="px-1.5 py-1 space-y-0.5">
+            {workflowStatuses.map((status: LeadLifecycleStatus) => {
+              const Icon = getStatusIcon(status)
+              const statusConfig = getLeadLifecycleConfig(status)
+              const isSelected = status === currentStatus
+              
+              return (
+                <DropdownMenuItem
+                  key={status}
+                  onSelect={() => handleStatusSelect(status)}
+                  disabled={isUpdating}
+                  className={`w-full px-2 py-1.5 text-left hover:bg-accent/40 transition-colors flex items-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:bg-accent/40 cursor-pointer rounded-md min-h-[36px] group ${isSelected ? 'bg-accent/30' : ''}`}
+                >
+                  <div className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded ${statusConfig.bgColor} ${statusConfig.color} group-hover:opacity-80 transition-opacity`}>
+                    <Icon className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-sm font-medium ${statusConfig.color}`}>
+                      {getLeadStatusLabel(status)}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground/70 font-normal leading-tight">
+                      {getStatusDescription(status)}
+                    </div>
+                  </div>
+                  {isSelected && (
+                    <div className="flex-shrink-0">
+                      <Check className="w-3.5 h-3.5 text-muted-foreground/60" />
+                    </div>
+                  )}
+                </DropdownMenuItem>
+              )
+            })}
+          </div>
+
+          {/* Subtle Divider */}
+          <div className="px-3 py-1">
+            <div className="h-px bg-border/20"></div>
+          </div>
+
+          {/* Terminal Statuses */}
+          <div className="px-1.5 py-1">
+            {terminalStatuses.map((status: LeadLifecycleStatus) => {
+              const Icon = getStatusIcon(status)
+              const statusConfig = getLeadLifecycleConfig(status)
+              const isSelected = status === currentStatus
+              
+              return (
+                <DropdownMenuItem
+                  key={status}
+                  onSelect={() => handleStatusSelect(status)}
+                  disabled={isUpdating}
+                  className={`w-full px-2 py-1.5 text-left hover:bg-red-950/10 dark:hover:bg-red-950/15 transition-colors flex items-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:bg-red-950/10 dark:focus:bg-red-950/15 cursor-pointer rounded-md min-h-[36px] group ${isSelected ? 'bg-red-950/10 dark:bg-red-950/15' : ''}`}
+                >
+                  <div className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded ${statusConfig.bgColor} ${statusConfig.color} group-hover:opacity-80 transition-opacity`}>
+                    <Icon className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-sm font-medium ${statusConfig.color}`}>
+                      {getLeadStatusLabel(status)}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground/70 font-normal leading-tight">
+                      {getStatusDescription(status)}
+                    </div>
+                  </div>
+                  {isSelected && (
+                    <div className="flex-shrink-0">
+                      <Check className="w-3.5 h-3.5 text-muted-foreground/60" />
+                    </div>
+                  )}
+                </DropdownMenuItem>
+              )
+            })}
+          </div>
         </DropdownMenuContent>
       </DropdownMenuPortal>
     </DropdownMenu>

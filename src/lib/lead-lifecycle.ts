@@ -14,50 +14,50 @@ export interface LeadLifecycleConfig {
 
 export const LEAD_LIFECYCLE_CONFIG: Record<LeadLifecycleStatus, LeadLifecycleConfig> = {
   new: {
-    color: 'text-blue-700 dark:text-blue-300',
-    bgColor: 'bg-blue-100 dark:bg-blue-900',
+    color: 'text-blue-600 dark:text-blue-400',
+    bgColor: 'bg-blue-50/80 dark:bg-blue-950/40 border-blue-200/50 dark:border-blue-800/50',
     label: 'New',
     description: 'Recently received missed call'
   },
   active: {
-    color: 'text-green-700 dark:text-green-300',
-    bgColor: 'bg-green-100 dark:bg-green-900',
+    color: 'text-green-600 dark:text-green-400',
+    bgColor: 'bg-green-50/80 dark:bg-green-950/40 border-green-200/50 dark:border-green-800/50',
     label: 'Active',
     description: 'Conversation in progress'
   },
   scheduled: {
-    color: 'text-purple-700 dark:text-purple-300',
-    bgColor: 'bg-purple-100 dark:bg-purple-900',
+    color: 'text-purple-600 dark:text-purple-400',
+    bgColor: 'bg-purple-50/80 dark:bg-purple-950/40 border-purple-200/50 dark:border-purple-800/50',
     label: 'Scheduled',
     description: 'Appointment scheduled'
   },
   payment_requested: {
-    color: 'text-amber-700 dark:text-amber-300',
-    bgColor: 'bg-amber-100 dark:bg-amber-900',
+    color: 'text-amber-600 dark:text-amber-400',
+    bgColor: 'bg-amber-50/80 dark:bg-amber-950/40 border-amber-200/50 dark:border-amber-800/50',
     label: 'Payment Requested',
     description: 'Payment request sent'
   },
   paid: {
-    color: 'text-emerald-700 dark:text-emerald-300',
-    bgColor: 'bg-emerald-100 dark:bg-emerald-900',
+    color: 'text-emerald-600 dark:text-emerald-400',
+    bgColor: 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-200/50 dark:border-emerald-800/50',
     label: 'Paid',
     description: 'Payment received'
   },
   completed: {
-    color: 'text-slate-600 dark:text-slate-300',
-    bgColor: 'bg-slate-200 dark:bg-slate-800',
+    color: 'text-slate-600 dark:text-slate-400',
+    bgColor: 'bg-slate-100/80 dark:bg-slate-800/50 border-slate-300/50 dark:border-slate-700/50',
     label: 'Completed',
     description: 'Handled and resolved'
   },
   lost: {
-    color: 'text-red-700 dark:text-red-300',
-    bgColor: 'bg-red-100 dark:bg-red-900',
+    color: 'text-red-600 dark:text-red-400',
+    bgColor: 'bg-red-50/80 dark:bg-red-950/40 border-red-200/50 dark:border-red-800/50',
     label: 'Lost',
     description: 'Customer lost'
   },
   ignored: {
-    color: 'text-red-700 dark:text-red-300',
-    bgColor: 'bg-red-100 dark:bg-red-900',
+    color: 'text-red-600 dark:text-red-400',
+    bgColor: 'bg-red-50/80 dark:bg-red-950/40 border-red-200/50 dark:border-red-800/50',
     label: 'Ignored',
     description: 'Customer ignored'
   }
