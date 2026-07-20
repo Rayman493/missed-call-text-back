@@ -39,7 +39,6 @@ import FloatingHelpButton from '@/components/FloatingHelpButton'
 import PhotoModal from '@/components/PhotoModal'
 import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
 import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall } from 'lucide-react'
-import { isCapacitorNative } from '@/capacitor/init'
 
 function getErrorMessage(errorCode: string): string {
   // Only show user-friendly messages for known error codes
@@ -449,7 +448,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const isInitialAutoScrollingRef = useRef(false)
 
   // Native call capability — only in Capacitor native and when customerPhone is valid
-  const isNativeApp = typeof window !== 'undefined' ? isCapacitorNative() : false
+  const [isNativeApp, setIsNativeApp] = useState(false)
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        const mod = await import('@capacitor/core')
+        const { Capacitor } = mod as any
+        if (mounted) setIsNativeApp(!!Capacitor.isNativePlatform())
+      } catch {
+        if (mounted) setIsNativeApp(false)
+      }
+    })()
+    return () => { mounted = false }
+  }, [])
   const customerPhoneRaw = (getLeadAIIntake(leadData || {}).customerPhone || (leadData as any)?.caller_phone || '') as string
   const dialNumber = customerPhoneRaw.replace(/[^+\d]/g, '')
   const canDialPhone = Boolean(isNativeApp && dialNumber && (dialNumber.replace(/\D/g, '').length >= 10))
