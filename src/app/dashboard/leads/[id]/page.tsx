@@ -38,7 +38,8 @@ import { ImageMessage } from '@/components/ImageMessage'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import PhotoModal from '@/components/PhotoModal'
 import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
-import { CalendarDays, ClipboardPlus, CreditCard } from 'lucide-react'
+import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall } from 'lucide-react'
+import { isCapacitorNative } from '@/capacitor/init'
 
 function getErrorMessage(errorCode: string): string {
   // Only show user-friendly messages for known error codes
@@ -446,6 +447,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const mobileConversationContainerRef = useRef<HTMLDivElement>(null)
   const bottomSentinelRef = useRef<HTMLDivElement>(null)
   const isInitialAutoScrollingRef = useRef(false)
+
+  // Native call capability — only in Capacitor native and when customerPhone is valid
+  const isNativeApp = typeof window !== 'undefined' ? isCapacitorNative() : false
+  const customerPhoneRaw = (getLeadAIIntake(leadData || {}).customerPhone || (leadData as any)?.caller_phone || '') as string
+  const dialNumber = customerPhoneRaw.replace(/[^+\d]/g, '')
+  const canDialPhone = Boolean(isNativeApp && dialNumber && (dialNumber.replace(/\D/g, '').length >= 10))
+  const handleNativeCall = () => {
+    try {
+      if (canDialPhone) {
+        window.location.href = `tel:${dialNumber}`
+      }
+    } catch {}
+  }
   
   // Close more actions dropdown when clicking outside
   useEffect(() => {
@@ -3091,6 +3105,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
                 {/* Primary Actions */}
                 <div className="flex items-center gap-2">
+                  {canDialPhone && (
+                    <button
+                      onClick={handleNativeCall}
+                      className="inline-flex h-10 items-center gap-2 px-4 rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors text-sm font-medium border border-transparent"
+                      title="Call customer"
+                    >
+                      <PhoneCall className="w-4 h-4" />
+                      <span className="leading-none">Call</span>
+                    </button>
+                  )}
                   <button
                     onClick={handleCreateJobClick}
                     className="inline-flex h-10 items-center gap-2 px-4 rounded-lg text-foreground hover:bg-muted/80 transition-colors text-sm font-medium border border-transparent hover:border-border/50"
@@ -3510,7 +3534,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           <div className="space-y-2 pb-[calc(6rem+env(safe-area-inset-bottom))]">
           {/* Conversation Header - Establishes the messaging workspace */}
           <div className="px-3 pt-2 pb-1">
-            <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Conversation</h2>
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Conversation</h2>
+              {canDialPhone && (
+                <button
+                  onClick={handleNativeCall}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium"
+                  title="Call customer"
+                >
+                  <PhoneCall className="w-3.5 h-3.5" />
+                  <span>Call</span>
+                </button>
+              )}
+            </div>
             <div className="flex items-center gap-1.5 mt-1 text-[11px] text-slate-400 dark:text-slate-500">
               {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && (
                 <span>AI answered</span>
