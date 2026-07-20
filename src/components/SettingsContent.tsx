@@ -983,12 +983,10 @@ export default function SettingsContent() {
       if (sections.includes(hash)) {
         const element = document.getElementById(hash)
         if (element) {
-          // Scroll to the top of the page to ensure the "Settings" heading is always visible
-          window.scrollTo({
-            top: 0,
-            behavior: 'auto'
-          })
-          // Let the scroll handler update the active section
+          // Update active section immediately
+          setActiveSection(hash)
+          // Scroll to the section using the shared helper
+          scrollToSection(hash)
         }
       }
     }
