@@ -9,7 +9,8 @@
     "dev": "ts-node src/index.ts",
     "typecheck": "tsc --noEmit",
     "validate:audio-cache": "ts-node scripts/validate-cached-audio.ts",
-    "generate:cached-audio": "ts-node scripts/generate-realtime-cached-audio.ts"
+    "generate:cached-audio": "ts-node scripts/generate-realtime-cached-audio.ts",
+    "test": "mocha test/**/*.test.ts --require ts-node/register"
   },
   "keywords": [
     "twilio",
@@ -30,8 +31,12 @@
     "ws": "^8.21.0"
   },
   "devDependencies": {
+    "@types/chai": "^5.2.3",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^20.10.0",
     "@types/ws": "^8.18.1",
+    "chai": "^6.2.2",
+    "mocha": "^11.7.6",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   },

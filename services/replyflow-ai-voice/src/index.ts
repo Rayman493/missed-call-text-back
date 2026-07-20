@@ -10128,10 +10128,41 @@ Reply to this message if you'd like to update or add any information.
                   console.log('[ANSWER CONTINUATION] =========================================');
                 }
                 
-                // Settle window for long natural answers (ask_details, ask_name_reason)
-                const stagesRequiringSettleWindow = ['ask_details', 'ask_name_reason'];
-                const requiresSettleWindow = stagesRequiringSettleWindow.includes(originatingStage);
+                // CONTINUATION SPEECH CHECK: Prevent premature finalization if newer same-stage speech has started
+                // This applies to ALL stages, not just settle-window stages
+                const sameTurnSpeechActive = !!state.inSpeechSegment &&
+                  state.speechStartedStage === originatingStage &&
+                  state.speechStartedTurnId === originatingTurnId;
+                const speechOngoingNoStop = state.lastDetectedSpeechAt && (!state.lastSpeechStoppedAt || state.lastSpeechStoppedAt < state.lastDetectedSpeechAt);
                 
+                // GENERATION COMPARISON: Detect if a newer speech generation exists for the same stage/turn
+                // This is the key signal that continuation speech has started
+                const newerSpeechExists = state.speechGeneration > transcriptionGeneration;
+                
+                // Determine if this stage requires a settle window (either intrinsic or due to continuation)
+                const stagesWithIntrinsicSettleWindow = ['ask_details', 'ask_name_reason'];
+                const hasIntrinsicSettleWindow = stagesWithIntrinsicSettleWindow.includes(originatingStage);
+                const hasContinuation = sameTurnSpeechActive || newerSpeechExists || speechOngoingNoStop;
+                const requiresSettleWindow = hasIntrinsicSettleWindow || (hasContinuation && originatingStage === state.currentStage);
+                
+                // Log continuation detection
+                if (hasContinuation && !hasIntrinsicSettleWindow) {
+                  console.log('[CONTINUATION SPEECH DETECTED] =========================================');
+                  console.log('[CONTINUATION SPEECH DETECTED] callSid:', state.callSid);
+                  console.log('[CONTINUATION SPEECH DETECTED] originatingStage:', originatingStage);
+                  console.log('[CONTINUATION SPEECH DETECTED] originatingTurnId:', originatingTurnId);
+                  console.log('[CONTINUATION SPEECH DETECTED] transcriptionGeneration:', transcriptionGeneration);
+                  console.log('[CONTINUATION SPEECH DETECTED] currentSpeechGeneration:', state.speechGeneration);
+                  console.log('[CONTINUATION SPEECH DETECTED] newerSpeechExists:', newerSpeechExists);
+                  console.log('[CONTINUATION SPEECH DETECTED] sameTurnSpeechActive:', sameTurnSpeechActive);
+                  console.log('[CONTINUATION SPEECH DETECTED] speechOngoingNoStop:', speechOngoingNoStop);
+                  console.log('[CONTINUATION SPEECH DETECTED] action: enabling_settle_window_for_continuation');
+                  console.log('[CONTINUATION SPEECH DETECTED] timestamp:', new Date().toISOString());
+                  console.log('[CONTINUATION SPEECH DETECTED] =========================================');
+                }
+                
+                // Settle window for long natural answers (ask_details, ask_name_reason) OR continuation speech
+                // Uses the generalized requiresSettleWindow variable computed above
                 if (requiresSettleWindow && originatingStage === state.currentStage) {
                   // Store as pending answer and start settle window
                   const isFirstSegment = !state.pendingAnswerStage;
@@ -10197,10 +10228,15 @@ Reply to this message if you'd like to update or add any information.
                   const accumulatedAnswer = state.pendingAnswerSegments.join(' ');
                   const segmentCount = state.pendingAnswerSegments.length;
                   
-                  // Use longer settle window for ask_details to accommodate natural pauses
-                  // ask_details: 3000ms (longer for detailed descriptions)
-                  // ask_name_reason: 1500ms (shorter for name+reason)
-                  const settleWindowMs = originatingStage === 'ask_details' ? 3000 : 1500;
+                  // Determine settle window duration based on whether this is intrinsic or continuation
+                  // Intrinsic: ask_details: 3000ms, ask_name_reason: 1500ms
+                  // Continuation: 1500ms for all stages
+                  let settleWindowMs: number;
+                  if (hasIntrinsicSettleWindow) {
+                    settleWindowMs = originatingStage === 'ask_details' ? 3000 : 1500;
+                  } else {
+                    settleWindowMs = 1500; // Continuation settle window for non-intrinsic stages
+                  }
                   const settleStartedAt = Date.now();
                   const settleDeadlineAt = settleStartedAt + settleWindowMs;
                   
@@ -10301,17 +10337,19 @@ Reply to this message if you'd like to update or add any information.
                     const sameTurnSpeechActive = !!state.inSpeechSegment &&
                       state.speechStartedStage === originatingStage &&
                       state.speechStartedTurnId === originatingTurnId;
-                    const pendingTranscription = !!state.transcriptionPending;
                     const speechOngoingNoStop = state.lastDetectedSpeechAt && (!state.lastSpeechStoppedAt || state.lastSpeechStoppedAt < state.lastDetectedSpeechAt);
+                    
+                    // GENERATION COMPARISON: Detect if a newer speech generation exists
+                    const newerSpeechExists = state.speechGeneration > state.pendingTranscriptionGeneration;
 
                     let finalizationAllowed = true;
                     let blockedReason = '';
                     if (sameTurnSpeechActive) {
                       finalizationAllowed = false;
                       blockedReason = 'same_turn_speech_active';
-                    } else if (pendingTranscription) {
+                    } else if (newerSpeechExists) {
                       finalizationAllowed = false;
-                      blockedReason = 'transcription_pending';
+                      blockedReason = 'newer_speech_generation_exists';
                     } else if (speechOngoingNoStop) {
                       finalizationAllowed = false;
                       blockedReason = 'speech_started_no_stop_detected';
@@ -10325,7 +10363,7 @@ Reply to this message if you'd like to update or add any information.
                     console.log('[SETTLE FINALIZATION GATE] currentSettleGeneration:', state.settleGeneration);
                     console.log('[SETTLE FINALIZATION GATE] speechGeneration:', state.speechGeneration);
                     console.log('[SETTLE FINALIZATION GATE] pendingTranscriptionGeneration:', state.pendingTranscriptionGeneration);
-                    console.log('[SETTLE FINALIZATION GATE] transcriptionPending:', pendingTranscription);
+                    console.log('[SETTLE FINALIZATION GATE] newerSpeechExists:', newerSpeechExists);
                     console.log('[SETTLE FINALIZATION GATE] speechStartedStage:', state.speechStartedStage);
                     console.log('[SETTLE FINALIZATION GATE] speechStartedTurnId:', state.speechStartedTurnId);
                     console.log('[SETTLE FINALIZATION GATE] lastDetectedSpeechAt:', state.lastDetectedSpeechAt);
@@ -10376,16 +10414,16 @@ Reply to this message if you'd like to update or add any information.
                           }
                           // Re-check strong continuation signals at grace expiry
                           const sameTurnSpeechActive2 = !!state.inSpeechSegment && state.speechStartedStage === originatingStage && state.speechStartedTurnId === originatingTurnId;
-                          const pendingTranscription2 = !!state.transcriptionPending;
                           const speechOngoingNoStop2 = state.lastDetectedSpeechAt && (!state.lastSpeechStoppedAt || state.lastSpeechStoppedAt < state.lastDetectedSpeechAt);
+                          const newerSpeechExists2 = state.speechGeneration > state.pendingTranscriptionGeneration;
 
                           if (sameTurnSpeechActive2) {
                             console.log('[SETTLE FINALIZATION GATE] action:', 'blocked_active_speech');
                             state.settleGraceTimeout = null;
                             return;
                           }
-                          if (pendingTranscription2) {
-                            console.log('[SETTLE FINALIZATION GATE] action:', 'blocked_pending_transcription');
+                          if (newerSpeechExists2) {
+                            console.log('[SETTLE FINALIZATION GATE] action:', 'blocked_newer_speech_generation');
                             state.settleGraceTimeout = null;
                             return;
                           }
