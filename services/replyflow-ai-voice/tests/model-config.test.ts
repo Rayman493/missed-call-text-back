@@ -27,8 +27,8 @@ console.log('[TEST 1] Default Configuration');
 let passed = 0;
 let failed = 0;
 
-if (OPENAI_REALTIME_MODEL === 'gpt-realtime') {
-  console.log('✓ Realtime model default: gpt-realtime');
+if (OPENAI_REALTIME_MODEL === 'gpt-realtime-2.1') {
+  console.log('✓ Realtime model default: gpt-realtime-2.1');
   passed++;
 } else {
   console.log('✗ Realtime model default failed:', OPENAI_REALTIME_MODEL);
@@ -161,7 +161,7 @@ if (fallbackState2.hasRealtimeFallbackBeenAttempted() && !fallbackState3.hasReal
 // Test 4: Production Safety
 console.log('[TEST 4] Production Safety');
 
-if (OPENAI_REALTIME_MODEL === 'gpt-realtime' && OPENAI_TRANSCRIPTION_MODEL === 'gpt-realtime-whisper' && OPENAI_REALTIME_VOICE === 'alloy') {
+if (OPENAI_REALTIME_MODEL === 'gpt-realtime-2.1' && OPENAI_TRANSCRIPTION_MODEL === 'gpt-realtime-whisper' && OPENAI_REALTIME_VOICE === 'alloy') {
   console.log('✓ Production defaults preserved without env vars');
   passed++;
 } else {

@@ -9,13 +9,13 @@
  * - ReplyFlow Simple Mode architecture
  * 
  * Production defaults:
- * - Realtime model: gpt-realtime
+ * - Realtime model: gpt-realtime-2.1
  * - Transcription model: gpt-realtime-whisper
  * - Voice: marin (matches cached audio)
  */
 
 // Realtime model configuration
-export const OPENAI_REALTIME_MODEL = process.env.OPENAI_REALTIME_MODEL || 'gpt-realtime';
+export const OPENAI_REALTIME_MODEL = process.env.OPENAI_REALTIME_MODEL || 'gpt-realtime-2.1';
 export const OPENAI_REALTIME_FALLBACK_MODEL = process.env.OPENAI_REALTIME_FALLBACK_MODEL || '';
 
 // Transcription model configuration
