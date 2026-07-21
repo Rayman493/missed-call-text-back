@@ -644,11 +644,17 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-slate-500 font-medium mb-1">Meeting Notes</p>
-                      {meetingStatus === 'completed' && completedAt && (
+                      {meetingStatus === 'completed' && completedAt ? (
                         <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-green-600/20 text-green-300">
                           <CheckCircle2 className="w-3.5 h-3.5" /> Completed {new Date(completedAt).toLocaleString()}
                         </span>
-                      )}
+                      ) : (() => {
+                        const endRaw = event.end?.dateTime || event.end?.date
+                        const isPastDue = endRaw ? new Date(endRaw).getTime() < Date.now() : false
+                        return isPastDue ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-300">Past due</span>
+                        ) : null
+                      })()}
                     </div>
                     <textarea
                       value={notes}
@@ -662,6 +668,25 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                         {isNotesSaving ? 'Saving...' : 'Save Notes'}
                       </button>
                     </div>
+                    {meetingStatus !== 'completed' && (
+                      <div className="mt-3">
+                        {showCompleteConfirm ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">Complete this meeting?</span>
+                            <button onClick={() => setShowCompleteConfirm(false)} disabled={isCompleting} className="px-3 py-1.5 text-xs bg-muted text-foreground rounded-lg">Cancel</button>
+                            <button onClick={markComplete} disabled={isCompleting} className="px-3 py-1.5 text-xs bg-green-600 hover:bg-green-700 text-white rounded-lg">{isCompleting ? 'Completing...' : 'Confirm Complete'}</button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setShowCompleteConfirm(true)}
+                            className="px-3 py-1.5 text-xs font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] inline-flex items-center gap-2"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>Mark Meeting Complete</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -671,20 +696,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
 
         {/* Footer */}
         <div className="px-5 py-3 border-t border-border/50">
-          {/* Status / Past due indicator */}
-          {!event.isHoliday && (
-            <div className="mb-3 text-xs text-muted-foreground">
-              {meetingStatus === 'completed' ? (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-green-600/20 text-green-300"><CheckCircle2 className="w-3.5 h-3.5" /> Completed{completedAt ? ` ${new Date(completedAt).toLocaleString()}` : ''}</span>
-              ) : (() => {
-                const endRaw = event.end?.dateTime || event.end?.date
-                const isPastDue = endRaw ? new Date(endRaw).getTime() < Date.now() : false
-                return isPastDue ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-500/10 text-amber-300">Past due</span>
-                ) : null
-              })()}
-            </div>
-          )}
+          {/* Status moved to notes area to avoid duplication */}
           {error && (
             <div className="mb-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
@@ -753,68 +765,55 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
               </div>
             </div>
           ) : (
-            <div className="flex gap-2 flex-wrap">
-              {event.meetingUrl && (
-                <button
-                  onClick={openMeetingLink}
-                  className="flex-1 px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
-                >
-                  <LinkIcon className="w-4 h-4" />
-                  <span>Join Meeting</span>
-                </button>
-              )}
-              <button
-                onClick={openGoogleCalendar}
-                className="flex-1 px-4 py-2 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 border border-border/50"
-              >
-                <ExternalLink className="w-4 h-4" />
-                <span>Open in Google Calendar</span>
-              </button>
-              {!event.isHoliday && (
-                <>
-                  {(lead?.id && (lead.caller_phone || job?.customer_phone)) && (
+            <div className="space-y-2">
+              {(event.meetingUrl || (!event.isHoliday && (lead?.id && (lead.caller_phone || job?.customer_phone)))) && (
+                <div className={`grid grid-cols-1 ${event.meetingUrl && (!event.isHoliday && (lead?.id && (lead.caller_phone || job?.customer_phone))) ? 'sm:grid-cols-2 ' : ''}gap-2`}>
+                  {event.meetingUrl && (
+                    <button
+                      onClick={openMeetingLink}
+                      className="w-full px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
+                    >
+                      <LinkIcon className="w-4 h-4" />
+                      <span>Join Meeting</span>
+                    </button>
+                  )}
+                  {!event.isHoliday && (lead?.id && (lead.caller_phone || job?.customer_phone)) && (
                     <button
                       onClick={() => setIsSmsOpen(true)}
-                      className="flex-1 px-4 py-2 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
+                      className="w-full px-4 py-2 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
                     >
                       <Send className="w-4 h-4" />
                       <span>Send Details by Text</span>
                     </button>
                   )}
-                  {meetingStatus !== 'completed' && (
-                    <>
-                      {showCompleteConfirm ? (
-                        <div className="w-full flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground">Complete this meeting?</span>
-                          <button onClick={() => setShowCompleteConfirm(false)} disabled={isCompleting} className="px-3 py-1.5 text-xs bg-muted text-foreground rounded-lg">Cancel</button>
-                          <button onClick={markComplete} disabled={isCompleting} className="px-3 py-1.5 text-xs bg-green-600 hover:bg-green-700 text-white rounded-lg">{isCompleting ? 'Completing...' : 'Confirm Complete'}</button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => setShowCompleteConfirm(true)}
-                          className="flex-1 px-4 py-2 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
-                        >
-                          <CheckCircle2 className="w-4 h-4" />
-                          <span>Mark Meeting Complete</span>
-                        </button>
-                      )}
-                    </>
-                  )}
+                </div>
+              )}
+              <div className="grid grid-cols-1 gap-2">
+                <button
+                  onClick={openGoogleCalendar}
+                  className="w-full px-4 py-2 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 border border-border/50"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span>Open in Google Calendar</span>
+                </button>
+              </div>
+              {!event.isHoliday && (
+                <div className="flex items-center justify-between gap-2 pt-1">
                   <button
                     onClick={handleEditClick}
-                    className="flex-1 px-4 py-2 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
+                    className="px-3 py-1.5 text-xs font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-colors flex items-center gap-2"
                   >
-                    <Pencil className="w-4 h-4" />
+                    <Pencil className="w-3.5 h-3.5" />
                     <span>Edit</span>
                   </button>
                   <button
                     onClick={handleDeleteClick}
-                    className="px-4 py-2 text-sm font-medium bg-red-600/10 hover:bg-red-600/20 text-red-400 hover:text-red-300 rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 border border-red-500/30"
+                    className="px-3 py-1.5 text-xs font-medium bg-red-600/10 hover:bg-red-600/20 text-red-400 hover:text-red-300 rounded-lg transition-colors flex items-center gap-2 border border-red-500/30"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3.5 h-3.5" />
                     <span>Delete</span>
                   </button>
-                </>
+                </div>
               )}
             </div>
           )}
