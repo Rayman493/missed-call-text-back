@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Calendar, Clock, MapPin, FileText, ExternalLink, Trash2, AlertTriangle, Save, Pencil, Link as LinkIcon, User, Briefcase, Send } from 'lucide-react'
+import { X, Calendar, Clock, MapPin, FileText, ExternalLink, Trash2, AlertTriangle, Save, Pencil, Link as LinkIcon, User, Briefcase, Send, CheckCircle2 } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import AppointmentSmsModal from '@/components/calendar/AppointmentSmsModal'
@@ -31,15 +31,23 @@ interface EventDetailsModalProps {
   businessName?: string | null
   onViewCustomer?: (leadId: string) => void
   onViewJob?: (jobId: string) => void
+  onShowToast?: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void
 }
 
-export default function EventDetailsModal({ isOpen, onClose, event, onDelete, onRefresh, job, lead, businessName, onViewCustomer, onViewJob }: EventDetailsModalProps) {
+export default function EventDetailsModal({ isOpen, onClose, event, onDelete, onRefresh, job, lead, businessName, onViewCustomer, onViewJob, onShowToast }: EventDetailsModalProps) {
   const [isDeleting, setIsDeleting] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isSmsOpen, setIsSmsOpen] = useState(false)
+  // Internal meeting metadata
+  const [meetingStatus, setMeetingStatus] = useState<'upcoming' | 'completed' | null>(null)
+  const [completedAt, setCompletedAt] = useState<string | null>(null)
+  const [notes, setNotes] = useState<string>('')
+  const [isNotesSaving, setIsNotesSaving] = useState(false)
+  const [isCompleting, setIsCompleting] = useState(false)
+  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false)
   useBodyScrollLock(isOpen)
   
   // Editable form state
@@ -87,6 +95,28 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
       return () => document.removeEventListener('keydown', handleEscape)
     }
   }, [isOpen, onClose])
+
+  // Load meeting metadata on open
+  useEffect(() => {
+    const load = async () => {
+      if (!isOpen || !event?.id) return
+      try {
+        const res = await fetch(`/api/meetings/${encodeURIComponent(event.id)}`)
+        if (!res.ok) return
+        const data = await res.json().catch(() => ({} as any))
+        const rec = data?.record
+        if (rec) {
+          setMeetingStatus(rec.status === 'completed' ? 'completed' : 'upcoming')
+          setCompletedAt(rec.completed_at || null)
+          setNotes(rec.notes || '')
+        } else {
+          setMeetingStatus('upcoming')
+          setCompletedAt(null)
+        }
+      } catch {}
+    }
+    load()
+  }, [isOpen, event?.id])
 
   if (!isOpen || !event) return null
 
@@ -151,6 +181,50 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
   const openMeetingLink = () => {
     if (event.meetingUrl) {
       window.open(event.meetingUrl, '_blank', 'noopener,noreferrer')
+    }
+  }
+
+  const saveNotes = async () => {
+    if (!event?.id) return
+    setIsNotesSaving(true)
+    try {
+      const res = await fetch(`/api/meetings/${encodeURIComponent(event.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes, lead_id: lead?.id || undefined, job_id: job?.id || undefined })
+      })
+      if (!res.ok) throw new Error('Failed to save notes')
+      onShowToast?.('Meeting notes saved.', 'success')
+    } catch (e: any) {
+      setError(e?.message || 'Failed to save notes')
+    } finally {
+      setIsNotesSaving(false)
+    }
+  }
+
+  const markComplete = async () => {
+    if (!event?.id) return
+    setIsCompleting(true)
+    try {
+      const startStr = event.start?.dateTime || event.start?.date || ''
+      const endStr = event.end?.dateTime || event.end?.date || ''
+      const res = await fetch(`/api/meetings/${encodeURIComponent(event.id)}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lead_id: lead?.id || undefined, job_id: job?.id || undefined, title: event.summary, scheduled_start: startStr, scheduled_end: endStr })
+      })
+      if (!res.ok) throw new Error('Failed to mark meeting complete')
+      const data = await res.json().catch(() => ({}))
+      const rec = data?.record
+      setMeetingStatus('completed')
+      setCompletedAt(rec?.completed_at || new Date().toISOString())
+      setShowCompleteConfirm(false)
+      onShowToast?.('Meeting marked complete.', 'success')
+      onRefresh?.()
+    } catch (e: any) {
+      setError(e?.message || 'Failed to mark meeting complete')
+    } finally {
+      setIsCompleting(false)
     }
   }
 
@@ -559,11 +633,58 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                 </div>
               </div>
             )}
+
+            {/* Meeting Notes (private) */}
+            {!event.isHoliday && (
+              <div className="pt-2">
+                <div className="flex items-start gap-3">
+                  <div className="w-5 h-5 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <FileText className="w-2.5 h-2.5 text-slate-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-slate-500 font-medium mb-1">Meeting Notes</p>
+                      {meetingStatus === 'completed' && completedAt && (
+                        <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-green-600/20 text-green-300">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Completed {new Date(completedAt).toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                    <textarea
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      rows={5}
+                      className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
+                      placeholder="Private notes for your team. Not sent to customer."
+                    />
+                    <div className="mt-2">
+                      <button onClick={saveNotes} disabled={isNotesSaving} className="px-3 py-1.5 text-xs font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg disabled:opacity-50">
+                        {isNotesSaving ? 'Saving...' : 'Save Notes'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Footer */}
         <div className="px-5 py-3 border-t border-border/50">
+          {/* Status / Past due indicator */}
+          {!event.isHoliday && (
+            <div className="mb-3 text-xs text-muted-foreground">
+              {meetingStatus === 'completed' ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-green-600/20 text-green-300"><CheckCircle2 className="w-3.5 h-3.5" /> Completed{completedAt ? ` ${new Date(completedAt).toLocaleString()}` : ''}</span>
+              ) : (() => {
+                const endRaw = event.end?.dateTime || event.end?.date
+                const isPastDue = endRaw ? new Date(endRaw).getTime() < Date.now() : false
+                return isPastDue ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-500/10 text-amber-300">Past due</span>
+                ) : null
+              })()}
+            </div>
+          )}
           {error && (
             <div className="mb-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
@@ -660,6 +781,25 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                       <span>Send Details by Text</span>
                     </button>
                   )}
+                  {meetingStatus !== 'completed' && (
+                    <>
+                      {showCompleteConfirm ? (
+                        <div className="w-full flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">Complete this meeting?</span>
+                          <button onClick={() => setShowCompleteConfirm(false)} disabled={isCompleting} className="px-3 py-1.5 text-xs bg-muted text-foreground rounded-lg">Cancel</button>
+                          <button onClick={markComplete} disabled={isCompleting} className="px-3 py-1.5 text-xs bg-green-600 hover:bg-green-700 text-white rounded-lg">{isCompleting ? 'Completing...' : 'Confirm Complete'}</button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setShowCompleteConfirm(true)}
+                          className="flex-1 px-4 py-2 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>Mark Meeting Complete</span>
+                        </button>
+                      )}
+                    </>
+                  )}
                   <button
                     onClick={handleEditClick}
                     className="flex-1 px-4 py-2 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
@@ -686,6 +826,9 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
         onClose={() => setIsSmsOpen(false)}
         leadId={lead?.id || ''}
         initialMessage={generateSmsDraft()}
+        onSent={() => {
+          onShowToast?.('Appointment details text sent.', 'success')
+        }}
       />
     </div>
   )

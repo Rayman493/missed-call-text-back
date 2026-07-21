@@ -355,7 +355,8 @@ export async function POST(request: NextRequest) {
         createdEvent.id,
         createdEvent.summary || 'Appointment',
         startStr,
-        endStr
+        endStr,
+        lead_id || undefined
       )
       console.log('[Calendar Create] Timeline event created successfully')
     } catch (timelineError) {

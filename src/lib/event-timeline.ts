@@ -12,7 +12,7 @@ export interface TimelineEvent {
   lead_id?: string
   message_id?: string
   message_sid?: string
-  event_type: 'call_received' | 'lead_created' | 'auto_reply_queued' | 'message_sent' | 'message_delivered' | 'message_failed' | 'conversation_created' | 'payment_requested' | 'payment_completed' | 'payment_expired' | 'payment_canceled' | 'calendar_connected' | 'calendar_disconnected' | 'appointment_created' | 'appointment_deleted' | 'job_created' | 'update_voicemail_received'
+  event_type: 'call_received' | 'lead_created' | 'auto_reply_queued' | 'message_sent' | 'message_delivered' | 'message_failed' | 'conversation_created' | 'payment_requested' | 'payment_completed' | 'payment_expired' | 'payment_canceled' | 'calendar_connected' | 'calendar_disconnected' | 'appointment_created' | 'appointment_deleted' | 'meeting_completed' | 'job_created' | 'update_voicemail_received'
   event_data?: Record<string, any>
   created_at?: string
 }
@@ -164,11 +164,20 @@ export const timelineEvents = {
       event_data: {}
     }),
 
-  appointmentCreated: (businessId: string, eventId: string, title: string, start: string, end: string) =>
+  appointmentCreated: (businessId: string, eventId: string, title: string, start: string, end: string, leadId?: string) =>
     logTimelineEvent({
       business_id: businessId,
+      lead_id: leadId,
       event_type: 'appointment_created',
       event_data: { event_id: eventId, title, start, end }
+    }),
+
+  meetingCompleted: (businessId: string, eventId: string, title: string, scheduledStart: string, scheduledEnd: string, completedAt: string, leadId?: string, jobId?: string) =>
+    logTimelineEvent({
+      business_id: businessId,
+      lead_id: leadId,
+      event_type: 'meeting_completed',
+      event_data: { event_id: eventId, title, scheduled_start: scheduledStart, scheduled_end: scheduledEnd, completed_at: completedAt, job_id: jobId }
     }),
 
   appointmentDeleted: (businessId: string, eventId: string, title: string) =>

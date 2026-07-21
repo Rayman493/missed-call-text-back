@@ -14,7 +14,7 @@ const supabase = createBrowserClient()
 interface NewAppointmentModalProps {
   isOpen: boolean
   onClose: () => void
-  onRefresh?: () => void
+  onRefresh?: (created?: { meetingUrl?: string | null; summary?: string | null }) => void
   defaultDate?: Date
   context?: 'calendar' | 'customer' | 'meetings'
   preselectedLeadId?: string | null
@@ -206,8 +206,13 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
       }
 
       // Success
+      let createdEvent: { meetingUrl?: string | null; summary?: string | null } | undefined
+      try {
+        const data = await response.json()
+        createdEvent = { meetingUrl: data?.event?.meetingUrl || null, summary: data?.event?.summary || null }
+      } catch {}
       setIsCreating(false)
-      onRefresh?.()
+      onRefresh?.(createdEvent)
       onClose()
       
       // Reset form

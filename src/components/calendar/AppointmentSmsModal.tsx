@@ -8,9 +8,10 @@ interface AppointmentSmsModalProps {
   onClose: () => void
   leadId: string
   initialMessage: string
+  onSent?: (messageBody: string) => void
 }
 
-export default function AppointmentSmsModal({ isOpen, onClose, leadId, initialMessage }: AppointmentSmsModalProps) {
+export default function AppointmentSmsModal({ isOpen, onClose, leadId, initialMessage, onSent }: AppointmentSmsModalProps) {
   const supabase = createBrowserClient()
   const [message, setMessage] = useState(initialMessage)
   const [sending, setSending] = useState(false)
@@ -41,7 +42,11 @@ export default function AppointmentSmsModal({ isOpen, onClose, leadId, initialMe
         throw new Error(data?.error || 'Failed to send message')
       }
 
-      onClose()
+      try {
+        onSent?.(message.trim())
+      } finally {
+        onClose()
+      }
     } catch (e: any) {
       setError(e?.message || 'Failed to send message')
     } finally {

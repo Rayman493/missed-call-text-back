@@ -54,12 +54,14 @@ function MeetingsTab({
   onOpenEvent,
   onViewCustomer,
   onNewMeeting,
+  completedMap,
 }: {
   events: CalendarEvent[]
   jobs: any[]
   onOpenEvent: (event: CalendarEvent) => void
   onViewCustomer: (leadId: string) => void
   onNewMeeting: () => void
+  completedMap: Map<string, { completed_at: string }>
 }) {
   // Determine eligibility
   const isEligible = (ev: CalendarEvent) => {
@@ -114,6 +116,16 @@ function MeetingsTab({
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-slate-900 dark:text-foreground truncate">{ev.summary}</span>
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">{labelType(ev)}</span>
+                  {completedMap?.has(ev.id) && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-600/20 text-green-300">Completed</span>
+                  )}
+                  {!completedMap?.has(ev.id) && (() => {
+                    const endRaw = ev.end?.dateTime || ev.end?.date
+                    const isPastDue = endRaw ? new Date(endRaw).getTime() < Date.now() : false
+                    return isPastDue ? (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300">Past</span>
+                    ) : null
+                  })()}
                 </div>
                 <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{formatDayTime(ev)}</div>
                 {job?.title && (
@@ -137,6 +149,10 @@ function MeetingsTab({
 
   const todays = upcoming.filter(isToday)
   const later = upcoming.filter(ev => !isToday(ev))
+  const recentlyCompleted = eligible
+    .filter(ev => completedMap?.has(ev.id))
+    .sort((a,b) => new Date(completedMap.get(b.id)!.completed_at).getTime() - new Date(completedMap.get(a.id)!.completed_at).getTime())
+    .slice(0, 10)
 
   return (
     <div>
@@ -151,6 +167,7 @@ function MeetingsTab({
       </div>
       {renderGroup('Today', todays)}
       {renderGroup('Upcoming', later)}
+      {recentlyCompleted.length > 0 && renderGroup('Recently Completed', recentlyCompleted)}
     </div>
   )
 }
@@ -189,6 +206,7 @@ export default function SchedulePage() {
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
   const [viewMode, setViewMode] = useState<'month' | 'agenda'>('month')
   const [scheduleTab, setScheduleTab] = useState<'today' | 'calendar' | 'meetings' | 'jobs' | 'tasks'>('today')
+  const [completedMeetingsMap, setCompletedMeetingsMap] = useState<Map<string, { completed_at: string }>>(new Map())
 
   // Jobs state
   const [jobs, setJobs] = useState<Job[]>([])
@@ -253,6 +271,27 @@ export default function SchedulePage() {
   useEffect(() => {
     if (business) fetchJobs()
   }, [business])
+
+  // Load recent meeting completion records when viewing Meetings tab
+  useEffect(() => {
+    const loadRecent = async () => {
+      try {
+        const res = await fetch('/api/meetings/recent?limit=50')
+        if (!res.ok) return
+        const data = await res.json().catch(() => ({}))
+        const map = new Map<string, { completed_at: string }>()
+        for (const rec of (data?.records || [])) {
+          if (rec.status === 'completed' && rec.google_calendar_event_id && rec.completed_at) {
+            map.set(rec.google_calendar_event_id, { completed_at: rec.completed_at })
+          }
+        }
+        setCompletedMeetingsMap(map)
+      } catch {}
+    }
+    if (scheduleTab === 'meetings') {
+      loadRecent()
+    }
+  }, [scheduleTab])
 
   // Resolve job and customer for selected event
   useEffect(() => {
@@ -1098,6 +1137,7 @@ export default function SchedulePage() {
                         setNewAppointmentLockCustomer(false)
                         setIsNewAppointmentModalOpen(true)
                       }}
+                      completedMap={completedMeetingsMap}
                     />
                   )}
 
@@ -1606,11 +1646,15 @@ export default function SchedulePage() {
                   <NewAppointmentModal
                     isOpen={isNewAppointmentModalOpen}
                     onClose={() => setIsNewAppointmentModalOpen(false)}
-                    onRefresh={async () => {
+                    onRefresh={async (created) => {
                       // Refresh events from Google Calendar
                       await fetchEvents()
                       // Show success message
-                      showToast('Appointment created.', 'success')
+                      if (created?.meetingUrl) {
+                        showToast('Appointment created. Google Meet link created.', 'success')
+                      } else {
+                        showToast('Appointment created.', 'success')
+                      }
                     }}
                     defaultDate={selectedDay || undefined}
                     context={newAppointmentContext}
@@ -1669,6 +1713,7 @@ export default function SchedulePage() {
                           if (leadId) window.location.assign(`/dashboard/leads/${leadId}`)
                         }
                       }}
+                      onShowToast={showToast}
                       onRefresh={async () => {
                         // Refresh events from Google Calendar
                         await fetchEvents()
