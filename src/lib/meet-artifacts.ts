@@ -231,6 +231,15 @@ export class MeetArtifactProcessor {
       pageToken = page.nextPageToken || undefined
     } while (pageToken)
 
+    // If transcript resource exists but entries are not yet available, treat as temporary and retry later
+    if (parts.length === 0) {
+      await repo.updateMeetingRecord(record.id, {
+        transcript_status: 'pending',
+        next_processing_attempt_at: new Date(now().getTime() + 60 * 60 * 1000).toISOString(),
+      })
+      return { processed: false, status: 'pending', reason: 'transcript_entries_not_ready' }
+    }
+
     const transcriptText = parts.join('\n')
 
     await repo.updateMeetingRecord(record.id, {
