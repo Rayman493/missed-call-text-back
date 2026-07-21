@@ -186,11 +186,12 @@ export default function LeadStatusDropdown({
               const Icon = getStatusIcon(status)
               const statusConfig = getLeadLifecycleConfig(status)
               const isSelected = status === currentStatus
-              
+
               return (
                 <DropdownMenuItem
                   key={status}
                   onSelect={() => handleStatusSelect(status)}
+                  onPointerDown={(e) => e.stopPropagation()}
                   disabled={isUpdating}
                   className={`w-full px-2 py-1.5 text-left hover:bg-accent/40 transition-colors flex items-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:bg-accent/40 cursor-pointer rounded-md min-h-[36px] group ${isSelected ? 'bg-accent/30' : ''}`}
                 >
@@ -226,11 +227,12 @@ export default function LeadStatusDropdown({
               const Icon = getStatusIcon(status)
               const statusConfig = getLeadLifecycleConfig(status)
               const isSelected = status === currentStatus
-              
+
               return (
                 <DropdownMenuItem
                   key={status}
                   onSelect={() => handleStatusSelect(status)}
+                  onPointerDown={(e) => e.stopPropagation()}
                   disabled={isUpdating}
                   className={`w-full px-2 py-1.5 text-left hover:bg-red-950/10 dark:hover:bg-red-950/15 transition-colors flex items-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:bg-red-950/10 dark:focus:bg-red-950/15 cursor-pointer rounded-md min-h-[36px] group ${isSelected ? 'bg-red-950/10 dark:bg-red-950/15' : ''}`}
                 >

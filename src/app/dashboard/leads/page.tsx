@@ -1436,6 +1436,7 @@ export default function LeadsPage() {
                                 {lead.deleted_at && (
                                   <DropdownMenuItem
                                     onSelect={() => handleRestoreLead(lead.id)}
+                                    onPointerDown={(e) => e.stopPropagation()}
                                     className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors outline-none focus:bg-muted/50 cursor-pointer"
                                   >
                                     <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1447,6 +1448,7 @@ export default function LeadsPage() {
                                 {!lead.deleted_at && getLeadLifecycleStatus(lead) !== 'ignored' && (
                                   <DropdownMenuItem
                                     onSelect={() => handleIgnoreLead(lead.id)}
+                                    onPointerDown={(e) => e.stopPropagation()}
                                     className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors outline-none focus:bg-muted/50 cursor-pointer"
                                   >
                                     <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1458,6 +1460,7 @@ export default function LeadsPage() {
                                 {!lead.deleted_at && getLeadLifecycleStatus(lead) === 'ignored' && (
                                   <DropdownMenuItem
                                     onSelect={() => handleLeadStatusChange(lead.id, 'active')}
+                                    onPointerDown={(e) => e.stopPropagation()}
                                     className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors outline-none focus:bg-muted/50 cursor-pointer"
                                   >
                                     <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1638,6 +1641,7 @@ export default function LeadsPage() {
                                     {lead.deleted_at && (
                                       <DropdownMenuItem
                                         onSelect={() => handleRestoreLead(lead.id)}
+                                        onPointerDown={(e) => e.stopPropagation()}
                                         className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors outline-none focus:bg-muted/50 cursor-pointer"
                                       >
                                         <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1649,6 +1653,7 @@ export default function LeadsPage() {
                                     {!lead.deleted_at && getLeadLifecycleStatus(lead) !== 'ignored' && (
                                       <DropdownMenuItem
                                         onSelect={() => handleIgnoreLead(lead.id)}
+                                        onPointerDown={(e) => e.stopPropagation()}
                                         className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors outline-none focus:bg-muted/50 cursor-pointer"
                                       >
                                         <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1660,6 +1665,7 @@ export default function LeadsPage() {
                                     {!lead.deleted_at && getLeadLifecycleStatus(lead) === 'ignored' && (
                                       <DropdownMenuItem
                                         onSelect={() => handleLeadStatusChange(lead.id, 'active')}
+                                        onPointerDown={(e) => e.stopPropagation()}
                                         className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors outline-none focus:bg-muted/50 cursor-pointer"
                                       >
                                         <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
