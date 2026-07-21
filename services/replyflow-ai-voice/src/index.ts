@@ -10628,37 +10628,52 @@ Reply to this message if you'd like to update or add any information.
                           state.answerAcceptedForStage = null;
                           state.answerAcceptedTurnId = 0;
 
-                          // Centralized routing after settle finalization
-                          const nextStage = getNextIntakeStage(finalStage);
-                          // Targeted diagnostic logging (gated by TRACE_BUSINESS_ID) for ask_details advancement
-                          {
-                            const traceThisBusiness = !!process.env.TRACE_BUSINESS_ID && process.env.TRACE_BUSINESS_ID === state.businessId;
-                            if (traceThisBusiness && finalStage === 'ask_details') {
-                              console.log('[SERVICE LOCATION ROUTING] =========================================');
-                              console.log('[SERVICE LOCATION ROUTING] callSid:', state.callSid);
-                              console.log('[SERVICE LOCATION ROUTING] finalStage:', finalStage);
-                              console.log('[SERVICE LOCATION ROUTING] serviceLocationType:', state.serviceLocationType);
-                              console.log('[SERVICE LOCATION ROUTING] routingFunction:', 'getNextIntakeStage');
-                              console.log('[SERVICE LOCATION ROUTING] nextStage:', nextStage);
-                              console.log('[SERVICE LOCATION ROUTING] =========================================');
+                          // Centralized routing after settle finalization, with race-safe mode resolution
+                          const needsResolution = finalStage === 'ask_details' && (!state.serviceLocationType || state.serviceLocationType.length === 0);
+                          const resolution = needsResolution && state.businessId
+                            ? loadServiceLocationTypeForBusiness(state.businessId)
+                            : Promise.resolve();
+                          resolution.then(() => {
+                            const nextStage = getNextIntakeStage(finalStage);
+                            // Targeted diagnostic logging (gated by TRACE_BUSINESS_ID) for ask_details advancement
+                            {
+                              const traceThisBusiness = !!process.env.TRACE_BUSINESS_ID && process.env.TRACE_BUSINESS_ID === state.businessId;
+                              if (traceThisBusiness && finalStage === 'ask_details') {
+                                console.log('[SERVICE LOCATION ROUTING] =========================================');
+                                console.log('[SERVICE LOCATION ROUTING] callSid:', state.callSid);
+                                console.log('[SERVICE LOCATION ROUTING] finalStage:', finalStage);
+                                console.log('[SERVICE LOCATION ROUTING] serviceLocationType:', state.serviceLocationType);
+                                console.log('[SERVICE LOCATION ROUTING] routingFunction:', 'getNextIntakeStage');
+                                console.log('[SERVICE LOCATION ROUTING] nextStage:', nextStage);
+                                console.log('[SERVICE LOCATION ROUTING] =========================================');
+                              }
                             }
-                          }
-                          if (nextStage && nextStage !== finalStage) {
-                            state.currentStage = nextStage;
-                            console.log('[ANSWER FINALIZATION] stageAdvanced:', true);
-                            console.log('[ANSWER FINALIZATION] nextStage:', nextStage);
+                            if (nextStage && nextStage !== finalStage) {
+                              state.currentStage = nextStage;
+                              console.log('[ANSWER FINALIZATION] stageAdvanced:', true);
+                              console.log('[ANSWER FINALIZATION] nextStage:', nextStage);
 
-                            console.log('[ANSWER ACCEPTANCE DURABLE] =========================================');
-                            console.log('[ANSWER ACCEPTANCE DURABLE] event: answer_accepted_flag_cleared');
-                            console.log('[ANSWER ACCEPTANCE DURABLE] callSid:', state.callSid);
-                            console.log('[ANSWER ACCEPTANCE DURABLE] finalStage:', finalStage);
-                            console.log('[ANSWER ACCEPTANCE DURABLE] nextStage:', nextStage);
-                            console.log('[ANSWER ACCEPTANCE DURABLE] reason: stage_advanced');
-                            console.log('[ANSWER ACCEPTANCE DURABLE] timestamp:', new Date().toISOString());
-                            console.log('[ANSWER ACCEPTANCE DURABLE] =========================================');
+                              console.log('[ANSWER ACCEPTANCE DURABLE] =========================================');
+                              console.log('[ANSWER ACCEPTANCE DURABLE] event: answer_accepted_flag_cleared');
+                              console.log('[ANSWER ACCEPTANCE DURABLE] callSid:', state.callSid);
+                              console.log('[ANSWER ACCEPTANCE DURABLE] finalStage:', finalStage);
+                              console.log('[ANSWER ACCEPTANCE DURABLE] nextStage:', nextStage);
+                              console.log('[ANSWER ACCEPTANCE DURABLE] reason: stage_advanced');
+                              console.log('[ANSWER ACCEPTANCE DURABLE] timestamp:', new Date().toISOString());
+                              console.log('[ANSWER ACCEPTANCE DURABLE] =========================================');
 
-                            sendPrompt(state.currentStage);
-                          }
+                              sendPrompt(state.currentStage);
+                            }
+                          }).catch(() => {
+                            // On resolution error, fall back to current state value (which defaults to onsite) and proceed
+                            const nextStage = getNextIntakeStage(finalStage);
+                            if (nextStage && nextStage !== finalStage) {
+                              state.currentStage = nextStage;
+                              console.log('[ANSWER FINALIZATION] stageAdvanced:', true);
+                              console.log('[ANSWER FINALIZATION] nextStage:', nextStage);
+                              sendPrompt(state.currentStage);
+                            }
+                          });
 
                           console.log('[LOGICAL TURN LIFECYCLE] =========================================');
                           console.log('[LOGICAL TURN LIFECYCLE] event: logical_turn_finalized');
@@ -10730,36 +10745,53 @@ Reply to this message if you'd like to update or add any information.
                     state.answerAcceptedForStage = null;
                     state.answerAcceptedTurnId = 0;
                     
-                    // Advance to next applicable stage using centralized routing
-                    const nextStage = getNextIntakeStage(finalStage);
-                    // Targeted diagnostic logging (gated by TRACE_BUSINESS_ID) for ask_details advancement
+                    // Advance to next applicable stage using centralized routing, race-safe
                     {
-                      const traceThisBusiness = !!process.env.TRACE_BUSINESS_ID && process.env.TRACE_BUSINESS_ID === state.businessId;
-                      if (traceThisBusiness && finalStage === 'ask_details') {
-                        console.log('[SERVICE LOCATION ROUTING] =========================================');
-                        console.log('[SERVICE LOCATION ROUTING] callSid:', state.callSid);
-                        console.log('[SERVICE LOCATION ROUTING] finalStage:', finalStage);
-                        console.log('[SERVICE LOCATION ROUTING] serviceLocationType:', state.serviceLocationType);
-                        console.log('[SERVICE LOCATION ROUTING] routingFunction:', 'getNextIntakeStage');
-                        console.log('[SERVICE LOCATION ROUTING] nextStage:', nextStage);
-                        console.log('[SERVICE LOCATION ROUTING] =========================================');
-                      }
-                    }
-                    if (nextStage && nextStage !== finalStage) {
-                      state.currentStage = nextStage;
-                      console.log('[ANSWER FINALIZATION] stageAdvanced:', true);
-                      console.log('[ANSWER FINALIZATION] nextStage:', nextStage);
-                      
-                      console.log('[ANSWER ACCEPTANCE DURABLE] =========================================');
-                      console.log('[ANSWER ACCEPTANCE DURABLE] event: answer_accepted_flag_cleared');
-                      console.log('[ANSWER ACCEPTANCE DURABLE] callSid:', state.callSid);
-                      console.log('[ANSWER ACCEPTANCE DURABLE] finalStage:', finalStage);
-                      console.log('[ANSWER ACCEPTANCE DURABLE] nextStage:', nextStage);
-                      console.log('[ANSWER ACCEPTANCE DURABLE] reason: stage_advanced');
-                      console.log('[ANSWER ACCEPTANCE DURABLE] timestamp:', new Date().toISOString());
-                      console.log('[ANSWER ACCEPTANCE DURABLE] =========================================');
-                      
-                      sendPrompt(state.currentStage);
+                      const needsResolution = finalStage === 'ask_details' && (!state.serviceLocationType || state.serviceLocationType.length === 0);
+                      const resolution = needsResolution && state.businessId
+                        ? loadServiceLocationTypeForBusiness(state.businessId)
+                        : Promise.resolve();
+                      resolution.then(() => {
+                        const nextStage = getNextIntakeStage(finalStage);
+                        // Targeted diagnostic logging (gated by TRACE_BUSINESS_ID) for ask_details advancement
+                        {
+                          const traceThisBusiness = !!process.env.TRACE_BUSINESS_ID && process.env.TRACE_BUSINESS_ID === state.businessId;
+                          if (traceThisBusiness && finalStage === 'ask_details') {
+                            console.log('[SERVICE LOCATION ROUTING] =========================================');
+                            console.log('[SERVICE LOCATION ROUTING] callSid:', state.callSid);
+                            console.log('[SERVICE LOCATION ROUTING] finalStage:', finalStage);
+                            console.log('[SERVICE LOCATION ROUTING] serviceLocationType:', state.serviceLocationType);
+                            console.log('[SERVICE LOCATION ROUTING] routingFunction:', 'getNextIntakeStage');
+                            console.log('[SERVICE LOCATION ROUTING] nextStage:', nextStage);
+                            console.log('[SERVICE LOCATION ROUTING] =========================================');
+                          }
+                        }
+                        if (nextStage && nextStage !== finalStage) {
+                          state.currentStage = nextStage;
+                          console.log('[ANSWER FINALIZATION] stageAdvanced:', true);
+                          console.log('[ANSWER FINALIZATION] nextStage:', nextStage);
+                          
+                          console.log('[ANSWER ACCEPTANCE DURABLE] =========================================');
+                          console.log('[ANSWER ACCEPTANCE DURABLE] event: answer_accepted_flag_cleared');
+                          console.log('[ANSWER ACCEPTANCE DURABLE] callSid:', state.callSid);
+                          console.log('[ANSWER ACCEPTANCE DURABLE] finalStage:', finalStage);
+                          console.log('[ANSWER ACCEPTANCE DURABLE] nextStage:', nextStage);
+                          console.log('[ANSWER ACCEPTANCE DURABLE] reason: stage_advanced');
+                          console.log('[ANSWER ACCEPTANCE DURABLE] timestamp:', new Date().toISOString());
+                          console.log('[ANSWER ACCEPTANCE DURABLE] =========================================');
+                          
+                          sendPrompt(state.currentStage);
+                        }
+                      }).catch(() => {
+                        // On resolution error, proceed with current state value (fallback onsite)
+                        const nextStage = getNextIntakeStage(finalStage);
+                        if (nextStage && nextStage !== finalStage) {
+                          state.currentStage = nextStage;
+                          console.log('[ANSWER FINALIZATION] stageAdvanced:', true);
+                          console.log('[ANSWER FINALIZATION] nextStage:', nextStage);
+                          sendPrompt(state.currentStage);
+                        }
+                      });
                     }
                     
                     console.log('[LOGICAL TURN LIFECYCLE] =========================================');
