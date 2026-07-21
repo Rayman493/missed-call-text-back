@@ -63,6 +63,7 @@ function AuthContent() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [businessName, setBusinessName] = useState('')
   const [businessPhone, setBusinessPhone] = useState('')
+  const [serviceLocationType, setServiceLocationType] = useState<'onsite' | 'customer_comes_to_business' | 'remote' | ''>('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [errorDisplay, setErrorDisplay] = useState<AuthErrorDisplay | null>(null)
@@ -273,6 +274,12 @@ function AuthContent() {
       return
     }
 
+    // Require explicit service location selection for new businesses
+    if (!serviceLocationType) {
+      setError('Please choose how customers receive your services.')
+      return
+    }
+
     // Hard submit lock
     if (isSubmitting || isSubmittingRef.current) {
       return
@@ -305,6 +312,8 @@ function AuthContent() {
           password,
           businessName,
           businessPhone,
+          // Persist preferred service location mode as part of signup
+          service_location_type: serviceLocationType,
         }),
       })
 
@@ -366,6 +375,22 @@ function AuthContent() {
       }
 
       console.log('[Auth] Client signed in successfully')
+      
+      // Ensure service_location_type is persisted on the business row prior to checkout
+      // If complete-signup already saved it, this will be a harmless no-op update
+      try {
+        await fetch('/api/business/get-or-create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            businessData: {
+              service_location_type: serviceLocationType,
+            }
+          })
+        })
+      } catch (persistErr) {
+        console.warn('[Auth] Non-fatal: failed to persist service_location_type before checkout', persistErr)
+      }
       
       // The business row was already created atomically by /api/auth/complete-signup.
       // We avoid a redundant client-side RLS-sensitive lookup here; the checkout
@@ -762,6 +787,33 @@ function AuthContent() {
                     placeholder="(555) 123-4567"
                   />
                   <p className="text-xs text-slate-500 mt-2">This is the number you want ReplyFlow to text back when calls are missed</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    How do customers receive your services?
+                  </label>
+                  <div className="grid grid-cols-1 gap-2">
+                    {[
+                      { value: 'onsite', title: 'On-site service', desc: 'You travel to the customer or job location.' },
+                      { value: 'customer_comes_to_business', title: 'Customers come to me', desc: 'Customers visit your business location.' },
+                      { value: 'remote', title: 'Remote only', desc: 'Your services are provided remotely.' }
+                    ].map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setServiceLocationType(opt.value as any)}
+                        className={`text-left p-3 rounded-xl border transition w-full ${
+                          (serviceLocationType || '') === opt.value
+                            ? 'border-blue-500 bg-blue-50/5'
+                            : 'border-slate-600/80 hover:border-slate-500/80'
+                        }`}
+                      >
+                        <div className="text-sm font-medium text-slate-100">{opt.title}</div>
+                        <div className="text-xs text-slate-400 mt-0.5">{opt.desc}</div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <button
