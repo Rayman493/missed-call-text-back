@@ -16,9 +16,15 @@ interface NewAppointmentModalProps {
   onClose: () => void
   onRefresh?: () => void
   defaultDate?: Date
+  context?: 'calendar' | 'customer' | 'meetings'
+  preselectedLeadId?: string | null
+  preselectedLeadDisplay?: string | null
+  allowAddCustomer?: boolean
+  requireCustomer?: boolean
+  lockCustomer?: boolean
 }
 
-export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaultDate }: NewAppointmentModalProps) {
+export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaultDate, context = 'calendar', preselectedLeadId = null, preselectedLeadDisplay = null, allowAddCustomer, requireCustomer, lockCustomer }: NewAppointmentModalProps) {
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
@@ -40,6 +46,11 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
   const [meetingType, setMeetingType] = useState<'in_person' | 'google_meet' | 'custom'>('in_person')
   const [customMeetingUrl, setCustomMeetingUrl] = useState('')
 
+  // Derived behavior flags
+  const addCustomerAllowed = (allowAddCustomer ?? (context === 'calendar'))
+  const isCustomerLocked = (lockCustomer ?? (context === 'customer' && Boolean(preselectedLeadId)))
+  const customerLabel = (requireCustomer ?? (context === 'meetings')) ? 'Customer (required)' : 'Customer (optional)'
+
   // Initialize form with default date
   useEffect(() => {
     if (defaultDate) {
@@ -48,6 +59,20 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
       setDate(new Date().toISOString().split('T')[0])
     }
   }, [defaultDate, isOpen])
+
+  // Configure customer preselection and context behavior on open
+  useEffect(() => {
+    if (!isOpen) return
+    // Initialize lead from preselected when provided
+    if (preselectedLeadId) {
+      setLeadId(preselectedLeadId)
+      setLeadDisplay(preselectedLeadDisplay || 'Selected customer')
+    } else if (context !== 'calendar') {
+      // In customer/meetings context with no preselected, clear lead
+      setLeadId(null)
+      setLeadDisplay(null)
+    }
+  }, [isOpen, preselectedLeadId, preselectedLeadDisplay, context])
 
   // Handle Escape key to close modal
   useEffect(() => {
@@ -106,6 +131,13 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
     }
     if (!isAllDay && !startTime) {
       setError('Start time is required for timed events')
+      return
+    }
+
+    // Meetings context or explicit requirement: must select a customer
+    const mustHaveCustomer = requireCustomer ?? (context === 'meetings')
+    if (mustHaveCustomer && !leadId) {
+      setError('Please select a customer')
       return
     }
 
@@ -185,8 +217,14 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
       setStartTime('')
       setEndTime('')
       setIsAllDay(false)
-      setLeadId(null)
-      setLeadDisplay(null)
+      // Preserve preselected in customer context; otherwise clear
+      if (lockCustomer || context === 'customer') {
+        setLeadId(preselectedLeadId || null)
+        setLeadDisplay(preselectedLeadDisplay || (preselectedLeadId ? 'Selected customer' : null))
+      } else {
+        setLeadId(null)
+        setLeadDisplay(null)
+      }
       setMeetingType('in_person')
       setCustomMeetingUrl('')
     } catch (err) {
@@ -248,21 +286,23 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
         {/* Form */}
         <div data-scroll-lock-allow className="flex-1 min-h-0 overflow-y-auto px-5 py-4" style={{ WebkitOverflowScrolling: 'touch' }}>
           <div className="space-y-4">
-            {/* Customer (optional) */}
+            {/* Customer */}
             <div className="flex items-start gap-3">
               <div className="w-5 h-5 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0 mt-0.5">
                 <Users className="w-2.5 h-2.5 text-slate-400" />
               </div>
               <div className="flex-1">
-                <label className="text-xs text-slate-500 font-medium mb-1.5 block">Customer (optional)</label>
+                <label className="text-xs text-slate-500 font-medium mb-1.5 block">{customerLabel}</label>
                 {leadId ? (
                   <div className="flex items-center gap-2">
                     <div className="px-2 py-1 rounded bg-slate-800 text-slate-200 text-xs">{leadDisplay || 'Selected customer'}</div>
-                    <button
-                      type="button"
-                      onClick={() => { setLeadId(null); setLeadDisplay(null) }}
-                      className="text-xs text-slate-400 hover:text-slate-200"
-                    >Clear</button>
+                    {!isCustomerLocked && (
+                      <button
+                        type="button"
+                        onClick={() => { setLeadId(null); setLeadDisplay(null) }}
+                        className="text-xs text-slate-400 hover:text-slate-200"
+                      >Clear</button>
+                    )}
                   </div>
                 ) : (
                   <div className="flex gap-2">
@@ -271,11 +311,13 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
                       onClick={() => setIsLeadPickerOpen(true)}
                       className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white hover:bg-slate-700"
                     >Select Existing</button>
-                    <button
-                      type="button"
-                      onClick={() => setIsAddCustomerOpen(true)}
-                      className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white hover:bg-slate-700"
-                    >+ Add New Customer</button>
+                    {addCustomerAllowed && (
+                      <button
+                        type="button"
+                        onClick={() => setIsAddCustomerOpen(true)}
+                        className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white hover:bg-slate-700"
+                      >+ Add New Customer</button>
+                    )}
                   </div>
                 )}
               </div>
@@ -503,18 +545,20 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
       title="Select Customer"
       subtitle="Search your customers"
     />
-    <AddCustomerModal
-      isOpen={isAddCustomerOpen}
-      onClose={() => setIsAddCustomerOpen(false)}
-      returnTo="calendar"
-      onLeadCreated={(newLeadId) => {
-        setIsAddCustomerOpen(false)
-        if (newLeadId) {
-          setLeadId(newLeadId)
-          setLeadDisplay('New Customer')
-        }
-      }}
-    />
+    {addCustomerAllowed && (
+      <AddCustomerModal
+        isOpen={isAddCustomerOpen}
+        onClose={() => setIsAddCustomerOpen(false)}
+        returnTo="calendar"
+        onLeadCreated={(newLeadId) => {
+          setIsAddCustomerOpen(false)
+          if (newLeadId) {
+            setLeadId(newLeadId)
+            setLeadDisplay('New Customer')
+          }
+        }}
+      />
+    )}
     </>
   )
 }

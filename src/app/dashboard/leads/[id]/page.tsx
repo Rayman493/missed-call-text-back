@@ -39,6 +39,7 @@ import FloatingHelpButton from '@/components/FloatingHelpButton'
 import PhotoModal from '@/components/PhotoModal'
 import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
 import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall } from 'lucide-react'
+import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
 
 function getErrorMessage(errorCode: string): string {
   // Only show user-friendly messages for known error codes
@@ -2410,14 +2411,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     )
   }
 
+  const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false)
   const handleAppointmentClick = () => {
-    const appointmentJob = futureAppointments[0] || leadJobs[0] || null
-    setSelectedAppointmentJob(appointmentJob)
-    setAppointmentDate(appointmentJob?.scheduled_date || '')
-    setAppointmentTime(appointmentJob?.scheduled_time?.slice(0, 5) || '')
-    setAppointmentNote(appointmentJob?.notes || '')
-    setAppointmentError('')
-    setIsAppointmentModalOpen(true)
+    // Open unified appointment modal preselected to this customer; lock customer; disallow inline add
+    setIsNewAppointmentOpen(true)
   }
 
   const handleSaveAppointment = async (sendConfirmation = false) => {
@@ -4543,86 +4540,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       }}
     />
 
-    {/* Appointment Modal */}
-    {isAppointmentModalOpen && (
-      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm">
-        <div className="bg-white dark:bg-slate-900 rounded-t-2xl sm:rounded-xl shadow-xl max-w-md w-full max-h-[90dvh] overflow-y-auto p-6 border border-slate-200 dark:border-slate-800" data-scroll-lock-allow>
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-            Appointment
-          </h3>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mb-5">
-            Set or update this customer’s appointment.
-          </p>
-
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Date
-                </label>
-                <input
-                  type="date"
-                  value={appointmentDate}
-                  onChange={(e) => setAppointmentDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Time
-                </label>
-                <input
-                  type="time"
-                  value={appointmentTime}
-                  onChange={(e) => setAppointmentTime(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Note
-              </label>
-              <textarea
-                value={appointmentNote}
-                onChange={(e) => setAppointmentNote(e.target.value)}
-                rows={3}
-                data-scroll-lock-allow
-                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-y"
-                placeholder="Optional appointment details"
-              />
-            </div>
-            {appointmentError && (
-              <p className="text-sm text-red-600 dark:text-red-400">{appointmentError}</p>
-            )}
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-3 justify-end mt-6">
-            <button
-              onClick={() => setIsAppointmentModalOpen(false)}
-              disabled={isSavingAppointment || isSendingConfirmation}
-              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => handleSaveAppointment(false)}
-              disabled={isSavingAppointment || isSendingConfirmation}
-              className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSavingAppointment && !isSendingConfirmation ? 'Saving...' : 'Save Appointment'}
-            </button>
-            <button
-              onClick={() => handleSaveAppointment(true)}
-              disabled={isSavingAppointment || isSendingConfirmation}
-              className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSavingAppointment || isSendingConfirmation ? 'Saving...' : 'Save & Send Confirmation'}
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
+    {/* New Unified Appointment Modal for Customer context */}
+    <NewAppointmentModal
+      isOpen={isNewAppointmentOpen}
+      onClose={() => setIsNewAppointmentOpen(false)}
+      onRefresh={async () => {
+        // No special reload needed here; calendar/meetings will fetch on their own
+      }}
+      context="customer"
+      preselectedLeadId={params.id}
+      preselectedLeadDisplay={getLeadDisplayName(leadData)}
+      allowAddCustomer={false}
+      requireCustomer={true}
+      lockCustomer={true}
+    />
 
     {/* Job Composer Modal */}
     <JobComposer

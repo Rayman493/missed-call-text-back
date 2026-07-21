@@ -53,11 +53,13 @@ function MeetingsTab({
   jobs,
   onOpenEvent,
   onViewCustomer,
+  onNewMeeting,
 }: {
   events: CalendarEvent[]
   jobs: any[]
   onOpenEvent: (event: CalendarEvent) => void
   onViewCustomer: (leadId: string) => void
+  onNewMeeting: () => void
 }) {
   // Determine eligibility
   const isEligible = (ev: CalendarEvent) => {
@@ -138,6 +140,15 @@ function MeetingsTab({
 
   return (
     <div>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-base font-semibold text-foreground">Meetings</h2>
+        <button
+          onClick={onNewMeeting}
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-xs"
+        >
+          New Meeting
+        </button>
+      </div>
       {renderGroup('Today', todays)}
       {renderGroup('Upcoming', later)}
     </div>
@@ -196,6 +207,12 @@ export default function SchedulePage() {
   const [newlyCreatedLeadId, setNewlyCreatedLeadId] = useState<string | null>(null)
   const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false)
   const [isNewAppointmentModalOpen, setIsNewAppointmentModalOpen] = useState(false)
+  const [newAppointmentContext, setNewAppointmentContext] = useState<'calendar' | 'customer' | 'meetings'>('calendar')
+  const [newAppointmentPreselectedLeadId, setNewAppointmentPreselectedLeadId] = useState<string | null>(null)
+  const [newAppointmentPreselectedLeadDisplay, setNewAppointmentPreselectedLeadDisplay] = useState<string | null>(null)
+  const [newAppointmentRequireCustomer, setNewAppointmentRequireCustomer] = useState<boolean | undefined>(undefined)
+  const [newAppointmentAllowAddCustomer, setNewAppointmentAllowAddCustomer] = useState<boolean | undefined>(undefined)
+  const [newAppointmentLockCustomer, setNewAppointmentLockCustomer] = useState<boolean | undefined>(undefined)
   
   // Overflow menu state
   const [isCalendarOverflowOpen, setIsCalendarOverflowOpen] = useState(false)
@@ -1072,6 +1089,15 @@ export default function SchedulePage() {
                       jobs={jobs}
                       onOpenEvent={(event: CalendarEvent) => { setSelectedEvent(event); setIsEventDetailsOpen(true); setSelectedDay(null) }}
                       onViewCustomer={(leadId: string) => window.location.assign(`/dashboard/leads/${leadId}`)}
+                      onNewMeeting={() => {
+                        setNewAppointmentContext('meetings')
+                        setNewAppointmentPreselectedLeadId(null)
+                        setNewAppointmentPreselectedLeadDisplay(null)
+                        setNewAppointmentRequireCustomer(true)
+                        setNewAppointmentAllowAddCustomer(false)
+                        setNewAppointmentLockCustomer(false)
+                        setIsNewAppointmentModalOpen(true)
+                      }}
                     />
                   )}
 
@@ -1587,6 +1613,12 @@ export default function SchedulePage() {
                       showToast('Appointment created.', 'success')
                     }}
                     defaultDate={selectedDay || undefined}
+                    context={newAppointmentContext}
+                    preselectedLeadId={newAppointmentPreselectedLeadId}
+                    preselectedLeadDisplay={newAppointmentPreselectedLeadDisplay}
+                    requireCustomer={newAppointmentRequireCustomer}
+                    allowAddCustomer={newAppointmentAllowAddCustomer}
+                    lockCustomer={newAppointmentLockCustomer}
                   />
 
                   {/* Job Details Modal */}
