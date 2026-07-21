@@ -2226,18 +2226,18 @@ const STAGE_PROMPTS: Record<IntakeStage, string> = {
  * - onsite: ask_name_reason → ask_details → ask_location_or_context → ask_timing → ask_callback_time → complete
  * - customer_comes_to_business/remote: ask_name_reason → ask_details → ask_timing → ask_callback_time → complete
  */
-function getNextStage(currentStage: IntakeStage): IntakeStage {
+function getNextStage(currentStage: IntakeStage, serviceLocationType: string): IntakeStage {
   console.log('[SCRIPTED FLOW] =========================================');
   console.log('[SCRIPTED FLOW] stage advanced');
   console.log('[SCRIPTED FLOW] fromStage:', currentStage);
-  console.log('[SCRIPTED FLOW] serviceLocationType:', callSessionState.serviceLocationType);
+  console.log('[SCRIPTED FLOW] serviceLocationType:', serviceLocationType);
 
   const stageSequence: Record<IntakeStage, IntakeStage> = {
     ask_name_reason: 'ask_details',
     ask_name_reason_service_only: 'ask_details',
     ask_name_reason_name_only: 'ask_details',
     // Conditional routing based on service_location_type
-    ask_details: callSessionState.serviceLocationType === 'onsite' ? 'ask_location_or_context' : 'ask_timing',
+    ask_details: serviceLocationType === 'onsite' ? 'ask_location_or_context' : 'ask_timing',
     ask_location_or_context: 'ask_timing',
     ask_timing: 'ask_callback_time',
     ask_callback_time: 'complete',
@@ -2258,7 +2258,7 @@ function getNextStage(currentStage: IntakeStage): IntakeStage {
  * The app saves caller transcript directly to the field based on current stage
  * Then advances to the next stage in the fixed sequence
  */
-function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptAttempts?: Map<IntakeStage, number>): { response: string; nextStage: IntakeStage } {
+function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptAttempts?: Map<IntakeStage, number>, serviceLocationType?: string): { response: string; nextStage: IntakeStage } {
   console.log('[EXTRACTION PATH DETECTION] =========================================');
   console.log('[EXTRACTION PATH DETECTION] path: getIntakeResponse (LEGACY PATH)');
   console.log('[EXTRACTION PATH DETECTION] currentStage:', intake.stage);
@@ -2549,7 +2549,7 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
   }
 
   // App determines next stage deterministically (fixed sequence)
-  const nextStage = getNextStage(intake.stage);
+  const nextStage = getNextStage(intake.stage, serviceLocationType || 'onsite');
 
   // Get predefined prompt for the next stage
   const response = STAGE_PROMPTS[nextStage] || STAGE_PROMPTS.ask_name_reason;
@@ -14410,7 +14410,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[INTAKE RESPONSE CALCULATION] Timestamp:', new Date().toISOString());
                   console.log('[INTAKE RESPONSE CALCULATION] =========================================');
                   
-                  const intakeResponse = getIntakeResponse(intakeData!, userTranscript, stagePromptAttempts);
+                  const intakeResponse = getIntakeResponse(intakeData!, userTranscript, stagePromptAttempts, state.serviceLocationType);
 
                   console.log('[INTAKE RESPONSE RESULT] =========================================');
                   console.log('[INTAKE RESPONSE RESULT] response:', intakeResponse.response);
@@ -15524,7 +15524,8 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 const callerTranscript = message.transcript || '';
                 const stageBeforeProcessing = intakeData?.stage || 'ask_name_reason';
                 const intakeTemplate = (ws as any).intakeTemplate || 'on_site';
-                const nextStage = getNextStage(stageBeforeProcessing as any);
+                const callSessionState = (ws as any).callSessionState || {};
+                const nextStage = getNextStage(stageBeforeProcessing as any, callSessionState.serviceLocationType || 'onsite');
                 const expectedNextScriptLine = getIntakeStageTextSafe(intakeTemplate, nextStage as any);
                 
                 console.log('[CALLER TRANSCRIPT PROCESSING] =========================================');
