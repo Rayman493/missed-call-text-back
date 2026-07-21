@@ -2222,18 +2222,22 @@ const STAGE_PROMPTS: Record<IntakeStage, string> = {
 
 /**
  * Simple scripted stage progression - deterministic, no GPT decisions
- * The app follows a fixed sequence: ask_name_reason → ask_details → ask_location_or_context → ask_timing → ask_callback_time → complete
+ * The app follows a conditional sequence based on service_location_type:
+ * - onsite: ask_name_reason → ask_details → ask_location_or_context → ask_timing → ask_callback_time → complete
+ * - customer_comes_to_business/remote: ask_name_reason → ask_details → ask_timing → ask_callback_time → complete
  */
 function getNextStage(currentStage: IntakeStage): IntakeStage {
   console.log('[SCRIPTED FLOW] =========================================');
   console.log('[SCRIPTED FLOW] stage advanced');
   console.log('[SCRIPTED FLOW] fromStage:', currentStage);
+  console.log('[SCRIPTED FLOW] serviceLocationType:', callSessionState.serviceLocationType);
 
   const stageSequence: Record<IntakeStage, IntakeStage> = {
     ask_name_reason: 'ask_details',
     ask_name_reason_service_only: 'ask_details',
     ask_name_reason_name_only: 'ask_details',
-    ask_details: 'ask_location_or_context',
+    // Conditional routing based on service_location_type
+    ask_details: callSessionState.serviceLocationType === 'onsite' ? 'ask_location_or_context' : 'ask_timing',
     ask_location_or_context: 'ask_timing',
     ask_timing: 'ask_callback_time',
     ask_callback_time: 'complete',

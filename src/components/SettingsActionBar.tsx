@@ -25,6 +25,7 @@ export default function SettingsActionBar({
 }: SettingsActionBarProps) {
   const [showMobileBar, setShowMobileBar] = useState(false)
   const [keyboardOffset, setKeyboardOffset] = useState(0)
+  const [bottomNavVisible, setBottomNavVisible] = useState(false)
 
   // Auto-hide success state after 1 second
   useEffect(() => {
@@ -56,10 +57,27 @@ export default function SettingsActionBar({
     const checkMobile = () => {
       setShowMobileBar(window.innerWidth < 768)
     }
-    
+
     checkMobile()
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  // Detect bottom navigation visibility via data attribute set by BottomNavigation
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+
+    const checkBottomNavVisible = () => {
+      const isHidden = document.body.getAttribute('data-bottom-nav-hidden') === 'true'
+      setBottomNavVisible(!isHidden)
+    }
+
+    checkBottomNavVisible()
+
+    const observer = new MutationObserver(checkBottomNavVisible)
+    observer.observe(document.body, { attributes: true, attributeFilter: ['data-bottom-nav-hidden'] })
+
+    return () => observer.disconnect()
   }, [])
 
   useEffect(() => {
@@ -101,6 +119,9 @@ export default function SettingsActionBar({
   }
 
   const mobileBottomOffset = keyboardOffset > 0 ? keyboardOffset + 8 : 72
+  // Use CSS variable for actual bottom nav height, fallback to 0 if not set
+  const bottomNavHeight = bottomNavVisible ? `var(--bottom-nav-height, 0px)` : '0px'
+  const bottomOffset = bottomNavVisible ? `calc(${mobileBottomOffset}px + ${bottomNavHeight} + 8px)` : `${mobileBottomOffset}px`
 
   // Sticky Bottom Action Bar (same for both desktop and mobile)
   return (
@@ -108,7 +129,7 @@ export default function SettingsActionBar({
       {/* Sticky Bottom Action Bar */}
       <div
         className="fixed left-0 right-0 z-40 animate-in slide-in-from-bottom-3 fade-in duration-200"
-        style={{ bottom: showMobileBar ? `${mobileBottomOffset}px` : 0 }}
+        style={{ bottom: showMobileBar ? `${bottomOffset}px` : 0 }}
       >
         <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 pb-3 sm:pb-4">
           <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/95 dark:bg-slate-950/95 px-3 py-2.5 shadow-[0_18px_60px_rgba(15,23,42,0.18)] backdrop-blur-xl sm:px-4 sm:py-3">

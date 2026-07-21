@@ -202,14 +202,22 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
   const hideNav = isPublicPage || isAnyAssistantOpen || (isNativePlatform && isKeyboardOpen)
 
   // Ensure body has an attribute to indicate bottom nav visibility for any layout that wishes to react
+  // Also set a CSS variable with the actual nav height for precise positioning
   useEffect(() => {
     if (typeof document === 'undefined') return
     if (hideNav) {
       document.body.setAttribute('data-bottom-nav-hidden', 'true')
+      document.body.style.setProperty('--bottom-nav-height', '0px')
       // Close the More menu when hiding the nav (e.g., keyboard opened)
       if (isMoreMenuOpen) setIsMoreMenuOpen(false)
     } else {
       document.body.removeAttribute('data-bottom-nav-hidden')
+      // Measure the actual nav height and set it as a CSS variable
+      const navElement = document.querySelector('nav.fixed.bottom-0') as HTMLElement | null
+      if (navElement) {
+        const height = navElement.offsetHeight
+        document.body.style.setProperty('--bottom-nav-height', `${height}px`)
+      }
     }
   }, [hideNav, isMoreMenuOpen])
 
