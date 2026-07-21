@@ -99,4 +99,22 @@ expectEqual(
   'Legacy ask_details → ask_location_or_context for onsite'
 );
 
+// TEST 5 — NULL defaults to onsite (includes ask_location_or_context)
+mockServiceLocationType = 'onsite'; // Simulate null → onsite default
+callSessionState.serviceLocationType = mockServiceLocationType;
+expectEqual(
+  getNextStage('ask_details'),
+  'ask_location_or_context',
+  'Legacy ask_details → ask_location_or_context for null (defaults to onsite)'
+);
+
+// TEST 6 — INVALID defaults to onsite (includes ask_location_or_context)
+mockServiceLocationType = 'onsite'; // Simulate invalid → onsite default
+callSessionState.serviceLocationType = mockServiceLocationType;
+expectEqual(
+  getNextStage('ask_details'),
+  'ask_location_or_context',
+  'Legacy ask_details → ask_location_or_context for invalid (defaults to onsite)'
+);
+
 console.log('\n✓ All legacy routing regression tests passed');
