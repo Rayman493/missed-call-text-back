@@ -37,7 +37,10 @@ export interface ExtractedInfo {
  * - desiredCompletionTime
  * - callbackTime or preferredCallbackTime
  */
-export function isCompleteAIIntake(extractedInfo: ExtractedInfo | null | undefined): boolean {
+export function isCompleteAIIntake(
+  extractedInfo: ExtractedInfo | null | undefined,
+  serviceLocationType?: 'onsite' | 'customer_comes_to_business' | 'remote' | string | null
+): boolean {
   if (!extractedInfo || typeof extractedInfo !== 'object') {
     return false
   }
@@ -77,12 +80,17 @@ export function isCompleteAIIntake(extractedInfo: ExtractedInfo | null | undefin
     extractedInfo.preferredCallbackTime
   )
 
+  // Location is required only for onsite businesses (default to onsite if unknown)
+  const rawMode = typeof serviceLocationType === 'string' ? serviceLocationType.trim().toLowerCase() : 'onsite'
+  const normalizedMode = (rawMode === 'onsite' || rawMode === 'customer_comes_to_business' || rawMode === 'remote') ? rawMode : 'onsite'
+  const locationSatisfied = normalizedMode === 'onsite' ? hasServiceAddress : true
+
   // All required fields must be present
   const isComplete = 
     hasCustomerName &&
     hasServiceRequested &&
     hasIssueDescription &&
-    hasServiceAddress &&
+    locationSatisfied &&
     hasDesiredCompletionTime &&
     hasCallbackTime
 
@@ -92,6 +100,8 @@ export function isCompleteAIIntake(extractedInfo: ExtractedInfo | null | undefin
     hasServiceRequested,
     hasIssueDescription,
     hasServiceAddress,
+    locationSatisfied,
+    serviceLocationType: normalizedMode,
     hasDesiredCompletionTime,
     hasCallbackTime,
     isComplete,
@@ -128,10 +138,11 @@ export function getCompletedFieldCount(extractedInfo: ExtractedInfo | null | und
  */
 export function determineAIOutcomeFromExtractedInfo(
   extractedInfo: ExtractedInfo | null | undefined,
-  currentOutcome?: string | null
+  currentOutcome?: string | null,
+  serviceLocationType?: 'onsite' | 'customer_comes_to_business' | 'remote' | string | null
 ): 'completed_intake' | 'partial_intake' | 'early_hangup' | string {
   // If extracted info is complete, override any stale outcome
-  if (isCompleteAIIntake(extractedInfo)) {
+  if (isCompleteAIIntake(extractedInfo, serviceLocationType)) {
     console.log('[AI OUTCOME DETERMINATION] Override to completed_intake - all required fields present')
     return 'completed_intake'
   }

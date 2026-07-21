@@ -36,7 +36,7 @@ const prompts = {
   ask_name_reason_service_only: "And what do you need help with?",
   ask_name_reason_name_only: "And what's your name?",
   ask_details: "Okay. Can you share any important details the business should know?",
-  ask_location: "All right. Just a couple more questions. Where will this take place?",
+  ask_location: "And what location or address should the business have for this?",
   ask_completion_time: "When are you hoping this will be done?",
   ask_callback_time: "Okay. Last question—what would be the best time for the business to call you back?",
   complete: "Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a good day."
@@ -273,11 +273,33 @@ async function generateRealtimeCachedAudio() {
   console.log(`Generation Version: ${CACHED_AUDIO_GENERATION_VERSION}`);
   console.log('========================================\n');
 
+  // Optional key filter: support single-key or subset regeneration without touching others
+  // Accept --keys=ask_location,ask_details or KEYS env var
+  const cliArg = process.argv.find(a => a.startsWith('--keys='));
+  const cliKeys = cliArg ? cliArg.split('=')[1] : '';
+  const envKeys = process.env.KEYS || '';
+  const requestedKeys = (cliKeys || envKeys)
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  let keysToGenerate = Object.keys(prompts);
+  if (requestedKeys.length > 0) {
+    const valid = new Set(Object.keys(prompts));
+    keysToGenerate = requestedKeys.filter(k => valid.has(k));
+    if (keysToGenerate.length === 0) {
+      console.error('No valid keys specified via --keys or KEYS env. Valid keys:', Array.from(valid).join(', '));
+      process.exit(1);
+    }
+    console.log(`Filtering to keys: ${keysToGenerate.join(', ')}`);
+  }
+
   const generator = new RealtimeAudioGenerator();
   const results: Record<string, string> = {};
   const metadata: Record<string, any> = {};
 
-  for (const [key, prompt] of Object.entries(prompts)) {
+  for (const key of keysToGenerate) {
+    const prompt = (prompts as any)[key];
     console.log(`\n--- Generating ${key} ---`);
     console.log(`Prompt: "${prompt}"\n`);
 
@@ -345,19 +367,29 @@ async function generateRealtimeCachedAudio() {
     process.exit(1);
   }
 
-  // Output as JavaScript object
-  console.log('\n\n// Cached PCMU audio for Simple Mode prompts');
-  console.log('// Generated with OpenAI Realtime API');
-  console.log(`// Model: ${REALTIME_MODEL}`);
-  console.log(`// Voice: ${TTS_VOICE}`);
-  console.log(`// Output Format: ${OUTPUT_FORMAT}`);
-  console.log('export const cachedPromptAudio = {');
-  for (const [key, value] of Object.entries(results)) {
-    console.log(`  ${key}: \`${value}\`,`);
+  // Merge with existing cached-audio.ts so unrelated assets remain unchanged
+  let existing: any = null;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    existing = require('../src/cached-audio.ts');
+  } catch (e) {
+    console.warn('Warning: Failed to import existing cached-audio.ts, will create fresh file');
   }
-  console.log('} as const;');
 
-  // Write to file
+  const mergedAudio: Record<string, string> = {
+    ...(existing?.cachedPromptAudio || {}),
+    ...results,
+  };
+  const mergedChecksums: Record<string, string> = {
+    ...(existing?.cachedAudioChecksums || {}),
+    ...Object.fromEntries(Object.entries(metadata).map(([k, v]) => [k, (v as any).checksum])),
+  };
+  const mergedMetadata: Record<string, any> = {
+    ...(existing?.cachedAudioMetadata || {}),
+    ...metadata,
+  };
+
+  // Write merged file
   const output = `// Cached PCMU audio for Simple Mode prompts
 // Generated with OpenAI Realtime API
 // Model: ${REALTIME_MODEL}
@@ -371,20 +403,20 @@ export const TTS_VOICE = "${TTS_VOICE}";
 export const OUTPUT_FORMAT = "${OUTPUT_FORMAT}";
 
 export const cachedPromptAudio = {
-${Object.entries(results).map(([key, value]) => `  ${key}: \`${value}\`,`).join('\n')}
+${Object.entries(mergedAudio).map(([key, value]) => `  ${key}: \`${value}\`,`).join('\n')}
 } as const;
 
 export const cachedAudioChecksums = {
-${Object.entries(metadata).map(([key, value]) => `  ${key}: "${value.checksum}",`).join('\n')}
+${Object.entries(mergedChecksums).map(([key, value]) => `  ${key}: "${value}",`).join('\n')}
 } as const;
 
 export const cachedAudioMetadata = {
-${Object.entries(metadata).map(([key, value]) => `  ${key}: ${JSON.stringify(value)},`).join('\n')}
+${Object.entries(mergedMetadata).map(([key, value]) => `  ${key}: ${JSON.stringify(value)},`).join('\n')}
 } as const;`;
 
   fs.writeFileSync('src/cached-audio.ts', output);
-  console.log('\n✓ Wrote to src/cached-audio.ts');
-  console.log('✓ Added version tracking, checksums, and metadata');
+  console.log('\n✓ Wrote merged output to src/cached-audio.ts');
+  console.log('✓ Preserved unrelated cached assets and checksums');
   console.log('\n========================================');
   console.log('Generation Complete');
   console.log('========================================');

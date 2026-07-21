@@ -327,3 +327,20 @@ ${issueDescription}
 
 Reply to this message if you'd like to update or add any information.`;
 };
+
+// Wrapper that applies service-location omission logic for Location block
+export const formatAiIntakeSummaryWithMode = (
+  intakeData: any,
+  callerPhone: string,
+  businessName?: string,
+  prefixNotice?: string,
+  serviceLocationType?: 'onsite' | 'customer_comes_to_business' | 'remote' | string | null
+): string => {
+  const body = formatAiIntakeSummary(intakeData, callerPhone, businessName, prefixNotice)
+  const mode = typeof serviceLocationType === 'string' ? serviceLocationType.trim().toLowerCase() : 'onsite'
+  const locationProvided = Boolean(intakeData?.serviceAddress || intakeData?.addressOrLocation)
+  if ((mode === 'customer_comes_to_business' || mode === 'remote') && !locationProvided) {
+    return body.replace(/\n\n📍 Service Address[\s\S]*?\n\n/, '\n\n')
+  }
+  return body
+}

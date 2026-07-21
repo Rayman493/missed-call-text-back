@@ -8,6 +8,7 @@ import { normalizeExtractedInfo, getLeadAIIntake, getAIIntakeStatus } from '@/li
 import { normalizeAITranscript } from '@/lib/transcript-normalization'
 import { normalizeAICallRecord, getHistoryCardTitle, getOutcomeColor as getRecordOutcomeColor, getIntakeBadgeLabel, type NormalizedIntake } from '@/lib/ai-call-record-normalizer'
 import { normalizeCustomerName, normalizeServiceReason, normalizeAdditionalDetails, normalizeAddress, normalizeTiming } from '@/lib/ai-intake-formatter'
+import { useBusiness } from '@/contexts/BusinessContext'
 
 interface AICallRecord {
   id: string
@@ -47,6 +48,7 @@ interface AICallDetailsProps {
 }
 
 export default function AICallDetails({ leadId, businessId, conversationId, callerPhone, leadData, collapsible = true, onSave, onNavigateToTimeline }: AICallDetailsProps) {
+  const { business } = useBusiness()
   const [aiCallRecords, setAiCallRecords] = useState<AICallRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [transcriptExpanded, setTranscriptExpanded] = useState(false)
@@ -487,7 +489,12 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           {/* Stacked Cards: Location, Callback, Completion */}
           <div className="space-y-3">
             {/* Location Card */}
-            {isEditMode || (extractedInfo?.addressOrLocation || correctedFields?.address) ? (
+            {(() => {
+              const mode = (business as any)?.service_location_type || 'onsite'
+              const hasLocationValue = Boolean(correctedFields?.address || (extractedInfo?.addressOrLocation && extractedInfo.addressOrLocation !== 'Not collected'))
+              const showCard = isEditMode || hasLocationValue || mode === 'onsite'
+              if (!showCard) return null
+              return (
               <div className="bg-muted/40 rounded-xl p-4 border border-border/30">
                 <div className="flex items-center justify-between gap-1 mb-2">
                   <div className="flex items-center gap-2 min-w-0">
@@ -511,11 +518,12 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                   />
                 ) : (
                   <p className="text-sm text-foreground leading-snug">
-                    {correctedFields?.address || extractedInfo?.addressOrLocation}
+                    {correctedFields?.address || (extractedInfo?.addressOrLocation === 'Not collected' ? 'Not Provided' : extractedInfo?.addressOrLocation)}
                   </p>
                 )}
               </div>
-            ) : null}
+              )
+            })()}
 
             {/* Callback Card */}
             <div className="bg-muted/40 rounded-xl p-4 border border-border/30">

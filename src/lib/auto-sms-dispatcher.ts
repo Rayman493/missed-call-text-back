@@ -392,7 +392,7 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
   const mergedExtractedInfo = mergeExtractedInfo(params, aiCallRecord, leadMetadata)
   const extracted = normalizeExtractedInfo(mergedExtractedInfo)
   const aiOutcome = params.aiOutcome || aiCallRecord?.outcome || null
-  const intakeComplete = isCompleteAIIntake(extracted)
+  const intakeComplete = isCompleteAIIntake(extracted, (business as any)?.service_location_type || 'onsite')
   const outcome: AutoSmsOutcome = 'SUMMARY'
   const template: AutoSmsTemplate = 'ai_summary'
   const reason = intakeComplete || aiOutcome === 'completed_intake' || aiOutcome === 'completed'
@@ -400,7 +400,13 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
     : params.voicemailCompleted || trigger === 'voicemail_completed'
       ? 'post_call_structured_summary'
       : 'post_call_structured_summary'
-  let messageBody = generateSummaryFromExtractedInfo(extracted, callerPhone, businessName, '')
+  let messageBody = generateSummaryFromExtractedInfo(
+    extracted,
+    callerPhone,
+    businessName,
+    '',
+    { serviceLocationType: (business as any)?.service_location_type || 'onsite' }
+  )
 
   // Out of Office notice is handled centrally by sendSms via appendBusinessAvailabilityNote
   // Do not append here to avoid duplication

@@ -142,9 +142,12 @@ export async function createFollowUpJobs(params: {
 
   const completedOutcomes = ['complete', 'completed', 'completed_intake']
   const extractedInfo = aiCallRecord?.extracted_info || leadData?.raw_metadata?.extracted_info
+  // Fetch business to determine service_location_type
+  const businessForCompletion = await db.getBusiness(businessId)
+  const serviceLocationType = (businessForCompletion as any)?.service_location_type || 'onsite'
   const aiIntakeComplete =
     completedOutcomes.includes(String(aiCallRecord?.outcome || '').toLowerCase()) ||
-    isCompleteAIIntake(extractedInfo)
+    isCompleteAIIntake(extractedInfo, serviceLocationType)
   console.log('[FOLLOWUP CREATE CHECK] AI intake completion check:', {
     leadId,
     hasExtractedInfo: !!extractedInfo,

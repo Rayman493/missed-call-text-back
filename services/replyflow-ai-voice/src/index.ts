@@ -1,5 +1,8 @@
 /**
  * AI Voice Service - Phase 1A POC
+ */
+/**
+ * AI Voice Service - Phase 1A POC
  *
  * Purpose: Prove technical loop:
  * - Twilio → Fly.io WebSocket
@@ -5705,6 +5708,8 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     settleGraceTimeout: null as NodeJS.Timeout | null,
     settleGraceGeneration: 0,
     settleGraceUsedForGeneration: 0,
+    // Service location routing mode
+    serviceLocationType: 'onsite' as 'onsite' | 'customer_comes_to_business' | 'remote',
   };
 
   // Track consecutive transcription failures per stage (module scope)
@@ -5718,7 +5723,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     ask_name_reason_service_only: "And what do you need help with?",
     ask_name_reason_name_only: "And what's your name?",
     ask_details: "Got it. Can you share any important details the business should know?",
-    ask_location: "Thanks. Just a couple more questions. Where will this take place?",
+    ask_location: "And what location or address should the business have for this?",
     ask_completion_time: "When are you hoping this will be done?",
     ask_callback_time: "Perfect. Last question—what would be the best time for the business to call you back?",
     complete: "Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
@@ -5734,6 +5739,43 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
   
   // Initialize AI session tracker with actual values
   state.aiSessionTracker = createAISessionTracker(state.callSid, state.businessId);
+
+  // Normalize and load service_location_type for Simple Mode once
+  const normalizeServiceLocationType = (value: any): 'onsite' | 'customer_comes_to_business' | 'remote' => {
+    const v = typeof value === 'string' ? value.trim().toLowerCase() : '';
+    return (v === 'onsite' || v === 'customer_comes_to_business' || v === 'remote') ? (v as any) : 'onsite';
+  };
+  (async () => {
+    try {
+      if (state.businessId && supabase) {
+        const { data, error } = await supabase
+          .from('businesses')
+          .select('service_location_type')
+          .eq('id', state.businessId)
+          .maybeSingle();
+        state.serviceLocationType = !error && data ? normalizeServiceLocationType((data as any).service_location_type) : 'onsite';
+      }
+    } catch {}
+    console.log('[SIMPLE MODE] service_location_type:', state.serviceLocationType);
+  })();
+
+  // Centralized stage routing helper for Simple Mode
+  const getNextIntakeStage = (currentStage: string): string => {
+    switch (currentStage) {
+      case 'ask_name_reason':
+        return 'ask_details';
+      case 'ask_details':
+        return state.serviceLocationType === 'onsite' ? 'ask_location' : 'ask_completion_time';
+      case 'ask_location':
+        return 'ask_completion_time';
+      case 'ask_completion_time':
+        return 'ask_callback_time';
+      case 'ask_callback_time':
+        return 'complete';
+      default:
+        return currentStage;
+    }
+  };
 
   // Set up Twilio stream handler for media send
   const twilioHandler = new TwilioStreamHandler({
@@ -10549,10 +10591,9 @@ Reply to this message if you'd like to update or add any information.
                           state.answerAcceptedForStage = null;
                           state.answerAcceptedTurnId = 0;
 
-                          const stages = ['ask_name_reason', 'ask_details', 'ask_location', 'ask_completion_time', 'ask_callback_time'];
-                          const currentIndex = stages.indexOf(finalStage);
-                          if (currentIndex !== -1 && currentIndex < stages.length - 1) {
-                            const nextStage = stages[currentIndex + 1];
+                          // Centralized routing after settle finalization
+                          const nextStage = getNextIntakeStage(finalStage);
+                          if (nextStage && nextStage !== finalStage) {
                             state.currentStage = nextStage;
                             console.log('[ANSWER FINALIZATION] stageAdvanced:', true);
                             console.log('[ANSWER FINALIZATION] nextStage:', nextStage);
@@ -10639,11 +10680,9 @@ Reply to this message if you'd like to update or add any information.
                     state.answerAcceptedForStage = null;
                     state.answerAcceptedTurnId = 0;
                     
-                    // Advance to next stage using the captured stage (before clearing)
-                    const stages = ['ask_name_reason', 'ask_details', 'ask_location', 'ask_completion_time', 'ask_callback_time'];
-                    const currentIndex = stages.indexOf(finalStage);
-                    if (currentIndex !== -1 && currentIndex < stages.length - 1) {
-                      const nextStage = stages[currentIndex + 1];
+                    // Advance to next applicable stage using centralized routing
+                    const nextStage = getNextIntakeStage(finalStage);
+                    if (nextStage && nextStage !== finalStage) {
                       state.currentStage = nextStage;
                       console.log('[ANSWER FINALIZATION] stageAdvanced:', true);
                       console.log('[ANSWER FINALIZATION] nextStage:', nextStage);
@@ -10800,9 +10839,9 @@ Reply to this message if you'd like to update or add any information.
                 console.log('[ASK_NAME_REASON STAGE VALIDATION] =========================================');
                 
                 if (hasValidCustomerName && hasValidServiceRequested) {
-                  // Both fields valid: advance to next stage
+                  // Both fields valid: advance to next applicable stage
                   const previousStage = state.currentStage;
-                  const nextStage = stages[currentIndex + 1];
+                  const nextStage = getNextIntakeStage(previousStage);
                   
                   // Clear pending answer state to prevent cross-stage leakage
                   clearPendingAnswerState(state, 'ask_name_reason_stage_advancement');
@@ -10894,7 +10933,7 @@ Reply to this message if you'd like to update or add any information.
               } else if (currentIndex < stages.length - 1) {
                 // Normal stage advancement for other stages
                 const previousStage = state.currentStage;
-                const nextStage = stages[currentIndex + 1];
+                const nextStage = getNextIntakeStage(previousStage);
                 
                 // Clear pending answer state to prevent cross-stage leakage
                 clearPendingAnswerState(state, 'normal_stage_advancement');
@@ -12355,14 +12394,22 @@ Return only JSON, no other text.`;
         console.log('[CUSTOMER NAME BEFORE PERSISTENCE] =========================================');
         
         // Determine outcome based on whether all required fields are present
-        // Using canonical helper logic from main app (src/lib/ai-intake-completion.ts)
+        // Location is required only for onsite businesses
+        const serviceLocationTypeRaw = (ws as any).business?.service_location_type || (typeof (ws as any).service_location_type !== 'undefined' ? (ws as any).service_location_type : null);
+        const normalizeServiceLocationType = (v: any) => {
+          const s = typeof v === 'string' ? v.trim().toLowerCase() : '';
+          return (s === 'onsite' || s === 'customer_comes_to_business' || s === 'remote') ? s : 'onsite';
+        };
+        const serviceLocationMode = normalizeServiceLocationType(serviceLocationTypeRaw);
+
         const hasCustomerName = Boolean(normalizedFields.customerName || normalizedFields.callerName);
         const hasServiceRequested = Boolean(normalizedFields.serviceRequested || normalizedFields.reasonForCalling);
         const hasIssueDescription = Boolean(normalizedFields.issueDescription || normalizedFields.importantDetails);
         const hasServiceAddress = Boolean(normalizedFields.serviceAddress || normalizedFields.addressOrLocation);
         const hasDesiredCompletionTime = Boolean(normalizedFields.desiredCompletionTime);
         const hasCallbackTime = Boolean(normalizedFields.callbackTime || normalizedFields.preferredCallbackTime);
-        const intakeComplete = hasCustomerName && hasServiceRequested && hasIssueDescription && hasServiceAddress && hasDesiredCompletionTime && hasCallbackTime;
+        const locationSatisfied = serviceLocationMode === 'onsite' ? hasServiceAddress : true;
+        const intakeComplete = hasCustomerName && hasServiceRequested && hasIssueDescription && locationSatisfied && hasDesiredCompletionTime && hasCallbackTime;
         
         const hasUserSpeech = transcript.some((entry: any) => entry.role === 'user' && entry.text && entry.text.trim().length > 0);
         const hasUsefulFields = !!(
@@ -13279,12 +13326,17 @@ Return only JSON, no other text.`;
               console.log('[BUSINESS LOOKUP EXECUTING]', { businessId });
               const { data: business, error } = await supabase
                 .from('businesses')
-                .select('name, business_type, business_type_other, out_of_office_enabled, out_of_office_start, out_of_office_end')
+                .select('name, business_type, business_type_other, out_of_office_enabled, out_of_office_start, out_of_office_end, service_location_type')
                 .eq('id', businessId)
                 .single() as any;
 
               console.log('[BUSINESS LOOKUP RESULT]', { business, error });
               if (business) {
+                const normalizeServiceLocationTypeLocal = (v: any) => {
+                  const s = typeof v === 'string' ? v.trim().toLowerCase() : '';
+                  return (s === 'onsite' || s === 'customer_comes_to_business' || s === 'remote') ? s : 'onsite';
+                };
+                (ws as any).service_location_type = normalizeServiceLocationTypeLocal((business as any).service_location_type);
                 console.log('[BUSINESS RECORD]', {
                   businessId: business.id,
                   businessName: business.name,
@@ -13293,6 +13345,7 @@ Return only JSON, no other text.`;
                   outOfOfficeEnabled: business.out_of_office_enabled,
                   outOfOfficeStart: business.out_of_office_start,
                   outOfOfficeEnd: business.out_of_office_end,
+                  serviceLocationType: business.service_location_type || 'null',
                   availableFields: Object.keys(business)
                 });
               }

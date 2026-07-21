@@ -4,7 +4,7 @@ import { sanitizeMessageContent } from '@/lib/security'
 import { notificationServiceServer } from '@/lib/notifications-server'
 import { isIgnoredContact } from '@/lib/ignored-contacts'
 import { normalizePunctuation } from '@/lib/utils'
-import { formatAiIntakeSummary } from '@/lib/ai-intake-formatter'
+import { formatAiIntakeSummary, formatAiIntakeSummaryWithMode } from '@/lib/ai-intake-formatter'
 import { detectCorrection, applyCorrection, generateCorrectionNote, generateMultiFieldAcknowledgement } from '@/lib/ai-correction-engine'
 import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 import { extractFromSmsBody, safeMergeSmsExtraction } from '@/lib/voicemail-extraction'
@@ -114,15 +114,20 @@ export function generateSummaryFromExtractedInfo(
   extractedInfo: any,
   callerPhone: string = '',
   businessName: string = '',
-  prefixNotice: string = ''
+  prefixNotice: string = '',
+  options?: { serviceLocationType?: 'onsite' | 'customer_comes_to_business' | 'remote' | string | null }
 ): string {
   console.log('[AI SMS FORMATTER VERSION] formatAiIntakeSummary (single formatter)');
-  return formatAiIntakeSummary(
+  const body = formatAiIntakeSummaryWithMode(
     extractedInfo,
     callerPhone,
     businessName || undefined,
-    prefixNotice || undefined
+    prefixNotice || undefined,
+    options?.serviceLocationType
   )
+
+  // Omit Location section for non-onsite businesses when location not provided
+  return body
 }
 
 export async function processInboundSms(params: ProcessInboundSmsParams) {

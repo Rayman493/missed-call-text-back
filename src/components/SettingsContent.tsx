@@ -167,6 +167,12 @@ export default function SettingsContent() {
         business_phone_number: businessData.business_phone_number,
         business_type: businessData.business_type,
         business_type_other: businessData.business_type_other,
+        service_location_type: ((): 'onsite' | 'customer_comes_to_business' | 'remote' | null => {
+          const v = (businessData as any).service_location_type as string | undefined;
+          const s = typeof v === 'string' ? v.trim().toLowerCase() : '';
+          if (s === 'onsite' || s === 'customer_comes_to_business' || s === 'remote') return s as any;
+          return null;
+        })(),
         out_of_office_enabled: businessData.out_of_office_enabled,
         out_of_office_start: businessData.out_of_office_start,
         out_of_office_end: businessData.out_of_office_end,
@@ -1272,6 +1278,32 @@ export default function SettingsContent() {
                           })}
                         </p>
                       )}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
+                      How do customers receive your services?
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {[
+                        { value: 'onsite', title: 'On-site service', desc: 'You travel to the customer or job location.' },
+                        { value: 'customer_comes_to_business', title: 'Customers come to me', desc: 'Customers visit your business location.' },
+                        { value: 'remote', title: 'Remote only', desc: 'Your services are provided remotely.' }
+                      ].map(opt => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => updateBusiness({ ...(formBusiness as any), service_location_type: opt.value })}
+                          className={`text-left p-3 rounded-md border transition ${
+                            ((formBusiness as any).service_location_type || 'onsite') === opt.value
+                              ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/20'
+                              : 'border-slate-200/70 dark:border-slate-700/50 hover:border-slate-300 dark:hover:border-slate-600'
+                          }`}
+                        >
+                          <div className="text-sm font-medium text-slate-900 dark:text-foreground">{opt.title}</div>
+                          <div className="text-xs text-slate-600 dark:text-slate-400">{opt.desc}</div>
+                        </button>
+                      ))}
                     </div>
                   </div>
                 </div>

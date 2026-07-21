@@ -23,7 +23,7 @@ const prompts = {
   ask_name_reason_service_only: "And what do you need help with?",
   ask_name_reason_name_only: "And what's your name?",
   ask_details: "Got it. Can you share any important details the business should know?",
-  ask_location: "Thanks. Just a couple more questions. Where will this take place?",
+  ask_location: "And what location or address should the business have for this?",
   ask_completion_time: "When are you hoping this will be done?",
   ask_callback_time: "Perfect. Last question—what's the best time for the business to call you back?",
   complete: "Perfect. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
