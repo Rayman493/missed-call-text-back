@@ -5756,25 +5756,26 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     const v = typeof value === 'string' ? value.trim().toLowerCase() : '';
     return (v === 'onsite' || v === 'customer_comes_to_business' || v === 'remote') ? (v as any) : 'onsite';
   };
-  (async () => {
+  // Helper to resolve and set serviceLocationType after businessId is known (Twilio start)
+  const loadServiceLocationTypeForBusiness = async (businessIdToLoad: string) => {
     try {
-      if (state.businessId && supabase) {
+      if (businessIdToLoad && supabase) {
         const { data, error } = await supabase
           .from('businesses')
           .select('service_location_type')
-          .eq('id', state.businessId)
+          .eq('id', businessIdToLoad)
           .maybeSingle();
         const rawServiceLocationType = !error && data ? (data as any).service_location_type : null;
         const normalized = !error && data ? normalizeServiceLocationType(rawServiceLocationType) : 'onsite';
         state.serviceLocationType = normalized;
 
         // Targeted diagnostic logging (gated by TRACE_BUSINESS_ID)
-        const traceThisBusiness = !!process.env.TRACE_BUSINESS_ID && process.env.TRACE_BUSINESS_ID === state.businessId;
+        const traceThisBusiness = !!process.env.TRACE_BUSINESS_ID && process.env.TRACE_BUSINESS_ID === businessIdToLoad;
         if (traceThisBusiness) {
           const queryOutcome = error ? 'error' : (data ? 'data' : 'no_row');
           console.log('[SERVICE LOCATION TRACE] =========================================');
           console.log('[SERVICE LOCATION TRACE] callSid:', state.callSid);
-          console.log('[SERVICE LOCATION TRACE] businessId:', state.businessId);
+          console.log('[SERVICE LOCATION TRACE] businessId:', businessIdToLoad);
           console.log('[SERVICE LOCATION TRACE] queryOutcome:', queryOutcome);
           if (error) {
             console.log('[SERVICE LOCATION TRACE] queryError:', (error as any)?.message || JSON.stringify(error));
@@ -5787,7 +5788,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       }
     } catch {}
     console.log('[SIMPLE MODE] service_location_type:', state.serviceLocationType);
-  })();
+  };
 
   // Centralized stage routing helper for Simple Mode
   const getNextIntakeStage = (currentStage: string): string => {
@@ -9207,6 +9208,12 @@ Reply to this message if you'd like to update or add any information.
         console.log('[SIMPLE MODE] businessId:', state.businessId);
         console.log('[SIMPLE MODE] =========================================');
         
+        // Load authoritative service_location_type now that businessId is resolved
+        try {
+          // Fire-and-forget; resolution completes quickly and before any stage advancement matters
+          void loadServiceLocationTypeForBusiness(state.businessId);
+        } catch {}
+
         logSimple('twilio_start', { 
           streamSid: state.streamSid,
           callSid: state.callSid,
