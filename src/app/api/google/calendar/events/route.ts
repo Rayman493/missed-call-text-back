@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
     const timeMin = searchParams.get('timeMin')
     const timeMax = searchParams.get('timeMax')
 
-    // Build Google Calendar API URL with date range
+    // Build Google Calendar API URL with date range (include conferenceDataVersion for conference info)
     let apiUrl = 'https://www.googleapis.com/calendar/v3/calendars/primary/events?'
     
     if (timeMin) {
@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
       apiUrl += `timeMax=${encodeURIComponent(timeMax)}&`
     }
     
-    apiUrl += 'maxResults=250&orderBy=startTime&singleEvents=true'
+    apiUrl += 'maxResults=250&orderBy=startTime&singleEvents=true&conferenceDataVersion=1'
 
     // Fetch events from Google Calendar
     console.log('[Google Calendar Events] Fetching events from Google Calendar API')
@@ -187,6 +187,25 @@ export async function GET(request: NextRequest) {
       console.warn('[Google Calendar Events] Error fetching holidays, continuing without them:', error)
     }
 
+    // Helper to derive meeting URL with precedence
+    const extractMeetingUrl = (event: any): string | null => {
+      const explicit = event?.extendedProperties?.private?.replyflow_meeting_url
+      if (explicit) return explicit
+      if (event?.hangoutLink) return event.hangoutLink
+      const entry = event?.conferenceData?.entryPoints?.find((e: any) => e?.entryPointType === 'video' && e?.uri)
+      if (entry?.uri) return entry.uri
+      // Fallback: attempt to detect a meeting URL in description for externally created events
+      const desc: string | null = event?.description || null
+      if (desc) {
+        const urlMatch = desc.match(/https?:\/\/[\w.-]+\.[\w.-]+[^\s]*/)
+        if (urlMatch) return urlMatch[0]
+      }
+      // Last resort: if location is a URL
+      const loc: string | null = event?.location || null
+      if (loc && /^https?:\/\//.test(loc)) return loc
+      return null
+    }
+
     // Normalize primary events, filtering out cancelled events
     const primaryEvents = (eventsData.items || [])
       .filter((event: any) => event.status !== 'cancelled')
@@ -200,7 +219,9 @@ export async function GET(request: NextRequest) {
           location: event.location || null,
           htmlLink: event.htmlLink || null,
           source: 'primary' as const,
-          isHoliday: false
+          isHoliday: false,
+          meetingUrl: extractMeetingUrl(event),
+          extendedProperties: event.extendedProperties || null,
         }
         
         return normalizedEvent

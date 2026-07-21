@@ -43,6 +43,105 @@ interface CalendarEvent {
   htmlLink: string | null
   source?: 'primary' | 'holiday'
   isHoliday?: boolean
+  meetingUrl?: string | null
+  extendedProperties?: any
+}
+
+// Lightweight MeetingsTab component (scoped, no new files)
+function MeetingsTab({
+  events,
+  jobs,
+  onOpenEvent,
+  onViewCustomer,
+}: {
+  events: CalendarEvent[]
+  jobs: any[]
+  onOpenEvent: (event: CalendarEvent) => void
+  onViewCustomer: (leadId: string) => void
+}) {
+  // Determine eligibility
+  const isEligible = (ev: CalendarEvent) => {
+    // Job-linked
+    const job = jobs.find(j => j.google_calendar_event_id === ev.id)
+    // @ts-ignore
+    const rfLead = ev?.extendedProperties?.private?.replyflow_lead_id
+    return Boolean(job || rfLead || ev.meetingUrl)
+  }
+
+  const eligible = events.filter(isEligible)
+
+  // Sort upcoming by start time
+  const toDate = (ev: CalendarEvent) => new Date(ev.start.dateTime || ev.start.date || '').getTime()
+  const upcoming = eligible
+    .filter(ev => toDate(ev) >= new Date().setHours(0,0,0,0))
+    .sort((a,b) => toDate(a) - toDate(b))
+
+  const todayKey = new Date().toISOString().split('T')[0]
+  const isToday = (ev: CalendarEvent) => (ev.start.dateTime || ev.start.date || '').startsWith(todayKey)
+
+  const labelType = (ev: CalendarEvent) => {
+    if (ev.meetingUrl) {
+      // naive Google Meet detect
+      return ev.meetingUrl.includes('meet.google.com') ? 'Google Meet' : 'Virtual'
+    }
+    if (ev.location) return 'In Person'
+    return 'Appointment'
+  }
+
+  const formatDayTime = (ev: CalendarEvent) => {
+    const d = ev.start.dateTime || ev.start.date
+    if (!d) return ''
+    const date = new Date(d)
+    const dateStr = date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+    const timeStr = ev.start.date ? '' : date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+    return ev.start.date ? dateStr : `${dateStr} • ${timeStr}`
+  }
+
+  const renderGroup = (title: string, list: CalendarEvent[]) => (
+    <div className="mb-4">
+      <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">{title}</h3>
+      <div className="space-y-2">
+        {list.map(ev => {
+          // Resolve job/lead for quick labels (client-side best-effort)
+          const job = jobs.find(j => j.google_calendar_event_id === ev.id)
+          // @ts-ignore
+          const rfLead = ev?.extendedProperties?.private?.replyflow_lead_id as string | undefined
+          return (
+            <div key={ev.id} className="rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-white/80 dark:bg-slate-900/50 p-3 flex items-start justify-between gap-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900" onClick={() => onOpenEvent(ev)}>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-slate-900 dark:text-foreground truncate">{ev.summary}</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">{labelType(ev)}</span>
+                </div>
+                <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{formatDayTime(ev)}</div>
+                {job?.title && (
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Job: {job.title}</div>
+                )}
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                {ev.meetingUrl && (
+                  <a href={ev.meetingUrl} target="_blank" rel="noreferrer" className="text-[11px] px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700">Join</a>
+                )}
+                {rfLead && (
+                  <button className="text-[11px] px-2 py-1 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700" onClick={() => onViewCustomer(rfLead)}>View Customer</button>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+
+  const todays = upcoming.filter(isToday)
+  const later = upcoming.filter(ev => !isToday(ev))
+
+  return (
+    <div>
+      {renderGroup('Today', todays)}
+      {renderGroup('Upcoming', later)}
+    </div>
+  )
 }
 
 export default function SchedulePage() {
@@ -74,9 +173,11 @@ export default function SchedulePage() {
   const [isDayDetailOpen, setIsDayDetailOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
   const [isEventDetailsOpen, setIsEventDetailsOpen] = useState(false)
+  const [selectedEventJob, setSelectedEventJob] = useState<Job | null>(null)
+  const [selectedEventLead, setSelectedEventLead] = useState<{ id: string; name: string | null; caller_phone: string | null } | null>(null)
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
   const [viewMode, setViewMode] = useState<'month' | 'agenda'>('month')
-  const [scheduleTab, setScheduleTab] = useState<'today' | 'calendar' | 'jobs' | 'tasks'>('today')
+  const [scheduleTab, setScheduleTab] = useState<'today' | 'calendar' | 'meetings' | 'jobs' | 'tasks'>('today')
 
   // Jobs state
   const [jobs, setJobs] = useState<Job[]>([])
@@ -135,6 +236,45 @@ export default function SchedulePage() {
   useEffect(() => {
     if (business) fetchJobs()
   }, [business])
+
+  // Resolve job and customer for selected event
+  useEffect(() => {
+    const resolve = async () => {
+      if (!selectedEvent) {
+        setSelectedEventJob(null)
+        setSelectedEventLead(null)
+        return
+      }
+      // Job by google_calendar_event_id
+      const job = jobs.find(j => j.google_calendar_event_id === selectedEvent.id) || null
+      setSelectedEventJob(job)
+      // Lead precedence: job.lead_id then extendedProperties.private.replyflow_lead_id
+      // @ts-ignore
+      const replyLeadId = (selectedEvent?.extendedProperties?.private?.replyflow_lead_id as string) || null
+      const leadId = job?.lead_id || replyLeadId || null
+      if (!leadId) {
+        setSelectedEventLead(null)
+        return
+      }
+      try {
+        const { data, error } = await supabase
+          .from('leads')
+          .select('id, caller_phone, raw_metadata')
+          .eq('id', leadId)
+          .single()
+        if (!error && data) {
+          const meta = data.raw_metadata || {}
+          const name = meta.customerName || meta.callerName || meta.name || null
+          setSelectedEventLead({ id: data.id, name, caller_phone: data.caller_phone })
+        } else {
+          setSelectedEventLead({ id: leadId, name: null, caller_phone: null })
+        }
+      } catch {
+        setSelectedEventLead({ id: leadId, name: null, caller_phone: null })
+      }
+    }
+    resolve()
+  }, [selectedEvent, jobs])
 
   // Close overflow menu on outside click or Escape key
   useEffect(() => {
@@ -793,6 +933,17 @@ export default function SchedulePage() {
                         Calendar
                       </button>
                       <button
+                        onClick={() => setScheduleTab('meetings')}
+                        className={`flex items-center gap-1.5 px-4 py-2 rounded-md font-medium transition-all ${
+                          scheduleTab === 'meetings'
+                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm text-[15px]'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground text-sm'
+                        }`}
+                      >
+                        <CalendarIcon className="w-4 h-4" />
+                        Meetings
+                      </button>
+                      <button
                         onClick={() => setScheduleTab('jobs')}
                         className={`flex items-center gap-1.5 px-4 py-2 rounded-md font-medium transition-all ${
                           scheduleTab === 'jobs'
@@ -848,6 +999,17 @@ export default function SchedulePage() {
                         Calendar
                       </button>
                       <button
+                        onClick={() => setScheduleTab('meetings')}
+                        className={`flex-1 flex items-center justify-center gap-1 py-1.5 px-3 rounded-md font-medium transition-all ${
+                          scheduleTab === 'meetings'
+                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm text-sm'
+                            : 'text-slate-600 dark:text-slate-400 text-xs'
+                        }`}
+                      >
+                        <CalendarIcon className="w-3.5 h-3.5" />
+                        Meetings
+                      </button>
+                      <button
                         onClick={() => setScheduleTab('jobs')}
                         className={`flex-1 flex items-center justify-center gap-1 py-1.5 px-3 rounded-md font-medium transition-all ${
                           scheduleTab === 'jobs'
@@ -901,6 +1063,16 @@ export default function SchedulePage() {
                   {/* Tasks Tab */}
                   {scheduleTab === 'tasks' && (
                     <TasksTab onNewJob={openNewJob} />
+                  )}
+
+                  {/* Meetings Tab */}
+                  {scheduleTab === 'meetings' && (
+                    <MeetingsTab
+                      events={events}
+                      jobs={jobs}
+                      onOpenEvent={(event: CalendarEvent) => { setSelectedEvent(event); setIsEventDetailsOpen(true); setSelectedDay(null) }}
+                      onViewCustomer={(leadId: string) => window.location.assign(`/dashboard/leads/${leadId}`)}
+                    />
                   )}
 
                   {/* Connected State — Calendar Tab */}
@@ -1449,6 +1621,22 @@ export default function SchedulePage() {
                         setIsDayDetailOpen(false)
                       }}
                       event={selectedEvent}
+                      job={selectedEventJob}
+                      lead={selectedEventLead}
+                      businessName={business?.name || null}
+                      onViewCustomer={(leadId: string) => window.location.assign(`/dashboard/leads/${leadId}`)}
+                      onViewJob={(jobId: string) => {
+                        // Open JobDetails modal if we already have the job in state; otherwise navigate if a canonical route exists
+                        const j = jobs.find(j => j.id === jobId)
+                        if (j) {
+                          setSelectedJob(j)
+                          setIsJobDetailsOpen(true)
+                        } else {
+                          // Fallback: lead details page as central hub
+                          const leadId = selectedEventLead?.id
+                          if (leadId) window.location.assign(`/dashboard/leads/${leadId}`)
+                        }
+                      }}
                       onRefresh={async () => {
                         // Refresh events from Google Calendar
                         await fetchEvents()

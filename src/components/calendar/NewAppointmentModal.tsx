@@ -1,11 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Calendar, Clock, MapPin, FileText, AlertTriangle, Plus } from 'lucide-react'
+import { X, Calendar, Clock, MapPin, FileText, AlertTriangle, Plus, Video, Users } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import DatePicker from '@/components/ui/DatePicker'
 import TimePicker from '@/components/ui/TimePicker'
+import LeadPickerModal from '@/components/jobs/LeadPickerModal'
+import AddCustomerModal from '@/components/AddCustomerModal'
 
 const supabase = createBrowserClient()
 
@@ -28,6 +30,15 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
   const [location, setLocation] = useState('')
   const [description, setDescription] = useState('')
   const [isAllDay, setIsAllDay] = useState(false)
+  // Customer linking (optional)
+  const [leadId, setLeadId] = useState<string | null>(null)
+  const [leadDisplay, setLeadDisplay] = useState<string | null>(null)
+  const [isLeadPickerOpen, setIsLeadPickerOpen] = useState(false)
+  const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false)
+
+  // Meeting type
+  const [meetingType, setMeetingType] = useState<'in_person' | 'google_meet' | 'custom'>('in_person')
+  const [customMeetingUrl, setCustomMeetingUrl] = useState('')
 
   // Initialize form with default date
   useEffect(() => {
@@ -148,7 +159,10 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
           allDay: isAllDay,
           description: description.trim() || undefined,
           location: location.trim() || undefined,
-          eventType: 'standalone'
+          eventType: 'standalone',
+          meeting_type: meetingType === 'in_person' ? undefined : meetingType === 'google_meet' ? 'google_meet' : 'custom',
+          custom_meeting_url: meetingType === 'custom' && customMeetingUrl.trim() ? customMeetingUrl.trim() : undefined,
+          lead_id: leadId || undefined,
         })
       })
 
@@ -171,6 +185,10 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
       setStartTime('')
       setEndTime('')
       setIsAllDay(false)
+      setLeadId(null)
+      setLeadDisplay(null)
+      setMeetingType('in_person')
+      setCustomMeetingUrl('')
     } catch (err) {
       setError('Failed to create appointment')
       setIsCreating(false)
@@ -179,10 +197,22 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
 
   const handleCancel = () => {
     setError(null)
+    // Reset form on cancel to avoid stale state on reopen
+    setTitle('')
+    setLocation('')
+    setDescription('')
+    setStartTime('')
+    setEndTime('')
+    setIsAllDay(false)
+    setLeadId(null)
+    setLeadDisplay(null)
+    setMeetingType('in_person')
+    setCustomMeetingUrl('')
     onClose()
   }
 
   return (
+    <>
     <div 
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" 
       role="dialog" 
@@ -218,6 +248,39 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
         {/* Form */}
         <div data-scroll-lock-allow className="flex-1 min-h-0 overflow-y-auto px-5 py-4" style={{ WebkitOverflowScrolling: 'touch' }}>
           <div className="space-y-4">
+            {/* Customer (optional) */}
+            <div className="flex items-start gap-3">
+              <div className="w-5 h-5 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Users className="w-2.5 h-2.5 text-slate-400" />
+              </div>
+              <div className="flex-1">
+                <label className="text-xs text-slate-500 font-medium mb-1.5 block">Customer (optional)</label>
+                {leadId ? (
+                  <div className="flex items-center gap-2">
+                    <div className="px-2 py-1 rounded bg-slate-800 text-slate-200 text-xs">{leadDisplay || 'Selected customer'}</div>
+                    <button
+                      type="button"
+                      onClick={() => { setLeadId(null); setLeadDisplay(null) }}
+                      className="text-xs text-slate-400 hover:text-slate-200"
+                    >Clear</button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsLeadPickerOpen(true)}
+                      className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white hover:bg-slate-700"
+                    >Select Existing</button>
+                    <button
+                      type="button"
+                      onClick={() => setIsAddCustomerOpen(true)}
+                      className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white hover:bg-slate-700"
+                    >+ Add New Customer</button>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Title */}
             <div className="flex items-start gap-3">
               <div className="w-5 h-5 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -302,6 +365,30 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
               </div>
             </div>
 
+            {/* Meeting Type */}
+            <div className="flex items-start gap-3">
+              <div className="w-5 h-5 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Video className="w-2.5 h-2.5 text-slate-400" />
+              </div>
+              <div className="flex-1">
+                <label className="text-xs text-slate-500 font-medium mb-1.5 block">Appointment Type</label>
+                <div className="flex flex-wrap gap-3 text-xs">
+                  <label className="inline-flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="meetingType" checked={meetingType==='in_person'} onChange={() => setMeetingType('in_person')} />
+                    In Person
+                  </label>
+                  <label className="inline-flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="meetingType" checked={meetingType==='google_meet'} onChange={() => setMeetingType('google_meet')} />
+                    Google Meet
+                  </label>
+                  <label className="inline-flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="meetingType" checked={meetingType==='custom'} onChange={() => setMeetingType('custom')} />
+                    Other / Custom Virtual
+                  </label>
+                </div>
+              </div>
+            </div>
+
             {/* Location */}
             <div className="flex items-start gap-3">
               <div className="w-5 h-5 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -321,6 +408,25 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
                 />
               </div>
             </div>
+
+            {/* Custom Meeting URL (only when custom) */}
+            {meetingType === 'custom' && (
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Video className="w-2.5 h-2.5 text-slate-400" />
+                </div>
+                <div className="flex-1">
+                  <label className="text-xs text-slate-500 font-medium mb-1.5 block">Meeting link (optional)</label>
+                  <input
+                    type="url"
+                    value={customMeetingUrl}
+                    onChange={(e) => setCustomMeetingUrl(e.target.value)}
+                    placeholder="https://zoom.us/... or https://teams.microsoft.com/..."
+                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Description */}
             <div className="flex items-start gap-3">
@@ -382,5 +488,33 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
         </div>
       </div>
     </div>
+
+    {/* Customer selectors */}
+    <LeadPickerModal
+      isOpen={isLeadPickerOpen}
+      onClose={() => setIsLeadPickerOpen(false)}
+      onSelect={(prefill) => {
+        setIsLeadPickerOpen(false)
+        if (prefill.lead_id) {
+          setLeadId(prefill.lead_id)
+          setLeadDisplay(prefill.customer_name || prefill.service_address || 'Customer')
+        }
+      }}
+      title="Select Customer"
+      subtitle="Search your customers"
+    />
+    <AddCustomerModal
+      isOpen={isAddCustomerOpen}
+      onClose={() => setIsAddCustomerOpen(false)}
+      returnTo="calendar"
+      onLeadCreated={(newLeadId) => {
+        setIsAddCustomerOpen(false)
+        if (newLeadId) {
+          setLeadId(newLeadId)
+          setLeadDisplay('New Customer')
+        }
+      }}
+    />
+    </>
   )
 }

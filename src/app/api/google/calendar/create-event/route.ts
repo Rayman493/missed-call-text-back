@@ -24,7 +24,20 @@ export async function POST(request: NextRequest) {
     console.log('[Calendar Create] user found:', user.id)
 
     const body = await request.json()
-    const { title, date, endDate, startTime, endTime, allDay, description, eventType } = body
+    const {
+      title,
+      date,
+      endDate,
+      startTime,
+      endTime,
+      allDay,
+      description,
+      eventType,
+      location,
+      meeting_type,
+      custom_meeting_url,
+      lead_id,
+    } = body
 
     // Validate required fields
     if (!title || !date) {
@@ -215,26 +228,50 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const eventBody = {
+    // Prepare extendedProperties to persist private RF metadata (customer linkage, custom meeting URL)
+    const extendedProperties: any = {
+      private: {
+        ...(lead_id ? { replyflow_lead_id: String(lead_id) } : {}),
+        ...(custom_meeting_url ? { replyflow_meeting_url: String(custom_meeting_url) } : {}),
+      },
+    }
+
+    // Base event body
+    let eventBody: any = {
       summary: title,
       description: description || '',
       start,
       end,
+      ...(location ? { location } : {}),
+      extendedProperties,
     }
 
     console.log('[Calendar Create] Creating event with data:', { title, date, endDate: finalEndDate, allDay })
 
-    const response = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
+    // If Google Meet requested, include conferenceData createRequest and conferenceDataVersion=1
+    let createUrl = `https://www.googleapis.com/calendar/v3/calendars/primary/events`
+    if (meeting_type === 'google_meet') {
+      const requestId = `rf-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+      eventBody = {
+        ...eventBody,
+        conferenceData: {
+          createRequest: {
+            requestId,
+            conferenceSolutionKey: { type: 'hangoutsMeet' },
+          },
         },
-        body: JSON.stringify(eventBody),
       }
-    )
+      createUrl += `?conferenceDataVersion=1`
+    }
+
+    const response = await fetch(createUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(eventBody),
+    })
 
     if (!response.ok) {
       const errorText = await response.text()
@@ -270,6 +307,44 @@ export async function POST(request: NextRequest) {
       end: createdEvent.end
     })
     console.log('[Calendar Create] event create success:', createdEvent.id)
+
+    // Derive canonical meeting URL with precedence:
+    // 1) replyflow_meeting_url (explicit metadata)
+    // 2) hangoutLink
+    // 3) conferenceData.entryPoints video
+    // 4) (fallback handled at events listing time for externally-created events)
+    const getMeetingUrlFromEvent = (ev: any): string | null => {
+      const explicit = ev?.extendedProperties?.private?.replyflow_meeting_url
+      if (explicit) return explicit
+      if (ev?.hangoutLink) return ev.hangoutLink
+      const entry = ev?.conferenceData?.entryPoints?.find((e: any) => e?.entryPointType === 'video' && e?.uri)
+      if (entry?.uri) return entry.uri
+      return null
+    }
+
+    let meetingUrl: string | null = getMeetingUrlFromEvent(createdEvent)
+
+    // Bounded retry if Google Meet was requested and URL not yet available
+    if (meeting_type === 'google_meet' && !meetingUrl) {
+      try {
+        const fetchOnce = async () => {
+          const evRes = await fetch(
+            `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(createdEvent.id)}?conferenceDataVersion=1`,
+            { headers: { 'Authorization': `Bearer ${accessToken}` } }
+          )
+          if (!evRes.ok) return null
+          const ev = await evRes.json()
+          return getMeetingUrlFromEvent(ev)
+        }
+        // Up to 2 short retries
+        for (let i = 0; i < 2 && !meetingUrl; i++) {
+          await new Promise(r => setTimeout(r, 400))
+          meetingUrl = await fetchOnce()
+        }
+      } catch (e) {
+        console.warn('[Calendar Create] Meeting URL fetch retry failed:', e)
+      }
+    }
 
     // Create timeline event for appointment creation
     try {
@@ -310,7 +385,10 @@ export async function POST(request: NextRequest) {
         start: createdEvent.start,
         end: createdEvent.end,
         htmlLink: createdEvent.htmlLink,
-      }
+        location: createdEvent.location || location || null,
+        meetingUrl: meetingUrl || null,
+        extendedProperties: createdEvent.extendedProperties || extendedProperties || null,
+      },
     })
 
   } catch (error) {

@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Calendar, Clock, MapPin, FileText, ExternalLink, Trash2, AlertTriangle, Save, Pencil } from 'lucide-react'
+import { X, Calendar, Clock, MapPin, FileText, ExternalLink, Trash2, AlertTriangle, Save, Pencil, Link as LinkIcon, User, Briefcase, Send } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import AppointmentSmsModal from '@/components/calendar/AppointmentSmsModal'
 
 const supabase = createBrowserClient()
 
@@ -20,17 +21,25 @@ interface EventDetailsModalProps {
     htmlLink: string | null
     isHoliday?: boolean
     source?: 'primary' | 'holiday'
+    meetingUrl?: string | null
+    extendedProperties?: any
   }
   onDelete?: () => void
   onRefresh?: () => void
+  job?: { id: string; title?: string | null; lead_id?: string | null; customer_name?: string | null; customer_phone?: string | null } | null
+  lead?: { id: string; name?: string | null; caller_phone?: string | null } | null
+  businessName?: string | null
+  onViewCustomer?: (leadId: string) => void
+  onViewJob?: (jobId: string) => void
 }
 
-export default function EventDetailsModal({ isOpen, onClose, event, onDelete, onRefresh }: EventDetailsModalProps) {
+export default function EventDetailsModal({ isOpen, onClose, event, onDelete, onRefresh, job, lead, businessName, onViewCustomer, onViewJob }: EventDetailsModalProps) {
   const [isDeleting, setIsDeleting] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isSmsOpen, setIsSmsOpen] = useState(false)
   useBodyScrollLock(isOpen)
   
   // Editable form state
@@ -138,6 +147,35 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
     if (event.htmlLink) {
       window.open(event.htmlLink, '_blank', 'noopener,noreferrer')
     }
+  }
+  const openMeetingLink = () => {
+    if (event.meetingUrl) {
+      window.open(event.meetingUrl, '_blank', 'noopener,noreferrer')
+    }
+  }
+
+  // SMS Draft helpers
+  const firstName = (lead?.name || job?.customer_name || '')?.split(' ')[0] || null
+  const formatDateTimeForDraft = () => {
+    const dateLabel = formatDate(event.start.dateTime, event.start.date)
+    const timeLabel = event.start.date ? '' : formatTime(event.start.dateTime)
+    return event.start.date ? dateLabel : `${dateLabel} at ${timeLabel}`
+  }
+  const generateSmsDraft = () => {
+    const lines: string[] = []
+    const customerName = firstName || lead?.name || job?.customer_name || 'there'
+    const biz = businessName || 'your business'
+    lines.push(`Hi ${customerName}, your appointment with ${biz} is scheduled for ${formatDateTimeForDraft()}.`)
+    if (event.location) {
+      lines.push('')
+      lines.push(`Location: ${event.location}`)
+    }
+    if (event.meetingUrl) {
+      lines.push('')
+      lines.push('Join here:')
+      lines.push(event.meetingUrl)
+    }
+    return lines.join('\n')
   }
 
   const handleDeleteClick = () => {
@@ -477,6 +515,50 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                 )}
               </div>
             </div>
+
+            {/* Customer (linked) */}
+            {(lead?.id || job?.customer_name) && (
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <User className="w-2.5 h-2.5 text-slate-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-slate-500 font-medium mb-0.5">Customer</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm text-slate-200 truncate">{lead?.name || job?.customer_name || 'Customer'}</p>
+                    {lead?.id && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); (onViewCustomer ? onViewCustomer(lead.id) : window.location.assign(`/dashboard/leads/${lead.id}`)) }}
+                        className="flex-shrink-0 text-[11px] px-2 py-1 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700"
+                      >
+                        View Customer
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Job (linked) */}
+            {job?.id && (
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Briefcase className="w-2.5 h-2.5 text-slate-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-slate-500 font-medium mb-0.5">Job</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm text-slate-200 truncate">{job.title || 'Job'}</p>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onViewJob?.(job.id) }}
+                      className="flex-shrink-0 text-[11px] px-2 py-1 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700"
+                    >
+                      View Job
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -550,7 +632,16 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
               </div>
             </div>
           ) : (
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              {event.meetingUrl && (
+                <button
+                  onClick={openMeetingLink}
+                  className="flex-1 px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
+                >
+                  <LinkIcon className="w-4 h-4" />
+                  <span>Join Meeting</span>
+                </button>
+              )}
               <button
                 onClick={openGoogleCalendar}
                 className="flex-1 px-4 py-2 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 border border-border/50"
@@ -560,6 +651,15 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
               </button>
               {!event.isHoliday && (
                 <>
+                  {(lead?.id && (lead.caller_phone || job?.customer_phone)) && (
+                    <button
+                      onClick={() => setIsSmsOpen(true)}
+                      className="flex-1 px-4 py-2 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
+                    >
+                      <Send className="w-4 h-4" />
+                      <span>Send Details by Text</span>
+                    </button>
+                  )}
                   <button
                     onClick={handleEditClick}
                     className="flex-1 px-4 py-2 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
@@ -580,6 +680,13 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
           )}
         </div>
       </div>
+      {/* Appointment SMS Modal */}
+      <AppointmentSmsModal
+        isOpen={isSmsOpen}
+        onClose={() => setIsSmsOpen(false)}
+        leadId={lead?.id || ''}
+        initialMessage={generateSmsDraft()}
+      />
     </div>
   )
 }
