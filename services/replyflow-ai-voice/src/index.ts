@@ -14410,7 +14410,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[INTAKE RESPONSE CALCULATION] Timestamp:', new Date().toISOString());
                   console.log('[INTAKE RESPONSE CALCULATION] =========================================');
                   
-                  const intakeResponse = getIntakeResponse(intakeData!, userTranscript, stagePromptAttempts, state.serviceLocationType);
+                  const intakeResponse = getIntakeResponse(intakeData!, userTranscript, stagePromptAttempts, callSessionState.serviceLocationType || 'onsite');
 
                   console.log('[INTAKE RESPONSE RESULT] =========================================');
                   console.log('[INTAKE RESPONSE RESULT] response:', intakeResponse.response);
