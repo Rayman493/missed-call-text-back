@@ -71,6 +71,9 @@ export interface Business {
   business_type?: string | null;
   business_type_other?: string | null;
 
+  // Service location type for AI intake routing
+  service_location_type?: 'onsite' | 'customer_comes_to_business' | 'remote' | string | null;
+
   // Out of Office Mode
   out_of_office_enabled?: boolean | null;
   out_of_office_start?: string | null;
