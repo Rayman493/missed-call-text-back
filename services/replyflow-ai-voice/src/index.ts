@@ -5768,22 +5768,10 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         const rawServiceLocationType = !error && data ? (data as any).service_location_type : null;
         const normalized = !error && data ? normalizeServiceLocationType(rawServiceLocationType) : 'onsite';
         state.serviceLocationType = normalized;
-
-        // Targeted diagnostic logging (gated by TRACE_BUSINESS_ID)
-        const traceThisBusiness = !!process.env.TRACE_BUSINESS_ID && process.env.TRACE_BUSINESS_ID === businessIdToLoad;
-        if (traceThisBusiness) {
-          const queryOutcome = error ? 'error' : (data ? 'data' : 'no_row');
-          console.log('[SERVICE LOCATION TRACE] =========================================');
-          console.log('[SERVICE LOCATION TRACE] callSid:', state.callSid);
-          console.log('[SERVICE LOCATION TRACE] businessId:', businessIdToLoad);
-          console.log('[SERVICE LOCATION TRACE] queryOutcome:', queryOutcome);
-          if (error) {
-            console.log('[SERVICE LOCATION TRACE] queryError:', (error as any)?.message || JSON.stringify(error));
-          }
-          console.log('[SERVICE LOCATION TRACE] rawDbValue:', rawServiceLocationType);
-          console.log('[SERVICE LOCATION TRACE] normalizedValue:', normalized);
-          console.log('[SERVICE LOCATION TRACE] simpleModeStateValue:', state.serviceLocationType);
-          console.log('[SERVICE LOCATION TRACE] =========================================');
+        // Concise warning when authoritative lookup fails (preserve operational signal)
+        if (error || !data) {
+          const queryOutcome = error ? 'error' : 'no_row';
+          console.log('[SERVICE LOCATION RESOLUTION WARNING]', { businessId: businessIdToLoad, queryOutcome });
         }
       }
     } catch {}
@@ -10635,19 +10623,7 @@ Reply to this message if you'd like to update or add any information.
                             : Promise.resolve();
                           resolution.then(() => {
                             const nextStage = getNextIntakeStage(finalStage);
-                            // Targeted diagnostic logging (gated by TRACE_BUSINESS_ID) for ask_details advancement
-                            {
-                              const traceThisBusiness = !!process.env.TRACE_BUSINESS_ID && process.env.TRACE_BUSINESS_ID === state.businessId;
-                              if (traceThisBusiness && finalStage === 'ask_details') {
-                                console.log('[SERVICE LOCATION ROUTING] =========================================');
-                                console.log('[SERVICE LOCATION ROUTING] callSid:', state.callSid);
-                                console.log('[SERVICE LOCATION ROUTING] finalStage:', finalStage);
-                                console.log('[SERVICE LOCATION ROUTING] serviceLocationType:', state.serviceLocationType);
-                                console.log('[SERVICE LOCATION ROUTING] routingFunction:', 'getNextIntakeStage');
-                                console.log('[SERVICE LOCATION ROUTING] nextStage:', nextStage);
-                                console.log('[SERVICE LOCATION ROUTING] =========================================');
-                              }
-                            }
+                            // Removed temporary SERVICE LOCATION ROUTING diagnostics
                             if (nextStage && nextStage !== finalStage) {
                               state.currentStage = nextStage;
                               console.log('[ANSWER FINALIZATION] stageAdvanced:', true);
@@ -10753,19 +10729,7 @@ Reply to this message if you'd like to update or add any information.
                         : Promise.resolve();
                       resolution.then(() => {
                         const nextStage = getNextIntakeStage(finalStage);
-                        // Targeted diagnostic logging (gated by TRACE_BUSINESS_ID) for ask_details advancement
-                        {
-                          const traceThisBusiness = !!process.env.TRACE_BUSINESS_ID && process.env.TRACE_BUSINESS_ID === state.businessId;
-                          if (traceThisBusiness && finalStage === 'ask_details') {
-                            console.log('[SERVICE LOCATION ROUTING] =========================================');
-                            console.log('[SERVICE LOCATION ROUTING] callSid:', state.callSid);
-                            console.log('[SERVICE LOCATION ROUTING] finalStage:', finalStage);
-                            console.log('[SERVICE LOCATION ROUTING] serviceLocationType:', state.serviceLocationType);
-                            console.log('[SERVICE LOCATION ROUTING] routingFunction:', 'getNextIntakeStage');
-                            console.log('[SERVICE LOCATION ROUTING] nextStage:', nextStage);
-                            console.log('[SERVICE LOCATION ROUTING] =========================================');
-                          }
-                        }
+                        // Removed temporary SERVICE LOCATION ROUTING diagnostics
                         if (nextStage && nextStage !== finalStage) {
                           state.currentStage = nextStage;
                           console.log('[ANSWER FINALIZATION] stageAdvanced:', true);
