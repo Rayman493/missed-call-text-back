@@ -9,7 +9,9 @@
     "lint": "next lint",
     "seed": "npx tsx src/scripts/seed-data.ts",
     "test:intake-templates": "npx tsx src/scripts/validate-intake-templates.ts",
-    "generate:update-greeting": "npx tsx scripts/generate-update-greeting.ts"
+    "generate:update-greeting": "npx tsx scripts/generate-update-greeting.ts",
+    "test": "vitest run",
+    "test:warm": "vitest run src/lib/tests/warm-number-manager.trim.test.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.2",
@@ -54,6 +56,7 @@
     "postcss": "^8",
     "sharp": "^0.34.5",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^1.6.1"
   }
 }

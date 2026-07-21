@@ -29,6 +29,24 @@ interface WarmNumberStats {
   totalManaged: number;
 }
 
+/**
+ * Select newest excess numbers to release, preserving oldest up to target.
+ * Expects input rows to already satisfy the canonical healthy criteria.
+ */
+export function selectExcessNumbersForTrim<T extends { created_at?: string | null }>(
+  rows: T[],
+  target: number
+): T[] {
+  if (!rows || rows.length <= target) return []
+  const sorted = [...rows].sort((a, b) => {
+    const at = a.created_at ? new Date(a.created_at).getTime() : 0
+    const bt = b.created_at ? new Date(b.created_at).getTime() : 0
+    return bt - at // newest first
+  })
+  const excessCount = rows.length - target
+  return sorted.slice(0, excessCount)
+}
+
 interface InventoryMetrics {
   assignedCount: number;
   availableCount: number;
@@ -372,65 +390,94 @@ export async function ensureWarmNumberMinimum(): Promise<{ success: boolean; num
   isReplenishing = true;
 
   try {
-    const metrics = await getInventoryMetrics();
-    const availableBefore = metrics.availableCount;
-
-    console.log(`[INVENTORY] Current available: ${availableBefore}, Buffer target: ${metrics.desiredAvailableBuffer}`);
-
-    if (availableBefore >= metrics.desiredAvailableBuffer) {
-      console.log('[INVENTORY] Sufficient inventory, no purchase needed');
-      return {
-        success: true,
-        numbersAdded: 0,
-        availableBefore,
-        availableAfter: availableBefore,
-      };
-    }
-
-    const numbersNeeded = metrics.purchaseNeeded;
-    console.log(`[INVENTORY] Purchasing ${numbersNeeded} number(s) to restore buffer...`);
-
-    let numbersAdded = 0;
-    let lastError: string | undefined;
-
-    for (let i = 0; i < numbersNeeded; i++) {
-      const result = await provisionWarmNumber();
-
-      if (result.success) {
-        numbersAdded++;
-        console.log(`[PURCHASE] Purchased new Twilio number: ${result.phoneNumber}`);
-      } else {
-        lastError = result.error;
-        console.error(`[PURCHASE] Failed to purchase number ${i + 1}/${numbersNeeded}:`, lastError);
-      }
-    }
-
-    const availableAfter = await getAvailableWarmNumberCount();
-    console.log(`[INVENTORY] Inventory restored: ${availableAfter}/${metrics.desiredAvailableBuffer}`);
-
-    const success = numbersAdded === numbersNeeded;
-
-    // Trigger cleanup of excess inventory after replenishment
-    // This handles the case where account deletion recycled numbers back to inventory
-    // and we now have more than the target
-    console.log('[INVENTORY] Triggering excess inventory cleanup after replenishment...');
-    cleanupExcessInventory()
-      .then((cleanupResult) => {
-        console.log('[INVENTORY] Excess inventory cleanup complete:', cleanupResult);
-      })
-      .catch((cleanupError) => {
-        console.error('[INVENTORY] Excess inventory cleanup failed (non-blocking):', cleanupError);
-      });
-
-    return {
-      success,
-      numbersAdded,
-      availableBefore,
-      availableAfter,
-    };
+    return await ensureWarmNumberMinimumWith({
+      getInventoryMetrics,
+      getAvailableWarmNumberCount,
+      cleanupExcessInventory,
+      provisionWarmNumber,
+    });
   } finally {
     isReplenishing = false;
   }
+}
+
+/**
+ * Internal/testable orchestration helper for warm inventory maintenance.
+ * Production entrypoint ensureWarmNumberMinimum delegates here with real deps.
+ */
+export async function ensureWarmNumberMinimumWith(deps: {
+  getInventoryMetrics: typeof getInventoryMetrics,
+  getAvailableWarmNumberCount: typeof getAvailableWarmNumberCount,
+  cleanupExcessInventory: typeof cleanupExcessInventory,
+  provisionWarmNumber: typeof provisionWarmNumber,
+}): Promise<{ success: boolean; numbersAdded: number; availableBefore: number; availableAfter: number }> {
+  const metrics = await deps.getInventoryMetrics();
+  const availableBefore = metrics.availableCount;
+
+  console.log(`[INVENTORY] Current available: ${availableBefore}, Buffer target: ${metrics.desiredAvailableBuffer}`);
+
+  // If we have more than target, trim the excess safely
+  if (availableBefore > metrics.desiredAvailableBuffer) {
+    console.log('[INVENTORY] Excess inventory detected, starting trim-to-target...');
+    await deps.cleanupExcessInventory();
+    const availableAfter = await deps.getAvailableWarmNumberCount();
+    return {
+      success: true,
+      numbersAdded: 0,
+      availableBefore,
+      availableAfter,
+    };
+  }
+
+  // If we are exactly at target, do nothing
+  if (availableBefore === metrics.desiredAvailableBuffer) {
+    console.log('[INVENTORY] Inventory exactly at target, no action needed');
+    return {
+      success: true,
+      numbersAdded: 0,
+      availableBefore,
+      availableAfter: availableBefore,
+    };
+  }
+
+  // Below target → purchase path
+  const numbersNeeded = metrics.purchaseNeeded;
+  console.log(`[INVENTORY] Purchasing ${numbersNeeded} number(s) to restore buffer...`);
+
+  let numbersAdded = 0;
+  let lastError: string | undefined;
+
+  for (let i = 0; i < numbersNeeded; i++) {
+    const result = await deps.provisionWarmNumber();
+
+    if (result.success) {
+      numbersAdded++;
+      console.log(`[PURCHASE] Purchased new Twilio number: ${result.phoneNumber}`);
+    } else {
+      lastError = result.error;
+      console.error(`[PURCHASE] Failed to purchase number ${i + 1}/${numbersNeeded}:`, lastError);
+    }
+  }
+
+  const availableAfter = await deps.getAvailableWarmNumberCount();
+  console.log(`[INVENTORY] Inventory restored: ${availableAfter}/${metrics.desiredAvailableBuffer}`);
+
+  // Non-blocking: trigger cleanup of excess inventory after replenishment
+  // using real production path (no-op if already exactly at target post-purchase).
+  cleanupExcessInventory()
+    .then((cleanupResult) => {
+      console.log('[INVENTORY] Excess inventory cleanup complete:', cleanupResult);
+    })
+    .catch((cleanupError) => {
+      console.error('[INVENTORY] Excess inventory cleanup failed (non-blocking):', cleanupError);
+    });
+
+  return {
+    success: numbersAdded === numbersNeeded,
+    numbersAdded,
+    availableBefore,
+    availableAfter,
+  };
 }
 
 /**
@@ -995,23 +1042,29 @@ export async function cleanupExcessInventory(): Promise<{ success: boolean; numb
     const systemPhoneNumber = process.env.REPLYFLOW_SYSTEM_SMS_NUMBER;
     console.log(`[CLEANUP] Protected system phone: ${systemPhoneNumber || 'none'}`);
 
-    // Fetch excess available numbers (newest first, to release newest extras)
-    const { data: excessNumbers, error: fetchError } = await supabase
+    // Fetch all healthy available numbers (we will deterministically select newest extras to release)
+    const { data: healthyNumbers, error: fetchError } = await supabase
       .from('twilio_numbers')
       .select('*')
       .is('business_id', null)
       .eq('status', 'available')
       .eq('sms_status', 'ready')
-      .order('created_at', { ascending: false }) // Newest first
-      .limit(excessCount);
+      .eq('provisioning_status', 'ready')
+      .order('created_at', { ascending: false }); // Newest first
 
     if (fetchError) {
       console.error('[CLEANUP] ERROR: Failed to fetch excess numbers:', fetchError);
       return { success: false, numbersReleased: 0, error: 'Failed to fetch excess numbers' };
     }
 
-    if (!excessNumbers || excessNumbers.length === 0) {
+    if (!healthyNumbers || healthyNumbers.length === 0) {
       console.log('[CLEANUP] No excess numbers found to release');
+      return { success: true, numbersReleased: 0 };
+    }
+
+    const excessNumbers = selectExcessNumbersForTrim(healthyNumbers, targetAvailable)
+    if (excessNumbers.length === 0) {
+      console.log('[CLEANUP] Computed no excess after selection, nothing to release');
       return { success: true, numbersReleased: 0 };
     }
 
@@ -1038,6 +1091,34 @@ export async function cleanupExcessInventory(): Promise<{ success: boolean; numb
       console.log(`[CLEANUP] Selected number for release: ${number.phone_number} (SID: ${number.twilio_sid})`);
 
       try {
+        // Guard: ensure we don't over-release if pool already reached target due to prior iterations or races
+        const currentHealthy = await getAvailableWarmNumberCount();
+        if (currentHealthy <= targetAvailable) {
+          console.log('[CLEANUP] Current healthy count at or below target, stopping further releases');
+          break;
+        }
+
+        // Re-validate immediately before action to avoid races
+        const { data: latest, error: refetchError } = await supabase
+          .from('twilio_numbers')
+          .select('id, phone_number, twilio_sid, business_id, status, sms_status, provisioning_status')
+          .eq('id', number.id)
+          .single();
+        if (refetchError || !latest) {
+          console.warn('[CLEANUP] Skipping due to refetch error/missing row');
+          continue;
+        }
+        const isHealthy = (
+          latest.business_id === null &&
+          latest.status === 'available' &&
+          latest.sms_status === 'ready' &&
+          latest.provisioning_status === 'ready'
+        );
+        if (!isHealthy) {
+          console.log('[CLEANUP] Skipping due to failing healthy revalidation');
+          continue;
+        }
+
         // Remove from Messaging Service if attached
         const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
         if (messagingServiceSid) {
