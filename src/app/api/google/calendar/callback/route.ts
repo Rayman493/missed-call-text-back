@@ -118,11 +118,12 @@ export async function GET(request: NextRequest) {
     // Preserve existing refresh token if Google doesn't return a new one
     // Google only returns refresh token on first consent with access_type=offline
     let refreshToken = tokenData.refresh_token
+    let grantedScope: string | undefined = tokenData.scope
     if (!refreshToken) {
       console.log('[GOOGLE OAUTH] No refresh token returned, checking existing')
       const { data: existingIntegration } = await supabaseAdmin
         .from('calendar_integrations')
-        .select('refresh_token')
+        .select('refresh_token, scope')
         .eq('business_id', business.id)
         .eq('provider', 'google')
         .single()
@@ -131,10 +132,21 @@ export async function GET(request: NextRequest) {
         refreshToken = existingIntegration.refresh_token
         console.log('[GOOGLE OAUTH] Preserved existing refresh token')
       }
+      if (!grantedScope && existingIntegration?.scope) {
+        grantedScope = existingIntegration.scope
+        console.log('[GOOGLE OAUTH SCOPE] preserved existing scopes:', String(grantedScope).split(/\s+/).filter(Boolean).join(', '))
+      }
     }
 
     // Upsert calendar integration
     console.log('[GOOGLE OAUTH] database persistence started')
+    try {
+      const scopeLog = String(grantedScope || tokenData.scope || '')
+        .split(/\s+/)
+        .filter(Boolean)
+        .join(', ')
+      console.log('[GOOGLE OAUTH SCOPE] granted scopes:', scopeLog)
+    } catch {}
     const { error: upsertError } = await supabaseAdmin
       .from('calendar_integrations')
       .upsert({
@@ -144,7 +156,7 @@ export async function GET(request: NextRequest) {
         refresh_token: refreshToken,
         token_type: tokenData.token_type || 'Bearer',
         expires_at: expiresAt,
-        scope: tokenData.scope,
+        scope: grantedScope || tokenData.scope || null,
       }, {
         onConflict: 'business_id,provider'
       })
