@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { alertManager } from '@/lib/alerting'
 import { verifyCronRequest } from '@/lib/cron-auth'
+import { runAssignedNumberIntegrityAndAlert } from '@/lib/assigned-number-monitor'
+import type { ServiceHealth } from '@/lib/system-health'
 
 export const dynamic = 'force-dynamic'
 
@@ -141,10 +143,28 @@ export async function GET(request: NextRequest) {
     }
     await alertManager.checkAndAlert(provisioningCondition, `Businesses stuck in provisioning: ${(await supabase.from('businesses').select('id').is('twilio_phone_number', null).gte('created_at', twentyFourHoursAgo)).data?.length || 0}`)
 
+    // Assigned Number Integrity Monitor
+    let twilioNumberConsistency: ServiceHealth
+    try {
+      const { health } = await runAssignedNumberIntegrityAndAlert()
+      twilioNumberConsistency = health
+    } catch (monitorError) {
+      console.error('[Health Checks Cron] Assigned number monitor failed:', monitorError)
+      twilioNumberConsistency = {
+        name: 'Twilio Number Consistency',
+        status: 'degraded',
+        summary: 'Monitor execution failed',
+        lastActivity: now.toISOString(),
+        details: { error: monitorError instanceof Error ? monitorError.message : String(monitorError) },
+        unknownReason: 'query_error',
+      }
+    }
+
     return NextResponse.json({
       success: true,
       checkedAt: now.toISOString(),
       alertStates: alertManager.getAlertStates(),
+      twilioNumberConsistency,
     })
   } catch (error) {
     console.error('[Health Checks Cron] Unexpected error:', error)
