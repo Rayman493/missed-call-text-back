@@ -378,6 +378,38 @@ export async function POST(request: NextRequest) {
       // Non-critical error, continue
     }
 
+    // Opportunistically create meeting_records row (idempotent) for ReplyFlow Google Meet appointments
+    try {
+      const maybeCode = (() => {
+        if (meetingUrl) {
+          const m = meetingUrl.match(/([a-z]{3}-[a-z]{4}-[a-z]{3})/i)
+          return m ? m[1] : null
+        }
+        const entry = createdEvent?.conferenceData?.entryPoints?.find((e: any) => e?.entryPointType === 'video' && e?.uri)
+        if (entry?.uri) {
+          const m = String(entry.uri).match(/([a-z]{3}-[a-z]{4}-[a-z]{3})/i)
+          return m ? m[1] : null
+        }
+        return null
+      })()
+      const payload: any = {
+        business_id: business.id,
+        google_calendar_event_id: createdEvent.id,
+        status: 'upcoming',
+        updated_at: new Date().toISOString(),
+      }
+      if (maybeCode) payload.google_meet_code = maybeCode
+      if (lead_id) payload.lead_id = String(lead_id)
+      const { error: mrErr } = await supabase
+        .from('meeting_records')
+        .upsert(payload, { onConflict: 'business_id,google_calendar_event_id' })
+      if (mrErr) {
+        console.warn('[Calendar Create] meeting_records upsert failed (non-fatal):', mrErr.message)
+      }
+    } catch (e: any) {
+      console.warn('[Calendar Create] meeting_records upsert attempt failed (non-fatal)')
+    }
+
     return NextResponse.json({
       event: {
         id: createdEvent.id,

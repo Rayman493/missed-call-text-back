@@ -79,8 +79,12 @@ export async function GET(request: NextRequest) {
 
     console.log('[Google Calendar Connect] Generated state')
 
-    // Construct Google OAuth URL
-    const scope = encodeURIComponent('https://www.googleapis.com/auth/calendar.events')
+    // Construct Google OAuth URL (Calendar + Meet read-only for transcripts)
+    const scopeList = [
+      'https://www.googleapis.com/auth/calendar.events',
+      'https://www.googleapis.com/auth/meetings.space.readonly',
+    ]
+    const scope = encodeURIComponent(scopeList.join(' '))
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${GOOGLE_CLIENT_ID}&` +
       `redirect_uri=${encodeURIComponent(GOOGLE_REDIRECT_URI)}&` +

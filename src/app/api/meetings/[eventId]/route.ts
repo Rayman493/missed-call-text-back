@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { getMeetCapability } from '@/lib/google/capability'
 
 export async function GET(request: NextRequest, { params }: { params: { eventId: string } }) {
   try {
@@ -17,14 +18,14 @@ export async function GET(request: NextRequest, { params }: { params: { eventId:
 
     const { data: record, error } = await supabase
       .from('meeting_records')
-      .select('id, business_id, google_calendar_event_id, lead_id, job_id, status, completed_at, notes, created_at, updated_at')
+      .select('id, business_id, google_calendar_event_id, lead_id, job_id, status, completed_at, notes, created_at, updated_at, google_meet_space_name, google_meet_code, google_conference_record_name, actual_start, actual_end, transcript_status, ai_summary, ai_summary_structured, summarized_at, processing_error')
       .eq('business_id', business.id)
       .eq('google_calendar_event_id', params.eventId)
       .maybeSingle()
 
     if (error) return NextResponse.json({ error: 'Failed to fetch meeting' }, { status: 500 })
-
-    return NextResponse.json({ record: record || null })
+    const capability = await getMeetCapability(business.id)
+    return NextResponse.json({ record: record || null, meetCapability: capability })
   } catch (e) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

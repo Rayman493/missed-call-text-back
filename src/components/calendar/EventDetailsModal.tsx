@@ -48,6 +48,18 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
   const [isNotesSaving, setIsNotesSaving] = useState(false)
   const [isCompleting, setIsCompleting] = useState(false)
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false)
+  // Meet artifacts & capability
+  const [meetCapability, setMeetCapability] = useState<'available' | 'reauthorization_required' | null>(null)
+  const [aiSummary, setAiSummary] = useState<string | null>(null)
+  const [aiSummaryStructured, setAiSummaryStructured] = useState<any | null>(null)
+  const [actualStart, setActualStart] = useState<string | null>(null)
+  const [actualEnd, setActualEnd] = useState<string | null>(null)
+  const [transcriptStatus, setTranscriptStatus] = useState<string | null>(null)
+  const [isTranscriptOpen, setIsTranscriptOpen] = useState(false)
+  const [transcriptLoading, setTranscriptLoading] = useState(false)
+  const [transcriptError, setTranscriptError] = useState<string | null>(null)
+  const [transcriptText, setTranscriptText] = useState<string | null>(null)
+  const [isRetrying, setIsRetrying] = useState(false)
   useBodyScrollLock(isOpen)
   
   // Editable form state
@@ -109,10 +121,17 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
           setMeetingStatus(rec.status === 'completed' ? 'completed' : 'upcoming')
           setCompletedAt(rec.completed_at || null)
           setNotes(rec.notes || '')
+          setAiSummary(rec.ai_summary || null)
+          setAiSummaryStructured(rec.ai_summary_structured || null)
+          setActualStart(rec.actual_start || null)
+          setActualEnd(rec.actual_end || null)
+          setTranscriptStatus(rec.transcript_status || null)
         } else {
           setMeetingStatus('upcoming')
           setCompletedAt(null)
         }
+        const cap = data?.meetCapability === 'available' ? 'available' : (data?.meetCapability === 'reauthorization_required' ? 'reauthorization_required' : null)
+        setMeetCapability(cap)
       } catch {}
     }
     load()
@@ -688,6 +707,117 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                       </div>
                     )}
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* AI Meeting Summary & Transcript (Google Meet only) */}
+            {(!event.isHoliday && (event.meetingUrl?.includes('meet.google.com') || transcriptStatus || aiSummary || aiSummaryStructured)) && (
+              <div className="pt-2">
+                {meetCapability === 'reauthorization_required' && (
+                  <div className="mb-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
+                    <div className="font-medium mb-1">Reconnect Google to enable automatic meeting summaries.</div>
+                    <div className="opacity-80 mb-2">Your existing calendar connection will continue working.</div>
+                    <a href="/api/google/calendar/connect" className="inline-block px-3 py-1.5 text-xs rounded bg-muted hover:bg-muted/80 text-foreground border border-border/50">Reconnect Google</a>
+                  </div>
+                )}
+                <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/60">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs text-slate-500 font-medium">AI Meeting Summary</p>
+                    {meetCapability === 'available' && (
+                      <button
+                        disabled={isRetrying}
+                        onClick={async () => {
+                          if (!event?.id) return
+                          setIsRetrying(true)
+                          setError(null)
+                          try {
+                            const r = await fetch(`/api/meetings/${encodeURIComponent(event.id)}/retry-artifacts`, { method: 'POST' })
+                            const j = await r.json().catch(() => ({}))
+                            if (!r.ok || j?.success === false) {
+                              onShowToast?.('Retry not allowed yet (cooldown).', 'warning')
+                            } else {
+                              onShowToast?.('Processing started. Refresh to see updates.', 'info')
+                              onRefresh?.()
+                            }
+                          } catch {
+                            onShowToast?.('Retry failed.', 'error')
+                          } finally {
+                            setIsRetrying(false)
+                          }
+                        }}
+                        className="text-[11px] px-2 py-1 rounded bg-muted hover:bg-muted/80 text-foreground border border-border/50"
+                      >{isRetrying ? 'Retrying…' : 'Retry'}</button>
+                    )}
+                  </div>
+                  {(actualStart || actualEnd) && (
+                    <p className="text-[11px] text-slate-400 mb-1">Actual meeting: {actualStart ? new Date(actualStart).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '—'} – {actualEnd ? new Date(actualEnd).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '—'}</p>
+                  )}
+                  {transcriptStatus === 'pending' && (<p className="text-xs text-slate-400">Processing meeting transcript…</p>)}
+                  {transcriptStatus === 'available' && (<p className="text-xs text-slate-400">Transcript retrieved. Preparing AI summary…</p>)}
+                  {transcriptStatus === 'unavailable' && (<p className="text-xs text-slate-400">No Google Meet transcript was available for this meeting.</p>)}
+                  {transcriptStatus === 'failed' && (<p className="text-xs text-slate-400">Meeting summary could not be processed.</p>)}
+                  {aiSummaryStructured ? (
+                    <div className="space-y-1.5 text-xs text-slate-300">
+                      {aiSummaryStructured.overview && (<p><span className="text-slate-400">Overview:</span> {aiSummaryStructured.overview}</p>)}
+                      {Array.isArray(aiSummaryStructured.customerNeeds) && aiSummaryStructured.customerNeeds.length > 0 && (
+                        <div><p className="text-slate-400">Customer Needs</p><ul className="list-disc list-inside">{aiSummaryStructured.customerNeeds.map((x: string, i: number) => (<li key={i}>{x}</li>))}</ul></div>
+                      )}
+                      {Array.isArray(aiSummaryStructured.keyDiscussionPoints) && aiSummaryStructured.keyDiscussionPoints.length > 0 && (
+                        <div><p className="text-slate-400">Key Discussion Points</p><ul className="list-disc list-inside">{aiSummaryStructured.keyDiscussionPoints.map((x: string, i: number) => (<li key={i}>{x}</li>))}</ul></div>
+                      )}
+                      {Array.isArray(aiSummaryStructured.decisions) && aiSummaryStructured.decisions.length > 0 && (
+                        <div><p className="text-slate-400">Decisions</p><ul className="list-disc list-inside">{aiSummaryStructured.decisions.map((x: string, i: number) => (<li key={i}>{x}</li>))}</ul></div>
+                      )}
+                      {Array.isArray(aiSummaryStructured.pricingMentioned) && aiSummaryStructured.pricingMentioned.length > 0 && (
+                        <div><p className="text-slate-400">Pricing Mentioned</p><ul className="list-disc list-inside">{aiSummaryStructured.pricingMentioned.map((x: string, i: number) => (<li key={i}>{x}</li>))}</ul></div>
+                      )}
+                      {Array.isArray(aiSummaryStructured.nextSteps) && aiSummaryStructured.nextSteps.length > 0 && (
+                        <div><p className="text-slate-400">Next Steps</p><ul className="list-disc list-inside">{aiSummaryStructured.nextSteps.map((x: string, i: number) => (<li key={i}>{x}</li>))}</ul></div>
+                      )}
+                      {Array.isArray(aiSummaryStructured.followUpItems) && aiSummaryStructured.followUpItems.length > 0 && (
+                        <div><p className="text-slate-400">Follow-Up Items</p><ul className="list-disc list-inside">{aiSummaryStructured.followUpItems.map((x: string, i: number) => (<li key={i}>{x}</li>))}</ul></div>
+                      )}
+                    </div>
+                  ) : aiSummary ? (
+                    <p className="text-xs text-slate-300 whitespace-pre-wrap">{aiSummary}</p>
+                  ) : null}
+                  <div className="mt-2">
+                    <button onClick={() => setIsTranscriptOpen((o) => !o)} className="text-[11px] px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-200">{isTranscriptOpen ? 'Hide Transcript' : 'View Transcript'}</button>
+                  </div>
+                  {isTranscriptOpen && (
+                    <div className="mt-2 p-2 rounded bg-slate-900/50 border border-slate-700/50 max-h-48 overflow-y-auto">
+                      {transcriptLoading ? (
+                        <p className="text-slate-400 text-xs">Loading…</p>
+                      ) : transcriptError ? (
+                        <p className="text-red-400 text-xs">{transcriptError}</p>
+                      ) : transcriptText ? (
+                        <pre className="text-xs text-slate-200 whitespace-pre-wrap break-words">{transcriptText}</pre>
+                      ) : (
+                        <button
+                          onClick={async () => {
+                            if (!event?.id) return
+                            setTranscriptLoading(true)
+                            setTranscriptError(null)
+                            try {
+                              const r = await fetch(`/api/meetings/${encodeURIComponent(event.id)}/transcript`)
+                              const j = await r.json().catch(() => ({}))
+                              if (!r.ok || j?.success === false) {
+                                setTranscriptError(j?.status === 'pending' ? 'Processing… Please try again later.' : 'Transcript unavailable.')
+                              } else {
+                                setTranscriptText(j?.transcript || '')
+                              }
+                            } catch {
+                              setTranscriptError('Failed to load transcript')
+                            } finally {
+                              setTranscriptLoading(false)
+                            }
+                          }}
+                          className="text-[11px] px-2 py-1 rounded bg-muted hover:bg-muted/80 text-foreground border border-border/50"
+                        >Load Transcript</button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
