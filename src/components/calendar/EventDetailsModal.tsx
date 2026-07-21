@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { X, Calendar, Clock, MapPin, FileText, ExternalLink, Trash2, AlertTriangle, Save, Pencil, Link as LinkIcon, User, Briefcase, Send, CheckCircle2 } from 'lucide-react'
@@ -737,6 +737,10 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                             if (!r.ok || j?.success === false) {
                               onShowToast?.('Retry not allowed yet (cooldown).', 'warning')
                             } else {
+                              if (j && typeof j.status === 'string') {
+                                setTranscriptStatus((j.status === 'available' || j.status === 'processed' || j.status === 'pending' || j.status === 'permission_required' || j.status === 'failed') ? j.status : null)
+                                setTranscriptError(null)
+                              }
                               onShowToast?.('Processing started. Refresh to see updates.', 'info')
                               onRefresh?.()
                             }
@@ -803,7 +807,12 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                               const r = await fetch(`/api/meetings/${encodeURIComponent(event.id)}/transcript`)
                               const j = await r.json().catch(() => ({}))
                               if (!r.ok || j?.success === false) {
-                                setTranscriptError(j?.status === 'pending' ? 'Processing… Please try again later.' : 'Transcript unavailable.')
+                                const stat = (j && typeof j.status === 'string') ? j.status : null
+                                if (stat === 'pending' || stat == null) {
+                                  setTranscriptError('Processing… Please try again later.')
+                                } else {
+                                  setTranscriptError('Transcript unavailable.')
+                                }
                               } else {
                                 setTranscriptText(j?.transcript || '')
                               }
@@ -962,3 +971,4 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
     </div>
   )
 }
+
