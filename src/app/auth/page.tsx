@@ -791,8 +791,11 @@ function AuthContent() {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    How do customers receive your services?
+                    Where do you provide your services?
                   </label>
+                  <p className="text-xs text-slate-500 mb-3">
+                    ReplyFlow uses this to tailor the questions your AI receptionist asks callers.
+                  </p>
                   <div className="grid grid-cols-1 gap-2">
                     {[
                       { value: 'onsite', title: 'On-site service', desc: 'You travel to the customer or job location.' },

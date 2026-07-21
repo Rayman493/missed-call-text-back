@@ -1282,8 +1282,11 @@ export default function SettingsContent() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
-                      How do customers receive your services?
+                      Where do you provide your services?
                     </label>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
+                      ReplyFlow uses this to tailor the questions your AI receptionist asks callers.
+                    </p>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       {[
                         { value: 'onsite', title: 'On-site service', desc: 'You travel to the customer or job location.' },
