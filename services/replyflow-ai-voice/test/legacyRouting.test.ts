@@ -24,6 +24,62 @@ function getNextStage(currentStage: any, serviceLocationType: string): any {
   return stageSequence[currentStage] || currentStage;
 }
 
+/**
+ * areAllRequiredFieldsCollected function (copied from index.ts for testing)
+ * This function must conditionally require serviceAddress based on serviceLocationType
+ */
+function areAllRequiredFieldsCollected(intake: any, serviceLocationType: string = 'onsite'): boolean {
+  // serviceAddress is only required for onsite mode
+  const requiresServiceAddress = serviceLocationType === 'onsite';
+  
+  const allCollected = !!(
+    intake.customerName &&
+    intake.serviceRequested &&
+    intake.issueDescription &&
+    (requiresServiceAddress ? intake.serviceAddress : true) &&
+    intake.desiredCompletionTime &&
+    intake.callbackTime
+  );
+  
+  return allCollected;
+}
+
+/**
+ * getMissingRequiredFields function (copied from index.ts for testing)
+ * This function must conditionally check serviceAddress based on serviceLocationType
+ */
+function getMissingRequiredFields(intake: any): string[] {
+  const missing: string[] = [];
+  if (!intake.customerName) missing.push('customerName');
+  if (!intake.serviceRequested) missing.push('serviceRequested');
+  if (!intake.issueDescription) missing.push('issueDescription');
+  if (!intake.serviceAddress) missing.push('serviceAddress');
+  if (!intake.desiredCompletionTime) missing.push('desiredCompletionTime');
+  if (!intake.callbackTime) missing.push('callbackTime');
+  return missing;
+}
+
+/**
+ * getNextMissingStage function (copied from index.ts for testing)
+ * This function must conditionally return ask_location_or_context only for onsite mode
+ */
+function getNextMissingStage(intake: any, serviceLocationType: string = 'onsite'): string | null {
+  const requiresServiceAddress = serviceLocationType === 'onsite';
+  
+  if (!intake.customerName || !intake.serviceRequested) {
+    return 'ask_name_reason';
+  } else if (!intake.issueDescription) {
+    return 'ask_details';
+  } else if (requiresServiceAddress && !intake.serviceAddress) {
+    return 'ask_location_or_context';
+  } else if (!intake.desiredCompletionTime) {
+    return 'ask_timing';
+  } else if (!intake.callbackTime) {
+    return 'ask_callback_time';
+  }
+  return null;
+}
+
 function fullSequence(serviceLocationType: string): string[] {
   const seq: string[] = ['ask_name_reason'];
   let cur = seq[0];
@@ -94,6 +150,78 @@ expectEqual(
   getNextStage('ask_details', 'onsite'),
   'ask_location_or_context',
   'Legacy ask_details → ask_location_or_context for invalid (defaults to onsite)'
+);
+
+// TEST 7 — areAllRequiredFieldsCollected for onsite (requires serviceAddress)
+const onsiteIntakeComplete = {
+  customerName: 'John',
+  serviceRequested: 'Plumbing',
+  issueDescription: 'Leaky faucet',
+  serviceAddress: '123 Main St',
+  desiredCompletionTime: 'ASAP',
+  callbackTime: 'Morning'
+};
+expectEqual(
+  areAllRequiredFieldsCollected(onsiteIntakeComplete, 'onsite'),
+  true,
+  'areAllRequiredFieldsCollected returns true for complete onsite intake'
+);
+
+const onsiteIntakeMissingAddress = {
+  customerName: 'John',
+  serviceRequested: 'Plumbing',
+  issueDescription: 'Leaky faucet',
+  serviceAddress: null,
+  desiredCompletionTime: 'ASAP',
+  callbackTime: 'Morning'
+};
+expectEqual(
+  areAllRequiredFieldsCollected(onsiteIntakeMissingAddress, 'onsite'),
+  false,
+  'areAllRequiredFieldsCollected returns false for onsite intake missing serviceAddress'
+);
+
+// TEST 8 — areAllRequiredFieldsCollected for customer_comes_to_business (does NOT require serviceAddress)
+const customerComesIntakeComplete = {
+  customerName: 'John',
+  serviceRequested: 'Plumbing',
+  issueDescription: 'Leaky faucet',
+  serviceAddress: null,
+  desiredCompletionTime: 'ASAP',
+  callbackTime: 'Morning'
+};
+expectEqual(
+  areAllRequiredFieldsCollected(customerComesIntakeComplete, 'customer_comes_to_business'),
+  true,
+  'areAllRequiredFieldsCollected returns true for customer_comes_to_business intake without serviceAddress'
+);
+
+// TEST 9 — getNextMissingStage for onsite (returns ask_location_or_context when address missing)
+expectEqual(
+  getNextMissingStage(onsiteIntakeMissingAddress, 'onsite'),
+  'ask_location_or_context',
+  'getNextMissingStage returns ask_location_or_context for onsite intake missing serviceAddress'
+);
+
+// TEST 10 — getNextMissingStage for customer_comes_to_business (skips ask_location_or_context)
+expectEqual(
+  getNextMissingStage(customerComesIntakeComplete, 'customer_comes_to_business'),
+  null,
+  'getNextMissingStage returns null for complete customer_comes_to_business intake (no address required)'
+);
+
+const customerComesIntakeMissingTiming = {
+  customerName: 'John',
+  serviceRequested: 'Plumbing',
+  issueDescription: 'Leaky faucet',
+  serviceAddress: null,
+  desiredCompletionTime: null,
+  callbackTime: 'Morning'
+};
+expectEqual(
+  getNextMissingStage(customerComesIntakeMissingTiming, 'customer_comes_to_business'),
+  'ask_timing',
+  'getNextMissingStage returns ask_timing for customer_comes_to_business intake missing timing (not address)'
 );
 
 console.log('\n✓ All legacy routing regression tests passed');

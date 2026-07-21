@@ -872,16 +872,21 @@ function isGoodEnoughForBetaIntake(intake: IntakeData): boolean {
   return isGoodEnough;
 }
 
-function areAllRequiredFieldsCollected(intake: IntakeData): boolean {
+function areAllRequiredFieldsCollected(intake: IntakeData, serviceLocationType: string = 'onsite'): boolean {
+  // serviceAddress is only required for onsite mode
+  const requiresServiceAddress = serviceLocationType === 'onsite';
+  
   const allCollected = !!(
     intake.customerName &&
     intake.serviceRequested &&
     intake.issueDescription &&
-    intake.serviceAddress &&
+    (requiresServiceAddress ? intake.serviceAddress : true) &&
     intake.desiredCompletionTime &&
     intake.callbackTime
   );
   console.log('[REQUIRED FIELDS CHECK] =========================================');
+  console.log('[REQUIRED FIELDS CHECK] serviceLocationType:', serviceLocationType);
+  console.log('[REQUIRED FIELDS CHECK] requiresServiceAddress:', requiresServiceAddress);
   console.log('[REQUIRED FIELDS CHECK] customerName:', intake.customerName);
   console.log('[REQUIRED FIELDS CHECK] serviceRequested:', intake.serviceRequested);
   console.log('[REQUIRED FIELDS CHECK] issueDescription:', intake.issueDescription);
@@ -3727,7 +3732,8 @@ async function finalizeIncompleteIntake(
   supabase: any,
   closingState?: any,
   baselineLeadId?: string | null,
-  baselineConversationId?: string | null
+  baselineConversationId?: string | null,
+  serviceLocationType?: string
 ): Promise<void> {
   console.log('[FINALIZE INCOMPLETE ENTER] =========================================');
   console.log('[FINALIZE INCOMPLETE ENTER] Function entry');
@@ -3739,7 +3745,8 @@ async function finalizeIncompleteIntake(
   
   // INCOMPLETE FINALIZATION OWNERSHIP CHECK
   const stage = intakeData?.stage || 'unknown';
-  const allRequiredFieldsCollected = intakeData ? areAllRequiredFieldsCollected(intakeData) : false;
+  const effectiveServiceLocationType = serviceLocationType || 'onsite';
+  const allRequiredFieldsCollected = intakeData ? areAllRequiredFieldsCollected(intakeData, effectiveServiceLocationType) : false;
   const finalClosingStarted = closingState?.finalClosingStarted || false;
   const terminalClosingResponseStarted = closingState?.terminalClosingResponseStarted || false;
   
@@ -11869,7 +11876,8 @@ wss.on('connection', (ws, req) => {
         // Verify call is truly incomplete before skipping
         // If call reached complete/terminal close, allow full persistence
         const stage = intakeData?.stage || 'unknown';
-        const allRequiredFieldsCollected = intakeData ? areAllRequiredFieldsCollected(intakeData) : false;
+        const serviceLocationType = (ws as any).callSessionState?.serviceLocationType || 'onsite';
+        const allRequiredFieldsCollected = intakeData ? areAllRequiredFieldsCollected(intakeData, serviceLocationType) : false;
         const finalClosingStarted = closingState?.finalClosingStarted || false;
         const terminalClosingResponseStarted = closingState?.terminalClosingResponseStarted || false;
         
@@ -14209,7 +14217,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[TRACE COMPLETE 3] Timestamp:', new Date().toISOString());
                   console.log('[TRACE COMPLETE 3] =========================================');
 
-                  if (areAllRequiredFieldsCollected(intakeData!)) {
+                  if (areAllRequiredFieldsCollected(intakeData!, (callSessionState as any).serviceLocationType || 'onsite')) {
                     console.log('[TRACE COMPLETE 4] =========================================');
                     console.log('[TRACE COMPLETE 4] areAllRequiredFieldsCollected returned true');
                     console.log('[TRACE COMPLETE 4] Entering closing logic');
@@ -14551,11 +14559,12 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   }
 
                   // CRITICAL FIX: Never mark stage complete if required fields are missing
-                  if (intakeResponse.nextStage === 'complete' && !areAllRequiredFieldsCollected(intakeData!)) {
+                  const serviceLocationTypeForCheck = (callSessionState as any).serviceLocationType || 'onsite';
+                  if (intakeResponse.nextStage === 'complete' && !areAllRequiredFieldsCollected(intakeData!, serviceLocationTypeForCheck)) {
                     console.log('[STAGE COMPLETION BLOCKED - MISSING FIELDS] =========================================');
                     console.log('[STAGE COMPLETION BLOCKED - MISSING FIELDS] Cannot mark stage complete - required fields missing');
                     console.log('[STAGE COMPLETION BLOCKED - MISSING FIELDS] nextStage:', intakeResponse.nextStage);
-                    console.log('[STAGE COMPLETION BLOCKED - MISSING FIELDS] areAllRequiredFieldsCollected:', areAllRequiredFieldsCollected(intakeData!));
+                    console.log('[STAGE COMPLETION BLOCKED - MISSING FIELDS] areAllRequiredFieldsCollected:', areAllRequiredFieldsCollected(intakeData!, serviceLocationTypeForCheck));
                     console.log('[STAGE COMPLETION BLOCKED - MISSING FIELDS] customerName:', !!intakeData!.customerName);
                     console.log('[STAGE COMPLETION BLOCKED - MISSING FIELDS] serviceRequested:', !!intakeData!.serviceRequested);
                     console.log('[STAGE COMPLETION BLOCKED - MISSING FIELDS] issueDescription:', !!intakeData!.issueDescription);
@@ -14568,12 +14577,14 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     // Reprompt missing stage instead of completing
                     const missingFields = getMissingRequiredFields(intakeData!);
                     // Determine next missing stage based on missing fields
+                    // serviceAddress is only required for onsite mode
+                    const requiresServiceAddress = serviceLocationTypeForCheck === 'onsite';
                     let nextMissingStage: IntakeStage | null = null;
                     if (!intakeData!.customerName || !intakeData!.serviceRequested) {
                       nextMissingStage = 'ask_name_reason';
                     } else if (!intakeData!.issueDescription) {
                       nextMissingStage = 'ask_details';
-                    } else if (!intakeData!.serviceAddress) {
+                    } else if (requiresServiceAddress && !intakeData!.serviceAddress) {
                       nextMissingStage = 'ask_location_or_context';
                     } else if (!intakeData!.desiredCompletionTime) {
                       nextMissingStage = 'ask_timing';
@@ -17747,7 +17758,8 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
       
       // Log all condition components for audit
       const stage = intakeData?.stage || 'unknown';
-      const allRequiredFieldsCollected = intakeData ? areAllRequiredFieldsCollected(intakeData) : false;
+      const serviceLocationTypeForCheck = (ws as any).callSessionState?.serviceLocationType || 'onsite';
+      const allRequiredFieldsCollected = intakeData ? areAllRequiredFieldsCollected(intakeData, serviceLocationTypeForCheck) : false;
       const terminalClosingResponseStarted = closingState?.terminalClosingResponseStarted || false;
       
       console.log('[INCOMPLETE FINALIZATION CONDITION AUDIT] =========================================');
@@ -17813,7 +17825,8 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
           supabase,
           closingState,
           (ws as any).leadId || null,
-          (ws as any).conversationId || null
+          (ws as any).conversationId || null,
+          serviceLocationTypeForCheck
         ).catch(error => {
           console.log('[TWILIO WEBSOCKET CLOSE] Incomplete finalization failed:', error);
         });
