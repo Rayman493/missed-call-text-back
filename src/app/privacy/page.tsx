@@ -391,8 +391,22 @@ export default function PrivacyPage() {
                 </h2>
                 <div className="prose prose-gray dark:prose-invert max-w-none">
                   <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                    ReplyFlow can securely connect to your Google Calendar to keep your appointments synchronized. Calendar access is only granted after you choose to connect your Google account.
+                    ReplyFlow can connect to Google Calendar and Google Meet after you explicitly authorize access through Google OAuth. We use authorized Google data to provide scheduling, calendar synchronization, meeting transcript ingestion, and AI-assisted meeting summary features.
                   </p>
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">When authorized, ReplyFlow may access and process:</p>
+                    <ul className="mt-2 space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                      <li>
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">Google Calendar information</span> — Calendar events; appointment dates and times; event details necessary for scheduling and synchronization; and Google Meet links associated with scheduled events
+                      </li>
+                      <li>
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">Google Meet information</span> — Google Meet space and conference record identifiers; meeting start and end times; and meeting transcript data when a transcript is available and accessible to the connected Google account
+                      </li>
+                      <li>
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">How Google Meet data is used</span> — To import meeting transcripts into ReplyFlow; display transcripts to the authorized business user; generate AI-assisted meeting summaries; and extract relevant customer needs, discussion points, and follow‑up context for the business user
+                      </li>
+                    </ul>
+                  </div>
                   <div className="mt-6 space-y-4">
                     <div className="flex items-start gap-3">
                       <div className="flex-shrink-0 w-5 h-5 mt-0.5">
@@ -401,7 +415,7 @@ export default function PrivacyPage() {
                         </svg>
                       </div>
                       <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                        <span className="font-semibold text-gray-900 dark:text-gray-100">Explicit Authorization</span> — ReplyFlow accesses your Google Calendar only after you explicitly authorize the connection through OAuth
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">Explicit Authorization</span> — ReplyFlow accesses Google Calendar and Google Meet information only after you explicitly authorize the connection through Google OAuth
                       </p>
                     </div>
                     <div className="flex items-start gap-3">
@@ -411,7 +425,7 @@ export default function PrivacyPage() {
                         </svg>
                       </div>
                       <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                        <span className="font-semibold text-gray-900 dark:text-gray-100">Purpose-Limited Use</span> — Google Calendar information is used only for calendar synchronization and scheduling features you request
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">Purpose-Limited Use</span> — Google Calendar data is used for scheduling and calendar synchronization. When meeting transcript functionality is used, authorized Google Meet conference and transcript information may be processed to import transcripts and generate AI-assisted meeting summaries, customer needs, discussion points, and relevant follow‑up context
                       </p>
                     </div>
                     <div className="flex items-start gap-3">
@@ -421,7 +435,7 @@ export default function PrivacyPage() {
                         </svg>
                       </div>
                       <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                        <span className="font-semibold text-gray-900 dark:text-gray-100">Never Sold</span> — Google Calendar information is never sold and never used for advertising purposes
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">Access Controls</span> — ReplyFlow can access Google Meet transcripts only when they are available through Google and accessible to the Google account connected to ReplyFlow
                       </p>
                     </div>
                     <div className="flex items-start gap-3">
@@ -431,7 +445,27 @@ export default function PrivacyPage() {
                         </svg>
                       </div>
                       <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                        <span className="font-semibold text-gray-900 dark:text-gray-100">User Control</span> — You may disconnect Google Calendar from ReplyFlow at any time
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">AI Processing</span> — Meeting transcript content may be processed using ReplyFlow's AI service providers solely to provide requested meeting transcription, summarization, and related business workflow features. It is not used for advertising
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-5 h-5 mt-0.5">
+                        <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">Never Sold</span> — Information received from Google APIs is not sold and is not used for advertising purposes
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-5 h-5 mt-0.5">
+                        <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">User Control</span> — You may disconnect your Google account from ReplyFlow to revoke future Google API access. Stored data remains subject to ReplyFlow's retention and deletion policies described in this Privacy Policy
                       </p>
                     </div>
                   </div>
