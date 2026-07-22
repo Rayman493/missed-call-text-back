@@ -38,7 +38,7 @@ import java.util.Locale;
 @CapacitorPlugin(name = "ReplyflowStripeTerminal")
 public class ReplyflowStripeTerminalPlugin extends Plugin {
   private static final String TAG = "ReplyflowStripeTerminal";
-  private static final String BUILD_MARKER = "TAP_TO_PAY_REAL_NFC_DIAGNOSTIC_2026_07_22_V2";
+  private static final String BUILD_MARKER = "TAP_TO_PAY_ERROR_TRACE_2026_07_22_V3";
 
   // Initialization state tracking
   private enum InitState {
@@ -590,7 +590,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           notifyListeners("error", err);
           notifyListeners("paymentStatusChanged", new JSObject().put("status", "payment_failed").put("error", err));
 
-          call.reject("Failed to retrieve PaymentIntent: " + e.getMessage());
+          // Pass structured error to JS via rejection
+          call.reject("retrieve_payment_intent", err);
         }
       }
     );
@@ -635,7 +636,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           notifyListeners("error", err);
           notifyListeners("paymentStatusChanged", new JSObject().put("status", "payment_failed").put("error", err));
 
-          originalCall.reject("Failed to collect payment method: " + e.getMessage());
+          // Pass structured error to JS via rejection
+          originalCall.reject("collect_payment_method", err);
         }
       }
     );

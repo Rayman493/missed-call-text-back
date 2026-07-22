@@ -41,6 +41,7 @@ export default function TapToPayModal({
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false)
   const [terminalService] = useState(() => new TerminalBridgeService())
   const [isNativeSupported, setIsNativeSupported] = useState(false)
+  const [lastSuccessfulStage, setLastSuccessfulStage] = useState<string>('none')
 
   useBodyScrollLock(isOpen)
 
@@ -59,6 +60,7 @@ export default function TapToPayModal({
       setStructuredError(null)
       setJsError(null)
       setShowTechnicalDetails(false)
+      setLastSuccessfulStage('none')
     }
   }, [isOpen])
 
@@ -188,6 +190,7 @@ export default function TapToPayModal({
 
     setPaymentState('preparing')
     setError('')
+    setLastSuccessfulStage('initializing')
 
     try {
       // Check device support
@@ -195,12 +198,14 @@ export default function TapToPayModal({
       if (!supportCheck.supported) {
         throw new Error('This device does not support Tap to Pay')
       }
+      setLastSuccessfulStage('device_supported')
 
       // Initialize if needed
       const initResult = await terminalService.initialize()
       if (initResult.status !== 'ready') {
         throw new Error('Failed to initialize payment terminal')
       }
+      setLastSuccessfulStage('initialized')
 
       // Connect if needed (we'll always try to connect to ensure fresh session)
       setPaymentState('preparing')
@@ -208,10 +213,12 @@ export default function TapToPayModal({
       if (connectResult.status !== 'connected') {
         throw new Error('Failed to connect to payment terminal')
       }
+      setLastSuccessfulStage('connected')
 
       // Start payment collection (this creates PaymentIntent internally)
       setPaymentState('waiting_for_card')
-      
+      setLastSuccessfulStage('payment_intent_created')
+
       const paymentResult = await terminalService.startTapToPayPayment({
         amountCents,
         currency: 'usd',
@@ -221,6 +228,7 @@ export default function TapToPayModal({
       })
 
       if (paymentResult.status === 'succeeded') {
+        setLastSuccessfulStage('payment_complete')
         setPaymentState('success')
         if (onPaymentComplete) {
           setTimeout(() => onPaymentComplete(), 1500)
@@ -231,7 +239,19 @@ export default function TapToPayModal({
     } catch (err) {
       console.error('Tap to Pay error:', err)
 
-      // Capture JS/service-layer error for diagnostics
+      // Check if this is a Capacitor rejection with structured error data
+      if (err && typeof err === 'object' && 'data' in err) {
+        // Capacitor rejection with structured error from native
+        const structuredData = (err as any).data
+        if (structuredData && structuredData.stage && structuredData.code) {
+          setStructuredError(structuredData)
+          setError(getErrorMessage(structuredData))
+          setPaymentState('failure')
+          return
+        }
+      }
+
+      // Capture JS/service-layer error for diagnostics (only if not structured)
       if (err instanceof Error) {
         const message = err.message.toLowerCase()
         if (message.includes('client-secret-required')) {
@@ -241,14 +261,8 @@ export default function TapToPayModal({
             stage: 'collect_payment',
             clientSecretPresent: false
           })
-        } else if (message.includes('payment')) {
-          setJsError({
-            code: 'payment-error',
-            message: err.message,
-            stage: 'payment_flow',
-            clientSecretPresent: undefined
-          })
         }
+        // Don't create generic payment-error that overwrites structured errors
       }
 
       setError(getErrorMessage(err))
@@ -458,6 +472,7 @@ export default function TapToPayModal({
                           )}
                         </>
                       )}
+                      <div>Last Successful Stage: {lastSuccessfulStage}</div>
                     </div>
 
                     {structuredError?.deviceState && (
