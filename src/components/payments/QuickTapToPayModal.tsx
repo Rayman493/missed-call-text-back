@@ -148,9 +148,12 @@ export default function QuickTapToPayModal({
     setShowTapToPay(true)
   }
 
-  const handlePaymentComplete = () => {
+  const handlePaymentComplete = async () => {
     setShowTapToPay(false)
     onClose()
+    // Wait a moment for reconciliation to complete before refreshing
+    // This ensures the payment is marked as paid before the UI refreshes
+    await new Promise(resolve => setTimeout(resolve, 2000))
     // Trigger a page refresh to update Payments UI
     // This ensures the newly paid payment appears as paid
     if (typeof window !== 'undefined') {

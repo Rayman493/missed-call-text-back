@@ -369,6 +369,32 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       effectiveSimulated
     );
 
+    // PRE-DISCOVERY READER CHECK: Final check immediately before discovery
+    // This catches race conditions where a reader connects between the initial check and discovery
+    Reader preDiscoveryReader = Terminal.getInstance().getConnectedReader();
+    Log.d(TAG, "[TAP_SESSION_TRACE] stage=pre_discovery_reader_check connected=" + (preDiscoveryReader != null));
+    if (preDiscoveryReader != null) {
+      // Reader is now connected - reuse it instead of discovering
+      Log.d(TAG, "[TAP_SESSION_TRACE] reader_connected_before_discovery reusing=" + preDiscoveryReader.getId());
+      discovering = false;
+      connectedReader = preDiscoveryReader;
+      status = "connected";
+      notifyListeners("statusChanged", new JSObject().put("status", status));
+
+      JSObject readerInfo = new JSObject();
+      readerInfo.put("connected", true);
+      readerInfo.put("readerId", preDiscoveryReader.getId());
+      readerInfo.put("deviceType", preDiscoveryReader.getDeviceType().toString());
+      readerInfo.put("simulated", effectiveSimulated);
+
+      notifyListeners("readerConnected", readerInfo);
+
+      JSObject ret = new JSObject();
+      ret.put("status", status);
+      call.resolve(ret);
+      return;
+    }
+
     discoveryCancelable = Terminal.getInstance().discoverReaders(
       cfg,
       new DiscoveryListener() {
@@ -396,6 +422,36 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
         @Override
         public void onFailure(@NonNull TerminalException e) {
           discovering = false;
+
+          // Handle ALREADY_CONNECTED_TO_READER race defensively
+          // If discovery failed because a reader connected during the race, treat it as success
+          if (e.getErrorCode() == com.stripe.stripeterminal.external.models.TerminalErrorCode.ALREADY_CONNECTED_TO_READER) {
+            Log.d(TAG, "[TAP_SESSION_TRACE] discovery_failed_already_connected checking_reader");
+            Reader readerAfterError = Terminal.getInstance().getConnectedReader();
+            if (readerAfterError != null) {
+              // Reader now exists - race recovery: treat as success
+              Log.d(TAG, "[TAP_SESSION_TRACE] race_recovery reader_connected=" + readerAfterError.getId());
+              connectedReader = readerAfterError;
+              status = "connected";
+              notifyListeners("statusChanged", new JSObject().put("status", status));
+
+              JSObject readerInfo = new JSObject();
+              readerInfo.put("connected", true);
+              readerInfo.put("readerId", readerAfterError.getId());
+              readerInfo.put("deviceType", readerAfterError.getDeviceType().toString());
+              readerInfo.put("simulated", effectiveSimulated);
+
+              notifyListeners("readerConnected", readerInfo);
+
+              JSObject ret = new JSObject();
+              ret.put("status", status);
+              call.resolve(ret);
+              return;
+            }
+            // No reader after error - propagate the error
+            Log.d(TAG, "[TAP_SESSION_TRACE] race_recovery_no_reader propagating_error");
+          }
+
           JSObject err = createStructuredError("discover_readers", e);
           err.put("deviceState", captureDeviceState());
           notifyListeners("error", err);
@@ -645,11 +701,15 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
   @PluginMethod
   public void cancel(PluginCall call) {
+    Log.d(TAG, "[CANCEL_TRACE] stage=cancel_start collecting=" + collectingPayment + " discovering=" + discovering);
+
     // Cancel ongoing payment collection
     if (collectingPayment && paymentCancelable != null) {
+      Log.d(TAG, "[CANCEL_TRACE] stage=cancel_payment");
       paymentCancelable.cancel(new com.stripe.stripeterminal.external.callable.Callback() {
         @Override
         public void onSuccess() {
+          Log.d(TAG, "[CANCEL_TRACE] stage=cancel_payment_success");
           collectingPayment = false;
           status = "ready";
           notifyListeners("statusChanged", new JSObject().put("status", status));
@@ -658,20 +718,31 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
         @Override
         public void onFailure(@NonNull TerminalException e) {
+          Log.d(TAG, "[CANCEL_TRACE] stage=cancel_payment_failed");
+          // Even if cancel fails, clear the guard to allow retry
+          // The Stripe SDK will handle the actual cleanup
           collectingPayment = false;
-          status = "error";
+          status = "ready";
+          Log.d(TAG, "[CANCEL_TRACE] stage=guard_cleared_despite_failure");
           JSObject err = createStructuredError("cancel_payment", e);
           err.put("deviceState", captureDeviceState());
           notifyListeners("error", err);
         }
       });
+    } else if (collectingPayment) {
+      // collectingPayment is true but paymentCancelable is null - clear guard to allow retry
+      Log.d(TAG, "[CANCEL_TRACE] stage=clear_stale_guard");
+      collectingPayment = false;
+      status = "ready";
     }
-    
+
     // Cancel ongoing discovery
     if (discovering && discoveryCancelable != null) {
+      Log.d(TAG, "[CANCEL_TRACE] stage=cancel_discovery");
       discoveryCancelable.cancel(new com.stripe.stripeterminal.external.callable.Callback() {
         @Override
         public void onSuccess() {
+          Log.d(TAG, "[CANCEL_TRACE] stage=cancel_discovery_success");
           discovering = false;
           status = "ready";
           notifyListeners("statusChanged", new JSObject().put("status", status));
@@ -679,14 +750,21 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
         @Override
         public void onFailure(@NonNull TerminalException e) {
+          Log.d(TAG, "[CANCEL_TRACE] stage=cancel_discovery_failed");
           discovering = false;
+          status = "ready";
           JSObject err = createStructuredError("cancel_discovery", e);
           err.put("deviceState", captureDeviceState());
           notifyListeners("error", err);
         }
       });
+    } else if (discovering) {
+      // discovering is true but discoveryCancelable is null - clear guard
+      Log.d(TAG, "[CANCEL_TRACE] stage=clear_stale_discovery_guard");
+      discovering = false;
+      status = "ready";
     }
-    
+
     JSObject ret = new JSObject();
     ret.put("status", status);
     call.resolve(ret);

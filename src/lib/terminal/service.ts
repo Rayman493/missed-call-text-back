@@ -445,7 +445,10 @@ export class TerminalBridgeService {
 
   async cancel() {
     if (!this.plugin) throw new Error('Stripe Terminal is not available on web')
-    return this.plugin.cancel()
+    console.log('[TERMINAL_RECONCILIATION] stage=cancel_called')
+    const result = await this.plugin.cancel()
+    console.log('[TERMINAL_RECONCILIATION] stage=cancel_complete')
+    return result
   }
 
   async disconnect() {

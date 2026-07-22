@@ -134,20 +134,63 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for duplicate pending payment for same lead/job
+    // For Terminal payments, we need to allow retry after failed attempts
+    // while preventing duplicate active PaymentIntents
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
-    const { data: duplicatePayment } = await supabaseAdmin
+    const { data: recentPayment } = await supabaseAdmin
       .from('payment_requests')
-      .select('id, status')
+      .select('id, status, stripe_payment_intent_id, lead_id, job_id')
       .eq('business_id', business.id)
-      .eq('amount_cents', amountCents)
       .eq('payment_method_type', 'card_present')
-      .eq('status', 'pending')
+      .in('status', ['pending', 'failed', 'canceled'])
       .gte('created_at', fiveMinutesAgo)
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle()
 
-    if (duplicatePayment) {
-      console.error('[TerminalPaymentIntent] Duplicate payment detected:', duplicatePayment.id)
-      return NextResponse.json({ error: 'A payment for this amount is already in progress. Please wait a few minutes.' }, { status: 409 })
+    if (recentPayment) {
+      console.log('[TerminalPaymentIntent] Recent payment found:', recentPayment.id, 'status:', recentPayment.status)
+
+      // If there's a recent pending payment for the same lead/job, check its Stripe status
+      if (recentPayment.status === 'pending' && recentPayment.stripe_payment_intent_id) {
+        try {
+          const stripe = getStripe()
+          if (stripe) {
+            const paymentIntent = await stripe.paymentIntents.retrieve(
+              recentPayment.stripe_payment_intent_id,
+              {},
+              { stripeAccount: stripeAccountId } as any
+            )
+
+            console.log('[TerminalPaymentIntent] Recent PaymentIntent status:', paymentIntent.status)
+
+            // If the recent PaymentIntent is failed/canceled, allow a new attempt
+            if (paymentIntent.status === 'canceled' || paymentIntent.status === 'requires_payment_method') {
+              console.log('[TerminalPaymentIntent] Previous attempt failed/canceled, allowing retry')
+              // Continue to create new PaymentIntent
+            }
+            // If the recent PaymentIntent is still processing/active, block to prevent duplicate charges
+            else if (paymentIntent.status === 'processing' || paymentIntent.status === 'requires_capture' || paymentIntent.status === 'requires_confirmation' || paymentIntent.status === 'requires_action') {
+              console.error('[TerminalPaymentIntent] Active PaymentIntent already exists, blocking duplicate')
+              return NextResponse.json({ error: 'A payment is already in progress. Please wait a few minutes.' }, { status: 409 })
+            }
+            // If the recent PaymentIntent succeeded, this is unusual - reconciliation should have marked it paid
+            else if (paymentIntent.status === 'succeeded') {
+              console.warn('[TerminalPaymentIntent] Previous PaymentIntent succeeded but local record still pending - reconciliation should handle this')
+              return NextResponse.json({ error: 'Previous payment succeeded. Please refresh the page.' }, { status: 409 })
+            }
+          }
+        } catch (stripeError) {
+          console.error('[TerminalPaymentIntent] Failed to check recent PaymentIntent status:', stripeError)
+          // If we can't verify, be conservative and block
+          return NextResponse.json({ error: 'Unable to verify payment status. Please wait a few minutes.' }, { status: 409 })
+        }
+      }
+      // If the recent payment is failed/canceled locally, allow a new attempt
+      else if (recentPayment.status === 'failed' || recentPayment.status === 'canceled') {
+        console.log('[TerminalPaymentIntent] Previous attempt failed/canceled locally, allowing retry')
+        // Continue to create new PaymentIntent
+      }
     }
 
     // Generate idempotency key for this payment request
