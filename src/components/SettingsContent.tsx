@@ -1814,7 +1814,7 @@ export default function SettingsContent() {
                 <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Integrations</h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">Connect services you already use.</p>
                 
-                {/* Google Calendar Card */}
+                {/* Google Calendar & Meet Card */}
                 <div className="p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-md border border-slate-200/60 dark:border-slate-700/40">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1 pr-4">
@@ -1825,7 +1825,7 @@ export default function SettingsContent() {
                           <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                           <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                         </svg>
-                        <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">Google Calendar</h3>
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">Google Calendar & Meet</h3>
                         {calendarConnected && (
                           <span className="h-10 px-3 text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400 rounded-full flex items-center gap-1.5">
                             <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
@@ -1834,7 +1834,7 @@ export default function SettingsContent() {
                         )}
                       </div>
                       <p className="text-xs text-slate-600 dark:text-slate-400">
-                        See your calendar appointments alongside your ReplyFlow jobs.
+                        Sync your calendar, create appointments, generate Google Meet links, and access available meeting transcripts and AI summaries.
                       </p>
                       {calendarConnected && calendarEmail && (
                         <p className="text-xs text-slate-500 dark:text-slate-500 mt-1.5">
@@ -1871,13 +1871,14 @@ export default function SettingsContent() {
                       </button>
                     )}
                   </div>
-                  {!calendarConnected && (
-                    <div className="mt-3 p-2.5 bg-blue-50/70 dark:bg-blue-900/15 border border-blue-200/70 dark:border-blue-800/60 rounded-lg">
-                      <p className="text-xs text-blue-700 dark:text-blue-300">
-                        Coming soon: automatic event creation.
-                      </p>
+                  <div className="mt-3">
+                    <div className="flex flex-wrap gap-2">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200/70 dark:bg-slate-700/70 text-slate-700 dark:text-slate-300">Calendar Sync</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200/70 dark:bg-slate-700/70 text-slate-700 dark:text-slate-300">Appointment Creation</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200/70 dark:bg-slate-700/70 text-slate-700 dark:text-slate-300">Google Meet</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200/70 dark:bg-slate-700/70 text-slate-700 dark:text-slate-300">Meeting Transcripts</span>
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
 
