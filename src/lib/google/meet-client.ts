@@ -1,5 +1,13 @@
 import { getGoogleAccessToken } from './token'
 
+// Encode a resource path by encoding individual segments, preserving slashes
+export function encodePathPreservingSlashes(resourceName: string): string {
+  return String(resourceName || '')
+    .split('/')
+    .map(seg => encodeURIComponent(seg))
+    .join('/')
+}
+
 export class GoogleMeetClientImpl {
   private businessId: string
   constructor(businessId: string) {
@@ -55,12 +63,21 @@ export class GoogleMeetClientImpl {
     const out: Array<{ name: string; state?: string; startTime?: string; endTime?: string }> = []
     let pageToken: string | undefined
     do {
-      const url = new URL(`https://meet.googleapis.com/v2/${encodeURIComponent(conferenceRecordName)}/transcripts`)
+      const path = encodePathPreservingSlashes(conferenceRecordName)
+      const url = new URL(`https://meet.googleapis.com/v2/${path}/transcripts`)
       url.searchParams.set('pageSize', '100')
       if (pageToken) url.searchParams.set('pageToken', pageToken)
+      console.log('[MEET DIAG] api.transcripts.requestUrl=%s', url.toString())
       const res = await fetch(url.toString(), { headers })
       console.log('[MEET DIAG] api.transcripts.status=%d pageToken=%s', res.status, pageToken || 'none')
-      if (!res.ok) break
+      if (!res.ok) {
+        try {
+          const err = await res.json().catch(() => null)
+          const ge = err?.error
+          console.log('[MEET DIAG] api.transcripts.error code=%s status=%s message=%s', ge?.code || 'n/a', ge?.status || 'n/a', ge?.message || 'n/a')
+        } catch {}
+        break
+      }
       const data = await res.json()
       const list = Array.isArray(data?.transcripts) ? data.transcripts : []
       for (const t of list) out.push({ name: t?.name, state: t?.state, startTime: t?.startTime, endTime: t?.endTime })
@@ -72,12 +89,21 @@ export class GoogleMeetClientImpl {
 
   async listTranscriptEntries(transcriptName: string, pageSize = 100, pageToken?: string): Promise<{ entries: Array<{ startTime?: string; endTime?: string; text?: string; participant?: { displayName?: string } }>; nextPageToken?: string | null }>{
     const headers = await this.authHeaders()
-    const url = new URL(`https://meet.googleapis.com/v2/${encodeURIComponent(transcriptName)}/entries`)
+    const path = encodePathPreservingSlashes(transcriptName)
+    const url = new URL(`https://meet.googleapis.com/v2/${path}/entries`)
     url.searchParams.set('pageSize', String(Math.min(100, Math.max(1, pageSize))))
     if (pageToken) url.searchParams.set('pageToken', pageToken)
+    console.log('[MEET DIAG] api.entries.requestUrl=%s', url.toString())
     const res = await fetch(url.toString(), { headers })
     console.log('[MEET DIAG] api.entries.status=%d pageToken=%s', res.status, pageToken || 'none')
-    if (!res.ok) return { entries: [], nextPageToken: null }
+    if (!res.ok) {
+      try {
+        const err = await res.json().catch(() => null)
+        const ge = err?.error
+        console.log('[MEET DIAG] api.entries.error code=%s status=%s message=%s', ge?.code || 'n/a', ge?.status || 'n/a', ge?.message || 'n/a')
+      } catch {}
+      return { entries: [], nextPageToken: null }
+    }
     const data = await res.json()
     const entries = Array.isArray(data?.transcriptEntries) ? data.transcriptEntries : []
     console.log('[MEET DIAG] api.entries.count=%d nextToken=%s', entries.length, data?.nextPageToken || 'none')
