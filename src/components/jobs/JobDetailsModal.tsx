@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { X, Briefcase, User, Phone, MapPin, FileText, Calendar, Clock, Pencil, Trash2, Link as LinkIcon, MessageSquare, CheckCircle2, AlertCircle, CreditCard, Copy, ExternalLink } from 'lucide-react'
+import { X, Briefcase, User, Phone, MapPin, FileText, Calendar, Clock, Pencil, Trash2, Link as LinkIcon, MessageSquare, CheckCircle2, AlertCircle, CreditCard, Copy, ExternalLink, Smartphone } from 'lucide-react'
 import type { Job, JobStatus } from './JobComposer'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatCurrency } from '@/lib/utils'
 import { useBusiness } from '@/contexts/BusinessContext'
 import RequestPaymentModal from '@/components/payments/RequestPaymentModal'
+import TapToPayModal from '@/components/payments/TapToPayModal'
+import { isNativeCapacitor } from '@/lib/terminal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 function NestedCancelConfirm({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
@@ -111,8 +113,10 @@ export default function JobDetailsModal({
   const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | null>(null)
   const [isLoadingPayment, setIsLoadingPayment] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [showTapToPayModal, setShowTapToPayModal] = useState(false)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const [isCancellingPayment, setIsCancellingPayment] = useState(false)
+  const [isNativeSupported, setIsNativeSupported] = useState(false)
 
   // Lock background scroll when main modal is open
   useBodyScrollLock(isOpen)
@@ -149,6 +153,13 @@ export default function JobDetailsModal({
       fetchPaymentRequest()
     }
   }, [isOpen, job.lead_id])
+
+  // Check native support when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setIsNativeSupported(isNativeCapacitor())
+    }
+  }, [isOpen])
 
   const fetchPaymentRequest = async () => {
     if (!job.lead_id) return
@@ -250,6 +261,14 @@ export default function JobDetailsModal({
       default:
         return status
     }
+  }
+
+  const getPaymentMethodLabel = (provider: string | null, methodType: string | null): string => {
+    if (methodType === 'card_present') return 'Tap to Pay'
+    if (provider === 'stripe') return 'Stripe'
+    if (provider === 'venmo') return 'Venmo'
+    if (provider === 'paypal') return 'PayPal'
+    return provider || 'Unknown'
   }
 
   if (!isOpen) return null
@@ -390,13 +409,24 @@ export default function JobDetailsModal({
               ) : !paymentRequest ? (
                 <div className="space-y-2">
                   <p className="text-sm text-slate-600 dark:text-slate-300">Not requested</p>
-                  <button
-                    onClick={() => setShowPaymentModal(true)}
-                    className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                  >
-                    <CreditCard className="w-3.5 h-3.5" />
-                    Request Payment
-                  </button>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      onClick={() => setShowPaymentModal(true)}
+                      className="flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                    >
+                      <CreditCard className="w-3.5 h-3.5" />
+                      Request Payment
+                    </button>
+                    {isNativeSupported && business?.stripe_connect_status === 'connected' && business?.stripe_charges_enabled && (
+                      <button
+                        onClick={() => setShowTapToPayModal(true)}
+                        className="flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                      >
+                        <Smartphone className="w-3.5 h-3.5" />
+                        Tap to Pay
+                      </button>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -414,7 +444,7 @@ export default function JobDetailsModal({
                   )}
                   
                   <div className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400">
-                    <span className="capitalize">{paymentRequest.payment_provider}</span>
+                    <span>{getPaymentMethodLabel(paymentRequest.payment_provider, (paymentRequest as any).payment_method_type)}</span>
                     <span>•</span>
                     <span>{new Date(paymentRequest.created_at).toLocaleDateString()}</span>
                   </div>
@@ -570,6 +600,23 @@ export default function JobDetailsModal({
           }}
           prefillLeadId={job.lead_id || undefined}
           prefillDescription={job.title || undefined}
+        />
+      )}
+
+      {/* Tap to Pay Modal */}
+      {showTapToPayModal && (
+        <TapToPayModal
+          isOpen={showTapToPayModal}
+          onClose={() => setShowTapToPayModal(false)}
+          amountCents={paymentRequest?.amount_cents || 0}
+          leadId={job.lead_id || undefined}
+          jobId={job.id}
+          description={job.title || undefined}
+          customerName={job.customer_name || undefined}
+          onPaymentComplete={() => {
+            setShowTapToPayModal(false)
+            fetchPaymentRequest()
+          }}
         />
       )}
 

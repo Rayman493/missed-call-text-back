@@ -636,6 +636,7 @@ export async function sendSms(
       const { data: insertedMessage, error: insertError } = await supabase
         .from('messages')
         .insert({
+          business_id: business.id,
           lead_id: options?.lead_id,
           conversation_id: options?.conversation_id,
           direction: 'outbound',
@@ -826,6 +827,7 @@ export async function sendMms(
     const { data: insertedMessage, error: insertError } = await supabase
       .from('messages')
       .insert({
+        business_id: business.id,
         lead_id: options?.lead_id,
         conversation_id: options?.conversation_id,
         direction: 'outbound',
@@ -896,6 +898,7 @@ export async function sendMms(
     const { data: insertedMessage, error: insertError } = await supabase
       .from('messages')
       .insert({
+        business_id: business.id,
         lead_id: options?.lead_id,
         conversation_id: options?.conversation_id,
         direction: 'outbound',

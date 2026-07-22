@@ -12,4 +12,16 @@ describe('Terminal bridge (web fallback)', () => {
     const r = await Terminal.initialize()
     expect(r.status).toBeDefined()
   })
+
+  it('supplyConnectionToken throws on web', async () => {
+    await expect(
+      Terminal.supplyConnectionToken({ requestId: 'req-123', secret: 'tok_123' })
+    ).rejects.toThrow('Stripe Terminal is not supported on web')
+  })
+
+  it('supplyConnectionTokenError throws on web', async () => {
+    await expect(
+      Terminal.supplyConnectionTokenError({ requestId: 'req-123', message: 'error' })
+    ).rejects.toThrow('Stripe Terminal is not supported on web')
+  })
 })

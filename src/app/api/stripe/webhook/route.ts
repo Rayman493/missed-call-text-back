@@ -1448,6 +1448,224 @@ export async function POST(request: Request) {
         break
       }
 
+      case 'payment_intent.succeeded': {
+        console.log('[TERMINAL PAYMENT] ========== PAYMENT_INTENT.SUCCEEDED START ==========')
+        
+        const paymentIntent = event.data.object as Stripe.PaymentIntent
+        const paymentIntentId = paymentIntent.id
+        const metadata = paymentIntent.metadata || {}
+        
+        console.log('[TERMINAL PAYMENT] PaymentIntent ID:', paymentIntentId)
+        console.log('[TERMINAL PAYMENT] Amount:', paymentIntent.amount)
+        console.log('[TERMINAL PAYMENT] Currency:', paymentIntent.currency)
+        console.log('[TERMINAL PAYMENT] Payment method types:', paymentIntent.payment_method_types)
+        console.log('[TERMINAL PAYMENT] Metadata:', metadata)
+        
+        // Only process card_present payments (Terminal)
+        if (!paymentIntent.payment_method_types.includes('card_present')) {
+          console.log('[TERMINAL PAYMENT] Not a card_present payment, skipping')
+          break
+        }
+        
+        const businessId = metadata.business_id
+        const leadId = metadata.lead_id
+        
+        if (!businessId) {
+          console.error('[TERMINAL PAYMENT] Missing business_id in metadata')
+          break
+        }
+        
+        // Find payment request by PaymentIntent ID
+        const { data: paymentRequest, error: paymentRequestError } = await supabase
+          .from('payment_requests')
+          .select('id, lead_id, business_id, status, amount_cents, currency')
+          .eq('stripe_payment_intent_id', paymentIntentId)
+          .maybeSingle()
+        
+        if (paymentRequestError || !paymentRequest) {
+          console.error('[TERMINAL PAYMENT] Payment request not found:', paymentRequestError)
+          // Still mark event as processed to avoid retries
+          await markEventProcessed(supabase, event.id, event.type, businessId)
+          break
+        }
+        
+        // If already paid, no need to update
+        if (paymentRequest.status === 'paid') {
+          console.log('[TERMINAL PAYMENT] Payment request already paid')
+          await markEventProcessed(supabase, event.id, event.type, businessId)
+          break
+        }
+        
+        // Update payment request to paid
+        const { error: updateError } = await supabase
+          .from('payment_requests')
+          .update({
+            status: 'paid',
+            paid_at: new Date().toISOString(),
+          })
+          .eq('id', paymentRequest.id)
+        
+        if (updateError) {
+          console.error('[TERMINAL PAYMENT] Failed to update payment request:', updateError)
+          // Don't mark as processed so Stripe retries
+          return NextResponse.json({ error: 'Failed to update payment request' }, { status: 500 })
+        }
+        
+        console.log('[TERMINAL PAYMENT] Payment request updated to paid:', paymentRequest.id)
+        
+        // Update lead payment status if applicable
+        let leadPhone = null
+        if (paymentRequest.lead_id) {
+          const { data: lead } = await supabase
+            .from('leads')
+            .select('id, status, caller_phone')
+            .eq('id', paymentRequest.lead_id)
+            .single()
+          
+          if (lead) {
+            leadPhone = lead.caller_phone
+            await supabase
+              .from('leads')
+              .update({
+                payment_status: 'paid',
+                last_payment_paid_at: new Date().toISOString(),
+              })
+              .eq('id', paymentRequest.lead_id)
+            
+            // Update lead status to paid if appropriate
+            if (lead.status === 'payment_requested' || lead.status === 'new' || lead.status === 'active') {
+              await supabase
+                .from('leads')
+                .update({ status: 'paid' })
+                .eq('id', paymentRequest.lead_id)
+            }
+          }
+        }
+        
+        // Create timeline event
+        try {
+          await timelineEvents.paymentCompleted(
+            paymentRequest.business_id,
+            paymentRequest.lead_id,
+            paymentRequest.id,
+            paymentRequest.amount_cents
+          )
+          console.log('[TERMINAL PAYMENT] Timeline event created successfully')
+        } catch (timelineError) {
+          console.error('[TERMINAL PAYMENT] Failed to create timeline event:', timelineError)
+        }
+        
+        // Create notification
+        try {
+          await notificationServiceServer.notifyPaymentCompleted(
+            paymentRequest.business_id,
+            paymentRequest.lead_id,
+            leadPhone || '',
+            paymentRequest.amount_cents
+          )
+          console.log('[TERMINAL PAYMENT] Notification created successfully')
+        } catch (notificationError) {
+          console.error('[TERMINAL PAYMENT] Failed to create notification:', notificationError)
+        }
+        
+        await markEventProcessed(supabase, event.id, event.type, businessId)
+        console.log('[TERMINAL PAYMENT] ========== PAYMENT_INTENT.SUCCEEDED END ==========')
+        break
+      }
+      
+      case 'payment_intent.payment_failed': {
+        console.log('[TERMINAL PAYMENT] ========== PAYMENT_INTENT.PAYMENT_FAILED START ==========')
+        
+        const paymentIntent = event.data.object as Stripe.PaymentIntent
+        const paymentIntentId = paymentIntent.id
+        const metadata = paymentIntent.metadata || {}
+        
+        console.log('[TERMINAL PAYMENT] PaymentIntent ID:', paymentIntentId)
+        console.log('[TERMINAL PAYMENT] Last payment error:', paymentIntent.last_payment_error)
+        
+        // Only process card_present payments
+        if (!paymentIntent.payment_method_types.includes('card_present')) {
+          console.log('[TERMINAL PAYMENT] Not a card_present payment, skipping')
+          break
+        }
+        
+        const businessId = metadata.business_id
+        
+        if (!businessId) {
+          console.error('[TERMINAL PAYMENT] Missing business_id in metadata')
+          await markEventProcessed(supabase, event.id, event.type, null)
+          break
+        }
+        
+        // Find and update payment request
+        const { data: paymentRequest } = await supabase
+          .from('payment_requests')
+          .select('id, lead_id, business_id')
+          .eq('stripe_payment_intent_id', paymentIntentId)
+          .maybeSingle()
+        
+        if (paymentRequest) {
+          await supabase
+            .from('payment_requests')
+            .update({
+              status: 'failed',
+              failed_at: new Date().toISOString(),
+            })
+            .eq('id', paymentRequest.id)
+          
+          console.log('[TERMINAL PAYMENT] Payment request updated to failed:', paymentRequest.id)
+        }
+        
+        await markEventProcessed(supabase, event.id, event.type, businessId)
+        console.log('[TERMINAL PAYMENT] ========== PAYMENT_INTENT.PAYMENT_FAILED END ==========')
+        break
+      }
+      
+      case 'payment_intent.canceled': {
+        console.log('[TERMINAL PAYMENT] ========== PAYMENT_INTENT.CANCELED START ==========')
+        
+        const paymentIntent = event.data.object as Stripe.PaymentIntent
+        const paymentIntentId = paymentIntent.id
+        const metadata = paymentIntent.metadata || {}
+        
+        // Only process card_present payments
+        if (!paymentIntent.payment_method_types.includes('card_present')) {
+          console.log('[TERMINAL PAYMENT] Not a card_present payment, skipping')
+          break
+        }
+        
+        const businessId = metadata.business_id
+        
+        if (!businessId) {
+          console.error('[TERMINAL PAYMENT] Missing business_id in metadata')
+          await markEventProcessed(supabase, event.id, event.type, null)
+          break
+        }
+        
+        // Find and update payment request
+        const { data: paymentRequest } = await supabase
+          .from('payment_requests')
+          .select('id, lead_id, business_id')
+          .eq('stripe_payment_intent_id', paymentIntentId)
+          .maybeSingle()
+        
+        if (paymentRequest) {
+          await supabase
+            .from('payment_requests')
+            .update({
+              status: 'cancelled',
+              cancelled_at: new Date().toISOString(),
+            })
+            .eq('id', paymentRequest.id)
+          
+          console.log('[TERMINAL PAYMENT] Payment request updated to cancelled:', paymentRequest.id)
+        }
+        
+        await markEventProcessed(supabase, event.id, event.type, businessId)
+        console.log('[TERMINAL PAYMENT] ========== PAYMENT_INTENT.CANCELED END ==========')
+        break
+      }
+
       case 'account.updated': {
         console.log('[STRIPE CONNECT] ========== ACCOUNT.UPDATED START ==========')
         

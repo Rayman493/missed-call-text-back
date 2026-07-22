@@ -1,0 +1,437 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { X, CreditCard, Smartphone, Loader2, CheckCircle2, AlertCircle, XCircle } from 'lucide-react'
+import { formatCurrency } from '@/lib/utils'
+import { TerminalBridgeService } from '@/lib/terminal/service'
+import { isNativeCapacitor } from '@/lib/terminal'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+
+interface TapToPayModalProps {
+  isOpen: boolean
+  onClose: () => void
+  amountCents: number
+  leadId?: string
+  jobId?: string
+  description?: string
+  customerName?: string
+  onPaymentComplete?: () => void
+}
+
+type PaymentState = 'ready' | 'preparing' | 'waiting_for_card' | 'processing' | 'success' | 'failure' | 'canceled' | 'pending'
+
+export default function TapToPayModal({
+  isOpen,
+  onClose,
+  amountCents,
+  leadId,
+  jobId,
+  description,
+  customerName,
+  onPaymentComplete,
+}: TapToPayModalProps) {
+  const [paymentState, setPaymentState] = useState<PaymentState>('ready')
+  const [error, setError] = useState<string>('')
+  const [terminalService] = useState(() => new TerminalBridgeService())
+  const [isNativeSupported, setIsNativeSupported] = useState(false)
+
+  useBodyScrollLock(isOpen)
+
+  // Check native support when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      const supported = isNativeCapacitor()
+      setIsNativeSupported(supported)
+      if (!supported) {
+        setError('Tap to Pay is only available on the mobile app')
+      }
+    } else {
+      // Reset when closed
+      setPaymentState('ready')
+      setError('')
+    }
+  }, [isOpen])
+
+  // Handle Android back and browser back
+  useEffect(() => {
+    if (!isOpen) return
+
+    try {
+      window.history.pushState({ rfTapToPay: true }, '')
+    } catch {}
+
+    const onPopState = () => {
+      if (paymentState === 'ready' || paymentState === 'failure' || paymentState === 'canceled') {
+        onClose()
+      }
+    }
+    window.addEventListener('popstate', onPopState)
+
+    let capListener: { remove: () => void } | undefined
+    ;(async () => {
+      try {
+        const mod = await import('@capacitor/app')
+        const { App } = mod as any
+        capListener = await App.addListener('backButton', () => {
+          if (paymentState === 'ready' || paymentState === 'failure' || paymentState === 'canceled') {
+            onClose()
+          }
+        })
+      } catch {}
+    })()
+
+    return () => {
+      window.removeEventListener('popstate', onPopState)
+      capListener?.remove?.()
+    }
+  }, [isOpen, onClose, paymentState])
+
+  const getErrorMessage = (error: any): string => {
+    // Map terminal error codes to user-friendly messages
+    if (error?.code === 'unsupported_os') {
+      return 'Tap to Pay isn\'t supported on this device.'
+    }
+    if (error?.code === 'nfc_unavailable') {
+      return 'NFC is unavailable. Check your device settings and try again.'
+    }
+    if (error?.code === 'device_not_secure') {
+      return 'This device doesn\'t meet the security requirements for Tap to Pay.'
+    }
+    if (error?.code === 'network_error') {
+      return 'We couldn\'t connect. Check your connection and try again.'
+    }
+    if (error?.code === 'payment_declined') {
+      return 'The payment was declined. Ask the customer to try another payment method.'
+    }
+    
+    // Generic error handling
+    if (error instanceof Error) {
+      const message = error.message.toLowerCase()
+      if (message.includes('support')) {
+        return 'This device does not support Tap to Pay'
+      }
+      if (message.includes('connect')) {
+        return 'Failed to connect to payment terminal'
+      }
+      if (message.includes('initialize')) {
+        return 'Failed to initialize payment terminal'
+      }
+      if (message.includes('network') || message.includes('fetch')) {
+        return 'Network error. Please check your connection and try again.'
+      }
+      return error.message
+    }
+    
+    return 'Payment failed. Please try again.'
+  }
+
+  const handleStartPayment = async () => {
+    if (!isNativeSupported) {
+      setError('Tap to Pay is only available on the mobile app')
+      return
+    }
+
+    setPaymentState('preparing')
+    setError('')
+
+    try {
+      // Check device support
+      const supportCheck = await terminalService.isSupported()
+      if (!supportCheck.supported) {
+        throw new Error('This device does not support Tap to Pay')
+      }
+
+      // Initialize if needed
+      const initResult = await terminalService.initialize()
+      if (initResult.status !== 'ready') {
+        throw new Error('Failed to initialize payment terminal')
+      }
+
+      // Connect if needed (we'll always try to connect to ensure fresh session)
+      setPaymentState('preparing')
+      const connectResult = await terminalService.connectTapToPay()
+      if (connectResult.status !== 'connected') {
+        throw new Error('Failed to connect to payment terminal')
+      }
+
+      // Start payment collection (this creates PaymentIntent internally)
+      setPaymentState('waiting_for_card')
+      
+      const paymentResult = await terminalService.startTapToPayPayment({
+        amountCents,
+        currency: 'usd',
+        leadId,
+        jobId,
+        description,
+      })
+
+      if (paymentResult.status === 'succeeded') {
+        setPaymentState('success')
+        if (onPaymentComplete) {
+          setTimeout(() => onPaymentComplete(), 1500)
+        }
+      } else {
+        throw new Error(paymentResult.error?.message || 'Payment failed')
+      }
+    } catch (err) {
+      console.error('Tap to Pay error:', err)
+      setError(getErrorMessage(err))
+      setPaymentState('failure')
+    }
+  }
+
+  const handleCancel = async () => {
+    if (paymentState === 'waiting_for_card' || paymentState === 'processing') {
+      try {
+        await terminalService.cancel()
+      } catch (err) {
+        console.error('Cancel error:', err)
+      }
+    }
+    setPaymentState('canceled')
+  }
+
+  const handleRetry = () => {
+    setPaymentState('ready')
+    setError('')
+  }
+
+  const handleDone = () => {
+    onClose()
+  }
+
+  if (!isOpen) return null
+
+  const renderState = () => {
+    switch (paymentState) {
+      case 'ready':
+        return (
+          <div className="space-y-6">
+            {/* Amount Display */}
+            <div className="text-center py-6">
+              <p className="text-sm text-muted-foreground mb-2">Amount to collect</p>
+              <p className="text-4xl font-bold text-foreground">{formatCurrency(amountCents / 100)}</p>
+            </div>
+
+            {/* Customer Context */}
+            {(customerName || description) && (
+              <div className="p-4 bg-muted/50 rounded-lg space-y-2">
+                {customerName && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-muted-foreground">Customer:</span>
+                    <span className="font-medium">{customerName}</span>
+                  </div>
+                )}
+                {description && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-muted-foreground">For:</span>
+                    <span className="font-medium">{description}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Error */}
+            {error && (
+              <div className="p-3 bg-red-900/30 border border-red-700 rounded-lg">
+                <p className="text-sm text-red-200">{error}</p>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button
+                onClick={onClose}
+                className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleStartPayment}
+                disabled={!isNativeSupported}
+                className="flex-1 px-4 py-3 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <Smartphone className="w-4 h-4" />
+                Start Tap to Pay
+              </button>
+            </div>
+          </div>
+        )
+
+      case 'preparing':
+        return (
+          <div className="flex flex-col items-center justify-center py-12 space-y-4">
+            <Loader2 className="w-12 h-12 text-primary animate-spin" />
+            <p className="text-lg font-medium">Preparing Tap to Pay...</p>
+            <p className="text-sm text-muted-foreground">Keep this screen open</p>
+          </div>
+        )
+
+      case 'waiting_for_card':
+        return (
+          <div className="flex flex-col items-center justify-center py-12 space-y-6">
+            {/* NFC Icon */}
+            <div className="relative">
+              <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
+                <Smartphone className="w-12 h-12 text-primary" />
+              </div>
+              <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-ping" />
+            </div>
+
+            <div className="text-center space-y-2">
+              <p className="text-2xl font-bold">{formatCurrency(amountCents / 100)}</p>
+              <p className="text-lg font-medium">Ready for payment</p>
+              <p className="text-sm text-muted-foreground">
+                Hold the customer's card or phone near this device
+              </p>
+            </div>
+
+            <button
+              onClick={handleCancel}
+              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        )
+
+      case 'processing':
+        return (
+          <div className="flex flex-col items-center justify-center py-12 space-y-4">
+            <Loader2 className="w-12 h-12 text-primary animate-spin" />
+            <p className="text-lg font-medium">Processing payment...</p>
+            <p className="text-sm text-muted-foreground">Do not retry or close this screen</p>
+          </div>
+        )
+
+      case 'success':
+        return (
+          <div className="flex flex-col items-center justify-center py-12 space-y-6">
+            <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+              <CheckCircle2 className="w-10 h-10 text-green-600 dark:text-green-400" />
+            </div>
+
+            <div className="text-center space-y-2">
+              <p className="text-2xl font-bold">{formatCurrency(amountCents / 100)}</p>
+              <p className="text-lg font-medium">Payment received</p>
+              <p className="text-sm text-muted-foreground">Paid successfully</p>
+            </div>
+
+            <button
+              onClick={handleDone}
+              className="px-6 py-3 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors"
+            >
+              Done
+            </button>
+          </div>
+        )
+
+      case 'failure':
+        return (
+          <div className="flex flex-col items-center justify-center py-12 space-y-6">
+            <div className="w-20 h-20 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+              <XCircle className="w-10 h-10 text-red-600 dark:text-red-400" />
+            </div>
+
+            <div className="text-center space-y-2">
+              <p className="text-lg font-medium">Payment wasn't completed</p>
+              {error && (
+                <p className="text-sm text-muted-foreground">{error}</p>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+              >
+                Close
+              </button>
+              <button
+                onClick={handleRetry}
+                className="px-4 py-2 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        )
+
+      case 'canceled':
+        return (
+          <div className="flex flex-col items-center justify-center py-12 space-y-6">
+            <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+              <XCircle className="w-10 h-10 text-slate-600 dark:text-slate-400" />
+            </div>
+
+            <div className="text-center space-y-2">
+              <p className="text-lg font-medium">Payment canceled</p>
+            </div>
+
+            <button
+              onClick={handleDone}
+              className="px-6 py-3 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors"
+            >
+              Done
+            </button>
+          </div>
+        )
+
+      case 'pending':
+        return (
+          <div className="flex flex-col items-center justify-center py-12 space-y-6">
+            <div className="w-20 h-20 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+              <AlertCircle className="w-10 h-10 text-amber-600 dark:text-amber-400" />
+            </div>
+
+            <div className="text-center space-y-2">
+              <p className="text-lg font-medium">Payment is still being confirmed</p>
+              <p className="text-sm text-muted-foreground">
+                We're confirming the final payment status. Don't charge the customer again yet.
+              </p>
+            </div>
+
+            <button
+              onClick={handleDone}
+              className="px-6 py-3 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors"
+            >
+              Done
+            </button>
+          </div>
+        )
+
+      default:
+        return null
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+              <CreditCard className="w-4 h-4 text-primary" />
+            </div>
+            <h3 className="text-lg font-semibold text-foreground">Tap to Pay</h3>
+          </div>
+          {(paymentState === 'ready' || paymentState === 'failure' || paymentState === 'canceled') && (
+            <button
+              onClick={onClose}
+              className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+              aria-label="Close modal"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-5 py-6">
+          {renderState()}
+        </div>
+      </div>
+    </div>
+  )
+}

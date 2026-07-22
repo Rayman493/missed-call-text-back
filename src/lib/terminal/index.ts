@@ -4,6 +4,11 @@ export type InitializeOptions = {
   environment?: 'test' | 'live'
 }
 
+export type ConnectTapToPayOptions = {
+  simulated?: boolean
+  locationId?: string
+}
+
 export type ConnectOptions = {
   // For Tap to Pay mobile reader
   // Additional options can be added in Phase 3
@@ -11,6 +16,14 @@ export type ConnectOptions = {
 
 export type CollectPaymentOptions = {
   paymentIntentId: string
+}
+
+export type CreateTerminalPaymentOptions = {
+  amountCents: number
+  currency?: string
+  leadId?: string
+  jobId?: string
+  description?: string
 }
 
 export type TerminalStatus =
@@ -36,19 +49,21 @@ export interface ConnectionToken {
 
 export interface TerminalPlugin {
   initialize(options?: InitializeOptions): Promise<{ status: TerminalStatus }>
-  isSupported(): Promise<{ supported: boolean; platform: 'ios' | 'android' | 'web' }>
-  // Native will request a connection token via this callback when needed
-  // JS should supply a token by resolving the returned promise
+  isSupported(): Promise<{ supported: boolean; platform: 'ios' | 'android' | 'web'; unsupportedReason?: string }>
+  // Deprecated: use connectionTokenRequested event instead
   requestConnectionToken(): Promise<ConnectionToken>
-  // JS supplies the token back to native after fetching from backend
-  supplyConnectionToken(secret: string): Promise<void>
-  connectTapToPay(options?: ConnectOptions): Promise<{ status: TerminalStatus }>
+  // JS supplies the token back to native after fetching from backend, keyed by requestId
+  supplyConnectionToken(params: { requestId: string; secret: string }): Promise<void>
+  // JS reports a failure for a specific requestId
+  supplyConnectionTokenError(params: { requestId: string; message: string }): Promise<void>
+  connectTapToPay(options?: ConnectTapToPayOptions): Promise<{ status: TerminalStatus }>
+  createTerminalPayment(options: CreateTerminalPaymentOptions): Promise<{ paymentIntentId: string; clientSecret: string; localPaymentId: string }>
   collectPayment(options: CollectPaymentOptions): Promise<TerminalPaymentResult>
   cancel(): Promise<{ status: TerminalStatus }>
   disconnect(): Promise<{ status: TerminalStatus }>
   teardown(): Promise<{ status: TerminalStatus }>
   addListener(
-    eventName: 'statusChanged' | 'paymentSucceeded' | 'paymentFailed' | 'error',
+    eventName: 'statusChanged' | 'paymentSucceeded' | 'paymentFailed' | 'error' | 'connectionTokenRequested' | 'readerConnected' | 'paymentStatusChanged',
     listenerFunc: (data: any) => void,
   ): Promise<{ remove: () => void }>
   removeAllListeners(): Promise<void>

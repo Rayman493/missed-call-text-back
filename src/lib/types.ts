@@ -117,6 +117,7 @@ export interface Business {
   stripe_charges_enabled?: boolean | null;
   stripe_payouts_enabled?: boolean | null;
   stripe_details_submitted?: boolean | null;
+  stripe_terminal_location_id?: string | null;
 
   // Multi-provider payment fields
   venmo_username?: string | null;

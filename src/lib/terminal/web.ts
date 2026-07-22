@@ -1,5 +1,5 @@
 import { WebPlugin } from '@capacitor/core'
-import type { TerminalPlugin, InitializeOptions, ConnectOptions, CollectPaymentOptions, TerminalStatus, TerminalPaymentResult } from './index'
+import type { TerminalPlugin, InitializeOptions, ConnectOptions, CollectPaymentOptions, CreateTerminalPaymentOptions, TerminalStatus, TerminalPaymentResult } from './index'
 
 export class TerminalWeb extends WebPlugin implements TerminalPlugin {
   private status: TerminalStatus = 'not_initialized'
@@ -17,11 +17,19 @@ export class TerminalWeb extends WebPlugin implements TerminalPlugin {
     throw this.unavailable('Stripe Terminal is not supported on web')
   }
 
-  async supplyConnectionToken(_secret: string): Promise<void> {
+  async supplyConnectionToken(_params: { requestId: string; secret: string }): Promise<void> {
+    throw this.unavailable('Stripe Terminal is not supported on web')
+  }
+
+  async supplyConnectionTokenError(_params: { requestId: string; message: string }): Promise<void> {
     throw this.unavailable('Stripe Terminal is not supported on web')
   }
 
   async connectTapToPay(_options?: ConnectOptions): Promise<{ status: TerminalStatus }> {
+    throw this.unavailable('Stripe Terminal is not supported on web')
+  }
+
+  async createTerminalPayment(_options: CreateTerminalPaymentOptions): Promise<{ paymentIntentId: string; clientSecret: string; localPaymentId: string }> {
     throw this.unavailable('Stripe Terminal is not supported on web')
   }
 
