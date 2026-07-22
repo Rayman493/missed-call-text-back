@@ -29,10 +29,8 @@ export async function POST(request: NextRequest, { params }: { params: { eventId
 
     if (!rec) return NextResponse.json({ error: 'Meeting not found' }, { status: 404 })
 
-    const now = new Date()
-    if (rec.next_processing_attempt_at && new Date(rec.next_processing_attempt_at) > now) {
-      return NextResponse.json({ success: false, cooldownUntil: rec.next_processing_attempt_at, status: rec.transcript_status || null })
-    }
+    // Manual retry intentionally bypasses next_processing_attempt_at to allow explicit user-initiated processing
+    // Cron processing will continue to respect cooldowns; idempotency is enforced within the processor.
 
     // Calendar times
     const times = await getEventTimes(business.id, params.eventId)
