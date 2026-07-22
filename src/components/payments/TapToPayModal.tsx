@@ -155,6 +155,9 @@ export default function TapToPayModal({
       if (error.code === 'client-secret-required') {
         return 'Payment setup could not be completed. Please try again.'
       }
+      if (error.code === 'local_payment_record_failed') {
+        return 'Payment setup could not be completed. Please try again.'
+      }
       // USER_ERROR.CANCELED is handled separately - not mapped to error message
       if (error.code === 'USER_ERROR.CANCELED' || error.nativeCode === 'USER_ERROR.CANCELED') {
         return '' // Empty message for cancellation - handled as neutral state

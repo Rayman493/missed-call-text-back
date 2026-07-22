@@ -201,20 +201,41 @@ export async function POST(request: NextRequest) {
         payment_method_type: 'card_present',
         stripe_payment_intent_id: paymentIntent.id,
         stripe_connect_account_id: stripeAccountId,
-        payment_intent_client_secret: paymentIntent.client_secret,
+        // payment_intent_client_secret NOT stored - only needed for immediate native retrieval
+        // Storing client secrets longer than necessary is not ideal for security
         requested_by: userId,
         expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes
         job_id: jobId || null,
+        token: null, // Terminal payments don't use payment links
       })
 
     if (insertError) {
-      console.error('[TerminalPaymentIntent] Failed to create payment_request record:', insertError)
-      // Return error but include PaymentIntent details for debugging
-      // The PaymentIntent was created successfully, but local persistence failed
+      console.error('[TerminalPaymentIntent] Failed to create payment_request record')
+      console.error('[TerminalPaymentIntent] Postgres code:', insertError.code)
+      console.error('[TerminalPaymentIntent] Message:', insertError.message)
+      console.error('[TerminalPaymentIntent] PaymentIntent ID:', paymentIntent.id)
+      console.error('[TerminalPaymentIntent] Business ID:', business.id)
+
+      // Log safe metadata only - never log or return raw error details
+      // Raw details can contain failing row contents including client secrets
+
+      // Cancel the PaymentIntent since local persistence failed
+      // This prevents orphaned PaymentIntents
+      try {
+        await stripe.paymentIntents.cancel(paymentIntent.id, {
+          stripeAccount: stripeAccountId,
+        } as any)
+        console.log('[TerminalPaymentIntent] Canceled orphaned PaymentIntent:', paymentIntent.id)
+      } catch (cancelError) {
+        console.error('[TerminalPaymentIntent] Failed to cancel PaymentIntent:', cancelError)
+        // Continue with error response even if cancel fails
+      }
+
+      // Return safe structured error - never raw database details
       return NextResponse.json({
-        error: 'Failed to create local payment record',
-        details: insertError,
-        paymentIntentId: paymentIntent.id,
+        error: 'local_payment_record_failed',
+        message: 'Payment setup could not be completed. Please try again.',
+        // Do not return paymentIntentId to client - not needed for UX
         // Do not return localPaymentId since it was not persisted
       }, { status: 500 })
     }

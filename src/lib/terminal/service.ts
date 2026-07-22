@@ -339,8 +339,31 @@ export class TerminalBridgeService {
     })
 
     if (!response.ok) {
-      const error = await response.text()
-      throw new Error(`Failed to create PaymentIntent: ${error}`)
+      const errorText = await response.text()
+      console.error('[TerminalPaymentIntent] Backend error response:', errorText)
+
+      // Parse structured error from backend
+      let errorMessage = 'Payment setup could not be completed. Please try again.'
+      let errorCode = 'local_payment_record_failed'
+
+      try {
+        const errorData = JSON.parse(errorText)
+        if (errorData.message) {
+          errorMessage = errorData.message
+        }
+        if (errorData.error) {
+          errorCode = errorData.error
+        }
+      } catch {
+        // If not JSON, use generic message
+        console.error('[TerminalPaymentIntent] Error response not JSON')
+      }
+
+      // Throw structured error with safe message only
+      const error = new Error(errorMessage)
+      ;(error as any).code = errorCode
+      ;(error as any).stage = 'payment_intent_create'
+      throw error
     }
 
     const data = await response.json()
