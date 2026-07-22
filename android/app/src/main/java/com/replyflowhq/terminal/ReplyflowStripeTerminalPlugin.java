@@ -597,32 +597,36 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
   }
   
   private void collectPaymentMethod(PaymentIntent paymentIntent, PluginCall originalCall) {
+    Log.d(TAG, "[PAYMENT_TRACE] stage=collect_payment_method_started paymentIntentId=" + paymentIntent.getId());
     notifyListeners("paymentStatusChanged", new JSObject().put("status", "waiting_for_card"));
-    
+
     paymentCancelable = Terminal.getInstance().collectPaymentMethod(
       paymentIntent,
       new PaymentIntentCallback() {
         @Override
         public void onSuccess(@NonNull PaymentIntent collectedIntent) {
+          Log.d(TAG, "[PAYMENT_TRACE] stage=collect_payment_method_success paymentIntentId=" + collectedIntent.getId() + " status=" + collectedIntent.getStatus());
           collectingPayment = false;
           status = "ready";
-          
+
           notifyListeners("paymentStatusChanged", new JSObject().put("status", "processing_payment"));
-          
+
           // For card_present payments, collectPaymentMethod automatically processes the payment
           // The returned PaymentIntent should be in succeeded state
           JSObject result = new JSObject();
           result.put("status", "succeeded");
           result.put("paymentIntentId", collectedIntent.getId());
-          
+
+          Log.d(TAG, "[PAYMENT_TRACE] stage=payment_complete paymentIntentId=" + collectedIntent.getId());
           notifyListeners("paymentStatusChanged", new JSObject().put("status", "payment_succeeded").put("paymentIntentId", collectedIntent.getId()));
           notifyListeners("paymentSucceeded", result);
-          
+
           originalCall.resolve(result);
         }
-        
+
         @Override
         public void onFailure(@NonNull TerminalException e) {
+          Log.d(TAG, "[PAYMENT_TRACE] stage=collect_payment_method_failed paymentIntentId=" + paymentIntent.getId() + " errorCode=" + e.getErrorCode());
           collectingPayment = false;
           status = "error";
 

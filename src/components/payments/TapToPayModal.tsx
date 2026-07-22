@@ -125,48 +125,44 @@ export default function TapToPayModal({
       console.error('[TapToPayModal] Raw error:', error)
     }
 
-    // Map terminal error codes to user-friendly messages
-    if (error?.code === 'unsupported_os') {
-      return 'Tap to Pay isn\'t supported on this device.'
-    }
-    if (error?.code === 'nfc_unavailable') {
-      return 'NFC is unavailable. Check your device settings and try again.'
-    }
-    if (error?.code === 'device_not_secure') {
-      return 'This device doesn\'t meet the security requirements for Tap to Pay.'
-    }
-    if (error?.code === 'network_error') {
-      return 'We couldn\'t connect. Check your connection and try again.'
-    }
-    if (error?.code === 'payment_declined') {
-      return 'The payment was declined. Ask the customer to try another payment method.'
-    }
-    if (error?.code === 'terminal-init-failed') {
-      // Development: log native error details
-      if (process.env.NODE_ENV === 'development') {
-        console.error('[TapToPayModal] Native error details:', {
-          nativeCode: error.nativeCode,
-          nativeMessage: error.nativeMessage,
-          exceptionType: error.exceptionType
-        })
+    // Preserve structured errors from native with specific codes
+    if (error?.code && error?.stage) {
+      // This is a structured native error - preserve it for diagnostics
+      // Only map specific known codes to user-friendly messages
+      if (error.code === 'unsupported_os') {
+        return 'Tap to Pay isn\'t supported on this device.'
       }
-      return 'Tap to Pay couldn\'t start. Restart the app and try again.'
-    }
-    if (error?.code === 'terminal-init-in-progress') {
-      return 'Tap to Pay is starting. Please wait...'
-    }
-    if (error?.code === 'client-secret-required') {
-      return 'Payment setup could not be completed. Please try again.'
+      if (error.code === 'nfc_unavailable') {
+        return 'NFC is unavailable. Check your device settings and try again.'
+      }
+      if (error.code === 'device_not_secure') {
+        return 'This device doesn\'t meet the security requirements for Tap to Pay.'
+      }
+      if (error.code === 'network_error') {
+        return 'We couldn\'t connect. Check your connection and try again.'
+      }
+      if (error.code === 'payment_declined') {
+        return 'The payment was declined. Ask the customer to try another payment method.'
+      }
+      if (error.code === 'terminal-init-failed') {
+        return 'Tap to Pay couldn\'t start. Restart the app and try again.'
+      }
+      if (error.code === 'terminal-init-in-progress') {
+        return 'Tap to Pay is starting. Please wait...'
+      }
+      if (error.code === 'client-secret-required') {
+        return 'Payment setup could not be completed. Please try again.'
+      }
+
+      // For other structured native errors, return a generic message but preserve the code for diagnostics
+      return 'Payment failed. Please try again.'
     }
 
-    // Generic error handling
+    // Generic error handling for non-structured errors
     if (error instanceof Error) {
       const message = error.message.toLowerCase()
       if (message.includes('support')) {
         return 'This device does not support Tap to Pay'
-      }
-      if (message.includes('connect')) {
-        return 'Failed to connect to payment terminal'
       }
       if (message.includes('initialize')) {
         return 'Failed to initialize payment terminal'
@@ -177,6 +173,7 @@ export default function TapToPayModal({
       if (message.includes('client-secret-required')) {
         return 'Payment setup could not be completed. Please try again.'
       }
+      // Don't swallow "connect" errors - let them through for diagnostics
       return error.message
     }
 
