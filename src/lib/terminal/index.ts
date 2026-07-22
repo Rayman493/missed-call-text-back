@@ -16,6 +16,7 @@ export type ConnectOptions = {
 
 export type CollectPaymentOptions = {
   paymentIntentId: string
+  clientSecret: string
 }
 
 export type CreateTerminalPaymentOptions = {

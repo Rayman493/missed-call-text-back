@@ -357,13 +357,17 @@ export class TerminalBridgeService {
 
   async startTapToPayPayment(options: CreateTerminalPaymentOptions) {
     if (!this.plugin) throw new Error('Stripe Terminal is not available on web')
-    
+
     // Create PaymentIntent via backend
     const { paymentIntentId, clientSecret } = await this.createTerminalPayment(options)
-    
+
+    console.log('[PAYMENT_TRACE] stage=js_payment_created paymentIntentId=' + paymentIntentId + ' client_secret_present=' + (clientSecret != null) + ' client_secret_length=' + (clientSecret?.length || 0))
+
     // Collect payment via native Terminal
+    console.log('[PAYMENT_TRACE] stage=js_collect_payment_called client_secret_present=' + (clientSecret != null))
     return this.plugin.collectPayment({
       paymentIntentId,
+      clientSecret,
     })
   }
 

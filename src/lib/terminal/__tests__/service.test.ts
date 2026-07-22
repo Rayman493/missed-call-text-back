@@ -236,5 +236,52 @@ describe('TerminalBridgeService', () => {
         'discovery-already-active'
       )
     })
+
+    it('passes clientSecret to collectPayment', async () => {
+      vi.mocked(Terminal.initialize).mockResolvedValue({ status: 'ready' })
+      vi.mocked(Terminal.addListener).mockResolvedValue({ remove: vi.fn() })
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          paymentIntentId: 'pi_123',
+          clientSecret: 'pi_123_secret_abc',
+          localPaymentId: 'local_123',
+        }),
+      }) as any
+
+      await service.initialize()
+
+      await service.startTapToPayPayment({
+        amountCents: 1000,
+        currency: 'usd',
+      })
+
+      expect(Terminal.collectPayment).toHaveBeenCalledWith({
+        paymentIntentId: 'pi_123',
+        clientSecret: 'pi_123_secret_abc',
+      })
+    })
+
+    it('throws error when payment-intent API returns missing clientSecret', async () => {
+      vi.mocked(Terminal.initialize).mockResolvedValue({ status: 'ready' })
+      vi.mocked(Terminal.addListener).mockResolvedValue({ remove: vi.fn() })
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          paymentIntentId: 'pi_123',
+          // clientSecret missing
+          localPaymentId: 'local_123',
+        }),
+      }) as any
+
+      await service.initialize()
+
+      await expect(service.startTapToPayPayment({
+        amountCents: 1000,
+        currency: 'usd',
+      })).rejects.toThrow('Invalid PaymentIntent response: missing paymentIntentId or clientSecret')
+    })
   })
 })

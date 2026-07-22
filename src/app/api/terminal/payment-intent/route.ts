@@ -183,6 +183,7 @@ export async function POST(request: NextRequest) {
     )
 
     console.log('[TerminalPaymentIntent] PaymentIntent created:', paymentIntent.id)
+    console.log('[PAYMENT_TRACE] stage=payment_intent_api_response paymentIntentId=' + paymentIntent.id + ' client_secret_present=' + (paymentIntent.client_secret != null) + ' client_secret_length=' + (paymentIntent.client_secret?.length || 0))
 
     // Create local payment_request record
     const localPaymentId = randomUUID()

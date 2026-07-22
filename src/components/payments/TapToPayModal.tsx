@@ -37,6 +37,7 @@ export default function TapToPayModal({
   const [paymentState, setPaymentState] = useState<PaymentState>('ready')
   const [error, setError] = useState<string>('')
   const [structuredError, setStructuredError] = useState<TerminalError | null>(null)
+  const [jsError, setJsError] = useState<{ code: string; message: string; stage?: string; clientSecretPresent?: boolean } | null>(null)
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false)
   const [terminalService] = useState(() => new TerminalBridgeService())
   const [isNativeSupported, setIsNativeSupported] = useState(false)
@@ -56,6 +57,7 @@ export default function TapToPayModal({
       setPaymentState('ready')
       setError('')
       setStructuredError(null)
+      setJsError(null)
       setShowTechnicalDetails(false)
     }
   }, [isOpen])
@@ -153,6 +155,9 @@ export default function TapToPayModal({
     if (error?.code === 'terminal-init-in-progress') {
       return 'Tap to Pay is starting. Please wait...'
     }
+    if (error?.code === 'client-secret-required') {
+      return 'Payment setup could not be completed. Please try again.'
+    }
 
     // Generic error handling
     if (error instanceof Error) {
@@ -168,6 +173,9 @@ export default function TapToPayModal({
       }
       if (message.includes('network') || message.includes('fetch')) {
         return 'Network error. Please check your connection and try again.'
+      }
+      if (message.includes('client-secret-required')) {
+        return 'Payment setup could not be completed. Please try again.'
       }
       return error.message
     }
@@ -225,6 +233,27 @@ export default function TapToPayModal({
       }
     } catch (err) {
       console.error('Tap to Pay error:', err)
+
+      // Capture JS/service-layer error for diagnostics
+      if (err instanceof Error) {
+        const message = err.message.toLowerCase()
+        if (message.includes('client-secret-required')) {
+          setJsError({
+            code: 'client-secret-required',
+            message: err.message,
+            stage: 'collect_payment',
+            clientSecretPresent: false
+          })
+        } else if (message.includes('payment')) {
+          setJsError({
+            code: 'payment-error',
+            message: err.message,
+            stage: 'payment_flow',
+            clientSecretPresent: undefined
+          })
+        }
+      }
+
       setError(getErrorMessage(err))
       setPaymentState('failure')
     }
@@ -391,7 +420,7 @@ export default function TapToPayModal({
             </div>
 
             {/* Technical details - only for diagnostic build */}
-            {structuredError && structuredError.deviceState?.buildMarker === DIAGNOSTIC_BUILD_MARKER && (
+            {(structuredError || jsError) && (
               <div className="w-full space-y-2">
                 <button
                   onClick={() => setShowTechnicalDetails(!showTechnicalDetails)}
@@ -414,13 +443,27 @@ export default function TapToPayModal({
                   <div className="p-3 bg-muted/50 rounded-lg space-y-2 text-xs">
                     <div className="font-medium text-foreground">Error Details</div>
                     <div className="space-y-1 text-muted-foreground">
-                      <div>Stage: {structuredError.stage}</div>
-                      <div>Code: {structuredError.code}</div>
-                      {structuredError.nativeCode && <div>Native Code: {structuredError.nativeCode}</div>}
-                      <div>Message: {structuredError.message}</div>
+                      {structuredError && (
+                        <>
+                          <div>Stage: {structuredError.stage}</div>
+                          <div>Code: {structuredError.code}</div>
+                          {structuredError.nativeCode && <div>Native Code: {structuredError.nativeCode}</div>}
+                          <div>Message: {structuredError.message}</div>
+                        </>
+                      )}
+                      {jsError && (
+                        <>
+                          <div>Stage: {jsError.stage}</div>
+                          <div>Code: {jsError.code}</div>
+                          <div>Message: {jsError.message}</div>
+                          {jsError.clientSecretPresent !== undefined && (
+                            <div>Client Secret Present: {jsError.clientSecretPresent ? 'Yes' : 'No'}</div>
+                          )}
+                        </>
+                      )}
                     </div>
 
-                    {structuredError.deviceState && (
+                    {structuredError?.deviceState && (
                       <>
                         <div className="font-medium text-foreground mt-3">Device State</div>
                         <div className="space-y-1 text-muted-foreground">

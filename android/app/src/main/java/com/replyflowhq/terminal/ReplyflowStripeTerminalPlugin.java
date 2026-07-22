@@ -538,38 +538,44 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       call.reject("not-initialized");
       return;
     }
-    
+
     if (connectedReader == null) {
       call.reject("no-reader-connected");
       return;
     }
-    
+
     // Prevent duplicate payment collection
     if (collectingPayment) {
       call.reject("payment-already-in-progress");
       return;
     }
-    
+
     String clientSecret = call.getString("clientSecret");
-    
+
+    Log.d(TAG, "[PAYMENT_TRACE] stage=native_collect_payment_received client_secret_present=" + (clientSecret != null) + " client_secret_length=" + (clientSecret != null ? clientSecret.length() : 0));
+
     if (clientSecret == null || clientSecret.isEmpty()) {
+      Log.w(TAG, "[PAYMENT_TRACE] stage=native_client_secret_missing");
       call.reject("client-secret-required");
       return;
     }
-    
+
     collectingPayment = true;
     status = "collecting";
     notifyListeners("statusChanged", new JSObject().put("status", status));
     notifyListeners("paymentStatusChanged", new JSObject().put("status", "creating_payment"));
-    
+
+    Log.d(TAG, "[PAYMENT_TRACE] stage=native_retrieve_payment_intent_started");
+
     // Retrieve PaymentIntent from Stripe
     Terminal.getInstance().retrievePaymentIntent(
       clientSecret,
       new PaymentIntentCallback() {
         @Override
         public void onSuccess(@NonNull PaymentIntent paymentIntent) {
+          Log.d(TAG, "[PAYMENT_TRACE] stage=native_retrieve_payment_intent_success paymentIntentId=" + paymentIntent.getId());
           notifyListeners("paymentStatusChanged", new JSObject().put("status", "retrieving_payment_intent"));
-          
+
           // Collect payment method
           collectPaymentMethod(paymentIntent, call);
         }
