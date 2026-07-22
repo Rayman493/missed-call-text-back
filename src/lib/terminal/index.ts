@@ -40,6 +40,8 @@ export interface TerminalPlugin {
   // Native will request a connection token via this callback when needed
   // JS should supply a token by resolving the returned promise
   requestConnectionToken(): Promise<ConnectionToken>
+  // JS supplies the token back to native after fetching from backend
+  supplyConnectionToken(secret: string): Promise<void>
   connectTapToPay(options?: ConnectOptions): Promise<{ status: TerminalStatus }>
   collectPayment(options: CollectPaymentOptions): Promise<TerminalPaymentResult>
   cancel(): Promise<{ status: TerminalStatus }>

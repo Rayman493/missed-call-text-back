@@ -47,4 +47,6 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Required by Stripe Terminal SDK for reader discovery per official docs -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 </manifest>

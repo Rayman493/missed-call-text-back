@@ -17,6 +17,10 @@ export class TerminalWeb extends WebPlugin implements TerminalPlugin {
     throw this.unavailable('Stripe Terminal is not supported on web')
   }
 
+  async supplyConnectionToken(_secret: string): Promise<void> {
+    throw this.unavailable('Stripe Terminal is not supported on web')
+  }
+
   async connectTapToPay(_options?: ConnectOptions): Promise<{ status: TerminalStatus }> {
     throw this.unavailable('Stripe Terminal is not supported on web')
   }
