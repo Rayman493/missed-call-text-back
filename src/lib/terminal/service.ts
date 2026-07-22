@@ -72,6 +72,13 @@ export class TerminalBridgeService {
     }
 
     try {
+      // Set up token request listener BEFORE initialization
+      // Stripe Terminal may request a connection token during initialization
+      await this.setupTokenRequestListener()
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[TerminalBridgeService] Token request listener registered')
+      }
+
       // Diagnostic ping before initialization - critical for verifying registration
       if (process.env.NODE_ENV === 'development') {
         console.log('[TerminalBridgeService] Calling ping() to verify JS→native communication...')
@@ -89,9 +96,6 @@ export class TerminalBridgeService {
       }
 
       const result = await this.plugin.initialize(options)
-
-      // Set up token request listener after initialization
-      await this.setupTokenRequestListener()
 
       return result
     } catch (error) {
@@ -118,19 +122,34 @@ export class TerminalBridgeService {
         return new Error('Your session expired. Please sign in again.')
       }
 
+      // Stripe setup missing errors
+      if (message.includes('stripe connect account not configured') || message.includes('stripe connect account not ready')) {
+        return new Error('Finish setting up payments before using Tap to Pay.')
+      }
+
+      // Terminal Location server failure (500)
+      if (message.includes('internal server error') || message.includes('failed to fetch terminal location')) {
+        return new Error('Tap to Pay setup couldn\'t be completed. Please try again.')
+      }
+
       // Plugin not implemented error
       if (message.includes('not implemented') || message.includes('plugin')) {
         return new Error('Tap to Pay is not available. Please reinstall the app or contact support.')
       }
 
-      // Network errors
-      if (message.includes('network') || message.includes('connection')) {
-        return new Error('Unable to connect to payment service. Please check your internet connection.')
-      }
-
       // Permission errors
       if (message.includes('permission') || message.includes('nfc')) {
         return new Error('Tap to Pay requires NFC permissions. Please enable them in your device settings.')
+      }
+
+      // Reader connection failure
+      if (message.includes('reader') || message.includes('bluetooth')) {
+        return new Error('Tap to Pay couldn\'t connect to this device.')
+      }
+
+      // Network errors - only classify as network if explicitly network-related
+      if (message.includes('network error') || message.includes('fetch failed') || message.includes('etimedout') || message.includes('enotfound')) {
+        return new Error('Network error. Please check your connection and try again.')
       }
 
       // Return original error if no mapping (but ensure it's not a raw plugin error)
