@@ -308,6 +308,21 @@ export async function POST(request: Request) {
       mediaCount: mediaUrls.length
     })
 
+    // If Twilio accepted the message but the DB insert failed, do not report full success
+    if (messageSid && !messageId) {
+      console.error('[Manual SMS] Delivery accepted by Twilio but message persistence failed. Not returning success.', {
+        messageSid,
+        leadId,
+        conversationId: conversation.id,
+        clientMessageId
+      })
+      return NextResponse.json({
+        error: 'Message delivered to carrier but failed to persist in conversation history. Do not retry blindly.',
+        clientMessageId,
+        twilio_message_sid: messageSid
+      }, { status: 500 })
+    }
+
     // Promote lead from new to active when business manually sends a message
     try {
       await promoteLeadToActiveIfNew(leadId, supabaseAdmin)

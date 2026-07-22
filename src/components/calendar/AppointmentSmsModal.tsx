@@ -34,7 +34,7 @@ export default function AppointmentSmsModal({ isOpen, onClose, leadId, initialMe
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ leadId, message: message.trim(), clientMessageId: `apt-${Date.now()}` })
+        body: JSON.stringify({ leadId, message: message.trim(), clientMessageId: crypto.randomUUID() })
       })
 
       const data = await res.json().catch(() => ({}))
