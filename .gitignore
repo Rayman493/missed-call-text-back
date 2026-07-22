@@ -28,6 +28,11 @@ android/capacitor-cordova-android-plugins/
 android/.externalNativeBuild/
 android/.cxx/
 
+# Android signing - never commit keystore or signing credentials
+*.keystore
+*.jks
+android/keystore.properties
+
 ios/
 
 # Runtime data

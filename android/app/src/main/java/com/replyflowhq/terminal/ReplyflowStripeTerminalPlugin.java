@@ -38,7 +38,7 @@ import java.util.Locale;
 @CapacitorPlugin(name = "ReplyflowStripeTerminal")
 public class ReplyflowStripeTerminalPlugin extends Plugin {
   private static final String TAG = "ReplyflowStripeTerminal";
-  private static final String BUILD_MARKER = "TAP_TO_PAY_PLUGIN_DEBUG_BUILD_2026_07_22_V1";
+  private static final String BUILD_MARKER = "TAP_TO_PAY_REAL_NFC_RELEASE_TEST_2026_07_22_V1";
 
   // Initialization state tracking
   private enum InitState {
