@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
-import { CreditCard, Copy, ExternalLink, User, X } from 'lucide-react'
+import { CreditCard, Copy, ExternalLink, User, X, Smartphone } from 'lucide-react'
 import DashboardShell from '@/components/layout/DashboardShell'
 import Button from '@/components/ui/Button'
 import PageHeader from '@/components/ui/PageHeader'
@@ -13,6 +13,8 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import LeadPickerModal from '@/components/jobs/LeadPickerModal'
 import AddCustomerModal from '@/components/AddCustomerModal'
+import QuickTapToPayModal from '@/components/payments/QuickTapToPayModal'
+import { isNativeCapacitor } from '@/lib/terminal'
 import type { JobPrefill } from '@/components/jobs/JobComposer'
 
 interface PaymentRequest {
@@ -98,11 +100,19 @@ export default function PaymentsPage() {
   const [isCancelling, setIsCancelling] = useState(false)
   const [isMarkingPaid, setIsMarkingPaid] = useState(false)
   const [showMarkPaidConfirm, setShowMarkPaidConfirm] = useState(false)
+  const [showQuickTapToPay, setShowQuickTapToPay] = useState(false)
+  const [isNativeSupported, setIsNativeSupported] = useState(false)
   const [paymentToMarkPaid, setPaymentToMarkPaid] = useState<PaymentRequest | null>(null)
   useBodyScrollLock(showPaymentModal)
 
   // Lock background scroll when mark-paid confirm is open as well
   useBodyScrollLock(showMarkPaidConfirm)
+  useBodyScrollLock(showQuickTapToPay)
+
+  // Check native support on mount
+  useEffect(() => {
+    setIsNativeSupported(isNativeCapacitor())
+  }, [])
 
   // Intercept Android Back/browser Back to close mark-paid confirm first
   useEffect(() => {
@@ -427,13 +437,59 @@ export default function PaymentsPage() {
         <PageHeader
           title="Payments"
           description="Request and track customer payments."
-          actions={(
-            <Button onClick={handleStartPaymentRequest}>
-              <CreditCard className="h-5 w-5" />
-              New Payment Request
-            </Button>
-          )}
         />
+
+        {/* Action Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Tap to Pay Card */}
+          {isNativeSupported && business?.stripe_connect_status === 'connected' && business?.stripe_charges_enabled ? (
+            <button
+              onClick={() => setShowQuickTapToPay(true)}
+              className="bg-gradient-to-br from-green-900/30 to-green-800/20 dark:from-green-900/30 dark:to-green-800/20 rounded-lg p-4 sm:p-5 border border-green-700/50 hover:border-green-600/50 transition-all hover:scale-[1.02] text-left"
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+                  <Smartphone className="w-5 h-5 text-green-400" />
+                </div>
+                <div>
+                  <h3 className="text-white font-semibold text-sm sm:text-base">Tap to Pay</h3>
+                  <p className="text-green-300/80 text-xs">Collect in-person</p>
+                </div>
+              </div>
+              <p className="text-green-200/70 text-xs sm:text-sm">Accept contactless payments now with your phone</p>
+            </button>
+          ) : !isNativeSupported && business?.stripe_connect_status === 'connected' && business?.stripe_charges_enabled ? (
+            <div className="bg-slate-800/50 rounded-lg p-4 sm:p-5 border border-slate-700/50">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-slate-700/50 rounded-lg flex items-center justify-center">
+                  <Smartphone className="w-5 h-5 text-slate-400" />
+                </div>
+                <div>
+                  <h3 className="text-slate-300 font-semibold text-sm sm:text-base">Tap to Pay</h3>
+                  <p className="text-slate-500 text-xs">Mobile app only</p>
+                </div>
+              </div>
+              <p className="text-slate-400 text-xs sm:text-sm">Available in the ReplyFlow mobile app</p>
+            </div>
+          ) : null}
+
+          {/* Request Payment Card */}
+          <button
+            onClick={handleStartPaymentRequest}
+            className="bg-gradient-to-br from-blue-900/30 to-blue-800/20 dark:from-blue-900/30 dark:to-blue-800/20 rounded-lg p-4 sm:p-5 border border-blue-700/50 hover:border-blue-600/50 transition-all hover:scale-[1.02] text-left"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                <CreditCard className="w-5 h-5 text-blue-400" />
+              </div>
+              <div>
+                <h3 className="text-white font-semibold text-sm sm:text-base">Request Payment</h3>
+                <p className="text-blue-300/80 text-xs">Send payment link</p>
+              </div>
+            </div>
+            <p className="text-blue-200/70 text-xs sm:text-sm">Send a payment request via SMS to your customer</p>
+          </button>
+        </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
@@ -1011,6 +1067,12 @@ export default function PaymentsPage() {
             </div>
           </div>
         )}
+
+        {/* Quick Tap to Pay Modal */}
+        <QuickTapToPayModal
+          isOpen={showQuickTapToPay}
+          onClose={() => setShowQuickTapToPay(false)}
+        />
     </DashboardShell>
   )
 }
