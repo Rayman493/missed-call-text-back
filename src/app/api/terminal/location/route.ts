@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import getStripe from '@/lib/stripe'
 import { db, supabaseAdmin } from '@/lib/supabase/admin'
+import { getAuthenticatedUser } from '@/lib/supabase/auth-helper'
 
 /**
  * GET /api/terminal/location
@@ -16,24 +16,21 @@ import { db, supabaseAdmin } from '@/lib/supabase/admin'
  * - Location is created in the connected account context
  */
 export async function GET(request: NextRequest) {
+  console.log('[TERMINAL_AUTH] endpoint=location')
   try {
-    // 1. Authenticate user
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
+    // 1. Authenticate user (supports both bearer token and cookie auth)
+    const user = await getAuthenticatedUser(request)
 
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-
-    if (sessionError || !session) {
-      console.error('[TerminalLocation] Authentication failed:', sessionError)
+    if (!user) {
+      console.error('[TERMINAL_AUTH] user_resolved=false')
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
 
-    const userId = session.user.id
+    console.log('[TERMINAL_AUTH] user_resolved=true')
+    const userId = user.id
     console.log('[TerminalLocation] User authenticated:', userId)
 
     // 2. Resolve authorized business

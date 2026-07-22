@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { randomUUID } from 'crypto'
 import getStripe from '@/lib/stripe'
-import { db } from '@/lib/supabase/admin'
+import { db, supabaseAdmin } from '@/lib/supabase/admin'
+import { getAuthenticatedUser } from '@/lib/supabase/auth-helper'
 
 /**
  * POST /api/terminal/payment-intent
@@ -33,6 +33,7 @@ import { db } from '@/lib/supabase/admin'
  * }
  */
 export async function POST(request: NextRequest) {
+  console.log('[TERMINAL_AUTH] endpoint=payment-intent')
   try {
     const body = await request.json()
     const { amountCents, currency = 'usd', leadId, jobId, description } = body
@@ -46,20 +47,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Amount must be greater than 0' }, { status: 400 })
     }
 
-    // Authenticate user
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
+    // Authenticate user (supports both bearer token and cookie auth)
+    const user = await getAuthenticatedUser(request)
 
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-
-    if (sessionError || !session) {
-      console.error('[TerminalPaymentIntent] Authentication failed:', sessionError)
+    if (!user) {
+      console.error('[TERMINAL_AUTH] user_resolved=false')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const userId = session.user.id
+    console.log('[TERMINAL_AUTH] user_resolved=true')
+    const userId = user.id
     console.log('[TerminalPaymentIntent] User authenticated:', userId)
 
     // Resolve authorized business
@@ -94,7 +91,7 @@ export async function POST(request: NextRequest) {
 
     // Validate lead ownership if provided
     if (leadId) {
-      const { data: lead, error: leadError } = await supabase
+      const { data: lead, error: leadError } = await supabaseAdmin
         .from('leads')
         .select('id, business_id')
         .eq('id', leadId)
@@ -113,7 +110,7 @@ export async function POST(request: NextRequest) {
 
     // Validate job ownership if provided
     if (jobId) {
-      const { data: job, error: jobError } = await supabase
+      const { data: job, error: jobError } = await supabaseAdmin
         .from('jobs')
         .select('id, business_id, status')
         .eq('id', jobId)
@@ -138,7 +135,7 @@ export async function POST(request: NextRequest) {
 
     // Check for duplicate pending payment for same lead/job
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
-    const { data: duplicatePayment } = await supabase
+    const { data: duplicatePayment } = await supabaseAdmin
       .from('payment_requests')
       .select('id, status')
       .eq('business_id', business.id)
@@ -189,7 +186,7 @@ export async function POST(request: NextRequest) {
 
     // Create local payment_request record
     const localPaymentId = randomUUID()
-    const { error: insertError } = await supabase
+    const { error: insertError } = await supabaseAdmin
       .from('payment_requests')
       .insert({
         id: localPaymentId,

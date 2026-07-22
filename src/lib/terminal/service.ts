@@ -1,5 +1,6 @@
 import Terminal, { TerminalPlugin, InitializeOptions, CollectPaymentOptions, CreateTerminalPaymentOptions, isNativeCapacitor } from './index'
 import { Capacitor } from '@capacitor/core'
+import { createBrowserClient } from '@/lib/supabase/browser'
 
 interface TokenRequest {
   requestId: string
@@ -112,6 +113,11 @@ export class TerminalBridgeService {
         console.error('[TerminalBridgeService] Raw error:', error.message)
       }
 
+      // Authentication/session errors (401)
+      if (message.includes('unauthorized') || message.includes('401') || message.includes('authentication failed')) {
+        return new Error('Your session expired. Please sign in again.')
+      }
+
       // Plugin not implemented error
       if (message.includes('not implemented') || message.includes('plugin')) {
         return new Error('Tap to Pay is not available. Please reinstall the app or contact support.')
@@ -189,12 +195,41 @@ export class TerminalBridgeService {
     }
   }
 
+  private async getAuthHeaders(): Promise<HeadersInit> {
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    }
+
+    // Add Authorization header with Supabase access token for native Capacitor app
+    const supabase = createBrowserClient()
+    if (supabase) {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[TERMINAL_AUTH] access_token_available=true')
+        }
+      } else {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[TERMINAL_AUTH] access_token_available=false')
+        }
+      }
+    }
+
+    return headers
+  }
+
   private async fetchConnectionTokenFromBackend(): Promise<{ secret: string }> {
+    const headers = await this.getAuthHeaders()
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[TERMINAL_AUTH] endpoint=/api/terminal/connection-token')
+      console.log('[TERMINAL_AUTH] credentials_mode=bearer_token')
+    }
+
     const response = await fetch('/api/terminal/connection-token', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
     })
 
     if (!response.ok) {
@@ -211,11 +246,16 @@ export class TerminalBridgeService {
   }
 
   async fetchTerminalLocation(): Promise<{ locationId: string }> {
+    const headers = await this.getAuthHeaders()
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[TERMINAL_AUTH] endpoint=/api/terminal/location')
+      console.log('[TERMINAL_AUTH] credentials_mode=bearer_token')
+    }
+
     const response = await fetch('/api/terminal/location', {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
     })
 
     if (!response.ok) {
@@ -244,11 +284,16 @@ export class TerminalBridgeService {
   }
 
   async createTerminalPayment(options: CreateTerminalPaymentOptions) {
+    const headers = await this.getAuthHeaders()
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[TERMINAL_AUTH] endpoint=/api/terminal/payment-intent')
+      console.log('[TERMINAL_AUTH] credentials_mode=bearer_token')
+    }
+
     const response = await fetch('/api/terminal/payment-intent', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify(options),
     })
 
