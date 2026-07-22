@@ -100,16 +100,67 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Retrieve the connected Stripe account to get its validated business address
+    console.log('[TerminalLocation] stripe_account.retrieve.start')
+    let accountAddress: { line1: string; city: string; state: string; postal_code: string; country: string } | null = null
+
+    try {
+      const account = await stripe.accounts.retrieve(stripeAccountId)
+      console.log('[TerminalLocation] stripe_account.retrieve.success')
+
+      // Use the company address from the connected Stripe account (already validated by Stripe)
+      if (account.company?.address) {
+        const addr = account.company.address
+        accountAddress = {
+          line1: addr.line1 || 'Mobile',
+          city: addr.city || 'Mobile',
+          state: addr.state || 'Mobile',
+          postal_code: addr.postal_code || '',
+          country: addr.country || 'US',
+        }
+        console.log('[TerminalLocation] address.source=stripe_account')
+        console.log('[TerminalLocation] address.line1.present=' + (!!addr.line1))
+        console.log('[TerminalLocation] address.city.present=' + (!!addr.city))
+        console.log('[TerminalLocation] address.state.present=' + (!!addr.state))
+        console.log('[TerminalLocation] address.postal_code.present=' + (!!addr.postal_code))
+        console.log('[TerminalLocation] address.country=' + (addr.country || 'US'))
+      }
+    } catch (accountError) {
+      console.error('[TerminalLocation] error.stage=stripe_account_retrieve')
+      console.error('[TerminalLocation] error.type=stripe_account_retrieve_failed')
+      console.error('[TerminalLocation] Failed to retrieve Stripe account:', accountError)
+    }
+
+    // If no address available from Stripe account, return setup error
+    if (!accountAddress || !accountAddress.postal_code) {
+      console.error('[TerminalLocation] error.stage=address_validation')
+      console.error('[TerminalLocation] error.type=address_missing')
+      console.error('[TerminalLocation] No valid address available from Stripe account')
+      return NextResponse.json(
+        { error: 'terminal_location_address_required', message: 'A valid business address is required before Tap to Pay can be enabled.' },
+        { status: 400 }
+      )
+    }
+
+    // Validate postal code format (basic check for US format)
+    const postalCodePattern = /^\d{5}(-\d{4})?$/
+    if (!postalCodePattern.test(accountAddress.postal_code)) {
+      console.error('[TerminalLocation] error.stage=address_validation')
+      console.error('[TerminalLocation] error.type=postal_code_invalid')
+      console.error('[TerminalLocation] Invalid postal code format')
+      return NextResponse.json(
+        { error: 'terminal_location_address_invalid', message: 'Add a valid business address before using Tap to Pay.' },
+        { status: 400 }
+      )
+    }
+
+    console.log('[TerminalLocation] address.validation.success')
+
+    // Create Terminal Location using the validated address from Stripe account
     const location = await stripe.terminal.locations.create(
       {
         display_name: business.name,
-        address: {
-          line1: 'Mobile', // Tap to Pay doesn't require a physical address
-          city: 'Mobile',
-          state: 'Mobile',
-          postal_code: '00000',
-          country: 'US',
-        },
+        address: accountAddress,
       },
       {
         stripeAccount: stripeAccountId,
@@ -141,9 +192,26 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('[TerminalLocation] error.stage=unknown')
+    console.error('[TerminalLocation] error.stage=stripe_location_create')
     console.error('[TerminalLocation] error.type=' + (error instanceof Error ? error.constructor.name : 'unknown'))
     console.error('[TerminalLocation] error.message=' + (error instanceof Error ? error.message : String(error)))
+
+    // Check for Stripe-specific errors
+    if (error && typeof error === 'object' && 'type' in error) {
+      const stripeError = error as any
+      console.error('[TerminalLocation] stripe_error.type=' + (stripeError.type || 'unknown'))
+      console.error('[TerminalLocation] stripe_error.code=' + (stripeError.code || 'unknown'))
+      console.error('[TerminalLocation] stripe_error.statusCode=' + (stripeError.statusCode || 'unknown'))
+
+      // Handle postal_code_invalid specifically
+      if (stripeError.code === 'postal_code_invalid') {
+        return NextResponse.json(
+          { error: 'terminal_location_address_invalid', message: 'Add a valid business address before using Tap to Pay.' },
+          { status: 400 }
+        )
+      }
+    }
+
     console.error('[TerminalLocation] Unexpected error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },

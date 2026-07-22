@@ -122,6 +122,15 @@ export class TerminalBridgeService {
         return new Error('Your session expired. Please sign in again.')
       }
 
+      // Terminal Location address errors
+      if (message.includes('terminal_location_address_required') || message.includes('a valid business address is required')) {
+        return new Error('Add a valid business address before using Tap to Pay.')
+      }
+
+      if (message.includes('terminal_location_address_invalid') || message.includes('add a valid business address')) {
+        return new Error('Add a valid business address before using Tap to Pay.')
+      }
+
       // Stripe setup missing errors
       if (message.includes('stripe connect account not configured') || message.includes('stripe connect account not ready')) {
         return new Error('Finish setting up payments before using Tap to Pay.')
