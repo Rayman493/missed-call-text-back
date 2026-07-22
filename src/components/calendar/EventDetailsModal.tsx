@@ -424,12 +424,12 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
         }
       }}
     >
-      <div className="bg-card rounded-2xl border border-border/50 shadow-2xl shadow-black/10 dark:shadow-black/30 w-full max-w-md max-h-[80vh] flex flex-col animate-in zoom-in-95 duration-200">
+      <div className="bg-card rounded-2xl border border-border/50 shadow-2xl shadow-black/10 dark:shadow-black/30 w-full max-w-md max-h-[90dvh] md:max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200">
         {/* Visually hidden title for accessibility */}
         <h2 id="event-title" className="sr-only">{event.summary}</h2>
         
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border/50 flex-shrink-0">
           <div className="flex items-center gap-2.5">
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${event.isHoliday ? 'bg-emerald-500/10' : 'bg-primary/10'}`}>
               <Calendar className={`w-4 h-4 ${event.isHoliday ? 'text-emerald-400' : 'text-primary'}`} />
@@ -834,7 +834,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 border-t border-border/50">
+        <div className="px-5 py-3 border-t border-border/50 bg-card flex-shrink-0" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 0.75rem)' }}>
           {/* Status moved to notes area to avoid duplication */}
           {error && (
             <div className="mb-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2">
@@ -904,9 +904,9 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
               </div>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {(event.meetingUrl || (!event.isHoliday && (lead?.id && (lead.caller_phone || job?.customer_phone)))) && (
-                <div className={`grid grid-cols-1 ${event.meetingUrl && (!event.isHoliday && (lead?.id && (lead.caller_phone || job?.customer_phone))) ? 'sm:grid-cols-2 ' : ''}gap-2`}>
+                <div className={`grid grid-cols-1 sm:grid-cols-2 gap-2`}>
                   {event.meetingUrl && (
                     <button
                       onClick={openMeetingLink}
@@ -927,7 +927,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                   )}
                 </div>
               )}
-              <div className="grid grid-cols-1 gap-2">
+              <div>
                 <button
                   onClick={openGoogleCalendar}
                   className="w-full px-4 py-2 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 border border-border/50"

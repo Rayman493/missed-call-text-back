@@ -112,101 +112,122 @@ export default function TimePicker({
           {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
-      <button
-        type="button"
-        onClick={() => !disabled && setIsOpen(!isOpen)}
-        disabled={disabled}
-        className={`w-full px-3 py-2 border rounded-md flex items-center justify-between gap-2 transition-colors ${
-          disabled
-            ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed border-border/30'
-            : 'bg-card text-foreground border-border/40 hover:border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-border/60 cursor-pointer'
-        }`}
-      >
-        <span className={value ? '' : 'text-muted-foreground'}>
-          {value ? formatTimeDisplay(value) : placeholder}
-        </span>
-        {value && !disabled && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              clearTime()
-            }}
-            className="p-1 hover:bg-accent/40 rounded transition-colors"
-          >
-            <X className="w-4 h-4 text-muted-foreground" />
-          </button>
-        )}
-        {!value && <Clock className="w-4 h-4 text-muted-foreground" />}
-      </button>
 
-      {isOpen && !disabled && (
-        <div className="absolute right-0 mt-2 z-[60] bg-popover/95 backdrop-blur-sm rounded-lg shadow-[0_4px_12px_rgb(0,0,0,0.08),0_2px_6px_rgb(0,0,0,0.05)] border border-border/40 w-[min(360px,calc(100vw-2rem))] sm:w-auto sm:max-w-[420px]">
-          <div className="p-3">
-            <label className="block text-xs font-medium text-muted-foreground mb-2">Select time (24-hour)</label>
-            <div className="flex items-stretch gap-2">
-              {/* Hour column */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-muted-foreground/70">Hour</span>
-                  <span className="text-xs font-mono text-muted-foreground">{draftHour ?? '--'}</span>
-                </div>
-                <div ref={hourListRef} className="max-h-[220px] overflow-y-auto rounded-md border border-border/30">
-                  {hours.map(h => (
-                    <button
-                      key={h}
-                      type="button"
-                      onClick={() => { setDraftHour(h); tryCommitTime(h, draftMinute) }}
-                      className={`w-full px-3 py-2 text-sm font-mono text-left transition-colors ${
-                        draftHour === h
-                          ? 'bg-primary text-primary-foreground'
-                          : 'text-foreground hover:bg-accent/40'
-                      }`}
-                    >
-                      {h}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="flex items-center text-muted-foreground/50">:</div>
-              {/* Minute column */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-muted-foreground/70">Minute</span>
-                  <span className="text-xs font-mono text-muted-foreground">{draftMinute ?? '--'}</span>
-                </div>
-                <div ref={minuteListRef} className="max-h-[220px] overflow-y-auto rounded-md border border-border/30">
-                  {minutes.map(m => (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => { setDraftMinute(m); tryCommitTime(draftHour, m) }}
-                      className={`w-full px-3 py-2 text-sm font-mono text-left transition-colors ${
-                        draftMinute === m
-                          ? 'bg-primary text-primary-foreground'
-                          : 'text-foreground hover:bg-accent/40'
-                      }`}
-                    >
-                      {m}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-          {!required && (
-            <div className="border-t border-border/20 p-2">
-              <button
-                type="button"
-                onClick={clearTime}
-                className="w-full px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent/40 rounded-md transition-colors text-left"
-              >
-                Clear
-              </button>
-            </div>
+      {/* Mobile: native time input for reliable, compact picker */}
+      <div className="sm:hidden">
+        <input
+          type="time"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          required={required}
+          disabled={disabled}
+          step={60}
+          className={`w-full px-3 py-2 border rounded-md transition-colors ${
+            disabled
+              ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed border-border/30'
+              : 'bg-card text-foreground border-border/40 hover:border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-border/60'
+          }`}
+        />
+      </div>
+
+      {/* Desktop: existing custom dropdown time picker */}
+      <div className="hidden sm:block">
+        <button
+          type="button"
+          onClick={() => !disabled && setIsOpen(!isOpen)}
+          disabled={disabled}
+          className={`w-full px-3 py-2 border rounded-md flex items-center justify-between gap-2 transition-colors ${
+            disabled
+              ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed border-border/30'
+              : 'bg-card text-foreground border-border/40 hover:border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-border/60 cursor-pointer'
+          }`}
+        >
+          <span className={value ? '' : 'text-muted-foreground'}>
+            {value ? formatTimeDisplay(value) : placeholder}
+          </span>
+          {value && !disabled && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                clearTime()
+              }}
+              className="p-1 hover:bg-accent/40 rounded transition-colors"
+            >
+              <X className="w-4 h-4 text-muted-foreground" />
+            </button>
           )}
-        </div>
-      )}
+          {!value && <Clock className="w-4 h-4 text-muted-foreground" />}
+        </button>
+
+        {isOpen && !disabled && (
+          <div className="absolute right-0 mt-2 z-[60] bg-popover/95 backdrop-blur-sm rounded-lg shadow-[0_4px_12px_rgb(0,0,0,0.08),0_2px_6px_rgb(0,0,0,0.05)] border border-border/40 w-[min(360px,calc(100vw-2rem))] sm:w-auto sm:max-w-[420px]">
+            <div className="p-3">
+              <label className="block text-xs font-medium text-muted-foreground mb-2">Select time (24-hour)</label>
+              <div className="flex items-stretch gap-2">
+                {/* Hour column */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-muted-foreground/70">Hour</span>
+                    <span className="text-xs font-mono text-muted-foreground">{draftHour ?? '--'}</span>
+                  </div>
+                  <div ref={hourListRef} className="max-h-[220px] overflow-y-auto rounded-md border border-border/30">
+                    {hours.map(h => (
+                      <button
+                        key={h}
+                        type="button"
+                        onClick={() => { setDraftHour(h); tryCommitTime(h, draftMinute) }}
+                        className={`w-full px-3 py-2 text-sm font-mono text-left transition-colors ${
+                          draftHour === h
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-foreground hover:bg-accent/40'
+                        }`}
+                      >
+                        {h}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center text-muted-foreground/50">:</div>
+                {/* Minute column */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-muted-foreground/70">Minute</span>
+                    <span className="text-xs font-mono text-muted-foreground">{draftMinute ?? '--'}</span>
+                  </div>
+                  <div ref={minuteListRef} className="max-h-[220px] overflow-y-auto rounded-md border border-border/30">
+                    {minutes.map(m => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => { setDraftMinute(m); tryCommitTime(draftHour, m) }}
+                        className={`w-full px-3 py-2 text-sm font-mono text-left transition-colors ${
+                          draftMinute === m
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-foreground hover:bg-accent/40'
+                        }`}
+                      >
+                        {m}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+            {!required && (
+              <div className="border-t border-border/20 p-2">
+                <button
+                  type="button"
+                  onClick={clearTime}
+                  className="w-full px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent/40 rounded-md transition-colors text-left"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

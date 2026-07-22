@@ -67,17 +67,9 @@ export class GoogleMeetClientImpl {
       const url = new URL(`https://meet.googleapis.com/v2/${path}/transcripts`)
       url.searchParams.set('pageSize', '100')
       if (pageToken) url.searchParams.set('pageToken', pageToken)
-      console.log('[MEET DIAG] api.transcripts.requestUrl=%s', url.toString())
       const res = await fetch(url.toString(), { headers })
       console.log('[MEET DIAG] api.transcripts.status=%d pageToken=%s', res.status, pageToken || 'none')
-      if (!res.ok) {
-        try {
-          const err = await res.json().catch(() => null)
-          const ge = err?.error
-          console.log('[MEET DIAG] api.transcripts.error code=%s status=%s message=%s', ge?.code || 'n/a', ge?.status || 'n/a', ge?.message || 'n/a')
-        } catch {}
-        break
-      }
+      if (!res.ok) break
       const data = await res.json()
       const list = Array.isArray(data?.transcripts) ? data.transcripts : []
       for (const t of list) out.push({ name: t?.name, state: t?.state, startTime: t?.startTime, endTime: t?.endTime })
@@ -93,17 +85,9 @@ export class GoogleMeetClientImpl {
     const url = new URL(`https://meet.googleapis.com/v2/${path}/entries`)
     url.searchParams.set('pageSize', String(Math.min(100, Math.max(1, pageSize))))
     if (pageToken) url.searchParams.set('pageToken', pageToken)
-    console.log('[MEET DIAG] api.entries.requestUrl=%s', url.toString())
     const res = await fetch(url.toString(), { headers })
     console.log('[MEET DIAG] api.entries.status=%d pageToken=%s', res.status, pageToken || 'none')
-    if (!res.ok) {
-      try {
-        const err = await res.json().catch(() => null)
-        const ge = err?.error
-        console.log('[MEET DIAG] api.entries.error code=%s status=%s message=%s', ge?.code || 'n/a', ge?.status || 'n/a', ge?.message || 'n/a')
-      } catch {}
-      return { entries: [], nextPageToken: null }
-    }
+    if (!res.ok) return { entries: [], nextPageToken: null }
     const data = await res.json()
     const entries = Array.isArray(data?.transcriptEntries) ? data.transcriptEntries : []
     console.log('[MEET DIAG] api.entries.count=%d nextToken=%s', entries.length, data?.nextPageToken || 'none')
