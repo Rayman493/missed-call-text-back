@@ -29,7 +29,9 @@ import com.stripe.stripeterminal.external.models.DeviceType;
 import com.stripe.stripeterminal.external.models.DiscoveryConfiguration.TapToPayDiscoveryConfiguration;
 import com.stripe.stripeterminal.external.models.ConnectionConfiguration.TapToPayConnectionConfiguration;
 import com.stripe.stripeterminal.external.models.PaymentIntent;
+import com.stripe.stripeterminal.external.models.LocaleConfig;
 import com.stripe.stripeterminal.external.callable.PaymentIntentCallback;
+import java.util.Locale;
 
 @CapacitorPlugin(name = "ReplyflowStripeTerminal")
 public class ReplyflowStripeTerminalPlugin extends Plugin {
@@ -78,6 +80,11 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     Log.d(TAG, "[STRIPE_TERMINAL_INIT] Android SDK: " + Build.VERSION.SDK_INT);
     Log.d(TAG, "[STRIPE_TERMINAL_INIT] NFC available: " + getContext().getPackageManager().hasSystemFeature(PackageManager.FEATURE_NFC));
 
+    // Get device locale for diagnostics
+    Locale deviceLocale = Locale.getDefault();
+    String localeIdentifier = deviceLocale.toString(); // e.g., "en_US"
+    Log.d(TAG, "[STRIPE_TERMINAL_INIT] Device locale: " + localeIdentifier);
+
     synchronized (initLock) {
       if (initState == InitState.INITIALIZED) {
         Log.d(TAG, "[STRIPE_TERMINAL_INIT] Already initialized, returning success");
@@ -102,13 +109,17 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
     try {
       Log.d(TAG, "[STRIPE_TERMINAL_INIT] Calling Terminal.init()...");
+      // The SDK 5.7.0 documentation mentions LocaleConfig but the actual API differs from docs
+      // Try using the deprecated overload without LocaleConfig since the new API is not available
+      Log.d(TAG, "[STRIPE_TERMINAL_INIT] Using deprecated Terminal.init() overload (without LocaleConfig)");
+      Log.d(TAG, "[STRIPE_TERMINAL_INIT] Device locale: " + localeIdentifier);
+
       Terminal.init(
         getContext().getApplicationContext(),
         LogLevel.VERBOSE,
         new JsBridgedConnectionTokenProvider(),
         new BasicTerminalListener(),
-        null, // offlineListener
-        null // localeConfig
+        null // offlineListener
       );
       initialized = true;
       initState = InitState.INITIALIZED;
