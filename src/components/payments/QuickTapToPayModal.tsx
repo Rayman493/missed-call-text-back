@@ -151,6 +151,11 @@ export default function QuickTapToPayModal({
   const handlePaymentComplete = () => {
     setShowTapToPay(false)
     onClose()
+    // Trigger a page refresh to update Payments UI
+    // This ensures the newly paid payment appears as paid
+    if (typeof window !== 'undefined') {
+      window.location.reload()
+    }
   }
 
   // Handle Android back and browser back

@@ -195,12 +195,16 @@ export default function TapToPayModal({
       return
     }
 
+    console.log('[TAP_SESSION_TRACE] stage=modal_open')
     setPaymentState('preparing')
     setError('')
+    setStructuredError(null)
+    setJsError(null)
     setLastSuccessfulStage('initializing')
 
     try {
       // Check device support
+      console.log('[TAP_SESSION_TRACE] stage=device_check')
       const supportCheck = await terminalService.isSupported()
       if (!supportCheck.supported) {
         throw new Error('This device does not support Tap to Pay')
@@ -208,6 +212,7 @@ export default function TapToPayModal({
       setLastSuccessfulStage('device_supported')
 
       // Initialize if needed
+      console.log('[TAP_SESSION_TRACE] stage=initialize')
       const initResult = await terminalService.initialize()
       if (initResult.status !== 'ready') {
         throw new Error('Failed to initialize payment terminal')
@@ -215,6 +220,7 @@ export default function TapToPayModal({
       setLastSuccessfulStage('initialized')
 
       // Connect if needed (we'll always try to connect to ensure fresh session)
+      console.log('[TAP_SESSION_TRACE] stage=connect')
       setPaymentState('preparing')
       const connectResult = await terminalService.connectTapToPay()
       if (connectResult.status !== 'connected') {
@@ -223,6 +229,7 @@ export default function TapToPayModal({
       setLastSuccessfulStage('connected')
 
       // Start payment collection (this creates PaymentIntent internally)
+      console.log('[TAP_SESSION_TRACE] stage=payment_collect')
       setPaymentState('waiting_for_card')
       setLastSuccessfulStage('payment_intent_created')
 
@@ -235,15 +242,18 @@ export default function TapToPayModal({
       })
 
       if (paymentResult.status === 'succeeded') {
+        console.log('[TAP_SESSION_TRACE] stage=payment_success')
         setLastSuccessfulStage('payment_complete')
         setPaymentState('success')
         if (onPaymentComplete) {
           setTimeout(() => onPaymentComplete(), 1500)
         }
       } else {
+        console.log('[TAP_SESSION_TRACE] stage=payment_failure')
         throw new Error(paymentResult.error?.message || 'Payment failed')
       }
     } catch (err) {
+      console.error('[TAP_SESSION_TRACE] stage=payment_error error=' + (err instanceof Error ? err.message : 'Unknown'))
       console.error('Tap to Pay error:', err)
 
       // Check if this is a Capacitor rejection with structured error data
