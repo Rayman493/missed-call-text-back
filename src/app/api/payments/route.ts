@@ -41,7 +41,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
-    // Fetch payment requests with lead information
+    // Fetch payment requests with lead and job information
     const { data: paymentRequests, error: paymentsError } = await supabase
       .from('payment_requests')
       .select(`
@@ -50,6 +50,10 @@ export async function GET(request: Request) {
           id,
           caller_phone,
           raw_metadata
+        ),
+        jobs:job_id (
+          id,
+          title
         )
       `)
       .eq('business_id', business.id)

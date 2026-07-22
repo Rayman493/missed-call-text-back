@@ -28,11 +28,17 @@ interface PaymentRequest {
   checkout_url: string | null
   expires_at: string | null
   payment_provider: string | null
+  payment_method_type: string | null
+  job_id: string | null
   leads: {
     id: string
     caller_phone: string
     raw_metadata: any
-  }
+  } | null
+  jobs: {
+    id: string
+    title: string
+  } | null
 }
 
 interface PaymentStats {
@@ -338,8 +344,17 @@ export default function PaymentsPage() {
     }
   }
 
-  const getCustomerName = (lead: PaymentRequest['leads']) => {
-    const intake = getLeadAIIntake(lead)
+  const getCustomerName = (payment: PaymentRequest) => {
+    // Terminal/card_present payments may not have a lead
+    if (!payment.leads) {
+      // If job exists, show job title
+      if (payment.jobs) {
+        return payment.jobs.title || 'Job Payment'
+      }
+      // Otherwise show Quick Payment
+      return 'Quick Payment'
+    }
+    const intake = getLeadAIIntake(payment.leads)
     return intake.customerName || 'Customer'
   }
 
@@ -624,18 +639,27 @@ export default function PaymentsPage() {
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4 text-gray-400" />
                           <span className="text-white font-medium text-sm">
-                            {getCustomerName(payment.leads)}
+                            {getCustomerName(payment)}
                           </span>
                         </div>
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${getStatusColor(payment.status)}`}>
-                          {getStatusLabel(payment.status)}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          {payment.payment_method_type === 'card_present' && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-purple-900/50 text-purple-300 border border-purple-700/50">
+                              Terminal
+                            </span>
+                          )}
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${getStatusColor(payment.status)}`}>
+                            {getStatusLabel(payment.status)}
+                          </span>
+                        </div>
                       </div>
                       <div className="space-y-1.5 text-xs">
-                        <div className="flex justify-between">
-                          <span className="text-gray-400">Phone</span>
-                          <span className="text-gray-300">{formatPhoneNumber(payment.leads.caller_phone)}</span>
-                        </div>
+                        {payment.leads && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Phone</span>
+                            <span className="text-gray-300">{formatPhoneNumber(payment.leads.caller_phone)}</span>
+                          </div>
+                        )}
                         <div className="flex justify-between">
                           <span className="text-gray-400">Amount</span>
                           <span className="text-white font-semibold">{formatCurrency(payment.amount_cents / 100)}</span>
@@ -658,12 +682,14 @@ export default function PaymentsPage() {
                         )}
                       </div>
                       <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-slate-700">
-                        <button
-                          onClick={() => router.push(`/dashboard/leads/${payment.leads.id}`)}
-                          className="flex-1 text-blue-400 hover:text-blue-300 text-xs font-medium text-center py-1.5"
-                        >
-                          View Customer
-                        </button>
+                        {payment.leads && (
+                          <button
+                            onClick={() => router.push(`/dashboard/leads/${payment.leads!.id}`)}
+                            className="flex-1 text-blue-400 hover:text-blue-300 text-xs font-medium text-center py-1.5"
+                          >
+                            View Customer
+                          </button>
+                        )}
                         {payment.status === 'pending' && payment.checkout_url && (
                           <>
                             <button
@@ -768,15 +794,20 @@ export default function PaymentsPage() {
                       paymentRequests.map((payment) => (
                         <tr key={payment.id} className="hover:bg-[#1a2235] dark:hover:bg-[#1a2235] transition-colors">
                           <td className="px-4 py-3 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <User className="h-4 w-4 text-gray-400 mr-2" />
+                            <div className="flex items-center gap-2">
+                              <User className="h-4 w-4 text-gray-400" />
                               <span className="text-white font-medium text-sm">
-                                {getCustomerName(payment.leads)}
+                                {getCustomerName(payment)}
                               </span>
+                              {payment.payment_method_type === 'card_present' && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-purple-900/50 text-purple-300 border border-purple-700/50">
+                                  Terminal
+                                </span>
+                              )}
                             </div>
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap text-gray-400 text-sm">
-                            {formatPhoneNumber(payment.leads.caller_phone)}
+                            {payment.leads ? formatPhoneNumber(payment.leads.caller_phone) : '-'}
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap text-white font-semibold text-sm">
                             {formatCurrency(payment.amount_cents / 100)}
@@ -797,12 +828,14 @@ export default function PaymentsPage() {
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap">
                             <div className="flex items-center gap-1.5 whitespace-nowrap">
-                              <button
-                                onClick={() => router.push(`/dashboard/leads/${payment.leads.id}`)}
-                                className="text-gray-400 hover:text-white text-xs font-medium"
-                              >
-                                View Customer
-                              </button>
+                              {payment.leads && (
+                                <button
+                                  onClick={() => router.push(`/dashboard/leads/${payment.leads!.id}`)}
+                                  className="text-gray-400 hover:text-white text-xs font-medium"
+                                >
+                                  View Customer
+                                </button>
+                              )}
                               {payment.status === 'pending' && payment.checkout_url && (
                                 <>
                                   <button
