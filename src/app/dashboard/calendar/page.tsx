@@ -207,6 +207,7 @@ export default function SchedulePage() {
   const [viewMode, setViewMode] = useState<'month' | 'agenda'>('month')
   const [scheduleTab, setScheduleTab] = useState<'today' | 'calendar' | 'meetings' | 'jobs' | 'tasks'>('today')
   const [completedMeetingsMap, setCompletedMeetingsMap] = useState<Map<string, { completed_at: string }>>(new Map())
+  const mobileTabsRef = useRef<HTMLDivElement>(null)
 
   // Jobs state
   const [jobs, setJobs] = useState<Job[]>([])
@@ -253,6 +254,18 @@ export default function SchedulePage() {
 
     }
   }, [searchParams])
+
+  // Ensure active mobile tab is visible when changed
+  useEffect(() => {
+    try {
+      const container = mobileTabsRef.current
+      if (!container) return
+      const el = container.querySelector(`[data-tab='${scheduleTab}']`) as HTMLElement | null
+      if (el && typeof el.scrollIntoView === 'function') {
+        el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+      }
+    } catch {}
+  }, [scheduleTab])
 
   const fetchJobs = async () => {
     setIsLoadingJobs(true)
@@ -1029,12 +1042,17 @@ export default function SchedulePage() {
                     </div>
                   </div>
 
-                  {/* Mobile tab toggle */}
+                  {/* Mobile tab toggle (scrollable) */}
                   <div className="md:hidden mb-4 mt-2">
-                    <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
+                    <div
+                      ref={mobileTabsRef}
+                      className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 overflow-x-auto whitespace-nowrap gap-1"
+                      style={{ WebkitOverflowScrolling: 'touch' }}
+                    >
                       <button
                         onClick={() => setScheduleTab('today')}
-                        className={`flex-1 flex items-center justify-center gap-1 py-1.5 px-3 rounded-md font-medium transition-all ${
+                        data-tab="today"
+                        className={`shrink-0 flex items-center justify-center gap-1 py-1.5 px-3 rounded-md font-medium transition-all whitespace-nowrap ${
                           scheduleTab === 'today'
                             ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm text-sm'
                             : 'text-slate-600 dark:text-slate-400 text-xs'
@@ -1045,7 +1063,8 @@ export default function SchedulePage() {
                       </button>
                       <button
                         onClick={() => setScheduleTab('calendar')}
-                        className={`flex-1 flex items-center justify-center gap-1 py-1.5 px-3 rounded-md font-medium transition-all ${
+                        data-tab="calendar"
+                        className={`shrink-0 flex items-center justify-center gap-1 py-1.5 px-3 rounded-md font-medium transition-all whitespace-nowrap ${
                           scheduleTab === 'calendar'
                             ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm text-sm'
                             : 'text-slate-600 dark:text-slate-400 text-xs'
@@ -1056,7 +1075,8 @@ export default function SchedulePage() {
                       </button>
                       <button
                         onClick={() => setScheduleTab('meetings')}
-                        className={`flex-1 flex items-center justify-center gap-1 py-1.5 px-3 rounded-md font-medium transition-all ${
+                        data-tab="meetings"
+                        className={`shrink-0 flex items-center justify-center gap-1 py-1.5 px-3 rounded-md font-medium transition-all whitespace-nowrap ${
                           scheduleTab === 'meetings'
                             ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm text-sm'
                             : 'text-slate-600 dark:text-slate-400 text-xs'
@@ -1067,7 +1087,8 @@ export default function SchedulePage() {
                       </button>
                       <button
                         onClick={() => setScheduleTab('jobs')}
-                        className={`flex-1 flex items-center justify-center gap-1 py-1.5 px-3 rounded-md font-medium transition-all ${
+                        data-tab="jobs"
+                        className={`shrink-0 flex items-center justify-center gap-1 py-1.5 px-3 rounded-md font-medium transition-all whitespace-nowrap ${
                           scheduleTab === 'jobs'
                             ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm text-sm'
                             : 'text-slate-600 dark:text-slate-400 text-xs'
@@ -1083,7 +1104,8 @@ export default function SchedulePage() {
                       </button>
                       <button
                         onClick={() => setScheduleTab('tasks')}
-                        className={`flex-1 flex items-center justify-center gap-1 py-1.5 px-3 rounded-md font-medium transition-all ${
+                        data-tab="tasks"
+                        className={`shrink-0 flex items-center justify-center gap-1 py-1.5 px-3 rounded-md font-medium transition-all whitespace-nowrap ${
                           scheduleTab === 'tasks'
                             ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm text-sm'
                             : 'text-slate-600 dark:text-slate-400 text-xs'
