@@ -155,6 +155,10 @@ export default function TapToPayModal({
       if (error.code === 'client-secret-required') {
         return 'Payment setup could not be completed. Please try again.'
       }
+      // USER_ERROR.CANCELED is handled separately - not mapped to error message
+      if (error.code === 'USER_ERROR.CANCELED' || error.nativeCode === 'USER_ERROR.CANCELED') {
+        return '' // Empty message for cancellation - handled as neutral state
+      }
 
       // For other structured native errors, return a generic message but preserve the code for diagnostics
       return 'Payment failed. Please try again.'
@@ -244,6 +248,15 @@ export default function TapToPayModal({
         // Capacitor rejection with structured error from native
         const structuredData = (err as any).data
         if (structuredData && structuredData.stage && structuredData.code) {
+          // Check for user cancellation - treat as neutral state, not error
+          if (structuredData.code === 'USER_ERROR.CANCELED' || structuredData.nativeCode === 'USER_ERROR.CANCELED') {
+            setStructuredError(null) // Don't show technical details for expected cancellation
+            setJsError(null)
+            setError('')
+            setPaymentState('canceled')
+            return
+          }
+
           setStructuredError(structuredData)
           setError(getErrorMessage(structuredData))
           setPaymentState('failure')
@@ -522,13 +535,14 @@ export default function TapToPayModal({
 
             <div className="text-center space-y-2">
               <p className="text-lg font-medium">Payment canceled</p>
+              <p className="text-sm text-muted-foreground">No charge was made</p>
             </div>
 
             <button
-              onClick={handleDone}
+              onClick={handleRetry}
               className="px-6 py-3 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors"
             >
-              Done
+              Start Again
             </button>
           </div>
         )
