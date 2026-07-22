@@ -149,21 +149,87 @@ export class MeetArtifactProcessor {
     }
     const conferences = await google.listConferenceRecordsBySpace(record.google_meet_space_name, { start: startBound, end: endBound })
 
-    if (!conferences || conferences.length === 0) {
-      // No conference evidence yet
-      await repo.updateMeetingRecord(record.id, {
-        transcript_status: record.transcript_status ?? 'pending',
-        next_processing_attempt_at: new Date(now().getTime() + 60 * 60 * 1000).toISOString(),
-      })
-      return { processed: false, status: 'pending', reason: 'no_conference' }
+    let useConfs = conferences || []
+    let usedFallback = false
+    if (useConfs.length === 0) {
+      // Fallback: unbounded lookup by space when bounded query returns no records
+      const fallback = await google.listConferenceRecordsBySpace(record.google_meet_space_name, {})
+      // If still empty, retain existing pending behavior
+      if (!fallback || fallback.length === 0) {
+        await repo.updateMeetingRecord(record.id, {
+          transcript_status: record.transcript_status ?? 'pending',
+          next_processing_attempt_at: new Date(now().getTime() + 60 * 60 * 1000).toISOString(),
+        })
+        return { processed: false, status: 'pending', reason: 'no_conference' }
+      }
+      useConfs = fallback
+      usedFallback = true
     }
 
-    // Deterministic selection: pick the record nearest to now within bounds
-    const pick = conferences.reduce((best, cur) => {
-      const curStart = cur.startTime ? new Date(cur.startTime).getTime() : Number.MAX_SAFE_INTEGER
-      const bestStart = best?.startTime ? new Date(best.startTime).getTime() : Number.MAX_SAFE_INTEGER
-      return curStart < bestStart ? cur : best
-    }, undefined as undefined | { name: string; startTime?: string; endTime?: string })
+    // Deterministic selection
+    // Primary (bounded) path: keep previous behavior (earliest by start).
+    // Fallback path: prefer completed records nearest to now by endTime,
+    // then by proximity to scheduled mid-time, then earliest by start as final fallback.
+    const nowTs = now().getTime()
+    const schedMidTs = (() => {
+      if (scheduled?.start && scheduled?.end) {
+        const s = new Date(scheduled.start).getTime()
+        const e = new Date(scheduled.end).getTime()
+        return s + Math.floor((e - s) / 2)
+      }
+      if (scheduled?.start) return new Date(scheduled.start).getTime()
+      return null
+    })()
+
+    const scored = useConfs.map((c) => {
+      const endTs = c.endTime ? new Date(c.endTime).getTime() : null
+      const startTs = c.startTime ? new Date(c.startTime).getTime() : null
+      const anchorTs = endTs ?? startTs ?? Number.POSITIVE_INFINITY
+      const distNow = Math.abs(anchorTs - nowTs)
+      const distSched = schedMidTs != null ? Math.abs(anchorTs - schedMidTs) : Number.POSITIVE_INFINITY
+      const completionBias = endTs != null ? -1 : 0 // prefer completed
+      return { c, endTs, startTs, anchorTs, distNow, distSched, completionBias }
+    })
+
+    // If no usable timestamps at all (all Infinity), treat as ambiguous
+    const anyTimed = scored.some(s => Number.isFinite(s.anchorTs))
+    let pick = undefined as undefined | { name: string; startTime?: string; endTime?: string }
+    if (usedFallback && anyTimed) {
+      let ambiguous = false
+      scored.sort((a, b) => {
+        // Completed first
+        if (a.completionBias !== b.completionBias) return a.completionBias - b.completionBias
+        // Nearest to now
+        if (a.distNow !== b.distNow) return a.distNow - b.distNow
+        // Nearest to scheduled mid (if available)
+        if (a.distSched !== b.distSched) return a.distSched - b.distSched
+        // Earliest anchor as last tie-breaker
+        return a.anchorTs - b.anchorTs
+      })
+
+      // Ambiguity guard: if top two are extremely close, do not guess
+      if (scored.length >= 2) {
+        const a = scored[0]
+        const b = scored[1]
+        const closeWindowMs = 5 * 60 * 1000 // 5 minutes
+        if (Math.abs(a.anchorTs - b.anchorTs) <= closeWindowMs) {
+          // Too close to confidently choose – remain pending/ambiguous
+          ambiguous = true
+        }
+      }
+
+      // Only choose if not ambiguous
+      if (!ambiguous) {
+        pick = scored[0]?.c
+      }
+    } else {
+      // Bounded path (or no usable timestamps): previous earliest-start selection
+      pick = useConfs.reduce((best, cur) => {
+        const curStart = cur.startTime ? new Date(cur.startTime).getTime() : Number.MAX_SAFE_INTEGER
+        const bestStart = best?.startTime ? new Date(best.startTime).getTime() : Number.MAX_SAFE_INTEGER
+        return curStart < bestStart ? cur : best
+      }, undefined as undefined | { name: string; startTime?: string; endTime?: string })
+    }
 
     if (!pick) {
       await repo.updateMeetingRecord(record.id, {
