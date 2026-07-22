@@ -1,6 +1,7 @@
 package com.replyflowhq.terminal;
 
 import androidx.annotation.NonNull;
+import android.util.Log;
 
 import java.util.UUID;
 
@@ -32,6 +33,14 @@ import com.stripe.stripeterminal.external.callable.PaymentIntentCallback;
 
 @CapacitorPlugin(name = "ReplyflowStripeTerminal")
 public class ReplyflowStripeTerminalPlugin extends Plugin {
+  private static final String TAG = "ReplyflowStripeTerminal";
+
+  @Override
+  public void load() {
+    super.load();
+    Log.d(TAG, "[PLUGIN] ReplyflowStripeTerminalPlugin.load() executed - plugin loaded successfully");
+  }
+
   private String status = "not_initialized";
   private volatile boolean initialized = false;
   
@@ -72,6 +81,15 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     status = "ready";
     JSObject ret = new JSObject();
     ret.put("status", status);
+    call.resolve(ret);
+  }
+
+  @PluginMethod
+  public void ping(PluginCall call) {
+    Log.d(TAG, "[PLUGIN] ping() called - JS→native communication working");
+    JSObject ret = new JSObject();
+    ret.put("available", true);
+    ret.put("platform", "android");
     call.resolve(ret);
   }
 

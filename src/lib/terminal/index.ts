@@ -48,6 +48,7 @@ export interface ConnectionToken {
 }
 
 export interface TerminalPlugin {
+  ping(): Promise<{ available: boolean; platform: string }>
   initialize(options?: InitializeOptions): Promise<{ status: TerminalStatus }>
   isSupported(): Promise<{ supported: boolean; platform: 'ios' | 'android' | 'web'; unsupportedReason?: string }>
   // Deprecated: use connectionTokenRequested event instead

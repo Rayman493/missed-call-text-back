@@ -62,6 +62,17 @@ export class TerminalBridgeService {
     }
 
     try {
+      // Diagnostic ping before initialization
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[TerminalBridgeService] Calling ping() to verify JS→native communication...')
+        try {
+          const pingResult = await this.plugin.ping()
+          console.log('[TerminalBridgeService] ping() result:', pingResult)
+        } catch (pingError) {
+          console.error('[TerminalBridgeService] ping() failed:', pingError)
+        }
+      }
+
       const result = await this.plugin.initialize(options)
 
       // Set up token request listener after initialization
@@ -82,6 +93,11 @@ export class TerminalBridgeService {
     if (error instanceof Error) {
       const message = error.message.toLowerCase()
 
+      // Log raw error in development for debugging
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[TerminalBridgeService] Raw error:', error.message)
+      }
+
       // Plugin not implemented error
       if (message.includes('not implemented') || message.includes('plugin')) {
         return new Error('Tap to Pay is not available. Please reinstall the app or contact support.')
@@ -97,7 +113,11 @@ export class TerminalBridgeService {
         return new Error('Tap to Pay requires NFC permissions. Please enable them in your device settings.')
       }
 
-      // Return original error if no mapping
+      // Return original error if no mapping (but ensure it's not a raw plugin error)
+      if (message.includes('replyflowstripeterminal') || message.includes('capacitor')) {
+        return new Error('Tap to Pay is not available. Please reinstall the app or contact support.')
+      }
+
       return error
     }
 
