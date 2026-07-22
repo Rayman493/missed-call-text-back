@@ -201,7 +201,7 @@ describe('TerminalBridgeService', () => {
     it('handles location fetch failure', async () => {
       vi.mocked(Terminal.initialize).mockResolvedValue({ status: 'ready' })
       vi.mocked(Terminal.addListener).mockResolvedValue({ remove: vi.fn() })
-      
+
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
         text: async () => 'Unauthorized',
@@ -211,6 +211,29 @@ describe('TerminalBridgeService', () => {
 
       await expect(service.connectTapToPay({ simulated: true })).rejects.toThrow(
         'Failed to fetch terminal location: Unauthorized'
+      )
+    })
+
+    it('handles discovery-already-active error', async () => {
+      vi.mocked(Terminal.initialize).mockResolvedValue({ status: 'ready' })
+      vi.mocked(Terminal.addListener).mockResolvedValue({ remove: vi.fn() })
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ locationId: 'tml_123' }),
+      }) as any
+
+      // Mock connectTapToPay to return discovery-already-active on second call
+      vi.mocked(Terminal.connectTapToPay)
+        .mockResolvedValueOnce({ status: 'connected' })
+        .mockRejectedValueOnce(new Error('discovery-already-active'))
+
+      await service.initialize()
+      await service.connectTapToPay({ simulated: true })
+
+      // Second call should fail with discovery-already-active
+      await expect(service.connectTapToPay({ simulated: true })).rejects.toThrow(
+        'discovery-already-active'
       )
     })
   })

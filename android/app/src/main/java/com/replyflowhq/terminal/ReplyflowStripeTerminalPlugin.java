@@ -337,6 +337,29 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       Log.w(TAG, "[TAP_TO_PAY_MODE] Debug build attempting real Tap to Pay - forcing simulated mode");
     }
 
+    // Reconcile plugin state with Stripe SDK state
+    Reader stripeConnectedReader = Terminal.getInstance().getConnectedReader();
+    if (stripeConnectedReader != null) {
+      // Reader is already connected - reuse it
+      Log.d(TAG, "[TAP_TO_PAY] Reader already connected, reusing: " + stripeConnectedReader.getId());
+      connectedReader = stripeConnectedReader;
+      status = "connected";
+      notifyListeners("statusChanged", new JSObject().put("status", status));
+
+      JSObject readerInfo = new JSObject();
+      readerInfo.put("connected", true);
+      readerInfo.put("readerId", stripeConnectedReader.getId());
+      readerInfo.put("deviceType", stripeConnectedReader.getDeviceType().toString());
+      readerInfo.put("simulated", effectiveSimulated);
+
+      notifyListeners("readerConnected", readerInfo);
+
+      JSObject ret = new JSObject();
+      ret.put("status", status);
+      call.resolve(ret);
+      return;
+    }
+
     discovering = true;
     status = "discovering";
     notifyListeners("statusChanged", new JSObject().put("status", status));
