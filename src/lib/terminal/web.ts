@@ -4,6 +4,10 @@ import type { TerminalPlugin, InitializeOptions, ConnectOptions, CollectPaymentO
 export class TerminalWeb extends WebPlugin implements TerminalPlugin {
   private status: TerminalStatus = 'not_initialized'
 
+  async ping(): Promise<{ available: boolean; platform: string }> {
+    return { available: false, platform: 'web' }
+  }
+
   async initialize(_options?: InitializeOptions): Promise<{ status: TerminalStatus }> {
     this.status = 'ready'
     return { status: this.status }
@@ -48,5 +52,17 @@ export class TerminalWeb extends WebPlugin implements TerminalPlugin {
   async teardown(): Promise<{ status: TerminalStatus }> {
     this.status = 'not_initialized'
     return { status: this.status }
+  }
+
+  async addListener(
+    _eventName: string,
+    _listenerFunc: (data: any) => void,
+  ): Promise<{ remove: () => Promise<void> }> {
+    // Web doesn't support native events, return no-op remover
+    return { remove: async () => {} }
+  }
+
+  async removeAllListeners(): Promise<void> {
+    // Web doesn't support native events, no-op
   }
 }

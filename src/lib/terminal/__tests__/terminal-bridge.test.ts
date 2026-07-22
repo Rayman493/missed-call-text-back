@@ -2,6 +2,12 @@ import { describe, it, expect } from 'vitest'
 import Terminal, { isNativeCapacitor } from '../index'
 
 describe('Terminal bridge (web fallback)', () => {
+  it('ping() exists and reports native unavailable on web', async () => {
+    const pingResult = await Terminal.ping()
+    expect(pingResult.available).toBe(false)
+    expect(pingResult.platform).toBe('web')
+  })
+
   it('is not supported on web', async () => {
     const support = await Terminal.isSupported()
     expect(support.platform).toBe('web')
