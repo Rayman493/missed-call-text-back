@@ -131,6 +131,11 @@ export class TerminalBridgeService {
         return new Error('Add a valid business address before using Tap to Pay.')
       }
 
+      // Debug build restriction
+      if (message.includes('debug_build_not_supported') || message.includes('debuggable')) {
+        return new Error('Real Tap to Pay requires a non-debuggable release build. Using simulated reader in debug builds.')
+      }
+
       // Stripe setup missing errors
       if (message.includes('stripe connect account not configured') || message.includes('stripe connect account not ready')) {
         return new Error('Finish setting up payments before using Tap to Pay.')
@@ -154,6 +159,11 @@ export class TerminalBridgeService {
       // Reader connection failure
       if (message.includes('reader') || message.includes('bluetooth')) {
         return new Error('Tap to Pay couldn\'t connect to this device.')
+      }
+
+      // Connection token timeout
+      if (message.includes('failed to fetch connection token: timeout')) {
+        return new Error('Tap to Pay could not obtain a secure connection token. Please try again.')
       }
 
       // Network errors - only classify as network if explicitly network-related

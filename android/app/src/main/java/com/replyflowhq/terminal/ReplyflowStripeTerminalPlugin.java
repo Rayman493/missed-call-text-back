@@ -4,6 +4,8 @@ import androidx.annotation.NonNull;
 import android.util.Log;
 
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -68,10 +70,21 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
   private com.stripe.stripeterminal.external.callable.Cancelable paymentCancelable = null;
   private volatile boolean collectingPayment = false;
 
-  // Request ID-based token handoff to avoid stale callbacks
-  private final Object tokenLock = new Object();
-  private String pendingRequestId = null;
-  private String pendingToken = null;
+  // Request-scoped token request tracking to handle concurrent requests safely
+  private static class PendingTokenRequest {
+    final String requestId;
+    final ConnectionTokenCallback callback;
+    final AtomicBoolean completed;
+    Thread timeoutThread;
+
+    PendingTokenRequest(String requestId, ConnectionTokenCallback callback) {
+      this.requestId = requestId;
+      this.callback = callback;
+      this.completed = new AtomicBoolean(false);
+    }
+  }
+
+  private final ConcurrentHashMap<String, PendingTokenRequest> pendingTokenRequests = new ConcurrentHashMap<>();
 
   @PluginMethod
   public void initialize(PluginCall call) {
@@ -221,15 +234,31 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       call.reject("invalid-params");
       return;
     }
-    synchronized (tokenLock) {
-      if (requestId.equals(pendingRequestId)) {
-        pendingToken = secret;
-        tokenLock.notifyAll();
-      } else {
-        // Stale or mismatched requestId - ignore
-        notifyListeners("error", new JSObject().put("message", "stale_request_id"));
-      }
+
+    PendingTokenRequest request = pendingTokenRequests.get(requestId);
+    if (request == null) {
+      // Stale or mismatched requestId - ignore
+      Log.w(TAG, "[TOKEN] supplyConnectionToken: requestId not found (stale): " + requestId);
+      call.resolve();
+      return;
     }
+
+    // Atomically mark as completed and invoke callback
+    if (request.completed.compareAndSet(false, true)) {
+      // Cancel timeout thread
+      if (request.timeoutThread != null) {
+        request.timeoutThread.interrupt();
+      }
+      // Remove from pending map
+      pendingTokenRequests.remove(requestId);
+      // Invoke success callback
+      request.callback.onSuccess(secret);
+      Log.d(TAG, "[TOKEN] supplyConnectionToken: success for requestId: " + requestId);
+    } else {
+      // Already completed (timeout or error already fired)
+      Log.w(TAG, "[TOKEN] supplyConnectionToken: request already completed, ignoring: " + requestId);
+    }
+
     call.resolve();
   }
 
@@ -241,13 +270,31 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       call.reject("invalid-params");
       return;
     }
-    synchronized (tokenLock) {
-      if (requestId.equals(pendingRequestId)) {
-        // Notify waiting thread that token fetch failed
-        pendingToken = null;
-        tokenLock.notifyAll();
-      }
+
+    PendingTokenRequest request = pendingTokenRequests.get(requestId);
+    if (request == null) {
+      // Stale or mismatched requestId - ignore
+      Log.w(TAG, "[TOKEN] supplyConnectionTokenError: requestId not found (stale): " + requestId);
+      call.resolve();
+      return;
     }
+
+    // Atomically mark as completed and invoke callback
+    if (request.completed.compareAndSet(false, true)) {
+      // Cancel timeout thread
+      if (request.timeoutThread != null) {
+        request.timeoutThread.interrupt();
+      }
+      // Remove from pending map
+      pendingTokenRequests.remove(requestId);
+      // Invoke failure callback
+      request.callback.onFailure(new ConnectionTokenException(message));
+      Log.d(TAG, "[TOKEN] supplyConnectionTokenError: failure for requestId: " + requestId);
+    } else {
+      // Already completed (timeout already fired)
+      Log.w(TAG, "[TOKEN] supplyConnectionTokenError: request already completed, ignoring: " + requestId);
+    }
+
     call.resolve();
   }
 
@@ -257,29 +304,39 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       call.reject("not-initialized");
       return;
     }
-    
+
     // Prevent duplicate discovery
     if (discovering) {
       call.reject("discovery-already-active");
       return;
     }
-    
-    boolean simulated = call.getBoolean("simulated", false);
+
+    boolean requestedSimulated = call.getBoolean("simulated", false);
     String locationId = call.getString("locationId");
-    
+
     // Location ID is required for Tap to Pay connection
     if (locationId == null || locationId.isEmpty()) {
       call.reject("location-id-required");
       return;
     }
-    
+
+    // Check if app is debuggable - Stripe does not allow real Tap to Pay in debuggable builds
+    boolean isDebuggable = (getContext().getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0;
+    boolean effectiveSimulated = isDebuggable ? true : requestedSimulated;
+
+    Log.d(TAG, "[TAP_TO_PAY_MODE] app_debuggable=" + isDebuggable + " requested_simulated=" + requestedSimulated + " effective_simulated=" + effectiveSimulated);
+
+    if (isDebuggable && !requestedSimulated) {
+      Log.w(TAG, "[TAP_TO_PAY_MODE] Debug build attempting real Tap to Pay - forcing simulated mode");
+    }
+
     discovering = true;
     status = "discovering";
     notifyListeners("statusChanged", new JSObject().put("status", status));
 
     // Create Tap to Pay discovery configuration
     DiscoveryConfiguration cfg = new DiscoveryConfiguration.TapToPayDiscoveryConfiguration(
-      simulated
+      effectiveSimulated
     );
 
     discoveryCancelable = Terminal.getInstance().discoverReaders(
@@ -291,7 +348,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
             // For Tap to Pay, we expect at most one local reader
             // Auto-connect to the first discovered reader
             Reader reader = readers.get(0);
-            connectToReader(reader, simulated, locationId);
+            connectToReader(reader, effectiveSimulated, locationId);
           }
         }
       },
@@ -393,7 +450,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       case TAP_TO_PAY_DEVICE_TAMPERED:
         return "device_not_secure";
       case TAP_TO_PAY_DEBUG_NOT_SUPPORTED:
-        return "developer_options_enabled";
+        return "debug_build_not_supported";
       case STRIPE_API_CONNECTION_ERROR:
         return "network_error";
       default:
@@ -618,12 +675,13 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       });
     }
     
-    // Clear token request state
-    synchronized (tokenLock) {
-      pendingRequestId = null;
-      pendingToken = null;
-      tokenLock.notifyAll();
+    // Clear all pending token requests
+    for (PendingTokenRequest request : pendingTokenRequests.values()) {
+      if (request.timeoutThread != null) {
+        request.timeoutThread.interrupt();
+      }
     }
+    pendingTokenRequests.clear();
     
     status = "not_initialized";
     initialized = false;
@@ -638,42 +696,38 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     public void fetchConnectionToken(ConnectionTokenCallback callback) {
       // Generate unique request ID for this token request
       String requestId = UUID.randomUUID().toString();
-      
-      synchronized (tokenLock) {
-        pendingRequestId = requestId;
-        pendingToken = null;
-      }
-      
+
+      // Create pending request record
+      PendingTokenRequest request = new PendingTokenRequest(requestId, callback);
+      pendingTokenRequests.put(requestId, request);
+
       // Emit event to JS to request token with requestId
       JSObject payload = new JSObject();
       payload.put("requestId", requestId);
       notifyListeners("connectionTokenRequested", payload);
-      
-      // Wait for JS to call supplyConnectionToken with matching requestId
-      new Thread(() -> {
-        synchronized (tokenLock) {
-          try {
-            tokenLock.wait(10000); // 10 second timeout
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            callback.onFailure(new ConnectionTokenException("Token request interrupted"));
-            return;
-          }
+      Log.d(TAG, "[TOKEN] fetchConnectionToken: emitted event for requestId: " + requestId);
+
+      // Start timeout thread
+      Thread timeoutThread = new Thread(() -> {
+        try {
+          Thread.sleep(10000); // 10 second timeout
+        } catch (InterruptedException e) {
+          // Thread was interrupted (token supplied successfully)
+          Log.d(TAG, "[TOKEN] timeout thread interrupted for requestId: " + requestId);
+          return;
         }
-        
-        synchronized (tokenLock) {
-          // Clear pending requestId after wait
-          pendingRequestId = null;
-          
-          if (pendingToken == null) {
-            callback.onFailure(new ConnectionTokenException("Failed to fetch connection token: timeout"));
-          } else {
-            String token = pendingToken;
-            pendingToken = null;
-            callback.onSuccess(token);
-          }
+
+        // Timeout elapsed - check if still pending and complete
+        PendingTokenRequest pending = pendingTokenRequests.get(requestId);
+        if (pending != null && pending.completed.compareAndSet(false, true)) {
+          // Still pending - complete with timeout error
+          pendingTokenRequests.remove(requestId);
+          pending.callback.onFailure(new ConnectionTokenException("Failed to fetch connection token: timeout"));
+          Log.w(TAG, "[TOKEN] timeout for requestId: " + requestId);
         }
-      }).start();
+      });
+      request.timeoutThread = timeoutThread;
+      timeoutThread.start();
     }
   }
 
