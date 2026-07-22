@@ -43,6 +43,29 @@ export interface TerminalPaymentResult {
   error?: { code?: string; message: string }
 }
 
+export interface TerminalError {
+  code: string
+  message: string
+  stage: string
+  nativeCode?: string
+  localizedMessage?: string
+  timestamp: number
+  deviceState?: DeviceState
+}
+
+export interface DeviceState {
+  buildMarker: string
+  isDebuggable: boolean
+  androidSdk: number
+  manufacturer: string
+  model: string
+  nfcAvailable: boolean
+  nfcEnabled: boolean
+  terminalInitialized: boolean
+  connectionStatus: string
+  readerConnected: boolean
+}
+
 export interface ConnectionToken {
   secret: string
 }

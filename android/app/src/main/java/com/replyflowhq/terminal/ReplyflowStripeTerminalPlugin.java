@@ -38,7 +38,7 @@ import java.util.Locale;
 @CapacitorPlugin(name = "ReplyflowStripeTerminal")
 public class ReplyflowStripeTerminalPlugin extends Plugin {
   private static final String TAG = "ReplyflowStripeTerminal";
-  private static final String BUILD_MARKER = "TAP_TO_PAY_REAL_NFC_RELEASE_TEST_2026_07_22_V1";
+  private static final String BUILD_MARKER = "TAP_TO_PAY_REAL_NFC_DIAGNOSTIC_2026_07_22_V2";
 
   // Initialization state tracking
   private enum InitState {
@@ -230,7 +230,10 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
   public void supplyConnectionToken(PluginCall call) {
     String requestId = call.getString("requestId");
     String secret = call.getString("secret");
+    Log.d(TAG, "[TOKEN_TRACE] stage=native_supply_received requestId=" + requestId + " token_present=" + (secret != null && !secret.isEmpty()) + " token_length=" + (secret != null ? secret.length() : 0));
+
     if (requestId == null || requestId.isEmpty() || secret == null || secret.isEmpty()) {
+      Log.w(TAG, "[TOKEN_TRACE] stage=native_supply_rejected requestId=" + requestId + " reason=invalid_params");
       call.reject("invalid-params");
       return;
     }
@@ -238,25 +241,29 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     PendingTokenRequest request = pendingTokenRequests.get(requestId);
     if (request == null) {
       // Stale or mismatched requestId - ignore
-      Log.w(TAG, "[TOKEN] supplyConnectionToken: requestId not found (stale): " + requestId);
+      Log.w(TAG, "[TOKEN_TRACE] stage=native_request_not_found requestId=" + requestId + " pendingCount=" + pendingTokenRequests.size());
       call.resolve();
       return;
     }
 
+    Log.d(TAG, "[TOKEN_TRACE] stage=native_request_found requestId=" + requestId + " completed=" + request.completed.get());
+
     // Atomically mark as completed and invoke callback
     if (request.completed.compareAndSet(false, true)) {
+      Log.d(TAG, "[TOKEN_TRACE] stage=native_completion_claimed requestId=" + requestId);
       // Cancel timeout thread
       if (request.timeoutThread != null) {
         request.timeoutThread.interrupt();
+        Log.d(TAG, "[TOKEN_TRACE] stage=native_timeout_interrupted requestId=" + requestId);
       }
       // Remove from pending map
       pendingTokenRequests.remove(requestId);
       // Invoke success callback
       request.callback.onSuccess(secret);
-      Log.d(TAG, "[TOKEN] supplyConnectionToken: success for requestId: " + requestId);
+      Log.d(TAG, "[TOKEN_TRACE] stage=native_callback_success requestId=" + requestId);
     } else {
       // Already completed (timeout or error already fired)
-      Log.w(TAG, "[TOKEN] supplyConnectionToken: request already completed, ignoring: " + requestId);
+      Log.w(TAG, "[TOKEN_TRACE] stage=native_already_completed requestId=" + requestId + " reason=timeout_already_fired");
     }
 
     call.resolve();
@@ -366,9 +373,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
         @Override
         public void onFailure(@NonNull TerminalException e) {
           discovering = false;
-          JSObject err = new JSObject();
-          err.put("code", mapTerminalErrorCode(e.getErrorCode()));
-          err.put("message", e.getMessage());
+          JSObject err = createStructuredError("discover_readers", e);
+          err.put("deviceState", captureDeviceState());
           notifyListeners("error", err);
           status = "error";
           notifyListeners("statusChanged", new JSObject().put("status", status));
@@ -413,9 +419,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
         @Override
         public void onFailure(@NonNull TerminalException e) {
-          JSObject err = new JSObject();
-          err.put("code", mapTerminalErrorCode(e.getErrorCode()));
-          err.put("message", e.getMessage());
+          JSObject err = createStructuredError("connect_reader", e);
+          err.put("deviceState", captureDeviceState());
           notifyListeners("error", err);
           status = "error";
           notifyListeners("statusChanged", new JSObject().put("status", status));
@@ -428,7 +433,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     if (errorCode == null) {
       return "unknown";
     }
-    
+
     // Map Stripe SDK error codes to stable app-level codes
     switch (errorCode) {
       case UNSUPPORTED_SDK:
@@ -456,6 +461,45 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       default:
         return errorCode.toString();
     }
+  }
+
+  // Create structured error payload for diagnostics
+  private JSObject createStructuredError(String stage, com.stripe.stripeterminal.external.models.TerminalException e) {
+    JSObject err = new JSObject();
+    err.put("code", mapTerminalErrorCode(e.getErrorCode()));
+    err.put("message", e.getMessage());
+    err.put("stage", stage);
+
+    // Include native error details for diagnostics
+    if (e.getErrorCode() != null) {
+      err.put("nativeCode", e.getErrorCode().toString());
+    }
+    if (e.getLocalizedMessage() != null && !e.getLocalizedMessage().equals(e.getMessage())) {
+      err.put("localizedMessage", e.getLocalizedMessage());
+    }
+    err.put("timestamp", System.currentTimeMillis());
+
+    return err;
+  }
+
+  // Capture device state snapshot for diagnostics
+  private JSObject captureDeviceState() {
+    JSObject state = new JSObject();
+    state.put("buildMarker", BUILD_MARKER);
+    state.put("isDebuggable", (getContext().getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0);
+    state.put("androidSdk", Build.VERSION.SDK_INT);
+    state.put("manufacturer", Build.MANUFACTURER);
+    state.put("model", Build.MODEL);
+    state.put("nfcAvailable", getContext().getPackageManager().hasSystemFeature(PackageManager.FEATURE_NFC));
+    state.put("terminalInitialized", initialized);
+    state.put("connectionStatus", status);
+    state.put("readerConnected", connectedReader != null);
+
+    // Check NFC enabled state
+    NfcAdapter nfcAdapter = NfcAdapter.getDefaultAdapter(getContext());
+    state.put("nfcEnabled", nfcAdapter != null && nfcAdapter.isEnabled());
+
+    return state;
   }
 
   @PluginMethod
@@ -511,13 +555,12 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
         public void onFailure(@NonNull TerminalException e) {
           collectingPayment = false;
           status = "error";
-          
-          JSObject err = new JSObject();
-          err.put("code", mapTerminalErrorCode(e.getErrorCode()));
-          err.put("message", e.getMessage());
+
+          JSObject err = createStructuredError("retrieve_payment_intent", e);
+          err.put("deviceState", captureDeviceState());
           notifyListeners("error", err);
           notifyListeners("paymentStatusChanged", new JSObject().put("status", "payment_failed").put("error", err));
-          
+
           call.reject("Failed to retrieve PaymentIntent: " + e.getMessage());
         }
       }
@@ -553,13 +596,12 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
         public void onFailure(@NonNull TerminalException e) {
           collectingPayment = false;
           status = "error";
-          
-          JSObject err = new JSObject();
-          err.put("code", mapTerminalErrorCode(e.getErrorCode()));
-          err.put("message", e.getMessage());
+
+          JSObject err = createStructuredError("collect_payment_method", e);
+          err.put("deviceState", captureDeviceState());
           notifyListeners("error", err);
           notifyListeners("paymentStatusChanged", new JSObject().put("status", "payment_failed").put("error", err));
-          
+
           originalCall.reject("Failed to collect payment method: " + e.getMessage());
         }
       }
@@ -583,9 +625,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
         public void onFailure(@NonNull TerminalException e) {
           collectingPayment = false;
           status = "error";
-          JSObject err = new JSObject();
-          err.put("code", mapTerminalErrorCode(e.getErrorCode()));
-          err.put("message", e.getMessage());
+          JSObject err = createStructuredError("cancel_payment", e);
+          err.put("deviceState", captureDeviceState());
           notifyListeners("error", err);
         }
       });
@@ -604,9 +645,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
         @Override
         public void onFailure(@NonNull TerminalException e) {
           discovering = false;
-          JSObject err = new JSObject();
-          err.put("code", mapTerminalErrorCode(e.getErrorCode()));
-          err.put("message", e.getMessage());
+          JSObject err = createStructuredError("cancel_discovery", e);
+          err.put("deviceState", captureDeviceState());
           notifyListeners("error", err);
         }
       });
@@ -697,15 +737,19 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       // Generate unique request ID for this token request
       String requestId = UUID.randomUUID().toString();
 
+      Log.d(TAG, "[TOKEN_TRACE] stage=native_request_created requestId=" + requestId);
+
       // Create pending request record
       PendingTokenRequest request = new PendingTokenRequest(requestId, callback);
       pendingTokenRequests.put(requestId, request);
+
+      Log.d(TAG, "[TOKEN_TRACE] stage=native_request_stored requestId=" + requestId + " pendingCount=" + pendingTokenRequests.size());
 
       // Emit event to JS to request token with requestId
       JSObject payload = new JSObject();
       payload.put("requestId", requestId);
       notifyListeners("connectionTokenRequested", payload);
-      Log.d(TAG, "[TOKEN] fetchConnectionToken: emitted event for requestId: " + requestId);
+      Log.d(TAG, "[TOKEN_TRACE] stage=native_event_emitted requestId=" + requestId + " eventName=connectionTokenRequested");
 
       // Start timeout thread
       Thread timeoutThread = new Thread(() -> {
@@ -713,7 +757,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           Thread.sleep(10000); // 10 second timeout
         } catch (InterruptedException e) {
           // Thread was interrupted (token supplied successfully)
-          Log.d(TAG, "[TOKEN] timeout thread interrupted for requestId: " + requestId);
+          Log.d(TAG, "[TOKEN_TRACE] stage=native_timeout_interrupted requestId=" + requestId);
           return;
         }
 
@@ -723,7 +767,9 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           // Still pending - complete with timeout error
           pendingTokenRequests.remove(requestId);
           pending.callback.onFailure(new ConnectionTokenException("Failed to fetch connection token: timeout"));
-          Log.w(TAG, "[TOKEN] timeout for requestId: " + requestId);
+          Log.w(TAG, "[TOKEN_TRACE] stage=native_timeout_fired requestId=" + requestId);
+        } else {
+          Log.d(TAG, "[TOKEN_TRACE] stage=native_timeout_skipped requestId=" + requestId + " alreadyCompleted=true");
         }
       });
       request.timeoutThread = timeoutThread;

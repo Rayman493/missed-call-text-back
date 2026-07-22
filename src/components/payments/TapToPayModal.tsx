@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, CreditCard, Smartphone, Loader2, CheckCircle2, AlertCircle, XCircle } from 'lucide-react'
+import { X, CreditCard, Smartphone, Loader2, CheckCircle2, AlertCircle, XCircle, ChevronDown, ChevronUp } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { TerminalBridgeService } from '@/lib/terminal/service'
 import { isNativeCapacitor } from '@/lib/terminal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import type { TerminalError, DeviceState } from '@/lib/terminal'
 
 interface TapToPayModalProps {
   isOpen: boolean
@@ -20,6 +21,9 @@ interface TapToPayModalProps {
 
 type PaymentState = 'ready' | 'preparing' | 'waiting_for_card' | 'processing' | 'success' | 'failure' | 'canceled' | 'pending'
 
+// Internal diagnostic build marker - gate technical details to this specific build
+const DIAGNOSTIC_BUILD_MARKER = 'TAP_TO_PAY_REAL_NFC_DIAGNOSTIC_2026_07_22_V2'
+
 export default function TapToPayModal({
   isOpen,
   onClose,
@@ -32,6 +36,8 @@ export default function TapToPayModal({
 }: TapToPayModalProps) {
   const [paymentState, setPaymentState] = useState<PaymentState>('ready')
   const [error, setError] = useState<string>('')
+  const [structuredError, setStructuredError] = useState<TerminalError | null>(null)
+  const [showTechnicalDetails, setShowTechnicalDetails] = useState(false)
   const [terminalService] = useState(() => new TerminalBridgeService())
   const [isNativeSupported, setIsNativeSupported] = useState(false)
 
@@ -49,6 +55,8 @@ export default function TapToPayModal({
       // Reset when closed
       setPaymentState('ready')
       setError('')
+      setStructuredError(null)
+      setShowTechnicalDetails(false)
     }
   }, [isOpen])
 
@@ -85,6 +93,29 @@ export default function TapToPayModal({
       capListener?.remove?.()
     }
   }, [isOpen, onClose, paymentState])
+
+  // Listen for structured errors from native plugin
+  useEffect(() => {
+    if (!isOpen || !isNativeSupported) return
+
+    let errorListener: { remove: () => void } | undefined
+    ;(async () => {
+      try {
+        const Terminal = await import('@/lib/terminal')
+        const plugin = Terminal.default
+        errorListener = await plugin.addListener('error', (data: TerminalError) => {
+          console.log('[TapToPayModal] Structured error received:', data)
+          setStructuredError(data)
+        })
+      } catch (err) {
+        console.error('[TapToPayModal] Failed to register error listener:', err)
+      }
+    })()
+
+    return () => {
+      errorListener?.remove?.()
+    }
+  }, [isOpen, isNativeSupported])
 
   const getErrorMessage = (error: any): string => {
     // Log raw error in development for debugging
@@ -358,6 +389,57 @@ export default function TapToPayModal({
                 <p className="text-sm text-muted-foreground">{error}</p>
               )}
             </div>
+
+            {/* Technical details - only for diagnostic build */}
+            {structuredError && structuredError.deviceState?.buildMarker === DIAGNOSTIC_BUILD_MARKER && (
+              <div className="w-full space-y-2">
+                <button
+                  onClick={() => setShowTechnicalDetails(!showTechnicalDetails)}
+                  className="w-full px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  {showTechnicalDetails ? (
+                    <>
+                      <ChevronUp className="w-3 h-3" />
+                      Hide technical details
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="w-3 h-3" />
+                      Show technical details
+                    </>
+                  )}
+                </button>
+
+                {showTechnicalDetails && (
+                  <div className="p-3 bg-muted/50 rounded-lg space-y-2 text-xs">
+                    <div className="font-medium text-foreground">Error Details</div>
+                    <div className="space-y-1 text-muted-foreground">
+                      <div>Stage: {structuredError.stage}</div>
+                      <div>Code: {structuredError.code}</div>
+                      {structuredError.nativeCode && <div>Native Code: {structuredError.nativeCode}</div>}
+                      <div>Message: {structuredError.message}</div>
+                    </div>
+
+                    {structuredError.deviceState && (
+                      <>
+                        <div className="font-medium text-foreground mt-3">Device State</div>
+                        <div className="space-y-1 text-muted-foreground">
+                          <div>Build: {structuredError.deviceState.buildMarker}</div>
+                          <div>Debuggable: {structuredError.deviceState.isDebuggable ? 'Yes' : 'No'}</div>
+                          <div>Android SDK: {structuredError.deviceState.androidSdk}</div>
+                          <div>Device: {structuredError.deviceState.manufacturer} {structuredError.deviceState.model}</div>
+                          <div>NFC Available: {structuredError.deviceState.nfcAvailable ? 'Yes' : 'No'}</div>
+                          <div>NFC Enabled: {structuredError.deviceState.nfcEnabled ? 'Yes' : 'No'}</div>
+                          <div>Terminal Initialized: {structuredError.deviceState.terminalInitialized ? 'Yes' : 'No'}</div>
+                          <div>Connection Status: {structuredError.deviceState.connectionStatus}</div>
+                          <div>Reader Connected: {structuredError.deviceState.readerConnected ? 'Yes' : 'No'}</div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="flex gap-3">
               <button

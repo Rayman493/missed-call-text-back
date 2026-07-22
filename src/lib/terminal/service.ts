@@ -197,27 +197,30 @@ export class TerminalBridgeService {
   }
 
   private async handleTokenRequest(requestId: string): Promise<void> {
-    console.log('[TerminalBridgeService] Token requested:', requestId)
-    
+    console.log('[TOKEN_TRACE] stage=js_event_received requestId=' + requestId)
+
     // Track this request to avoid handling stale responses
     this.activeTokenRequest = { requestId, timestamp: Date.now() }
 
     try {
+      console.log('[TOKEN_TRACE] stage=api_request_started requestId=' + requestId)
       // Fetch token from backend
       const token = await this.fetchConnectionTokenFromBackend()
-      
+      console.log('[TOKEN_TRACE] stage=api_request_success requestId=' + requestId + ' token_present=true token_length=' + token.secret.length)
+
       // Verify this is still the active request (not stale)
       if (this.activeTokenRequest?.requestId !== requestId) {
-        console.warn('[TerminalBridgeService] Stale token request ignored:', requestId)
+        console.warn('[TOKEN_TRACE] stage=js_stale_request_ignored requestId=' + requestId)
         return
       }
 
+      console.log('[TOKEN_TRACE] stage=js_supply_started requestId=' + requestId)
       // Supply token to native
       await this.plugin!.supplyConnectionToken({ requestId, secret: token.secret })
-      console.log('[TerminalBridgeService] Token supplied successfully:', requestId)
+      console.log('[TOKEN_TRACE] stage=js_supply_completed requestId=' + requestId)
     } catch (error) {
-      console.error('[TerminalBridgeService] Token fetch failed:', error)
-      
+      console.error('[TOKEN_TRACE] stage=js_fetch_failed requestId=' + requestId + ' error=' + (error instanceof Error ? error.message : 'Unknown error'))
+
       // Report error to native if still active
       if (this.activeTokenRequest?.requestId === requestId) {
         await this.plugin!.supplyConnectionTokenError({
