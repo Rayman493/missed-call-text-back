@@ -87,6 +87,11 @@ export default function TapToPayModal({
   }, [isOpen, onClose, paymentState])
 
   const getErrorMessage = (error: any): string => {
+    // Log raw error in development for debugging
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[TapToPayModal] Raw error:', error)
+    }
+
     // Map terminal error codes to user-friendly messages
     if (error?.code === 'unsupported_os') {
       return 'Tap to Pay isn\'t supported on this device.'
@@ -103,7 +108,21 @@ export default function TapToPayModal({
     if (error?.code === 'payment_declined') {
       return 'The payment was declined. Ask the customer to try another payment method.'
     }
-    
+    if (error?.code === 'terminal-init-failed') {
+      // Development: log native error details
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[TapToPayModal] Native error details:', {
+          nativeCode: error.nativeCode,
+          nativeMessage: error.nativeMessage,
+          exceptionType: error.exceptionType
+        })
+      }
+      return 'Tap to Pay couldn\'t start. Restart the app and try again.'
+    }
+    if (error?.code === 'terminal-init-in-progress') {
+      return 'Tap to Pay is starting. Please wait...'
+    }
+
     // Generic error handling
     if (error instanceof Error) {
       const message = error.message.toLowerCase()
@@ -121,7 +140,7 @@ export default function TapToPayModal({
       }
       return error.message
     }
-    
+
     return 'Payment failed. Please try again.'
   }
 

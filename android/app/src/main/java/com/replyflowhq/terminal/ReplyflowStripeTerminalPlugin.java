@@ -36,6 +36,17 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
   private static final String TAG = "ReplyflowStripeTerminal";
   private static final String BUILD_MARKER = "TAP_TO_PAY_PLUGIN_DEBUG_BUILD_2026_07_22_V1";
 
+  // Initialization state tracking
+  private enum InitState {
+    NOT_INITIALIZED,
+    INITIALIZING,
+    INITIALIZED,
+    FAILED
+  }
+
+  private volatile InitState initState = InitState.NOT_INITIALIZED;
+  private final Object initLock = new Object();
+
   @Override
   public void load() {
     super.load();
@@ -62,24 +73,67 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
   @PluginMethod
   public void initialize(PluginCall call) {
-    if (!initialized) {
-      try {
-        Terminal.init(
-          getContext().getApplicationContext(),
-          LogLevel.VERBOSE,
-          new JsBridgedConnectionTokenProvider(),
-          new BasicTerminalListener(),
-          null, // offlineListener
-          null // localeConfig
-        );
-        initialized = true;
-      } catch (Exception e) {
-        JSObject err = new JSObject();
-        err.put("message", e.getMessage());
-        call.reject("terminal-init-failed", err);
+    Log.d(TAG, "[STRIPE_TERMINAL_INIT] Starting initialization");
+    Log.d(TAG, "[STRIPE_TERMINAL_INIT] Current init state: " + initState);
+    Log.d(TAG, "[STRIPE_TERMINAL_INIT] Android SDK: " + Build.VERSION.SDK_INT);
+    Log.d(TAG, "[STRIPE_TERMINAL_INIT] NFC available: " + getContext().getPackageManager().hasSystemFeature(PackageManager.FEATURE_NFC));
+
+    synchronized (initLock) {
+      if (initState == InitState.INITIALIZED) {
+        Log.d(TAG, "[STRIPE_TERMINAL_INIT] Already initialized, returning success");
+        status = "ready";
+        JSObject ret = new JSObject();
+        ret.put("status", status);
+        call.resolve(ret);
         return;
       }
+
+      if (initState == InitState.INITIALIZING) {
+        Log.d(TAG, "[STRIPE_TERMINAL_INIT] Already initializing, waiting for completion");
+        // For simplicity, reject concurrent initialization attempts
+        JSObject err = new JSObject();
+        err.put("message", "Initialization already in progress");
+        call.reject("terminal-init-in-progress", err);
+        return;
+      }
+
+      initState = InitState.INITIALIZING;
     }
+
+    try {
+      Log.d(TAG, "[STRIPE_TERMINAL_INIT] Calling Terminal.init()...");
+      Terminal.init(
+        getContext().getApplicationContext(),
+        LogLevel.VERBOSE,
+        new JsBridgedConnectionTokenProvider(),
+        new BasicTerminalListener(),
+        null, // offlineListener
+        null // localeConfig
+      );
+      initialized = true;
+      initState = InitState.INITIALIZED;
+      Log.d(TAG, "[STRIPE_TERMINAL_INIT] Terminal.init() succeeded");
+    } catch (Exception e) {
+      Log.e(TAG, "[STRIPE_TERMINAL_INIT] Terminal.init() failed", e);
+      Log.e(TAG, "[STRIPE_TERMINAL_INIT] Exception class: " + e.getClass().getName());
+      Log.e(TAG, "[STRIPE_TERMINAL_INIT] Exception message: " + e.getMessage());
+      if (e.getCause() != null) {
+        Log.e(TAG, "[STRIPE_TERMINAL_INIT] Exception cause: " + e.getCause().getClass().getName() + ": " + e.getCause().getMessage());
+      }
+
+      synchronized (initLock) {
+        initState = InitState.FAILED;
+      }
+
+      JSObject err = new JSObject();
+      err.put("message", e.getMessage());
+      err.put("nativeCode", e.getClass().getSimpleName());
+      err.put("nativeMessage", e.getMessage());
+      err.put("exceptionType", e.getClass().getName());
+      call.reject("terminal-init-failed", err);
+      return;
+    }
+
     status = "ready";
     JSObject ret = new JSObject();
     ret.put("status", status);
@@ -98,27 +152,47 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
   @PluginMethod
   public void isSupported(PluginCall call) {
+    Log.d(TAG, "[DEVICE_COMPAT] Checking device compatibility");
+    Log.d(TAG, "[DEVICE_COMPAT] Android SDK: " + Build.VERSION.SDK_INT);
+    Log.d(TAG, "[DEVICE_COMPAT] Android release: " + Build.VERSION.RELEASE);
+    Log.d(TAG, "[DEVICE_COMPAT] Manufacturer: " + Build.MANUFACTURER);
+    Log.d(TAG, "[DEVICE_COMPAT] Model: " + Build.MODEL);
+    Log.d(TAG, "[DEVICE_COMPAT] Device: " + Build.DEVICE);
+
     boolean osOk = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU; // Android 13+
     boolean hasNfc = getContext().getPackageManager().hasSystemFeature(PackageManager.FEATURE_NFC);
-    
+
+    Log.d(TAG, "[DEVICE_COMPAT] OS check (>= Android 13): " + osOk);
+    Log.d(TAG, "[DEVICE_COMPAT] NFC hardware available: " + hasNfc);
+    Log.d(TAG, "[DEVICE_COMPAT] Terminal initialized: " + initialized);
+
     // Basic device checks - Stripe SDK will provide detailed validation during discovery
     boolean tapToPaySupported = osOk && hasNfc;
     String unsupportedReason = null;
-    
+
     if (!osOk) {
       unsupportedReason = "unsupported_os";
+      Log.d(TAG, "[DEVICE_COMPAT] Unsupported: OS version too low");
     } else if (!hasNfc) {
       unsupportedReason = "nfc_unavailable";
+      Log.d(TAG, "[DEVICE_COMPAT] Unsupported: NFC hardware not available");
     } else if (!initialized) {
       unsupportedReason = "not_initialized";
+      Log.d(TAG, "[DEVICE_COMPAT] Not initialized but device supports Tap to Pay");
+    } else {
+      Log.d(TAG, "[DEVICE_COMPAT] Device supports Tap to Pay");
     }
-    
+
     JSObject ret = new JSObject();
     ret.put("supported", tapToPaySupported);
     ret.put("platform", "android");
     ret.put("osOk", osOk);
     ret.put("nfc", hasNfc);
     ret.put("unsupportedReason", unsupportedReason);
+    ret.put("androidSdk", Build.VERSION.SDK_INT);
+    ret.put("androidRelease", Build.VERSION.RELEASE);
+    ret.put("manufacturer", Build.MANUFACTURER);
+    ret.put("model", Build.MODEL);
     call.resolve(ret);
   }
 
