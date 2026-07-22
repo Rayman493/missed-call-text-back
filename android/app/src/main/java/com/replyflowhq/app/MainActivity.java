@@ -38,12 +38,13 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-
-        // Register custom local plugin for Stripe Terminal
+        // Register custom local plugin for Stripe Terminal BEFORE super.onCreate()
+        // Per Capacitor documentation: registerPlugin must come before super.onCreate()
         Log.d(TAG, "[PLUGIN] Registering ReplyflowStripeTerminalPlugin...");
         registerPlugin(ReplyflowStripeTerminalPlugin.class);
         Log.d(TAG, "[PLUGIN] ReplyflowStripeTerminalPlugin registered successfully");
+
+        super.onCreate(savedInstanceState);
 
         // Create notification channel for Android O+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

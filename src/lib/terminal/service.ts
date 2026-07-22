@@ -52,6 +52,15 @@ export class TerminalBridgeService {
   }
 
   async initialize(options?: InitializeOptions) {
+    // Comprehensive diagnostics before any plugin operations
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[TerminalBridgeService] === STARTUP DIAGNOSTICS ===')
+      console.log('[TerminalBridgeService] Capacitor.isNativePlatform():', Capacitor.isNativePlatform())
+      console.log('[TerminalBridgeService] Capacitor.getPlatform():', Capacitor.getPlatform())
+      console.log('[TerminalBridgeService] Capacitor.isPluginAvailable("ReplyflowStripeTerminal"):', Capacitor.isPluginAvailable('ReplyflowStripeTerminal'))
+      console.log('[TerminalBridgeService] Plugin instance exists:', this.plugin !== null)
+    }
+
     if (!this.plugin) {
       const error = new Error('Tap to Pay is not available on this device')
       // Log technical error in development
@@ -62,14 +71,19 @@ export class TerminalBridgeService {
     }
 
     try {
-      // Diagnostic ping before initialization
+      // Diagnostic ping before initialization - critical for verifying registration
       if (process.env.NODE_ENV === 'development') {
         console.log('[TerminalBridgeService] Calling ping() to verify JS→native communication...')
         try {
           const pingResult = await this.plugin.ping()
           console.log('[TerminalBridgeService] ping() result:', pingResult)
+          if (pingResult.buildMarker) {
+            console.log('[TerminalBridgeService] Build marker:', pingResult.buildMarker)
+          }
         } catch (pingError) {
-          console.error('[TerminalBridgeService] ping() failed:', pingError)
+          console.error('[TerminalBridgeService] ping() failed - plugin not registered or not implemented:', pingError)
+          // In development, throw the raw error to surface the root cause
+          throw pingError
         }
       }
 

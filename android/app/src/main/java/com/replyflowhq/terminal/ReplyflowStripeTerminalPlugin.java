@@ -34,11 +34,13 @@ import com.stripe.stripeterminal.external.callable.PaymentIntentCallback;
 @CapacitorPlugin(name = "ReplyflowStripeTerminal")
 public class ReplyflowStripeTerminalPlugin extends Plugin {
   private static final String TAG = "ReplyflowStripeTerminal";
+  private static final String BUILD_MARKER = "TAP_TO_PAY_PLUGIN_DEBUG_BUILD_2026_07_22_V1";
 
   @Override
   public void load() {
     super.load();
     Log.d(TAG, "[PLUGIN] ReplyflowStripeTerminalPlugin.load() executed - plugin loaded successfully");
+    Log.d(TAG, "[PLUGIN] Build marker: " + BUILD_MARKER);
   }
 
   private String status = "not_initialized";
@@ -90,6 +92,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     JSObject ret = new JSObject();
     ret.put("available", true);
     ret.put("platform", "android");
+    ret.put("buildMarker", BUILD_MARKER);
     call.resolve(ret);
   }
 

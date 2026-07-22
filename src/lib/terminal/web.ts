@@ -4,7 +4,7 @@ import type { TerminalPlugin, InitializeOptions, ConnectOptions, CollectPaymentO
 export class TerminalWeb extends WebPlugin implements TerminalPlugin {
   private status: TerminalStatus = 'not_initialized'
 
-  async ping(): Promise<{ available: boolean; platform: string }> {
+  async ping(): Promise<{ available: boolean; platform: string; buildMarker?: string }> {
     return { available: false, platform: 'web' }
   }
 
