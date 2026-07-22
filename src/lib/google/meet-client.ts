@@ -39,12 +39,14 @@ export class GoogleMeetClientImpl {
       url.searchParams.set('pageSize', '100')
       if (pageToken) url.searchParams.set('pageToken', pageToken)
       const res = await fetch(url.toString(), { headers })
+      console.log('[MEET DIAG] api.conferenceRecords.status=%d pageToken=%s', res.status, pageToken || 'none')
       if (!res.ok) break
       const data = await res.json()
       const list = Array.isArray(data?.conferenceRecords) ? data.conferenceRecords : []
       for (const cr of list) out.push({ name: cr?.name, startTime: cr?.startTime, endTime: cr?.endTime })
       pageToken = data?.nextPageToken || undefined
     } while (pageToken)
+    console.log('[MEET DIAG] api.conferenceRecords.total=%d', out.length)
     return out
   }
 
@@ -57,12 +59,14 @@ export class GoogleMeetClientImpl {
       url.searchParams.set('pageSize', '100')
       if (pageToken) url.searchParams.set('pageToken', pageToken)
       const res = await fetch(url.toString(), { headers })
+      console.log('[MEET DIAG] api.transcripts.status=%d pageToken=%s', res.status, pageToken || 'none')
       if (!res.ok) break
       const data = await res.json()
       const list = Array.isArray(data?.transcripts) ? data.transcripts : []
       for (const t of list) out.push({ name: t?.name, state: t?.state, startTime: t?.startTime, endTime: t?.endTime })
       pageToken = data?.nextPageToken || undefined
     } while (pageToken)
+    console.log('[MEET DIAG] api.transcripts.total=%d', out.length)
     return out
   }
 
@@ -72,9 +76,11 @@ export class GoogleMeetClientImpl {
     url.searchParams.set('pageSize', String(Math.min(100, Math.max(1, pageSize))))
     if (pageToken) url.searchParams.set('pageToken', pageToken)
     const res = await fetch(url.toString(), { headers })
+    console.log('[MEET DIAG] api.entries.status=%d pageToken=%s', res.status, pageToken || 'none')
     if (!res.ok) return { entries: [], nextPageToken: null }
     const data = await res.json()
     const entries = Array.isArray(data?.transcriptEntries) ? data.transcriptEntries : []
+    console.log('[MEET DIAG] api.entries.count=%d nextToken=%s', entries.length, data?.nextPageToken || 'none')
     return { entries, nextPageToken: data?.nextPageToken || null }
   }
 }

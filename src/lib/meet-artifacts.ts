@@ -147,23 +147,33 @@ export class MeetArtifactProcessor {
       startBound = new Date(new Date(scheduled.start).getTime() - early * 60 * 1000).toISOString()
       endBound = new Date(new Date(scheduled.start).getTime() + late * 60 * 1000).toISOString()
     }
+    console.log('[MEET DIAG] event=%s space=%s schedStart=%s schedEnd=%s bounds=%s..%s', record.google_calendar_event_id, record.google_meet_space_name, scheduled?.start || null, scheduled?.end || null, startBound || null, endBound || null)
     const conferences = await google.listConferenceRecordsBySpace(record.google_meet_space_name, { start: startBound, end: endBound })
 
     let useConfs = conferences || []
     let usedFallback = false
     if (useConfs.length === 0) {
       // Fallback: unbounded lookup by space when bounded query returns no records
+      console.log('[MEET DIAG] bounded.confs.count=%d', (conferences || []).length)
       const fallback = await google.listConferenceRecordsBySpace(record.google_meet_space_name, {})
       // If still empty, retain existing pending behavior
       if (!fallback || fallback.length === 0) {
+        console.log('[MEET DIAG] fallback.confs.count=0 -> pending(no_conference)')
         await repo.updateMeetingRecord(record.id, {
           transcript_status: record.transcript_status ?? 'pending',
           next_processing_attempt_at: new Date(now().getTime() + 60 * 60 * 1000).toISOString(),
         })
+        console.log('[MEET DIAG] result.status=%s result.reason=%s', 'pending', 'no_conference')
         return { processed: false, status: 'pending', reason: 'no_conference' }
       }
       useConfs = fallback
       usedFallback = true
+      const sample = useConfs.slice(0, 5).map(c => ({ name: c.name, start: c.startTime || null, end: c.endTime || null }))
+      console.log('[MEET DIAG] fallback.confs.count=%d candidates=%o', useConfs.length, sample)
+    }
+    if (!usedFallback) {
+      const sample = useConfs.slice(0, 5).map(c => ({ name: c.name, start: c.startTime || null, end: c.endTime || null }))
+      console.log('[MEET DIAG] bounded.confs.count=%d candidates=%o', useConfs.length, sample)
     }
 
     // Deterministic selection
@@ -222,6 +232,7 @@ export class MeetArtifactProcessor {
       if (!ambiguous) {
         pick = scored[0]?.c
       }
+      console.log('[MEET DIAG] selection.usedFallback=%s ambiguous=%s pick=%s', usedFallback, ambiguous, pick ? pick.name : 'none')
     } else {
       // Bounded path (or no usable timestamps): previous earliest-start selection
       pick = useConfs.reduce((best, cur) => {
@@ -229,6 +240,7 @@ export class MeetArtifactProcessor {
         const bestStart = best?.startTime ? new Date(best.startTime).getTime() : Number.MAX_SAFE_INTEGER
         return curStart < bestStart ? cur : best
       }, undefined as undefined | { name: string; startTime?: string; endTime?: string })
+      console.log('[MEET DIAG] selection.usedFallback=%s ambiguous=%s pick=%s', usedFallback, false, pick ? pick.name : 'none')
     }
 
     if (!pick) {
@@ -236,6 +248,7 @@ export class MeetArtifactProcessor {
         processing_error: 'ambiguous_conference',
         next_processing_attempt_at: new Date(now().getTime() + 2 * 60 * 60 * 1000).toISOString(),
       })
+      console.log('[MEET DIAG] result.status=%s result.reason=%s', String(record.transcript_status || null), 'ambiguous')
       return { processed: false, status: record.transcript_status || null, reason: 'ambiguous' }
     }
 
@@ -267,14 +280,19 @@ export class MeetArtifactProcessor {
     }
 
     // Discover transcripts
+    console.log('[MEET DIAG] listTranscripts.for=%s', pick.name)
     const transcripts = await this.deps.google.listTranscripts(pick.name)
     if (!transcripts || transcripts.length === 0) {
+      console.log('[MEET DIAG] transcripts.count=0 -> pending(no_transcripts)')
       await repo.updateMeetingRecord(record.id, {
         transcript_status: 'pending',
         next_processing_attempt_at: new Date(now().getTime() + 60 * 60 * 1000).toISOString(),
       })
+      console.log('[MEET DIAG] result.status=%s result.reason=%s', 'pending', 'no_transcripts')
       return { processed: false, status: 'pending', reason: 'no_transcripts' }
     }
+    const tSample = transcripts.slice(0, 5).map(t => ({ name: t.name, state: (t as any).state || null, start: t.startTime || null, end: t.endTime || null }))
+    console.log('[MEET DIAG] transcripts.count=%d items=%o', transcripts.length, tSample)
 
     // Choose latest by endTime
     const t = transcripts.reduce((best, cur) => {
@@ -286,16 +304,19 @@ export class MeetArtifactProcessor {
     // Retrieve all transcript entries
     let pageToken: string | undefined
     const parts: string[] = []
+    let totalEntries = 0
     do {
       const page = await this.deps.google.listTranscriptEntries(t.name, 100, pageToken)
+      console.log('[MEET DIAG] entries.page.count=%d nextToken=%s', page.entries.length, page.nextPageToken || 'none')
       for (const e of page.entries) {
         const speaker = e.participant?.displayName?.trim() || ''
         const label = speaker || 'Participant'
         const text = e.text || ''
-        if (text) parts.push(`${label}: ${text}`)
+        if (text) { parts.push(`${label}: ${text}`); totalEntries++ }
       }
       pageToken = page.nextPageToken || undefined
     } while (pageToken)
+    console.log('[MEET DIAG] entries.total=%d', totalEntries)
 
     // If transcript resource exists but entries are not yet available, treat as temporary and retry later
     if (parts.length === 0) {
@@ -325,6 +346,7 @@ export class MeetArtifactProcessor {
         transcript_status: 'processed',
         processing_error: null,
       })
+      console.log('[MEET DIAG] result.status=%s', 'processed')
       return { processed: true, status: 'processed' }
     } catch (e) {
       await repo.updateMeetingRecord(record.id, {
@@ -332,6 +354,7 @@ export class MeetArtifactProcessor {
         transcript_status: 'available',
         next_processing_attempt_at: new Date(now().getTime() + 2 * 60 * 60 * 1000).toISOString(), // backoff 2h
       })
+      console.log('[MEET DIAG] result.status=%s result.reason=%s', 'available', 'summary_failed')
       return { processed: false, status: 'available', reason: 'summary_failed' }
     }
   }
