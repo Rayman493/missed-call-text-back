@@ -209,7 +209,14 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       console.error('[TerminalPaymentIntent] Failed to create payment_request record:', insertError)
-      // Non-critical error - PaymentIntent was created successfully
+      // Return error but include PaymentIntent details for debugging
+      // The PaymentIntent was created successfully, but local persistence failed
+      return NextResponse.json({
+        error: 'Failed to create local payment record',
+        details: insertError,
+        paymentIntentId: paymentIntent.id,
+        // Do not return localPaymentId since it was not persisted
+      }, { status: 500 })
     }
 
     console.log('[TerminalPaymentIntent] Payment request record created:', localPaymentId)
