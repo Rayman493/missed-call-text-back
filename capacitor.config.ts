@@ -43,6 +43,10 @@ const config: CapacitorConfig = {
     Keyboard: {
       resizeOnFullScreen: false,
     },
+    // Register custom local plugin for Stripe Terminal
+    ReplyflowStripeTerminal: {
+      package: 'com.replyflowhq.terminal',
+    },
   },
 };
 

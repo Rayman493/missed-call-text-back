@@ -8,6 +8,7 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import TapToPayModal from './TapToPayModal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { TerminalBridgeService } from '@/lib/terminal/service'
 
 interface QuickTapToPayModalProps {
   isOpen: boolean
@@ -38,6 +39,14 @@ export default function QuickTapToPayModal({
   useEffect(() => {
     if (isOpen) {
       setIsNativeSupported(isNativeCapacitor())
+
+      // Development diagnostics
+      if (process.env.NODE_ENV === 'development') {
+        const terminalService = new TerminalBridgeService()
+        const diagnostics = terminalService.getDiagnostics()
+        console.log('[QuickTapToPayModal] Terminal diagnostics:', diagnostics)
+      }
+
       setAmountCents(0)
       setAmountDisplay('')
       setSelectedLeadId(null)

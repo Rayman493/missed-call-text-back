@@ -24,7 +24,6 @@ import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.BridgeWebViewClient;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import com.replyflowhq.terminal.ReplyflowStripeTerminalPlugin;
 
 public class MainActivity extends BridgeActivity {
     private static final String TAG = "ReplyFlowOffline";
@@ -39,9 +38,6 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        // Register first-party Capacitor plugin for Stripe Terminal (scaffold only)
-        registerPlugin(ReplyflowStripeTerminalPlugin.class);
 
         // Create notification channel for Android O+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

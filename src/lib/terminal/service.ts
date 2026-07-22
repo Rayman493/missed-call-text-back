@@ -1,7 +1,17 @@
 import Terminal, { TerminalPlugin, InitializeOptions, CollectPaymentOptions, CreateTerminalPaymentOptions, isNativeCapacitor } from './index'
+import { Capacitor } from '@capacitor/core'
 
 interface TokenRequest {
   requestId: string
+  timestamp: number
+}
+
+// Development-only diagnostics
+export interface TerminalDiagnostics {
+  isNativePlatform: boolean
+  platform: string
+  pluginAvailable: boolean
+  pluginName: string
   timestamp: number
 }
 
@@ -14,19 +24,85 @@ export class TerminalBridgeService {
     this.plugin = isNativeCapacitor() ? Terminal : null
   }
 
+  // Development diagnostics
+  getDiagnostics(): TerminalDiagnostics {
+    const isNative = Capacitor.isNativePlatform()
+    const platform = Capacitor.getPlatform()
+    const pluginAvailable = this.plugin !== null
+
+    const diagnostics: TerminalDiagnostics = {
+      isNativePlatform: isNative,
+      platform,
+      pluginAvailable,
+      pluginName: 'ReplyflowStripeTerminal',
+      timestamp: Date.now(),
+    }
+
+    // Log diagnostics in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[TerminalBridgeService] Diagnostics:', diagnostics)
+    }
+
+    return diagnostics
+  }
+
   async isSupported() {
     if (!this.plugin) return { supported: false, platform: 'web' as const }
     return this.plugin.isSupported()
   }
 
   async initialize(options?: InitializeOptions) {
-    if (!this.plugin) return { status: 'not_initialized' as const }
-    const result = await this.plugin.initialize(options)
-    
-    // Set up token request listener after initialization
-    await this.setupTokenRequestListener()
-    
-    return result
+    if (!this.plugin) {
+      const error = new Error('Tap to Pay is not available on this device')
+      // Log technical error in development
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[TerminalBridgeService] Plugin not available:', error)
+      }
+      throw this.mapErrorToFriendlyMessage(error)
+    }
+
+    try {
+      const result = await this.plugin.initialize(options)
+
+      // Set up token request listener after initialization
+      await this.setupTokenRequestListener()
+
+      return result
+    } catch (error) {
+      // Log technical error in development
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[TerminalBridgeService] Initialize failed:', error)
+      }
+      throw this.mapErrorToFriendlyMessage(error)
+    }
+  }
+
+  // Map technical errors to user-friendly messages
+  private mapErrorToFriendlyMessage(error: unknown): Error {
+    if (error instanceof Error) {
+      const message = error.message.toLowerCase()
+
+      // Plugin not implemented error
+      if (message.includes('not implemented') || message.includes('plugin')) {
+        return new Error('Tap to Pay is not available. Please reinstall the app or contact support.')
+      }
+
+      // Network errors
+      if (message.includes('network') || message.includes('connection')) {
+        return new Error('Unable to connect to payment service. Please check your internet connection.')
+      }
+
+      // Permission errors
+      if (message.includes('permission') || message.includes('nfc')) {
+        return new Error('Tap to Pay requires NFC permissions. Please enable them in your device settings.')
+      }
+
+      // Return original error if no mapping
+      return error
+    }
+
+    // Unknown error type
+    return new Error('An unexpected error occurred. Please try again.')
   }
 
   private async setupTokenRequestListener(): Promise<void> {
