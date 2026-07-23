@@ -1,0 +1,64 @@
+07-23 14:49:03.400  1443  1983 D ActivityManager: freezing 17069 com.android.chrome:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0
+07-23 14:49:13.944  1443  1506 D ActivityManager: sync unfroze 17069 com.android.chrome:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0 for 6
+07-23 14:49:31.950 11137 11137 V ResourcesManager: The following library key has been added: ResourcesKey{ mHash=d17f949e mResDir=null mSplitDirs=[] mOverlayDirs=[] mLibDirs=[/data/app/~~Pi9lTJvx5ztYPVOgnVcHhQ==/com.google.android.webview-byRq31SYqY7rENUNQ4J8bQ==/base.apk,/system/framework/android.test.base.jar,/system_ext/framework/androidx.window.extensions.jar] mDisplayId=0 mOverrideConfig=v36 mCompatInfo={420dpi always-compat} mLoaders=[]}
+07-23 14:49:32.028  1443  1679 I ActivityManager: Start proc 11184:com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0/u0i235 for  {com.replyflowhq.app/org.chromium.content.app.SandboxedProcessService0:0}
+07-23 14:49:34.550  1443  4350 D ActivityManager: sync unfroze 17118 com.google.android.webview:webview_service for 6
+07-23 14:49:34.578  1443  3784 W ProcessStats: Tracking association SourceState{26010ee com.replyflowhq.app/10423 BTop #448501} whose proc state 2 is better than process ProcessState{6007b49 com.google.android.webview:webview_service/10175 pkg=com.google.android.webview} proc state 14 (69 skipped)
+07-23 14:49:44.611  1443  1983 D ActivityManager: freezing 17118 com.google.android.webview:webview_service
+07-23 14:50:06.794  1443  1934 D ActivityManager: sync unfroze 18605 com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0 for 6
+07-23 14:50:07.804 28664 29564 I cn_CronetUrlRequestContext: destroyNativeStreamLocked org.chromium.net.impl.CronetBidirectionalStream@48a2744
+07-23 14:50:08.289 25308 25394 I cn_CronetUrlRequestContext: destroyNativeStreamLocked android.net.http.internal.org.chromium.net.impl.CronetBidirectionalStream@c7df91c
+07-23 14:50:13.020 25308 25394 I cn_CronetUrlRequestContext: destroyNativeStreamLocked android.net.http.internal.org.chromium.net.impl.CronetBidirectionalStream@f04924d
+07-23 14:50:15.812  1443  1983 D ActivityManager: freezing 17069 com.android.chrome:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0
+07-23 14:50:20.122 25308 25394 I cn_CronetUrlRequestContext: destroyNativeStreamLocked android.net.http.internal.org.chromium.net.impl.CronetBidirectionalStream@f9df5ac
+07-23 14:50:23.765  2559 16322 W ProcStatsManager: No process com.google.android.webview:sandboxed_process0/10172 for service org.chromium.content.app.SandboxedProcessService0
+07-23 14:50:23.765  2559 16322 W ProcStatsManager: No process com.google.android.webview:webview_service/10175 for service org.chromium.android_webview.services.MetricsBridgeService
+07-23 14:50:23.765  2559 16322 W ProcStatsManager: No process com.google.android.webview:webview_service/10175 for service org.chromium.android_webview.services.VariationsSeedServer
+07-23 14:50:23.765  2559 16322 W ProcStatsManager: No process com.google.android.webview:sandboxed_process0/10195 for service org.chromium.content.app.SandboxedProcessService0
+07-23 14:50:23.765  2559 16322 W ProcStatsManager: No process com.google.android.webview:sandboxed_process0/10371 for service org.chromium.content.app.SandboxedProcessService0
+07-23 14:50:23.765  2559 16322 W ProcStatsManager: No process com.google.android.webview:sandboxed_process0/10375 for service org.chromium.content.app.SandboxedProcessService0
+07-23 14:50:23.765  2559 16322 W ProcStatsManager: No process com.google.android.webview:sandboxed_process0/10418 for service org.chromium.content.app.SandboxedProcessService0
+07-23 14:50:23.765  2559 16322 W ProcStatsManager: No process com.google.android.webview:sandboxed_process0/10420 for service org.chromium.content.app.SandboxedProcessService0
+07-23 14:50:23.765  2559 16322 W ProcStatsManager: No process com.google.android.webview:sandboxed_process0/10421 for service org.chromium.content.app.SandboxedProcessService0
+07-23 14:50:23.765  2559 16322 W ProcStatsManager: No process com.google.android.webview:sandboxed_process0/10422 for service org.chromium.content.app.SandboxedProcessService0
+07-23 14:50:23.765  2559 16322 W ProcStatsManager: No process com.google.android.webview:sandboxed_process0/10423 for service org.chromium.content.app.SandboxedProcessService0
+07-23 14:50:23.765  2559 16322 W ProcStatsManager: No process com.google.android.webview:sandboxed_process0/10443 for service org.chromium.content.app.SandboxedProcessService0
+07-23 14:50:23.765  2559 16322 W ProcStatsManager: No process com.google.android.webview:sandboxed_process0/10445 for service org.chromium.content.app.SandboxedProcessService0
+07-23 14:50:23.765  2559 16322 W ProcStatsManager: No process com.android.chrome/10197 for service org.chromium.chrome.browser.usage_stats.UsageStatsBrowserServiceProvider
+07-23 14:50:23.765  2559 16322 W ProcStatsManager: No process com.android.chrome/10197 for service org.chromium.components.background_task_scheduler.internal.BackgroundTaskJobService
+07-23 14:50:23.765  2559 16322 W ProcStatsManager: No process com.android.chrome:sandboxed_process0/10197 for service org.chromium.content.app.SandboxedProcessService0
+07-23 14:50:23.765  2559 16322 W ProcStatsManager: No process com.android.chrome:privileged_process0/10197 for service org.chromium.content.app.PrivilegedProcessService0
+07-23 14:50:23.765  2559 16322 W ProcStatsManager: No process com.android.chrome/10197 for service org.chromium.chrome.browser.customtabs.CustomTabsConnectionService
+07-23 14:50:25.356 11137 11137 W StripeTerminal: class=AidlServiceConnection message=onServiceDisconnected() connectionOwner=DefaultTtpClient componentName=ComponentInfo{com.replyflowhq.app/com.stripe.cots.aidlservice.TtpService}
+07-23 14:50:25.357 11137 11137 D StripeTerminal: class=AidlServiceConnection message=disconnectFromService() connectionOwner=DefaultTtpClient unexpected=true
+07-23 14:50:25.360 11137 11337 D StripeTerminal: class=TtpAdapter message=onDisconnect unexpected=true
+07-23 14:50:25.361 11137 11337 D StripeTerminal: class=TerminalSession message="Enqueueing new ReconnectReaderOperation"
+07-23 14:50:25.363 11137 11337 I StripeTerminal: class=TerminalSession message=enqueueOperation operation=ReconnectReaderOperation
+07-23 14:50:25.371 11137 11374 I StripeTerminal: class=TerminalStatusManager message=reportReaderReconnecting. disconnectReason=UNKNOWN
+07-23 14:50:25.372 11137 11374 D StripeTerminal: class=ProxyTerminalListener message=onConnectionStatusChange(RECONNECTING)
+07-23 14:50:25.372 11137 11374 D StripeTerminal: class=ProxyTerminalListener message=onPaymentStatusChange(NOT_READY)
+07-23 14:50:25.376 11137 11374 I StripeTerminal: class=ProxyReaderListener message="onReaderReconnectStarted(Reader{deviceType=TAP_TO_PAY_DEVICE, id=tmr_Gl8lxwYhNY3tYm, location=Location(id=tml_Gl2pmQOCIu1f2J, address=GыкGык, displayName=GыкGык, livemode=true, metadata=GыкGык, displayNameKanji=GыкGык, displayNameKana=GыкGык, addressKanji=GыкGык, addressKana=GыкGык, phone=GыкGык), serialNumber=5e0a9d32-99ec-41bd-a49b-0076ea6709af}, UNKNOWN)"
+07-23 14:50:25.377 11137 11374 D StripeTerminal: class=TerminalStatusManager message=emitReaderConnectivityEvent. readerConnectivityEvent="Reconnecting(connectionConfiguration=TapToPayConnectionConfiguration{failIfInUse=false, locationRegistration=UseId(locationId=tml_Gl2pmQOCIu1f2J), autoReconnectOnUnexpectedDisconnect=true}, reader=Reader{deviceType=TAP_TO_PAY_DEVICE, id=tmr_Gl8lxwYhNY3tYm, location=Location(id=tml_Gl2pmQOCIu1f2J, address=GыкGык, displayName=GыкGык, livemode=true, metadata=GыкGык, displayNameKanji=GыкGык, displayNameKana=GыкGык, addressKanji=GыкGык, addressKana=GыкGык, phone=GыкGык), serialNumber=5e0a9d32-99ec-41bd-a49b-0076ea6709af}, disconnectReason=UNKNOWN)"
+07-23 14:50:25.380 11137 11374 D StripeTerminal: class=TerminalSession message="Attempting reconnection" attempt=1 max_attempts=3 disconnect_reason=UNKNOWN
+07-23 14:50:28.133 11137 11137 D StripeTerminal: class=AidlServiceConnection message=onServiceConnected() connectionOwner=DefaultTtpClient componentName=ComponentInfo{com.replyflowhq.app/com.stripe.cots.aidlservice.TtpService}
+07-23 14:50:29.534  2559 16325 W ProcStatsManager: No process com.google.android.webview:sandboxed_process0/10172 for service org.chromium.content.app.SandboxedProcessService0
+07-23 14:50:29.534  2559 16325 W ProcStatsManager: No process com.google.android.webview:webview_service/10175 for service org.chromium.android_webview.services.MetricsBridgeService
+07-23 14:50:29.534  2559 16325 W ProcStatsManager: No process com.google.android.webview:webview_service/10175 for service org.chromium.android_webview.services.VariationsSeedServer
+07-23 14:50:29.534  2559 16325 W ProcStatsManager: No process com.google.android.webview:sandboxed_process0/10195 for service org.chromium.content.app.SandboxedProcessService0
+07-23 14:50:29.534  2559 16325 W ProcStatsManager: No process com.google.android.webview:sandboxed_process0/10371 for service org.chromium.content.app.SandboxedProcessService0
+07-23 14:50:29.534  2559 16325 W ProcStatsManager: No process com.google.android.webview:sandboxed_process0/10375 for service org.chromium.content.app.SandboxedProcessService0
+07-23 14:50:29.534  2559 16325 W ProcStatsManager: No process com.google.android.webview:sandboxed_process0/10418 for service org.chromium.content.app.SandboxedProcessService0
+07-23 14:50:29.534  2559 16325 W ProcStatsManager: No process com.google.android.webview:sandboxed_process0/10420 for service org.chromium.content.app.SandboxedProcessService0
+07-23 14:50:29.534  2559 16325 W ProcStatsManager: No process com.google.android.webview:sandboxed_process0/10421 for service org.chromium.content.app.SandboxedProcessService0
+07-23 14:50:29.534  2559 16325 W ProcStatsManager: No process com.google.android.webview:sandboxed_process0/10422 for service org.chromium.content.app.SandboxedProcessService0
+07-23 14:50:29.534  2559 16325 W ProcStatsManager: No process com.google.android.webview:sandboxed_process0/10423 for service org.chromium.content.app.SandboxedProcessService0
+07-23 14:50:29.534  2559 16325 W ProcStatsManager: No process com.google.android.webview:sandboxed_process0/10443 for service org.chromium.content.app.SandboxedProcessService0
+07-23 14:50:29.534  2559 16325 W ProcStatsManager: No process com.google.android.webview:sandboxed_process0/10445 for service org.chromium.content.app.SandboxedProcessService0
+07-23 14:50:29.534  2559 16325 W ProcStatsManager: No process com.android.chrome/10197 for service org.chromium.chrome.browser.usage_stats.UsageStatsBrowserServiceProvider
+07-23 14:50:29.534  2559 16325 W ProcStatsManager: No process com.android.chrome/10197 for service org.chromium.components.background_task_scheduler.internal.BackgroundTaskJobService
+07-23 14:50:29.534  2559 16325 W ProcStatsManager: No process com.android.chrome:sandboxed_process0/10197 for service org.chromium.content.app.SandboxedProcessService0
+07-23 14:50:29.534  2559 16325 W ProcStatsManager: No process com.android.chrome:privileged_process0/10197 for service org.chromium.content.app.PrivilegedProcessService0
+07-23 14:50:29.534  2559 16325 W ProcStatsManager: No process com.android.chrome/10197 for service org.chromium.chrome.browser.customtabs.CustomTabsConnectionService
+07-23 14:50:43.874  1443  1983 D ActivityManager: freezing 18605 com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0
+07-23 14:51:06.211 11137 11137 W StripeTerminal: class=TerminalLifecycleObserver message=applicationDidReceiveMemoryWarning memoryLevel=40 memoryProfile=TRIM_MEMORY_BACKGROUND appId=com.replyflowhq.app
+07-23 14:51:16.201  1443  1983 D ActivityManager: freezing 11184 com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0

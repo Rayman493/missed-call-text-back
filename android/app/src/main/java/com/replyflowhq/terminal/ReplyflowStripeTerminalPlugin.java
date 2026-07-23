@@ -88,12 +88,31 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
   private volatile OperationState operationState = OperationState.UNINITIALIZED;
   private final Object initLock = new Object();
+  // Correlation tracking
+  private volatile String currentCorrelationId = null;
 
   @Override
   public void load() {
     super.load();
     Log.d(TAG, "[PLUGIN] ReplyflowStripeTerminalPlugin.load() executed - plugin loaded successfully");
     Log.d(TAG, "[PLUGIN] Build marker: " + BUILD_MARKER);
+  }
+
+  // Emit sanitized diagnostics to JS so the app can persist in-app
+  private void emitDiag(String name, String phase, String correlationId, JSObject more) {
+    try {
+      JSObject payload = new JSObject();
+      payload.put("name", name);
+      if (phase != null) payload.put("phase", phase);
+      payload.put("timestamp", System.currentTimeMillis());
+      if (correlationId != null) payload.put("attemptId", correlationId);
+      if (more != null) {
+        for (String k : more.keys()) {
+          payload.put(k, more.get(k));
+        }
+      }
+      notifyListeners("tpDiagnostics", payload);
+    } catch (Exception ignored) {}
   }
 
   @Override
@@ -162,8 +181,13 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
   @PluginMethod
   public void initialize(PluginCall call) {
+    // Capture optional diagnosticAttemptId (used only as fallback elsewhere)
+    String diagId = call.getString("diagnosticAttemptId");
+    currentCorrelationId = diagId != null && !diagId.isEmpty() ? diagId : currentCorrelationId;
     Log.d(TAG, "[STRIPE_TERMINAL_INIT] Starting initialization");
     Log.d(TAG, "[TAP_SESSION_TRACE] stage=terminal_init_start ts=" + System.currentTimeMillis());
+    final String initCorrelationId = call.getString("diagnosticAttemptId");
+    emitDiag("initialize_called", "initialize", initCorrelationId, null);
     Log.d(TAG, "[STRIPE_TERMINAL_INIT] Current init state: " + initState);
     Log.d(TAG, "[STRIPE_TERMINAL_INIT] Android SDK: " + Build.VERSION.SDK_INT);
     Log.d(TAG, "[STRIPE_TERMINAL_INIT] NFC available: " + getContext().getPackageManager().hasSystemFeature(PackageManager.FEATURE_NFC));
@@ -213,6 +237,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       initState = InitState.INITIALIZED;
       Log.d(TAG, "[STRIPE_TERMINAL_INIT] Terminal.init() succeeded");
       Log.d(TAG, "[TAP_SESSION_TRACE] stage=terminal_init_complete ts=" + System.currentTimeMillis());
+      emitDiag("initialize_completed", "initialize", initCorrelationId, null);
     } catch (Exception e) {
       Log.e(TAG, "[STRIPE_TERMINAL_INIT] Terminal.init() failed", e);
       Log.e(TAG, "[STRIPE_TERMINAL_INIT] Exception class: " + e.getClass().getName());
@@ -220,6 +245,11 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       if (e.getCause() != null) {
         Log.e(TAG, "[STRIPE_TERMINAL_INIT] Exception cause: " + e.getCause().getClass().getName() + ": " + e.getCause().getMessage());
       }
+
+      JSObject more = new JSObject();
+      more.put("code", e.getClass().getSimpleName());
+      more.put("message", e.getMessage());
+      emitDiag("initialize_failed", "initialize", initCorrelationId, more);
 
       synchronized (initLock) {
         initState = InitState.FAILED;
@@ -391,6 +421,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
   @PluginMethod
   public void connectTapToPay(PluginCall call) {
+    // Capture optional diagnosticAttemptId for this operation scope
+    final String connectCorrelationId = call.getString("diagnosticAttemptId");
     if (!initialized) {
       call.reject("not-initialized");
       return;
@@ -440,6 +472,10 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
       // Minimal trace for reuse before discovery
       Log.d(TAG, "[TAP_SESSION_TRACE] stage=pre_discovery_reader_reused reader_id=" + stripeConnectedReader.getId() + " connection_status=" + status);
+      JSObject diag1 = new JSObject();
+      diag1.put("readerId", stripeConnectedReader.getId());
+      diag1.put("connectionStatus", status);
+      emitDiag("pre_discovery_reader_reused", "connect_reader", connectCorrelationId, diag1);
 
       JSObject ret = new JSObject();
       ret.put("status", status);
@@ -451,6 +487,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     status = "discovering";
     notifyListeners("statusChanged", new JSObject().put("status", status));
     Log.d(TAG, "[TAP_SESSION_TRACE] stage=discover_start ts=" + System.currentTimeMillis());
+    emitDiag("discover_readers_started", "discover", connectCorrelationId, null);
 
     // Create Tap to Pay discovery configuration
     DiscoveryConfiguration cfg = new DiscoveryConfiguration.TapToPayDiscoveryConfiguration(
@@ -479,6 +516,10 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
       // Minimal trace for reuse before discovery connect
       Log.d(TAG, "[TAP_SESSION_TRACE] stage=pre_discovery_reader_reused reader_id=" + preDiscoveryReader.getId() + " connection_status=" + status);
+      JSObject diag2 = new JSObject();
+      diag2.put("readerId", preDiscoveryReader.getId());
+      diag2.put("connectionStatus", status);
+      emitDiag("pre_discovery_reader_reused", "connect_reader", connectCorrelationId, diag2);
 
       JSObject ret = new JSObject();
       ret.put("status", status);
@@ -503,7 +544,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
                 @Override
                 public void onSuccess() {
                   discovering = false;
-                  connectToReader(reader, effectiveSimulated, locationId);
+                  connectToReader(reader, effectiveSimulated, locationId, connectCorrelationId);
                 }
 
                 @Override
@@ -511,11 +552,11 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
                   Log.w(TAG, "[TAP_SESSION_TRACE] stage=discover_cancel_failed code=" + e.getErrorCode());
                   // Proceed to connect anyway; SDK may still permit connect
                   discovering = false;
-                  connectToReader(reader, effectiveSimulated, locationId);
+                  connectToReader(reader, effectiveSimulated, locationId, connectCorrelationId);
                 }
               });
             } else {
-              connectToReader(reader, effectiveSimulated, locationId);
+              connectToReader(reader, effectiveSimulated, locationId, connectCorrelationId);
             }
           }
         }
@@ -529,6 +570,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
             status = "ready";
             notifyListeners("statusChanged", new JSObject().put("status", status));
           }
+          emitDiag("discover_readers_completed", "discover", connectCorrelationId, null);
         }
 
         @Override
@@ -569,6 +611,10 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           notifyListeners("error", err);
           status = "error";
           notifyListeners("statusChanged", new JSObject().put("status", status));
+          JSObject d = new JSObject();
+          if (e.getErrorCode() != null) d.put("code", e.getErrorCode().toString());
+          d.put("message", e.getMessage());
+          emitDiag("discover_readers_failed", "discover", connectCorrelationId, d);
         }
       }
     );
@@ -578,7 +624,10 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     call.resolve(ret);
   }
   
-  private void connectToReader(Reader reader, boolean simulated, String locationId) {
+  private void connectToReader(Reader reader, boolean simulated, String locationId, final String correlationId) {
+    JSObject cstart = new JSObject();
+    cstart.put("readerId", reader.getId());
+    emitDiag("connect_reader_started", "connect_reader", correlationId, cstart);
     // Defensive check: if a reader became connected during discovery, reuse it
     Reader existing = Terminal.getInstance().getConnectedReader();
     if (existing != null) {
@@ -626,6 +675,10 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           
           notifyListeners("statusChanged", new JSObject().put("status", status));
           notifyListeners("readerConnected", readerInfo);
+          JSObject done = new JSObject();
+          done.put("readerId", connectedReader.getId());
+          done.put("connectionStatus", status);
+          emitDiag("connect_reader_completed", "connect_reader", correlationId, done);
         }
 
         @Override
@@ -635,6 +688,10 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           notifyListeners("error", err);
           status = "error";
           notifyListeners("statusChanged", new JSObject().put("status", status));
+          JSObject d = new JSObject();
+          if (e.getErrorCode() != null) d.put("code", e.getErrorCode().toString());
+          d.put("message", e.getMessage());
+          emitDiag("connect_reader_failed", "connect_reader", correlationId, d);
         }
       }
     );
@@ -729,8 +786,11 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
   @PluginMethod
   public void collectPayment(PluginCall call) {
+    // Capture attempt correlation id for this operation
+    final String collectCorrelationId = call.getString("diagnosticAttemptId");
     Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_start reader_connected=" + (connectedReader != null) + " connection_status=" + status + " operation_state=" + operationState);
     Log.d(TAG, "[TAP_SESSION_TRACE] stage=payment_start ts=" + System.currentTimeMillis());
+    emitDiag("collect_payment_called", "collect_payment", collectCorrelationId, null);
 
     if (!initialized) {
       Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_failure reason=not_initialized");
@@ -785,6 +845,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           Log.d(TAG, "[TAP_SESSION_TRACE] stage=retrieve_success payment_intent_id=" + paymentIntent.getId() + " ts=" + System.currentTimeMillis());
           setOperationState(OperationState.COLLECTING_PAYMENT_METHOD, "retrieve_success");
           notifyListeners("paymentStatusChanged", new JSObject().put("status", "retrieving_payment_intent"));
+          JSObject m = new JSObject(); m.put("paymentIntentId", paymentIntent.getId()); emitDiag("retrieve_payment_intent_completed", "payment_intent", collectCorrelationId, m);
 
           // Collect payment method
           collectPaymentMethod(paymentIntent, call);
@@ -807,16 +868,18 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_failure stage=retrieve_payment_intent");
           // Pass structured error to JS via rejection
           call.reject("retrieve_payment_intent", err);
+          JSObject d = new JSObject(); if (e.getErrorCode() != null) d.put("code", e.getErrorCode().toString()); d.put("message", e.getMessage()); emitDiag("retrieve_payment_intent_failed", "payment_intent", collectCorrelationId, d);
         }
       }
     );
   }
   
-  private void collectPaymentMethod(PaymentIntent paymentIntent, PluginCall originalCall) {
+  private void collectPaymentMethod(PaymentIntent paymentIntent, PluginCall originalCall, final String correlationId) {
     Log.d(TAG, "[PAYMENT_TRACE] stage=collect_payment_method_start payment_intent_id=" + paymentIntent.getId() + " payment_intent_status=" + paymentIntent.getStatus());
     Log.d(TAG, "[TAP_SESSION_TRACE] stage=collect_start payment_intent_id=" + paymentIntent.getId() + " ts=" + System.currentTimeMillis());
     setOperationState(OperationState.COLLECTING_PAYMENT_METHOD, "collect_start");
     notifyListeners("paymentStatusChanged", new JSObject().put("status", "waiting_for_card"));
+    JSObject m0 = new JSObject(); m0.put("paymentIntentId", paymentIntent.getId()); emitDiag("collect_payment_method_started", "collect_payment", correlationId, m0);
 
     paymentCancelable = Terminal.getInstance().collectPaymentMethod(
       paymentIntent,
@@ -827,11 +890,12 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           Log.d(TAG, "[TAP_SESSION_TRACE] stage=collect_success payment_intent_id=" + collectedIntent.getId() + " ts=" + System.currentTimeMillis());
           setOperationState(OperationState.CONFIRMING_PAYMENT_INTENT, "collect_success");
           notifyListeners("paymentStatusChanged", new JSObject().put("status", "confirming_payment"));
+          JSObject m = new JSObject(); m.put("paymentIntentId", collectedIntent.getId()); emitDiag("collect_payment_method_completed", "collect_payment", correlationId, m);
 
           // CRITICAL FIX: collectPaymentMethod only collects the card, it does NOT confirm/charge
           // We must call confirmPaymentIntent to actually charge the card
           // For card_present payments, this is required to move from requires_payment_method to succeeded
-          confirmPaymentIntent(collectedIntent, originalCall);
+          confirmPaymentIntent(collectedIntent, originalCall, correlationId);
         }
 
         @Override
@@ -851,14 +915,16 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_failure stage=collect_payment_method");
           // Pass structured error to JS via rejection
           originalCall.reject("collect_payment_method", err);
+          JSObject d = new JSObject(); if (e.getErrorCode() != null) d.put("code", e.getErrorCode().toString()); d.put("message", e.getMessage()); emitDiag("collect_payment_method_failed", "collect_payment", correlationId, d);
         }
       }
     );
   }
 
-  private void confirmPaymentIntent(PaymentIntent paymentIntent, PluginCall originalCall) {
+  private void confirmPaymentIntent(PaymentIntent paymentIntent, PluginCall originalCall, final String correlationId) {
     Log.d(TAG, "[PAYMENT_TRACE] stage=confirm_payment_intent_start payment_intent_id=" + paymentIntent.getId() + " payment_intent_status=" + paymentIntent.getStatus());
     Log.d(TAG, "[TAP_SESSION_TRACE] stage=confirm_start payment_intent_id=" + paymentIntent.getId() + " ts=" + System.currentTimeMillis());
+    JSObject c0 = new JSObject(); c0.put("paymentIntentId", paymentIntent.getId()); emitDiag("confirm_payment_intent_started", "confirm_payment", correlationId, c0);
 
     paymentCancelable = Terminal.getInstance().confirmPaymentIntent(
       paymentIntent,
@@ -870,6 +936,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           collectingPayment = false;
           setKeepScreenOn(false);
           status = "ready";
+          JSObject c = new JSObject(); c.put("paymentIntentId", confirmedIntent.getId()); emitDiag("confirm_payment_intent_completed", "confirm_payment", correlationId, c);
 
           // Only emit success if PaymentIntent is actually succeeded
           if (confirmedIntent.getStatus() == PaymentIntentStatus.SUCCEEDED) {
@@ -918,6 +985,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_failure stage=confirm_payment_intent");
           // Pass structured error to JS via rejection
           originalCall.reject("confirm_payment_intent", err);
+          JSObject d = new JSObject(); if (e.getErrorCode() != null) d.put("code", e.getErrorCode().toString()); d.put("message", e.getMessage()); emitDiag("confirm_payment_intent_failed", "confirm_payment", correlationId, d);
         }
       }
     );
@@ -925,8 +993,10 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
   @PluginMethod
   public void cancel(PluginCall call) {
+    final String cancelCorrelationId = call.getString("diagnosticAttemptId");
     Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_canceled collecting=" + collectingPayment + " discovering=" + discovering + " operation_state=" + operationState);
     setOperationState(OperationState.CANCELING, "cancel_start");
+    emitDiag("cancel_called", "cancel", cancelCorrelationId, null);
 
     // Cancel ongoing payment collection
     if (collectingPayment && paymentCancelable != null) {
@@ -942,6 +1012,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_guard_cleared");
           notifyListeners("statusChanged", new JSObject().put("status", status));
           notifyListeners("paymentStatusChanged", new JSObject().put("status", "canceled"));
+          emitDiag("cancel_completed", "cancel", cancelCorrelationId, null);
         }
 
         @Override
@@ -957,6 +1028,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           JSObject err = createStructuredError("cancel_payment", e);
           err.put("deviceState", captureDeviceState());
           notifyListeners("error", err);
+          JSObject d = new JSObject(); if (e.getErrorCode() != null) d.put("code", e.getErrorCode().toString()); d.put("message", e.getMessage()); emitDiag("cancel_failed", "cancel", cancelCorrelationId, d);
         }
       });
     } else if (collectingPayment) {
@@ -1008,13 +1080,16 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
   @PluginMethod
   public void disconnect(PluginCall call) {
+    final String disconnectCorrelationId = call.getString("diagnosticAttemptId");
     if (connectedReader != null) {
+      emitDiag("disconnect_called", "disconnect", disconnectCorrelationId, null);
       Terminal.getInstance().disconnectReader(new com.stripe.stripeterminal.external.callable.Callback() {
         @Override
         public void onSuccess() {
           connectedReader = null;
           status = "ready";
           notifyListeners("statusChanged", new JSObject().put("status", status));
+          emitDiag("disconnect_completed", "disconnect", disconnectCorrelationId, null);
         }
 
         @Override
@@ -1023,6 +1098,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           err.put("code", mapTerminalErrorCode(e.getErrorCode()));
           err.put("message", e.getMessage());
           notifyListeners("error", err);
+          JSObject d = new JSObject(); if (e.getErrorCode() != null) d.put("code", e.getErrorCode().toString()); d.put("message", e.getMessage()); emitDiag("disconnect_failed", "disconnect", disconnectCorrelationId, d);
         }
       });
     }

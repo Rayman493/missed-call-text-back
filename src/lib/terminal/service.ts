@@ -1,6 +1,7 @@
 import Terminal, { TerminalPlugin, InitializeOptions, CollectPaymentOptions, CreateTerminalPaymentOptions, isNativeCapacitor } from './index'
 import { Capacitor } from '@capacitor/core'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
 
 interface TokenRequest {
   requestId: string
@@ -23,11 +24,17 @@ export class TerminalBridgeService {
   private plugin: TerminalPlugin | null
   private activeTokenRequest: TokenRequest | null = null
   private tokenRequestListener: { remove: () => void } | null = null
+  private diagListeners: { remove: () => void }[] = []
   private instanceId: string
+  private sessionId: string
+  private currentAttemptId: string | null = null
+  private attemptStartMs: number | null = null
+  private currentPhase: string | undefined
 
   private constructor() {
     this.plugin = isNativeCapacitor() ? Terminal : null
     this.instanceId = Math.random().toString(36).substring(2, 9)
+    this.sessionId = 'ttp_' + this.instanceId
     console.log('[TERMINAL_INSTANCE_TRACE] service_instance_id=' + this.instanceId + ' created')
   }
 
@@ -77,6 +84,7 @@ export class TerminalBridgeService {
     }
 
     if (!this.plugin) {
+      logTapToPayEvent('platform_unsupported', { phase: 'startup', sessionId: this.sessionId, meta: { platform: Capacitor.getPlatform?.() } }).catch(() => {})
       const error = new Error('Tap to Pay is not available on this device')
       // Log technical error in development
       if (process.env.NODE_ENV === 'development') {
@@ -89,9 +97,59 @@ export class TerminalBridgeService {
       // Set up token request listener BEFORE initialization
       // Stripe Terminal may request a connection token during initialization
       await this.setupTokenRequestListener()
+      // Global native diagnostic listeners (fire-and-forget)
+      try {
+        if (this.plugin && this.diagListeners.length === 0) {
+          const l1 = await this.plugin.addListener('statusChanged', async (data: any) => {
+            logTapToPayEvent('connection_status_changed', { phase: 'connection_status', sessionId: this.sessionId, connectionStatus: data?.status }).catch(() => {})
+          })
+          const l2 = await this.plugin.addListener('paymentStatusChanged', async (data: any) => {
+            logTapToPayEvent('payment_status_changed', { phase: 'collect_payment', sessionId: this.sessionId, meta: { status: data?.status } }).catch(() => {})
+          })
+          const l3 = await this.plugin.addListener('readerConnected', async (info: any) => {
+            logTapToPayEvent('reader_connected', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: 'connected', readerId: info?.readerId }).catch(() => {})
+          })
+          const l4 = await this.plugin.addListener('paymentSucceeded', async (info: any) => {
+            logTapToPayEvent('native_payment_succeeded', { phase: 'confirm_payment', sessionId: this.sessionId, paymentIntentId: info?.paymentIntentId }).catch(() => {})
+          })
+          const l5 = await this.plugin.addListener('error', async (e: any) => {
+            logTapToPayEvent('native_error', { phase: 'startup', sessionId: this.sessionId, code: e?.code || e?.nativeCode, message: e?.message }).catch(() => {})
+          })
+          const l0 = await (this.plugin as any).addListener('tpDiagnostics', async (payload: any) => {
+            logTapToPayEvent(payload?.name || 'native_event', {
+              phase: payload?.phase,
+              sessionId: this.sessionId,
+              attemptId: payload?.attemptId ?? this.currentAttemptId,
+              connectionStatus: payload?.connectionStatus,
+              readerStatus: payload?.readerStatus,
+              readerId: payload?.readerId,
+              paymentIntentId: payload?.paymentIntentId,
+              durationMs: payload?.durationMs,
+              code: payload?.code,
+              message: payload?.message,
+              meta: payload?.meta,
+            }).catch(() => {})
+          })
+          this.diagListeners.push(l0, l1, l2, l3, l4, l5)
+        }
+      } catch {}
       if (process.env.NODE_ENV === 'development') {
         console.log('[TerminalBridgeService] Token request listener registered')
       }
+
+      // App background/foreground diagnostics (if Capacitor App plugin is present)
+      try {
+        const mod = await import('@capacitor/app')
+        const { App } = mod as any
+        const appL = await App.addListener('appStateChange', (ev: any) => {
+          if (this.currentAttemptId && this.attemptStartMs) {
+            const elapsed = Date.now() - this.attemptStartMs
+            const name = ev?.isActive ? 'app_resumed' : 'app_backgrounded'
+            logTapToPayEvent(name, { phase: 'app_state', sessionId: this.sessionId, attemptId: this.currentAttemptId, durationMs: elapsed, meta: { phase: this.currentPhase } }).catch(() => {})
+          }
+        })
+        this.diagListeners.push(appL)
+      } catch {}
 
       // Diagnostic ping before initialization - critical for verifying registration
       if (process.env.NODE_ENV === 'development') {
@@ -109,10 +167,14 @@ export class TerminalBridgeService {
         }
       }
 
-      const result = await this.plugin.initialize(options)
+      const t0 = Date.now()
+      logTapToPayEvent('initialize_started', { phase: 'initialize', sessionId: this.sessionId }).catch(() => {})
+      const result = await this.plugin.initialize({ ...(options as any), diagnosticAttemptId: this.sessionId } as any)
+      logTapToPayEvent('initialize_completed', { phase: 'initialize', sessionId: this.sessionId, durationMs: Date.now() - t0, connectionStatus: result.status }).catch(() => {})
 
       return result
     } catch (error) {
+      logTapToPayEvent('initialize_failed', { phase: 'initialize', sessionId: this.sessionId, message: error instanceof Error ? error.message : String(error) }).catch(() => {})
       // Log technical error in development
       if (process.env.NODE_ENV === 'development') {
         console.error('[TerminalBridgeService] Initialize failed:', error)
@@ -217,14 +279,18 @@ export class TerminalBridgeService {
     this.activeTokenRequest = { requestId, timestamp: Date.now() }
 
     try {
+      const t0 = Date.now()
+      try { await logTapToPayEvent('token_fetch_started', { phase: 'token', sessionId: this.sessionId }) } catch {}
       console.log('[TOKEN_TRACE] stage=api_request_started requestId=' + requestId)
       // Fetch token from backend
       const token = await this.fetchConnectionTokenFromBackend()
       console.log('[TOKEN_TRACE] stage=api_request_success requestId=' + requestId + ' token_present=true token_length=' + token.secret.length)
+      try { await logTapToPayEvent('token_fetch_completed', { phase: 'token', sessionId: this.sessionId, durationMs: Date.now() - t0 }) } catch {}
 
       // Verify this is still the active request (not stale)
       if (this.activeTokenRequest?.requestId !== requestId) {
         console.warn('[TOKEN_TRACE] stage=js_stale_request_ignored requestId=' + requestId)
+        try { await logTapToPayEvent('token_fetch_stale_ignored', { phase: 'token', sessionId: this.sessionId }) } catch {}
         return
       }
 
@@ -233,6 +299,7 @@ export class TerminalBridgeService {
       await this.plugin!.supplyConnectionToken({ requestId, secret: token.secret })
       console.log('[TOKEN_TRACE] stage=js_supply_completed requestId=' + requestId)
     } catch (error) {
+      try { await logTapToPayEvent('token_fetch_failed', { phase: 'token', sessionId: this.sessionId, message: error instanceof Error ? error.message : 'Unknown error' }) } catch {}
       console.error('[TOKEN_TRACE] stage=js_fetch_failed requestId=' + requestId + ' error=' + (error instanceof Error ? error.message : 'Unknown error'))
 
       // Report error to native if still active
@@ -330,6 +397,7 @@ export class TerminalBridgeService {
     if (!this.plugin) throw new Error('Stripe Terminal is not available on web')
 
     console.log('[TAP_SESSION_TRACE] stage=connect_call_start')
+    try { await logTapToPayEvent('connect_started', { phase: 'connect_reader', sessionId: this.sessionId }) } catch {}
 
     // Fetch location ID from backend
     const { locationId } = await this.fetchTerminalLocation()
@@ -360,32 +428,38 @@ export class TerminalBridgeService {
       rejectOnError = reject
     })
 
-    const readerConnectedListener = await this.plugin.addListener('readerConnected', () => {
+    const readerConnectedListener = await this.plugin.addListener('readerConnected', (info: any) => {
       console.log('[TAP_SESSION_TRACE] stage=connect_event_reader_connected')
+      try { logTapToPayEvent('connect_completed', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: 'connected', readerId: info?.readerId }) } catch {}
       resolveConnected?.()
     })
     const statusChangedListener = await this.plugin.addListener('statusChanged', (data: any) => {
       if (data?.status === 'connected') {
         console.log('[TAP_SESSION_TRACE] stage=connect_event_status_connected')
+        try { logTapToPayEvent('connection_status_changed', { phase: 'connection_status', sessionId: this.sessionId, connectionStatus: 'connected' }) } catch {}
         resolveConnected?.()
       }
     })
     const errorListener = await this.plugin.addListener('error', (e: any) => {
       console.warn('[TAP_SESSION_TRACE] stage=connect_event_error')
+      try { logTapToPayEvent('connect_error', { phase: 'connect_reader', sessionId: this.sessionId, code: e?.code || e?.nativeCode, message: e?.message }) } catch {}
       rejectOnError?.(e)
     })
 
     const result = await this.plugin.connectTapToPay({
       simulated: options?.simulated || false,
       locationId,
-    })
+      diagnosticAttemptId: this.sessionId,
+    } as any)
 
     console.log('[TAP_SESSION_TRACE] stage=connect_call_resolved status=' + result.status)
+    try { await logTapToPayEvent('connect_call_resolved', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: result.status }) } catch {}
 
     try {
       if (result.status !== 'connected') {
         await connectedPromise
         console.log('[TAP_SESSION_TRACE] stage=connect_wait_completed')
+        try { await logTapToPayEvent('connect_wait_completed', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: 'connected' }) } catch {}
         return { status: 'connected' as const }
       }
       return result
@@ -405,6 +479,8 @@ export class TerminalBridgeService {
       console.log('[TERMINAL_AUTH] credentials_mode=bearer_token')
     }
 
+    const t0 = Date.now()
+    try { await logTapToPayEvent('payment_intent_create_started', { phase: 'payment_intent', sessionId: this.sessionId, meta: { amountCents: options.amountCents } }) } catch {}
     const response = await fetch('/api/terminal/payment-intent', {
       method: 'POST',
       headers,
@@ -444,6 +520,7 @@ export class TerminalBridgeService {
       throw new Error('Invalid PaymentIntent response: missing paymentIntentId or clientSecret')
     }
 
+    try { await logTapToPayEvent('payment_intent_create_completed', { phase: 'payment_intent', sessionId: this.sessionId, paymentIntentId: data.paymentIntentId, durationMs: Date.now() - t0 }) } catch {}
     return {
       paymentIntentId: data.paymentIntentId,
       clientSecret: data.clientSecret,
@@ -454,6 +531,7 @@ export class TerminalBridgeService {
   async startTapToPayPayment(options: CreateTerminalPaymentOptions) {
     if (!this.plugin) throw new Error('Stripe Terminal is not available on web')
     console.log('[TAP_SESSION_TRACE] stage=js_start_payment_entered')
+    const overallStart = Date.now()
 
     // CRITICAL: Check for unresolved attempt BEFORE generating new ID
     // This prevents creating a new attempt when one is already in progress
@@ -462,14 +540,22 @@ export class TerminalBridgeService {
       console.log('[TAP_ATTEMPT] attempt_id=' + unresolvedAttemptId + ' stage=start_payment_reusing_unresolved')
       // Use the existing unresolved attempt ID instead of generating a new one
       options.terminalAttemptId = unresolvedAttemptId
+    } else if (unresolvedAttemptId && options.terminalAttemptId && options.terminalAttemptId !== unresolvedAttemptId) {
+      // Replacement scenario
+      try { logTapToPayEvent('active_attempt_replaced', { phase: 'payment_intent', sessionId: this.sessionId, attemptId: options.terminalAttemptId, meta: { oldAttemptId: unresolvedAttemptId, reason: 'new_attempt_parameter' } }).catch(() => {}) } catch {}
     }
 
     // Generate or use provided terminalAttemptId for durable attempt identity
     const terminalAttemptId = options.terminalAttemptId || crypto.randomUUID()
     console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=start_payment')
+    try { await logTapToPayEvent('attempt_created', { phase: 'payment_intent', sessionId: this.sessionId, attemptId: terminalAttemptId, meta: { amountCents: options.amountCents } }) } catch {}
 
     // Persist unresolved attempt ID for app restart recovery
     this.persistUnresolvedAttempt(terminalAttemptId)
+    // Track active attempt state for lifecycle/app state logs
+    this.currentAttemptId = terminalAttemptId
+    this.attemptStartMs = overallStart
+    this.currentPhase = 'payment_intent'
 
     // Create PaymentIntent via backend with terminalAttemptId
     const { paymentIntentId, clientSecret } = await this.createTerminalPayment({
@@ -478,6 +564,8 @@ export class TerminalBridgeService {
     })
 
     console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=payment_intent_created paymentIntentId=' + paymentIntentId)
+    try { await logTapToPayEvent('payment_intent_ready', { phase: 'payment_intent', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId }) } catch {}
+    this.currentPhase = 'collect_payment'
 
     // Validate native bridge parameters before passing to native layer
     if (!paymentIntentId || typeof paymentIntentId !== 'string') {
@@ -493,12 +581,27 @@ export class TerminalBridgeService {
     // Collect payment via native Terminal with correlation ID
     console.log('[TAP_SESSION_TRACE] stage=native_payment_call_start attempt_id=' + terminalAttemptId)
     console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=collect_payment')
-    const result = await this.plugin.collectPayment({
-      paymentIntentId,
-      clientSecret,
-      terminalAttemptId,
-    })
+    const collectStart = Date.now()
+    try { await logTapToPayEvent('collect_payment_started', { phase: 'collect_payment', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId }) } catch {}
+    let result: any
+    try {
+      result = await this.plugin.collectPayment({
+        paymentIntentId,
+        clientSecret,
+        terminalAttemptId,
+        diagnosticAttemptId: this.currentAttemptId || this.sessionId,
+      } as any)
+    } catch (e: any) {
+      // Explicit duplicate guard logging without changing behavior
+      const code = e?.code || e?.nativeCode || (typeof e === 'string' ? e : undefined)
+      const msg = e?.message || (typeof e === 'string' ? e : undefined)
+      if (String(code || msg || '').includes('payment-already-in-progress')) {
+        try { await logTapToPayEvent('duplicate_request_blocked', { phase: 'collect_payment', sessionId: this.sessionId, attemptId: terminalAttemptId, code: 'payment-already-in-progress', message: 'A payment is already in progress' }) } catch {}
+      }
+      throw e
+    }
     console.log('[TAP_SESSION_TRACE] stage=native_payment_call_resolved attempt_id=' + terminalAttemptId + ' status=' + result.status)
+    try { await logTapToPayEvent('collect_payment_completed', { phase: 'collect_payment', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId, durationMs: Date.now() - collectStart, code: result.status }) } catch {}
 
     // If payment succeeded, trigger server-side reconciliation
     // This ensures the payment is marked as paid even if webhook is delayed
@@ -506,29 +609,45 @@ export class TerminalBridgeService {
       console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=payment_succeeded triggering_reconciliation')
       try {
         const headers = await this.getAuthHeaders()
+        const recStart = Date.now()
+        try { await logTapToPayEvent('reconcile_started', { phase: 'reconcile', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId }) } catch {}
         await fetch('/api/terminal/reconcile-payment', {
           method: 'POST',
           headers,
           body: JSON.stringify({ paymentIntentId, terminalAttemptId }),
         })
+        try { await logTapToPayEvent('reconcile_completed', { phase: 'reconcile', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId, durationMs: Date.now() - recStart }) } catch {}
         console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=reconciliation_complete')
         // Clear unresolved attempt ID on success
+        try { logTapToPayEvent('active_attempt_reset', { phase: 'reconcile', sessionId: this.sessionId, attemptId: terminalAttemptId, meta: { reason: 'reconciled_success' } }).catch(() => {}) } catch {}
         this.clearUnresolvedAttempt()
+        this.currentAttemptId = null
+        this.attemptStartMs = null
+        this.currentPhase = undefined
       } catch (reconcileError) {
         console.error('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' reconciliation_failed error=' + (reconcileError instanceof Error ? reconcileError.message : 'Unknown'))
+        try { await logTapToPayEvent('reconcile_failed', { phase: 'reconcile', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId, message: reconcileError instanceof Error ? reconcileError.message : 'Unknown' }) } catch {}
         // Don't fail the payment if reconciliation fails - webhook will handle it
         // Keep unresolved attempt ID for recovery
       }
     } else if (result.status === 'failed' || result.status === 'canceled') {
       // Clear unresolved attempt ID on terminal failure/cancellation
       console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=payment_terminal status=' + result.status)
+      try { logTapToPayEvent('active_attempt_reset', { phase: 'collect_payment', sessionId: this.sessionId, attemptId: terminalAttemptId, meta: { reason: result.status } }).catch(() => {}) } catch {}
       this.clearUnresolvedAttempt()
+      this.currentAttemptId = null
+      this.attemptStartMs = null
+      this.currentPhase = undefined
+      try { await logTapToPayEvent(result.status === 'failed' ? 'payment_failed' : 'payment_canceled', { phase: 'collect_payment', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId, code: result.error?.code, message: result.error?.message }) } catch {}
     } else {
       // Unexpected status - treat as ambiguous
       console.warn('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=unexpected_status status=' + result.status + ' treating_as_ambiguous')
       // Keep unresolved attempt ID for recovery
+      try { await logTapToPayEvent('payment_ambiguous', { phase: 'collect_payment', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId, code: result.status }) } catch {}
     }
 
+    // Attempt total duration
+    try { logTapToPayEvent('attempt_completed', { phase: 'collect_payment', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId, durationMs: Date.now() - overallStart, code: result.status, message: result.error?.message }) } catch {}
     return result
   }
 
@@ -540,14 +659,26 @@ export class TerminalBridgeService {
   async cancel() {
     if (!this.plugin) throw new Error('Stripe Terminal is not available on web')
     console.log('[TERMINAL_RECONCILIATION] stage=cancel_called')
-    const result = await this.plugin.cancel()
+    try { await logTapToPayEvent('cancel_requested', { phase: 'cancel', sessionId: this.sessionId }) } catch {}
+    const result = await (this.plugin as any).cancel({ diagnosticAttemptId: this.currentAttemptId || this.sessionId })
     console.log('[TERMINAL_RECONCILIATION] stage=cancel_complete')
+    try { await logTapToPayEvent('cancel_completed', { phase: 'cancel', sessionId: this.sessionId, connectionStatus: result.status }) } catch {}
+    // If an attempt was active, mark it observationally reset for diagnostics
+    if (this.currentAttemptId) {
+      try { await logTapToPayEvent('active_attempt_reset', { phase: 'cancel', sessionId: this.sessionId, attemptId: this.currentAttemptId, meta: { reason: 'cancel' } }) } catch {}
+      this.currentAttemptId = null
+      this.attemptStartMs = null
+      this.currentPhase = undefined
+    }
     return result
   }
 
   async disconnect() {
     if (!this.plugin) throw new Error('Stripe Terminal is not available on web')
-    return this.plugin.disconnect()
+    try { await logTapToPayEvent('disconnect_requested', { phase: 'disconnect', sessionId: this.sessionId }) } catch {}
+    const res = await (this.plugin as any).disconnect({ diagnosticAttemptId: this.currentAttemptId || this.sessionId })
+    try { await logTapToPayEvent('disconnect_completed', { phase: 'disconnect', sessionId: this.sessionId, connectionStatus: res.status }) } catch {}
+    return res
   }
 
   async teardown() {
@@ -558,9 +689,25 @@ export class TerminalBridgeService {
       this.tokenRequestListener.remove()
       this.tokenRequestListener = null
     }
+    if (this.diagListeners.length) {
+      for (const l of this.diagListeners) {
+        try { l.remove() } catch {}
+      }
+      this.diagListeners = []
+    }
     this.activeTokenRequest = null
 
-    return this.plugin.teardown()
+    // Cleanup diagnostics
+    try { logTapToPayEvent('cleanup_started', { phase: 'cleanup', sessionId: this.sessionId }) } catch {}
+    const res = await this.plugin.teardown()
+    try { logTapToPayEvent('cleanup_completed', { phase: 'cleanup', sessionId: this.sessionId, connectionStatus: res.status }) } catch {}
+    if (this.currentAttemptId) {
+      try { await logTapToPayEvent('active_attempt_reset', { phase: 'cleanup', sessionId: this.sessionId, attemptId: this.currentAttemptId, meta: { reason: 'teardown' } }) } catch {}
+      this.currentAttemptId = null
+      this.attemptStartMs = null
+      this.currentPhase = undefined
+    }
+    return res
   }
 
   // Persist unresolved attempt ID for app restart recovery
