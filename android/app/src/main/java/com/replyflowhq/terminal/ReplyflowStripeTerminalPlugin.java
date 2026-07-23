@@ -31,6 +31,7 @@ import com.stripe.stripeterminal.external.models.DeviceType;
 import com.stripe.stripeterminal.external.models.DiscoveryConfiguration.TapToPayDiscoveryConfiguration;
 import com.stripe.stripeterminal.external.models.ConnectionConfiguration.TapToPayConnectionConfiguration;
 import com.stripe.stripeterminal.external.models.PaymentIntent;
+import com.stripe.stripeterminal.external.models.PaymentIntentStatus;
 import com.stripe.stripeterminal.external.models.LocaleConfig;
 import com.stripe.stripeterminal.external.callable.PaymentIntentCallback;
 import java.util.Locale;
@@ -91,14 +92,20 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
   // Request-scoped token request tracking to handle concurrent requests safely
   private static class PendingTokenRequest {
     final String requestId;
-    final ConnectionTokenCallback callback;
+    final java.util.List<ConnectionTokenCallback> callbacks;
     final AtomicBoolean completed;
     Thread timeoutThread;
 
-    PendingTokenRequest(String requestId, ConnectionTokenCallback callback) {
+    PendingTokenRequest(String requestId) {
       this.requestId = requestId;
-      this.callback = callback;
+      this.callbacks = new java.util.ArrayList<>();
       this.completed = new AtomicBoolean(false);
+    }
+
+    void addCallback(ConnectionTokenCallback cb) {
+      synchronized (callbacks) {
+        callbacks.add(cb);
+      }
     }
   }
 
@@ -277,7 +284,11 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       // Remove from pending map
       pendingTokenRequests.remove(requestId);
       // Invoke success callback
-      request.callback.onSuccess(secret);
+      synchronized (request.callbacks) {
+        for (ConnectionTokenCallback cb : request.callbacks) {
+          try { cb.onSuccess(secret); } catch (Exception ignore) {}
+        }
+      }
       Log.d(TAG, "[TOKEN_TRACE] stage=native_callback_success requestId=" + requestId);
     } else {
       // Already completed (timeout or error already fired)
@@ -313,7 +324,11 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       // Remove from pending map
       pendingTokenRequests.remove(requestId);
       // Invoke failure callback
-      request.callback.onFailure(new ConnectionTokenException(message));
+      synchronized (request.callbacks) {
+        for (ConnectionTokenCallback cb : request.callbacks) {
+          try { cb.onFailure(new ConnectionTokenException(message)); } catch (Exception ignore) {}
+        }
+      }
       Log.d(TAG, "[TOKEN] supplyConnectionTokenError: failure for requestId: " + requestId);
     } else {
       // Already completed (timeout already fired)
@@ -345,14 +360,14 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       return;
     }
 
-    // Check if app is debuggable - Stripe does not allow real Tap to Pay in debuggable builds
+    // Respect explicit simulation flag even in debug builds to allow real-device testing when requested
     boolean isDebuggable = (getContext().getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0;
-    boolean effectiveSimulated = isDebuggable ? true : requestedSimulated;
+    boolean effectiveSimulated = requestedSimulated;
 
     Log.d(TAG, "[TAP_TO_PAY_MODE] app_debuggable=" + isDebuggable + " requested_simulated=" + requestedSimulated + " effective_simulated=" + effectiveSimulated);
 
     if (isDebuggable && !requestedSimulated) {
-      Log.w(TAG, "[TAP_TO_PAY_MODE] Debug build attempting real Tap to Pay - forcing simulated mode");
+      Log.w(TAG, "[TAP_TO_PAY_MODE] Debug build proceeding with real Tap to Pay as explicitly requested");
     }
 
     // Reconcile plugin state with Stripe SDK state
@@ -745,7 +760,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           status = "ready";
 
           // Only emit success if PaymentIntent is actually succeeded
-          if (confirmedIntent.getStatus() == PaymentIntent.Status.SUCCEEDED) {
+          if (confirmedIntent.getStatus() == PaymentIntentStatus.SUCCEEDED) {
             setOperationState(OperationState.SUCCEEDED, "confirm_success_succeeded");
             Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_complete payment_intent_id=" + confirmedIntent.getId());
             notifyListeners("paymentStatusChanged", new JSObject().put("status", "payment_succeeded").put("paymentIntentId", confirmedIntent.getId()));
@@ -951,46 +966,60 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
   private class JsBridgedConnectionTokenProvider implements ConnectionTokenProvider {
     @Override
     public void fetchConnectionToken(ConnectionTokenCallback callback) {
-      // Generate unique request ID for this token request
-      String requestId = UUID.randomUUID().toString();
-
-      Log.d(TAG, "[TOKEN_TRACE] stage=native_request_created requestId=" + requestId);
-
-      // Create pending request record
-      PendingTokenRequest request = new PendingTokenRequest(requestId, callback);
-      pendingTokenRequests.put(requestId, request);
-
-      Log.d(TAG, "[TOKEN_TRACE] stage=native_request_stored requestId=" + requestId + " pendingCount=" + pendingTokenRequests.size());
-
-      // Emit event to JS to request token with requestId
-      JSObject payload = new JSObject();
-      payload.put("requestId", requestId);
-      notifyListeners("connectionTokenRequested", payload);
-      Log.d(TAG, "[TOKEN_TRACE] stage=native_event_emitted requestId=" + requestId + " eventName=connectionTokenRequested");
-
-      // Start timeout thread
-      Thread timeoutThread = new Thread(() -> {
-        try {
-          Thread.sleep(10000); // 10 second timeout
-        } catch (InterruptedException e) {
-          // Thread was interrupted (token supplied successfully)
-          Log.d(TAG, "[TOKEN_TRACE] stage=native_timeout_interrupted requestId=" + requestId);
+      synchronized (pendingTokenRequests) {
+        // Reuse an existing pending request if present to avoid multiple overlapping requestIds
+        PendingTokenRequest existing = null;
+        for (PendingTokenRequest p : pendingTokenRequests.values()) { existing = p; break; }
+        if (existing != null && !existing.completed.get()) {
+          existing.addCallback(callback);
+          Log.d(TAG, "[TOKEN_TRACE] stage=native_request_coalesced existingRequestId=" + existing.requestId);
           return;
         }
 
-        // Timeout elapsed - check if still pending and complete
-        PendingTokenRequest pending = pendingTokenRequests.get(requestId);
-        if (pending != null && pending.completed.compareAndSet(false, true)) {
-          // Still pending - complete with timeout error
-          pendingTokenRequests.remove(requestId);
-          pending.callback.onFailure(new ConnectionTokenException("Failed to fetch connection token: timeout"));
-          Log.w(TAG, "[TOKEN_TRACE] stage=native_timeout_fired requestId=" + requestId);
-        } else {
-          Log.d(TAG, "[TOKEN_TRACE] stage=native_timeout_skipped requestId=" + requestId + " alreadyCompleted=true");
-        }
-      });
-      request.timeoutThread = timeoutThread;
-      timeoutThread.start();
+        // Generate unique request ID for this token request
+        String requestId = UUID.randomUUID().toString();
+        Log.d(TAG, "[TOKEN_TRACE] stage=native_request_created requestId=" + requestId);
+
+        // Create pending request record
+        PendingTokenRequest request = new PendingTokenRequest(requestId);
+        request.addCallback(callback);
+        pendingTokenRequests.put(requestId, request);
+        Log.d(TAG, "[TOKEN_TRACE] stage=native_request_stored requestId=" + requestId + " pendingCount=" + pendingTokenRequests.size());
+
+        // Emit event to JS to request token with requestId
+        JSObject payload = new JSObject();
+        payload.put("requestId", requestId);
+        notifyListeners("connectionTokenRequested", payload);
+        Log.d(TAG, "[TOKEN_TRACE] stage=native_event_emitted requestId=" + requestId + " eventName=connectionTokenRequested");
+
+        // Start timeout thread
+        Thread timeoutThread = new Thread(() -> {
+          try {
+            Thread.sleep(10000); // 10 second timeout
+          } catch (InterruptedException e) {
+            // Thread was interrupted (token supplied successfully)
+            Log.d(TAG, "[TOKEN_TRACE] stage=native_timeout_interrupted requestId=" + requestId);
+            return;
+          }
+
+          // Timeout elapsed - check if still pending and complete
+          PendingTokenRequest pending = pendingTokenRequests.get(requestId);
+          if (pending != null && pending.completed.compareAndSet(false, true)) {
+            // Still pending - complete with timeout error
+            pendingTokenRequests.remove(requestId);
+            synchronized (pending.callbacks) {
+              for (ConnectionTokenCallback cb : pending.callbacks) {
+                try { cb.onFailure(new ConnectionTokenException("Failed to fetch connection token: timeout")); } catch (Exception ignore) {}
+              }
+            }
+            Log.w(TAG, "[TOKEN_TRACE] stage=native_timeout_fired requestId=" + requestId);
+          } else {
+            Log.d(TAG, "[TOKEN_TRACE] stage=native_timeout_skipped requestId=" + requestId + " alreadyCompleted=true");
+          }
+        });
+        request.timeoutThread = timeoutThread;
+        timeoutThread.start();
+      }
     }
   }
 
