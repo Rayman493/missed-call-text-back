@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import android.util.Log;
 
 import java.util.UUID;
+import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -107,7 +108,9 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       payload.put("timestamp", System.currentTimeMillis());
       if (correlationId != null) payload.put("attemptId", correlationId);
       if (more != null) {
-        for (String k : more.keys()) {
+        Iterator<String> keys = more.keys();
+        while (keys.hasNext()) {
+          String k = keys.next();
           payload.put(k, more.get(k));
         }
       }
@@ -848,7 +851,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           JSObject m = new JSObject(); m.put("paymentIntentId", paymentIntent.getId()); emitDiag("retrieve_payment_intent_completed", "payment_intent", collectCorrelationId, m);
 
           // Collect payment method
-          collectPaymentMethod(paymentIntent, call);
+          collectPaymentMethod(paymentIntent, call, collectCorrelationId);
         }
 
         @Override
