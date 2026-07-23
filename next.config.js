@@ -1,4 +1,22 @@
 const { withSentryConfig } = require("@sentry/nextjs");
+const fs = require('fs');
+const path = require('path');
+
+// Debug logs to verify root resolution and app dir detection
+try {
+  // eslint-disable-next-line no-console
+  console.log('[next.config] __dirname:', __dirname);
+  // eslint-disable-next-line no-console
+  console.log('[next.config] process.cwd():', process.cwd());
+  // eslint-disable-next-line no-console
+  console.log('[next.config] exists app:', fs.existsSync(path.join(__dirname, 'app')));
+  // eslint-disable-next-line no-console
+  console.log('[next.config] exists src/app:', fs.existsSync(path.join(__dirname, 'src', 'app')));
+  // eslint-disable-next-line no-console
+  console.log('[next.config] package.json at project root exists:', fs.existsSync(path.join(__dirname, 'package.json')));
+  // eslint-disable-next-line no-console
+  console.log('[next.config] parent lockfile exists:', fs.existsSync(path.join(path.dirname(__dirname), 'package-lock.json')));
+} catch {}
 
 /** @type {import('next').NextConfig} */
 const securityHeaders = [
@@ -29,9 +47,8 @@ const securityHeaders = [
 ]
 
 const nextConfig = {
-  experimental: {
-    serverComponentsExternalPackages: ['@supabase/supabase-js']
-  },
+  serverExternalPackages: ['@supabase/supabase-js'],
+  outputFileTracingRoot: __dirname,
   eslint: {
     // Allow warnings during production build - ESLint still runs locally
     ignoreDuringBuilds: true
