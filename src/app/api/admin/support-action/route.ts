@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user from session using server-side client with cookie handling
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     console.log('[SUPABASE SSR SOURCE] admin-support-action')
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

@@ -1,4 +1,4 @@
-ï»¿'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import { X, Calendar, Clock, MapPin, FileText, ExternalLink, Trash2, AlertTriangle, Save, Pencil, Link as LinkIcon, User, Briefcase, Send, CheckCircle2 } from 'lucide-react'
@@ -164,7 +164,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
     if (event.start.dateTime && event.end.dateTime) {
       const startTime = formatTime(event.start.dateTime)
       const endTime = formatTime(event.end.dateTime)
-      return `${startTime} â€“ ${endTime}`
+      return `${startTime} – ${endTime}`
     }
     return ''
   }
@@ -751,14 +751,14 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                           }
                         }}
                         className="text-[11px] px-2 py-1 rounded bg-muted hover:bg-muted/80 text-foreground border border-border/50"
-                      >{isRetrying ? 'Retryingâ€¦' : 'Retry'}</button>
+                      >{isRetrying ? 'Retrying…' : 'Retry'}</button>
                     )}
                   </div>
                   {(actualStart || actualEnd) && (
-                    <p className="text-[11px] text-slate-400 mb-1">Actual meeting: {actualStart ? new Date(actualStart).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'â€”'} â€“ {actualEnd ? new Date(actualEnd).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'â€”'}</p>
+                    <p className="text-[11px] text-slate-400 mb-1">Actual meeting: {actualStart ? new Date(actualStart).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '—'} – {actualEnd ? new Date(actualEnd).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '—'}</p>
                   )}
-                  {transcriptStatus === 'pending' && (<p className="text-xs text-slate-400">Processing meeting transcriptâ€¦</p>)}
-                  {transcriptStatus === 'available' && (<p className="text-xs text-slate-400">Transcript retrieved. Preparing AI summaryâ€¦</p>)}
+                  {transcriptStatus === 'pending' && (<p className="text-xs text-slate-400">Processing meeting transcript…</p>)}
+                  {transcriptStatus === 'available' && (<p className="text-xs text-slate-400">Transcript retrieved. Preparing AI summary…</p>)}
                   {transcriptStatus === 'unavailable' && (<p className="text-xs text-slate-400">No Google Meet transcript was available for this meeting.</p>)}
                   {transcriptStatus === 'failed' && (<p className="text-xs text-slate-400">Meeting summary could not be processed.</p>)}
                   {aiSummaryStructured ? (
@@ -792,7 +792,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                   {isTranscriptOpen && (
                     <div className="mt-2 p-2 rounded bg-slate-900/50 border border-slate-700/50 max-h-48 overflow-y-auto">
                       {transcriptLoading ? (
-                        <p className="text-slate-400 text-xs">Loadingâ€¦</p>
+                        <p className="text-slate-400 text-xs">Loading…</p>
                       ) : transcriptError ? (
                         <p className="text-red-400 text-xs">{transcriptError}</p>
                       ) : transcriptText ? (
@@ -809,7 +809,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                               if (!r.ok || j?.success === false) {
                                 const stat = (j && typeof j.status === 'string') ? j.status : null
                                 if (stat === 'pending' || stat == null) {
-                                  setTranscriptError('Processingâ€¦ Please try again later.')
+                                  setTranscriptError('Processing… Please try again later.')
                                 } else {
                                   setTranscriptError('Transcript unavailable.')
                                 }

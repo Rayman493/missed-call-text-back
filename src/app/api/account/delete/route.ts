@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Authenticate user using server-side client with RLS
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     console.log('[delete-account] Cookie store obtained, creating server client')
     console.log('[SUPABASE SSR SOURCE] account-delete')
     

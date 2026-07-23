@@ -38,7 +38,7 @@ import java.util.Locale;
 @CapacitorPlugin(name = "ReplyflowStripeTerminal")
 public class ReplyflowStripeTerminalPlugin extends Plugin {
   private static final String TAG = "ReplyflowStripeTerminal";
-  private static final String BUILD_MARKER = "TAP_TO_PAY_ERROR_TRACE_2026_07_22_V3";
+  private static final String BUILD_MARKER = "TAP_TO_PAY_DEEP_AUDIT_2026_07_22_V4";
 
   // Initialization state tracking
   private enum InitState {
@@ -49,6 +49,24 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
   }
 
   private volatile InitState initState = InitState.NOT_INITIALIZED;
+
+  // Native operation state machine
+  private enum OperationState {
+    UNINITIALIZED,
+    IDLE,
+    INITIALIZING,
+    DISCOVERING,
+    CONNECTING,
+    CONNECTED,
+    RETRIEVING_PAYMENT_INTENT,
+    COLLECTING_PAYMENT_METHOD,
+    CONFIRMING_PAYMENT_INTENT,
+    CANCELING,
+    SUCCEEDED,
+    FAILED
+  }
+
+  private volatile OperationState operationState = OperationState.UNINITIALIZED;
   private final Object initLock = new Object();
 
   @Override
@@ -573,12 +591,19 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     state.put("terminalInitialized", initialized);
     state.put("connectionStatus", status);
     state.put("readerConnected", connectedReader != null);
+    state.put("operationState", operationState.toString());
 
     // Check NFC enabled state
     NfcAdapter nfcAdapter = NfcAdapter.getDefaultAdapter(getContext());
     state.put("nfcEnabled", nfcAdapter != null && nfcAdapter.isEnabled());
 
     return state;
+  }
+
+  // Transition operation state with logging
+  private void setOperationState(OperationState newState, String reason) {
+    Log.d(TAG, "[OPERATION_STATE] " + operationState + " -> " + newState + " reason=" + reason);
+    operationState = newState;
   }
 
   @PluginMethod
@@ -590,38 +615,48 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
   @PluginMethod
   public void collectPayment(PluginCall call) {
+    Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_start reader_connected=" + (connectedReader != null) + " connection_status=" + status + " operation_state=" + operationState);
+
     if (!initialized) {
+      Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_failure reason=not_initialized");
+      setOperationState(OperationState.FAILED, "not_initialized");
       call.reject("not-initialized");
       return;
     }
 
     if (connectedReader == null) {
+      Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_failure reason=no_reader_connected");
+      setOperationState(OperationState.FAILED, "no_reader_connected");
       call.reject("no-reader-connected");
       return;
     }
 
     // Prevent duplicate payment collection
     if (collectingPayment) {
+      Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_failure reason=payment_already_in_progress");
       call.reject("payment-already-in-progress");
       return;
     }
 
     String clientSecret = call.getString("clientSecret");
+    String terminalAttemptId = call.getString("terminalAttemptId");
 
-    Log.d(TAG, "[PAYMENT_TRACE] stage=native_collect_payment_received client_secret_present=" + (clientSecret != null) + " client_secret_length=" + (clientSecret != null ? clientSecret.length() : 0));
+    Log.d(TAG, "[TAP_ATTEMPT] attempt_id=" + terminalAttemptId + " stage=native_collect_payment_received client_secret_present=" + (clientSecret != null) + " client_secret_length=" + (clientSecret != null ? clientSecret.length() : 0));
 
     if (clientSecret == null || clientSecret.isEmpty()) {
-      Log.w(TAG, "[PAYMENT_TRACE] stage=native_client_secret_missing");
+      Log.w(TAG, "[PAYMENT_TRACE] stage=payment_operation_failure reason=client_secret_missing");
+      setOperationState(OperationState.FAILED, "client_secret_missing");
       call.reject("client-secret-required");
       return;
     }
 
     collectingPayment = true;
     status = "collecting";
+    setOperationState(OperationState.RETRIEVING_PAYMENT_INTENT, "collect_payment_start");
     notifyListeners("statusChanged", new JSObject().put("status", status));
     notifyListeners("paymentStatusChanged", new JSObject().put("status", "creating_payment"));
 
-    Log.d(TAG, "[PAYMENT_TRACE] stage=native_retrieve_payment_intent_started");
+    Log.d(TAG, "[PAYMENT_TRACE] stage=retrieve_payment_intent_start");
 
     // Retrieve PaymentIntent from Stripe
     Terminal.getInstance().retrievePaymentIntent(
@@ -629,23 +664,27 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       new PaymentIntentCallback() {
         @Override
         public void onSuccess(@NonNull PaymentIntent paymentIntent) {
-          Log.d(TAG, "[PAYMENT_TRACE] stage=native_retrieve_payment_intent_success paymentIntentId=" + paymentIntent.getId());
+          Log.d(TAG, "[PAYMENT_TRACE] stage=retrieve_payment_intent_success payment_intent_id=" + paymentIntent.getId() + " payment_intent_status=" + paymentIntent.getStatus());
+          setOperationState(OperationState.COLLECTING_PAYMENT_METHOD, "retrieve_success");
           notifyListeners("paymentStatusChanged", new JSObject().put("status", "retrieving_payment_intent"));
 
           // Collect payment method
           collectPaymentMethod(paymentIntent, call);
         }
-        
+
         @Override
         public void onFailure(@NonNull TerminalException e) {
+          Log.d(TAG, "[PAYMENT_TRACE] stage=retrieve_payment_intent_failure error_code=" + e.getErrorCode());
           collectingPayment = false;
           status = "error";
+          setOperationState(OperationState.FAILED, "retrieve_failure");
 
           JSObject err = createStructuredError("retrieve_payment_intent", e);
           err.put("deviceState", captureDeviceState());
           notifyListeners("error", err);
           notifyListeners("paymentStatusChanged", new JSObject().put("status", "payment_failed").put("error", err));
 
+          Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_failure stage=retrieve_payment_intent");
           // Pass structured error to JS via rejection
           call.reject("retrieve_payment_intent", err);
         }
@@ -654,7 +693,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
   }
   
   private void collectPaymentMethod(PaymentIntent paymentIntent, PluginCall originalCall) {
-    Log.d(TAG, "[PAYMENT_TRACE] stage=collect_payment_method_started paymentIntentId=" + paymentIntent.getId());
+    Log.d(TAG, "[PAYMENT_TRACE] stage=collect_payment_method_start payment_intent_id=" + paymentIntent.getId() + " payment_intent_status=" + paymentIntent.getStatus());
+    setOperationState(OperationState.COLLECTING_PAYMENT_METHOD, "collect_start");
     notifyListeners("paymentStatusChanged", new JSObject().put("status", "waiting_for_card"));
 
     paymentCancelable = Terminal.getInstance().collectPaymentMethod(
@@ -662,36 +702,29 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       new PaymentIntentCallback() {
         @Override
         public void onSuccess(@NonNull PaymentIntent collectedIntent) {
-          Log.d(TAG, "[PAYMENT_TRACE] stage=collect_payment_method_success paymentIntentId=" + collectedIntent.getId() + " status=" + collectedIntent.getStatus());
-          collectingPayment = false;
-          status = "ready";
+          Log.d(TAG, "[PAYMENT_TRACE] stage=collect_payment_method_success payment_intent_id=" + collectedIntent.getId() + " payment_intent_status=" + collectedIntent.getStatus());
+          setOperationState(OperationState.CONFIRMING_PAYMENT_INTENT, "collect_success");
+          notifyListeners("paymentStatusChanged", new JSObject().put("status", "confirming_payment"));
 
-          notifyListeners("paymentStatusChanged", new JSObject().put("status", "processing_payment"));
-
-          // For card_present payments, collectPaymentMethod automatically processes the payment
-          // The returned PaymentIntent should be in succeeded state
-          JSObject result = new JSObject();
-          result.put("status", "succeeded");
-          result.put("paymentIntentId", collectedIntent.getId());
-
-          Log.d(TAG, "[PAYMENT_TRACE] stage=payment_complete paymentIntentId=" + collectedIntent.getId());
-          notifyListeners("paymentStatusChanged", new JSObject().put("status", "payment_succeeded").put("paymentIntentId", collectedIntent.getId()));
-          notifyListeners("paymentSucceeded", result);
-
-          originalCall.resolve(result);
+          // CRITICAL FIX: collectPaymentMethod only collects the card, it does NOT confirm/charge
+          // We must call confirmPaymentIntent to actually charge the card
+          // For card_present payments, this is required to move from requires_payment_method to succeeded
+          confirmPaymentIntent(collectedIntent, originalCall);
         }
 
         @Override
         public void onFailure(@NonNull TerminalException e) {
-          Log.d(TAG, "[PAYMENT_TRACE] stage=collect_payment_method_failed paymentIntentId=" + paymentIntent.getId() + " errorCode=" + e.getErrorCode());
+          Log.d(TAG, "[PAYMENT_TRACE] stage=collect_payment_method_failure error_code=" + e.getErrorCode());
           collectingPayment = false;
           status = "error";
+          setOperationState(OperationState.FAILED, "collect_failure");
 
           JSObject err = createStructuredError("collect_payment_method", e);
           err.put("deviceState", captureDeviceState());
           notifyListeners("error", err);
           notifyListeners("paymentStatusChanged", new JSObject().put("status", "payment_failed").put("error", err));
 
+          Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_failure stage=collect_payment_method");
           // Pass structured error to JS via rejection
           originalCall.reject("collect_payment_method", err);
         }
@@ -699,31 +732,97 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     );
   }
 
+  private void confirmPaymentIntent(PaymentIntent paymentIntent, PluginCall originalCall) {
+    Log.d(TAG, "[PAYMENT_TRACE] stage=confirm_payment_intent_start payment_intent_id=" + paymentIntent.getId() + " payment_intent_status=" + paymentIntent.getStatus());
+
+    paymentCancelable = Terminal.getInstance().confirmPaymentIntent(
+      paymentIntent,
+      new PaymentIntentCallback() {
+        @Override
+        public void onSuccess(@NonNull PaymentIntent confirmedIntent) {
+          Log.d(TAG, "[PAYMENT_TRACE] stage=confirm_payment_intent_success payment_intent_id=" + confirmedIntent.getId() + " payment_intent_status=" + confirmedIntent.getStatus());
+          collectingPayment = false;
+          status = "ready";
+
+          // Only emit success if PaymentIntent is actually succeeded
+          if (confirmedIntent.getStatus() == PaymentIntent.Status.SUCCEEDED) {
+            setOperationState(OperationState.SUCCEEDED, "confirm_success_succeeded");
+            Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_complete payment_intent_id=" + confirmedIntent.getId());
+            notifyListeners("paymentStatusChanged", new JSObject().put("status", "payment_succeeded").put("paymentIntentId", confirmedIntent.getId()));
+
+            JSObject result = new JSObject();
+            result.put("status", "succeeded");
+            result.put("paymentIntentId", confirmedIntent.getId());
+
+            notifyListeners("paymentSucceeded", result);
+
+            originalCall.resolve(result);
+          } else {
+            // PaymentIntent is not succeeded - emit appropriate non-success state
+            setOperationState(OperationState.IDLE, "confirm_success_not_succeeded");
+            Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_complete status=" + confirmedIntent.getStatus() + " payment_intent_id=" + confirmedIntent.getId());
+
+            JSObject result = new JSObject();
+            result.put("status", confirmedIntent.getStatus().toString());
+            result.put("paymentIntentId", confirmedIntent.getId());
+
+            notifyListeners("paymentStatusChanged", new JSObject().put("status", confirmedIntent.getStatus().toString()).put("paymentIntentId", confirmedIntent.getId()));
+
+            // For non-terminal states, still resolve but with the actual status
+            // The server reconciliation will handle the final state
+            originalCall.resolve(result);
+          }
+        }
+
+        @Override
+        public void onFailure(@NonNull TerminalException e) {
+          Log.d(TAG, "[PAYMENT_TRACE] stage=confirm_payment_intent_failure error_code=" + e.getErrorCode());
+          collectingPayment = false;
+          status = "error";
+          setOperationState(OperationState.FAILED, "confirm_failure");
+
+          JSObject err = createStructuredError("confirm_payment_intent", e);
+          err.put("deviceState", captureDeviceState());
+          notifyListeners("error", err);
+          notifyListeners("paymentStatusChanged", new JSObject().put("status", "payment_failed").put("error", err));
+
+          Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_failure stage=confirm_payment_intent");
+          // Pass structured error to JS via rejection
+          originalCall.reject("confirm_payment_intent", err);
+        }
+      }
+    );
+  }
+
   @PluginMethod
   public void cancel(PluginCall call) {
-    Log.d(TAG, "[CANCEL_TRACE] stage=cancel_start collecting=" + collectingPayment + " discovering=" + discovering);
+    Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_canceled collecting=" + collectingPayment + " discovering=" + discovering + " operation_state=" + operationState);
+    setOperationState(OperationState.CANCELING, "cancel_start");
 
     // Cancel ongoing payment collection
     if (collectingPayment && paymentCancelable != null) {
-      Log.d(TAG, "[CANCEL_TRACE] stage=cancel_payment");
+      Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_payment_start");
       paymentCancelable.cancel(new com.stripe.stripeterminal.external.callable.Callback() {
         @Override
         public void onSuccess() {
-          Log.d(TAG, "[CANCEL_TRACE] stage=cancel_payment_success");
+          Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_payment_success");
           collectingPayment = false;
           status = "ready";
+          setOperationState(OperationState.IDLE, "cancel_success");
+          Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_guard_cleared");
           notifyListeners("statusChanged", new JSObject().put("status", status));
           notifyListeners("paymentStatusChanged", new JSObject().put("status", "canceled"));
         }
 
         @Override
         public void onFailure(@NonNull TerminalException e) {
-          Log.d(TAG, "[CANCEL_TRACE] stage=cancel_payment_failed");
+          Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_payment_failure error_code=" + e.getErrorCode());
           // Even if cancel fails, clear the guard to allow retry
           // The Stripe SDK will handle the actual cleanup
           collectingPayment = false;
           status = "ready";
-          Log.d(TAG, "[CANCEL_TRACE] stage=guard_cleared_despite_failure");
+          setOperationState(OperationState.IDLE, "cancel_failure_guard_cleared");
+          Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_guard_cleared");
           JSObject err = createStructuredError("cancel_payment", e);
           err.put("deviceState", captureDeviceState());
           notifyListeners("error", err);
@@ -731,28 +830,32 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       });
     } else if (collectingPayment) {
       // collectingPayment is true but paymentCancelable is null - clear guard to allow retry
-      Log.d(TAG, "[CANCEL_TRACE] stage=clear_stale_guard");
+      Log.d(TAG, "[PAYMENT_TRACE] stage=clear_stale_payment_guard");
       collectingPayment = false;
       status = "ready";
+      setOperationState(OperationState.IDLE, "clear_stale_guard");
+      Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_guard_cleared");
     }
 
     // Cancel ongoing discovery
     if (discovering && discoveryCancelable != null) {
-      Log.d(TAG, "[CANCEL_TRACE] stage=cancel_discovery");
+      Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_discovery_start");
       discoveryCancelable.cancel(new com.stripe.stripeterminal.external.callable.Callback() {
         @Override
         public void onSuccess() {
-          Log.d(TAG, "[CANCEL_TRACE] stage=cancel_discovery_success");
+          Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_discovery_success");
           discovering = false;
           status = "ready";
+          setOperationState(OperationState.IDLE, "cancel_discovery_success");
           notifyListeners("statusChanged", new JSObject().put("status", status));
         }
 
         @Override
         public void onFailure(@NonNull TerminalException e) {
-          Log.d(TAG, "[CANCEL_TRACE] stage=cancel_discovery_failed");
+          Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_discovery_failure error_code=" + e.getErrorCode());
           discovering = false;
           status = "ready";
+          setOperationState(OperationState.IDLE, "cancel_discovery_failure");
           JSObject err = createStructuredError("cancel_discovery", e);
           err.put("deviceState", captureDeviceState());
           notifyListeners("error", err);
@@ -760,9 +863,10 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       });
     } else if (discovering) {
       // discovering is true but discoveryCancelable is null - clear guard
-      Log.d(TAG, "[CANCEL_TRACE] stage=clear_stale_discovery_guard");
+      Log.d(TAG, "[PAYMENT_TRACE] stage=clear_stale_discovery_guard");
       discovering = false;
       status = "ready";
+      setOperationState(OperationState.IDLE, "clear_stale_discovery_guard");
     }
 
     JSObject ret = new JSObject();

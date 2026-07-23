@@ -17,6 +17,7 @@ export type ConnectOptions = {
 export type CollectPaymentOptions = {
   paymentIntentId: string
   clientSecret: string
+  terminalAttemptId?: string // For correlation and diagnostics
 }
 
 export type CreateTerminalPaymentOptions = {
@@ -25,6 +26,7 @@ export type CreateTerminalPaymentOptions = {
   leadId?: string
   jobId?: string
   description?: string
+  terminalAttemptId?: string // Durable attempt ID for idempotency
 }
 
 export type TerminalStatus =
@@ -65,6 +67,7 @@ export interface DeviceState {
   terminalInitialized: boolean
   connectionStatus: string
   readerConnected: boolean
+  operationState?: string
 }
 
 export interface ConnectionToken {

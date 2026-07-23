@@ -73,7 +73,7 @@ export class RateLimiter {
     if (forwardedFor) return forwardedFor.split(',')[0].trim()
     
     // Fallback to a generic identifier
-    return request.ip || 'unknown'
+    return 'unknown'
   }
 
   // Clean up expired entries (call periodically)

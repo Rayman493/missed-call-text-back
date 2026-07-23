@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
   console.log('[TERMINAL_AUTH] endpoint=payment-intent')
   try {
     const body = await request.json()
-    const { amountCents, currency = 'usd', leadId, jobId, description } = body
+    const { amountCents, currency = 'usd', leadId, jobId, description, terminalAttemptId } = body
 
     // Validate required fields
     if (!amountCents || typeof amountCents !== 'number') {
@@ -69,6 +69,15 @@ export async function POST(request: NextRequest) {
 
     const business = businessResult.business
     console.log('[TerminalPaymentIntent] Business resolved:', business.id)
+
+    // CRITICAL: Validate terminalAttemptId for durable attempt identity
+    // If not provided, generate a new UUID. This is safe because:
+    // 1. The service layer reuses localStorage unresolved attempt ID
+    // 2. If a new UUID is generated here, it won't exist in the database
+    // 3. The subsequent check for existing attempts will find nothing
+    // 4. A new PaymentIntent will be created (which is correct for a new attempt)
+    const attemptId = terminalAttemptId || crypto.randomUUID()
+    console.log('[TAP_ATTEMPT] attempt_id=' + attemptId + ' stage=payment_intent_api_start provided=' + (terminalAttemptId ? 'true' : 'false'))
 
     // Retrieve connected Stripe account ID
     const stripeAccountId = business.stripe_connect_account_id
@@ -133,69 +142,122 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Check for duplicate pending payment for same lead/job
-    // For Terminal payments, we need to allow retry after failed attempts
-    // while preventing duplicate active PaymentIntents
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
-    const { data: recentPayment } = await supabaseAdmin
-      .from('payment_requests')
-      .select('id, status, stripe_payment_intent_id, lead_id, job_id')
-      .eq('business_id', business.id)
-      .eq('payment_method_type', 'card_present')
-      .in('status', ['pending', 'failed', 'canceled'])
-      .gte('created_at', fiveMinutesAgo)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
+    // Check for existing payment request with same terminalAttemptId
+    // This is the authoritative duplicate prevention mechanism
+    if (terminalAttemptId) {
+      const { data: existingAttempt } = await supabaseAdmin
+        .from('payment_requests')
+        .select('id, status, stripe_payment_intent_id, created_at, amount_cents, currency, lead_id, job_id')
+        .eq('business_id', business.id)
+        .eq('terminal_attempt_id', attemptId)
+        .maybeSingle()
 
-    if (recentPayment) {
-      console.log('[TerminalPaymentIntent] Recent payment found:', recentPayment.id, 'status:', recentPayment.status)
+      if (existingAttempt) {
+        console.log('[TAP_ATTEMPT] attempt_id=' + attemptId + ' stage=existing_attempt_found local_status=' + existingAttempt.status + ' payment_intent_id=' + existingAttempt.stripe_payment_intent_id)
 
-      // If there's a recent pending payment for the same lead/job, check its Stripe status
-      if (recentPayment.status === 'pending' && recentPayment.stripe_payment_intent_id) {
-        try {
-          const stripe = getStripe()
-          if (stripe) {
-            const paymentIntent = await stripe.paymentIntents.retrieve(
-              recentPayment.stripe_payment_intent_id,
-              {},
-              { stripeAccount: stripeAccountId } as any
-            )
-
-            console.log('[TerminalPaymentIntent] Recent PaymentIntent status:', paymentIntent.status)
-
-            // If the recent PaymentIntent is failed/canceled, allow a new attempt
-            if (paymentIntent.status === 'canceled' || paymentIntent.status === 'requires_payment_method') {
-              console.log('[TerminalPaymentIntent] Previous attempt failed/canceled, allowing retry')
-              // Continue to create new PaymentIntent
-            }
-            // If the recent PaymentIntent is still processing/active, block to prevent duplicate charges
-            else if (paymentIntent.status === 'processing' || paymentIntent.status === 'requires_capture' || paymentIntent.status === 'requires_confirmation' || paymentIntent.status === 'requires_action') {
-              console.error('[TerminalPaymentIntent] Active PaymentIntent already exists, blocking duplicate')
-              return NextResponse.json({ error: 'A payment is already in progress. Please wait a few minutes.' }, { status: 409 })
-            }
-            // If the recent PaymentIntent succeeded, this is unusual - reconciliation should have marked it paid
-            else if (paymentIntent.status === 'succeeded') {
-              console.warn('[TerminalPaymentIntent] Previous PaymentIntent succeeded but local record still pending - reconciliation should handle this')
-              return NextResponse.json({ error: 'Previous payment succeeded. Please refresh the page.' }, { status: 409 })
-            }
-          }
-        } catch (stripeError) {
-          console.error('[TerminalPaymentIntent] Failed to check recent PaymentIntent status:', stripeError)
-          // If we can't verify, be conservative and block
-          return NextResponse.json({ error: 'Unable to verify payment status. Please wait a few minutes.' }, { status: 409 })
+        // CRITICAL: Validate immutable fields match the original attempt
+        // If immutable fields differ, reject to prevent silent mutation
+        if (existingAttempt.amount_cents !== amountCents) {
+          console.error('[TAP_ATTEMPT] attempt_id=' + attemptId + ' stage=amount_mismatch original=' + existingAttempt.amount_cents + ' new=' + amountCents)
+          return NextResponse.json({
+            error: 'attempt_conflict',
+            message: 'Payment amount differs from original attempt. Please start a new payment.',
+          }, { status: 409 })
         }
-      }
-      // If the recent payment is failed/canceled locally, allow a new attempt
-      else if (recentPayment.status === 'failed' || recentPayment.status === 'canceled') {
-        console.log('[TerminalPaymentIntent] Previous attempt failed/canceled locally, allowing retry')
-        // Continue to create new PaymentIntent
+
+        if (existingAttempt.currency !== currency) {
+          console.error('[TAP_ATTEMPT] attempt_id=' + attemptId + ' stage=currency_mismatch original=' + existingAttempt.currency + ' new=' + currency)
+          return NextResponse.json({
+            error: 'attempt_conflict',
+            message: 'Payment currency differs from original attempt. Please start a new payment.',
+          }, { status: 409 })
+        }
+
+        // Optional fields: if provided in new request, they must match original
+        if (leadId && existingAttempt.lead_id !== leadId) {
+          console.error('[TAP_ATTEMPT] attempt_id=' + attemptId + ' stage=lead_mismatch original=' + existingAttempt.lead_id + ' new=' + leadId)
+          return NextResponse.json({
+            error: 'attempt_conflict',
+            message: 'Payment customer differs from original attempt. Please start a new payment.',
+          }, { status: 409 })
+        }
+
+        if (jobId && existingAttempt.job_id !== jobId) {
+          console.error('[TAP_ATTEMPT] attempt_id=' + attemptId + ' stage=job_mismatch original=' + existingAttempt.job_id + ' new=' + jobId)
+          return NextResponse.json({
+            error: 'attempt_conflict',
+            message: 'Payment job differs from original attempt. Please start a new payment.',
+          }, { status: 409 })
+        }
+
+        // If existing attempt has a PaymentIntent, retrieve its Stripe status
+        if (existingAttempt.stripe_payment_intent_id) {
+          try {
+            const stripe = getStripe()
+            if (stripe) {
+              const paymentIntent = await stripe.paymentIntents.retrieve(
+                existingAttempt.stripe_payment_intent_id,
+                {},
+                { stripeAccount: stripeAccountId } as any
+              )
+
+              console.log('[TAP_ATTEMPT] attempt_id=' + attemptId + ' stripe_status=' + paymentIntent.status)
+
+              // Return existing attempt state - do NOT create new PaymentIntent
+              if (paymentIntent.status === 'succeeded') {
+                return NextResponse.json({
+                  paymentIntentId: existingAttempt.stripe_payment_intent_id,
+                  clientSecret: '', // Not returned for security
+                  localPaymentId: existingAttempt.id,
+                  status: 'succeeded',
+                  message: 'Payment already succeeded'
+                })
+              } else if (paymentIntent.status === 'processing' || paymentIntent.status === 'requires_capture' || paymentIntent.status === 'requires_confirmation' || paymentIntent.status === 'requires_action') {
+                return NextResponse.json({
+                  paymentIntentId: existingAttempt.stripe_payment_intent_id,
+                  clientSecret: '', // Not returned for security
+                  localPaymentId: existingAttempt.id,
+                  status: 'processing',
+                  message: 'Payment is still processing'
+                }, { status: 409 })
+              } else if (paymentIntent.status === 'canceled') {
+                // Previous attempt canceled - allow new PaymentIntent creation below
+                console.log('[TAP_ATTEMPT] attempt_id=' + attemptId + ' previous_attempt_canceled allowing_new_paymentintent')
+              } else if (paymentIntent.status === 'requires_payment_method') {
+                // Previous attempt failed before payment method - this is NOT a terminal state for the same PaymentIntent
+                // The same PaymentIntent can be reused for collection
+                console.log('[TAP_ATTEMPT] attempt_id=' + attemptId + ' previous_attempt_requires_payment_method reusing_paymentintent')
+                return NextResponse.json({
+                  paymentIntentId: existingAttempt.stripe_payment_intent_id,
+                  clientSecret: '', // Not returned - client must re-request
+                  localPaymentId: existingAttempt.id,
+                  status: 'requires_payment_method',
+                  message: 'Payment requires payment method - retry collection'
+                }, { status: 409 })
+              }
+            }
+          } catch (stripeError) {
+            console.error('[TAP_ATTEMPT] attempt_id=' + attemptId + ' stripe_retrieve_failed error=' + (stripeError instanceof Error ? stripeError.message : 'Unknown'))
+            // If we can't verify, be conservative and return the existing attempt
+            return NextResponse.json({
+              paymentIntentId: existingAttempt.stripe_payment_intent_id,
+              clientSecret: '',
+              localPaymentId: existingAttempt.id,
+              status: 'unknown',
+              message: 'Unable to verify payment status. Please try again later.'
+            }, { status: 409 })
+          }
+        } else {
+          // Existing attempt without PaymentIntent - likely failed before creation
+          console.log('[TAP_ATTEMPT] attempt_id=' + attemptId + ' existing_attempt_no_paymentintent allowing_new_paymentintent')
+        }
       }
     }
 
-    // Generate idempotency key for this payment request
-    const idempotencyKey = `terminal-${userId}-${randomUUID()}`
-    console.log('[TerminalPaymentIntent] Idempotency key:', idempotencyKey)
+    // Generate deterministic idempotency key using terminalAttemptId
+    // This ensures Stripe idempotency even if client retries with same attempt ID
+    const idempotencyKey = `terminal-payment-${business.id}-${attemptId}`
+    console.log('[TAP_ATTEMPT] attempt_id=' + attemptId + ' idempotency_key=' + idempotencyKey)
 
     // Create PaymentIntent with Stripe
     const stripe = getStripe()
@@ -217,6 +279,7 @@ export async function POST(request: NextRequest) {
           lead_id: leadId || '',
           job_id: jobId || '',
           payment_method_type: 'card_present',
+          terminal_attempt_id: attemptId, // For webhook correlation
         },
       },
       {
@@ -225,10 +288,9 @@ export async function POST(request: NextRequest) {
       }
     )
 
-    console.log('[TerminalPaymentIntent] PaymentIntent created:', paymentIntent.id)
-    console.log('[PAYMENT_TRACE] stage=payment_intent_api_response paymentIntentId=' + paymentIntent.id + ' client_secret_present=' + (paymentIntent.client_secret != null) + ' client_secret_length=' + (paymentIntent.client_secret?.length || 0))
+    console.log('[TAP_ATTEMPT] attempt_id=' + attemptId + ' stage=payment_intent_created stripe_payment_intent_id=' + paymentIntent.id)
 
-    // Create local payment_request record
+    // Create local payment_request record with terminalAttemptId
     const localPaymentId = randomUUID()
     const { error: insertError } = await supabaseAdmin
       .from('payment_requests')
@@ -244,6 +306,7 @@ export async function POST(request: NextRequest) {
         payment_method_type: 'card_present',
         stripe_payment_intent_id: paymentIntent.id,
         stripe_connect_account_id: stripeAccountId,
+        terminal_attempt_id: attemptId, // Durable attempt identity
         // payment_intent_client_secret NOT stored - only needed for immediate native retrieval
         // Storing client secrets longer than necessary is not ideal for security
         requested_by: userId,
@@ -253,14 +316,33 @@ export async function POST(request: NextRequest) {
       })
 
     if (insertError) {
-      console.error('[TerminalPaymentIntent] Failed to create payment_request record')
-      console.error('[TerminalPaymentIntent] Postgres code:', insertError.code)
-      console.error('[TerminalPaymentIntent] Message:', insertError.message)
-      console.error('[TerminalPaymentIntent] PaymentIntent ID:', paymentIntent.id)
-      console.error('[TerminalPaymentIntent] Business ID:', business.id)
+      console.error('[TAP_ATTEMPT] attempt_id=' + attemptId + ' stage=payment_request_insert_failed postgres_code=' + insertError.code)
 
-      // Log safe metadata only - never log or return raw error details
-      // Raw details can contain failing row contents including client secrets
+      // Handle unique constraint violation - concurrent request with same terminalAttemptId
+      if (insertError.code === '23505') {
+        console.log('[TAP_ATTEMPT] attempt_id=' + attemptId + ' stage=unique_constraint_violation fetching_existing')
+
+        // Fetch the existing record that caused the conflict
+        const { data: existingRecord } = await supabaseAdmin
+          .from('payment_requests')
+          .select('id, stripe_payment_intent_id, status')
+          .eq('business_id', business.id)
+          .eq('terminal_attempt_id', attemptId)
+          .single()
+
+        if (existingRecord) {
+          console.log('[TAP_ATTEMPT] attempt_id=' + attemptId + ' stage=existing_record_recovered payment_intent_id=' + existingRecord.stripe_payment_intent_id)
+
+          // Return the existing PaymentIntent - Stripe idempotency ensures it's the same
+          return NextResponse.json({
+            paymentIntentId: existingRecord.stripe_payment_intent_id,
+            clientSecret: paymentIntent.client_secret, // Return fresh client secret
+            localPaymentId: existingRecord.id,
+          })
+        }
+      }
+
+      console.error('[TAP_ATTEMPT] attempt_id=' + attemptId + ' stage=payment_request_insert_failed message=' + insertError.message)
 
       // Cancel the PaymentIntent since local persistence failed
       // This prevents orphaned PaymentIntents
@@ -268,9 +350,9 @@ export async function POST(request: NextRequest) {
         await stripe.paymentIntents.cancel(paymentIntent.id, {
           stripeAccount: stripeAccountId,
         } as any)
-        console.log('[TerminalPaymentIntent] Canceled orphaned PaymentIntent:', paymentIntent.id)
+        console.log('[TAP_ATTEMPT] attempt_id=' + attemptId + ' stage=canceled_orphaned_payment_intent')
       } catch (cancelError) {
-        console.error('[TerminalPaymentIntent] Failed to cancel PaymentIntent:', cancelError)
+        console.error('[TAP_ATTEMPT] attempt_id=' + attemptId + ' stage=cancel_payment_intent_failed')
         // Continue with error response even if cancel fails
       }
 
@@ -278,8 +360,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         error: 'local_payment_record_failed',
         message: 'Payment setup could not be completed. Please try again.',
-        // Do not return paymentIntentId to client - not needed for UX
-        // Do not return localPaymentId since it was not persisted
       }, { status: 500 })
     }
 

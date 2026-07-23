@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   try {
     console.log('[delete-incomplete-signup] Delete request received')
 
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     console.log('[SUPABASE SSR SOURCE] auth-delete-incomplete-signup')
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

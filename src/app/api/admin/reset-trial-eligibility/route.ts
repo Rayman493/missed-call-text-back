@@ -6,7 +6,7 @@ import { isAdmin } from '@/lib/admin'
 export async function POST(request: NextRequest) {
   try {
     // Authenticate user
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {

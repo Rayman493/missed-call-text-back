@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
   try {
     console.log('[Beta Feedback] ========== START ==========')
     
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
     
     // Get the current user
     const { data: { user }, error: userError } = await supabase.auth.getUser()

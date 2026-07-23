@@ -42,7 +42,7 @@ export default function QuickTapToPayModal({
 
       // Development diagnostics
       if (process.env.NODE_ENV === 'development') {
-        const terminalService = new TerminalBridgeService()
+        const terminalService = TerminalBridgeService.getInstance()
         const diagnostics = terminalService.getDiagnostics()
         console.log('[QuickTapToPayModal] Terminal diagnostics:', diagnostics)
       }

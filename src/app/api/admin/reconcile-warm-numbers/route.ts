@@ -15,7 +15,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     // Get user from session
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     console.log('[SUPABASE SSR SOURCE] admin-reconcile-warm-numbers')
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

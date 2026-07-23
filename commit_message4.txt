@@ -1,0 +1,149 @@
+Fix Terminal Tap to Pay reliability: reconciliation, duplicate detection, native race conditions
+
+PART 1 - PAYMENT RECONCILIATION FIX
+
+ROOT CAUSE:
+The reconciliation endpoint failed with "Received unknown parameter: stripeAccount" because stripeAccount was passed as an API parameter instead of a Stripe request option. In stripe-node v22.1.0, stripeAccount must be in the third parameter (request options), not the second (API params).
+
+FIXES:
+1. Fixed stripeAccount parameter placement in reconciliation endpoint
+   - Changed from: stripe.paymentIntents.retrieve(id, { stripeAccount: ... })
+   - Changed to: stripe.paymentIntents.retrieve(id, {}, { stripeAccount: ... })
+   - This matches the correct stripe-node v22.1.0 signature
+
+2. Secured connected account determination
+   - Now uses stripe_connect_account_id from trusted business record
+   - Verifies user owns the business before proceeding
+   - Prevents client from spoofing stripeAccount
+
+3. Implemented reconciliation state machine
+   - succeeded → mark paid, set paid_at, update lead status
+   - canceled → mark canceled
+   - requires_payment_method → mark failed
+   - processing → remain pending
+   - requires_capture → remain pending (unusual for Terminal)
+   - Already paid → idempotent success without side effects
+   - Verifies PaymentIntent ID matches before processing
+
+PART 2 - DUPLICATE DETECTION FIX
+
+ROOT CAUSE:
+The duplicate detection blocked any pending payment with the same amount within 5 minutes, even if the previous attempt failed. Failed Terminal attempts left Pending records that blocked legitimate retries.
+
+FIXES:
+1. Check Stripe PaymentIntent status of recent attempts
+   - If recent PaymentIntent is failed/canceled → allow retry
+   - If recent PaymentIntent is active (processing/active) → block to prevent duplicate charges
+   - If recent PaymentIntent succeeded → block and advise refresh
+   - If local record is failed/canceled → allow retry
+
+2. Use correct PaymentIntent statuses
+   - Active statuses: processing, requires_capture, requires_confirmation, requires_action
+   - Terminal statuses: succeeded, canceled, requires_payment_method
+
+PART 3 - NATIVE RACE CONDITION FIX
+
+ROOT CAUSE:
+Production evidence showed discoverReaders() was called while Connection Status=connected and Reader Connected=Yes. This violated the invariant that discoverReaders should not be called if a reader is already connected.
+
+FIXES:
+1. Added pre-discovery reader check
+   - Immediately before calling discoverReaders(), query Terminal.getInstance().getConnectedReader()
+   - If reader exists, reuse it instead of discovering
+   - Log [TAP_SESSION_TRACE] stage=pre_discovery_reader_check
+
+2. Handle ALREADY_CONNECTED_TO_READER race defensively
+   - If discoverReaders fails with ALREADY_CONNECTED_TO_READER, check if reader now exists
+   - If reader exists, treat as success (race recovery)
+   - Only propagate error if no reader exists after the error
+
+PART 4 - IN-MODAL RETRY / AIDL FAILURE FIX
+
+ROOT CAUSE:
+In-modal retry failed with "Failed to send request to AIDL server" because the previous collectPayment operation was still active or the native AIDL service was transitioning. The operation guard (collectingPayment) was not cleared reliably on cancellation.
+
+FIXES:
+1. Enhanced cancel logic to ensure guards are cleared
+   - Clear collectingPayment guard even if paymentCancelable is null (stale state)
+   - Clear guard even if cancel fails (Stripe SDK handles cleanup)
+   - Add [CANCEL_TRACE] logging to diagnose cancellation behavior
+
+2. Added tracing to JS cancel operation
+   - Log [TERMINAL_RECONCILIATION] stage=cancel_called and stage=cancel_complete
+
+PART 5 - PAYMENT FLOW ORDERING
+
+VERIFICATION:
+The current flow already follows the correct order:
+1. initialize
+2. connectTapToPay (connects reader)
+3. startTapToPayPayment (creates PaymentIntent internally)
+4. collectPayment
+
+PaymentIntent is not created before connection is confirmed. Failed discovery/connection does not create local payment records.
+
+PART 6 - UI REFRESH TIMING
+
+FIX:
+Added 2-second delay before page refresh after payment complete to allow server-side reconciliation to complete. This ensures the payment is marked as paid in the database before the UI refreshes.
+
+PART 7 - WEBHOOK CONFIGURATION
+
+DOCUMENTATION:
+Created WEBHOOK_CONFIGURATION_INSTRUCTIONS.md with exact steps to verify connected-account webhook configuration in Stripe Dashboard. The webhook handler code is correct; the issue is likely that connected-account events are not enabled.
+
+PART 8 - STALE RECORD DIAGNOSTIC
+
+DOCUMENTATION:
+Created diagnostic SQL migration to identify stale Terminal payment records. Provides safe approach to reconcile stale records by verifying Stripe PaymentIntent status before taking action.
+
+FILES CHANGED:
+- android/app/src/main/java/com/replyflowhq/terminal/ReplyflowStripeTerminalPlugin.java
+  - Added pre-discovery reader check
+  - Added ALREADY_CONNECTED_TO_READER race recovery
+  - Enhanced cancel logic with guard clearing
+  - Added [CANCEL_TRACE] logging
+
+- src/app/api/terminal/reconcile-payment/route.ts
+  - Fixed stripeAccount parameter placement
+  - Secured connected account determination
+  - Implemented reconciliation state machine
+  - Added PaymentIntent ID verification
+
+- src/app/api/terminal/payment-intent/route.ts
+  - Fixed duplicate detection to check Stripe PaymentIntent status
+  - Allow retry after failed/canceled attempts
+  - Block only active PaymentIntents
+
+- src/lib/terminal/service.ts
+  - Added tracing to cancel operation
+
+- src/components/payments/QuickTapToPayModal.tsx
+  - Added 2-second delay before page refresh
+
+- WEBHOOK_CONFIGURATION_INSTRUCTIONS.md (new)
+  - Exact steps to verify connected-account webhook configuration
+
+- supabase/migrations/20260722000004_diagnostic_stale_terminal_records.sql (new)
+  - Safe diagnostic query for stale Terminal records
+
+TESTS/BUILD RESULTS:
+- TypeScript compilation: passed (npx tsc --noEmit)
+
+NEXT DEVICE TEST STEPS:
+1. Deploy updated code to production
+2. Build and install new APK (native code changed)
+3. Open Quick Tap to Pay modal
+4. Attempt first payment - should succeed without close/reopen
+5. Check logs for [TAP_SESSION_TRACE] pre_discovery_reader_check
+6. Verify payment shows as "Paid" immediately after success
+7. Verify Payments page refreshes after 2 seconds
+8. Test retry after failed attempt - should allow retry
+9. Verify webhook configuration in Stripe Dashboard (see WEBHOOK_CONFIGURATION_INSTRUCTIONS.md)
+
+DEPLOYMENT STEPS:
+1. Commit and push changes
+2. Run: npx cap sync android
+3. Build release APK: cd android && ./gradlew assembleRelease
+4. Install APK on test device
+5. Verify Stripe webhook configuration (see WEBHOOK_CONFIGURATION_INSTRUCTIONS.md)

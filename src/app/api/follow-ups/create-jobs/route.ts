@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     if (!isInternalAuth) {
       // Fall back to user session auth for dashboard/manual use
       console.log('[FOLLOWUP API USER AUTH] Attempting user session auth');
-      supabase = createServerSupabaseClient()
+      supabase = await createServerSupabaseClient()
       const authResult = await supabase.auth.getUser()
       user = authResult.data.user
       const authError = authResult.error

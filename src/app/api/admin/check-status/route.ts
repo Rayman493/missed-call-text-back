@@ -15,7 +15,7 @@ console.log('[ADMIN CHECK API] Admin user IDs from environment:', {
 
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     console.log('[SUPABASE SSR SOURCE] admin-check-status')
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

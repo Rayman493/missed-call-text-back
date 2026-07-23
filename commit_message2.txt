@@ -1,0 +1,67 @@
+Fix Payments page crash for Terminal payments with null lead/conversation
+
+ROOT CAUSE OF CRASH:
+Terminal/card_present payments can have lead_id=null and conversation_id=null.
+The Payments page assumed payment.leads was always non-null and accessed payment.leads.caller_phone directly.
+This caused "Cannot read properties of null (reading 'caller_phone')" crash.
+
+DATA SHAPE CHANGES:
+- Updated PaymentRequest interface: leads is now nullable
+- Added payment_method_type, job_id, and jobs relation to interface
+- API query now includes jobs relation for job-linked Terminal payments
+
+NULL-SAFETY CHANGES:
+1. getCustomerName() now accepts PaymentRequest instead of lead
+   - Returns "Quick Payment" for payments without lead or job
+   - Returns job title for job-linked payments
+   - Returns customer name for lead-linked payments
+
+2. Phone number display:
+   - Mobile: Only shows phone field if payment.leads exists
+   - Desktop: Shows "-" if payment.leads is null
+
+3. View Customer button:
+   - Mobile: Only shows if payment.leads exists
+   - Desktop: Only shows if payment.leads exists
+
+4. Terminal badge:
+   - Added purple "Terminal" badge for card_present payments
+   - Shown in both mobile and desktop views
+
+TERMINAL PAYMENT RENDERING:
+- Quick Payment (no lead, no job): Shows "Quick Payment" as customer name
+- Job-linked Terminal: Shows job title as customer name
+- Lead-linked Terminal: Shows customer name normally
+- All show amount, status, date, and Terminal badge
+- Phone number only shown if lead exists
+- View Customer only shown if lead exists
+
+STATS CALCULATIONS:
+No changes needed. Stats calculations in route.ts already handle null lead/conversation correctly:
+- pendingAmount: Sum of amount_cents (doesn't depend on lead)
+- paidThisMonth: Sum of paid amounts (doesn't depend on lead)
+- pendingRequests: Count of pending requests (doesn't depend on lead)
+- collectionRate: Ratio of paid to total (doesn't depend on lead)
+
+ERROR BOUNDARY:
+Per-row null-safe access prevents single malformed record from crashing entire page.
+Fallback labels used for missing data instead of crashing.
+
+FILES CHANGED:
+- src/app/api/payments/route.ts
+- src/app/dashboard/payments/page.tsx
+
+TESTS/BUILD RESULTS:
+- TypeScript compilation: passed (npx tsc --noEmit)
+
+NEXT PHYSICAL-DEVICE TEST STEPS:
+1. Deploy updated code to production
+2. Create Terminal payment with no lead
+3. Navigate to Payments page
+4. Verify "Quick Payment" renders correctly
+5. Verify no crash
+6. Verify Terminal badge shows
+7. Verify phone number not shown
+8. Verify View Customer button not shown
+9. Create Terminal payment linked to job
+10. Verify job title renders as customer name

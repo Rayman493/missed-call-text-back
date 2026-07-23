@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   console.log('[Debug Number Consistency] route hit')
 
   try {
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     console.log('[SUPABASE SSR SOURCE] admin-debug-number-consistency')
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

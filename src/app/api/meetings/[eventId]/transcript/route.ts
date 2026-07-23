@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 
-export async function GET(request: NextRequest, { params }: { params: { eventId: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ eventId: string }> }) {
   try {
-    const supabase = createServerSupabaseClient()
+    const { eventId } = await params
+    const supabase = await createServerSupabaseClient()
     const { data: { user }, error } = await supabase.auth.getUser()
     if (error || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -19,7 +20,7 @@ export async function GET(request: NextRequest, { params }: { params: { eventId:
       .from('meeting_records')
       .select('id, business_id, google_calendar_event_id, transcript_text, transcript_source, transcript_fetched_at, transcript_status')
       .eq('business_id', business.id)
-      .eq('google_calendar_event_id', params.eventId)
+      .eq('google_calendar_event_id', eventId)
       .maybeSingle()
 
     if (recErr) return NextResponse.json({ error: 'Failed to load transcript' }, { status: 500 })

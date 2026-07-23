@@ -9,12 +9,13 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    console.log('[PAYMENT CANCEL] Cancellation request received for payment:', params.id)
+    const { id } = await params
+    console.log('[PAYMENT CANCEL] Cancellation request received for payment:', id)
 
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -43,7 +44,7 @@ export async function POST(
     const { data: paymentRequest, error: paymentError } = await supabase
       .from('payment_requests')
       .select('id, business_id, lead_id, amount_cents, description, status, payment_provider, stripe_checkout_session_id, stripe_connect_account_id, token, checkout_url, cancelled_at')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (paymentError || !paymentRequest) {
@@ -110,7 +111,7 @@ export async function POST(
         status: 'cancelled',
         cancelled_at: new Date().toISOString()
       })
-      .eq('id', params.id)
+      .eq('id', id)
 
     if (updateError) {
       console.error('[PAYMENT CANCEL] Failed to update payment request:', updateError)
@@ -121,7 +122,7 @@ export async function POST(
     const { data: updatedPayment, error: fetchError } = await supabase
       .from('payment_requests')
       .select('id, status, cancelled_at, token')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     console.log('[PAYMENT CANCEL] ============================================')

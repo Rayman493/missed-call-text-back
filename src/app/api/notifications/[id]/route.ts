@@ -15,12 +15,13 @@ import { cookies } from 'next/headers'
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    console.log('[NOTIFICATION DELETE] Request received for notification:', params.id)
+    const { id } = await params
+    console.log('[NOTIFICATION DELETE] Request received for notification:', id)
 
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -46,7 +47,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const notificationId = params.id
+    const notificationId = id
     console.log('[NOTIFICATION DELETE] User:', user.id, 'Notification:', notificationId)
 
     // Verify user owns the business using canonical pattern (businesses.user_id)

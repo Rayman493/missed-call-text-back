@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: Request) {
   try {
     // Get user from session
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     console.log('[SUPABASE SSR SOURCE] admin-diagnose-twilio-config')
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

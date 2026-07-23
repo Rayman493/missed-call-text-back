@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Authenticate user using server-side client with RLS
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

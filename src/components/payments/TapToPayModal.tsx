@@ -19,7 +19,7 @@ interface TapToPayModalProps {
   onPaymentComplete?: () => void
 }
 
-type PaymentState = 'ready' | 'preparing' | 'waiting_for_card' | 'processing' | 'success' | 'failure' | 'canceled' | 'pending'
+type PaymentState = 'ready' | 'preparing' | 'waiting_for_card' | 'processing' | 'success' | 'failure' | 'canceled' | 'pending' | 'ambiguous'
 
 // Internal diagnostic build marker - gate technical details to this specific build
 const DIAGNOSTIC_BUILD_MARKER = 'TAP_TO_PAY_REAL_NFC_DIAGNOSTIC_2026_07_22_V2'
@@ -39,9 +39,10 @@ export default function TapToPayModal({
   const [structuredError, setStructuredError] = useState<TerminalError | null>(null)
   const [jsError, setJsError] = useState<{ code: string; message: string; stage?: string; clientSecretPresent?: boolean } | null>(null)
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false)
-  const [terminalService] = useState(() => new TerminalBridgeService())
+  const [terminalService] = useState(() => TerminalBridgeService.getInstance())
   const [isNativeSupported, setIsNativeSupported] = useState(false)
   const [lastSuccessfulStage, setLastSuccessfulStage] = useState<string>('none')
+  const [isPaymentInProgress, setIsPaymentInProgress] = useState(false)
 
   useBodyScrollLock(isOpen)
 
@@ -53,6 +54,16 @@ export default function TapToPayModal({
       if (!supported) {
         setError('Tap to Pay is only available on the mobile app')
       }
+
+      // Check for unresolved attempt from previous session
+      const unresolvedAttemptId = terminalService.getUnresolvedAttempt()
+      if (unresolvedAttemptId) {
+        console.log('[TAP_ATTEMPT] attempt_id=' + unresolvedAttemptId + ' stage=modal_open_unresolved_attempt')
+        setPaymentState('ambiguous')
+        setError('Payment status uncertain - checking...')
+        // Trigger recovery check
+        checkAttemptStatus(unresolvedAttemptId)
+      }
     } else {
       // Reset when closed
       setPaymentState('ready')
@@ -61,6 +72,7 @@ export default function TapToPayModal({
       setJsError(null)
       setShowTechnicalDetails(false)
       setLastSuccessfulStage('none')
+      setIsPaymentInProgress(false)
     }
   }, [isOpen])
 
@@ -189,13 +201,78 @@ export default function TapToPayModal({
     return 'Payment failed. Please try again.'
   }
 
+  const checkAttemptStatus = async (terminalAttemptId: string) => {
+    try {
+      const headers = await terminalService.getAuthHeaders()
+      const response = await fetch(`/api/terminal/attempt-status?terminalAttemptId=${terminalAttemptId}`, {
+        method: 'GET',
+        headers,
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=recovery_check status=' + data.status)
+
+        if (data.status === 'paid') {
+          setPaymentState('success')
+          setError('')
+          terminalService.clearUnresolvedAttempt()
+          if (onPaymentComplete) {
+            setTimeout(() => onPaymentComplete(), 1500)
+          }
+        } else if (data.status === 'failed' || data.status === 'canceled') {
+          setPaymentState(data.status === 'failed' ? 'failure' : 'canceled')
+          setError(data.message || 'Payment failed')
+          terminalService.clearUnresolvedAttempt()
+        } else if (data.status === 'processing') {
+          setPaymentState('ambiguous')
+          setError('Payment is still processing - please wait')
+          // Continue polling - do NOT convert to failed on timeout
+          setTimeout(() => checkAttemptStatus(terminalAttemptId), 3000)
+        } else if (data.status === 'not_found') {
+          // Attempt not found - clear and allow new payment
+          terminalService.clearUnresolvedAttempt()
+          setPaymentState('ready')
+          setError('')
+        }
+      } else {
+        console.error('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=recovery_check_failed')
+        setPaymentState('ambiguous')
+        setError('Unable to check payment status. Please try again.')
+        // Do NOT clear unresolved attempt - keep for retry
+      }
+    } catch (error) {
+      console.error('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=recovery_check_error error=' + (error instanceof Error ? error.message : 'Unknown'))
+      setPaymentState('ambiguous')
+      setError('Unable to check payment status. Please try again.')
+      // Do NOT clear unresolved attempt - keep for retry
+    }
+  }
+
   const handleStartPayment = async () => {
     if (!isNativeSupported) {
       setError('Tap to Pay is only available on the mobile app')
       return
     }
 
+    // Double-tap protection - prevent multiple simultaneous payment attempts
+    if (isPaymentInProgress) {
+      console.log('[TAP_ATTEMPT] stage=double_tap_blocked payment_already_in_progress')
+      return
+    }
+
+    // Check for unresolved attempt before starting new payment
+    const unresolvedAttemptId = terminalService.getUnresolvedAttempt()
+    if (unresolvedAttemptId) {
+      console.log('[TAP_ATTEMPT] attempt_id=' + unresolvedAttemptId + ' stage=new_payment_blocked_unresolved_attempt')
+      setPaymentState('ambiguous')
+      setError('Please resolve the previous payment status first')
+      checkAttemptStatus(unresolvedAttemptId)
+      return
+    }
+
     console.log('[TAP_SESSION_TRACE] stage=modal_open')
+    setIsPaymentInProgress(true)
     setPaymentState('preparing')
     setError('')
     setStructuredError(null)
@@ -245,6 +322,7 @@ export default function TapToPayModal({
         console.log('[TAP_SESSION_TRACE] stage=payment_success')
         setLastSuccessfulStage('payment_complete')
         setPaymentState('success')
+        setIsPaymentInProgress(false)
         if (onPaymentComplete) {
           setTimeout(() => onPaymentComplete(), 1500)
         }
@@ -255,6 +333,7 @@ export default function TapToPayModal({
     } catch (err) {
       console.error('[TAP_SESSION_TRACE] stage=payment_error error=' + (err instanceof Error ? err.message : 'Unknown'))
       console.error('Tap to Pay error:', err)
+      setIsPaymentInProgress(false)
 
       // Check if this is a Capacitor rejection with structured error data
       if (err && typeof err === 'object' && 'data' in err) {
@@ -514,6 +593,9 @@ export default function TapToPayModal({
                           <div>Terminal Initialized: {structuredError.deviceState.terminalInitialized ? 'Yes' : 'No'}</div>
                           <div>Connection Status: {structuredError.deviceState.connectionStatus}</div>
                           <div>Reader Connected: {structuredError.deviceState.readerConnected ? 'Yes' : 'No'}</div>
+                          {structuredError.deviceState.operationState && (
+                            <div>Operation State: {structuredError.deviceState.operationState}</div>
+                          )}
                         </div>
                       </>
                     )}

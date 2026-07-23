@@ -16,7 +16,7 @@ import { sendTestPush } from '@/lib/push-delivery'
 export async function POST(request: NextRequest) {
   try {
     // Authenticate user using server-side client with RLS
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     console.log('[SUPABASE SSR SOURCE] admin-test-push')
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 
-async function getBusinessId(supabase: ReturnType<typeof createServerSupabaseClient>, userId: string) {
+async function getBusinessId(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>, userId: string) {
   const { data, error } = await supabase
     .from('businesses')
     .select('id')
@@ -10,9 +10,10 @@ async function getBusinessId(supabase: ReturnType<typeof createServerSupabaseCli
   return error ? null : data?.id
 }
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const supabase = createServerSupabaseClient()
+    const { id } = await params
+    const supabase = await createServerSupabaseClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const { data: job, error } = await supabase
       .from('jobs')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('business_id', businessId)
       .single()
 
@@ -34,9 +35,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const supabase = createServerSupabaseClient()
+    const { id } = await params
+    const supabase = await createServerSupabaseClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -61,7 +63,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const { data: job, error } = await supabase
       .from('jobs')
       .update(updates)
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('business_id', businessId)
       .select()
       .single()
@@ -79,9 +81,10 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const supabase = createServerSupabaseClient()
+    const { id } = await params
+    const supabase = await createServerSupabaseClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -91,7 +94,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     const { error } = await supabase
       .from('jobs')
       .delete()
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('business_id', businessId)
 
     if (error) {
@@ -99,7 +102,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       return NextResponse.json({ error: 'Failed to delete job' }, { status: 500 })
     }
 
-    console.log('[job_deleted]', { jobId: params.id })
+    console.log('[job_deleted]', { jobId: id })
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('[Jobs API] DELETE unexpected error:', error)

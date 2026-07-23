@@ -6,7 +6,7 @@ import { notificationServiceServer } from '@/lib/notifications-server'
 export async function POST(request: NextRequest) {
   try {
     // Get the user's session
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
     const { data: { user }, error: userError } = await supabase.auth.getUser()
 
     if (userError || !user) {

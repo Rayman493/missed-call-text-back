@@ -38,9 +38,10 @@ function applyExtractedAliases(target: Record<string, any>, keys: string[], valu
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -70,7 +71,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Business not found' }, { status: 404 });
     }
 
-    const leadId = params.id;
+    const leadId = id;
     const body = await request.json();
     const { status, deleted_at, deleted_by, deletion_reason, raw_metadata } = body;
 
@@ -222,9 +223,10 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -254,7 +256,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Business not found' }, { status: 404 });
     }
 
-    const leadId = params.id;
+    const leadId = id;
 
     // Verify lead belongs to user's business
     const { data: lead, error: leadError } = await supabase

@@ -3,16 +3,16 @@ import { createClient } from '@supabase/supabase-js'
 import PaymentHandoff from '@/components/PaymentHandoff'
 
 interface PayPageProps {
-  params: {
+  params: Promise<{
     token: string
-  }
+  }>
 }
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export default async function PayPage({ params }: PayPageProps) {
-  const { token } = params
+  const { token } = await params
 
   // Create Supabase client with service role key for public access
   const supabase = createClient(

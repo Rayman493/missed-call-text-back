@@ -47,9 +47,9 @@ function StructuredData() {
 
 
 export default async function Home() {
-  let cookieStore: ReturnType<typeof cookies> | undefined
+  let cookieStore: Awaited<ReturnType<typeof cookies>> | undefined
   try {
-    cookieStore = cookies()
+    cookieStore = await cookies()
   } catch {
     // Cookies not available (e.g., during static generation)
   }
@@ -61,9 +61,6 @@ export default async function Home() {
         getAll() {
           try {
             if (!cookieStore) {
-              return []
-            }
-            if (typeof cookieStore.getAll !== 'function') {
               return []
             }
             return cookieStore.getAll()

@@ -4,10 +4,10 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { recordingSid: string } }
+  { params }: { params: Promise<{ recordingSid: string }> }
 ) {
   try {
-    const recordingSid = params.recordingSid
+    const { recordingSid } = await params
 
     console.log('[VOICEMAIL PLAYBACK] Request received:', {
       recordingSid,

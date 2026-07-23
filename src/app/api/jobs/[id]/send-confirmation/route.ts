@@ -6,10 +6,11 @@ import { db, supabaseAdmin } from '@/lib/supabase/admin'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = createServerSupabaseClient()
+    const { id } = await params
+    const supabase = await createServerSupabaseClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -20,7 +21,7 @@ export async function POST(
     const { data: job, error: jobError } = await supabase
       .from('jobs')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (jobError || !job) {

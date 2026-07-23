@@ -5,16 +5,16 @@ import { notificationServiceServer } from '@/lib/notifications-server'
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
-  console.log('[GOOGLE CALENDAR PATCH] Request received for eventId:', params.eventId)
+  console.log('[GOOGLE CALENDAR PATCH] Request received')
   
   try {
-    const { eventId } = params
+    const { eventId } = await params
     const body = await request.json()
     
     // Get user session using server client pattern
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
     const { data: { user }, error: userError } = await supabase.auth.getUser()
 
     if (userError || !user) {
@@ -157,15 +157,15 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
-  console.log('[GOOGLE CALENDAR DELETE] Request received for eventId:', params.eventId)
+  console.log('[GOOGLE CALENDAR DELETE] Request received')
   
   try {
-    const { eventId } = params
+    const { eventId } = await params
 
     // Get user session using server client pattern
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
     const { data: { user }, error: userError } = await supabase.auth.getUser()
 
     if (userError || !user) {

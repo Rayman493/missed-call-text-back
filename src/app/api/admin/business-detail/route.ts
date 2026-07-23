@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'businessId required' }, { status: 400 })
     }
 
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     console.log('[SUPABASE SSR SOURCE] admin-business-detail')
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     }
 
     // Get authenticated user using secure getUser()
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
     const { data: { user }, error: userError } = await supabase.auth.getUser()
 
     if (userError || !user) {

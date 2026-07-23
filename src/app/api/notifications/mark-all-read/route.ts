@@ -20,7 +20,7 @@ export async function PATCH(request: NextRequest) {
   try {
     console.log('[NOTIFICATION MARK ALL READ] Request received')
 
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

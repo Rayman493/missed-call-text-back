@@ -16,13 +16,27 @@ export interface TerminalDiagnostics {
   timestamp: number
 }
 
+// Singleton instance to prevent multiple service instances causing duplicate listeners
+let singletonInstance: TerminalBridgeService | null = null
+
 export class TerminalBridgeService {
   private plugin: TerminalPlugin | null
   private activeTokenRequest: TokenRequest | null = null
   private tokenRequestListener: { remove: () => void } | null = null
+  private instanceId: string
 
-  constructor() {
+  private constructor() {
     this.plugin = isNativeCapacitor() ? Terminal : null
+    this.instanceId = Math.random().toString(36).substring(2, 9)
+    console.log('[TERMINAL_INSTANCE_TRACE] service_instance_id=' + this.instanceId + ' created')
+  }
+
+  // Use singleton pattern to prevent multiple instances
+  static getInstance(): TerminalBridgeService {
+    if (!singletonInstance) {
+      singletonInstance = new TerminalBridgeService()
+    }
+    return singletonInstance
   }
 
   // Development diagnostics
@@ -236,7 +250,7 @@ export class TerminalBridgeService {
     }
   }
 
-  private async getAuthHeaders(): Promise<HeadersInit> {
+  async getAuthHeaders(): Promise<HeadersInit> {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     }
@@ -405,34 +419,76 @@ export class TerminalBridgeService {
   async startTapToPayPayment(options: CreateTerminalPaymentOptions) {
     if (!this.plugin) throw new Error('Stripe Terminal is not available on web')
 
-    // Create PaymentIntent via backend
-    const { paymentIntentId, clientSecret } = await this.createTerminalPayment(options)
+    // CRITICAL: Check for unresolved attempt BEFORE generating new ID
+    // This prevents creating a new attempt when one is already in progress
+    const unresolvedAttemptId = this.getUnresolvedAttempt()
+    if (unresolvedAttemptId && !options.terminalAttemptId) {
+      console.log('[TAP_ATTEMPT] attempt_id=' + unresolvedAttemptId + ' stage=start_payment_reusing_unresolved')
+      // Use the existing unresolved attempt ID instead of generating a new one
+      options.terminalAttemptId = unresolvedAttemptId
+    }
 
-    console.log('[PAYMENT_TRACE] stage=js_payment_created paymentIntentId=' + paymentIntentId + ' client_secret_present=' + (clientSecret != null) + ' client_secret_length=' + (clientSecret?.length || 0))
+    // Generate or use provided terminalAttemptId for durable attempt identity
+    const terminalAttemptId = options.terminalAttemptId || crypto.randomUUID()
+    console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=start_payment')
 
-    // Collect payment via native Terminal
-    console.log('[PAYMENT_TRACE] stage=js_collect_payment_called client_secret_present=' + (clientSecret != null))
+    // Persist unresolved attempt ID for app restart recovery
+    this.persistUnresolvedAttempt(terminalAttemptId)
+
+    // Create PaymentIntent via backend with terminalAttemptId
+    const { paymentIntentId, clientSecret } = await this.createTerminalPayment({
+      ...options,
+      terminalAttemptId,
+    })
+
+    console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=payment_intent_created paymentIntentId=' + paymentIntentId)
+
+    // Validate native bridge parameters before passing to native layer
+    if (!paymentIntentId || typeof paymentIntentId !== 'string') {
+      throw new Error('Invalid paymentIntentId: must be non-empty string')
+    }
+    if (!clientSecret || typeof clientSecret !== 'string') {
+      throw new Error('Invalid clientSecret: must be non-empty string')
+    }
+    if (!terminalAttemptId || typeof terminalAttemptId !== 'string') {
+      throw new Error('Invalid terminalAttemptId: must be non-empty string')
+    }
+
+    // Collect payment via native Terminal with correlation ID
+    console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=collect_payment')
     const result = await this.plugin.collectPayment({
       paymentIntentId,
       clientSecret,
+      terminalAttemptId,
     })
 
     // If payment succeeded, trigger server-side reconciliation
     // This ensures the payment is marked as paid even if webhook is delayed
     if (result.status === 'succeeded') {
-      console.log('[PAYMENT_TRACE] stage=payment_succeeded triggering_reconciliation')
+      console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=payment_succeeded triggering_reconciliation')
       try {
         const headers = await this.getAuthHeaders()
         await fetch('/api/terminal/reconcile-payment', {
           method: 'POST',
           headers,
-          body: JSON.stringify({ paymentIntentId }),
+          body: JSON.stringify({ paymentIntentId, terminalAttemptId }),
         })
-        console.log('[PAYMENT_TRACE] stage=reconciliation_complete')
+        console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=reconciliation_complete')
+        // Clear unresolved attempt ID on success
+        this.clearUnresolvedAttempt()
       } catch (reconcileError) {
-        console.error('[PAYMENT_TRACE] reconciliation_failed error=' + (reconcileError instanceof Error ? reconcileError.message : 'Unknown'))
+        console.error('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' reconciliation_failed error=' + (reconcileError instanceof Error ? reconcileError.message : 'Unknown'))
         // Don't fail the payment if reconciliation fails - webhook will handle it
+        // Keep unresolved attempt ID for recovery
       }
+    } else if (result.status === 'failed' || result.status === 'canceled') {
+      // Clear unresolved attempt ID on terminal failure/cancellation
+      console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=payment_terminal status=' + result.status)
+      this.clearUnresolvedAttempt()
+    } else {
+      // Unexpected status - treat as ambiguous
+      console.warn('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=unexpected_status status=' + result.status + ' treating_as_ambiguous')
+      // Keep unresolved attempt ID for recovery
     }
 
     return result
@@ -458,16 +514,51 @@ export class TerminalBridgeService {
 
   async teardown() {
     if (!this.plugin) return { status: 'not_initialized' as const }
-    
+
     // Clean up listener
     if (this.tokenRequestListener) {
       this.tokenRequestListener.remove()
       this.tokenRequestListener = null
     }
     this.activeTokenRequest = null
-    
+
     return this.plugin.teardown()
+  }
+
+  // Persist unresolved attempt ID for app restart recovery
+  private persistUnresolvedAttempt(terminalAttemptId: string) {
+    try {
+      localStorage.setItem('terminal_unresolved_attempt_id', terminalAttemptId)
+      console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=persisted')
+    } catch (error) {
+      console.error('[TAP_ATTEMPT] failed to persist attempt ID:', error)
+    }
+  }
+
+  // Clear unresolved attempt ID when attempt is terminal
+  clearUnresolvedAttempt() {
+    try {
+      localStorage.removeItem('terminal_unresolved_attempt_id')
+      console.log('[TAP_ATTEMPT] stage=unresolved_attempt_cleared')
+    } catch (error) {
+      console.error('[TAP_ATTEMPT] failed to clear attempt ID:', error)
+    }
+  }
+
+  // Get unresolved attempt ID for recovery
+  getUnresolvedAttempt(): string | null {
+    try {
+      const attemptId = localStorage.getItem('terminal_unresolved_attempt_id')
+      if (attemptId) {
+        console.log('[TAP_ATTEMPT] attempt_id=' + attemptId + ' stage=recovered')
+      }
+      return attemptId
+    } catch (error) {
+      console.error('[TAP_ATTEMPT] failed to recover attempt ID:', error)
+      return null
+    }
   }
 }
 
-export const terminalBridge = new TerminalBridgeService()
+// Export singleton instance for backward compatibility
+export const terminalBridge = TerminalBridgeService.getInstance()

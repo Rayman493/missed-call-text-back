@@ -6,13 +6,13 @@ import { hasBillingAccess } from '@/lib/manual-access'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string, jobId: string } }
+  { params }: { params: Promise<{ id: string, jobId: string }> }
 ) {
   try {
-    console.log('[SEND FOLLOWUP NOW API ENTER]', { leadId: params.id, jobId: params.jobId })
+    console.log('[SEND FOLLOWUP NOW API ENTER]')
     
-    const supabase = createServerSupabaseClient()
-    const { id: leadId, jobId } = params
+    const supabase = await createServerSupabaseClient()
+    const { id: leadId, jobId } = await params
 
     // Authenticate user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -175,11 +175,11 @@ export async function POST(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string, jobId: string } }
+  { params }: { params: Promise<{ id: string, jobId: string }> }
 ) {
   try {
-    const supabase = createServerSupabaseClient()
-    const { id: leadId, jobId } = params
+    const supabase = await createServerSupabaseClient()
+    const { id: leadId, jobId } = await params
     const body = await request.json()
 
     // Authenticate user
@@ -279,11 +279,11 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string, jobId: string } }
+  { params }: { params: Promise<{ id: string, jobId: string }> }
 ) {
   try {
-    const supabase = createServerSupabaseClient()
-    const { id: leadId, jobId } = params
+    const supabase = await createServerSupabaseClient()
+    const { id: leadId, jobId } = await params
 
     // Authenticate user
     const { data: { user }, error: authError } = await supabase.auth.getUser()

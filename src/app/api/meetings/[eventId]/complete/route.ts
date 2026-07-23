@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { timelineEvents } from '@/lib/event-timeline'
 
-export async function POST(request: NextRequest, { params }: { params: { eventId: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ eventId: string }> }) {
   try {
-    const supabase = createServerSupabaseClient()
+    const { eventId } = await params
+    const supabase = await createServerSupabaseClient()
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     if (userError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest, { params }: { params: { eventId
       .from('meeting_records')
       .select('id, status, completed_at, notes, lead_id, job_id')
       .eq('business_id', business.id)
-      .eq('google_calendar_event_id', params.eventId)
+      .eq('google_calendar_event_id', eventId)
       .maybeSingle()
 
     const completedAt = new Date().toISOString()
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest, { params }: { params: { eventId
     // Upsert to completed
     const payload: any = {
       business_id: business.id,
-      google_calendar_event_id: params.eventId,
+      google_calendar_event_id: eventId,
       status: 'completed',
       completed_at: completedAt,
       updated_at: completedAt,
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest, { params }: { params: { eventId
     try {
       await timelineEvents.meetingCompleted(
         business.id,
-        params.eventId,
+        eventId,
         meeting_title || 'Appointment',
         scheduled_start || '',
         scheduled_end || '',

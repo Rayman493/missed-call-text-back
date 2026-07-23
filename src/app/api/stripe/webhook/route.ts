@@ -1460,13 +1460,19 @@ export async function POST(request: Request) {
         console.log('[TERMINAL PAYMENT] Currency:', paymentIntent.currency)
         console.log('[TERMINAL PAYMENT] Payment method types:', paymentIntent.payment_method_types)
         console.log('[TERMINAL PAYMENT] Metadata:', metadata)
-        
+
+        // Log terminalAttemptId for correlation
+        const terminalAttemptId = metadata.terminal_attempt_id
+        if (terminalAttemptId) {
+          console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=webhook_payment_intent_succeeded')
+        }
+
         // Only process card_present payments (Terminal)
         if (!paymentIntent.payment_method_types.includes('card_present')) {
           console.log('[TERMINAL PAYMENT] Not a card_present payment, skipping')
           break
         }
-        
+
         const businessId = metadata.business_id
         const leadId = metadata.lead_id
         
@@ -1478,13 +1484,37 @@ export async function POST(request: Request) {
         // Find payment request by PaymentIntent ID
         const { data: paymentRequest, error: paymentRequestError } = await supabase
           .from('payment_requests')
-          .select('id, lead_id, business_id, status, amount_cents, currency')
+          .select('id, lead_id, business_id, status, amount_cents, currency, stripe_connect_account_id')
           .eq('stripe_payment_intent_id', paymentIntentId)
           .maybeSingle()
         
         if (paymentRequestError || !paymentRequest) {
           console.error('[TERMINAL PAYMENT] Payment request not found:', paymentRequestError)
           // Still mark event as processed to avoid retries
+          await markEventProcessed(supabase, event.id, event.type, businessId)
+          break
+        }
+
+        // CRITICAL: Verify Stripe Connect account context for tenant isolation
+        // A webhook from connected account A must never modify a payment belonging to connected account B
+        const expectedConnectedAccountId = paymentRequest.stripe_connect_account_id
+        const eventConnectedAccountId = (event as any).account // Stripe Connect account ID from event
+
+        if (expectedConnectedAccountId && eventConnectedAccountId) {
+          if (expectedConnectedAccountId !== eventConnectedAccountId) {
+            console.error('[TERMINAL PAYMENT] CONNECT ACCOUNT MISMATCH - Security violation')
+            console.error('[TERMINAL PAYMENT] Expected account:', expectedConnectedAccountId)
+            console.error('[TERMINAL PAYMENT] Event account:', eventConnectedAccountId)
+            console.error('[TERMINAL PAYMENT] PaymentIntent ID:', paymentIntentId)
+            console.error('[TERMINAL PAYMENT] Rejecting webhook to prevent cross-tenant payment mutation')
+            // Mark as processed to prevent retry but do NOT update payment
+            await markEventProcessed(supabase, event.id, event.type, businessId)
+            break
+          }
+          console.log('[TERMINAL PAYMENT] Connect account verified:', eventConnectedAccountId)
+        } else if (expectedConnectedAccountId && !eventConnectedAccountId) {
+          // Payment has connected account but event is from platform account
+          console.warn('[TERMINAL PAYMENT] Platform event for connected account payment - ignoring')
           await markEventProcessed(supabase, event.id, event.type, businessId)
           break
         }
@@ -1579,16 +1609,22 @@ export async function POST(request: Request) {
         const paymentIntent = event.data.object as Stripe.PaymentIntent
         const paymentIntentId = paymentIntent.id
         const metadata = paymentIntent.metadata || {}
-        
+
         console.log('[TERMINAL PAYMENT] PaymentIntent ID:', paymentIntentId)
         console.log('[TERMINAL PAYMENT] Last payment error:', paymentIntent.last_payment_error)
-        
+
+        // Log terminalAttemptId for correlation
+        const terminalAttemptId = metadata.terminal_attempt_id
+        if (terminalAttemptId) {
+          console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=webhook_payment_intent_failed')
+        }
+
         // Only process card_present payments
         if (!paymentIntent.payment_method_types.includes('card_present')) {
           console.log('[TERMINAL PAYMENT] Not a card_present payment, skipping')
           break
         }
-        
+
         const businessId = metadata.business_id
         
         if (!businessId) {
@@ -1600,11 +1636,31 @@ export async function POST(request: Request) {
         // Find and update payment request
         const { data: paymentRequest } = await supabase
           .from('payment_requests')
-          .select('id, lead_id, business_id')
+          .select('id, lead_id, business_id, stripe_connect_account_id')
           .eq('stripe_payment_intent_id', paymentIntentId)
           .maybeSingle()
         
         if (paymentRequest) {
+          // CRITICAL: Verify Stripe Connect account context for tenant isolation
+          const expectedConnectedAccountId = paymentRequest.stripe_connect_account_id
+          const eventConnectedAccountId = (event as any).account
+
+          if (expectedConnectedAccountId && eventConnectedAccountId) {
+            if (expectedConnectedAccountId !== eventConnectedAccountId) {
+              console.error('[TERMINAL PAYMENT] CONNECT ACCOUNT MISMATCH - Security violation')
+              console.error('[TERMINAL PAYMENT] Expected account:', expectedConnectedAccountId)
+              console.error('[TERMINAL PAYMENT] Event account:', eventConnectedAccountId)
+              console.error('[TERMINAL PAYMENT] PaymentIntent ID:', paymentIntentId)
+              console.error('[TERMINAL PAYMENT] Rejecting webhook to prevent cross-tenant payment mutation')
+              await markEventProcessed(supabase, event.id, event.type, businessId)
+              break
+            }
+          } else if (expectedConnectedAccountId && !eventConnectedAccountId) {
+            console.warn('[TERMINAL PAYMENT] Platform event for connected account payment - ignoring')
+            await markEventProcessed(supabase, event.id, event.type, businessId)
+            break
+          }
+
           await supabase
             .from('payment_requests')
             .update({
@@ -1645,11 +1701,31 @@ export async function POST(request: Request) {
         // Find and update payment request
         const { data: paymentRequest } = await supabase
           .from('payment_requests')
-          .select('id, lead_id, business_id')
+          .select('id, lead_id, business_id, stripe_connect_account_id')
           .eq('stripe_payment_intent_id', paymentIntentId)
           .maybeSingle()
         
         if (paymentRequest) {
+          // CRITICAL: Verify Stripe Connect account context for tenant isolation
+          const expectedConnectedAccountId = paymentRequest.stripe_connect_account_id
+          const eventConnectedAccountId = (event as any).account
+
+          if (expectedConnectedAccountId && eventConnectedAccountId) {
+            if (expectedConnectedAccountId !== eventConnectedAccountId) {
+              console.error('[TERMINAL PAYMENT] CONNECT ACCOUNT MISMATCH - Security violation')
+              console.error('[TERMINAL PAYMENT] Expected account:', expectedConnectedAccountId)
+              console.error('[TERMINAL PAYMENT] Event account:', eventConnectedAccountId)
+              console.error('[TERMINAL PAYMENT] PaymentIntent ID:', paymentIntentId)
+              console.error('[TERMINAL PAYMENT] Rejecting webhook to prevent cross-tenant payment mutation')
+              await markEventProcessed(supabase, event.id, event.type, businessId)
+              break
+            }
+          } else if (expectedConnectedAccountId && !eventConnectedAccountId) {
+            console.warn('[TERMINAL PAYMENT] Platform event for connected account payment - ignoring')
+            await markEventProcessed(supabase, event.id, event.type, businessId)
+            break
+          }
+
           await supabase
             .from('payment_requests')
             .update({

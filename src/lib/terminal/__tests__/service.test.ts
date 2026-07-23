@@ -25,13 +25,17 @@ describe('TerminalBridgeService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    service = new TerminalBridgeService()
+    // Reset singleton for testing
+    vi.resetModules()
+    service = TerminalBridgeService.getInstance()
   })
 
   describe('on web (not native)', () => {
     beforeEach(() => {
       vi.mocked(isNativeCapacitor).mockReturnValue(false)
-      service = new TerminalBridgeService()
+      // Reset singleton to get fresh instance for test
+      vi.resetModules()
+      service = TerminalBridgeService.getInstance()
     })
 
     it('reports unsupported on web', async () => {
@@ -49,7 +53,9 @@ describe('TerminalBridgeService', () => {
   describe('on native (Capacitor)', () => {
     beforeEach(() => {
       vi.mocked(isNativeCapacitor).mockReturnValue(true)
-      service = new TerminalBridgeService()
+      // Reset singleton to get fresh instance for test
+      vi.resetModules()
+      service = TerminalBridgeService.getInstance()
     })
 
     it('sets up token request listener on initialize', async () => {

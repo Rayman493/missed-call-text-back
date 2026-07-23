@@ -6,16 +6,17 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   console.log('[API LEADS STATUS PATCH] ========== ROUTE ENTERED ==========')
   
   try {
+    const { id } = await params
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
     const body = await request.json()
     const { status } = body
     
-    console.log('[API LEADS STATUS PATCH] Lead ID:', params.id)
+    console.log('[API LEADS STATUS PATCH] Lead ID:', id)
     console.log('[API LEADS STATUS PATCH] Requested status:', status)
 
     // Validate status - include all new business-controlled statuses
@@ -48,13 +49,13 @@ export async function PATCH(
     console.log('[API LEADS STATUS PATCH] Authenticated user ID:', user.id)
 
     // Get lead details for activity logging
-    console.log('[API LEADS STATUS PATCH] Fetching lead details for:', params.id)
+    console.log('[API LEADS STATUS PATCH] Fetching lead details for:', id)
     let existingLead, fetchError
     try {
       const result = await supabase
         .from('leads')
         .select('*')
-        .eq('id', params.id)
+        .eq('id', id)
         .single()
       existingLead = result.data
       fetchError = result.error
@@ -69,7 +70,7 @@ export async function PATCH(
     }
     
     if (!existingLead) {
-      console.log('[API LEADS STATUS PATCH] Lead not found:', params.id)
+      console.log('[API LEADS STATUS PATCH] Lead not found:', id)
       return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
     }
     
@@ -115,7 +116,7 @@ export async function PATCH(
       const result = await supabase
         .from('leads')
         .update(updatePayload)
-        .eq('id', params.id)
+        .eq('id', id)
         .select()
         .single()
       lead = result.data
@@ -152,7 +153,7 @@ export async function PATCH(
             paused_by: 'system',
             cancellation_reason: 'lead_ignored'
           })
-          .eq('lead_id', params.id)
+          .eq('lead_id', id)
           .eq('status', 'pending')
           .select()
 

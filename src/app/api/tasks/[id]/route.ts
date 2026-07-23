@@ -3,10 +3,11 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = createServerSupabaseClient()
+    const { id } = await params
+    const supabase = await createServerSupabaseClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -27,7 +28,7 @@ export async function PATCH(
     const { data: task, error: taskError } = await supabase
       .from('tasks')
       .select('id, business_id')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (taskError || !task) {
@@ -102,7 +103,7 @@ export async function PATCH(
     const { data: updatedTask, error } = await supabase
       .from('tasks')
       .update(updateData)
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single()
 
@@ -120,10 +121,11 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = createServerSupabaseClient()
+    const { id } = await params
+    const supabase = await createServerSupabaseClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -144,7 +146,7 @@ export async function DELETE(
     const { data: task, error: taskError } = await supabase
       .from('tasks')
       .select('id, business_id')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (taskError || !task) {
@@ -158,7 +160,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('tasks')
       .delete()
-      .eq('id', params.id)
+      .eq('id', id)
 
     if (error) {
       console.error('[Tasks API] DELETE error:', error)

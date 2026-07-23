@@ -5,9 +5,10 @@ import { GoogleMeetClientImpl } from '@/lib/google/meet-client'
 import { getEventTimes } from '@/lib/google/calendar'
 import { summarizeMeetingTranscript } from '@/lib/openai-summary'
 
-export async function POST(request: NextRequest, { params }: { params: { eventId: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ eventId: string }> }) {
   try {
-    const supabase = createServerSupabaseClient()
+    const { eventId } = await params
+    const supabase = await createServerSupabaseClient()
     const { data: { user }, error } = await supabase.auth.getUser()
     if (error || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest, { params }: { params: { eventId
       .from('meeting_records')
       .select('id, business_id, google_calendar_event_id, transcript_status, next_processing_attempt_at, processing_attempts, status, google_meet_space_name, google_meet_code, actual_start, actual_end, ai_summary, ai_summary_structured')
       .eq('business_id', business.id)
-      .eq('google_calendar_event_id', params.eventId)
+      .eq('google_calendar_event_id', eventId)
       .maybeSingle()
 
     if (!rec) return NextResponse.json({ error: 'Meeting not found' }, { status: 404 })
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest, { params }: { params: { eventId
     // Cron processing will continue to respect cooldowns; idempotency is enforced within the processor.
 
     // Calendar times
-    const times = await getEventTimes(business.id, params.eventId)
+    const times = await getEventTimes(business.id, eventId)
 
     const processor = new MeetArtifactProcessor({
       google: new GoogleMeetClientImpl(business.id),
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest, { params }: { params: { eventId
       repo: {
         async getBusinessByUser() { return business as any },
         async getMeetingRecord(businessId, eventId) {
-          if (businessId !== business.id || eventId !== params.eventId) return null
+          if (businessId !== business.id || eventId !== eventId) return null
           return rec as any
         },
         async updateMeetingRecord(id, patch) {
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest, { params }: { params: { eventId
     })
 
     await supabase.from('meeting_records').update({ processing_attempts: (rec.processing_attempts || 0) + 1 }).eq('id', rec.id)
-    const result = await processor.processOne({ id: business.id }, params.eventId, { start: times.start, end: times.end })
+    const result = await processor.processOne({ id: business.id }, eventId, { start: times.start, end: times.end })
     return NextResponse.json({ success: true, status: result.status })
   } catch (e) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

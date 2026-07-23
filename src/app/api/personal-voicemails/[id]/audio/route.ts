@@ -6,10 +6,11 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 // GET /api/personal-voicemails/[id]/audio - Secure audio proxy for personal voicemail playback
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const voicemailId = params.id;
+    const { id } = await params
+    const voicemailId = id;
     
     // Validate voicemail ID format (UUID)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -19,7 +20,7 @@ export async function GET(
     }
 
     // Authenticate user
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

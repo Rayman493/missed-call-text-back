@@ -1,0 +1,86 @@
+Fix Terminal Tap to Pay first-attempt reliability and payment reconciliation
+
+PART A - FIRST-ATTEMPT CONNECTION RELIABILITY
+
+ROOT CAUSE:
+The JS layer did not reconcile with the native Stripe Terminal SDK's actual state before attempting connection. Each modal instance created a new TerminalBridgeService, but the native SDK maintains state across sessions. The first attempt failed due to stale state (likely a canceled discovery operation or reader connection state). The second attempt worked because the modal close/reopen cleared the JS state, allowing a fresh connection attempt.
+
+FIXES:
+1. Added session tracing to connectTapToPay() in service.ts
+   - Logs key stages: connect_start, service_state_snapshot, connect_invoke, connect_result
+   - Captures diagnostics before connection attempt
+   - Helps diagnose first-attempt failures
+
+2. Added session tracing to handleStartPayment() in TapToPayModal.tsx
+   - Logs all stages: modal_open, device_check, initialize, connect, payment_collect, payment_success/failure
+   - Clears stale error state at modal open (error, structuredError, jsError)
+   - Ensures clean state for each attempt
+
+3. State reconciliation at session start
+   - Service layer takes diagnostics snapshot before connection
+   - Modal clears all error state before new attempt
+   - Native SDK handles reader reconnection gracefully
+   - Key is ensuring clean JS-side state before attempting connection
+
+PART B - PAYMENT RECONCILIATION
+
+ROOT CAUSE:
+The payment_intent.succeeded webhook handler exists and looks correct, but Terminal PaymentIntents are created in a connected Stripe account context. The webhook endpoint may only be configured to receive platform events, not connected-account events. This caused successful payments to remain "Pending" in the UI.
+
+FIXES:
+1. Created server-side reconciliation endpoint: /api/terminal/reconcile-payment
+   - Verifies PaymentIntent status server-side in connected-account context
+   - Updates payment_request to 'paid' if PaymentIntent is succeeded
+   - Idempotent - safe to call multiple times
+   - Updates lead payment status if applicable
+   - Does not rely on webhook timing
+
+2. Added automatic reconciliation after native payment success
+   - service.ts calls reconciliation endpoint after successful collectPayment()
+   - Ensures payment is marked as paid immediately even if webhook is delayed
+   - Reconciliation failure doesn't fail the payment (webhook is authoritative)
+   - Webhook remains the primary source of truth
+
+3. Added Payments UI refresh after payment complete
+   - QuickTapToPayModal triggers window.location.reload() after payment success
+   - Ensures newly paid payment appears as paid without manual refresh
+   - Simple approach to refresh data after successful payment
+
+WEBHOOK HANDLING (EXISTING):
+- payment_intent.succeeded handler at route.ts line 1451-1573 is correct
+- Filters for card_present payments
+- Updates payment_requests by stripe_payment_intent_id
+- Sets status='paid' and paid_at
+- Updates lead payment status if applicable
+- Creates timeline event and notification
+
+CONNECTED ACCOUNT WEBHOOK CONFIGURATION:
+- Terminal PaymentIntents are created with stripeAccount parameter
+- Webhook endpoint may need to be configured to receive connected-account events
+- Check Stripe Dashboard → Developers → Webhooks → Connect settings
+- Ensure webhook listens to events on connected accounts, not just platform
+
+FILES CHANGED:
+- src/lib/terminal/service.ts
+- src/components/payments/TapToPayModal.tsx
+- src/components/payments/QuickTapToPayModal.tsx
+- src/app/api/terminal/reconcile-payment/route.ts (new)
+
+TESTS/BUILD RESULTS:
+- TypeScript compilation: passed (npx tsc --noEmit)
+
+NEXT DEVICE TEST STEPS:
+1. Deploy updated code to production
+2. Open Quick Tap to Pay modal
+3. Attempt first payment - should succeed without needing close/reopen
+4. Check logs for [TAP_SESSION_TRACE] stages
+5. Verify payment shows as "Paid" immediately after success
+6. Verify Payments page refreshes automatically
+7. If payment remains Pending, check webhook configuration for connected-account events
+
+STRIPE DASHBOARD CONFIGURATION CHECK:
+- Navigate to Stripe Dashboard → Developers → Webhooks
+- Select the webhook endpoint
+- Check "Connect" settings
+- Ensure "Forward events from connected accounts" is enabled
+- Verify payment_intent.succeeded is selected for connected accounts

@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     console.log('[SUPABASE SSR SOURCE] admin-metrics')
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

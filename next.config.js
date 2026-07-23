@@ -1,25 +1,4 @@
 const { withSentryConfig } = require("@sentry/nextjs");
-const fs = require('fs');
-const path = require('path');
-
-// Debug logs to verify root resolution and app dir detection
-try {
-  // eslint-disable-next-line no-console
-  console.log('[next.config] __dirname:', __dirname);
-  // eslint-disable-next-line no-console
-  console.log('[next.config] process.cwd():', process.cwd());
-  // eslint-disable-next-line no-console
-  console.log('[next.config] exists app:', fs.existsSync(path.join(__dirname, 'app')));
-  // eslint-disable-next-line no-console
-  console.log('[next.config] exists src/app:', fs.existsSync(path.join(__dirname, 'src', 'app')));
-  // eslint-disable-next-line no-console
-  console.log('[next.config] package.json at project root exists:', fs.existsSync(path.join(__dirname, 'package.json')));
-  // eslint-disable-next-line no-console
-  const oneUp = path.dirname(__dirname);
-  const twoUp = path.dirname(oneUp);
-  console.log('[next.config] parent lockfile (one up) exists:', fs.existsSync(path.join(oneUp, 'package-lock.json')));
-  console.log('[next.config] parent lockfile (two up) exists:', fs.existsSync(path.join(twoUp, 'package-lock.json')));
-} catch {}
 
 /** @type {import('next').NextConfig} */
 const securityHeaders = [

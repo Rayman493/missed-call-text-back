@@ -55,7 +55,7 @@ export async function getAuthenticatedUser(request: NextRequest) {
   console.log('[AUTH_HELPER] bearer_present=false, trying cookie auth')
   
   try {
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
         getAll() {

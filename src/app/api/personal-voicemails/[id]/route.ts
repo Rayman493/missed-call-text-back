@@ -6,10 +6,11 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 // PATCH /api/personal-voicemails/[id] - Update personal voicemail (mark listened, etc.)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const cookieStore = cookies();
+    const { id } = await params
+    const cookieStore = await cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -60,7 +61,7 @@ export async function PATCH(
     const { data: voicemail, error: voicemailError } = await supabaseAdmin
       .from('personal_voicemails')
       .update(updateData)
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('business_id', business.id)
       .select()
       .single();
@@ -86,10 +87,11 @@ export async function PATCH(
 // DELETE /api/personal-voicemails/[id] - Permanently delete personal voicemail
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const cookieStore = cookies();
+    const { id } = await params
+    const cookieStore = await cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -128,7 +130,7 @@ export async function DELETE(
     const { error: voicemailError } = await supabaseAdmin
       .from('personal_voicemails')
       .delete()
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('business_id', business.id);
 
     if (voicemailError) {

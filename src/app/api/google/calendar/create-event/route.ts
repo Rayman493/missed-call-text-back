@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
   
   try {
     // Get the user's session using the same pattern as working routes
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
     const { data: { user }, error: userError } = await supabase.auth.getUser()
 
     if (userError) {

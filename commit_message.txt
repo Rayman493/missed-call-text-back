@@ -1,0 +1,84 @@
+Fix token constraint and raw error exposure for Terminal payments
+
+ROOT CAUSE OF PGRST23502:
+payment_requests.token was NOT NULL but Terminal payments insert token=null.
+Token is only required for online payment-link requests (/pay/[token]).
+Terminal/card_present payments don't use payment links, so token should be nullable.
+
+SECURITY ISSUE FIXED:
+Backend was returning raw Supabase/Postgres error details including:
+- Full failing row contents
+- payment_intent_client_secret
+This exposed client secrets to the client.
+
+TOKEN PURPOSE AUDIT:
+- token is used for branded payment links (ReplyFlow URL /pay/[token])
+- src/app/pay/[token]/page.tsx looks up payment_requests by token
+- src/app/api/payments/create/route.ts generates token for online payments
+- Terminal payments don't use payment links, so token=null is correct
+- PostgreSQL UNIQUE index with WHERE token IS NOT NULL allows multiple NULLs
+
+MIGRATION CREATED:
+20260722000003_make_payment_requests_token_nullable_for_terminal.sql
+- Drops NOT NULL constraint on token
+- Recreates unique index with WHERE token IS NOT NULL
+- Documents semantics: required for online, nullable for Terminal
+
+RAW ERROR EXPOSURE FIX:
+Before: Returned { error: '...', details: insertError, paymentIntentId: '...' }
+After: Returns { error: 'local_payment_record_failed', message: 'Payment setup could not be completed. Please try again.' }
+- Never returns raw database details
+- Never returns paymentIntentId to client
+- Logs only safe metadata: postgres code, message, IDs
+- Never logs or returns failing row contents
+
+CLIENT ERROR RENDERING FIX:
+Before: service.ts threw Error with raw error text
+After: service.ts parses backend error, extracts safe fields, creates structured error
+- Maps 'local_payment_record_failed' to user-friendly message
+- Adds stage: 'payment_intent_create' for diagnostics
+- Never exposes raw error text or secrets to UI
+
+TapToPayModal.tsx:
+- Added handling for 'local_payment_record_failed' error code
+- Returns 'Payment setup could not be completed. Please try again.'
+
+ORPHAN PAYMENTINTENT HANDLING:
+Before: PaymentIntent created, local persistence failed, PaymentIntent left orphaned
+After: Cancels PaymentIntent server-side when local persistence fails
+- Prevents orphaned live PaymentIntents
+- Uses stripe.paymentIntents.cancel() with stripeAccount
+- Continues with error response even if cancel fails
+
+CLIENT SECRET STORAGE AUDIT:
+Before: payment_intent_client_secret was stored in payment_requests
+After: NOT stored for Terminal payments
+- Client secret only needed for immediate native Terminal retrieval
+- Storing longer than necessary is not ideal for security
+- Column remains in schema but is now unused for Terminal payments
+- No existing flow depends on reading it back
+
+TERMINAL INSERT VS NOT NULL AUDIT:
+All Terminal insert fields verified safe.
+
+FILES CHANGED:
+- src/app/api/terminal/payment-intent/route.ts
+- src/lib/terminal/service.ts
+- src/components/payments/TapToPayModal.tsx
+- supabase/migrations/20260722000003_make_payment_requests_token_nullable_for_terminal.sql
+
+TESTS/BUILD RESULTS:
+- TypeScript compilation: passed
+
+MANUAL DATABASE DEPLOYMENT REQUIRED:
+The migration must be applied to production Supabase.
+
+NEXT PHYSICAL-DEVICE TEST STEPS:
+1. Apply migration to production
+2. Deploy updated API code to production
+3. Attempt Terminal payment
+4. Verify payment_requests record created with token=null
+5. Verify no client secret stored in database
+6. Verify persistence failure shows safe error message
+7. Verify PaymentIntent canceled on persistence failure
+8. Verify no raw database details exposed to client

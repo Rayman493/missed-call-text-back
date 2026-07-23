@@ -7,12 +7,13 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    console.log('[PAYMENT MARK-PAID] Manual mark-paid request for payment:', params.id)
+    const { id } = await params
+    console.log('[PAYMENT MARK-PAID] Manual mark-paid request for payment:', id)
 
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -41,7 +42,7 @@ export async function POST(
     const { data: paymentRequest, error: paymentError } = await supabase
       .from('payment_requests')
       .select('id, business_id, lead_id, amount_cents, description, status, payment_provider, token, checkout_url')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (paymentError || !paymentRequest) {
@@ -122,7 +123,7 @@ export async function POST(
     const { error: updateError } = await supabase
       .from('payment_requests')
       .update(updatePayload)
-      .eq('id', params.id)
+      .eq('id', id)
 
     if (updateError) {
       console.error('[PAYMENT MARK-PAID] Failed to update payment request:', updateError)

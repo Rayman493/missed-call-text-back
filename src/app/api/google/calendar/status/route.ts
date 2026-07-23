@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Get the user's session
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
     const { data: { user }, error: userError } = await supabase.auth.getUser()
 
     if (userError) {

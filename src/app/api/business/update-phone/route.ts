@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   try {
     console.log('[api/business/update-phone] Starting phone update')
     
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

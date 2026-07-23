@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   
   try {
     // Get user from session
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     console.log('[SUPABASE SSR SOURCE] admin-repair-messaging-service')
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

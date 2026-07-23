@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     console.log('[ADMIN SEARCH] Getting user from session')
     
     // Get user from session using server-side client with cookie handling
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     console.log('[SUPABASE SSR SOURCE] admin-search-businesses')
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
