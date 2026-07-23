@@ -300,6 +300,7 @@ export default function TapToPayModal({
       console.log('[TAP_SESSION_TRACE] stage=connect')
       setPaymentState('preparing')
       const connectResult = await terminalService.connectTapToPay()
+      console.log('[TAP_SESSION_TRACE] stage=post_connect_continue status=' + connectResult.status)
       if (connectResult.status !== 'connected') {
         throw new Error('Failed to connect to payment terminal')
       }

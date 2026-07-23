@@ -453,6 +453,7 @@ export class TerminalBridgeService {
 
   async startTapToPayPayment(options: CreateTerminalPaymentOptions) {
     if (!this.plugin) throw new Error('Stripe Terminal is not available on web')
+    console.log('[TAP_SESSION_TRACE] stage=js_start_payment_entered')
 
     // CRITICAL: Check for unresolved attempt BEFORE generating new ID
     // This prevents creating a new attempt when one is already in progress
