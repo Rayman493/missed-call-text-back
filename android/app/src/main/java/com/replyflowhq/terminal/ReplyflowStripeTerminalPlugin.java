@@ -114,6 +114,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
   @PluginMethod
   public void initialize(PluginCall call) {
     Log.d(TAG, "[STRIPE_TERMINAL_INIT] Starting initialization");
+    Log.d(TAG, "[TAP_SESSION_TRACE] stage=terminal_init_start ts=" + System.currentTimeMillis());
     Log.d(TAG, "[STRIPE_TERMINAL_INIT] Current init state: " + initState);
     Log.d(TAG, "[STRIPE_TERMINAL_INIT] Android SDK: " + Build.VERSION.SDK_INT);
     Log.d(TAG, "[STRIPE_TERMINAL_INIT] NFC available: " + getContext().getPackageManager().hasSystemFeature(PackageManager.FEATURE_NFC));
@@ -162,6 +163,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       initialized = true;
       initState = InitState.INITIALIZED;
       Log.d(TAG, "[STRIPE_TERMINAL_INIT] Terminal.init() succeeded");
+      Log.d(TAG, "[TAP_SESSION_TRACE] stage=terminal_init_complete ts=" + System.currentTimeMillis());
     } catch (Exception e) {
       Log.e(TAG, "[STRIPE_TERMINAL_INIT] Terminal.init() failed", e);
       Log.e(TAG, "[STRIPE_TERMINAL_INIT] Exception class: " + e.getClass().getName());
@@ -396,6 +398,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     discovering = true;
     status = "discovering";
     notifyListeners("statusChanged", new JSObject().put("status", status));
+    Log.d(TAG, "[TAP_SESSION_TRACE] stage=discover_start ts=" + System.currentTimeMillis());
 
     // Create Tap to Pay discovery configuration
     DiscoveryConfiguration cfg = new DiscoveryConfiguration.TapToPayDiscoveryConfiguration(
@@ -433,11 +436,32 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       new DiscoveryListener() {
         @Override
         public void onUpdateDiscoveredReaders(@NonNull java.util.List<Reader> readers) {
+          Log.d(TAG, "[TAP_SESSION_TRACE] stage=reader_discovered count=" + readers.size() + " ts=" + System.currentTimeMillis());
           if (!readers.isEmpty()) {
             // For Tap to Pay, we expect at most one local reader
             // Auto-connect to the first discovered reader
             Reader reader = readers.get(0);
-            connectToReader(reader, effectiveSimulated, locationId);
+            // Cancel discovery before attempting to connect to avoid races
+            if (discoveryCancelable != null) {
+              Log.d(TAG, "[TAP_SESSION_TRACE] stage=discover_cancel_before_connect ts=" + System.currentTimeMillis());
+              discoveryCancelable.cancel(new com.stripe.stripeterminal.external.callable.Callback() {
+                @Override
+                public void onSuccess() {
+                  discovering = false;
+                  connectToReader(reader, effectiveSimulated, locationId);
+                }
+
+                @Override
+                public void onFailure(@NonNull TerminalException e) {
+                  Log.w(TAG, "[TAP_SESSION_TRACE] stage=discover_cancel_failed code=" + e.getErrorCode());
+                  // Proceed to connect anyway; SDK may still permit connect
+                  discovering = false;
+                  connectToReader(reader, effectiveSimulated, locationId);
+                }
+              });
+            } else {
+              connectToReader(reader, effectiveSimulated, locationId);
+            }
           }
         }
       },
@@ -502,6 +526,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
   private void connectToReader(Reader reader, boolean simulated, String locationId) {
     status = "connecting";
     notifyListeners("statusChanged", new JSObject().put("status", status));
+    Log.d(TAG, "[TAP_SESSION_TRACE] stage=connect_start reader_id=" + reader.getId() + " ts=" + System.currentTimeMillis());
     
     // Create Tap to Pay connection configuration with location ID
     TapToPayConnectionConfiguration connectionConfig = new TapToPayConnectionConfiguration(
@@ -518,6 +543,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
         public void onSuccess(Reader connectedReader) {
           ReplyflowStripeTerminalPlugin.this.connectedReader = connectedReader;
           status = "connected";
+          Log.d(TAG, "[TAP_SESSION_TRACE] stage=reader_connected reader_id=" + connectedReader.getId() + " ts=" + System.currentTimeMillis());
           
           JSObject readerInfo = new JSObject();
           readerInfo.put("connected", true);
@@ -631,6 +657,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
   @PluginMethod
   public void collectPayment(PluginCall call) {
     Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_start reader_connected=" + (connectedReader != null) + " connection_status=" + status + " operation_state=" + operationState);
+    Log.d(TAG, "[TAP_SESSION_TRACE] stage=payment_start ts=" + System.currentTimeMillis());
 
     if (!initialized) {
       Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_failure reason=not_initialized");
@@ -672,6 +699,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     notifyListeners("paymentStatusChanged", new JSObject().put("status", "creating_payment"));
 
     Log.d(TAG, "[PAYMENT_TRACE] stage=retrieve_payment_intent_start");
+    Log.d(TAG, "[TAP_SESSION_TRACE] stage=retrieve_start ts=" + System.currentTimeMillis());
 
     // Retrieve PaymentIntent from Stripe
     Terminal.getInstance().retrievePaymentIntent(
@@ -680,6 +708,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
         @Override
         public void onSuccess(@NonNull PaymentIntent paymentIntent) {
           Log.d(TAG, "[PAYMENT_TRACE] stage=retrieve_payment_intent_success payment_intent_id=" + paymentIntent.getId() + " payment_intent_status=" + paymentIntent.getStatus());
+          Log.d(TAG, "[TAP_SESSION_TRACE] stage=retrieve_success payment_intent_id=" + paymentIntent.getId() + " ts=" + System.currentTimeMillis());
           setOperationState(OperationState.COLLECTING_PAYMENT_METHOD, "retrieve_success");
           notifyListeners("paymentStatusChanged", new JSObject().put("status", "retrieving_payment_intent"));
 
@@ -690,6 +719,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
         @Override
         public void onFailure(@NonNull TerminalException e) {
           Log.d(TAG, "[PAYMENT_TRACE] stage=retrieve_payment_intent_failure error_code=" + e.getErrorCode());
+          Log.d(TAG, "[TAP_SESSION_TRACE] stage=retrieve_failure code=" + e.getErrorCode() + " ts=" + System.currentTimeMillis());
           collectingPayment = false;
           status = "error";
           setOperationState(OperationState.FAILED, "retrieve_failure");
@@ -709,6 +739,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
   
   private void collectPaymentMethod(PaymentIntent paymentIntent, PluginCall originalCall) {
     Log.d(TAG, "[PAYMENT_TRACE] stage=collect_payment_method_start payment_intent_id=" + paymentIntent.getId() + " payment_intent_status=" + paymentIntent.getStatus());
+    Log.d(TAG, "[TAP_SESSION_TRACE] stage=collect_start payment_intent_id=" + paymentIntent.getId() + " ts=" + System.currentTimeMillis());
     setOperationState(OperationState.COLLECTING_PAYMENT_METHOD, "collect_start");
     notifyListeners("paymentStatusChanged", new JSObject().put("status", "waiting_for_card"));
 
@@ -718,6 +749,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
         @Override
         public void onSuccess(@NonNull PaymentIntent collectedIntent) {
           Log.d(TAG, "[PAYMENT_TRACE] stage=collect_payment_method_success payment_intent_id=" + collectedIntent.getId() + " payment_intent_status=" + collectedIntent.getStatus());
+          Log.d(TAG, "[TAP_SESSION_TRACE] stage=collect_success payment_intent_id=" + collectedIntent.getId() + " ts=" + System.currentTimeMillis());
           setOperationState(OperationState.CONFIRMING_PAYMENT_INTENT, "collect_success");
           notifyListeners("paymentStatusChanged", new JSObject().put("status", "confirming_payment"));
 
@@ -730,6 +762,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
         @Override
         public void onFailure(@NonNull TerminalException e) {
           Log.d(TAG, "[PAYMENT_TRACE] stage=collect_payment_method_failure error_code=" + e.getErrorCode());
+          Log.d(TAG, "[TAP_SESSION_TRACE] stage=collect_failure code=" + e.getErrorCode() + " ts=" + System.currentTimeMillis());
           collectingPayment = false;
           status = "error";
           setOperationState(OperationState.FAILED, "collect_failure");
@@ -749,6 +782,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
   private void confirmPaymentIntent(PaymentIntent paymentIntent, PluginCall originalCall) {
     Log.d(TAG, "[PAYMENT_TRACE] stage=confirm_payment_intent_start payment_intent_id=" + paymentIntent.getId() + " payment_intent_status=" + paymentIntent.getStatus());
+    Log.d(TAG, "[TAP_SESSION_TRACE] stage=confirm_start payment_intent_id=" + paymentIntent.getId() + " ts=" + System.currentTimeMillis());
 
     paymentCancelable = Terminal.getInstance().confirmPaymentIntent(
       paymentIntent,
@@ -756,6 +790,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
         @Override
         public void onSuccess(@NonNull PaymentIntent confirmedIntent) {
           Log.d(TAG, "[PAYMENT_TRACE] stage=confirm_payment_intent_success payment_intent_id=" + confirmedIntent.getId() + " payment_intent_status=" + confirmedIntent.getStatus());
+          Log.d(TAG, "[TAP_SESSION_TRACE] stage=confirm_success payment_intent_id=" + confirmedIntent.getId() + " status=" + confirmedIntent.getStatus() + " ts=" + System.currentTimeMillis());
           collectingPayment = false;
           status = "ready";
 
@@ -792,6 +827,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
         @Override
         public void onFailure(@NonNull TerminalException e) {
           Log.d(TAG, "[PAYMENT_TRACE] stage=confirm_payment_intent_failure error_code=" + e.getErrorCode());
+          Log.d(TAG, "[TAP_SESSION_TRACE] stage=confirm_failure code=" + e.getErrorCode() + " ts=" + System.currentTimeMillis());
           collectingPayment = false;
           status = "error";
           setOperationState(OperationState.FAILED, "confirm_failure");
