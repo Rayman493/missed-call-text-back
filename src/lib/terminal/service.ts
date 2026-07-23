@@ -329,7 +329,7 @@ export class TerminalBridgeService {
   async connectTapToPay(options?: { simulated?: boolean }) {
     if (!this.plugin) throw new Error('Stripe Terminal is not available on web')
 
-    console.log('[TAP_SESSION_TRACE] stage=connect_start')
+    console.log('[TAP_SESSION_TRACE] stage=connect_call_start')
 
     // Fetch location ID from backend
     const { locationId } = await this.fetchTerminalLocation()
@@ -352,14 +352,49 @@ export class TerminalBridgeService {
 
     console.log('[TAP_SESSION_TRACE] stage=connect_invoke locationId=' + locationId)
 
+    // Prepare listeners to await actual reader connection when native returns early
+    let resolveConnected: (() => void) | null = null
+    let rejectOnError: ((e: any) => void) | null = null
+    const connectedPromise = new Promise<void>((resolve, reject) => {
+      resolveConnected = resolve
+      rejectOnError = reject
+    })
+
+    const readerConnectedListener = await this.plugin.addListener('readerConnected', () => {
+      console.log('[TAP_SESSION_TRACE] stage=connect_event_reader_connected')
+      resolveConnected?.()
+    })
+    const statusChangedListener = await this.plugin.addListener('statusChanged', (data: any) => {
+      if (data?.status === 'connected') {
+        console.log('[TAP_SESSION_TRACE] stage=connect_event_status_connected')
+        resolveConnected?.()
+      }
+    })
+    const errorListener = await this.plugin.addListener('error', (e: any) => {
+      console.warn('[TAP_SESSION_TRACE] stage=connect_event_error')
+      rejectOnError?.(e)
+    })
+
     const result = await this.plugin.connectTapToPay({
       simulated: options?.simulated || false,
       locationId,
     })
 
-    console.log('[TAP_SESSION_TRACE] stage=connect_result status=' + result.status)
+    console.log('[TAP_SESSION_TRACE] stage=connect_call_resolved status=' + result.status)
 
-    return result
+    try {
+      if (result.status !== 'connected') {
+        await connectedPromise
+        console.log('[TAP_SESSION_TRACE] stage=connect_wait_completed')
+        return { status: 'connected' as const }
+      }
+      return result
+    } finally {
+      // Cleanup listeners
+      try { await readerConnectedListener.remove() } catch {}
+      try { await statusChangedListener.remove() } catch {}
+      try { await errorListener.remove() } catch {}
+    }
   }
 
   async createTerminalPayment(options: CreateTerminalPaymentOptions) {
@@ -455,12 +490,14 @@ export class TerminalBridgeService {
     }
 
     // Collect payment via native Terminal with correlation ID
+    console.log('[TAP_SESSION_TRACE] stage=native_payment_call_start attempt_id=' + terminalAttemptId)
     console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=collect_payment')
     const result = await this.plugin.collectPayment({
       paymentIntentId,
       clientSecret,
       terminalAttemptId,
     })
+    console.log('[TAP_SESSION_TRACE] stage=native_payment_call_resolved attempt_id=' + terminalAttemptId + ' status=' + result.status)
 
     // If payment succeeded, trigger server-side reconciliation
     // This ensures the payment is marked as paid even if webhook is delayed
