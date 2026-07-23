@@ -15,7 +15,10 @@ try {
   // eslint-disable-next-line no-console
   console.log('[next.config] package.json at project root exists:', fs.existsSync(path.join(__dirname, 'package.json')));
   // eslint-disable-next-line no-console
-  console.log('[next.config] parent lockfile exists:', fs.existsSync(path.join(path.dirname(__dirname), 'package-lock.json')));
+  const oneUp = path.dirname(__dirname);
+  const twoUp = path.dirname(oneUp);
+  console.log('[next.config] parent lockfile (one up) exists:', fs.existsSync(path.join(oneUp, 'package-lock.json')));
+  console.log('[next.config] parent lockfile (two up) exists:', fs.existsSync(path.join(twoUp, 'package-lock.json')));
 } catch {}
 
 /** @type {import('next').NextConfig} */
