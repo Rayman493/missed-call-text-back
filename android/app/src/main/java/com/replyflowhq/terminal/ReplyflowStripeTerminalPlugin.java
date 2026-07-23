@@ -438,6 +438,9 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
       notifyListeners("readerConnected", readerInfo);
 
+      // Minimal trace for reuse before discovery
+      Log.d(TAG, "[TAP_SESSION_TRACE] stage=pre_discovery_reader_reused reader_id=" + stripeConnectedReader.getId() + " connection_status=" + status);
+
       JSObject ret = new JSObject();
       ret.put("status", status);
       call.resolve(ret);
@@ -473,6 +476,9 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       readerInfo.put("simulated", effectiveSimulated);
 
       notifyListeners("readerConnected", readerInfo);
+
+      // Minimal trace for reuse before discovery connect
+      Log.d(TAG, "[TAP_SESSION_TRACE] stage=pre_discovery_reader_reused reader_id=" + preDiscoveryReader.getId() + " connection_status=" + status);
 
       JSObject ret = new JSObject();
       ret.put("status", status);
@@ -573,6 +579,24 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
   }
   
   private void connectToReader(Reader reader, boolean simulated, String locationId) {
+    // Defensive check: if a reader became connected during discovery, reuse it
+    Reader existing = Terminal.getInstance().getConnectedReader();
+    if (existing != null) {
+      Log.d(TAG, "[TAP_SESSION_TRACE] stage=pre_connect_reader_reused reader_id=" + existing.getId() + " connection_status=" + status);
+      connectedReader = existing;
+      status = "connected";
+      notifyListeners("statusChanged", new JSObject().put("status", status));
+
+      JSObject readerInfo = new JSObject();
+      readerInfo.put("connected", true);
+      readerInfo.put("readerId", existing.getId());
+      readerInfo.put("deviceType", existing.getDeviceType().toString());
+      readerInfo.put("simulated", simulated);
+
+      notifyListeners("readerConnected", readerInfo);
+      return;
+    }
+
     status = "connecting";
     notifyListeners("statusChanged", new JSObject().put("status", status));
     Log.d(TAG, "[TAP_SESSION_TRACE] stage=connect_start reader_id=" + reader.getId() + " ts=" + System.currentTimeMillis());
