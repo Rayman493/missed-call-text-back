@@ -49,6 +49,25 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     FAILED
   }
 
+  private void setKeepScreenOn(final boolean enabled) {
+    try {
+      getActivity().runOnUiThread(() -> {
+        android.view.Window window = getActivity().getWindow();
+        if (window != null) {
+          if (enabled) {
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            Log.d(TAG, "[APP_LIFECYCLE] keep_screen_on_enabled");
+          } else {
+            window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            Log.d(TAG, "[APP_LIFECYCLE] keep_screen_on_disabled");
+          }
+        }
+      });
+    } catch (Exception e) {
+      Log.w(TAG, "[APP_LIFECYCLE] keep_screen_on_toggle_failed " + e.getMessage());
+    }
+  }
+
   private volatile InitState initState = InitState.NOT_INITIALIZED;
 
   // Native operation state machine
@@ -75,6 +94,36 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     super.load();
     Log.d(TAG, "[PLUGIN] ReplyflowStripeTerminalPlugin.load() executed - plugin loaded successfully");
     Log.d(TAG, "[PLUGIN] Build marker: " + BUILD_MARKER);
+  }
+
+  @Override
+  protected void handleOnStart() {
+    super.handleOnStart();
+    Log.d(TAG, "[APP_LIFECYCLE] onStart collecting=" + collectingPayment + " discovering=" + discovering + " status=" + status + " operation_state=" + operationState);
+  }
+
+  @Override
+  protected void handleOnResume() {
+    super.handleOnResume();
+    Log.d(TAG, "[APP_LIFECYCLE] onResume collecting=" + collectingPayment + " discovering=" + discovering + " status=" + status + " operation_state=" + operationState);
+  }
+
+  @Override
+  protected void handleOnPause() {
+    Log.d(TAG, "[APP_LIFECYCLE] onPause collecting=" + collectingPayment + " discovering=" + discovering + " status=" + status + " operation_state=" + operationState);
+    super.handleOnPause();
+  }
+
+  @Override
+  protected void handleOnStop() {
+    Log.d(TAG, "[APP_LIFECYCLE] onStop collecting=" + collectingPayment + " discovering=" + discovering + " status=" + status + " operation_state=" + operationState);
+    super.handleOnStop();
+  }
+
+  @Override
+  public void handleOnDestroy() {
+    Log.d(TAG, "[APP_LIFECYCLE] onDestroy collecting=" + collectingPayment + " discovering=" + discovering + " status=" + status + " operation_state=" + operationState);
+    super.handleOnDestroy();
   }
 
   private String status = "not_initialized";
@@ -693,6 +742,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     }
 
     collectingPayment = true;
+    setKeepScreenOn(true);
     status = "collecting";
     setOperationState(OperationState.RETRIEVING_PAYMENT_INTENT, "collect_payment_start");
     notifyListeners("statusChanged", new JSObject().put("status", status));
@@ -721,6 +771,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           Log.d(TAG, "[PAYMENT_TRACE] stage=retrieve_payment_intent_failure error_code=" + e.getErrorCode());
           Log.d(TAG, "[TAP_SESSION_TRACE] stage=retrieve_failure code=" + e.getErrorCode() + " ts=" + System.currentTimeMillis());
           collectingPayment = false;
+          setKeepScreenOn(false);
           status = "error";
           setOperationState(OperationState.FAILED, "retrieve_failure");
 
@@ -764,6 +815,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           Log.d(TAG, "[PAYMENT_TRACE] stage=collect_payment_method_failure error_code=" + e.getErrorCode());
           Log.d(TAG, "[TAP_SESSION_TRACE] stage=collect_failure code=" + e.getErrorCode() + " ts=" + System.currentTimeMillis());
           collectingPayment = false;
+          setKeepScreenOn(false);
           status = "error";
           setOperationState(OperationState.FAILED, "collect_failure");
 
@@ -792,6 +844,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           Log.d(TAG, "[PAYMENT_TRACE] stage=confirm_payment_intent_success payment_intent_id=" + confirmedIntent.getId() + " payment_intent_status=" + confirmedIntent.getStatus());
           Log.d(TAG, "[TAP_SESSION_TRACE] stage=confirm_success payment_intent_id=" + confirmedIntent.getId() + " status=" + confirmedIntent.getStatus() + " ts=" + System.currentTimeMillis());
           collectingPayment = false;
+          setKeepScreenOn(false);
           status = "ready";
 
           // Only emit success if PaymentIntent is actually succeeded
@@ -829,6 +882,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           Log.d(TAG, "[PAYMENT_TRACE] stage=confirm_payment_intent_failure error_code=" + e.getErrorCode());
           Log.d(TAG, "[TAP_SESSION_TRACE] stage=confirm_failure code=" + e.getErrorCode() + " ts=" + System.currentTimeMillis());
           collectingPayment = false;
+          setKeepScreenOn(false);
           status = "error";
           setOperationState(OperationState.FAILED, "confirm_failure");
 
@@ -858,6 +912,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
         public void onSuccess() {
           Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_payment_success");
           collectingPayment = false;
+          setKeepScreenOn(false);
           status = "ready";
           setOperationState(OperationState.IDLE, "cancel_success");
           Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_guard_cleared");
@@ -871,6 +926,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           // Even if cancel fails, clear the guard to allow retry
           // The Stripe SDK will handle the actual cleanup
           collectingPayment = false;
+          setKeepScreenOn(false);
           status = "ready";
           setOperationState(OperationState.IDLE, "cancel_failure_guard_cleared");
           Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_guard_cleared");
@@ -883,6 +939,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       // collectingPayment is true but paymentCancelable is null - clear guard to allow retry
       Log.d(TAG, "[PAYMENT_TRACE] stage=clear_stale_payment_guard");
       collectingPayment = false;
+      setKeepScreenOn(false);
       status = "ready";
       setOperationState(OperationState.IDLE, "clear_stale_guard");
       Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_guard_cleared");
