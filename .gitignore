@@ -1,5 +1,7 @@
 # Dependencies
 node_modules/
+!node_modules/@capacitor/ios/Capacitor/Capacitor/CAPBridgedPlugin.h
+!node_modules/@capacitor/ios/Capacitor/Capacitor/CAPBridgedPlugin+getMethod.swift
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

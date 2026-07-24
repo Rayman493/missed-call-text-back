@@ -22,6 +22,7 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin {
 
   private var pendingTokenRequests: [String: (Result<String, Error>) -> Void] = [:]
   #if canImport(StripeTerminal)
+  private var tokenProvider: ConnectionTokenProvider?
   private var discoveryCancelable: Cancelable? = nil
   private var collectCancelable: Cancelable? = nil
   private var pendingConnectCall: (call: CAPPluginCall, opId: String, correlationId: String, locationId: String?)? = nil
@@ -85,15 +86,8 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin {
       }
     }
     let provider = JsTokenProvider(plugin: self)
-    let config = TerminalConfiguration(tokenProvider: provider)
-    do {
-      try Terminal.initialize(configuration: config)
-    } catch {
-      self.connectionStatus = "error"
-      emitDiag("initialize_failed", phase: "initialize", meta: ["message": error.localizedDescription])
-      call.reject(error.localizedDescription)
-      return
-    }
+    self.tokenProvider = provider
+    Terminal.initWithTokenProvider(provider)
     Terminal.shared.delegate = self
     self.initialized = true
     self.connectionStatus = "ready"
@@ -271,9 +265,9 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin {
 }
 
 extension ReplyflowStripeTerminalPlugin: CAPBridgedPlugin {
-  public static let identifier = "ReplyflowStripeTerminalPlugin"
-  public static let jsName = "ReplyflowStripeTerminal"
-  public static let pluginMethods: [CAPPluginMethod] = [
+  public let identifier = "ReplyflowStripeTerminalPlugin"
+  public let jsName = "ReplyflowStripeTerminal"
+  public let pluginMethods: [CAPPluginMethod] = [
     CAPPluginMethod(name: "ping", returnType: CAPPluginReturnPromise),
     CAPPluginMethod(name: "isSupported", returnType: CAPPluginReturnPromise),
     CAPPluginMethod(name: "initialize", returnType: CAPPluginReturnPromise),
