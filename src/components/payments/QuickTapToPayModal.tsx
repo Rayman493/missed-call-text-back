@@ -286,7 +286,7 @@ export default function QuickTapToPayModal({
             <div
               ref={scrollRef}
               data-scroll-lock-allow
-              className="flex-1 min-h-0 overflow-y-auto overscroll-contain [touch-action:pan-y] px-5 py-6 space-y-6 pb-[env(safe-area-inset-bottom)]"
+              className="flex-1 min-h-0 overflow-y-auto overscroll-contain [touch-action:pan-y] px-5 py-6 space-y-6 pb-[calc(var(--bottom-nav-height,4rem)+env(safe-area-inset-bottom)+1rem)] md:pb-6"
               style={{ WebkitOverflowScrolling: 'touch' as any }}
             >
               {/* Unmistakable debug marker to verify correct component */}
