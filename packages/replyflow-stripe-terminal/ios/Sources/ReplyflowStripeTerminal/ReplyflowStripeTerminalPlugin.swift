@@ -388,8 +388,14 @@ extension ReplyflowStripeTerminalPlugin: TerminalDelegate, DiscoveryDelegate, Re
   public func reader(_ reader: Reader, didFinishInstallingUpdate update: ReaderSoftwareUpdate?, error: Error?) {}
   public func reader(_ reader: Reader, didRequestDisplayMessage displayMessage: ReaderDisplayMessage) {}
   public func reader(_ reader: Reader, didRequestReaderInput inputOptions: ReaderInputOptions = []) {}
-  public func tapToPayReaderDidRequestDisplayMessage(_ displayMessage: ReaderDisplayMessage) {}
-  public func tapToPayReaderDidRequestReaderInput(_ inputOptions: ReaderInputOptions = []) {}
+  public func tapToPayReader(
+    _ reader: Reader,
+    didRequestReaderInput inputOptions: ReaderInputOptions = []
+  ) {}
+  public func tapToPayReader(
+    _ reader: Reader,
+    didRequestReaderDisplayMessage displayMessage: ReaderDisplayMessage
+  ) {}
   public func tapToPayReader(_ reader: Reader, didStartInstallingUpdate update: ReaderSoftwareUpdate, cancelable: Cancelable?) {}
   public func tapToPayReader(_ reader: Reader, didReportReaderSoftwareUpdateProgress progress: Float) {}
   public func tapToPayReader(_ reader: Reader, didFinishInstallingUpdate update: ReaderSoftwareUpdate?, error: Error?) {}
