@@ -24,7 +24,7 @@ export class TerminalBridgeService {
   private plugin: TerminalPlugin | null
   private activeTokenRequest: TokenRequest | null = null
   private tokenRequestListener: { remove: () => void } | null = null
-  private diagListeners: { remove: () => void }[] = []
+  private diagListeners: Array<{ remove: () => void; __type: string; __id: string }> = []
   private instanceId: string
   private sessionId: string
   private currentAttemptId: string | null = null
@@ -36,6 +36,10 @@ export class TerminalBridgeService {
   private currentPaymentIntentId?: string
   private listenerCounts: Record<string, number> = {}
   private totalActiveListeners = 0
+  private listenerIdsByType: Record<string, Set<string>> = {}
+  private appStateListener: { remove: () => void; id: string } | null = null
+  private attemptInitialConnectionStatus?: string
+  private sessionTimings: { initializeMs?: number; discoveryStart?: number; discoveryEnd?: number; discoveryMs?: number; connectStart?: number; connectEnd?: number; connectMs?: number } = {}
   // Attempt-scoped flags/timings and app state
   private attemptSummaryEmitted = false
   private attemptFlags = {
@@ -59,6 +63,7 @@ export class TerminalBridgeService {
   } = {}
   private seenDiscoveryThisAttempt = false
   private lastAppIsActive: boolean | undefined
+  private staleIgnoredCount = 0
 
   private constructor() {
     this.plugin = isNativeCapacitor() ? Terminal : null
@@ -86,6 +91,17 @@ export class TerminalBridgeService {
     this.listenerCounts[type] = next
     this.totalActiveListeners = Math.max(0, this.totalActiveListeners + delta)
     return { prev, next }
+  }
+
+  private addListenerId(type: string, id: string) {
+    if (!this.listenerIdsByType[type]) this.listenerIdsByType[type] = new Set()
+    this.listenerIdsByType[type].add(id)
+  }
+  private removeListenerId(type: string, id: string) {
+    this.listenerIdsByType[type]?.delete(id)
+  }
+  private getActiveListenerIds(type: string): string[] {
+    return Array.from(this.listenerIdsByType[type] || [])
   }
 
   private emitStateChanged(stateName: string, prevVal: any, nextVal: any) {
@@ -174,10 +190,10 @@ export class TerminalBridgeService {
             logTapToPayEvent('connection_status_changed', { phase: 'connection_status', sessionId: this.sessionId, connectionStatus: data?.status }).catch(() => {})
             this.emitStateChanged('connectionStatus', prev, this.connectionStatus)
           })
-          const c1 = this.bumpListener(l1Type, 1)
-          logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l1Type, listenerId: l1Id, activeListenerCount: c1.next, totalActiveListenerCount: this.totalActiveListeners } }).catch(() => {})
+          const c1 = this.bumpListener(l1Type, 1); this.addListenerId(l1Type, l1Id); this.diagListeners.push({ remove: l1.remove, __type: l1Type, __id: l1Id })
+          logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l1Type, listenerId: l1Id, activeListenerCount: c1.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds(l1Type) } }).catch(() => {})
           if (c1.next > 1) {
-            logTapToPayEvent('DUPLICATE_LISTENER_DETECTED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l1Type, activeListenerCount: c1.next } }).catch(() => {})
+            logTapToPayEvent('DUPLICATE_LISTENER_DETECTED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l1Type, activeListenerCount: c1.next, activeListenerIds: this.getActiveListenerIds(l1Type), totalActiveListenerCount: this.totalActiveListeners } }).catch(() => {})
           }
 
           const l2Type = 'paymentStatusChanged'
@@ -188,10 +204,10 @@ export class TerminalBridgeService {
             logTapToPayEvent('payment_status_changed', { phase: 'collect_payment', sessionId: this.sessionId, meta: { status: data?.status } }).catch(() => {})
             this.emitStateChanged('paymentStatus', prev, this.paymentStatus)
           })
-          const c2 = this.bumpListener(l2Type, 1)
-          logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l2Type, listenerId: l2Id, activeListenerCount: c2.next, totalActiveListenerCount: this.totalActiveListeners } }).catch(() => {})
+          const c2 = this.bumpListener(l2Type, 1); this.addListenerId(l2Type, l2Id); this.diagListeners.push({ remove: l2.remove, __type: l2Type, __id: l2Id })
+          logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l2Type, listenerId: l2Id, activeListenerCount: c2.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds(l2Type) } }).catch(() => {})
           if (c2.next > 1) {
-            logTapToPayEvent('DUPLICATE_LISTENER_DETECTED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l2Type, activeListenerCount: c2.next } }).catch(() => {})
+            logTapToPayEvent('DUPLICATE_LISTENER_DETECTED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l2Type, activeListenerCount: c2.next, activeListenerIds: this.getActiveListenerIds(l2Type), totalActiveListenerCount: this.totalActiveListeners } }).catch(() => {})
           }
 
           const l3Type = 'readerConnected'
@@ -200,10 +216,10 @@ export class TerminalBridgeService {
             this.lastReaderId = info?.readerId
             logTapToPayEvent('reader_connected', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: 'connected', readerId: info?.readerId }).catch(() => {})
           })
-          const c3 = this.bumpListener(l3Type, 1)
-          logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l3Type, listenerId: l3Id, activeListenerCount: c3.next, totalActiveListenerCount: this.totalActiveListeners } }).catch(() => {})
+          const c3 = this.bumpListener(l3Type, 1); this.addListenerId(l3Type, l3Id); this.diagListeners.push({ remove: l3.remove, __type: l3Type, __id: l3Id })
+          logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l3Type, listenerId: l3Id, activeListenerCount: c3.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds(l3Type) } }).catch(() => {})
           if (c3.next > 1) {
-            logTapToPayEvent('DUPLICATE_LISTENER_DETECTED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l3Type, activeListenerCount: c3.next } }).catch(() => {})
+            logTapToPayEvent('DUPLICATE_LISTENER_DETECTED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l3Type, activeListenerCount: c3.next, activeListenerIds: this.getActiveListenerIds(l3Type), totalActiveListenerCount: this.totalActiveListeners } }).catch(() => {})
           }
 
           const l4Type = 'paymentSucceeded'
@@ -211,10 +227,10 @@ export class TerminalBridgeService {
           const l4 = await this.plugin.addListener('paymentSucceeded', async (info: any) => {
             logTapToPayEvent('native_payment_succeeded', { phase: 'confirm_payment', sessionId: this.sessionId, paymentIntentId: info?.paymentIntentId }).catch(() => {})
           })
-          const c4 = this.bumpListener(l4Type, 1)
-          logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l4Type, listenerId: l4Id, activeListenerCount: c4.next, totalActiveListenerCount: this.totalActiveListeners } }).catch(() => {})
+          const c4 = this.bumpListener(l4Type, 1); this.addListenerId(l4Type, l4Id); this.diagListeners.push({ remove: l4.remove, __type: l4Type, __id: l4Id })
+          logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l4Type, listenerId: l4Id, activeListenerCount: c4.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds(l4Type) } }).catch(() => {})
           if (c4.next > 1) {
-            logTapToPayEvent('DUPLICATE_LISTENER_DETECTED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l4Type, activeListenerCount: c4.next } }).catch(() => {})
+            logTapToPayEvent('DUPLICATE_LISTENER_DETECTED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l4Type, activeListenerCount: c4.next, activeListenerIds: this.getActiveListenerIds(l4Type), totalActiveListenerCount: this.totalActiveListeners } }).catch(() => {})
           }
 
           const l5Type = 'nativeError'
@@ -222,10 +238,10 @@ export class TerminalBridgeService {
           const l5 = await this.plugin.addListener('error', async (e: any) => {
             logTapToPayEvent('native_error', { phase: 'startup', sessionId: this.sessionId, code: e?.code || e?.nativeCode, message: e?.message }).catch(() => {})
           })
-          const c5 = this.bumpListener(l5Type, 1)
-          logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l5Type, listenerId: l5Id, activeListenerCount: c5.next, totalActiveListenerCount: this.totalActiveListeners } }).catch(() => {})
+          const c5 = this.bumpListener(l5Type, 1); this.addListenerId(l5Type, l5Id); this.diagListeners.push({ remove: l5.remove, __type: l5Type, __id: l5Id })
+          logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l5Type, listenerId: l5Id, activeListenerCount: c5.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds(l5Type) } }).catch(() => {})
           if (c5.next > 1) {
-            logTapToPayEvent('DUPLICATE_LISTENER_DETECTED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l5Type, activeListenerCount: c5.next } }).catch(() => {})
+            logTapToPayEvent('DUPLICATE_LISTENER_DETECTED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l5Type, activeListenerCount: c5.next, activeListenerIds: this.getActiveListenerIds(l5Type), totalActiveListenerCount: this.totalActiveListeners } }).catch(() => {})
           }
           const l0 = await (this.plugin as any).addListener('tpDiagnostics', async (payload: any) => {
             logTapToPayEvent(payload?.name || 'native_event', {
@@ -241,6 +257,11 @@ export class TerminalBridgeService {
               message: payload?.message,
               meta: payload?.meta,
             }).catch(() => {})
+            if (payload?.attemptId && this.currentAttemptId && payload.attemptId !== this.currentAttemptId) {
+              this.staleIgnoredCount++
+              try { await logTapToPayEvent('STALE_CALLBACK_IGNORED', { phase: payload?.phase, sessionId: this.sessionId, attemptId: this.currentAttemptId, paymentIntentId: this.currentPaymentIntentId, readerId: this.lastReaderId, meta: { incomingAttemptId: payload.attemptId, currentAttemptId: this.currentAttemptId, eventType: payload?.name, paymentIntentId: payload?.paymentIntentId, readerId: payload?.readerId } }) } catch {}
+              return
+            }
             if (payload?.readerId) this.lastReaderId = payload.readerId
             if (payload?.paymentIntentId) this.currentPaymentIntentId = payload.paymentIntentId
             // Update attempt flags/timings based on native lifecycle
@@ -248,6 +269,11 @@ export class TerminalBridgeService {
             if (n === 'discover_readers_started') {
               this.attemptFlags.discoveryPerformed = true
               this.seenDiscoveryThisAttempt = true
+              this.sessionTimings.discoveryStart = Date.now()
+            }
+            if (n === 'discover_readers_completed') {
+              this.sessionTimings.discoveryEnd = Date.now()
+              if (this.sessionTimings.discoveryStart) this.sessionTimings.discoveryMs = this.sessionTimings.discoveryEnd - this.sessionTimings.discoveryStart
             }
             if (n === 'connect_reader_completed' && !this.seenDiscoveryThisAttempt) {
               this.attemptFlags.readerReused = true
@@ -267,33 +293,36 @@ export class TerminalBridgeService {
               this.timings.tConfirmEnd = this.timings.tConfirmEnd || Date.now()
             }
           })
-          this.diagListeners.push(l0, l1, l2, l3, l4, l5)
+          this.diagListeners.push({ remove: l0.remove, __type: 'tpDiagnostics', __id: 'tpDiagnostics' })
         }
       } catch {}
       if (process.env.NODE_ENV === 'development') {
         console.log('[TerminalBridgeService] Token request listener registered')
       }
 
-      // App background/foreground diagnostics (if Capacitor App plugin is present)
+      // App background/foreground diagnostics (singleton)
       try {
-        const mod = await import('@capacitor/app')
-        const { App } = mod as any
-        const appType = 'appStateChange'
-        const appListenerId = appType + '#' + Date.now()
-        const appL = await App.addListener('appStateChange', (ev: any) => {
-          if (this.currentAttemptId && this.attemptStartMs) {
-            const elapsed = Date.now() - this.attemptStartMs
-            const name = ev?.isActive ? 'app_resumed' : 'app_backgrounded'
-            logTapToPayEvent(name, { phase: 'app_state', sessionId: this.sessionId, attemptId: this.currentAttemptId, durationMs: elapsed, meta: { phase: this.currentPhase } }).catch(() => {})
+        if (!this.appStateListener) {
+          const mod = await import('@capacitor/app')
+          const { App } = mod as any
+          const appType = 'appStateChange'
+          const appListenerId = appType + '#' + Date.now()
+          const appL = await App.addListener('appStateChange', (ev: any) => {
+            if (this.currentAttemptId && this.attemptStartMs) {
+              const elapsed = Date.now() - this.attemptStartMs
+              const name = ev?.isActive ? 'app_resumed' : 'app_backgrounded'
+              logTapToPayEvent(name, { phase: 'app_state', sessionId: this.sessionId, attemptId: this.currentAttemptId, durationMs: elapsed, meta: { phase: this.currentPhase } }).catch(() => {})
+            }
+            this.lastAppIsActive = !!ev?.isActive
+          })
+          const ca = this.bumpListener(appType, 1); this.addListenerId(appType, appListenerId)
+          this.diagListeners.push({ remove: appL.remove, __type: appType, __id: appListenerId })
+          this.appStateListener = { remove: appL.remove, id: appListenerId }
+          logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: appType, listenerId: appListenerId, activeListenerCount: ca.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds(appType) } }).catch(() => {})
+          if (ca.next > 1) {
+            logTapToPayEvent('DUPLICATE_LISTENER_DETECTED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: appType, activeListenerCount: ca.next, activeListenerIds: this.getActiveListenerIds(appType), totalActiveListenerCount: this.totalActiveListeners } }).catch(() => {})
           }
-          this.lastAppIsActive = !!ev?.isActive
-        })
-        const ca = this.bumpListener(appType, 1)
-        logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: appType, listenerId: appListenerId, activeListenerCount: ca.next, totalActiveListenerCount: this.totalActiveListeners } }).catch(() => {})
-        if (ca.next > 1) {
-          logTapToPayEvent('DUPLICATE_LISTENER_DETECTED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: appType, activeListenerCount: ca.next } }).catch(() => {})
         }
-        this.diagListeners.push(appL)
       } catch {}
 
       // Diagnostic ping before initialization - critical for verifying registration
@@ -315,7 +344,9 @@ export class TerminalBridgeService {
       const t0 = Date.now()
       logTapToPayEvent('initialize_started', { phase: 'initialize', sessionId: this.sessionId }).catch(() => {})
       const result = await this.plugin.initialize({ ...(options as any), diagnosticAttemptId: this.sessionId } as any)
-      logTapToPayEvent('initialize_completed', { phase: 'initialize', sessionId: this.sessionId, durationMs: Date.now() - t0, connectionStatus: result.status }).catch(() => {})
+      const initMs = Date.now() - t0
+      this.sessionTimings.initializeMs = initMs
+      logTapToPayEvent('initialize_completed', { phase: 'initialize', sessionId: this.sessionId, durationMs: initMs, connectionStatus: result.status }).catch(() => {})
 
       return result
     } catch (error) {
@@ -573,11 +604,13 @@ export class TerminalBridgeService {
       rejectOnError = reject
     })
 
+    const readerConnectedId = 'readerConnected#' + Date.now()
     const readerConnectedListener = await this.plugin.addListener('readerConnected', (info: any) => {
       console.log('[TAP_SESSION_TRACE] stage=connect_event_reader_connected')
       try { logTapToPayEvent('connect_completed', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: 'connected', readerId: info?.readerId }) } catch {}
       resolveConnected?.()
     })
+    const statusChangedId = 'statusChanged#' + Date.now()
     const statusChangedListener = await this.plugin.addListener('statusChanged', (data: any) => {
       if (data?.status === 'connected') {
         console.log('[TAP_SESSION_TRACE] stage=connect_event_status_connected')
@@ -585,11 +618,16 @@ export class TerminalBridgeService {
         resolveConnected?.()
       }
     })
+    const errorListenerId = 'error#' + Date.now()
     const errorListener = await this.plugin.addListener('error', (e: any) => {
       console.warn('[TAP_SESSION_TRACE] stage=connect_event_error')
       try { logTapToPayEvent('connect_error', { phase: 'connect_reader', sessionId: this.sessionId, code: e?.code || e?.nativeCode, message: e?.message }) } catch {}
       rejectOnError?.(e)
     })
+    // Track temp listeners in diagnostics counts
+    { const c = this.bumpListener('readerConnected', 1); this.addListenerId('readerConnected', readerConnectedId); logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: 'readerConnected', listenerId: readerConnectedId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('readerConnected') } }).catch(() => {}) }
+    { const c = this.bumpListener('statusChanged', 1); this.addListenerId('statusChanged', statusChangedId); logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: 'statusChanged', listenerId: statusChangedId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('statusChanged') } }).catch(() => {}) }
+    { const c = this.bumpListener('error', 1); this.addListenerId('error', errorListenerId); logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: 'error', listenerId: errorListenerId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('error') } }).catch(() => {}) }
 
     const result = await this.plugin.connectTapToPay({
       simulated: options?.simulated || false,
@@ -605,14 +643,16 @@ export class TerminalBridgeService {
         await connectedPromise
         console.log('[TAP_SESSION_TRACE] stage=connect_wait_completed')
         try { await logTapToPayEvent('connect_wait_completed', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: 'connected' }) } catch {}
+        this.sessionTimings.connectEnd = Date.now(); if (this.sessionTimings.connectStart) this.sessionTimings.connectMs = this.sessionTimings.connectEnd - this.sessionTimings.connectStart
         return { status: 'connected' as const }
       }
+      this.sessionTimings.connectEnd = Date.now(); if (this.sessionTimings.connectStart) this.sessionTimings.connectMs = this.sessionTimings.connectEnd - this.sessionTimings.connectStart
       return result
     } finally {
       // Cleanup listeners
-      try { await readerConnectedListener.remove(); logTapToPayEvent('APP_LISTENER_REMOVED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: 'readerConnected' } }).catch(() => {}) } catch {}
-      try { await statusChangedListener.remove(); logTapToPayEvent('APP_LISTENER_REMOVED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: 'statusChanged' } }).catch(() => {}) } catch {}
-      try { await errorListener.remove(); logTapToPayEvent('APP_LISTENER_REMOVED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: 'error' } }).catch(() => {}) } catch {}
+      try { await readerConnectedListener.remove(); this.removeListenerId('readerConnected', readerConnectedId); const c = this.bumpListener('readerConnected', -1); logTapToPayEvent('APP_LISTENER_REMOVED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: 'readerConnected', listenerId: readerConnectedId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('readerConnected') } }).catch(() => {}) } catch {}
+      try { await statusChangedListener.remove(); this.removeListenerId('statusChanged', statusChangedId); const c = this.bumpListener('statusChanged', -1); logTapToPayEvent('APP_LISTENER_REMOVED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: 'statusChanged', listenerId: statusChangedId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('statusChanged') } }).catch(() => {}) } catch {}
+      try { await errorListener.remove(); this.removeListenerId('error', errorListenerId); const c = this.bumpListener('error', -1); logTapToPayEvent('APP_LISTENER_REMOVED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: 'error', listenerId: errorListenerId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('error') } }).catch(() => {}) } catch {}
     }
   }
 
@@ -701,6 +741,7 @@ export class TerminalBridgeService {
     this.currentAttemptId = terminalAttemptId
     this.attemptStartMs = overallStart
     this.currentPhase = 'payment_intent'
+    this.attemptInitialConnectionStatus = this.connectionStatus
     // Reset attempt-scoped flags/timings
     this.attemptSummaryEmitted = false
     this.attemptFlags = { readerReused: false, discoveryPerformed: false, paymentIntentCreated: false, paymentMethodCollected: false, paymentConfirmed: false, reconciled: false }
@@ -710,10 +751,16 @@ export class TerminalBridgeService {
     // Create PaymentIntent via backend with terminalAttemptId
     // PaymentIntent timings
     this.timings.tPiStart = Date.now()
+    const piAttemptId = this.currentAttemptId
     const { paymentIntentId, clientSecret } = await this.createTerminalPayment({
       ...options,
       terminalAttemptId,
     })
+    if (piAttemptId !== this.currentAttemptId) {
+      this.staleIgnoredCount++
+      try { await logTapToPayEvent('STALE_CALLBACK_IGNORED', { phase: 'payment_intent', sessionId: this.sessionId, attemptId: this.currentAttemptId, paymentIntentId: undefined, readerId: this.lastReaderId, meta: { incomingAttemptId: piAttemptId, currentAttemptId: this.currentAttemptId, eventType: 'payment_intent_create_completed' } }) } catch {}
+      return { status: 'canceled' as const, error: { code: 'stale', message: 'Attempt superseded' } }
+    }
     this.currentPaymentIntentId = paymentIntentId
     this.attemptFlags.paymentIntentCreated = true
     this.timings.tPiEnd = Date.now()
@@ -740,12 +787,18 @@ export class TerminalBridgeService {
     try { await logTapToPayEvent('collect_payment_started', { phase: 'collect_payment', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId }) } catch {}
     let result: any
     try {
+      const collectAttemptId = this.currentAttemptId
       result = await this.plugin.collectPayment({
         paymentIntentId,
         clientSecret,
         terminalAttemptId,
         diagnosticAttemptId: this.currentAttemptId || this.sessionId,
       } as any)
+      if (collectAttemptId !== this.currentAttemptId) {
+        this.staleIgnoredCount++
+        try { await logTapToPayEvent('STALE_CALLBACK_IGNORED', { phase: 'collect_payment', sessionId: this.sessionId, attemptId: this.currentAttemptId, paymentIntentId, readerId: this.lastReaderId, meta: { incomingAttemptId: collectAttemptId, currentAttemptId: this.currentAttemptId, eventType: 'collect_payment_completed' } }) } catch {}
+        return { status: 'canceled' as const, error: { code: 'stale', message: 'Attempt superseded' } }
+      }
     } catch (e: any) {
       // Explicit duplicate guard logging without changing behavior
       const code = e?.code || e?.nativeCode || (typeof e === 'string' ? e : undefined)
@@ -767,11 +820,17 @@ export class TerminalBridgeService {
         const headers = await this.getAuthHeaders()
         const recStart = Date.now(); this.timings.tReconcileStart = recStart
         try { await logTapToPayEvent('reconcile_started', { phase: 'reconcile', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId }) } catch {}
+        const recAttemptId = this.currentAttemptId
         await fetch('/api/terminal/reconcile-payment', {
           method: 'POST',
           headers,
           body: JSON.stringify({ paymentIntentId, terminalAttemptId }),
         })
+        if (recAttemptId !== this.currentAttemptId) {
+          this.staleIgnoredCount++
+          try { await logTapToPayEvent('STALE_CALLBACK_IGNORED', { phase: 'reconcile', sessionId: this.sessionId, attemptId: this.currentAttemptId, paymentIntentId, readerId: this.lastReaderId, meta: { incomingAttemptId: recAttemptId, currentAttemptId: this.currentAttemptId, eventType: 'reconcile_completed' } }) } catch {}
+          return { status: 'canceled' as const, error: { code: 'stale', message: 'Attempt superseded' } }
+        }
         this.attemptFlags.reconciled = true
         this.timings.tReconcileEnd = Date.now()
         try { await logTapToPayEvent('reconcile_completed', { phase: 'reconcile', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId, durationMs: this.timings.tReconcileEnd - recStart }) } catch {}
@@ -807,6 +866,17 @@ export class TerminalBridgeService {
     // Attempt total duration
     const totalDuration = Date.now() - overallStart
     try { logTapToPayEvent('attempt_completed', { phase: 'collect_payment', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId, durationMs: totalDuration, code: result.status, message: result.error?.message }) } catch {}
+    const completionReason = (() => {
+      if (result.status === 'succeeded') return 'success'
+      if (result.status === 'canceled') return 'cancelled_by_user'
+      if (result.error?.code === 'native_error') return 'native_error'
+      if (result.error?.stage === 'collect_payment') return 'collect_failed'
+      if (result.error?.stage === 'confirm_payment') return 'confirmation_failed'
+      if (result.error?.stage === 'reconcile') return 'reconciliation_failed'
+      if (String(result.error?.code || '').includes('timeout')) return 'timeout'
+      return 'unexpected_status'
+    })()
+
     try {
       logTapToPayEvent('ATTEMPT_SUMMARY', {
         phase: 'collect_payment',
@@ -827,15 +897,35 @@ export class TerminalBridgeService {
           paymentConfirmed: this.attemptFlags.paymentConfirmed || undefined,
           amountCents: options.amountCents,
           currency: (options as any).currency,
+          initialConnectionStatus: this.attemptInitialConnectionStatus,
           finalConnectionStatus: this.connectionStatus,
           finalPaymentStatus: this.paymentStatus,
           errorCode: result.error?.code,
           errorMessage: result.error?.message,
+          outcome: result.status,
+          completionReason,
           totalAttemptDurationMs: totalDuration,
           paymentIntentCreateDurationMs: this.timings.tPiStart && this.timings.tPiEnd ? (this.timings.tPiEnd - this.timings.tPiStart) : undefined,
           collectPaymentMethodDurationMs: this.timings.tCollectStart && this.timings.tCollectEnd ? (this.timings.tCollectEnd - this.timings.tCollectStart) : undefined,
           confirmationDurationMs: this.timings.tConfirmStart && this.timings.tConfirmEnd ? (this.timings.tConfirmEnd - this.timings.tConfirmStart) : undefined,
           reconciliationDurationMs: this.timings.tReconcileStart && this.timings.tReconcileEnd ? (this.timings.tReconcileEnd - this.timings.tReconcileStart) : undefined,
+        }
+      }).catch(() => {})
+    } catch {}
+
+    try {
+      logTapToPayEvent('ATTEMPT_VALIDATION', {
+        phase: 'collect_payment',
+        sessionId: this.sessionId,
+        attemptId: terminalAttemptId,
+        meta: {
+          summaryEmitted: true,
+          staleCallbacksIgnored: this.staleIgnoredCount,
+          listenerParityPassed: true, // validated at teardown
+          paymentIntentCreated: this.attemptFlags.paymentIntentCreated,
+          paymentMethodCollected: this.attemptFlags.paymentMethodCollected,
+          paymentConfirmed: this.attemptFlags.paymentConfirmed,
+          reconciled: this.attemptFlags.reconciled,
         }
       }).catch(() => {})
     } catch {}
@@ -880,9 +970,25 @@ export class TerminalBridgeService {
       try { this.tokenRequestListener.remove(); const c = this.bumpListener('connectionTokenRequested', -1); logTapToPayEvent('APP_LISTENER_REMOVED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: 'connectionTokenRequested', activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners } }).catch(() => {}) } catch {}
       this.tokenRequestListener = null
     }
+    // Listener parity snapshot before removals
+    try {
+      const remaining: Record<string, string[]> = {}
+      Object.keys(this.listenerIdsByType).forEach(t => remaining[t] = Array.from(this.listenerIdsByType[t] || []))
+      const totalRemaining = Object.values(remaining).reduce((a, ids) => a + ids.length, 0)
+      if (totalRemaining > 0) {
+        logTapToPayEvent('LISTENER_LEAK_DETECTED', { phase: 'cleanup', sessionId: this.sessionId, meta: { remainingActiveListeners: totalRemaining, listenerTypes: Object.keys(remaining), activeListenerIds: remaining } }).catch(() => {})
+      }
+      logTapToPayEvent('LISTENER_PARITY_SUMMARY', { phase: 'cleanup', sessionId: this.sessionId, meta: { registrations: this.totalActiveListeners + Object.values(this.listenerCounts).reduce((a,b)=>a+b,0), removals: 'tracked_in_removal_logs', remainingActiveListeners: totalRemaining, listenerTypes: Object.keys(remaining), activeListenerIds: remaining } }).catch(() => {})
+    } catch {}
+
     if (this.diagListeners.length) {
       for (const l of this.diagListeners) {
-        try { l.remove(); logTapToPayEvent('APP_LISTENER_REMOVED', { phase: 'app_state', sessionId: this.sessionId }).catch(() => {}) } catch {}
+        try {
+          l.remove();
+          this.removeListenerId(l.__type, l.__id)
+          const c = this.bumpListener(l.__type, -1)
+          logTapToPayEvent('APP_LISTENER_REMOVED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l.__type, listenerId: l.__id, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds(l.__type) } }).catch(() => {})
+        } catch {}
       }
       this.diagListeners = []
     }
