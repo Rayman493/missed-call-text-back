@@ -48,6 +48,13 @@ export default function TapToPayModal({
 
   useBodyScrollLock(isOpen)
 
+  // Track current UI state in a ref to guard against stale callbacks
+  const paymentStateRef = useRef<PaymentState>(paymentState)
+  useEffect(() => { paymentStateRef.current = paymentState }, [paymentState])
+
+  // Emit WAITING_FOR_CONFIRMATION exactly once per attempt when native indicates confirm stage
+  const waitingForConfirmationEmitted = useRef<string | null>(null) // attemptId
+
   // Check native support when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -77,6 +84,7 @@ export default function TapToPayModal({
       setShowTechnicalDetails(false)
       setLastSuccessfulStage('none')
       setIsPaymentInProgress(false)
+      waitingForConfirmationEmitted.current = null
     }
   }, [isOpen])
 
@@ -157,13 +165,35 @@ export default function TapToPayModal({
     if (!isOpen || !isNativeSupported) return
 
     let errorListener: { remove: () => void } | undefined
+    let diagListener: { remove: () => void } | undefined
     ;(async () => {
       try {
         const Terminal = await import('@/lib/terminal')
         const plugin = Terminal.default
         errorListener = await plugin.addListener('error', (data: TerminalError) => {
           console.log('[TapToPayModal] Structured error received:', data)
+          // Guard against stale callbacks after cancel→retry: only react when UI is in a collecting/processing state
+          const ps = paymentStateRef.current
+          if (ps !== 'waiting_for_card' && ps !== 'processing' && ps !== 'ambiguous') {
+            // Ignore late error updates when UI is no longer collecting
+            try { logTapToPayEvent('STALE_UI_ERROR_IGNORED', { phase: terminalService.getCurrentPhase() as any, sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined, message: data?.message, code: (data as any)?.code }) } catch {}
+            return
+          }
           setStructuredError(data)
+        })
+
+        // Diagnostics lifecycle tap: infer confirmation-wait once per attempt
+        diagListener = await (plugin as any).addListener('tpDiagnostics', (payload: any) => {
+          try {
+            const name = String(payload?.name || '')
+            const attemptId = terminalService.getCurrentAttemptId() || null
+            if (!attemptId) return
+            if (waitingForConfirmationEmitted.current === attemptId) return
+            if (name === 'confirm_payment_intent_started' || name === 'collect_payment_method_completed') {
+              waitingForConfirmationEmitted.current = attemptId
+              logTapToPayEvent('WAITING_FOR_CONFIRMATION', { phase: 'confirm_payment', sessionId: terminalService.getSessionId(), attemptId, paymentIntentId: terminalService.getPaymentIntentId() }).catch(() => {})
+            }
+          } catch {}
         })
       } catch (err) {
         console.error('[TapToPayModal] Failed to register error listener:', err)
@@ -172,6 +202,7 @@ export default function TapToPayModal({
 
     return () => {
       errorListener?.remove?.()
+      diagListener?.remove?.()
     }
   }, [isOpen, isNativeSupported])
 
@@ -437,6 +468,7 @@ export default function TapToPayModal({
     setError('')
     try { logTapToPayEvent('RESET_TO_READY', { phase: 'startup', sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined }) } catch {}
     try { logTapToPayEvent('RESET_COMPLETED', { phase: 'startup', sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined }) } catch {}
+    waitingForConfirmationEmitted.current = null
   }
 
   const handleDone = () => {
