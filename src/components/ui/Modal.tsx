@@ -74,42 +74,47 @@ export default function Modal({ isOpen, onClose, children, title, className = ''
 
   const modalContent = (
     <div
-      className={`fixed inset-0 z-[60] flex ${alignTopOnMobile ? 'items-start md:items-center' : 'items-center'} justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200`}
+      className={`fixed inset-0 z-[60] flex ${alignTopOnMobile ? 'items-start md:items-center' : 'items-center'} justify-center p-0 md:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200`}
       style={alignTopOnMobile ? {
-        // Safe-area aware top padding to avoid status bar
         paddingTop: `calc(env(safe-area-inset-top) + ${mobileTopOffsetPx}px)`,
       } : undefined}
       onClick={handleBackdropClick}
     >
-      <div
-        ref={modalRef}
-        className={`
-          relative w-full max-w-lg
-          max-h-[calc(100dvh-2rem)] md:max-h-[90vh]
-          overflow-hidden
-          rounded-2xl border border-border/50
-          bg-card
-          shadow-2xl shadow-black/10 dark:shadow-black/30
-          flex flex-col animate-in zoom-in-95 duration-200
-          ${className}
-        `}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {title && (
-          <div className="flex items-center justify-between px-5 py-4 border-b border-border/50 shrink-0">
-            <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-            <button
-              onClick={onClose}
-              className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
-              aria-label="Close"
-            >
-              <X className="w-5 h-5" />
-            </button>
+      {/* Viewport wrapper ensures a bounded height on mobile for reliable scrolling */}
+      <div className="flex h-[100dvh] min-h-0 w-full items-end md:items-center justify-center md:h-auto">
+        <div
+          ref={modalRef}
+          className={`
+            relative w-full max-w-lg
+            max-h-[100dvh] md:max-h-[90vh]
+            overflow-hidden
+            rounded-2xl border border-border/50
+            bg-card
+            shadow-2xl shadow-black/10 dark:shadow-black/30
+            flex flex-col min-h-0 animate-in zoom-in-95 duration-200
+            ${className}
+          `}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {title && (
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border/50 shrink-0">
+              <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+              <button
+                onClick={onClose}
+                className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          )}
+          
+          <div
+            className="flex-1 min-h-0 overflow-y-auto overscroll-contain [touch-action:pan-y] pb-[env(safe-area-inset-bottom)]"
+            style={{ WebkitOverflowScrolling: 'touch', maxHeight: contentMaxHeight || undefined }}
+          >
+            {children}
           </div>
-        )}
-        
-        <div className="overflow-y-auto flex-1" style={{ maxHeight: contentMaxHeight || 'calc(100dvh-8rem)' }}>
-          {children}
         </div>
       </div>
     </div>

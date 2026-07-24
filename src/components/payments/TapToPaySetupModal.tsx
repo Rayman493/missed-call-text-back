@@ -27,7 +27,7 @@ export default function TapToPaySetupModal({
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+      <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-md max-h-[100dvh] md:max-h-[90vh] overflow-hidden flex flex-col min-h-0 animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
           <div className="flex items-center gap-3">
@@ -45,7 +45,7 @@ export default function TapToPaySetupModal({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-5 py-6 space-y-6">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain [touch-action:pan-y] px-5 py-6 space-y-6 pb-[env(safe-area-inset-bottom)]" style={{ WebkitOverflowScrolling: 'touch' as any }}>
           {setupState === 'not_connected' && (
             <>
               <div className="text-center py-4">

@@ -329,7 +329,7 @@ export default function RequestPaymentModal({
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 md:items-center md:justify-center">
-      <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 max-w-md w-full max-h-[calc(100dvh-1rem)] md:max-h-[90vh] overflow-hidden flex flex-col border border-border/50 animate-in zoom-in-95 duration-200">
+      <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 max-w-md w-full max-h-[100dvh] md:max-h-[90vh] overflow-hidden flex flex-col min-h-0 border border-border/50 animate-in zoom-in-95 duration-200">
         {/* Header - shrink-0 */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border/50 shrink-0">
           <div className="min-w-0 pr-3">
@@ -349,8 +349,8 @@ export default function RequestPaymentModal({
           </button>
         </div>
 
-        {/* Content - flex-1 overflow-y-auto */}
-        <div data-scroll-lock-allow className="overflow-y-auto flex-1 overscroll-contain px-4 py-3 md:px-5 md:py-4 space-y-2.5 md:space-y-3" style={{ maxHeight: 'calc(100dvh-10rem)', WebkitOverflowScrolling: 'touch' }}>
+        {/* Content - single primary scroll container */}
+        <div data-scroll-lock-allow className="flex-1 min-h-0 overflow-y-auto overscroll-contain [touch-action:pan-y] px-4 py-3 md:px-5 md:py-4 space-y-2.5 md:space-y-3 pb-[env(safe-area-inset-bottom)]" style={{ WebkitOverflowScrolling: 'touch' }}>
           <div>
             <label className="block text-sm font-medium text-slate-100 mb-1.5">
               Recipient
