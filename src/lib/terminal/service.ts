@@ -597,16 +597,21 @@ export class TerminalBridgeService {
     if (!this.plugin) throw new Error('Stripe Terminal is not available on web')
 
     console.log('[TAP_SESSION_TRACE] stage=connect_call_start')
-    try { await logTapToPayEvent('connect_started', { phase: 'connect_reader', sessionId: this.sessionId }) } catch {}
+    // Do not await any diagnostics before assigning in-flight to avoid races
+    logTapToPayEvent('connect_started', { phase: 'connect_reader', sessionId: this.sessionId }).catch(() => {})
 
     // Short-circuit if already connected
     if (this.connectionStatus === 'connected') {
-      try { await logTapToPayEvent('connect_dedup_already_connected', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: 'connected', readerId: this.lastReaderId }) } catch {}
+      logTapToPayEvent('connect_dedup_already_connected', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: 'connected', readerId: this.lastReaderId }).catch(() => {})
+      // Alias event for clearer dashboards
+      logTapToPayEvent('CONNECT_DEDUP_ALREADY_CONNECTED', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: 'connected', readerId: this.lastReaderId }).catch(() => {})
       return { status: 'connected' as const }
     }
     // Dedupe concurrent calls
     if (this.connectInFlight) {
-      try { await logTapToPayEvent('connect_dedup_reused_inflight', { phase: 'connect_reader', sessionId: this.sessionId }) } catch {}
+      logTapToPayEvent('connect_dedup_reused_inflight', { phase: 'connect_reader', sessionId: this.sessionId }).catch(() => {})
+      // Alias event for clearer dashboards
+      logTapToPayEvent('CONNECT_DEDUP_REUSED_INFLIGHT', { phase: 'connect_reader', sessionId: this.sessionId }).catch(() => {})
       return this.connectInFlight
     }
 
@@ -663,9 +668,9 @@ export class TerminalBridgeService {
         rejectOnError?.(e)
       })
       // Track temp listeners in diagnostics counts
-      { const c = this.bumpListener('readerConnected', 1); this.addListenerId('readerConnected', readerConnectedId); logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: 'readerConnected', listenerId: readerConnectedId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('readerConnected') } }).catch(() => {}) }
-      { const c = this.bumpListener('statusChanged', 1); this.addListenerId('statusChanged', statusChangedId); logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: 'statusChanged', listenerId: statusChangedId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('statusChanged') } }).catch(() => {}) }
-      { const c = this.bumpListener('error', 1); this.addListenerId('error', errorListenerId); logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: 'error', listenerId: errorListenerId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('error') } }).catch(() => {}) }
+      { const c = this.bumpListener('readerConnected', 1); this.addListenerId('readerConnected', readerConnectedId); logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listener: 'reader_connected_temp', listenerType: 'readerConnected', scope: 'temp_connect', listenerId: readerConnectedId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('readerConnected') } }).catch(() => {}) }
+      { const c = this.bumpListener('statusChanged', 1); this.addListenerId('statusChanged', statusChangedId); logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listener: 'connection_status_temp', listenerType: 'statusChanged', scope: 'temp_connect', listenerId: statusChangedId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('statusChanged') } }).catch(() => {}) }
+      { const c = this.bumpListener('error', 1); this.addListenerId('error', errorListenerId); logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listener: 'native_error_temp', listenerType: 'error', scope: 'temp_connect', listenerId: errorListenerId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('error') } }).catch(() => {}) }
 
       const result = await this.plugin!.connectTapToPay({
         simulated: options?.simulated || false,
@@ -690,9 +695,9 @@ export class TerminalBridgeService {
         return result
       } finally {
         // Cleanup listeners
-        try { await readerConnectedListener.remove(); this.removeListenerId('readerConnected', readerConnectedId); const c = this.bumpListener('readerConnected', -1); logTapToPayEvent('APP_LISTENER_REMOVED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: 'readerConnected', listenerId: readerConnectedId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('readerConnected') } }).catch(() => {}) } catch {}
-        try { await statusChangedListener.remove(); this.removeListenerId('statusChanged', statusChangedId); const c = this.bumpListener('statusChanged', -1); logTapToPayEvent('APP_LISTENER_REMOVED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: 'statusChanged', listenerId: statusChangedId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('statusChanged') } }).catch(() => {}) } catch {}
-        try { await errorListener.remove(); this.removeListenerId('error', errorListenerId); const c = this.bumpListener('error', -1); logTapToPayEvent('APP_LISTENER_REMOVED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: 'error', listenerId: errorListenerId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('error') } }).catch(() => {}) } catch {}
+        try { await readerConnectedListener.remove(); this.removeListenerId('readerConnected', readerConnectedId); const c = this.bumpListener('readerConnected', -1); logTapToPayEvent('APP_LISTENER_REMOVED', { phase: 'app_state', sessionId: this.sessionId, meta: { listener: 'reader_connected_temp', listenerType: 'readerConnected', scope: 'temp_connect', listenerId: readerConnectedId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('readerConnected') } }).catch(() => {}) } catch {}
+        try { await statusChangedListener.remove(); this.removeListenerId('statusChanged', statusChangedId); const c = this.bumpListener('statusChanged', -1); logTapToPayEvent('APP_LISTENER_REMOVED', { phase: 'app_state', sessionId: this.sessionId, meta: { listener: 'connection_status_temp', listenerType: 'statusChanged', scope: 'temp_connect', listenerId: statusChangedId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('statusChanged') } }).catch(() => {}) } catch {}
+        try { await errorListener.remove(); this.removeListenerId('error', errorListenerId); const c = this.bumpListener('error', -1); logTapToPayEvent('APP_LISTENER_REMOVED', { phase: 'app_state', sessionId: this.sessionId, meta: { listener: 'native_error_temp', listenerType: 'error', scope: 'temp_connect', listenerId: errorListenerId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('error') } }).catch(() => {}) } catch {}
       }
     })()
 
@@ -964,6 +969,15 @@ export class TerminalBridgeService {
       // Keep unresolved attempt ID for recovery
       try { await logTapToPayEvent('payment_ambiguous', { phase: 'collect_payment', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId, code: result.status }) } catch {}
     }
+
+    // Normalize connection status out of transient collecting/processing states before summary
+    try {
+      const prev = this.connectionStatus
+      if (prev === 'collecting' || prev === 'processing' || prev === 'confirming') {
+        this.connectionStatus = 'connected'
+        logTapToPayEvent('CONNECTION_STATUS_NORMALIZED', { phase: 'connection_status', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId, meta: { from: prev, to: this.connectionStatus } }).catch(() => {})
+      }
+    } catch {}
 
     // Attempt total duration
     const totalDuration = Date.now() - overallStart
