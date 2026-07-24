@@ -10,8 +10,24 @@ import StripeTerminal
 #endif
 
 @objc(ReplyflowStripeTerminalPlugin)
-public class ReplyflowStripeTerminalPlugin: CAPPlugin {
+public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
   private let eventNameDiagnostics = "tpDiagnostics"
+  public let identifier = "ReplyflowStripeTerminalPlugin"
+  public let jsName = "ReplyflowStripeTerminal"
+  public let pluginMethods: [CAPPluginMethod] = [
+    CAPPluginMethod(name: "ping", returnType: CAPPluginReturnPromise),
+    CAPPluginMethod(name: "isSupported", returnType: CAPPluginReturnPromise),
+    CAPPluginMethod(name: "initialize", returnType: CAPPluginReturnPromise),
+    CAPPluginMethod(name: "requestConnectionToken", returnType: CAPPluginReturnPromise),
+    CAPPluginMethod(name: "supplyConnectionToken", returnType: CAPPluginReturnPromise),
+    CAPPluginMethod(name: "supplyConnectionTokenError", returnType: CAPPluginReturnPromise),
+    CAPPluginMethod(name: "connectTapToPay", returnType: CAPPluginReturnPromise),
+    CAPPluginMethod(name: "collectPayment", returnType: CAPPluginReturnPromise),
+    CAPPluginMethod(name: "confirmPaymentIntent", returnType: CAPPluginReturnPromise),
+    CAPPluginMethod(name: "cancel", returnType: CAPPluginReturnPromise),
+    CAPPluginMethod(name: "disconnect", returnType: CAPPluginReturnPromise),
+    CAPPluginMethod(name: "teardown", returnType: CAPPluginReturnPromise)
+  ]
 
   private var initialized = false
   private var connectionStatus: String = "not_initialized"
@@ -264,24 +280,7 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin {
   }
 }
 
-extension ReplyflowStripeTerminalPlugin: CAPBridgedPlugin {
-  public let identifier = "ReplyflowStripeTerminalPlugin"
-  public let jsName = "ReplyflowStripeTerminal"
-  public let pluginMethods: [CAPPluginMethod] = [
-    CAPPluginMethod(name: "ping", returnType: CAPPluginReturnPromise),
-    CAPPluginMethod(name: "isSupported", returnType: CAPPluginReturnPromise),
-    CAPPluginMethod(name: "initialize", returnType: CAPPluginReturnPromise),
-    CAPPluginMethod(name: "requestConnectionToken", returnType: CAPPluginReturnPromise),
-    CAPPluginMethod(name: "supplyConnectionToken", returnType: CAPPluginReturnPromise),
-    CAPPluginMethod(name: "supplyConnectionTokenError", returnType: CAPPluginReturnPromise),
-    CAPPluginMethod(name: "connectTapToPay", returnType: CAPPluginReturnPromise),
-    CAPPluginMethod(name: "collectPayment", returnType: CAPPluginReturnPromise),
-    CAPPluginMethod(name: "confirmPaymentIntent", returnType: CAPPluginReturnPromise),
-    CAPPluginMethod(name: "cancel", returnType: CAPPluginReturnPromise),
-    CAPPluginMethod(name: "disconnect", returnType: CAPPluginReturnPromise),
-    CAPPluginMethod(name: "teardown", returnType: CAPPluginReturnPromise)
-  ]
-}
+ 
 
 #if canImport(StripeTerminal)
 extension ReplyflowStripeTerminalPlugin: TerminalDelegate, DiscoveryDelegate, ReaderDelegate {
