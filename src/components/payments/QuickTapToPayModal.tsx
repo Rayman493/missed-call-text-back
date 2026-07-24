@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { X, Smartphone, User, Briefcase, Loader2, ChevronDown, ChevronUp } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { isNativeCapacitor } from '@/lib/terminal'
@@ -10,6 +10,7 @@ import TapToPayModal from './TapToPayModal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { TerminalBridgeService } from '@/lib/terminal/service'
 import TapToPayDiagnosticsPanel from '@/components/TapToPayDiagnosticsPanel'
+import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
 
 interface QuickTapToPayModalProps {
   isOpen: boolean
@@ -21,6 +22,7 @@ export default function QuickTapToPayModal({
   onClose,
 }: QuickTapToPayModalProps) {
   const { business } = useBusiness()
+  const terminalService = useMemo(() => TerminalBridgeService.getInstance(), [])
   const [amountCents, setAmountCents] = useState<number>(0)
   const [amountDisplay, setAmountDisplay] = useState<string>('')
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
@@ -40,6 +42,8 @@ export default function QuickTapToPayModal({
   useEffect(() => {
     if (isOpen) {
       setIsNativeSupported(isNativeCapacitor())
+      // Diagnostics: modal opened
+      logTapToPayEvent('MODAL_OPENED', { phase: 'startup', sessionId: terminalService.getSessionId(), meta: { modal: 'QuickTapToPay' } }).catch(() => {})
 
       // Development diagnostics
       if (process.env.NODE_ENV === 'development') {
@@ -54,6 +58,11 @@ export default function QuickTapToPayModal({
       setSelectedJobId(null)
       setDescription('')
       setShowCustomerSelector(false)
+    }
+    return () => {
+      if (isOpen) {
+        logTapToPayEvent('MODAL_CLOSED', { phase: 'startup', sessionId: terminalService.getSessionId(), meta: { modal: 'QuickTapToPay' } }).catch(() => {})
+      }
     }
   }, [isOpen])
 
@@ -124,6 +133,7 @@ export default function QuickTapToPayModal({
     }
   }
 
+  const prevHadAmountRef = useRef(false)
   const handleAmountChange = (value: string) => {
     const cleaned = value.replace(/[^0-9.]/g, '')
     const parts = cleaned.split('.')
@@ -137,15 +147,23 @@ export default function QuickTapToPayModal({
     setAmountDisplay(newValue)
     const dollars = parseFloat(newValue) || 0
     setAmountCents(Math.round(dollars * 100))
+    const hasAmount = Math.round(dollars * 100) > 0
+    logTapToPayEvent('AMOUNT_CHANGED', { phase: 'payment_intent', sessionId: terminalService.getSessionId(), meta: { amountCents: Math.round(dollars * 100) } }).catch(() => {})
+    if (hasAmount && !prevHadAmountRef.current) {
+      logTapToPayEvent('AMOUNT_ENTERED', { phase: 'payment_intent', sessionId: terminalService.getSessionId(), meta: { amountCents: Math.round(dollars * 100) } }).catch(() => {})
+    }
+    prevHadAmountRef.current = hasAmount
   }
 
   const handleQuickAmount = (dollars: number) => {
     setAmountDisplay(dollars.toString())
     setAmountCents(dollars * 100)
+    logTapToPayEvent('AMOUNT_ENTERED', { phase: 'payment_intent', sessionId: terminalService.getSessionId(), meta: { amountCents: dollars * 100 } }).catch(() => {})
   }
 
   const handleStartPayment = () => {
     if (amountCents <= 0) return
+    logTapToPayEvent('PAY_BUTTON_PRESSED', { phase: 'payment_intent', sessionId: terminalService.getSessionId(), meta: { amountCents } }).catch(() => {})
     setShowTapToPay(true)
   }
 
@@ -237,7 +255,21 @@ export default function QuickTapToPayModal({
 
               {/* Always-visible diagnostics directly beneath the title/marker */}
               <div className="min-h-[240px]">
-                <TapToPayDiagnosticsPanel />
+                <TapToPayDiagnosticsPanel context={{
+                  ui: {
+                    modal: 'QuickTapToPay',
+                    isOpen,
+                    isNativeSupported,
+                    amountCents,
+                    selectedLeadId,
+                    selectedJobId,
+                  },
+                  service: {
+                    sessionId: terminalService.getSessionId(),
+                    attemptId: terminalService.getCurrentAttemptId() || undefined,
+                    phase: terminalService.getCurrentPhase(),
+                  }
+                }} />
               </div>
               {/* Amount Input */}
               <div className="text-center py-4">

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { X, CreditCard, Smartphone, Loader2, CheckCircle2, AlertCircle, XCircle, ChevronDown, ChevronUp } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import TapToPayDiagnosticsPanel from '@/components/TapToPayDiagnosticsPanel'
@@ -8,6 +8,7 @@ import { TerminalBridgeService } from '@/lib/terminal/service'
 import { isNativeCapacitor } from '@/lib/terminal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import type { TerminalError, DeviceState } from '@/lib/terminal'
+import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
 
 interface TapToPayModalProps {
   isOpen: boolean
@@ -50,6 +51,7 @@ export default function TapToPayModal({
   // Check native support when modal opens
   useEffect(() => {
     if (isOpen) {
+      try { logTapToPayEvent('MODAL_OPENED', { phase: 'startup', sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined, meta: { modal: 'TapToPay', visible: true } }) } catch {}
       const supported = isNativeCapacitor()
       setIsNativeSupported(supported)
       if (!supported) {
@@ -67,6 +69,7 @@ export default function TapToPayModal({
       }
     } else {
       // Reset when closed
+      try { logTapToPayEvent('MODAL_CLOSED', { phase: 'startup', sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined, meta: { modal: 'TapToPay', visible: false } }) } catch {}
       setPaymentState('ready')
       setError('')
       setStructuredError(null)
@@ -76,6 +79,42 @@ export default function TapToPayModal({
       setIsPaymentInProgress(false)
     }
   }, [isOpen])
+
+  // Track modalVisible state transitions
+  const prevVisibleRef = useRef<boolean | null>(null)
+  useEffect(() => {
+    if (prevVisibleRef.current === null) {
+      prevVisibleRef.current = isOpen
+    } else if (prevVisibleRef.current !== isOpen) {
+      try { logTapToPayEvent('STATE_CHANGED', { phase: terminalService.getCurrentPhase() as any, sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined, paymentIntentId: terminalService.getPaymentIntentId(), readerId: terminalService.getReaderId(), meta: { stateName: 'modalVisible', previousValue: prevVisibleRef.current, nextValue: isOpen } }) } catch {}
+      prevVisibleRef.current = isOpen
+    }
+  }, [isOpen])
+
+  // Track visible UI state transitions and emit UI-state events
+  const prevUiStateRef = useRef<PaymentState | null>(null)
+  useEffect(() => {
+    if (prevUiStateRef.current === null) {
+      prevUiStateRef.current = paymentState
+    } else if (prevUiStateRef.current !== paymentState) {
+      try { logTapToPayEvent('STATE_CHANGED', { phase: terminalService.getCurrentPhase() as any, sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined, paymentIntentId: terminalService.getPaymentIntentId(), readerId: terminalService.getReaderId(), meta: { stateName: 'uiState', previousValue: prevUiStateRef.current, nextValue: paymentState } }) } catch {}
+      prevUiStateRef.current = paymentState
+    }
+    const common = { sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined, paymentIntentId: terminalService.getPaymentIntentId(), phase: terminalService.getCurrentPhase() as any }
+    if (paymentState === 'ready') {
+      try { logTapToPayEvent('READY_FOR_PAYMENT', common) } catch {}
+    } else if (paymentState === 'waiting_for_card') {
+      try { logTapToPayEvent('WAITING_FOR_TAP', common) } catch {}
+    } else if (paymentState === 'processing') {
+      try { logTapToPayEvent('WAITING_FOR_CONFIRMATION', common) } catch {}
+    } else if (paymentState === 'success') {
+      try { logTapToPayEvent('PAYMENT_SUCCESS_UI', common) } catch {}
+    } else if (paymentState === 'failure') {
+      try { logTapToPayEvent('PAYMENT_ERROR_UI', { ...common, message: error }) } catch {}
+    } else if (paymentState === 'canceled') {
+      try { logTapToPayEvent('PAYMENT_CANCELLED_UI', common) } catch {}
+    }
+  }, [paymentState])
 
   // Handle Android back and browser back
   useEffect(() => {
@@ -87,6 +126,7 @@ export default function TapToPayModal({
 
     const onPopState = () => {
       if (paymentState === 'ready' || paymentState === 'failure' || paymentState === 'canceled') {
+        try { logTapToPayEvent('BACK_BUTTON_PRESSED', { phase: terminalService.getCurrentPhase() as any, sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined, meta: { modal: 'TapToPay' } }) } catch {}
         onClose()
       }
     }
@@ -99,6 +139,7 @@ export default function TapToPayModal({
         const { App } = mod as any
         capListener = await App.addListener('backButton', () => {
           if (paymentState === 'ready' || paymentState === 'failure' || paymentState === 'canceled') {
+            try { logTapToPayEvent('BACK_BUTTON_PRESSED', { phase: terminalService.getCurrentPhase() as any, sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined, meta: { modal: 'TapToPay' } }) } catch {}
             onClose()
           }
         })
@@ -380,6 +421,7 @@ export default function TapToPayModal({
   const handleCancel = async () => {
     if (paymentState === 'waiting_for_card' || paymentState === 'processing') {
       try {
+        try { logTapToPayEvent('CANCEL_BUTTON_PRESSED', { phase: terminalService.getCurrentPhase() as any, sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined }) } catch {}
         await terminalService.cancel()
       } catch (err) {
         console.error('Cancel error:', err)
@@ -389,8 +431,12 @@ export default function TapToPayModal({
   }
 
   const handleRetry = () => {
+    try { logTapToPayEvent('RETRY_BUTTON_PRESSED', { phase: terminalService.getCurrentPhase() as any, sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined }) } catch {}
+    try { logTapToPayEvent('RESET_STARTED', { phase: 'startup', sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined }) } catch {}
     setPaymentState('ready')
     setError('')
+    try { logTapToPayEvent('RESET_TO_READY', { phase: 'startup', sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined }) } catch {}
+    try { logTapToPayEvent('RESET_COMPLETED', { phase: 'startup', sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined }) } catch {}
   }
 
   const handleDone = () => {
@@ -443,7 +489,7 @@ export default function TapToPayModal({
             {/* Actions */}
             <div className="flex gap-3">
               <button
-                onClick={onClose}
+                onClick={() => { try { logTapToPayEvent('CLOSE_BUTTON_PRESSED', { phase: terminalService.getCurrentPhase() as any, sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined, meta: { modal: 'TapToPay' } }) } catch {}; try { logTapToPayEvent('MODAL_DISMISSED', { phase: 'startup', sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined, meta: { modal: 'TapToPay' } }) } catch {}; try { logTapToPayEvent('USER_EXITED_MODAL', { phase: 'startup', sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined, meta: { modal: 'TapToPay' } }) } catch {}; onClose() }}
                 className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
               >
                 Cancel
@@ -525,7 +571,7 @@ export default function TapToPayModal({
             </div>
 
             <button
-              onClick={handleDone}
+              onClick={() => { try { logTapToPayEvent('USER_EXITED_MODAL', { phase: 'startup', sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined, meta: { modal: 'TapToPay' } }) } catch {}; handleDone() }}
               className="px-6 py-3 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors"
             >
               Done
@@ -618,7 +664,7 @@ export default function TapToPayModal({
 
             <div className="flex gap-3">
               <button
-                onClick={onClose}
+                onClick={() => { try { logTapToPayEvent('CLOSE_BUTTON_PRESSED', { phase: terminalService.getCurrentPhase() as any, sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined, meta: { modal: 'TapToPay' } }) } catch {}; try { logTapToPayEvent('MODAL_DISMISSED', { phase: 'startup', sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined, meta: { modal: 'TapToPay' } }) } catch {}; try { logTapToPayEvent('USER_EXITED_MODAL', { phase: 'startup', sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined, meta: { modal: 'TapToPay' } }) } catch {}; onClose() }}
                 className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
               >
                 Close

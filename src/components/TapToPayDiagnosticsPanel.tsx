@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getTapToPayDiagnostics, getFormattedTapToPayDiagnostics, clearTapToPayDiagnostics } from '@/lib/tap-to-pay-diagnostics'
 import { Capacitor } from '@capacitor/core'
+import { TerminalBridgeService } from '@/lib/terminal/service'
 
 async function writeClipboard(text: string) {
   try {
@@ -22,7 +23,7 @@ async function writeClipboard(text: string) {
   return false
 }
 
-export default function TapToPayDiagnosticsPanel() {
+export default function TapToPayDiagnosticsPanel({ context }: { context?: any } = {}) {
   const [events, setEvents] = useState<any[]>([])
   const [copyStatus, setCopyStatus] = useState<string>('')
   const [clearing, setClearing] = useState(false)
@@ -98,6 +99,39 @@ export default function TapToPayDiagnosticsPanel() {
           <button onClick={handleClear} className={`text-xs px-2 py-1 rounded-md ${clearing ? 'bg-red-600 text-white' : 'bg-muted hover:bg-muted/70'}`}>{clearing ? 'Tap to confirm' : 'Clear Logs'}</button>
         </div>
       </div>
+      {/* Live state header */}
+      <div className="px-4 py-2 text-xs border-b border-border/50 grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {(() => {
+          try {
+            const svc = TerminalBridgeService.getInstance()
+            const sessionId = svc?.getSessionId?.()
+            const attemptId = svc?.getCurrentAttemptId?.()
+            const phase = svc?.getCurrentPhase?.()
+            const ui = context?.ui || {}
+            return (
+              <>
+                <div className="space-y-1">
+                  <div className="font-medium text-foreground">Current UI State</div>
+                  <div className="text-muted-foreground">Modal: {ui.modal ?? 'unknown'}</div>
+                  <div className="text-muted-foreground">Visible: {String(ui.isOpen ?? '')}</div>
+                  {'amountCents' in ui && <div className="text-muted-foreground">Amount: {ui.amountCents}</div>}
+                  {'isNativeSupported' in ui && <div className="text-muted-foreground">Native: {ui.isNativeSupported ? 'Yes' : 'No'}</div>}
+                  {'selectedLeadId' in ui && <div className="text-muted-foreground">Lead: {ui.selectedLeadId ?? '-'}</div>}
+                  {'selectedJobId' in ui && <div className="text-muted-foreground">Job: {ui.selectedJobId ?? '-'}</div>}
+                </div>
+                <div className="space-y-1">
+                  <div className="font-medium text-foreground">Current Stripe State</div>
+                  <div className="text-muted-foreground">Session: {sessionId || '-'}</div>
+                  <div className="text-muted-foreground">Attempt: {attemptId || '-'}</div>
+                  <div className="text-muted-foreground">Phase: {phase || '-'}</div>
+                </div>
+              </>
+            )
+          } catch {
+            return null
+          }
+        })()}
+      </div>
       {copyStatus && (
         <div className="px-4 py-2 text-xs text-emerald-600 dark:text-emerald-400">{copyStatus}</div>
       )}
@@ -105,7 +139,7 @@ export default function TapToPayDiagnosticsPanel() {
         {loading ? (
           <div className="text-sm text-muted-foreground">Loading…</div>
         ) : events.length === 0 ? (
-          <div className="text-sm text-muted-foreground">No diagnostics yet.</div>
+          <div className="text-sm text-muted-foreground">No Tap to Pay diagnostic events yet.</div>
         ) : (
           <pre className="text-xs font-mono whitespace-pre-wrap max-h-[360px] overflow-auto bg-muted/30 p-3 rounded-lg">
             {events.map((e, idx) => {
