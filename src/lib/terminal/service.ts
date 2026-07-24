@@ -598,7 +598,12 @@ export class TerminalBridgeService {
 
     console.log('[TAP_SESSION_TRACE] stage=connect_call_start')
     // Do not await any diagnostics before assigning in-flight to avoid races
-    logTapToPayEvent('connect_started', { phase: 'connect_reader', sessionId: this.sessionId }).catch(() => {})
+    const __connectReason = (() => {
+      if (this.connectionStatus === 'connected') return 'reuse_short_circuit'
+      if (!this.sessionTimings.connectStart) return 'cold_start'
+      return 'reconnect_or_resumed'
+    })()
+    logTapToPayEvent('connect_started', { phase: 'connect_reader', sessionId: this.sessionId, meta: { reason: __connectReason } }).catch(() => {})
 
     // Short-circuit if already connected
     if (this.connectionStatus === 'connected') {
