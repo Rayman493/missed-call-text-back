@@ -74,6 +74,14 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
     }
   }, [isOpen, preselectedLeadId, preselectedLeadDisplay, context])
 
+  // Default Appointment Type based on entry context (initial only on open)
+  useEffect(() => {
+    if (!isOpen) return
+    if (context === 'meetings') {
+      setMeetingType('google_meet')
+    }
+  }, [isOpen, context])
+
   // Handle Escape key to close modal
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -305,22 +313,24 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
                       <button
                         type="button"
                         onClick={() => { setLeadId(null); setLeadDisplay(null) }}
-                        className="text-xs text-slate-400 hover:text-slate-200"
+                        className="text-xs text-slate-400 hover:text-slate-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 rounded"
                       >Clear</button>
                     )}
                   </div>
                 ) : (
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <button
                       type="button"
                       onClick={() => setIsLeadPickerOpen(true)}
-                      className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white hover:bg-slate-700"
+                      aria-label="Select existing customer"
+                      className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white hover:bg-slate-700 w-full sm:w-auto text-left sm:text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
                     >Select Existing</button>
                     {addCustomerAllowed && (
                       <button
                         type="button"
                         onClick={() => setIsAddCustomerOpen(true)}
-                        className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white hover:bg-slate-700"
+                        aria-label="Add new customer"
+                        className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-white hover:bg-slate-700 w-full sm:w-auto text-left sm:text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
                       >+ Add New Customer</button>
                     )}
                   </div>
@@ -419,18 +429,18 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
               </div>
               <div className="flex-1">
                 <label className="text-xs text-slate-500 font-medium mb-1.5 block">Appointment Type</label>
-                <div className="flex flex-wrap gap-3 text-xs">
-                  <label className="inline-flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="meetingType" checked={meetingType==='in_person'} onChange={() => setMeetingType('in_person')} />
-                    In Person
+                <div role="radiogroup" aria-label="Appointment Type" className="flex flex-wrap gap-3 text-xs">
+                  <label className="inline-flex items-center gap-2.5 cursor-pointer py-1.5 px-2 rounded-md hover:bg-slate-700/60 focus-within:ring-2 focus-within:ring-blue-500">
+                    <input className="w-4 h-4" type="radio" name="meetingType" checked={meetingType==='in_person'} onChange={() => setMeetingType('in_person')} />
+                    <span>In Person</span>
                   </label>
-                  <label className="inline-flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="meetingType" checked={meetingType==='google_meet'} onChange={() => setMeetingType('google_meet')} />
-                    Google Meet
+                  <label className="inline-flex items-center gap-2.5 cursor-pointer py-1.5 px-2 rounded-md hover:bg-slate-700/60 focus-within:ring-2 focus-within:ring-blue-500">
+                    <input className="w-4 h-4" type="radio" name="meetingType" checked={meetingType==='google_meet'} onChange={() => setMeetingType('google_meet')} />
+                    <span>Google Meet</span>
                   </label>
-                  <label className="inline-flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="meetingType" checked={meetingType==='custom'} onChange={() => setMeetingType('custom')} />
-                    Other / Custom Virtual
+                  <label className="inline-flex items-center gap-2.5 cursor-pointer py-1.5 px-2 rounded-md hover:bg-slate-700/60 focus-within:ring-2 focus-within:ring-blue-500">
+                    <input className="w-4 h-4" type="radio" name="meetingType" checked={meetingType==='custom'} onChange={() => setMeetingType('custom')} />
+                    <span>Other / Custom Virtual</span>
                   </label>
                 </div>
               </div>

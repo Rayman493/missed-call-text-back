@@ -113,7 +113,25 @@ export const normalizeServiceReason = (text: string | null | undefined): string 
   const original = text.trim();
   let normalized = original;
   
-  // Service/intent-specific conversational prefixes (strictly anchored)
+  // Remove leading conversational scaffolding like "And", "So", "Well", "Um", "Uh", "Yeah" when used as a standalone prefix
+  // Keep the remainder intact for downstream intent-specific normalization
+  normalized = normalized.replace(/^\s*(?:and|so|well|um|uh|yeah)[\s,\-–—]+/i, '');
+  
+  // First, remove specific "to"-intent prefixes so we don't leave a leading "to " fragment
+  const toVariantPrefixes = [
+    /^\s*i\s*(?:'d|would)\s+like\s+to\s+/i,   // I'd like to / I would like to
+    /^\s*i\s+want\s+to\s+/i,                  // I want to
+    /^\s*i\s+need\s+to\s+/i,                  // I need to
+    /^\s*i\s*(?:am|'m)\s+calling\s+to\s+/i,  // I'm calling to / I am calling to
+    /^\s*i\s+was\s+hoping\s+to\s+/i,         // I was hoping to
+    /^\s*we\s*(?:'d|would)\s+like\s+to\s+/i, // We'd like to / We would like to
+    /^\s*we\s+need\s+to\s+/i,                 // We need to
+  ];
+  for (const pattern of toVariantPrefixes) {
+    normalized = normalized.replace(pattern, '');
+  }
+
+  // Service/intent-specific conversational prefixes (strictly anchored, generic variants)
   const reasonPrefixPatterns = [
     /^\s*i need\s+/i,
     /^\s*i'd like\s+/i,
@@ -157,6 +175,18 @@ export const normalizeAddress = (text: string | null | undefined): string => {
   const original = text.trim();
   let normalized = original;
   
+  // Attempt to convert a clearly spoken street number at the very start
+  // into digits, preserving the remainder of the address as-is (aside from
+  // minimal whitespace cleanup). This runs BEFORE split-digit joining.
+  normalized = convertLeadingSpokenStreetNumber(normalized);
+  
+  // Join obvious split street numbers at the very beginning of the address.
+  // Examples: "16 32 South Pines Drive" -> "1632 South Pines Drive"
+  //           "1 632 South Pine Drive" -> "1632 South Pine Drive"
+  // Only when the first two tokens are pure digits and are immediately followed by a street word.
+  // Do NOT affect ordinals like "34th" or non-leading occurrences (e.g., "Route 16 32").
+  normalized = normalized.replace(/^\s*(\d{1,5})\s+(\d{1,5})(?=\s+[A-Za-z])/, (_m, a: string, b: string) => `${a}${b}`);
+  
   // Address/location-specific conversational prefixes (strictly anchored)
   const addressPrefixPatterns = [
     /^\s*my address is\s+/i,
@@ -189,6 +219,188 @@ export const normalizeAddress = (text: string | null | undefined): string => {
   
   return normalized;
 };
+
+// ----------------------------
+// Internal helpers (address)
+// ----------------------------
+
+// Minimal set of number words for leading house numbers
+const UNITS: Record<string, number> = {
+  'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5, 'six': 6, 'seven': 7, 'eight': 8, 'nine': 9,
+  'ten': 10, 'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14, 'fifteen': 15, 'sixteen': 16, 'seventeen': 17, 'eighteen': 18, 'nineteen': 19,
+}
+const TENS: Record<string, number> = {
+  'twenty': 20, 'thirty': 30, 'forty': 40, 'fifty': 50, 'sixty': 60, 'seventy': 70, 'eighty': 80, 'ninety': 90,
+}
+const SCALES: Record<string, number> = { 'hundred': 100, 'thousand': 1000 }
+
+const STREET_SUFFIXES = new Set([
+  'street','st','road','rd','avenue','ave','drive','dr','lane','ln','boulevard','blvd','court','ct','circle','way','parkway','pkwy','pike','highway','hwy','terrace','trl','trail','place','pl'
+])
+
+const DIRECTIONS = new Set(['north','n','south','s','east','e','west','w','northeast','ne','northwest','nw','southeast','se','southwest','sw'])
+
+function isNumberWordToken(token: string): boolean {
+  const t = token.toLowerCase()
+  if (t === 'and') return true // allow filler within numeric phrases
+  if (UNITS[t] !== undefined) return true
+  if (TENS[t] !== undefined) return true
+  if (SCALES[t] !== undefined) return true
+  // hyphenated like twenty-one
+  if (t.includes('-')) {
+    const [a,b] = t.split('-')
+    if ((TENS[a] !== undefined && (UNITS[b] !== undefined || b === 'one')) || (UNITS[a] !== undefined && UNITS[b] !== undefined)) return true
+  }
+  return false
+}
+
+function parseHyphenNumber(token: string): number | null {
+  const t = token.toLowerCase()
+  if (!t.includes('-')) return null
+  const [a,b] = t.split('-')
+  if (TENS[a] !== undefined && UNITS[b] !== undefined) return TENS[a] + UNITS[b]
+  // support e.g., twenty-one, twenty-two, etc.
+  if (UNITS[a] !== undefined && UNITS[b] !== undefined) return UNITS[a] * 10 + UNITS[b]
+  return null
+}
+
+function parseSingleNumberWord(token: string): number | null {
+  const t = token.toLowerCase()
+  if (UNITS[t] !== undefined) return UNITS[t]
+  if (TENS[t] !== undefined) return TENS[t]
+  if (SCALES[t] !== undefined) return SCALES[t]
+  const hy = parseHyphenNumber(t)
+  if (hy !== null) return hy
+  return null
+}
+
+// Parse standard cardinal phrase like "one thousand six hundred thirty-two" or "sixteen hundred thirty-two"
+function tryParseCardinal(tokens: string[]): number | null {
+  let total = 0
+  let current = 0
+  let used = 0
+  for (const raw of tokens) {
+    const t = raw.toLowerCase()
+    if (t === 'and') { used++; continue }
+    if (UNITS[t] !== undefined) { current += UNITS[t]; used++; continue }
+    if (TENS[t] !== undefined) { current += TENS[t]; used++; continue }
+    if (t.includes('-')) {
+      const hv = parseHyphenNumber(t)
+      if (hv !== null) { current += hv; used++; continue }
+    }
+    if (t === 'hundred') { if (current === 0) current = 1; current *= 100; used++; continue }
+    if (t === 'thousand') { if (current === 0) current = 1; total += current * 1000; current = 0; used++; continue }
+    break
+  }
+  const value = total + current
+  if (used === 0) return null
+  if (value > 0) return value
+  return null
+}
+
+// Parse digit-group style like "sixteen thirty-two" or sequence like "one six three two"
+function tryParseConcatenated(tokens: string[]): { value: number, consumed: number } | null {
+  const parts: number[] = []
+  let consumed = 0
+  for (const raw of tokens) {
+    const t = raw.toLowerCase()
+    if (t === 'and') { consumed++; continue } // ignore ands in this mode
+    let n: number | null = null
+    if (t.includes('-')) {
+      n = parseHyphenNumber(t)
+    } else {
+      n = parseSingleNumberWord(t)
+    }
+    if (n === null) break
+    // Only accept 1- or 2-digit chunks for concatenation
+    if (n >= 0 && n <= 99) {
+      parts.push(n)
+      consumed++
+    } else {
+      break
+    }
+  }
+  // Allow a single hyphenated token like "twenty-one" as 21
+  if (parts.length === 1 && tokens[0].toLowerCase().includes('-')) {
+    const single = parts[0]
+    if (single >= 10 && single <= 99) return { value: single, consumed }
+  }
+  if (parts.length >= 2 && parts.length <= 4) {
+    const concat = parseInt(parts.map(p => p.toString()).join(''), 10)
+    if (!isNaN(concat)) return { value: concat, consumed }
+  }
+  return null
+}
+
+function looksLikeStreetRemainder(text: string): boolean {
+  const rest = text.trim().replace(/^,\s*/, '')
+  if (!rest) return false
+  const tokens = rest.split(/\s+/)
+  if (tokens.length >= 2) return true // at least two words after number
+  // or if a direction then a word
+  if (tokens.length >= 1 && DIRECTIONS.has(tokens[0].toLowerCase())) return true
+  // or contains a known suffix anywhere in first few tokens
+  const firstFew = tokens.slice(0, 6).map(t => t.replace(/[^a-zA-Z]/g,'').toLowerCase())
+  return firstFew.some(t => STREET_SUFFIXES.has(t))
+}
+
+function convertLeadingSpokenStreetNumber(address: string): string {
+  const input = address
+  // Iteratively consume leading number-word tokens (allow commas/spaces after each token)
+  let i = 0
+  // skip leading spaces
+  while (i < input.length && /\s/.test(input[i])) i++
+
+  const tokens: string[] = []
+  let cursor = i
+  let tokenCount = 0
+  const MAX_TOKENS = 7
+
+  while (tokenCount < MAX_TOKENS && cursor < input.length) {
+    const wordMatch = /([A-Za-z\-]+)/y
+    wordMatch.lastIndex = cursor
+    const m = wordMatch.exec(input)
+    if (!m) break
+    const word = m[1]
+    const nextPos = wordMatch.lastIndex
+    // Peek following separators (spaces/commas)
+    const sepMatch = /([\s,]+)/y
+    sepMatch.lastIndex = nextPos
+    const sm = sepMatch.exec(input)
+    const afterSep = sm ? sepMatch.lastIndex : nextPos
+
+    if (!isNumberWordToken(word)) break
+    tokens.push(word)
+    tokenCount++
+    cursor = afterSep
+  }
+
+  if (tokens.length === 0) return address
+
+  // Build rest from cursor onward
+  const rest = input.slice(cursor)
+
+  // Prefer concatenation-style parsing first (e.g., "sixteen thirty-two", "one twenty-five")
+  let consumed = tokens.length
+  let num: number | null = null
+  const conc = tryParseConcatenated(tokens)
+  if (conc) { num = conc.value; consumed = conc.consumed }
+  if (num === null) {
+    // Fallback to cardinal phrase parsing (e.g., "five hundred", "one thousand six hundred thirty-two")
+    num = tryParseCardinal(tokens)
+    consumed = tokens.length
+  }
+
+  if (num === null) return address
+  if (num < 10) return address // plausible house number check
+  if (!looksLikeStreetRemainder(rest)) return address
+
+  // If there are leftover tokens (beyond consumed) prepend them to rest
+  const leftoverTokens = tokens.slice(consumed)
+  const adjustedRest = (leftoverTokens.length > 0 ? leftoverTokens.join(' ') + ' ' : '') + rest
+  const cleanedRest = adjustedRest.trim().replace(/^,\s*/, '')
+  return `${num} ${cleanedRest}`.trim()
+}
 
 // Field-specific normalization for timing preferences
 // Preserves timing values like "Wednesday", "This week", "Whenever"
