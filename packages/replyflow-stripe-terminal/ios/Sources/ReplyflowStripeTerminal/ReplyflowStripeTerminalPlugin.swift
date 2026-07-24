@@ -12,9 +12,9 @@ import StripeTerminal
 @objc(ReplyflowStripeTerminalPlugin)
 public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
   private let eventNameDiagnostics = "tpDiagnostics"
-  public static let identifier = "ReplyflowStripeTerminalPlugin"
-  public static let jsName = "ReplyflowStripeTerminal"
-  public static let pluginMethods: [CAPPluginMethod] = [
+  public let identifier = "ReplyflowStripeTerminalPlugin"
+  public let jsName = "ReplyflowStripeTerminal"
+  public let pluginMethods: [CAPPluginMethod] = [
     CAPPluginMethod(name: "ping", returnType: CAPPluginReturnPromise),
     CAPPluginMethod(name: "isSupported", returnType: CAPPluginReturnPromise),
     CAPPluginMethod(name: "initialize", returnType: CAPPluginReturnPromise),
