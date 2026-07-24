@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Calendar, Clock, MapPin, FileText, ExternalLink, Trash2, AlertTriangle, Save, Pencil, Link as LinkIcon, User, Briefcase, Send, CheckCircle2 } from 'lucide-react'
+import { X, Calendar, Clock, MapPin, FileText, ExternalLink, Trash2, AlertTriangle, Save, Pencil, Link as LinkIcon, User, Briefcase, Send, CheckCircle2, ClipboardList, MessageSquareText, CheckSquare } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import AppointmentSmsModal from '@/components/calendar/AppointmentSmsModal'
@@ -663,14 +663,10 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-slate-500 font-medium mb-1">Meeting Notes</p>
-                      {meetingStatus === 'completed' && completedAt ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-green-600/20 text-green-300">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Completed {new Date(completedAt).toLocaleString()}
-                        </span>
-                      ) : (() => {
+                      {(() => {
                         const endRaw = event.end?.dateTime || event.end?.date
                         const isPastDue = endRaw ? new Date(endRaw).getTime() < Date.now() : false
-                        return isPastDue ? (
+                        return (meetingStatus !== 'completed' && isPastDue) ? (
                           <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-300">Past due</span>
                         ) : null
                       })()}
@@ -724,7 +720,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                 {/* Card */}
                 <div className="p-3 md:p-4 rounded-lg bg-slate-800/50 border border-slate-700/60">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs text-slate-500 font-medium">AI Meeting Summary</p>
+                    <p className="text-xs text-slate-300 font-semibold">AI Meeting Summary</p>
                     {/* Retry: only on explicit failure and when capability allows */}
                     {meetCapability === 'available' && transcriptStatus === 'failed' && !isRetrying && (
                       <button
@@ -762,9 +758,39 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                       </div>
                     )}
                   </div>
-                  {(actualStart || actualEnd) && (
-                    <p className="text-[11px] text-slate-400 mb-1">Actual meeting: {actualStart ? new Date(actualStart).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '—'} – {actualEnd ? new Date(actualEnd).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '—'}</p>
-                  )}
+                  {/* Completion + Actual Meeting (as part of summary) */}
+                  <div className="space-y-1.5 mb-2">
+                    {meetingStatus === 'completed' && (
+                      <div className="flex items-center gap-2 text-xs text-emerald-300">
+                        <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
+                        <span>Meeting Completed</span>
+                      </div>
+                    )}
+                    {(meetingStatus === 'completed' && completedAt) && (
+                      <div className="text-[11px] text-slate-400">
+                        {new Date(completedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {' '}•{' '}
+                        {new Date(completedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                      </div>
+                    )}
+                    {(actualStart || actualEnd) && (
+                      <div className="mt-1">
+                        <div className="flex items-center gap-2 text-xs text-slate-300 font-medium mb-0.5">
+                          <Clock className="w-3.5 h-3.5" aria-hidden="true" />
+                          <span>Actual Meeting</span>
+                        </div>
+                        <div className="text-[11px] text-slate-400">
+                          {(() => {
+                            const dateBase = actualStart || event.start?.dateTime || event.start?.date || null
+                            const datePart = dateBase ? new Date(dateBase).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null
+                            const startT = actualStart ? new Date(actualStart).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '—'
+                            const endT = actualEnd ? new Date(actualEnd).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '—'
+                            return (<span>{datePart} • {startT} – {endT}</span>)
+                          })()}
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Pending / preparing states */}
                   {(transcriptStatus === 'pending' || (transcriptStatus === 'available' && !aiSummary && !aiSummaryStructured)) && (
@@ -791,25 +817,59 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
 
                   {/* Summary content */}
                   {aiSummaryStructured ? (
-                    <div className="space-y-1.5 text-xs text-slate-300">
-                      {aiSummaryStructured.overview && (<p><span className="text-slate-400">Overview:</span> {aiSummaryStructured.overview}</p>)}
+                    <div className="space-y-4 text-xs text-slate-300">
+                      {aiSummaryStructured.overview && (
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-slate-200 font-semibold">
+                            <FileText className="w-3.5 h-3.5" aria-hidden="true" />
+                            <span>Overview</span>
+                          </div>
+                          <p className="text-slate-300 leading-relaxed">{aiSummaryStructured.overview}</p>
+                        </div>
+                      )}
                       {Array.isArray(aiSummaryStructured.customerNeeds) && aiSummaryStructured.customerNeeds.length > 0 && (
-                        <div><p className="text-slate-400">Customer Needs</p><ul className="list-disc list-inside">{aiSummaryStructured.customerNeeds.map((x: string, i: number) => (<li key={i}>{x}</li>))}</ul></div>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-slate-200 font-semibold">
+                            <ClipboardList className="w-3.5 h-3.5" aria-hidden="true" />
+                            <span>Customer Needs</span>
+                          </div>
+                          <ul className="list-disc list-inside space-y-1.5 pl-1.5 leading-relaxed">
+                            {aiSummaryStructured.customerNeeds.map((x: string, i: number) => (<li key={i}>{x}</li>))}
+                          </ul>
+                        </div>
                       )}
                       {Array.isArray(aiSummaryStructured.keyDiscussionPoints) && aiSummaryStructured.keyDiscussionPoints.length > 0 && (
-                        <div><p className="text-slate-400">Key Discussion Points</p><ul className="list-disc list-inside">{aiSummaryStructured.keyDiscussionPoints.map((x: string, i: number) => (<li key={i}>{x}</li>))}</ul></div>
-                      )}
-                      {Array.isArray(aiSummaryStructured.decisions) && aiSummaryStructured.decisions.length > 0 && (
-                        <div><p className="text-slate-400">Decisions</p><ul className="list-disc list-inside">{aiSummaryStructured.decisions.map((x: string, i: number) => (<li key={i}>{x}</li>))}</ul></div>
-                      )}
-                      {Array.isArray(aiSummaryStructured.pricingMentioned) && aiSummaryStructured.pricingMentioned.length > 0 && (
-                        <div><p className="text-slate-400">Pricing Mentioned</p><ul className="list-disc list-inside">{aiSummaryStructured.pricingMentioned.map((x: string, i: number) => (<li key={i}>{x}</li>))}</ul></div>
-                      )}
-                      {Array.isArray(aiSummaryStructured.nextSteps) && aiSummaryStructured.nextSteps.length > 0 && (
-                        <div><p className="text-slate-400">Next Steps</p><ul className="list-disc list-inside">{aiSummaryStructured.nextSteps.map((x: string, i: number) => (<li key={i}>{x}</li>))}</ul></div>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-slate-200 font-semibold">
+                            <MessageSquareText className="w-3.5 h-3.5" aria-hidden="true" />
+                            <span>Key Discussion Points</span>
+                          </div>
+                          <ul className="list-disc list-inside space-y-1.5 pl-1.5 leading-relaxed">
+                            {aiSummaryStructured.keyDiscussionPoints.map((x: string, i: number) => (<li key={i}>{x}</li>))}
+                          </ul>
+                        </div>
                       )}
                       {Array.isArray(aiSummaryStructured.followUpItems) && aiSummaryStructured.followUpItems.length > 0 && (
-                        <div><p className="text-slate-400">Follow-Up Items</p><ul className="list-disc list-inside">{aiSummaryStructured.followUpItems.map((x: string, i: number) => (<li key={i}>{x}</li>))}</ul></div>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-slate-200 font-semibold">
+                            <CheckSquare className="w-3.5 h-3.5" aria-hidden="true" />
+                            <span>Follow-Up Items</span>
+                          </div>
+                          <ul className="list-disc list-inside space-y-1.5 pl-1.5 leading-relaxed">
+                            {aiSummaryStructured.followUpItems.map((x: string, i: number) => (<li key={i}>{x}</li>))}
+                          </ul>
+                        </div>
+                      )}
+                      {Array.isArray(aiSummaryStructured.nextSteps) && aiSummaryStructured.nextSteps.length > 0 && (
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-slate-200 font-semibold">
+                            <CheckSquare className="w-3.5 h-3.5" aria-hidden="true" />
+                            <span>Next Steps</span>
+                          </div>
+                          <ul className="list-disc list-inside space-y-1.5 pl-1.5 leading-relaxed">
+                            {aiSummaryStructured.nextSteps.map((x: string, i: number) => (<li key={i}>{x}</li>))}
+                          </ul>
+                        </div>
                       )}
                     </div>
                   ) : aiSummary ? (
@@ -817,7 +877,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                   ) : null}
 
                   {/* Transcript controls */}
-                  <div className="mt-2">
+                  <div className="mt-3">
                     {((transcriptStatus === 'available' || transcriptStatus === 'processed') || (transcriptText && transcriptText.trim().length > 0)) && (
                       <button
                         onClick={async () => {
@@ -848,7 +908,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                           }
                           setIsTranscriptOpen((o) => !o)
                         }}
-                        className="text-[11px] px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-200"
+                        className="text-[11px] px-2 py-1 rounded border border-border/50 bg-transparent hover:bg-muted text-slate-200"
                         aria-expanded={isTranscriptOpen}
                         aria-controls="meeting-transcript"
                         aria-label={isTranscriptOpen ? 'Hide transcript' : 'View transcript'}
