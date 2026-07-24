@@ -346,10 +346,9 @@ extension ReplyflowStripeTerminalPlugin: TerminalDelegate, DiscoveryDelegate, Re
     Task { @MainActor in
       do {
         let cfg = try TapToPayConnectionConfigurationBuilder(
-          locationId: localLocationId
-        )
-        .delegate(self)
-        .build()
+          locationId: localLocationId,
+          delegate: self
+        ).build()
         let connectedReader = try await Terminal.shared.connectReader(reader, connectionConfig: cfg)
         var stale = false
         self.connectGuard.sync { stale = (self.activeConnectOpId != opId) }
