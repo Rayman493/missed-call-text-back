@@ -152,8 +152,8 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
     if let r = Terminal.shared.connectedReader {
       self.connectionStatus = "connected"
       self.notifyListeners("statusChanged", data: ["status": self.connectionStatus])
-      self.notifyListeners("readerConnected", data: ["connected": true, "readerId": r.serialNumber ?? r.deviceId ?? "reader"]) 
-      emitDiag("connect_reader_completed", phase: "connect_reader", correlationId: correlationId, meta: ["reused": true, "readerId": r.serialNumber ?? r.deviceId ?? "reader"]) 
+      self.notifyListeners("readerConnected", data: ["connected": true, "readerId": r.serialNumber ?? "reader"]) 
+      emitDiag("connect_reader_completed", phase: "connect_reader", correlationId: correlationId, meta: ["reused": true, "readerId": r.serialNumber ?? "reader"]) 
       call.resolve(["status": self.connectionStatus])
       return
     }
@@ -205,39 +205,38 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
     guard let clientSecret = call.getString("clientSecret") else { call.reject("missing clientSecret"); return }
     let attemptId = call.getString("terminalAttemptId")
     self.emitDiag("retrieve_payment_intent_started", phase: "collect_payment", correlationId: attemptId, meta: ["clientSecret": true])
-    Terminal.shared.retrievePaymentIntent(clientSecret: clientSecret) { pi, err in
-      if let e = err {
-        self.emitDiag("retrieve_payment_intent_failed", phase: "collect_payment", correlationId: attemptId, meta: ["message": e.localizedDescription])
-        call.reject(e.localizedDescription)
-        return
-      }
-      guard let paymentIntent = pi else { call.reject("no_payment_intent"); return }
-      self.emitDiag("retrieve_payment_intent_completed", phase: "collect_payment", correlationId: attemptId, meta: ["paymentIntentId": paymentIntent.stripeId])
-      self.notifyListeners("paymentStatusChanged", data: ["status": "collecting"]) 
-      self.collectCancelable = Terminal.shared.collectPaymentMethod(paymentIntent) { err in
-        if let e2 = err {
-          if (e2 as NSError).code == ErrorCode.canceled.rawValue {
-            self.emitDiag("collect_payment_method_failed", phase: "collect_payment", correlationId: attemptId, meta: ["code": "canceled"]) 
-            call.resolve(["status": "canceled"]) 
+    Task { @MainActor in
+      do {
+        let paymentIntent = try await Terminal.shared.retrievePaymentIntent(clientSecret: clientSecret)
+        self.emitDiag("retrieve_payment_intent_completed", phase: "collect_payment", correlationId: attemptId, meta: ["paymentIntentId": paymentIntent.stripeId])
+        self.notifyListeners("paymentStatusChanged", data: ["status": "collecting"]) 
+        self.collectCancelable = Terminal.shared.collectPaymentMethod(paymentIntent) { err in
+          if let e2 = err {
+            if (e2 as NSError).code == ErrorCode.canceled.rawValue {
+              self.emitDiag("collect_payment_method_failed", phase: "collect_payment", correlationId: attemptId, meta: ["code": "canceled"]) 
+              call.resolve(["status": "canceled"]) 
+              return
+            }
+            self.emitDiag("collect_payment_method_failed", phase: "collect_payment", correlationId: attemptId, meta: ["message": e2.localizedDescription])
+            call.reject(e2.localizedDescription)
             return
           }
-          self.emitDiag("collect_payment_method_failed", phase: "collect_payment", correlationId: attemptId, meta: ["message": e2.localizedDescription])
-          call.reject(e2.localizedDescription)
-          return
-        }
-        self.emitDiag("collect_payment_method_completed", phase: "collect_payment", correlationId: attemptId, meta: ["paymentIntentId": paymentIntent.stripeId])
-        Terminal.shared.processPayment(paymentIntent) { processedIntent, err3 in
-          if let e3 = err3 {
-            self.emitDiag("confirm_payment_intent_failed", phase: "confirm_payment", correlationId: attemptId, meta: ["message": e3.localizedDescription])
-            call.reject(e3.localizedDescription)
-            return
+          self.emitDiag("collect_payment_method_completed", phase: "collect_payment", correlationId: attemptId, meta: ["paymentIntentId": paymentIntent.stripeId])
+          Task { @MainActor in
+            do {
+              let processedIntent = try await Terminal.shared.processPayment(paymentIntent)
+              self.emitDiag("confirm_payment_intent_completed", phase: "confirm_payment", correlationId: attemptId, meta: ["paymentIntentId": processedIntent.stripeId])
+              self.notifyListeners("paymentSucceeded", data: ["paymentIntentId": processedIntent.stripeId])
+              call.resolve(["status": "succeeded", "paymentIntentId": processedIntent.stripeId])
+            } catch {
+              self.emitDiag("confirm_payment_intent_failed", phase: "confirm_payment", correlationId: attemptId, meta: ["message": error.localizedDescription])
+              call.reject(error.localizedDescription)
+            }
           }
-          self.emitDiag("confirm_payment_intent_completed", phase: "confirm_payment", correlationId: attemptId, meta: ["paymentIntentId": processedIntent?.stripeId ?? paymentIntent.stripeId])
-          if let pid = processedIntent?.stripeId ?? paymentIntent.stripeId as String? {
-            self.notifyListeners("paymentSucceeded", data: ["paymentIntentId": pid])
-          }
-          call.resolve(["status": "succeeded", "paymentIntentId": processedIntent?.stripeId ?? paymentIntent.stripeId])
         }
+      } catch {
+        self.emitDiag("retrieve_payment_intent_failed", phase: "collect_payment", correlationId: attemptId, meta: ["message": error.localizedDescription])
+        call.reject(error.localizedDescription)
       }
     }
     #else
@@ -322,8 +321,8 @@ extension ReplyflowStripeTerminalPlugin: TerminalDelegate, DiscoveryDelegate, Re
     let reader = readers[0]
     self.discoveryCancelable?.cancel()
     let localLocationId = locationId ?? ""
-    let cfg = LocalMobileConnectionConfiguration(locationId: localLocationId)
-    Terminal.shared.connectLocalMobileReader(reader, delegate: self, connectionConfig: cfg) { connectedReader, error in
+    let cfg = TapToPayConnectionConfiguration(locationId: localLocationId)
+    Terminal.shared.connectReader(reader, delegate: self, connectionConfig: cfg) { connectedReader, error in
       if let e = error {
         var stale = false
         self.connectGuard.sync { stale = (self.activeConnectOpId != opId) }
@@ -351,8 +350,8 @@ extension ReplyflowStripeTerminalPlugin: TerminalDelegate, DiscoveryDelegate, Re
       self.connectionStatus = "connected"
       self.notifyListeners("statusChanged", data: ["status": self.connectionStatus])
       if let cr = connectedReader {
-        self.notifyListeners("readerConnected", data: ["connected": true, "readerId": cr.serialNumber ?? cr.deviceId ?? "reader"]) 
-        self.emitDiag("connect_reader_completed", phase: "connect_reader", correlationId: correlationId, meta: ["operationId": opId, "readerId": cr.serialNumber ?? cr.deviceId ?? "reader"]) 
+        self.notifyListeners("readerConnected", data: ["connected": true, "readerId": cr.serialNumber ?? "reader"]) 
+        self.emitDiag("connect_reader_completed", phase: "connect_reader", correlationId: correlationId, meta: ["operationId": opId, "readerId": cr.serialNumber ?? "reader"]) 
       } else {
         self.emitDiag("connect_reader_completed", phase: "connect_reader", correlationId: correlationId, meta: ["operationId": opId])
       }
