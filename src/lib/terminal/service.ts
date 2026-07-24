@@ -690,32 +690,66 @@ export class TerminalBridgeService {
 
     const t0 = Date.now()
     try { await logTapToPayEvent('payment_intent_create_started', { phase: 'payment_intent', sessionId: this.sessionId, meta: { amountCents: options.amountCents } }) } catch {}
-    const response = await fetch('/api/terminal/payment-intent', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(options),
-    })
+    let response: Response
+    try {
+      response = await fetch('/api/terminal/payment-intent', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(options),
+      })
+    } catch (e: any) {
+      // Network/transport failure
+      try {
+        await logTapToPayEvent('payment_intent_create_failed', {
+          phase: 'payment_intent',
+          sessionId: this.sessionId,
+          attemptId: this.currentAttemptId || undefined,
+          readerId: this.lastReaderId,
+          message: e?.message || 'Network failure',
+          meta: { errorType: 'network', httpStatus: null, event: 'PAYMENT_INTENT_CREATE_FAILED' },
+        })
+      } catch {}
+      throw e
+    }
 
     if (!response.ok) {
+      const httpStatus = response.status
       const errorText = await response.text()
       console.error('[TerminalPaymentIntent] Backend error response:', errorText)
 
       // Parse structured error from backend
       let errorMessage = 'Payment setup could not be completed. Please try again.'
       let errorCode = 'local_payment_record_failed'
+      let declineCode: string | undefined
+      let errorType: string | undefined
 
       try {
         const errorData = JSON.parse(errorText)
-        if (errorData.message) {
-          errorMessage = errorData.message
-        }
-        if (errorData.error) {
-          errorCode = errorData.error
-        }
+        if (errorData.message) errorMessage = errorData.message
+        if (errorData.error) errorCode = errorData.error
+        if (errorData.decline_code) declineCode = errorData.decline_code
+        if (errorData.type) errorType = errorData.type
       } catch {
-        // If not JSON, use generic message
         console.error('[TerminalPaymentIntent] Error response not JSON')
       }
+
+      // Diagnostics for failure before throwing
+      try {
+        await logTapToPayEvent('payment_intent_create_failed', {
+          phase: 'payment_intent',
+          sessionId: this.sessionId,
+          attemptId: this.currentAttemptId || undefined,
+          readerId: this.lastReaderId,
+          message: errorMessage,
+          code: errorCode,
+          meta: {
+            errorType,
+            declineCode,
+            httpStatus,
+            event: 'PAYMENT_INTENT_CREATE_FAILED',
+          },
+        })
+      } catch {}
 
       // Throw structured error with safe message only
       const error = new Error(errorMessage)
@@ -726,6 +760,16 @@ export class TerminalBridgeService {
 
     const data = await response.json()
     if (!data.paymentIntentId || !data.clientSecret) {
+      try {
+        await logTapToPayEvent('payment_intent_create_failed', {
+          phase: 'payment_intent',
+          sessionId: this.sessionId,
+          attemptId: this.currentAttemptId || undefined,
+          readerId: this.lastReaderId,
+          message: 'Invalid PaymentIntent response: missing required fields',
+          meta: { httpStatus: response.status, event: 'PAYMENT_INTENT_CREATE_FAILED' },
+        })
+      } catch {}
       throw new Error('Invalid PaymentIntent response: missing paymentIntentId or clientSecret')
     }
 
@@ -830,6 +874,7 @@ export class TerminalBridgeService {
       if (String(code || msg || '').includes('payment-already-in-progress')) {
         try { await logTapToPayEvent('duplicate_request_blocked', { phase: 'collect_payment', sessionId: this.sessionId, attemptId: terminalAttemptId, code: 'payment-already-in-progress', message: 'A payment is already in progress' }) } catch {}
       }
+      try { await logTapToPayEvent('collect_payment_failed', { phase: 'collect_payment', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId, code, message: msg, meta: { event: 'COLLECT_PAYMENT_METHOD_FAILED' } }) } catch {}
       throw e
     }
     console.log('[TAP_SESSION_TRACE] stage=native_payment_call_resolved attempt_id=' + terminalAttemptId + ' status=' + result.status)

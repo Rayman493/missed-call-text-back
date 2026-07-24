@@ -381,16 +381,26 @@ export default function TapToPayModal({
 
       // Start payment collection (this creates PaymentIntent internally)
       console.log('[TAP_SESSION_TRACE] stage=payment_collect')
-      setPaymentState('waiting_for_card')
-      setLastSuccessfulStage('payment_intent_created')
-
-      const paymentResult = await terminalService.startTapToPayPayment({
+      const paymentPromise = terminalService.startTapToPayPayment({
         amountCents,
         currency: 'usd',
         leadId,
         jobId,
         description,
       })
+      // Only display WAITING_FOR_TAP once PaymentIntent exists to avoid premature UI state
+      try {
+        const startWait = Date.now()
+        while (!terminalService.getPaymentIntentId() && Date.now() - startWait < 4000) {
+          await new Promise(r => setTimeout(r, 50))
+        }
+        if (terminalService.getPaymentIntentId()) {
+          setPaymentState('waiting_for_card')
+          setLastSuccessfulStage('payment_intent_created')
+        }
+      } catch {}
+
+      const paymentResult = await paymentPromise
 
       if (paymentResult.status === 'succeeded') {
         console.log('[TAP_SESSION_TRACE] stage=payment_success')
