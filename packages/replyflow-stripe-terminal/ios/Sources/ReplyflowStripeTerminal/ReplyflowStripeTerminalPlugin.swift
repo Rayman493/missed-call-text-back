@@ -300,7 +300,7 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
  
 
 #if canImport(StripeTerminal)
-extension ReplyflowStripeTerminalPlugin: TerminalDelegate, DiscoveryDelegate, ReaderDelegate {
+extension ReplyflowStripeTerminalPlugin: TerminalDelegate, DiscoveryDelegate, ReaderDelegate, TapToPayReaderDelegate {
   public func terminal(_ terminal: Terminal, didChangeConnectionStatus status: ConnectionStatus) {
     let s: String
     switch status {
@@ -346,8 +346,8 @@ extension ReplyflowStripeTerminalPlugin: TerminalDelegate, DiscoveryDelegate, Re
     Task { @MainActor in
       do {
         let cfg = try TapToPayConnectionConfigurationBuilder(
-          locationId: localLocationId,
-          delegate: self
+          delegate: self,
+          locationId: localLocationId
         ).build()
         let connectedReader = try await Terminal.shared.connectReader(reader, connectionConfig: cfg)
         var stale = false
@@ -388,5 +388,7 @@ extension ReplyflowStripeTerminalPlugin: TerminalDelegate, DiscoveryDelegate, Re
   public func reader(_ reader: Reader, didFinishInstallingUpdate update: ReaderSoftwareUpdate?, error: Error?) {}
   public func reader(_ reader: Reader, didRequestDisplayMessage displayMessage: ReaderDisplayMessage) {}
   public func reader(_ reader: Reader, didRequestReaderInput inputOptions: ReaderInputOptions = []) {}
+  public func tapToPayReaderDidRequestDisplayMessage(_ displayMessage: ReaderDisplayMessage) {}
+  public func tapToPayReaderDidRequestReaderInput(_ inputOptions: ReaderInputOptions = []) {}
 }
 #endif
