@@ -808,7 +808,7 @@ export default function TapToPayModal({
         </div>
 
         {/* Content */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 py-6 pb-[env(safe-area-inset-bottom)] space-y-4 touch-pan-y" style={{ WebkitOverflowScrolling: 'touch' as any }}>
+        <div data-scroll-lock-allow className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 py-6 pb-[env(safe-area-inset-bottom)] space-y-4 touch-pan-y" style={{ WebkitOverflowScrolling: 'touch' as any }}>
           {renderState()}
         </div>
       </div>

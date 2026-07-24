@@ -36,6 +36,41 @@ export default function QuickTapToPayModal({
   const [showTapToPay, setShowTapToPay] = useState(false)
   const [showCustomerSelector, setShowCustomerSelector] = useState(false)
 
+  // Debug instrumentation for scroll behavior (development only)
+  const scrollRef = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') return
+    const el = scrollRef.current
+    if (!el) return
+    const logDims = () => {
+      try {
+        const cs = getComputedStyle(el)
+        console.log('[QTTP DEBUG] scroll container', {
+          clientHeight: el.clientHeight,
+          scrollHeight: el.scrollHeight,
+          overflowY: cs.overflowY,
+          position: cs.position,
+          pointerEvents: cs.pointerEvents,
+          touchAction: cs.touchAction,
+        })
+      } catch {}
+    }
+    logDims()
+    const onWheel = (e: WheelEvent) => { console.log('[QTTP DEBUG] wheel', { deltaY: e.deltaY }) }
+    const onTs = (e: TouchEvent) => { console.log('[QTTP DEBUG] touchstart', { touches: e.touches.length }) }
+    const onTm = (e: TouchEvent) => { console.log('[QTTP DEBUG] touchmove', { touches: e.touches.length }) }
+    el.addEventListener('wheel', onWheel as any, { passive: true })
+    el.addEventListener('touchstart', onTs as any, { passive: true })
+    el.addEventListener('touchmove', onTm as any, { passive: true })
+    window.addEventListener('resize', logDims)
+    return () => {
+      el.removeEventListener('wheel', onWheel as any)
+      el.removeEventListener('touchstart', onTs as any)
+      el.removeEventListener('touchmove', onTm as any)
+      window.removeEventListener('resize', logDims)
+    }
+  }, [showTapToPay])
+
   useBodyScrollLock(isOpen)
 
   // Check native support when modal opens
@@ -235,6 +270,8 @@ export default function QuickTapToPayModal({
                 <div className="w-8 h-8 bg-green-500/10 rounded-lg flex items-center justify-center">
                   <Smartphone className="w-4 h-4 text-green-600 dark:text-green-400" />
                 </div>
+
+              
                 <h3 className="text-lg font-semibold text-foreground">Tap to Pay</h3>
               </div>
               <button
@@ -246,7 +283,12 @@ export default function QuickTapToPayModal({
             </div>
 
             {/* Content */}
-            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain [touch-action:pan-y] px-5 py-6 space-y-6 pb-[env(safe-area-inset-bottom)]" style={{ WebkitOverflowScrolling: 'touch' as any }}>
+            <div
+              ref={scrollRef}
+              data-scroll-lock-allow
+              className="flex-1 min-h-0 overflow-y-auto overscroll-contain [touch-action:pan-y] px-5 py-6 space-y-6 pb-[env(safe-area-inset-bottom)]"
+              style={{ WebkitOverflowScrolling: 'touch' as any }}
+            >
               {/* Unmistakable debug marker to verify correct component */}
               <div className="p-3 rounded-lg border-2 border-red-700 bg-red-900/30 text-center">
                 <div className="text-red-300 font-extrabold text-lg tracking-wide">DEBUG PANEL BUILD 2026-07-23</div>
