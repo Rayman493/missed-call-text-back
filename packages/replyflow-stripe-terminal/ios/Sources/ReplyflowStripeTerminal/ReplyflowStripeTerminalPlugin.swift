@@ -210,7 +210,7 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
         let paymentIntent = try await Terminal.shared.retrievePaymentIntent(clientSecret: clientSecret)
         self.emitDiag("retrieve_payment_intent_completed", phase: "collect_payment", correlationId: attemptId, meta: ["paymentIntentId": paymentIntent.stripeId])
         self.notifyListeners("paymentStatusChanged", data: ["status": "collecting"]) 
-        self.collectCancelable = Terminal.shared.collectPaymentMethod(paymentIntent) { err in
+        self.collectCancelable = Terminal.shared.collectPaymentMethod(paymentIntent) { collectedIntent, err in
           if let e2 = err {
             if (e2 as NSError).code == ErrorCode.canceled.rawValue {
               self.emitDiag("collect_payment_method_failed", phase: "collect_payment", correlationId: attemptId, meta: ["code": "canceled"]) 
@@ -221,10 +221,14 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
             call.reject(e2.localizedDescription)
             return
           }
-          self.emitDiag("collect_payment_method_completed", phase: "collect_payment", correlationId: attemptId, meta: ["paymentIntentId": paymentIntent.stripeId])
+          guard let collectedPaymentIntent = collectedIntent else {
+            call.reject("no_collected_payment_intent")
+            return
+          }
+          self.emitDiag("collect_payment_method_completed", phase: "collect_payment", correlationId: attemptId, meta: ["paymentIntentId": collectedPaymentIntent.stripeId])
           Task { @MainActor in
             do {
-              let processedIntent = try await Terminal.shared.processPayment(paymentIntent)
+              let processedIntent = try await Terminal.shared.processPayment(collectedPaymentIntent)
               self.emitDiag("confirm_payment_intent_completed", phase: "confirm_payment", correlationId: attemptId, meta: ["paymentIntentId": processedIntent.stripeId])
               self.notifyListeners("paymentSucceeded", data: ["paymentIntentId": processedIntent.stripeId])
               call.resolve(["status": "succeeded", "paymentIntentId": processedIntent.stripeId])
@@ -250,8 +254,16 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
 
   @objc public func cancel(_ call: CAPPluginCall) {
     #if canImport(StripeTerminal)
-    if let c = collectCancelable { c.cancel() }
-    call.resolve(["status": self.connectionStatus])
+    Task { @MainActor in
+      do {
+        if let c = collectCancelable {
+          try await c.cancel()
+        }
+        call.resolve(["status": self.connectionStatus])
+      } catch {
+        call.reject(error.localizedDescription)
+      }
+    }
     #else
     call.resolve(["status": self.connectionStatus])
     #endif
@@ -319,44 +331,48 @@ extension ReplyflowStripeTerminalPlugin: TerminalDelegate, DiscoveryDelegate, Re
       return
     }
     let reader = readers[0]
-    self.discoveryCancelable?.cancel()
+    if let dc = self.discoveryCancelable {
+      Task { @MainActor in
+        _ = try? await dc.cancel()
+      }
+    }
     let localLocationId = locationId ?? ""
-    let cfg = TapToPayConnectionConfiguration(locationId: localLocationId)
-    Terminal.shared.connectReader(reader, delegate: self, connectionConfig: cfg) { connectedReader, error in
-      if let e = error {
+    var cfg = TapToPayConnectionConfiguration()
+    if !localLocationId.isEmpty {
+      cfg.locationId = localLocationId
+    }
+    Task { @MainActor in
+      do {
+        let connectedReader = try await Terminal.shared.connectReader(reader, connectionConfig: cfg)
         var stale = false
         self.connectGuard.sync { stale = (self.activeConnectOpId != opId) }
         if stale {
-          self.emitDiag("stale_connect_callback_ignored", phase: "connect_reader", correlationId: correlationId, meta: ["operationId": opId, "message": e.localizedDescription])
+          self.emitDiag("stale_connect_callback_ignored", phase: "connect_reader", correlationId: correlationId, meta: ["operationId": opId])
           return
         }
-        if (e as NSError).code == ErrorCode.alreadyConnectedToReader.rawValue, Terminal.shared.connectedReader != nil {
+        self.connectionStatus = "connected"
+        self.notifyListeners("statusChanged", data: ["status": self.connectionStatus])
+        self.notifyListeners("readerConnected", data: ["connected": true, "readerId": connectedReader.serialNumber ?? "reader"]) 
+        self.emitDiag("connect_reader_completed", phase: "connect_reader", correlationId: correlationId, meta: ["operationId": opId, "readerId": connectedReader.serialNumber ?? "reader"]) 
+        self.connectGuard.sync { self.connectInFlightNative = false; if self.activeConnectOpId == opId { self.activeConnectOpId = nil } }
+        call.resolve(["status": self.connectionStatus])
+      } catch {
+        var stale = false
+        self.connectGuard.sync { stale = (self.activeConnectOpId != opId) }
+        if stale {
+          self.emitDiag("stale_connect_callback_ignored", phase: "connect_reader", correlationId: correlationId, meta: ["operationId": opId, "message": error.localizedDescription])
+          return
+        }
+        if (error as NSError).code == ErrorCode.alreadyConnectedToReader.rawValue, Terminal.shared.connectedReader != nil {
           self.emitDiag("connect_already_connected_treated_success", phase: "connect_reader", correlationId: correlationId, meta: ["operationId": opId])
           self.connectGuard.sync { self.connectInFlightNative = false; if self.activeConnectOpId == opId { self.activeConnectOpId = nil } }
           call.resolve(["status": "connected"])
           return
         }
-        self.emitDiag("connect_reader_failed", phase: "connect_reader", correlationId: correlationId, meta: ["operationId": opId, "message": e.localizedDescription])
+        self.emitDiag("connect_reader_failed", phase: "connect_reader", correlationId: correlationId, meta: ["operationId": opId, "message": error.localizedDescription])
         self.connectGuard.sync { self.connectInFlightNative = false; if self.activeConnectOpId == opId { self.activeConnectOpId = nil } }
-        call.reject(e.localizedDescription)
-        return
+        call.reject(error.localizedDescription)
       }
-      var stale = false
-      self.connectGuard.sync { stale = (self.activeConnectOpId != opId) }
-      if stale {
-        self.emitDiag("stale_connect_callback_ignored", phase: "connect_reader", correlationId: correlationId, meta: ["operationId": opId])
-        return
-      }
-      self.connectionStatus = "connected"
-      self.notifyListeners("statusChanged", data: ["status": self.connectionStatus])
-      if let cr = connectedReader {
-        self.notifyListeners("readerConnected", data: ["connected": true, "readerId": cr.serialNumber ?? "reader"]) 
-        self.emitDiag("connect_reader_completed", phase: "connect_reader", correlationId: correlationId, meta: ["operationId": opId, "readerId": cr.serialNumber ?? "reader"]) 
-      } else {
-        self.emitDiag("connect_reader_completed", phase: "connect_reader", correlationId: correlationId, meta: ["operationId": opId])
-      }
-      self.connectGuard.sync { self.connectInFlightNative = false; if self.activeConnectOpId == opId { self.activeConnectOpId = nil } }
-      call.resolve(["status": self.connectionStatus])
     }
   }
 
