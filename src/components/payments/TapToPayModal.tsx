@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { X, CreditCard, Smartphone, Loader2, CheckCircle2, AlertCircle, XCircle, ChevronDown, ChevronUp } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
+import TapToPayDiagnosticsPanel from '@/components/TapToPayDiagnosticsPanel'
 import { TerminalBridgeService } from '@/lib/terminal/service'
 import { isNativeCapacitor } from '@/lib/terminal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
@@ -434,6 +435,11 @@ export default function TapToPayModal({
               </div>
             )}
 
+            {/* Always-visible Tap to Pay Diagnostics (immediately above actions) */}
+            <div className="min-h-[240px]">
+              <TapToPayDiagnosticsPanel />
+            </div>
+
             {/* Actions */}
             <div className="flex gap-3">
               <button
@@ -480,6 +486,11 @@ export default function TapToPayModal({
               <p className="text-sm text-muted-foreground">
                 Hold the customer's card or phone near this device
               </p>
+            </div>
+
+            {/* Diagnostics directly above the Cancel action */}
+            <div className="w-full px-4 min-h-[240px]">
+              <TapToPayDiagnosticsPanel />
             </div>
 
             <button
@@ -694,7 +705,7 @@ export default function TapToPayModal({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-5 py-6">
+        <div className="flex-1 overflow-y-auto px-5 py-6 space-y-4">
           {renderState()}
         </div>
       </div>

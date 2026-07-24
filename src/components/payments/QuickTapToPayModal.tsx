@@ -9,6 +9,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import TapToPayModal from './TapToPayModal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { TerminalBridgeService } from '@/lib/terminal/service'
+import TapToPayDiagnosticsPanel from '@/components/TapToPayDiagnosticsPanel'
 
 interface QuickTapToPayModalProps {
   isOpen: boolean
@@ -228,6 +229,16 @@ export default function QuickTapToPayModal({
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto px-5 py-6 space-y-6">
+              {/* Unmistakable debug marker to verify correct component */}
+              <div className="p-3 rounded-lg border-2 border-red-700 bg-red-900/30 text-center">
+                <div className="text-red-300 font-extrabold text-lg tracking-wide">DEBUG PANEL BUILD 2026-07-23</div>
+                <div className="text-xs text-red-200/80">This banner proves this QuickTapToPayModal is rendering from src/components/payments/QuickTapToPayModal.tsx</div>
+              </div>
+
+              {/* Always-visible diagnostics directly beneath the title/marker */}
+              <div className="min-h-[240px]">
+                <TapToPayDiagnosticsPanel />
+              </div>
               {/* Amount Input */}
               <div className="text-center py-4">
                 <p className="text-sm text-muted-foreground mb-2">Enter amount</p>
