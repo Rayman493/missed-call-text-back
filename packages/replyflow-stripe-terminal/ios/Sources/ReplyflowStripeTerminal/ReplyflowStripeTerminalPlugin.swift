@@ -337,10 +337,7 @@ extension ReplyflowStripeTerminalPlugin: TerminalDelegate, DiscoveryDelegate, Re
       }
     }
     let localLocationId = locationId ?? ""
-    var cfg = TapToPayConnectionConfiguration()
-    if !localLocationId.isEmpty {
-      cfg.locationId = localLocationId
-    }
+    let cfg = TapToPayConnectionConfiguration(locationId: localLocationId)
     Task { @MainActor in
       do {
         let connectedReader = try await Terminal.shared.connectReader(reader, connectionConfig: cfg)
