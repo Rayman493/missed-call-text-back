@@ -787,9 +787,9 @@ export default function TapToPayModal({
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+      <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-md max-h-[100dvh] md:max-h-[90vh] overflow-hidden flex flex-col min-h-0 animate-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
+        <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b border-border/50 bg-card">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
               <CreditCard className="w-4 h-4 text-primary" />
@@ -808,7 +808,7 @@ export default function TapToPayModal({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-5 py-6 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 py-6 pb-[env(safe-area-inset-bottom)] space-y-4 touch-pan-y" style={{ WebkitOverflowScrolling: 'touch' as any }}>
           {renderState()}
         </div>
       </div>
