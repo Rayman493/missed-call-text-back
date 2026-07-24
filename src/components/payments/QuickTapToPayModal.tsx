@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Smartphone, User, Briefcase, Loader2, ChevronDown, ChevronUp } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { isNativeCapacitor } from '@/lib/terminal'
@@ -260,8 +261,8 @@ export default function QuickTapToPayModal({
 
   return (
     <>
-      {/* Quick Tap to Pay Modal */}
-      {!showTapToPay && (
+      {/* Quick Tap to Pay Modal via portal to ensure top-level stacking context */}
+      {!showTapToPay && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-md max-h-[100dvh] md:max-h-[90vh] overflow-hidden flex flex-col min-h-0 animate-in zoom-in-95 duration-200">
             {/* Header */}
@@ -286,7 +287,7 @@ export default function QuickTapToPayModal({
             <div
               ref={scrollRef}
               data-scroll-lock-allow
-              className="flex-1 min-h-0 overflow-y-auto overscroll-contain [touch-action:pan-y] px-5 py-6 space-y-6 pb-[calc(var(--bottom-nav-height,4rem)+env(safe-area-inset-bottom)+1rem)] md:pb-6"
+              className="flex-1 min-h-0 overflow-y-auto overscroll-contain [touch-action:pan-y] px-5 py-6 space-y-6 pb-[env(safe-area-inset-bottom)]"
               style={{ WebkitOverflowScrolling: 'touch' as any }}
             >
               {/* Unmistakable debug marker to verify correct component */}
@@ -503,7 +504,8 @@ export default function QuickTapToPayModal({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Tap to Pay Modal */}

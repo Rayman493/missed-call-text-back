@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { X, CreditCard, Smartphone, Loader2, CheckCircle2, AlertCircle, XCircle, ChevronDown, ChevronUp } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import TapToPayDiagnosticsPanel from '@/components/TapToPayDiagnosticsPanel'
@@ -786,6 +787,7 @@ export default function TapToPayModal({
   }
 
   return (
+    typeof document !== 'undefined' ? createPortal(
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-md max-h-[100dvh] md:max-h-[90vh] overflow-hidden flex flex-col min-h-0 animate-in zoom-in-95 duration-200">
         {/* Header */}
@@ -808,10 +810,10 @@ export default function TapToPayModal({
         </div>
 
         {/* Content */}
-        <div data-scroll-lock-allow className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 py-6 pb-[calc(var(--bottom-nav-height,4rem)+env(safe-area-inset-bottom)+1rem)] md:pb-6 space-y-4 touch-pan-y" style={{ WebkitOverflowScrolling: 'touch' as any }}>
+        <div data-scroll-lock-allow className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 py-6 pb-[env(safe-area-inset-bottom)] space-y-4 touch-pan-y" style={{ WebkitOverflowScrolling: 'touch' as any }}>
           {renderState()}
         </div>
       </div>
-    </div>
+    </div>, document.body) : null
   )
 }
