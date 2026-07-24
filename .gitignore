@@ -34,6 +34,18 @@ android/.cxx/
 android/keystore.properties
 
 ios/
+# Temporary narrow exceptions to allow auditing iOS source and config files only
+!ios/App/
+!ios/App/App/
+!ios/App/App.xcodeproj/
+!ios/App/App/AppDelegate.swift
+!ios/App/App/Info.plist
+!ios/App/CapApp-SPM/Package.swift
+!ios/Podfile
+!ios/Podfile.lock
+!ios/App/App/*.swift
+!ios/App/App.xcodeproj/project.pbxproj
+!ios/App/App/*.entitlements
 
 # Runtime data
 *.pnp
