@@ -2,6 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
+import { CheckCircle2 } from 'lucide-react'
 
 interface CompletedMonitoringCardProps {
   missedCallCount?: number
@@ -23,8 +24,9 @@ export default function CompletedMonitoringCard({
         </div>
         
         {/* Title */}
-        <h3 className="text-lg font-semibold text-foreground">
-          ✅ ReplyFlow is Live
+        <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
+          <span>ReplyFlow is Live</span>
         </h3>
       </div>
 

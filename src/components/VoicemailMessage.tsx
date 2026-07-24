@@ -462,7 +462,7 @@ export default function VoicemailMessage({
       {/* Avatar */}
       {showAvatar && (
         <div className="flex-shrink-0 w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium shadow-sm bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-          📞
+          <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" aria-hidden="true" />
         </div>
       )}
 

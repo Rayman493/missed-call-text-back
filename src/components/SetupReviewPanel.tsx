@@ -317,7 +317,10 @@ export default function SetupReviewPanel({ isOpen, onClose, business, onTestCall
                   <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-foreground">Setup Complete ✓</h2>
+                  <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                    <span>Setup Complete</span>
+                    <Check className="w-4 h-4 text-green-600 dark:text-green-400" aria-hidden="true" />
+                  </h2>
                   <p className="text-sm text-muted-foreground">ReplyFlow is actively monitoring your business line</p>
                 </div>
               </div>

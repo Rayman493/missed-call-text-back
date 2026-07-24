@@ -272,7 +272,7 @@ export default function VoicemailSummary({ leadData }: VoicemailSummaryProps) {
           <div className="bg-card rounded-xl p-4 border border-border/30">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <span className="w-4 h-4 text-[15px] leading-none">📝</span>
+                <FileText className="w-4 h-4" aria-hidden="true" />
                 <span className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wide">Details</span>
               </div>
               {manualFields.has('importantDetails') && !isEditMode && (

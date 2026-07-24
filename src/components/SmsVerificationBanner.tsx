@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { AlertTriangle } from 'lucide-react'
 import { Business } from '@/lib/types'
 
 interface SmsVerificationBannerProps {
@@ -23,8 +24,8 @@ export default function SmsVerificationBanner({ business }: SmsVerificationBanne
   return (
     <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-2 sm:p-3 mb-2 sm:mb-4">
       <div className="flex items-start">
-        <div className="flex-shrink-0">
-          <span className="text-lg sm:text-xl">🚧</span>
+        <div className="flex-shrink-0 text-blue-700 dark:text-blue-300">
+          <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6" aria-hidden="true" />
         </div>
         <div className="ml-2 flex-1">
           <h3 className="text-xs font-semibold text-blue-900 dark:text-blue-100">

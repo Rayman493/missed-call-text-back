@@ -107,7 +107,11 @@ export default function SystemHealthCard({
                   ? 'text-green-600 dark:text-green-400'
                   : 'text-amber-600 dark:text-amber-400'
               }`}>
-                {check.status ? '✓' : '⚠'}
+                {check.status ? (
+                  <Check className="w-3 h-3 inline-block align-middle" aria-hidden="true" />
+                ) : (
+                  <AlertTriangle className="w-3 h-3 inline-block align-middle" aria-hidden="true" />
+                )}
               </p>
             </div>
           </div>

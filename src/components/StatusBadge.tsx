@@ -1,9 +1,11 @@
+import { ArrowRight, Check, X, Timer } from 'lucide-react'
+
 export default function StatusBadge({ status, errorCode }: { status?: string; errorCode?: string | null }) {
   // Override for carrier blocking
   if (errorCode === '30007') {
     return (
       <span className="px-3 py-1.5 rounded-md text-sm font-semibold inline-flex items-center gap-1.5 bg-amber-900/30 text-amber-400 border border-amber-800">
-        <span className="text-base">⏳</span>
+        <Timer className="w-3.5 h-3.5" aria-hidden="true" />
         <span>Phone setup pending</span>
       </span>
     );
@@ -32,22 +34,22 @@ export default function StatusBadge({ status, errorCode }: { status?: string; er
     },
     sent: { 
       label: "Sent", 
-      icon: "→", 
+      icon: <ArrowRight className="h-3 w-3" aria-hidden="true" />,
       style: "bg-blue-900/30 text-blue-400 border-blue-800" 
     },
     delivered: { 
       label: "Delivered", 
-      icon: "✓", 
+      icon: <Check className="h-3 w-3" aria-hidden="true" />,
       style: "bg-green-900/30 text-green-400 border-green-800" 
     },
     failed: { 
       label: "Failed", 
-      icon: "✕", 
+      icon: <X className="h-3 w-3" aria-hidden="true" />,
       style: "bg-red-900/30 text-red-400 border-red-800" 
     },
     undelivered: { 
       label: "Failed", 
-      icon: "✕", 
+      icon: <X className="h-3 w-3" aria-hidden="true" />,
       style: "bg-red-900/30 text-red-400 border-red-800" 
     },
   };
@@ -78,7 +80,7 @@ export default function StatusBadge({ status, errorCode }: { status?: string; er
 
   return (
     <span className={`px-3 py-1.5 rounded-md text-sm font-semibold inline-flex items-center gap-1.5 ${config.style}`}>
-      <span className="text-base">{config.icon}</span>
+      <span className="text-base" aria-hidden="true">{config.icon}</span>
       <span>{config.label}</span>
     </span>
   );

@@ -12,7 +12,7 @@ import AppLoadingScreen from '@/components/AppLoadingScreen'
 import GenericLoadingScreen from '@/components/GenericLoadingScreen'
 import RoutingDebugBanner from '@/components/RoutingDebugBanner'
 import { isAdminUserById } from '@/lib/admin'
-import { CalendarOff } from 'lucide-react'
+import { CalendarOff, MessageSquare } from 'lucide-react'
 import { 
   formatPhoneNumber, 
   formatRelativeTime, 
@@ -1137,7 +1137,8 @@ export default function DashboardContent() {
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                           <div className="flex-1">
                             <h3 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 sm:gap-2">
-                              💬 Feedback
+                              <MessageSquare className="w-4 h-4" aria-hidden="true" />
+                              <span>Feedback</span>
                             </h3>
                             <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mt-0.5 sm:mt-1">
                               Found a bug or have an idea? We'd love to hear your feedback.

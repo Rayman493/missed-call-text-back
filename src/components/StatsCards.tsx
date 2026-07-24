@@ -6,6 +6,7 @@ import SectionErrorBoundary from './SectionErrorBoundary'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import StatCard from './StatCard'
+import { Phone, Users, MessageCircle, CalendarDays } from 'lucide-react'
 
 interface StatsCardsProps {
   businessId: string
@@ -215,7 +216,7 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
               ? (isOnboardingComplete ? 'Forwarded missed calls will appear here' : 'Complete setup to begin forwarding missed calls') 
               : 'Missed calls forwarded to ReplyFlow'
           }
-          icon="📞"
+          iconNode={<Phone className="w-4 h-4" aria-hidden="true" />}
           iconColor="amber"
           href="/dashboard/leads"
           isInteractive={true}
@@ -230,7 +231,7 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
               ? (isOnboardingComplete ? 'New opportunities captured by ReplyFlow' : 'Complete setup to begin capturing leads') 
               : 'New opportunities captured'
           }
-          icon="👥"
+          iconNode={<Users className="w-4 h-4" aria-hidden="true" />}
           iconColor="blue"
           href="/dashboard/leads"
           isInteractive={true}
@@ -241,7 +242,7 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
           value={conversationsCount}
           label="Conversations"
           description={conversationsCount === 0 ? 'Customer conversations started automatically' : 'Customer conversations started'}
-          icon="💬"
+          iconNode={<MessageCircle className="w-4 h-4" aria-hidden="true" />}
           iconColor="green"
           href="/dashboard/leads"
           isInteractive={true}
@@ -252,7 +253,7 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
           value={followUpsCount}
           label="Follow-Ups"
           description={followUpsCount === 0 ? 'Automatic reminders ready to engage' : 'Automatic reminders scheduled'}
-          icon="📅"
+          iconNode={<CalendarDays className="w-4 h-4" aria-hidden="true" />}
           iconColor="purple"
           href="/dashboard/leads"
           isInteractive={true}

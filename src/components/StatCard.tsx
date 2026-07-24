@@ -8,6 +8,7 @@ interface StatCardProps {
   label: string
   description?: string
   icon?: string
+  iconNode?: React.ReactNode
   iconColor?: 'amber' | 'blue' | 'green' | 'purple' | 'slate' | 'orange'
   href?: string
   isInteractive?: boolean
@@ -19,6 +20,7 @@ export default function StatCard({
   label,
   description,
   icon,
+  iconNode,
   iconColor = 'blue',
   href,
   isInteractive = false,
@@ -74,9 +76,9 @@ export default function StatCard({
       <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-blue-500/12 blur-2xl" />
       <div className="pointer-events-none absolute -left-10 bottom-0 h-20 w-20 rounded-full bg-cyan-500/5 blur-2xl" />
       {/* Icon and Label Header */}
-      {(icon || label) && (
+      {(iconNode || icon || label) && (
         <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
-          {icon && (
+          {(iconNode || icon) && (
             <span className={`
               w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 
               bg-gradient-to-br ${iconGradients[iconColor]} 
@@ -86,7 +88,7 @@ export default function StatCard({
               shadow-[0_10px_24px_rgba(2,6,23,0.25)] border ring-1 ring-white/5
               ${isInteractive && href ? '' : ''}
             `}>
-              {icon}
+              {iconNode || icon}
             </span>
           )}
           <h3 className="text-[10px] sm:text-xs font-bold text-slate-300 uppercase tracking-[0.16em] leading-tight">
