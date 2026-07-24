@@ -66,6 +66,29 @@ export class TerminalBridgeService {
   private lastAppIsActive: boolean | undefined
   private staleIgnoredCount = 0
 
+  // Minimal reset to ensure a brand-new attempt/PaymentIntent on user retry after cancel
+  async resetForRetry(reason: 'user_retry' | 'manual_reset' = 'user_retry') {
+    const prevAttempt = this.currentAttemptId || undefined
+    const prevPi = this.currentPaymentIntentId || undefined
+    try {
+      await logTapToPayEvent('retry_reset', {
+        phase: (this.currentPhase as any) || 'startup',
+        sessionId: this.sessionId,
+        attemptId: prevAttempt,
+        paymentIntentId: prevPi,
+        meta: { reason },
+      })
+    } catch {}
+    // Clear unresolved attempt id if present to avoid reuse
+    this.clearUnresolvedAttempt()
+    // Invalidate active attempt and PI so callbacks are treated as stale and UI doesn't mis-read readiness
+    this.currentAttemptId = null
+    this.attemptStartMs = null
+    this.currentPhase = undefined
+    this.currentPaymentIntentId = undefined
+    // Do not disconnect; keep reader and initialized SDK
+  }
+
   private constructor() {
     this.plugin = isNativeCapacitor() ? Terminal : null
     this.instanceId = Math.random().toString(36).substring(2, 9)
@@ -785,6 +808,16 @@ export class TerminalBridgeService {
     if (!this.plugin) throw new Error('Stripe Terminal is not available on web')
     console.log('[TAP_SESSION_TRACE] stage=js_start_payment_entered')
     const overallStart = Date.now()
+
+    // Minimum-amount validation before any PaymentIntent request or attempt-scoped work
+    if (typeof options.amountCents !== 'number' || !Number.isFinite(options.amountCents) || Math.floor(options.amountCents) !== options.amountCents) {
+      try { await logTapToPayEvent('amount_format_invalid', { phase: 'payment_intent', sessionId: this.sessionId, meta: { raw: options.amountCents } }) } catch {}
+      throw new Error('Invalid amount. Please enter a valid amount.')
+    }
+    if (options.amountCents < 50) {
+      try { await logTapToPayEvent('amount_below_minimum', { phase: 'payment_intent', sessionId: this.sessionId, meta: { amountCents: options.amountCents } }) } catch {}
+      throw new Error('Amount must be at least $0.50.')
+    }
 
     // CRITICAL: Check for unresolved attempt BEFORE generating new ID
     // This prevents creating a new attempt when one is already in progress

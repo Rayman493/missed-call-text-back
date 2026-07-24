@@ -328,6 +328,19 @@ export default function TapToPayModal({
       return
     }
 
+    // Minimum amount validation BEFORE any initialization/connect/attempt
+    if (typeof amountCents !== 'number' || !Number.isFinite(amountCents) || Math.floor(amountCents) !== amountCents) {
+      // Defensive: ensure integer cents
+      try { logTapToPayEvent('INVALID_AMOUNT_FORMAT', { phase: 'startup', sessionId: terminalService.getSessionId(), meta: { raw: amountCents } }) } catch {}
+      setError('Invalid amount. Please enter a valid amount.')
+      return
+    }
+    if (amountCents < 50) {
+      try { logTapToPayEvent('AMOUNT_BELOW_MINIMUM', { phase: 'startup', sessionId: terminalService.getSessionId(), meta: { amountCents } }) } catch {}
+      setError('Amount must be at least $0.50.')
+      return
+    }
+
     // Double-tap protection - prevent multiple simultaneous payment attempts
     if (isPaymentInProgress) {
       console.log('[TAP_ATTEMPT] stage=double_tap_blocked payment_already_in_progress')
@@ -479,6 +492,8 @@ export default function TapToPayModal({
     try { logTapToPayEvent('RESET_TO_READY', { phase: 'startup', sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined }) } catch {}
     try { logTapToPayEvent('RESET_COMPLETED', { phase: 'startup', sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined }) } catch {}
     waitingForConfirmationEmitted.current = null
+    // Ensure service-layer internal state is fully reset so a brand new attempt/PI will be created
+    terminalService.resetForRetry('user_retry').catch(() => {})
   }
 
   const handleDone = () => {
