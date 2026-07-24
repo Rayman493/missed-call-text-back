@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { X, Calendar, Clock, MapPin, FileText, AlertTriangle, Plus, Video, Users } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
@@ -74,12 +74,14 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
     }
   }, [isOpen, preselectedLeadId, preselectedLeadDisplay, context])
 
-  // Default Appointment Type based on entry context (initial only on open)
+  // Default Appointment Type based on entry context exactly once per fresh open
+  // Prevent overwriting user changes while the modal is already open
+  const prevIsOpenRef = useRef(isOpen)
   useEffect(() => {
-    if (!isOpen) return
-    if (context === 'meetings') {
-      setMeetingType('google_meet')
-    }
+    const justOpened = !prevIsOpenRef.current && isOpen
+    prevIsOpenRef.current = isOpen
+    if (!justOpened) return
+    setMeetingType(context === 'meetings' ? 'google_meet' : 'in_person')
   }, [isOpen, context])
 
   // Handle Escape key to close modal
