@@ -1,0 +1,13 @@
+{
+  "name": "replyflow-stripe-terminal",
+  "version": "0.1.0",
+  "private": true,
+  "files": [
+    "ios"
+  ],
+  "capacitor": {
+    "ios": {
+      "src": "ios/Plugin"
+    }
+  }
+}

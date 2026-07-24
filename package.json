@@ -46,7 +46,8 @@
     "resend": "^6.12.4",
     "stripe": "^22.1.0",
     "twilio": "^5.0.0",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "replyflow-stripe-terminal": "file:packages/replyflow-stripe-terminal"
   },
   "devDependencies": {
     "@types/node": "^20",

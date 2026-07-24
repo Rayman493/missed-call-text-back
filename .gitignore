@@ -47,6 +47,10 @@ ios/
 !ios/App/App.xcodeproj/project.pbxproj
 !ios/App/App/*.entitlements
 
+# Allow local Capacitor plugin (including its ios SPM package) to be tracked
+!packages/replyflow-stripe-terminal/
+!packages/replyflow-stripe-terminal/**
+
 # Runtime data
 *.pnp
 .pnp.js
