@@ -91,6 +91,10 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
   private final Object initLock = new Object();
   // Correlation tracking
   private volatile String currentCorrelationId = null;
+  // Native connect in-flight guard
+  private final Object connectGuard = new Object();
+  private volatile boolean connectInFlightNative = false;
+  private volatile String activeConnectOpId = null;
 
   @Override
   public void load() {
@@ -540,6 +544,21 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
             // For Tap to Pay, we expect at most one local reader
             // Auto-connect to the first discovered reader
             Reader reader = readers.get(0);
+            // Claim connect once to avoid duplicate native connects on rapid updates
+            boolean claimed = false;
+            synchronized (connectGuard) {
+              if (!connectInFlightNative) {
+                connectInFlightNative = true;
+                claimed = true;
+              }
+            }
+            if (!claimed) {
+              JSObject s = new JSObject();
+              s.put("reason", "connect_inflight_native");
+              s.put("detail", "discovery_update_ignored");
+              emitDiag("stale_discovery_update_ignored", "connect_reader", connectCorrelationId, s);
+              return;
+            }
             // Cancel discovery before attempting to connect to avoid races
             if (discoveryCancelable != null) {
               Log.d(TAG, "[TAP_SESSION_TRACE] stage=discover_cancel_before_connect ts=" + System.currentTimeMillis());
@@ -628,8 +647,12 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
   }
   
   private void connectToReader(Reader reader, boolean simulated, String locationId, final String correlationId) {
+    // Generate a native operationId immediately before invoking the Stripe SDK
+    final String operationId = UUID.randomUUID().toString();
+    activeConnectOpId = operationId;
     JSObject cstart = new JSObject();
     cstart.put("readerId", reader.getId());
+    cstart.put("operationId", operationId);
     emitDiag("connect_reader_started", "connect_reader", correlationId, cstart);
     // Defensive check: if a reader became connected during discovery, reuse it
     Reader existing = Terminal.getInstance().getConnectedReader();
@@ -646,6 +669,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       readerInfo.put("simulated", simulated);
 
       notifyListeners("readerConnected", readerInfo);
+      // Release native in-flight guard since no SDK call is needed
+      synchronized (connectGuard) { connectInFlightNative = false; activeConnectOpId = null; }
       return;
     }
 
@@ -666,35 +691,72 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       new com.stripe.stripeterminal.external.callable.ReaderCallback() {
         @Override
         public void onSuccess(Reader connectedReader) {
+          // Stale-callback guard: only the owner opId may complete
+          if (activeConnectOpId == null || !activeConnectOpId.equals(operationId)) {
+            JSObject stale = new JSObject();
+            stale.put("operationId", operationId);
+            stale.put("activeOperationId", activeConnectOpId);
+            stale.put("eventType", "onSuccess");
+            emitDiag("stale_connect_callback_ignored", "connect_reader", correlationId, stale);
+            return;
+          }
           ReplyflowStripeTerminalPlugin.this.connectedReader = connectedReader;
           status = "connected";
           Log.d(TAG, "[TAP_SESSION_TRACE] stage=reader_connected reader_id=" + connectedReader.getId() + " ts=" + System.currentTimeMillis());
-          
+
           JSObject readerInfo = new JSObject();
           readerInfo.put("connected", true);
           readerInfo.put("readerId", connectedReader.getId());
           readerInfo.put("deviceType", connectedReader.getDeviceType().toString());
           readerInfo.put("simulated", simulated);
-          
+
           notifyListeners("statusChanged", new JSObject().put("status", status));
           notifyListeners("readerConnected", readerInfo);
           JSObject done = new JSObject();
           done.put("readerId", connectedReader.getId());
           done.put("connectionStatus", status);
+          done.put("operationId", operationId);
           emitDiag("connect_reader_completed", "connect_reader", correlationId, done);
+          synchronized (connectGuard) { connectInFlightNative = false; activeConnectOpId = null; }
         }
 
         @Override
         public void onFailure(@NonNull TerminalException e) {
+          // Stale-callback guard: only the owner opId may fail the operation
+          if (activeConnectOpId == null || !activeConnectOpId.equals(operationId)) {
+            JSObject stale = new JSObject();
+            stale.put("operationId", operationId);
+            stale.put("activeOperationId", activeConnectOpId);
+            stale.put("eventType", "onFailure");
+            stale.put("code", e.getErrorCode() != null ? e.getErrorCode().toString() : null);
+            stale.put("message", e.getMessage());
+            emitDiag("stale_connect_callback_ignored", "connect_reader", correlationId, stale);
+            return;
+          }
           JSObject err = createStructuredError("connect_reader", e);
           err.put("deviceState", captureDeviceState());
           notifyListeners("error", err);
+          // Treat ALREADY_CONNECTED_TO_READER as benign if reader is now connected
+          if (e.getErrorCode() == com.stripe.stripeterminal.external.models.TerminalErrorCode.ALREADY_CONNECTED_TO_READER) {
+            Reader r = Terminal.getInstance().getConnectedReader();
+            if (r != null) {
+              JSObject info = new JSObject();
+              info.put("readerId", r.getId());
+              info.put("operationId", operationId);
+              emitDiag("connect_already_connected_treated_success", "connect_reader", correlationId, info);
+              // Preserve connected status and do not overwrite with error
+              synchronized (connectGuard) { connectInFlightNative = false; activeConnectOpId = null; }
+              return;
+            }
+          }
           status = "error";
           notifyListeners("statusChanged", new JSObject().put("status", status));
           JSObject d = new JSObject();
           if (e.getErrorCode() != null) d.put("code", e.getErrorCode().toString());
           d.put("message", e.getMessage());
+          d.put("operationId", operationId);
           emitDiag("connect_reader_failed", "connect_reader", correlationId, d);
+          synchronized (connectGuard) { connectInFlightNative = false; activeConnectOpId = null; }
         }
       }
     );
