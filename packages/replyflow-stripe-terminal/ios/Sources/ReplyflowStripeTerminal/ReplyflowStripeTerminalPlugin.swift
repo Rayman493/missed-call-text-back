@@ -12,6 +12,12 @@ import StripeTerminal
 @objc(ReplyflowStripeTerminalPlugin)
 public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
   private let eventNameDiagnostics = "tpDiagnostics"
+  #if DEBUG
+  public override init() {
+    super.init()
+    print("[ReplyflowStripeTerminal] plugin loaded")
+  }
+  #endif
   public let identifier = "ReplyflowStripeTerminalPlugin"
   public let jsName = "ReplyflowStripeTerminal"
   public let pluginMethods: [CAPPluginMethod] = [
@@ -56,6 +62,9 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
   }
 
   @objc public func ping(_ call: CAPPluginCall) {
+    #if DEBUG
+    print("[ReplyflowStripeTerminal] ping reached")
+    #endif
     #if os(iOS)
     call.resolve(["available": true, "platform": "ios", "buildMarker": "ios_plugin_scaffold_1"])
     #else

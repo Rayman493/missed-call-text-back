@@ -1,5 +1,6 @@
 import UIKit
 import Capacitor
+import ReplyflowStripeTerminal
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -7,7 +8,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // Ensure custom Capacitor plugins from SPM are registered on the active bridge
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            if let vc = self.window?.rootViewController as? CAPBridgeViewController {
+                vc.bridge?.registerPluginInstance(ReplyflowStripeTerminalPlugin())
+                #if DEBUG
+                print("[ReplyflowStripeTerminal] plugin registered via AppDelegate")
+                #endif
+            } else {
+                #if DEBUG
+                print("[ReplyflowStripeTerminal] failed to obtain CAPBridgeViewController for registration")
+                #endif
+            }
+        }
         return true
     }
 
