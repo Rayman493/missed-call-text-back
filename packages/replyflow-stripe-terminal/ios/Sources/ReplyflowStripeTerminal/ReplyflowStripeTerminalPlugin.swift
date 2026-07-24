@@ -84,7 +84,16 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin {
         self.plugin?.notifyListeners("connectionTokenRequested", data: ["requestId": requestId])
       }
     }
-    Terminal.setTokenProvider(JsTokenProvider(plugin: self))
+    let provider = JsTokenProvider(plugin: self)
+    let config = TerminalConfiguration(tokenProvider: provider)
+    do {
+      try Terminal.initialize(configuration: config)
+    } catch {
+      self.connectionStatus = "error"
+      emitDiag("initialize_failed", phase: "initialize", meta: ["message": error.localizedDescription])
+      call.reject(error.localizedDescription)
+      return
+    }
     Terminal.shared.delegate = self
     self.initialized = true
     self.connectionStatus = "ready"
@@ -262,6 +271,7 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin {
 }
 
 extension ReplyflowStripeTerminalPlugin: CAPBridgedPlugin {
+  public static let identifier = "ReplyflowStripeTerminalPlugin"
   public static let jsName = "ReplyflowStripeTerminal"
   public static let pluginMethods: [CAPPluginMethod] = [
     CAPPluginMethod(name: "ping", returnType: CAPPluginReturnPromise),
