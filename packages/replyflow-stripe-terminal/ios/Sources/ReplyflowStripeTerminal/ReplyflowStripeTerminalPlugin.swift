@@ -228,7 +228,7 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
           self.emitDiag("collect_payment_method_completed", phase: "collect_payment", correlationId: attemptId, meta: ["paymentIntentId": collectedPaymentIntent.stripeId])
           Task { @MainActor in
             do {
-              let processedIntent = try await Terminal.shared.processPayment(collectedPaymentIntent)
+              let processedIntent = try await Terminal.shared.confirmPaymentIntent(collectedPaymentIntent)
               self.emitDiag("confirm_payment_intent_completed", phase: "confirm_payment", correlationId: attemptId, meta: ["paymentIntentId": processedIntent.stripeId])
               self.notifyListeners("paymentSucceeded", data: ["paymentIntentId": processedIntent.stripeId])
               call.resolve(["status": "succeeded", "paymentIntentId": processedIntent.stripeId])
@@ -271,12 +271,18 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
 
   @objc public func disconnect(_ call: CAPPluginCall) {
     #if canImport(StripeTerminal)
-    if Terminal.shared.connectedReader != nil {
-      Terminal.shared.disconnectReader { _ in }
+    Task { @MainActor in
+      if Terminal.shared.connectedReader != nil {
+        do {
+          try await Terminal.shared.disconnectReader()
+        } catch {
+          // Ignore disconnect errors to preserve prior behavior
+        }
+      }
+      self.connectionStatus = "ready"
+      self.notifyListeners("statusChanged", data: ["status": self.connectionStatus])
+      call.resolve(["status": self.connectionStatus])
     }
-    self.connectionStatus = "ready"
-    self.notifyListeners("statusChanged", data: ["status": self.connectionStatus])
-    call.resolve(["status": self.connectionStatus])
     #else
     self.connectionStatus = "ready"
     self.notifyListeners("statusChanged", data: ["status": self.connectionStatus])
