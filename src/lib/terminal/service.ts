@@ -40,6 +40,7 @@ export class TerminalBridgeService {
   private appStateListener: { remove: () => void; id: string } | null = null
   private attemptInitialConnectionStatus?: string
   private sessionTimings: { initializeMs?: number; discoveryStart?: number; discoveryEnd?: number; discoveryMs?: number; connectStart?: number; connectEnd?: number; connectMs?: number } = {}
+  private connectInFlight: Promise<{ status: 'connected' | string }> | null = null
   // Attempt-scoped flags/timings and app state
   private attemptSummaryEmitted = false
   private attemptFlags = {
@@ -575,84 +576,107 @@ export class TerminalBridgeService {
     console.log('[TAP_SESSION_TRACE] stage=connect_call_start')
     try { await logTapToPayEvent('connect_started', { phase: 'connect_reader', sessionId: this.sessionId }) } catch {}
 
-    // Fetch location ID from backend
-    const { locationId } = await this.fetchTerminalLocation()
-
-    // Reconcile with native SDK state before connecting
-    // This prevents stale state from causing first-attempt failures
-    try {
-      console.log('[TAP_SESSION_TRACE] stage=service_state_snapshot')
-      const diagnostics = this.getDiagnostics()
-      console.log('[TAP_SESSION_TRACE] diagnostics=' + JSON.stringify(diagnostics))
-
-      // Check if already connected via native SDK
-      // Note: getConnectedReader() is not exposed in our plugin interface yet
-      // We rely on the native layer to handle reconnection gracefully
-      // The key is to clear any stale JS-side state before attempting connection
-    } catch (reconcileError) {
-      console.warn('[TAP_SESSION_TRACE] reconcile_skipped error=' + (reconcileError instanceof Error ? reconcileError.message : 'Unknown'))
-      // Continue with connection attempt even if reconcile fails
+    // Short-circuit if already connected
+    if (this.connectionStatus === 'connected') {
+      try { await logTapToPayEvent('connect_dedup_already_connected', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: 'connected', readerId: this.lastReaderId }) } catch {}
+      return { status: 'connected' as const }
+    }
+    // Dedupe concurrent calls
+    if (this.connectInFlight) {
+      try { await logTapToPayEvent('connect_dedup_reused_inflight', { phase: 'connect_reader', sessionId: this.sessionId }) } catch {}
+      return this.connectInFlight
     }
 
-    console.log('[TAP_SESSION_TRACE] stage=connect_invoke locationId=' + locationId)
+    // Wrap full connect into a single in-flight promise to dedupe callers
+    this.connectInFlight = (async () => {
+      // Fetch location ID from backend
+      const { locationId } = await this.fetchTerminalLocation()
 
-    // Prepare listeners to await actual reader connection when native returns early
-    let resolveConnected: (() => void) | null = null
-    let rejectOnError: ((e: any) => void) | null = null
-    const connectedPromise = new Promise<void>((resolve, reject) => {
-      resolveConnected = resolve
-      rejectOnError = reject
-    })
-
-    const readerConnectedId = 'readerConnected#' + Date.now()
-    const readerConnectedListener = await this.plugin.addListener('readerConnected', (info: any) => {
-      console.log('[TAP_SESSION_TRACE] stage=connect_event_reader_connected')
-      try { logTapToPayEvent('connect_completed', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: 'connected', readerId: info?.readerId }) } catch {}
-      resolveConnected?.()
-    })
-    const statusChangedId = 'statusChanged#' + Date.now()
-    const statusChangedListener = await this.plugin.addListener('statusChanged', (data: any) => {
-      if (data?.status === 'connected') {
-        console.log('[TAP_SESSION_TRACE] stage=connect_event_status_connected')
-        try { logTapToPayEvent('connection_status_changed', { phase: 'connection_status', sessionId: this.sessionId, connectionStatus: 'connected' }) } catch {}
-        resolveConnected?.()
+      // Reconcile with native SDK state before connecting (best-effort)
+      try {
+        console.log('[TAP_SESSION_TRACE] stage=service_state_snapshot')
+        const diagnostics = this.getDiagnostics()
+        console.log('[TAP_SESSION_TRACE] diagnostics=' + JSON.stringify(diagnostics))
+      } catch (reconcileError) {
+        console.warn('[TAP_SESSION_TRACE] reconcile_skipped error=' + (reconcileError instanceof Error ? reconcileError.message : 'Unknown'))
       }
-    })
-    const errorListenerId = 'error#' + Date.now()
-    const errorListener = await this.plugin.addListener('error', (e: any) => {
-      console.warn('[TAP_SESSION_TRACE] stage=connect_event_error')
-      try { logTapToPayEvent('connect_error', { phase: 'connect_reader', sessionId: this.sessionId, code: e?.code || e?.nativeCode, message: e?.message }) } catch {}
-      rejectOnError?.(e)
-    })
-    // Track temp listeners in diagnostics counts
-    { const c = this.bumpListener('readerConnected', 1); this.addListenerId('readerConnected', readerConnectedId); logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: 'readerConnected', listenerId: readerConnectedId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('readerConnected') } }).catch(() => {}) }
-    { const c = this.bumpListener('statusChanged', 1); this.addListenerId('statusChanged', statusChangedId); logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: 'statusChanged', listenerId: statusChangedId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('statusChanged') } }).catch(() => {}) }
-    { const c = this.bumpListener('error', 1); this.addListenerId('error', errorListenerId); logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: 'error', listenerId: errorListenerId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('error') } }).catch(() => {}) }
 
-    const result = await this.plugin.connectTapToPay({
-      simulated: options?.simulated || false,
-      locationId,
-      diagnosticAttemptId: this.sessionId,
-    } as any)
+      // Start connect timing once per connect attempt
+      this.sessionTimings.connectStart = this.sessionTimings.connectStart || Date.now()
+      console.log('[TAP_SESSION_TRACE] stage=connect_invoke locationId=' + locationId)
+      // Prepare listeners to await actual reader connection when native returns early
+      let resolveConnected: (() => void) | null = null
+      let rejectOnError: ((e: any) => void) | null = null
+      const connectedPromise = new Promise<void>((resolve, reject) => {
+        resolveConnected = resolve
+        rejectOnError = reject
+      })
 
-    console.log('[TAP_SESSION_TRACE] stage=connect_call_resolved status=' + result.status)
-    try { await logTapToPayEvent('connect_call_resolved', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: result.status }) } catch {}
+      const readerConnectedId = 'readerConnected#' + Date.now()
+      const readerConnectedListener = await this.plugin!.addListener('readerConnected', (info: any) => {
+        console.log('[TAP_SESSION_TRACE] stage=connect_event_reader_connected')
+        try { logTapToPayEvent('connect_completed', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: 'connected', readerId: info?.readerId }) } catch {}
+        resolveConnected?.()
+      })
+      const statusChangedId = 'statusChanged#' + Date.now()
+      const statusChangedListener = await this.plugin!.addListener('statusChanged', (data: any) => {
+        if (data?.status === 'connected') {
+          console.log('[TAP_SESSION_TRACE] stage=connect_event_status_connected')
+          try { logTapToPayEvent('connection_status_changed', { phase: 'connection_status', sessionId: this.sessionId, connectionStatus: 'connected' }) } catch {}
+          resolveConnected?.()
+        }
+      })
+      const errorListenerId = 'error#' + Date.now()
+      const errorListener = await this.plugin!.addListener('error', (e: any) => {
+        const code = String(e?.code || e?.nativeCode || '').toLowerCase()
+        const msg = String(e?.message || '').toLowerCase()
+        if (code.includes('already') && code.includes('connected')) {
+          try { logTapToPayEvent('connect_already_connected_treated_success', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: this.connectionStatus || 'unknown', readerId: this.lastReaderId, code: e?.code || e?.nativeCode, message: e?.message }) } catch {}
+          resolveConnected?.()
+          return
+        }
+        console.warn('[TAP_SESSION_TRACE] stage=connect_event_error')
+        try { logTapToPayEvent('connect_error', { phase: 'connect_reader', sessionId: this.sessionId, code: e?.code || e?.nativeCode, message: e?.message }) } catch {}
+        rejectOnError?.(e)
+      })
+      // Track temp listeners in diagnostics counts
+      { const c = this.bumpListener('readerConnected', 1); this.addListenerId('readerConnected', readerConnectedId); logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: 'readerConnected', listenerId: readerConnectedId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('readerConnected') } }).catch(() => {}) }
+      { const c = this.bumpListener('statusChanged', 1); this.addListenerId('statusChanged', statusChangedId); logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: 'statusChanged', listenerId: statusChangedId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('statusChanged') } }).catch(() => {}) }
+      { const c = this.bumpListener('error', 1); this.addListenerId('error', errorListenerId); logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: 'error', listenerId: errorListenerId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('error') } }).catch(() => {}) }
+
+      const result = await this.plugin!.connectTapToPay({
+        simulated: options?.simulated || false,
+        locationId,
+        diagnosticAttemptId: this.sessionId,
+      } as any)
+
+      console.log('[TAP_SESSION_TRACE] stage=connect_call_resolved status=' + result.status)
+      try { await logTapToPayEvent('connect_call_resolved', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: result.status }) } catch {}
+
+      // Note: 'already connected' is handled by error listener above; result path proceeds normally
+
+      try {
+        if (result.status !== 'connected') {
+          await connectedPromise
+          console.log('[TAP_SESSION_TRACE] stage=connect_wait_completed')
+          try { await logTapToPayEvent('connect_wait_completed', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: 'connected' }) } catch {}
+          this.sessionTimings.connectEnd = Date.now(); if (this.sessionTimings.connectStart) this.sessionTimings.connectMs = this.sessionTimings.connectEnd - this.sessionTimings.connectStart
+          return { status: 'connected' as const }
+        }
+        this.sessionTimings.connectEnd = Date.now(); if (this.sessionTimings.connectStart) this.sessionTimings.connectMs = this.sessionTimings.connectEnd - this.sessionTimings.connectStart
+        return result
+      } finally {
+        // Cleanup listeners
+        try { await readerConnectedListener.remove(); this.removeListenerId('readerConnected', readerConnectedId); const c = this.bumpListener('readerConnected', -1); logTapToPayEvent('APP_LISTENER_REMOVED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: 'readerConnected', listenerId: readerConnectedId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('readerConnected') } }).catch(() => {}) } catch {}
+        try { await statusChangedListener.remove(); this.removeListenerId('statusChanged', statusChangedId); const c = this.bumpListener('statusChanged', -1); logTapToPayEvent('APP_LISTENER_REMOVED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: 'statusChanged', listenerId: statusChangedId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('statusChanged') } }).catch(() => {}) } catch {}
+        try { await errorListener.remove(); this.removeListenerId('error', errorListenerId); const c = this.bumpListener('error', -1); logTapToPayEvent('APP_LISTENER_REMOVED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: 'error', listenerId: errorListenerId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('error') } }).catch(() => {}) } catch {}
+      }
+    })()
 
     try {
-      if (result.status !== 'connected') {
-        await connectedPromise
-        console.log('[TAP_SESSION_TRACE] stage=connect_wait_completed')
-        try { await logTapToPayEvent('connect_wait_completed', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: 'connected' }) } catch {}
-        this.sessionTimings.connectEnd = Date.now(); if (this.sessionTimings.connectStart) this.sessionTimings.connectMs = this.sessionTimings.connectEnd - this.sessionTimings.connectStart
-        return { status: 'connected' as const }
-      }
-      this.sessionTimings.connectEnd = Date.now(); if (this.sessionTimings.connectStart) this.sessionTimings.connectMs = this.sessionTimings.connectEnd - this.sessionTimings.connectStart
-      return result
+      return await this.connectInFlight
     } finally {
-      // Cleanup listeners
-      try { await readerConnectedListener.remove(); this.removeListenerId('readerConnected', readerConnectedId); const c = this.bumpListener('readerConnected', -1); logTapToPayEvent('APP_LISTENER_REMOVED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: 'readerConnected', listenerId: readerConnectedId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('readerConnected') } }).catch(() => {}) } catch {}
-      try { await statusChangedListener.remove(); this.removeListenerId('statusChanged', statusChangedId); const c = this.bumpListener('statusChanged', -1); logTapToPayEvent('APP_LISTENER_REMOVED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: 'statusChanged', listenerId: statusChangedId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('statusChanged') } }).catch(() => {}) } catch {}
-      try { await errorListener.remove(); this.removeListenerId('error', errorListenerId); const c = this.bumpListener('error', -1); logTapToPayEvent('APP_LISTENER_REMOVED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: 'error', listenerId: errorListenerId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('error') } }).catch(() => {}) } catch {}
+      this.connectInFlight = null
     }
   }
 
