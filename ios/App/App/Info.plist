@@ -47,5 +47,9 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>ReplyFlow uses your location to enable accepting in-person payments securely.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>ReplyFlow uses Bluetooth to support payments and nearby device communication required by Stripe Terminal.</string>
 </dict>
 </plist>
