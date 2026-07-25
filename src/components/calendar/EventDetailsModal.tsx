@@ -683,24 +683,34 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                         {isNotesSaving ? 'Saving...' : 'Save Notes'}
                       </button>
                     </div>
-                    {meetingStatus !== 'completed' && (
-                      <div className="mt-3">
-                        {showCompleteConfirm ? (
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground">Complete this meeting?</span>
-                            <button onClick={() => setShowCompleteConfirm(false)} disabled={isCompleting} className="px-3 py-1.5 text-xs bg-muted text-foreground rounded-lg">Cancel</button>
-                            <button onClick={markComplete} disabled={isCompleting} className="px-3 py-1.5 text-xs bg-green-600 hover:bg-green-700 text-white rounded-lg">{isCompleting ? 'Completing...' : 'Confirm Complete'}</button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => setShowCompleteConfirm(true)}
-                            className="px-3 py-1.5 text-xs font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] inline-flex items-center gap-2"
-                          >
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            <span>Mark Meeting Complete</span>
-                          </button>
-                        )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Meeting Actions */}
+            {!event.isHoliday && meetingStatus !== 'completed' && (
+              <div className="pt-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-5 h-5 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <CheckCircle2 className="w-2.5 h-2.5 text-slate-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs text-slate-500 font-medium mb-2">Meeting Actions</p>
+                    {showCompleteConfirm ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">Complete this meeting?</span>
+                        <button onClick={() => setShowCompleteConfirm(false)} disabled={isCompleting} className="px-3 py-1.5 text-xs bg-muted text-foreground rounded-lg">Cancel</button>
+                        <button onClick={markComplete} disabled={isCompleting} className="px-3 py-1.5 text-xs bg-green-600 hover:bg-green-700 text-white rounded-lg">{isCompleting ? 'Completing...' : 'Confirm Complete'}</button>
                       </div>
+                    ) : (
+                      <button
+                        onClick={() => setShowCompleteConfirm(true)}
+                        className="px-3 py-1.5 text-xs font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] inline-flex items-center gap-2"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Mark Meeting Complete</span>
+                      </button>
                     )}
                   </div>
                 </div>
