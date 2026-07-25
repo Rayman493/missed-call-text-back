@@ -794,19 +794,17 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
 
                   {/* Pending / preparing states */}
                   {(() => {
-                    console.log('[ai_summary_state_debug]', {
-                      meetingStatus,
-                      transcriptStatus,
-                      aiSummary: aiSummary ? 'present' : 'null',
-                      aiSummaryStructured: aiSummaryStructured ? 'present' : 'null',
-                      meetCapability,
-                      transcriptText: transcriptText ? 'present' : 'null',
-                      eventMeetingUrl: event?.meetingUrl
-                    })
-                    
+                    // Upcoming meeting, no transcript/summary yet
+                    if (meetingStatus === 'upcoming' && !transcriptStatus && !aiSummary && !aiSummaryStructured) {
+                      return (
+                        <div className="mt-1 mb-2 p-2.5 rounded bg-slate-700/30 text-slate-300 text-xs" role="status">
+                          <div className="font-medium text-slate-200 mb-1">Available after the meeting</div>
+                          <div className="opacity-80">Once the meeting is complete, ReplyFlow will retrieve the Google Meet transcript and prepare an AI summary automatically.</div>
+                        </div>
+                      )
+                    }
                     // Meeting complete, transcript not yet available
                     if (meetingStatus === 'completed' && (!transcriptStatus || transcriptStatus === 'pending')) {
-                      console.log('[ai_summary_state_branch] rendering: waiting_for_transcript')
                       return (
                         <div className="mt-1 mb-2 p-2.5 rounded bg-slate-700/30 text-slate-300 text-xs flex items-start gap-2 min-h-[2.5rem]" role="status" aria-live="polite" aria-busy="true">
                           <div className="w-3 h-3 mt-0.5 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
@@ -820,7 +818,6 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                     }
                     // Transcript available, summary generation pending
                     if (transcriptStatus === 'available' && !aiSummary && !aiSummaryStructured) {
-                      console.log('[ai_summary_state_branch] rendering: generating_summary')
                       return (
                         <div className="mt-1 mb-2 p-2.5 rounded bg-slate-700/30 text-slate-300 text-xs flex items-start gap-2 min-h-[2.5rem]" role="status" aria-live="polite" aria-busy="true">
                           <div className="w-3 h-3 mt-0.5 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
@@ -834,7 +831,6 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                     }
                     // Transcript still pending (before meeting complete)
                     if (transcriptStatus === 'pending') {
-                      console.log('[ai_summary_state_branch] rendering: processing_transcript')
                       return (
                         <div className="mt-1 mb-2 p-2.5 rounded bg-slate-700/30 text-slate-300 text-xs flex items-start gap-2 min-h-[2.5rem]" role="status" aria-live="polite" aria-busy="true">
                           <div className="w-3 h-3 mt-0.5 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
@@ -846,7 +842,24 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                         </div>
                       )
                     }
-                    console.log('[ai_summary_state_branch] rendering: null (no pending state matched)')
+                    // Defensive fallback: if card is rendering but no state matched, show neutral message
+                    if (!aiSummary && !aiSummaryStructured) {
+                      if (process.env.NODE_ENV !== 'production') {
+                        console.warn('[ai_summary_state_fallback] Unexpected state combination:', {
+                          meetingStatus,
+                          transcriptStatus,
+                          aiSummary: aiSummary ? 'present' : 'null',
+                          aiSummaryStructured: aiSummaryStructured ? 'present' : 'null',
+                          meetCapability
+                        })
+                      }
+                      return (
+                        <div className="mt-1 mb-2 p-2.5 rounded bg-slate-700/30 text-slate-300 text-xs" role="status">
+                          <div className="font-medium text-slate-200 mb-1">Meeting summary</div>
+                          <div className="opacity-80">Summary will be available after the meeting.</div>
+                        </div>
+                      )
+                    }
                     return null
                   })()}
 
@@ -1058,13 +1071,14 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
               </div>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
+              {/* LEVEL 1: Primary workflow actions */}
               {(event.meetingUrl || (!event.isHoliday && (lead?.id && (lead.caller_phone || job?.customer_phone)))) && (
-                <div className={`grid grid-cols-1 sm:grid-cols-2 gap-2`}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {event.meetingUrl && (
                     <button
                       onClick={openMeetingLink}
-                      className="w-full px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
+                      className="w-full px-4 py-2.5 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
                     >
                       <LinkIcon className="w-4 h-4" />
                       <span>Join Meeting</span>
@@ -1073,7 +1087,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                   {!event.isHoliday && (lead?.id && (lead.caller_phone || job?.customer_phone)) && (
                     <button
                       onClick={() => setIsSmsOpen(true)}
-                      className="w-full px-4 py-2 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
+                      className="w-full px-4 py-2.5 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
                     >
                       <Send className="w-4 h-4" />
                       <span>Send Details by Text</span>
@@ -1081,31 +1095,37 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                   )}
                 </div>
               )}
+
+              {/* LEVEL 2: External calendar action */}
               <div>
                 <button
                   onClick={openGoogleCalendar}
-                  className="w-full px-4 py-2 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 border border-border/50"
+                  className="w-full px-4 py-2 text-sm font-medium bg-slate-800/50 hover:bg-slate-800/80 text-slate-200 rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 border border-slate-700/50"
                 >
                   <ExternalLink className="w-4 h-4" />
                   <span>Open in Google Calendar</span>
                 </button>
               </div>
+
+              {/* LEVEL 3: Management actions */}
               {!event.isHoliday && (
-                <div className="flex items-center justify-between gap-2 pt-1">
-                  <button
-                    onClick={handleEditClick}
-                    className="px-3 py-1.5 text-xs font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-colors flex items-center gap-2"
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                    <span>Edit</span>
-                  </button>
-                  <button
-                    onClick={handleDeleteClick}
-                    className="px-3 py-1.5 text-xs font-medium bg-red-600/10 hover:bg-red-600/20 text-red-400 hover:text-red-300 rounded-lg transition-colors flex items-center gap-2 border border-red-500/30"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Delete</span>
-                  </button>
+                <div className="pt-2 border-t border-border/30">
+                  <div className="flex items-center justify-between gap-2">
+                    <button
+                      onClick={handleEditClick}
+                      className="px-3 py-2 text-xs font-medium text-slate-300 hover:text-slate-200 hover:bg-slate-800/50 rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      onClick={handleDeleteClick}
+                      className="px-3 py-2 text-xs font-medium text-red-400 hover:text-red-300 border border-red-500/30 hover:bg-red-500/10 rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Delete</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
