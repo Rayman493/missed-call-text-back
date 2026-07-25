@@ -794,8 +794,19 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
 
                   {/* Pending / preparing states */}
                   {(() => {
+                    console.log('[ai_summary_state_debug]', {
+                      meetingStatus,
+                      transcriptStatus,
+                      aiSummary: aiSummary ? 'present' : 'null',
+                      aiSummaryStructured: aiSummaryStructured ? 'present' : 'null',
+                      meetCapability,
+                      transcriptText: transcriptText ? 'present' : 'null',
+                      eventMeetingUrl: event?.meetingUrl
+                    })
+                    
                     // Meeting complete, transcript not yet available
                     if (meetingStatus === 'completed' && (!transcriptStatus || transcriptStatus === 'pending')) {
+                      console.log('[ai_summary_state_branch] rendering: waiting_for_transcript')
                       return (
                         <div className="mt-1 mb-2 p-2.5 rounded bg-slate-700/30 text-slate-300 text-xs flex items-start gap-2 min-h-[2.5rem]" role="status" aria-live="polite" aria-busy="true">
                           <div className="w-3 h-3 mt-0.5 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
@@ -809,6 +820,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                     }
                     // Transcript available, summary generation pending
                     if (transcriptStatus === 'available' && !aiSummary && !aiSummaryStructured) {
+                      console.log('[ai_summary_state_branch] rendering: generating_summary')
                       return (
                         <div className="mt-1 mb-2 p-2.5 rounded bg-slate-700/30 text-slate-300 text-xs flex items-start gap-2 min-h-[2.5rem]" role="status" aria-live="polite" aria-busy="true">
                           <div className="w-3 h-3 mt-0.5 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
@@ -822,6 +834,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                     }
                     // Transcript still pending (before meeting complete)
                     if (transcriptStatus === 'pending') {
+                      console.log('[ai_summary_state_branch] rendering: processing_transcript')
                       return (
                         <div className="mt-1 mb-2 p-2.5 rounded bg-slate-700/30 text-slate-300 text-xs flex items-start gap-2 min-h-[2.5rem]" role="status" aria-live="polite" aria-busy="true">
                           <div className="w-3 h-3 mt-0.5 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
@@ -833,6 +846,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                         </div>
                       )
                     }
+                    console.log('[ai_summary_state_branch] rendering: null (no pending state matched)')
                     return null
                   })()}
 
