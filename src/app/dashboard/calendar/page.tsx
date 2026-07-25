@@ -359,24 +359,25 @@ export default function SchedulePage() {
       const targetTag = target instanceof HTMLElement ? target.tagName : 'unknown'
       const targetRole = target instanceof HTMLElement ? target.getAttribute('role') : null
       
-      console.log('[google_menu_outside_dismiss]', {
+      console.log('[google_menu_document_mousedown]', {
         event: 'mousedown',
         targetTag,
         targetRole,
         isClickInsideButton,
         isClickInsideMenu,
-        menuOpen: isCalendarOverflowOpen
+        menuOpen: isCalendarOverflowOpen,
+        defaultPrevented: event.defaultPrevented
       })
       
       if (!isClickInsideButton && !isClickInsideMenu) {
-        console.log('[google_menu_closed] Outside click detected, closing menu')
+        console.log('[google_menu_closed] source: document_mousedown')
         setIsCalendarOverflowOpen(false)
       }
     }
 
     const handleEscapeKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        console.log('[google_menu_closed] Escape key pressed, closing menu')
+        console.log('[google_menu_closed] source: escape')
         setIsCalendarOverflowOpen(false)
       }
     }
@@ -1290,21 +1291,27 @@ export default function SchedulePage() {
                               <MoreVertical className="w-4 h-4" />
                             </button>
                             {isCalendarOverflowOpen && (
-                              <>
-                                <div
-                                  className="fixed inset-0 z-[40]"
-                                  onClick={() => setIsCalendarOverflowOpen(false)}
-                                />
                                 <div
                                   ref={calendarOverflowRef}
                                   className="absolute right-0 top-full mt-1 z-[50] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1 min-w-[160px] max-w-[220px]"
                                 >
                                   <button
+                                    type="button"
+                                    onPointerDown={(e) => {
+                                      console.log('[google_menu_item_sync_pointerdown]', {
+                                        event: 'pointerdown',
+                                        targetTag: (e.target as HTMLElement).tagName,
+                                        currentTargetTag: (e.currentTarget as HTMLElement).tagName,
+                                        menuOpen: isCalendarOverflowOpen
+                                      })
+                                    }}
                                     onClick={(e) => {
                                       console.log('[google_menu_item_sync_click]', {
                                         event: 'click',
                                         targetTag: (e.target as HTMLElement).tagName,
-                                        menuOpen: isCalendarOverflowOpen
+                                        currentTargetTag: (e.currentTarget as HTMLElement).tagName,
+                                        menuOpen: isCalendarOverflowOpen,
+                                        defaultPrevented: e.defaultPrevented
                                       })
                                       setIsCalendarOverflowOpen(false)
                                       handleSync()
@@ -1326,11 +1333,22 @@ export default function SchedulePage() {
                                   </button>
                                   <div className="border-t border-border/40 my-1"></div>
                                   <button
+                                    type="button"
+                                    onPointerDown={(e) => {
+                                      console.log('[google_menu_item_disconnect_pointerdown]', {
+                                        event: 'pointerdown',
+                                        targetTag: (e.target as HTMLElement).tagName,
+                                        currentTargetTag: (e.currentTarget as HTMLElement).tagName,
+                                        menuOpen: isCalendarOverflowOpen
+                                      })
+                                    }}
                                     onClick={(e) => {
                                       console.log('[google_menu_item_disconnect_click]', {
                                         event: 'click',
                                         targetTag: (e.target as HTMLElement).tagName,
-                                        menuOpen: isCalendarOverflowOpen
+                                        currentTargetTag: (e.currentTarget as HTMLElement).tagName,
+                                        menuOpen: isCalendarOverflowOpen,
+                                        defaultPrevented: e.defaultPrevented
                                       })
                                       setIsCalendarOverflowOpen(false)
                                       handleDisconnectCalendar()
@@ -1353,7 +1371,6 @@ export default function SchedulePage() {
                                     )}
                                   </button>
                                 </div>
-                              </>
                             )}
                           </div>
                         </div>
@@ -1455,21 +1472,27 @@ export default function SchedulePage() {
                               <MoreVertical className="w-4 h-4" />
                             </button>
                             {isCalendarOverflowOpen && (
-                                <>
-                                  <div
-                                    className="fixed inset-0 z-[40]"
-                                    onClick={() => setIsCalendarOverflowOpen(false)}
-                                  />
-                                  <div
-                                    ref={calendarOverflowRef}
-                                    className="absolute right-0 top-full mt-1 z-[50] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1 min-w-[160px] max-w-[220px]"
-                                  >
+                                <div
+                                  ref={calendarOverflowRef}
+                                  className="absolute right-0 top-full mt-1 z-[50] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1 min-w-[160px] max-w-[220px]"
+                                >
                                     <button
+                                      type="button"
+                                      onPointerDown={(e) => {
+                                        console.log('[google_menu_item_sync_pointerdown]', {
+                                          event: 'pointerdown',
+                                          targetTag: (e.target as HTMLElement).tagName,
+                                          currentTargetTag: (e.currentTarget as HTMLElement).tagName,
+                                          menuOpen: isCalendarOverflowOpen
+                                        })
+                                      }}
                                       onClick={(e) => {
                                         console.log('[google_menu_item_sync_click]', {
                                           event: 'click',
                                           targetTag: (e.target as HTMLElement).tagName,
-                                          menuOpen: isCalendarOverflowOpen
+                                          currentTargetTag: (e.currentTarget as HTMLElement).tagName,
+                                          menuOpen: isCalendarOverflowOpen,
+                                          defaultPrevented: e.defaultPrevented
                                         })
                                         setIsCalendarOverflowOpen(false)
                                         handleSync()
@@ -1491,11 +1514,22 @@ export default function SchedulePage() {
                                     </button>
                                     <div className="border-t border-border/40 my-1"></div>
                                     <button
+                                      type="button"
+                                      onPointerDown={(e) => {
+                                        console.log('[google_menu_item_disconnect_pointerdown]', {
+                                          event: 'pointerdown',
+                                          targetTag: (e.target as HTMLElement).tagName,
+                                          currentTargetTag: (e.currentTarget as HTMLElement).tagName,
+                                          menuOpen: isCalendarOverflowOpen
+                                        })
+                                      }}
                                       onClick={(e) => {
                                         console.log('[google_menu_item_disconnect_click]', {
                                           event: 'click',
                                           targetTag: (e.target as HTMLElement).tagName,
-                                          menuOpen: isCalendarOverflowOpen
+                                          currentTargetTag: (e.currentTarget as HTMLElement).tagName,
+                                          menuOpen: isCalendarOverflowOpen,
+                                          defaultPrevented: e.defaultPrevented
                                         })
                                         setIsCalendarOverflowOpen(false)
                                         handleDisconnectCalendar()
@@ -1518,7 +1552,6 @@ export default function SchedulePage() {
                                       )}
                                     </button>
                                 </div>
-                              </>
                             )}
                           </div>
                         </div>
