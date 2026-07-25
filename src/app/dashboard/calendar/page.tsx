@@ -353,15 +353,30 @@ export default function SchedulePage() {
     if (!isCalendarOverflowOpen) return
 
     const handleClickOutside = (event: MouseEvent) => {
-      const isClickInsideButton = calendarOverflowButtonRef.current?.contains(event.target as Node)
-      const isClickInsideMenu = calendarOverflowRef.current?.contains(event.target as Node)
+      const target = event.target as Node
+      const isClickInsideButton = calendarOverflowButtonRef.current?.contains(target)
+      const isClickInsideMenu = calendarOverflowRef.current?.contains(target)
+      const targetTag = target instanceof HTMLElement ? target.tagName : 'unknown'
+      const targetRole = target instanceof HTMLElement ? target.getAttribute('role') : null
+      
+      console.log('[google_menu_outside_dismiss]', {
+        event: 'mousedown',
+        targetTag,
+        targetRole,
+        isClickInsideButton,
+        isClickInsideMenu,
+        menuOpen: isCalendarOverflowOpen
+      })
+      
       if (!isClickInsideButton && !isClickInsideMenu) {
+        console.log('[google_menu_closed] Outside click detected, closing menu')
         setIsCalendarOverflowOpen(false)
       }
     }
 
     const handleEscapeKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        console.log('[google_menu_closed] Escape key pressed, closing menu')
         setIsCalendarOverflowOpen(false)
       }
     }
@@ -1259,6 +1274,13 @@ export default function SchedulePage() {
                               </span>
                             )}
                           </div>
+                          <button
+                            onClick={() => handleAddEvent()}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-95 shadow-md"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>New Appointment</span>
+                          </button>
                           <div className="relative">
                             <button
                               ref={calendarOverflowButtonRef}
@@ -1270,7 +1292,7 @@ export default function SchedulePage() {
                             {isCalendarOverflowOpen && (
                               <>
                                 <div
-                                  className="fixed inset-0 z-[50]"
+                                  className="fixed inset-0 z-[40]"
                                   onClick={() => setIsCalendarOverflowOpen(false)}
                                 />
                                 <div
@@ -1278,7 +1300,12 @@ export default function SchedulePage() {
                                   className="absolute right-0 top-full mt-1 z-[50] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1 min-w-[160px] max-w-[220px]"
                                 >
                                   <button
-                                    onClick={() => {
+                                    onClick={(e) => {
+                                      console.log('[google_menu_item_sync_click]', {
+                                        event: 'click',
+                                        targetTag: (e.target as HTMLElement).tagName,
+                                        menuOpen: isCalendarOverflowOpen
+                                      })
                                       setIsCalendarOverflowOpen(false)
                                       handleSync()
                                     }}
@@ -1299,7 +1326,12 @@ export default function SchedulePage() {
                                   </button>
                                   <div className="border-t border-border/40 my-1"></div>
                                   <button
-                                    onClick={() => {
+                                    onClick={(e) => {
+                                      console.log('[google_menu_item_disconnect_click]', {
+                                        event: 'click',
+                                        targetTag: (e.target as HTMLElement).tagName,
+                                        menuOpen: isCalendarOverflowOpen
+                                      })
                                       setIsCalendarOverflowOpen(false)
                                       handleDisconnectCalendar()
                                     }}
@@ -1324,13 +1356,6 @@ export default function SchedulePage() {
                               </>
                             )}
                           </div>
-                          <button
-                            onClick={() => handleAddEvent()}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-95 shadow-md"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                            <span>New Appointment</span>
-                          </button>
                         </div>
                       </div>
 
@@ -1413,70 +1438,89 @@ export default function SchedulePage() {
                             )}
                           </div>
                         </div>
-                        <div className="relative">
+                        <div className="flex items-center gap-2">
                           <button
-                            ref={calendarOverflowButtonRef}
-                            onClick={() => setIsCalendarOverflowOpen(!isCalendarOverflowOpen)}
-                            className="inline-flex items-center justify-center p-1.5 hover:bg-slate-800 text-slate-400 hover:text-slate-300 rounded-lg transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+                            onClick={() => handleAddEvent()}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-95 shadow-md"
                           >
-                            <MoreVertical className="w-4 h-4" />
+                            <Plus className="w-3 h-3" />
+                            <span>New</span>
                           </button>
-                          {isCalendarOverflowOpen && (
-                              <>
-                                <div
-                                  className="fixed inset-0 z-[50]"
-                                  onClick={() => setIsCalendarOverflowOpen(false)}
-                                />
-                                <div
-                                  ref={calendarOverflowRef}
-                                  className="absolute right-0 top-full mt-1 z-[50] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1 min-w-[160px] max-w-[220px]"
-                                >
-                                  <button
-                                    onClick={() => {
-                                      setIsCalendarOverflowOpen(false)
-                                      handleSync()
-                                    }}
-                                    disabled={isSyncing || isDisconnecting}
-                                    className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          <div className="relative">
+                            <button
+                              ref={calendarOverflowButtonRef}
+                              onClick={() => setIsCalendarOverflowOpen(!isCalendarOverflowOpen)}
+                              className="inline-flex items-center justify-center p-1.5 hover:bg-slate-800 text-slate-400 hover:text-slate-300 rounded-lg transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+                            >
+                              <MoreVertical className="w-4 h-4" />
+                            </button>
+                            {isCalendarOverflowOpen && (
+                                <>
+                                  <div
+                                    className="fixed inset-0 z-[40]"
+                                    onClick={() => setIsCalendarOverflowOpen(false)}
+                                  />
+                                  <div
+                                    ref={calendarOverflowRef}
+                                    className="absolute right-0 top-full mt-1 z-[50] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1 min-w-[160px] max-w-[220px]"
                                   >
-                                    {isSyncing ? (
-                                      <>
-                                        <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                                        <span>Syncing...</span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <RefreshCw className="w-4 h-4 text-muted-foreground" />
-                                        <span>Sync</span>
-                                      </>
-                                    )}
-                                  </button>
-                                  <div className="border-t border-border/40 my-1"></div>
-                                  <button
-                                    onClick={() => {
-                                      setIsCalendarOverflowOpen(false)
-                                      handleDisconnectCalendar()
-                                    }}
-                                    disabled={isDisconnecting || isSyncing}
-                                    className="w-full px-3 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2.5 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                  >
-                                    {isDisconnecting ? (
-                                      <>
-                                        <div className="w-4 h-4 border-2 border-red-600 dark:border-red-400 border-t-transparent rounded-full animate-spin" />
-                                        <span>Disconnecting...</span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                        <span>Disconnect</span>
-                                      </>
-                                    )}
-                                  </button>
+                                    <button
+                                      onClick={(e) => {
+                                        console.log('[google_menu_item_sync_click]', {
+                                          event: 'click',
+                                          targetTag: (e.target as HTMLElement).tagName,
+                                          menuOpen: isCalendarOverflowOpen
+                                        })
+                                        setIsCalendarOverflowOpen(false)
+                                        handleSync()
+                                      }}
+                                      disabled={isSyncing || isDisconnecting}
+                                      className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                      {isSyncing ? (
+                                        <>
+                                          <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                                          <span>Syncing...</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <RefreshCw className="w-4 h-4 text-muted-foreground" />
+                                          <span>Sync</span>
+                                        </>
+                                      )}
+                                    </button>
+                                    <div className="border-t border-border/40 my-1"></div>
+                                    <button
+                                      onClick={(e) => {
+                                        console.log('[google_menu_item_disconnect_click]', {
+                                          event: 'click',
+                                          targetTag: (e.target as HTMLElement).tagName,
+                                          menuOpen: isCalendarOverflowOpen
+                                        })
+                                        setIsCalendarOverflowOpen(false)
+                                        handleDisconnectCalendar()
+                                      }}
+                                      disabled={isDisconnecting || isSyncing}
+                                      className="w-full px-3 py-2.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2.5 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                      {isDisconnecting ? (
+                                        <>
+                                          <div className="w-4 h-4 border-2 border-red-600 dark:border-red-400 border-t-transparent rounded-full animate-spin" />
+                                          <span>Disconnecting...</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                          </svg>
+                                          <span>Disconnect</span>
+                                        </>
+                                      )}
+                                    </button>
                                 </div>
                               </>
                             )}
+                          </div>
                         </div>
                       </div>
 
