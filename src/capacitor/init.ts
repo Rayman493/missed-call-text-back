@@ -14,6 +14,39 @@ import { Capacitor } from '@capacitor/core';
 import { pushService } from '@/lib/push-service';
 
 /**
+ * Validate critical production configuration
+ * Fails fast with clear diagnostics if configuration is invalid
+ */
+function validateProductionConfiguration() {
+  if (typeof window === 'undefined') return; // Skip on server
+
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (!isProduction) {
+    console.log('[Config] Development mode - skipping production validation');
+    return;
+  }
+
+  console.log('[Config] Validating production configuration...');
+
+  // Check for required environment variables
+  const requiredVars = [
+    'NEXT_PUBLIC_SUPABASE_URL',
+    'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+  ];
+
+  const missingVars = requiredVars.filter(varName => !process.env[varName]);
+
+  if (missingVars.length > 0) {
+    console.error('[Config] CRITICAL: Missing required environment variables:', missingVars);
+    console.error('[Config] Production cannot start without these variables');
+    throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
+  }
+
+  console.log('[Config] Production configuration validated successfully');
+}
+
+/**
  * Initialize Capacitor plugins and set up event listeners
  */
 export async function initializeCapacitor() {
@@ -26,6 +59,9 @@ export async function initializeCapacitor() {
   }
 
   console.log('[Capacitor] Initializing native plugins...');
+
+  // Validate production configuration before initializing plugins
+  validateProductionConfiguration();
 
   try {
     // Initialize Status Bar
