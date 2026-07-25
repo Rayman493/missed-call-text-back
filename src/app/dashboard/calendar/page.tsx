@@ -237,6 +237,9 @@ export default function SchedulePage() {
   const [isCalendarOverflowOpen, setIsCalendarOverflowOpen] = useState(false)
   const calendarOverflowRef = useRef<HTMLDivElement>(null)
   const calendarOverflowButtonRef = useRef<HTMLButtonElement>(null)
+  
+  // Disconnect confirmation state
+  const [isDisconnectConfirmOpen, setIsDisconnectConfirmOpen] = useState(false)
 
   // Check for OAuth success/error redirect
   useEffect(() => {
@@ -424,10 +427,16 @@ export default function SchedulePage() {
   }
 
   const handleDisconnectCalendar = async () => {
-    console.log('[disconnect_click] Starting disconnect flow')
+    console.log('[google_disconnect_click] Opening confirmation dialog')
+    setIsDisconnectConfirmOpen(true)
+  }
+
+  const confirmDisconnectCalendar = async () => {
+    console.log('[google_disconnect_confirmation_opened] User confirmed disconnect')
+    setIsDisconnectConfirmOpen(false)
     setIsDisconnecting(true)
     try {
-      console.log('[disconnect_request_started] Calling disconnect API')
+      console.log('[google_disconnect_request_started] Calling disconnect API')
       const response = await fetch('/api/google/calendar/disconnect', {
         method: 'POST',
         credentials: 'include',
@@ -435,23 +444,23 @@ export default function SchedulePage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Failed to disconnect calendar' }))
-        console.error('[disconnect_request_failed] API error:', errorData)
+        console.error('[google_disconnect_request_failed] API error:', errorData)
         throw new Error(errorData.error || 'Failed to disconnect calendar')
       }
 
-      console.log('[disconnect_request_success] API call successful')
+      console.log('[google_disconnect_request_succeeded] API call successful')
       setCalendarConnected(false)
       setCalendarEmail(null)
       setEvents([])
       setLastSyncTime(null)
       setTokenExpired(false)
-      console.log('[disconnect_ui_state_updated] UI state updated')
+      console.log('[google_disconnect_state_refreshed] UI state updated')
       showToast('Calendar disconnected successfully', 'success')
       
       // Refresh connection status to ensure consistency
       await fetchCalendarStatus()
     } catch (error) {
-      console.error('[disconnect_request_failed] Error:', error)
+      console.error('[google_disconnect_request_failed] Error:', error)
       showToast('Failed to disconnect calendar', 'error')
     } finally {
       setIsDisconnecting(false)
@@ -1772,6 +1781,19 @@ export default function SchedulePage() {
               )}
           {/* Toast Container */}
           <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
+          
+          {/* Disconnect Confirmation Modal */}
+          <ConfirmModal
+            isOpen={isDisconnectConfirmOpen}
+            onClose={() => setIsDisconnectConfirmOpen(false)}
+            onConfirm={confirmDisconnectCalendar}
+            title="Disconnect Google Calendar?"
+            description="ReplyFlow will stop syncing with this Google account. Existing ReplyFlow appointments and Google Calendar events will not be deleted."
+            confirmText="Disconnect"
+            cancelText="Cancel"
+            isDestructive={true}
+            isLoading={isDisconnecting}
+          />
     </DashboardShell>
   )
 }
