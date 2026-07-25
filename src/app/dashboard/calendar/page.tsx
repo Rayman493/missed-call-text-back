@@ -1021,65 +1021,65 @@ export default function SchedulePage() {
 
                   {/* Schedule Tab Toggle */}
                   <div className="hidden md:flex mb-3">
-                    <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1 w-full">
+                    <div className="flex bg-slate-900/40 dark:bg-slate-800/60 rounded-xl p-1 w-full border border-slate-200/50 dark:border-slate-700/50">
                       <button
                         onClick={() => setScheduleTab('today')}
-                        className={`flex items-center gap-1.5 px-4 py-2 rounded-md font-medium transition-all ${
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ease-out ${
                           scheduleTab === 'today'
-                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm text-[15px]'
-                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground text-sm'
+                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50 text-[15px]'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-sm'
                         }`}
                       >
-                        <CheckCircle2 className="w-4 h-4" />
+                        <CheckCircle2 className={`w-4 h-4 ${scheduleTab === 'today' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
                         Today
                       </button>
                       <button
                         onClick={() => setScheduleTab('calendar')}
-                        className={`flex items-center gap-1.5 px-4 py-2 rounded-md font-medium transition-all ${
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ease-out ${
                           scheduleTab === 'calendar'
-                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm text-[15px]'
-                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground text-sm'
+                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50 text-[15px]'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-sm'
                         }`}
                       >
-                        <CalendarIcon className="w-4 h-4" />
+                        <CalendarIcon className={`w-4 h-4 ${scheduleTab === 'calendar' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
                         Calendar
                       </button>
                       <button
                         onClick={() => setScheduleTab('meetings')}
-                        className={`flex items-center gap-1.5 px-4 py-2 rounded-md font-medium transition-all ${
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ease-out ${
                           scheduleTab === 'meetings'
-                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm text-[15px]'
-                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground text-sm'
+                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50 text-[15px]'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-sm'
                         }`}
                       >
-                        <CalendarIcon className="w-4 h-4" />
+                        <CalendarIcon className={`w-4 h-4 ${scheduleTab === 'meetings' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
                         Meetings
                       </button>
                       <button
                         onClick={() => setScheduleTab('jobs')}
-                        className={`flex items-center gap-1.5 px-4 py-2 rounded-md font-medium transition-all ${
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ease-out ${
                           scheduleTab === 'jobs'
-                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm text-[15px]'
-                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground text-sm'
+                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50 text-[15px]'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-sm'
                         }`}
                       >
-                        <Briefcase className="w-4 h-4" />
+                        <Briefcase className={`w-4 h-4 ${scheduleTab === 'jobs' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
                         Jobs
                         {jobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress').length > 0 && (
-                          <span className="ml-1 px-1.5 py-0.5 text-[10px] font-semibold bg-blue-600 text-white rounded-full">
+                          <span className="ml-1.5 px-1.5 py-0.5 text-[10px] font-semibold bg-blue-600 text-white rounded-full">
                             {jobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress').length}
                           </span>
                         )}
                       </button>
                       <button
                         onClick={() => setScheduleTab('tasks')}
-                        className={`flex items-center gap-1.5 px-4 py-2 rounded-md font-medium transition-all ${
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ease-out ${
                           scheduleTab === 'tasks'
-                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm text-[15px]'
-                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground text-sm'
+                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50 text-[15px]'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-sm'
                         }`}
                       >
-                        <CheckCircle2 className="w-4 h-4" />
+                        <CheckCircle2 className={`w-4 h-4 ${scheduleTab === 'tasks' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
                         Tasks
                       </button>
                     </div>
@@ -1089,58 +1089,58 @@ export default function SchedulePage() {
                   <div className="md:hidden mb-4 mt-2">
                     <div
                       ref={mobileTabsRef}
-                      className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 overflow-x-auto whitespace-nowrap gap-1"
+                      className="flex bg-slate-900/40 dark:bg-slate-800/60 rounded-xl p-1 overflow-x-auto whitespace-nowrap gap-1 border border-slate-200/50 dark:border-slate-700/50"
                       style={{ WebkitOverflowScrolling: 'touch' }}
                     >
                       <button
                         onClick={() => setScheduleTab('today')}
                         data-tab="today"
-                        className={`shrink-0 flex items-center justify-center gap-1 py-1.5 px-3 rounded-md font-medium transition-all whitespace-nowrap ${
+                        className={`shrink-0 flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg font-medium transition-all duration-200 ease-out whitespace-nowrap ${
                           scheduleTab === 'today'
-                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm text-sm'
-                            : 'text-slate-600 dark:text-slate-400 text-xs'
+                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50 text-sm'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-xs'
                         }`}
                       >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <CheckCircle2 className={`w-3.5 h-3.5 ${scheduleTab === 'today' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
                         Today
                       </button>
                       <button
                         onClick={() => setScheduleTab('calendar')}
                         data-tab="calendar"
-                        className={`shrink-0 flex items-center justify-center gap-1 py-1.5 px-3 rounded-md font-medium transition-all whitespace-nowrap ${
+                        className={`shrink-0 flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg font-medium transition-all duration-200 ease-out whitespace-nowrap ${
                           scheduleTab === 'calendar'
-                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm text-sm'
-                            : 'text-slate-600 dark:text-slate-400 text-xs'
+                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50 text-sm'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-xs'
                         }`}
                       >
-                        <CalendarIcon className="w-3.5 h-3.5" />
+                        <CalendarIcon className={`w-3.5 h-3.5 ${scheduleTab === 'calendar' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
                         Calendar
                       </button>
                       <button
                         onClick={() => setScheduleTab('meetings')}
                         data-tab="meetings"
-                        className={`shrink-0 flex items-center justify-center gap-1 py-1.5 px-3 rounded-md font-medium transition-all whitespace-nowrap ${
+                        className={`shrink-0 flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg font-medium transition-all duration-200 ease-out whitespace-nowrap ${
                           scheduleTab === 'meetings'
-                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm text-sm'
-                            : 'text-slate-600 dark:text-slate-400 text-xs'
+                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50 text-sm'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-xs'
                         }`}
                       >
-                        <CalendarIcon className="w-3.5 h-3.5" />
+                        <CalendarIcon className={`w-3.5 h-3.5 ${scheduleTab === 'meetings' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
                         Meetings
                       </button>
                       <button
                         onClick={() => setScheduleTab('jobs')}
                         data-tab="jobs"
-                        className={`shrink-0 flex items-center justify-center gap-1 py-1.5 px-3 rounded-md font-medium transition-all whitespace-nowrap ${
+                        className={`shrink-0 flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg font-medium transition-all duration-200 ease-out whitespace-nowrap ${
                           scheduleTab === 'jobs'
-                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm text-sm'
-                            : 'text-slate-600 dark:text-slate-400 text-xs'
+                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50 text-sm'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-xs'
                         }`}
                       >
-                        <Briefcase className="w-3.5 h-3.5" />
+                        <Briefcase className={`w-3.5 h-3.5 ${scheduleTab === 'jobs' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
                         Jobs
                         {jobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress').length > 0 && (
-                          <span className="ml-1 px-1.5 py-0.5 text-[10px] font-semibold bg-blue-600 text-white rounded-full">
+                          <span className="ml-1.5 px-1.5 py-0.5 text-[10px] font-semibold bg-blue-600 text-white rounded-full">
                             {jobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress').length}
                           </span>
                         )}
@@ -1148,13 +1148,13 @@ export default function SchedulePage() {
                       <button
                         onClick={() => setScheduleTab('tasks')}
                         data-tab="tasks"
-                        className={`shrink-0 flex items-center justify-center gap-1 py-1.5 px-3 rounded-md font-medium transition-all whitespace-nowrap ${
+                        className={`shrink-0 flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg font-medium transition-all duration-200 ease-out whitespace-nowrap ${
                           scheduleTab === 'tasks'
-                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm text-sm'
-                            : 'text-slate-600 dark:text-slate-400 text-xs'
+                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50 text-sm'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-xs'
                         }`}
                       >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <CheckCircle2 className={`w-3.5 h-3.5 ${scheduleTab === 'tasks' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
                         Tasks
                       </button>
                     </div>
