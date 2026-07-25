@@ -284,11 +284,15 @@ export class MeetArtifactProcessor {
     const transcripts = await this.deps.google.listTranscripts(pick.name)
     if (!transcripts || transcripts.length === 0) {
       console.log('[MEET DIAG] transcripts.count=0 -> pending(no_transcripts)')
+      // Use 15-minute backoff for first attempt (aligns with Google's ~10min transcript delay)
+      // Use 1-hour backoff for subsequent retries
+      const isFirstAttempt = !record.transcript_status || record.transcript_status !== 'pending'
+      const backoffMinutes = isFirstAttempt ? 15 : 60
       await repo.updateMeetingRecord(record.id, {
         transcript_status: 'pending',
-        next_processing_attempt_at: new Date(now().getTime() + 60 * 60 * 1000).toISOString(),
+        next_processing_attempt_at: new Date(now().getTime() + backoffMinutes * 60 * 1000).toISOString(),
       })
-      console.log('[MEET DIAG] result.status=%s result.reason=%s', 'pending', 'no_transcripts')
+      console.log('[MEET DIAG] result.status=%s result.reason=%s backoff=%dmin', 'pending', 'no_transcripts', backoffMinutes)
       return { processed: false, status: 'pending', reason: 'no_transcripts' }
     }
     const tSample = transcripts.slice(0, 5).map(t => ({ name: t.name, state: (t as any).state || null, start: t.startTime || null, end: t.endTime || null }))
@@ -320,10 +324,14 @@ export class MeetArtifactProcessor {
 
     // If transcript resource exists but entries are not yet available, treat as temporary and retry later
     if (parts.length === 0) {
+      // Use 15-minute backoff for first attempt, 1-hour for subsequent retries
+      const isFirstAttempt = !record.transcript_status || record.transcript_status !== 'pending'
+      const backoffMinutes = isFirstAttempt ? 15 : 60
       await repo.updateMeetingRecord(record.id, {
         transcript_status: 'pending',
-        next_processing_attempt_at: new Date(now().getTime() + 60 * 60 * 1000).toISOString(),
+        next_processing_attempt_at: new Date(now().getTime() + backoffMinutes * 60 * 1000).toISOString(),
       })
+      console.log('[MEET DIAG] result.status=%s result.reason=%s backoff=%dmin', 'pending', 'transcript_entries_not_ready', backoffMinutes)
       return { processed: false, status: 'pending', reason: 'transcript_entries_not_ready' }
     }
 

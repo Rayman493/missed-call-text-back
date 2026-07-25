@@ -5,9 +5,13 @@ import { getMeetCapability } from '@/lib/google/capability'
 export async function GET(request: NextRequest, { params }: { params: Promise<{ eventId: string }> }) {
   try {
     const { eventId } = await params
+    console.log('[TRANSCRIPT DIAG API] ENTER GET /api/meetings/[eventId]', { eventId })
     const supabase = await createServerSupabaseClient()
     const { data: { user }, error: userError } = await supabase.auth.getUser()
-    if (userError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (userError || !user) {
+      console.log('[TRANSCRIPT DIAG API] SKIP because: Unauthorized')
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     // Resolve business for this user
     const { data: business, error: bizErr } = await supabase
@@ -15,7 +19,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       .select('id')
       .eq('user_id', user.id)
       .single()
-    if (bizErr || !business) return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+    if (bizErr || !business) {
+      console.log('[TRANSCRIPT DIAG API] SKIP because: Business not found', { bizErr })
+      return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+    }
 
     const { data: record, error } = await supabase
       .from('meeting_records')
@@ -24,10 +31,28 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       .eq('google_calendar_event_id', eventId)
       .maybeSingle()
 
-    if (error) return NextResponse.json({ error: 'Failed to fetch meeting' }, { status: 500 })
+    if (error) {
+      console.log('[TRANSCRIPT DIAG API] SKIP because: Failed to fetch meeting', { error })
+      return NextResponse.json({ error: 'Failed to fetch meeting' }, { status: 500 })
+    }
+    console.log('[TRANSCRIPT DIAG API] Meeting record found:', record ? 'yes' : 'no')
+    if (record) {
+      console.log('[TRANSCRIPT DIAG API] Record details:', {
+        status: record.status,
+        transcript_status: record.transcript_status,
+        ai_summary: record.ai_summary ? 'present' : 'null',
+        ai_summary_structured: record.ai_summary_structured ? 'present' : 'null',
+        google_meet_space_name: record.google_meet_space_name,
+        google_meet_code: record.google_meet_code,
+      })
+    }
     const capability = await getMeetCapability(business.id)
-    return NextResponse.json({ record: record || null, meetCapability: capability })
+    console.log('[TRANSCRIPT DIAG API] Meet capability:', capability)
+    const response = { record: record || null, meetCapability: capability }
+    console.log('[TRANSCRIPT DIAG API] Returning response:', response)
+    return NextResponse.json(response)
   } catch (e) {
+    console.log('[TRANSCRIPT DIAG API] SKIP because: exception', e)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

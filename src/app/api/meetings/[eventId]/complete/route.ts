@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { timelineEvents } from '@/lib/event-timeline'
+import { MeetArtifactProcessor, type Repository, type Timeline } from '@/lib/meet-artifacts'
+import { GoogleMeetClientImpl } from '@/lib/google/meet-client'
+import { getEventTimes } from '@/lib/google/calendar'
+import { summarizeMeetingTranscript } from '@/lib/openai-summary'
+import { createClient } from '@supabase/supabase-js'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ eventId: string }> }) {
   try {
@@ -76,8 +81,120 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       )
     } catch {}
 
+    // Trigger immediate transcript processing asynchronously (non-blocking)
+    // This ensures early-completed meetings get processed without waiting for cron
+    const serviceSupabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    
+    // Fire and forget - don't await to avoid blocking response
+    processTranscriptAsync(serviceSupabase, business.id, eventId, scheduled_start, scheduled_end).catch((err: unknown) => {
+      console.error('[complete] transcript processing failed:', err)
+    })
+
     return NextResponse.json({ record: upserted, idempotent: false })
   } catch (e) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+// Async helper function to process transcript without blocking the response
+async function processTranscriptAsync(
+  supabase: any,
+  businessId: string,
+  eventId: string,
+  scheduledStart: string | undefined,
+  scheduledEnd: string | undefined
+): Promise<void> {
+  try {
+    console.log('[complete] Starting immediate transcript processing for', eventId)
+    
+    // Fetch the meeting record to get current state
+    const { data: record } = await supabase
+      .from('meeting_records')
+      .select('*')
+      .eq('business_id', businessId)
+      .eq('google_calendar_event_id', eventId)
+      .single()
+    
+    if (!record) {
+      console.log('[complete] No meeting record found for processing')
+      return
+    }
+    
+    // Idempotency check: skip if already processed
+    if (record.transcript_status === 'processed' && record.ai_summary && record.ai_summary_structured) {
+      console.log('[complete] Transcript already processed, skipping')
+      return
+    }
+    
+    // Concurrency protection: check if another process is already working on this
+    // Use the existing next_processing_attempt_at field as a distributed lock
+    const now = new Date()
+    if (record.next_processing_attempt_at && new Date(record.next_processing_attempt_at) > now) {
+      console.log('[complete] Another process is already handling this meeting, skipping')
+      return
+    }
+    
+    // Don't set backoff here - let the processor handle it based on actual result
+    // The processor will set appropriate backoff (15min for first missing transcript, 1hr for subsequent)
+    
+    // Set up repository adapter
+    const repo: Repository = {
+      async getBusinessByUser() { return null },
+      async getMeetingRecord(bid: string, eid: string) {
+        if (bid !== businessId || eid !== eventId) return null
+        return record as any
+      },
+      async updateMeetingRecord(id: string, patch: any) {
+        await supabase.from('meeting_records').update(patch).eq('id', id)
+      },
+      async markCompletedIfUpcoming(id: string, completedAt: string) {
+        if (record.status === 'completed') return false
+        await supabase.from('meeting_records').update({ 
+          status: 'completed', 
+          completed_at: completedAt, 
+          updated_at: new Date().toISOString() 
+        }).eq('id', id)
+        return true
+      }
+    }
+    
+    // Set up timeline adapter
+    const timeline: Timeline = {
+      async meetingCompletedOnce(bid: string, eid: string, payload: any) {
+        console.log('[complete] meeting_completed_once', { bid, eid, payload })
+      }
+    }
+    
+    // Fetch scheduled times from Calendar
+    const times = await getEventTimes(businessId, eventId)
+    
+    // Instantiate Google client
+    const google = new GoogleMeetClientImpl(businessId)
+    
+    // Create processor
+    const processor = new MeetArtifactProcessor({
+      google,
+      openai: { summarize: summarizeMeetingTranscript },
+      repo,
+      timeline,
+      now: () => new Date(),
+      windowEarlyMinutes: 90,
+      windowLateMinutes: 90,
+    })
+    
+    // Process the meeting
+    const result = await processor.processOne(
+      { id: businessId },
+      eventId,
+      { start: times.start || scheduledStart, end: times.end || scheduledEnd }
+    )
+    
+    console.log('[complete] Transcript processing result:', result)
+  } catch (error) {
+    console.error('[complete] Transcript processing error:', error)
+    // Don't throw - this is a fire-and-forget operation
   }
 }
