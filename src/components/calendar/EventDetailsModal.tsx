@@ -793,26 +793,65 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                   </div>
 
                   {/* Pending / preparing states */}
-                  {(transcriptStatus === 'pending' || (transcriptStatus === 'available' && !aiSummary && !aiSummaryStructured)) && (
-                    <div className="mt-1 mb-2 p-2.5 rounded bg-slate-700/30 text-slate-300 text-xs flex items-start gap-2 min-h-[2.5rem]" role="status" aria-live="polite" aria-busy="true">
-                      <div className="w-3 h-3 mt-0.5 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
-                      <div className="space-y-0.5">
-                        <div className="font-medium text-slate-200">Processing transcript…</div>
-                        <div className="opacity-80">Google is still preparing the meeting transcript.</div>
-                        <div className="opacity-60">ReplyFlow will automatically generate the meeting summary once it becomes available.</div>
-                      </div>
-                    </div>
-                  )}
+                  {(() => {
+                    // Meeting complete, transcript not yet available
+                    if (meetingStatus === 'completed' && (!transcriptStatus || transcriptStatus === 'pending')) {
+                      return (
+                        <div className="mt-1 mb-2 p-2.5 rounded bg-slate-700/30 text-slate-300 text-xs flex items-start gap-2 min-h-[2.5rem]" role="status" aria-live="polite" aria-busy="true">
+                          <div className="w-3 h-3 mt-0.5 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+                          <div className="space-y-0.5">
+                            <div className="font-medium text-slate-200">Waiting for Google Meet transcript</div>
+                            <div className="opacity-80">Google may take a few minutes to prepare the transcript after the meeting ends.</div>
+                            <div className="opacity-60">ReplyFlow will process it automatically when it becomes available.</div>
+                          </div>
+                        </div>
+                      )
+                    }
+                    // Transcript available, summary generation pending
+                    if (transcriptStatus === 'available' && !aiSummary && !aiSummaryStructured) {
+                      return (
+                        <div className="mt-1 mb-2 p-2.5 rounded bg-slate-700/30 text-slate-300 text-xs flex items-start gap-2 min-h-[2.5rem]" role="status" aria-live="polite" aria-busy="true">
+                          <div className="w-3 h-3 mt-0.5 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+                          <div className="space-y-0.5">
+                            <div className="font-medium text-slate-200">Generating meeting summary</div>
+                            <div className="opacity-80">The Google Meet transcript has been imported.</div>
+                            <div className="opacity-60">ReplyFlow is preparing the summary and follow-up items.</div>
+                          </div>
+                        </div>
+                      )
+                    }
+                    // Transcript still pending (before meeting complete)
+                    if (transcriptStatus === 'pending') {
+                      return (
+                        <div className="mt-1 mb-2 p-2.5 rounded bg-slate-700/30 text-slate-300 text-xs flex items-start gap-2 min-h-[2.5rem]" role="status" aria-live="polite" aria-busy="true">
+                          <div className="w-3 h-3 mt-0.5 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+                          <div className="space-y-0.5">
+                            <div className="font-medium text-slate-200">Processing transcript…</div>
+                            <div className="opacity-80">Google is still preparing the meeting transcript.</div>
+                            <div className="opacity-60">ReplyFlow will automatically generate the meeting summary once it becomes available.</div>
+                          </div>
+                        </div>
+                      )
+                    }
+                    return null
+                  })()}
 
                   {/* Informational and error states */}
                   {transcriptStatus === 'unavailable' && (
                     <p className="text-xs text-slate-400">No transcript is available for this meeting.</p>
                   )}
                   {transcriptStatus === 'permission_required' && (
-                    <p className="text-xs text-amber-300">Additional Google Meet permission required. Connect Google Calendar again.</p>
+                    <div className="p-2.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
+                      <div className="font-medium mb-1">Google Meet access required</div>
+                      <div className="opacity-80 mb-2">Reconnect Google Calendar and approve the requested Google Meet permission to retrieve transcripts.</div>
+                      <a href="/api/google/calendar/connect" className="inline-block px-3 py-1.5 text-xs rounded bg-muted hover:bg-muted/80 text-foreground border border-border/50">Reconnect Google</a>
+                    </div>
                   )}
                   {transcriptStatus === 'failed' && (
-                    <p className="text-xs text-red-400">Unable to generate summary.</p>
+                    <div className="p-2.5 rounded bg-red-500/10 border border-red-500/30 text-red-300 text-xs">
+                      <div className="font-medium mb-1">Meeting summary unavailable</div>
+                      <div className="opacity-80">ReplyFlow could not retrieve or process the transcript yet.</div>
+                    </div>
                   )}
 
                   {/* Summary content */}
