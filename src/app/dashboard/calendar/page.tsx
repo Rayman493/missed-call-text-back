@@ -1241,11 +1241,11 @@ export default function SchedulePage() {
 
                         {/* Calendar Status & Actions - Simplified */}
                         <div className="flex items-center gap-2">
-                          <div className="flex items-center gap-2 px-3 py-1.5 bg-green-900/20 rounded-md border border-green-800/40">
-                            <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-                            <span className="text-xs font-medium text-green-300">Connected</span>
+                          <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+                            <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-sm shadow-emerald-400/30"></div>
+                            <span className="text-xs font-medium text-emerald-100">Connected</span>
                             {lastSyncTime && (
-                              <span className="text-[10px] text-green-400/70">
+                              <span className="text-[10px] text-emerald-200/60 font-normal">
                                 • {formatTimeAgo(lastSyncTime)}
                               </span>
                             )}
@@ -1396,11 +1396,11 @@ export default function SchedulePage() {
                       {/* Calendar Header - mobile only */}
                       <div className="flex md:hidden items-center justify-between gap-2 mb-3 p-2 bg-slate-900/40 border border-slate-700/40 rounded-lg">
                         <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <div className="w-2 h-2 bg-emerald-400 rounded-full shadow-sm shadow-emerald-400/30"></div>
                           <div>
                             <p className="text-xs font-medium text-foreground">Google Calendar</p>
                             {lastSyncTime && (
-                              <p className="text-[9px] text-slate-400">Connected • {formatTimeAgo(lastSyncTime)}</p>
+                              <p className="text-[9px] text-emerald-200/60 font-normal">Connected • {formatTimeAgo(lastSyncTime)}</p>
                             )}
                           </div>
                         </div>
