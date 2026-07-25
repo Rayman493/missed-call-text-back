@@ -719,8 +719,11 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                 )}
                 {/* Card */}
                 <div className="p-3 md:p-4 rounded-lg bg-slate-800/50 border border-slate-700/60">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs text-slate-300 font-semibold">AI Meeting Summary</p>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" />
+                      <p className="text-xs text-slate-300 font-semibold">AI Meeting Summary</p>
+                    </div>
                     {/* Retry: only on explicit failure and when capability allows */}
                     {meetCapability === 'available' && transcriptStatus === 'failed' && !isRetrying && (
                       <button
@@ -797,21 +800,21 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                     // Upcoming meeting, no transcript/summary yet
                     if (meetingStatus === 'upcoming' && !transcriptStatus && !aiSummary && !aiSummaryStructured) {
                       return (
-                        <div className="mt-1 mb-2 p-2.5 rounded bg-slate-700/30 text-slate-300 text-xs" role="status">
-                          <div className="font-medium text-slate-200 mb-1">Available after the meeting</div>
-                          <div className="opacity-80">Once the meeting is complete, ReplyFlow will retrieve the Google Meet transcript and prepare an AI summary automatically.</div>
+                        <div className="mt-2 mb-2 p-3 rounded-lg bg-slate-700/30 text-slate-300 text-xs" role="status">
+                          <div className="font-medium text-slate-200 mb-1.5">Available after the meeting</div>
+                          <div className="opacity-80 leading-relaxed">Once the meeting is complete, ReplyFlow will automatically retrieve the Google Meet transcript and generate an AI meeting summary with key discussion points and next steps.</div>
                         </div>
                       )
                     }
                     // Meeting complete, transcript not yet available
                     if (meetingStatus === 'completed' && (!transcriptStatus || transcriptStatus === 'pending')) {
                       return (
-                        <div className="mt-1 mb-2 p-2.5 rounded bg-slate-700/30 text-slate-300 text-xs flex items-start gap-2 min-h-[2.5rem]" role="status" aria-live="polite" aria-busy="true">
+                        <div className="mt-2 mb-2 p-3 rounded-lg bg-slate-700/30 text-slate-300 text-xs flex items-start gap-2.5 min-h-[2.5rem]" role="status" aria-live="polite" aria-busy="true">
                           <div className="w-3 h-3 mt-0.5 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
-                          <div className="space-y-0.5">
+                          <div className="space-y-0.5 flex-1">
                             <div className="font-medium text-slate-200">Waiting for Google Meet transcript</div>
-                            <div className="opacity-80">Google may take a few minutes to prepare the transcript after the meeting ends.</div>
-                            <div className="opacity-60">ReplyFlow will process it automatically when it becomes available.</div>
+                            <div className="opacity-80 leading-relaxed">Google may take a few minutes to prepare the transcript after the meeting ends.</div>
+                            <div className="opacity-60 leading-relaxed">ReplyFlow will process it automatically when it becomes available.</div>
                           </div>
                         </div>
                       )
@@ -819,12 +822,12 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                     // Transcript available, summary generation pending
                     if (transcriptStatus === 'available' && !aiSummary && !aiSummaryStructured) {
                       return (
-                        <div className="mt-1 mb-2 p-2.5 rounded bg-slate-700/30 text-slate-300 text-xs flex items-start gap-2 min-h-[2.5rem]" role="status" aria-live="polite" aria-busy="true">
+                        <div className="mt-2 mb-2 p-3 rounded-lg bg-slate-700/30 text-slate-300 text-xs flex items-start gap-2.5 min-h-[2.5rem]" role="status" aria-live="polite" aria-busy="true">
                           <div className="w-3 h-3 mt-0.5 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
-                          <div className="space-y-0.5">
+                          <div className="space-y-0.5 flex-1">
                             <div className="font-medium text-slate-200">Generating meeting summary</div>
-                            <div className="opacity-80">The Google Meet transcript has been imported.</div>
-                            <div className="opacity-60">ReplyFlow is preparing the summary and follow-up items.</div>
+                            <div className="opacity-80 leading-relaxed">The Google Meet transcript has been imported.</div>
+                            <div className="opacity-60 leading-relaxed">ReplyFlow is preparing the summary and follow-up items.</div>
                           </div>
                         </div>
                       )
@@ -832,12 +835,12 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                     // Transcript still pending (before meeting complete)
                     if (transcriptStatus === 'pending') {
                       return (
-                        <div className="mt-1 mb-2 p-2.5 rounded bg-slate-700/30 text-slate-300 text-xs flex items-start gap-2 min-h-[2.5rem]" role="status" aria-live="polite" aria-busy="true">
+                        <div className="mt-2 mb-2 p-3 rounded-lg bg-slate-700/30 text-slate-300 text-xs flex items-start gap-2.5 min-h-[2.5rem]" role="status" aria-live="polite" aria-busy="true">
                           <div className="w-3 h-3 mt-0.5 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
-                          <div className="space-y-0.5">
+                          <div className="space-y-0.5 flex-1">
                             <div className="font-medium text-slate-200">Processing transcript…</div>
-                            <div className="opacity-80">Google is still preparing the meeting transcript.</div>
-                            <div className="opacity-60">ReplyFlow will automatically generate the meeting summary once it becomes available.</div>
+                            <div className="opacity-80 leading-relaxed">Google is still preparing the meeting transcript.</div>
+                            <div className="opacity-60 leading-relaxed">ReplyFlow will automatically generate the meeting summary once it becomes available.</div>
                           </div>
                         </div>
                       )
@@ -854,9 +857,9 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                         })
                       }
                       return (
-                        <div className="mt-1 mb-2 p-2.5 rounded bg-slate-700/30 text-slate-300 text-xs" role="status">
-                          <div className="font-medium text-slate-200 mb-1">Meeting summary</div>
-                          <div className="opacity-80">Summary will be available after the meeting.</div>
+                        <div className="mt-2 mb-2 p-3 rounded-lg bg-slate-700/30 text-slate-300 text-xs" role="status">
+                          <div className="font-medium text-slate-200 mb-1.5">Meeting summary</div>
+                          <div className="opacity-80 leading-relaxed">Summary will be available after the meeting.</div>
                         </div>
                       )
                     }
@@ -865,19 +868,19 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
 
                   {/* Informational and error states */}
                   {transcriptStatus === 'unavailable' && (
-                    <p className="text-xs text-slate-400">No transcript is available for this meeting.</p>
+                    <p className="text-xs text-slate-400 leading-relaxed">No transcript is available for this meeting.</p>
                   )}
                   {transcriptStatus === 'permission_required' && (
-                    <div className="p-2.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
+                    <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
                       <div className="font-medium mb-1">Google Meet access required</div>
-                      <div className="opacity-80 mb-2">Reconnect Google Calendar and approve the requested Google Meet permission to retrieve transcripts.</div>
+                      <div className="opacity-80 mb-2 leading-relaxed">Reconnect Google Calendar and approve the requested Google Meet permission to retrieve transcripts.</div>
                       <a href="/api/google/calendar/connect" className="inline-block px-3 py-1.5 text-xs rounded bg-muted hover:bg-muted/80 text-foreground border border-border/50">Reconnect Google</a>
                     </div>
                   )}
                   {transcriptStatus === 'failed' && (
-                    <div className="p-2.5 rounded bg-red-500/10 border border-red-500/30 text-red-300 text-xs">
+                    <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-xs">
                       <div className="font-medium mb-1">Meeting summary unavailable</div>
-                      <div className="opacity-80">ReplyFlow could not retrieve or process the transcript yet.</div>
+                      <div className="opacity-80 leading-relaxed">ReplyFlow could not retrieve or process the transcript yet.</div>
                     </div>
                   )}
 
@@ -1071,7 +1074,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
               </div>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {/* LEVEL 1: Primary workflow actions */}
               {(event.meetingUrl || (!event.isHoliday && (lead?.id && (lead.caller_phone || job?.customer_phone)))) && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1080,7 +1083,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                       onClick={openMeetingLink}
                       className="w-full px-4 py-2.5 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
                     >
-                      <LinkIcon className="w-4 h-4" />
+                      <LinkIcon className="w-4 h-4 flex-shrink-0" />
                       <span>Join Meeting</span>
                     </button>
                   )}
@@ -1089,7 +1092,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                       onClick={() => setIsSmsOpen(true)}
                       className="w-full px-4 py-2.5 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
                     >
-                      <Send className="w-4 h-4" />
+                      <Send className="w-4 h-4 flex-shrink-0" />
                       <span>Send Details by Text</span>
                     </button>
                   )}
@@ -1100,29 +1103,29 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
               <div>
                 <button
                   onClick={openGoogleCalendar}
-                  className="w-full px-4 py-2 text-sm font-medium bg-slate-800/50 hover:bg-slate-800/80 text-slate-200 rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 border border-slate-700/50"
+                  className="w-full px-4 py-2 text-sm font-medium bg-slate-800/50 hover:bg-slate-800/70 text-slate-200 rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 border border-slate-700/50"
                 >
-                  <ExternalLink className="w-4 h-4" />
+                  <ExternalLink className="w-4 h-4 flex-shrink-0" />
                   <span>Open in Google Calendar</span>
                 </button>
               </div>
 
               {/* LEVEL 3: Management actions */}
               {!event.isHoliday && (
-                <div className="pt-2 border-t border-border/30">
+                <div className="pt-2 border-t border-border/20">
                   <div className="flex items-center justify-between gap-2">
                     <button
                       onClick={handleEditClick}
                       className="px-3 py-2 text-xs font-medium text-slate-300 hover:text-slate-200 hover:bg-slate-800/50 rounded-lg transition-colors flex items-center gap-2"
                     >
-                      <Pencil className="w-3.5 h-3.5" />
+                      <Pencil className="w-3.5 h-3.5 flex-shrink-0" />
                       <span>Edit</span>
                     </button>
                     <button
                       onClick={handleDeleteClick}
                       className="px-3 py-2 text-xs font-medium text-red-400 hover:text-red-300 border border-red-500/30 hover:bg-red-500/10 rounded-lg transition-colors flex items-center gap-2"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-3.5 h-3.5 flex-shrink-0" />
                       <span>Delete</span>
                     </button>
                   </div>
