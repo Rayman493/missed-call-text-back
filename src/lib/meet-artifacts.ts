@@ -260,10 +260,15 @@ export class MeetArtifactProcessor {
     })
 
     // Automatic completion (idempotent)
-    if (record.status !== 'completed') {
+    // Only auto-complete if conference has actually ended (endTime in past)
+    // This handles early-completed meetings while avoiding ongoing conferences
+    const conferenceEndTs = pick.endTime ? new Date(pick.endTime).getTime() : null
+    const isConferenceCompleted = conferenceEndTs !== null && conferenceEndTs < nowTs
+    if (record.status !== 'completed' && isConferenceCompleted) {
       const completedAt = pick.endTime || pick.startTime || now().toISOString()
       const changed = await repo.markCompletedIfUpcoming(record.id, completedAt)
       if (changed) {
+        console.log('[MEET DIAG] Auto-completed meeting based on completed conference record')
         await this.deps.timeline.meetingCompletedOnce(business.id, record.google_calendar_event_id, {
           conference_record: pick.name,
           actual_start: pick.startTime || null,
@@ -283,7 +288,25 @@ export class MeetArtifactProcessor {
     console.log('[MEET DIAG] listTranscripts.for=%s', pick.name)
     const transcripts = await this.deps.google.listTranscripts(pick.name)
     if (!transcripts || transcripts.length === 0) {
-      console.log('[MEET DIAG] transcripts.count=0 -> pending(no_transcripts)')
+      console.log('[MEET DIAG] transcripts.count=0')
+      
+      // Terminal unavailable check: after 10 attempts with completed conference, mark unavailable
+      const maxAttempts = 10
+      const currentAttempts = record.processing_attempts || 0
+      const conferenceEndTs = pick.endTime ? new Date(pick.endTime).getTime() : null
+      const isConferenceCompleted = conferenceEndTs !== null && conferenceEndTs < now().getTime()
+      
+      if (isConferenceCompleted && currentAttempts >= maxAttempts) {
+        console.log('[MEET DIAG] Terminal unavailable: %d attempts, conference completed', currentAttempts)
+        await repo.updateMeetingRecord(record.id, {
+          transcript_status: 'unavailable',
+          processing_error: null,
+          next_processing_attempt_at: null, // Stop automatic retries
+        })
+        console.log('[MEET DIAG] result.status=unavailable reason=max_attempts_exceeded')
+        return { processed: false, status: 'unavailable', reason: 'max_attempts_exceeded' }
+      }
+      
       // Use 15-minute backoff for first attempt (aligns with Google's ~10min transcript delay)
       // Use 1-hour backoff for subsequent retries
       const isFirstAttempt = !record.transcript_status || record.transcript_status !== 'pending'
@@ -292,7 +315,7 @@ export class MeetArtifactProcessor {
         transcript_status: 'pending',
         next_processing_attempt_at: new Date(now().getTime() + backoffMinutes * 60 * 1000).toISOString(),
       })
-      console.log('[MEET DIAG] result.status=%s result.reason=%s backoff=%dmin', 'pending', 'no_transcripts', backoffMinutes)
+      console.log('[MEET DIAG] result.status=pending reason=no_transcripts attempt=%d backoff=%dmin', currentAttempts, backoffMinutes)
       return { processed: false, status: 'pending', reason: 'no_transcripts' }
     }
     const tSample = transcripts.slice(0, 5).map(t => ({ name: t.name, state: (t as any).state || null, start: t.startTime || null, end: t.endTime || null }))
@@ -324,6 +347,23 @@ export class MeetArtifactProcessor {
 
     // If transcript resource exists but entries are not yet available, treat as temporary and retry later
     if (parts.length === 0) {
+      // Terminal unavailable check: after 10 attempts with completed conference, mark unavailable
+      const maxAttempts = 10
+      const currentAttempts = record.processing_attempts || 0
+      const conferenceEndTs = pick.endTime ? new Date(pick.endTime).getTime() : null
+      const isConferenceCompleted = conferenceEndTs !== null && conferenceEndTs < now().getTime()
+      
+      if (isConferenceCompleted && currentAttempts >= maxAttempts) {
+        console.log('[MEET DIAG] Terminal unavailable (entries): %d attempts, conference completed', currentAttempts)
+        await repo.updateMeetingRecord(record.id, {
+          transcript_status: 'unavailable',
+          processing_error: null,
+          next_processing_attempt_at: null, // Stop automatic retries
+        })
+        console.log('[MEET DIAG] result.status=unavailable reason=max_attempts_exceeded')
+        return { processed: false, status: 'unavailable', reason: 'max_attempts_exceeded' }
+      }
+      
       // Use 15-minute backoff for first attempt, 1-hour for subsequent retries
       const isFirstAttempt = !record.transcript_status || record.transcript_status !== 'pending'
       const backoffMinutes = isFirstAttempt ? 15 : 60
@@ -331,7 +371,7 @@ export class MeetArtifactProcessor {
         transcript_status: 'pending',
         next_processing_attempt_at: new Date(now().getTime() + backoffMinutes * 60 * 1000).toISOString(),
       })
-      console.log('[MEET DIAG] result.status=%s result.reason=%s backoff=%dmin', 'pending', 'transcript_entries_not_ready', backoffMinutes)
+      console.log('[MEET DIAG] result.status=pending reason=transcript_entries_not_ready attempt=%d backoff=%dmin', currentAttempts, backoffMinutes)
       return { processed: false, status: 'pending', reason: 'transcript_entries_not_ready' }
     }
 

@@ -922,7 +922,10 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
 
                   {/* Informational and error states */}
                   {transcriptStatus === 'unavailable' && (
-                    <p className="text-xs text-slate-400 leading-relaxed">No transcript is available for this meeting.</p>
+                    <div className="p-3 rounded-lg bg-slate-700/30 text-slate-300 text-xs">
+                      <div className="font-medium text-slate-200 mb-1">Transcript unavailable</div>
+                      <div className="opacity-80 leading-relaxed">Google did not provide a transcript for this meeting. This can happen when transcription was not enabled or is not available for the meeting.</div>
+                    </div>
                   )}
                   {transcriptStatus === 'permission_required' && (
                     <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">

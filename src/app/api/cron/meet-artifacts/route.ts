@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
     .from('meeting_records')
     .select('id, business_id, google_calendar_event_id, status, transcript_status, next_processing_attempt_at, processing_attempts, google_meet_space_name, google_meet_code, actual_start, actual_end, ai_summary, ai_summary_structured')
     .or('transcript_status.is.null,not.transcript_status.eq.processed')
+    .not('transcript_status', 'eq', 'unavailable') // Skip terminal unavailable records
     .lte('updated_at', new Date().toISOString())
     .order('updated_at', { ascending: false })
     .limit(10)

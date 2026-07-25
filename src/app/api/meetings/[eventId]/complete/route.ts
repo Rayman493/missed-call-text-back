@@ -129,6 +129,24 @@ async function processTranscriptAsync(
       return
     }
     
+    // If status is unavailable, reset for manual retry attempt
+    if (record.transcript_status === 'unavailable') {
+      console.log('[complete] Manual retry for unavailable meeting, resetting state')
+      await supabase
+        .from('meeting_records')
+        .update({ 
+          transcript_status: 'pending',
+          processing_attempts: 0, // Reset attempt counter
+          next_processing_attempt_at: new Date().toISOString(), // Process immediately
+          processing_error: null
+        })
+        .eq('id', record.id)
+      // Update local record for subsequent processing
+      record.transcript_status = 'pending'
+      record.processing_attempts = 0
+      record.next_processing_attempt_at = new Date().toISOString()
+    }
+    
     // Concurrency protection: check if another process is already working on this
     // Use the existing next_processing_attempt_at field as a distributed lock
     const now = new Date()
