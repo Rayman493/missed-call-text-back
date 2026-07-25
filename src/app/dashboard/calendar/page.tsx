@@ -424,8 +424,10 @@ export default function SchedulePage() {
   }
 
   const handleDisconnectCalendar = async () => {
+    console.log('[disconnect_click] Starting disconnect flow')
     setIsDisconnecting(true)
     try {
+      console.log('[disconnect_request_started] Calling disconnect API')
       const response = await fetch('/api/google/calendar/disconnect', {
         method: 'POST',
         credentials: 'include',
@@ -433,15 +435,23 @@ export default function SchedulePage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Failed to disconnect calendar' }))
+        console.error('[disconnect_request_failed] API error:', errorData)
         throw new Error(errorData.error || 'Failed to disconnect calendar')
       }
 
+      console.log('[disconnect_request_success] API call successful')
       setCalendarConnected(false)
       setCalendarEmail(null)
       setEvents([])
+      setLastSyncTime(null)
+      setTokenExpired(false)
+      console.log('[disconnect_ui_state_updated] UI state updated')
       showToast('Calendar disconnected successfully', 'success')
+      
+      // Refresh connection status to ensure consistency
+      await fetchCalendarStatus()
     } catch (error) {
-      console.error('Failed to disconnect calendar:', error)
+      console.error('[disconnect_request_failed] Error:', error)
       showToast('Failed to disconnect calendar', 'error')
     } finally {
       setIsDisconnecting(false)
