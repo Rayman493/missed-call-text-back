@@ -235,8 +235,12 @@ export default function SchedulePage() {
   
   // Overflow menu state
   const [isCalendarOverflowOpen, setIsCalendarOverflowOpen] = useState(false)
-  const calendarOverflowRef = useRef<HTMLDivElement>(null)
-  const calendarOverflowButtonRef = useRef<HTMLButtonElement>(null)
+  // Desktop refs
+  const desktopCalendarOverflowRef = useRef<HTMLDivElement>(null)
+  const desktopCalendarOverflowButtonRef = useRef<HTMLButtonElement>(null)
+  // Mobile refs
+  const mobileCalendarOverflowRef = useRef<HTMLDivElement>(null)
+  const mobileCalendarOverflowButtonRef = useRef<HTMLButtonElement>(null)
   
   // Disconnect confirmation state
   const [isDisconnectConfirmOpen, setIsDisconnectConfirmOpen] = useState(false)
@@ -354,8 +358,10 @@ export default function SchedulePage() {
 
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node
-      const isClickInsideButton = calendarOverflowButtonRef.current?.contains(target)
-      const isClickInsideMenu = calendarOverflowRef.current?.contains(target)
+      const isClickInsideDesktopButton = desktopCalendarOverflowButtonRef.current?.contains(target)
+      const isClickInsideDesktopMenu = desktopCalendarOverflowRef.current?.contains(target)
+      const isClickInsideMobileButton = mobileCalendarOverflowButtonRef.current?.contains(target)
+      const isClickInsideMobileMenu = mobileCalendarOverflowRef.current?.contains(target)
       const targetTag = target instanceof HTMLElement ? target.tagName : 'unknown'
       const targetRole = target instanceof HTMLElement ? target.getAttribute('role') : null
       
@@ -363,13 +369,15 @@ export default function SchedulePage() {
         event: 'mousedown',
         targetTag,
         targetRole,
-        isClickInsideButton,
-        isClickInsideMenu,
+        isClickInsideDesktopButton,
+        isClickInsideDesktopMenu,
+        isClickInsideMobileButton,
+        isClickInsideMobileMenu,
         menuOpen: isCalendarOverflowOpen,
         defaultPrevented: event.defaultPrevented
       })
       
-      if (!isClickInsideButton && !isClickInsideMenu) {
+      if (!isClickInsideDesktopButton && !isClickInsideDesktopMenu && !isClickInsideMobileButton && !isClickInsideMobileMenu) {
         console.log('[google_menu_closed] source: document_mousedown')
         setIsCalendarOverflowOpen(false)
       }
@@ -1284,7 +1292,7 @@ export default function SchedulePage() {
                           </button>
                           <div className="relative">
                             <button
-                              ref={calendarOverflowButtonRef}
+                              ref={desktopCalendarOverflowButtonRef}
                               onClick={() => setIsCalendarOverflowOpen(!isCalendarOverflowOpen)}
                               className="inline-flex items-center justify-center p-1.5 hover:bg-slate-800 text-slate-400 hover:text-slate-300 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
@@ -1292,7 +1300,7 @@ export default function SchedulePage() {
                             </button>
                             {isCalendarOverflowOpen && (
                                 <div
-                                  ref={calendarOverflowRef}
+                                  ref={desktopCalendarOverflowRef}
                                   className="absolute right-0 top-full mt-1 z-[50] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1 min-w-[160px] max-w-[220px]"
                                 >
                                   <button
@@ -1465,7 +1473,7 @@ export default function SchedulePage() {
                           </button>
                           <div className="relative">
                             <button
-                              ref={calendarOverflowButtonRef}
+                              ref={mobileCalendarOverflowButtonRef}
                               onClick={() => setIsCalendarOverflowOpen(!isCalendarOverflowOpen)}
                               className="inline-flex items-center justify-center p-1.5 hover:bg-slate-800 text-slate-400 hover:text-slate-300 rounded-lg transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
                             >
@@ -1473,7 +1481,7 @@ export default function SchedulePage() {
                             </button>
                             {isCalendarOverflowOpen && (
                                 <div
-                                  ref={calendarOverflowRef}
+                                  ref={mobileCalendarOverflowRef}
                                   className="absolute right-0 top-full mt-1 z-[50] bg-card border border-border/60 rounded-lg shadow-lg shadow-black/10 py-1 min-w-[160px] max-w-[220px]"
                                 >
                                     <button
