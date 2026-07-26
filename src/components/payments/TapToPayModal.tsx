@@ -398,7 +398,7 @@ export default function TapToPayModal({
       // Initialize if needed
       console.log('[TAP_SESSION_TRACE] stage=initialize')
       const initResult = await terminalService.initialize()
-      if (initResult.status !== 'ready') {
+      if (initResult.status !== 'ready' && initResult.status !== 'connected') {
         throw new Error('Failed to initialize payment terminal')
       }
       setLastSuccessfulStage('initialized')

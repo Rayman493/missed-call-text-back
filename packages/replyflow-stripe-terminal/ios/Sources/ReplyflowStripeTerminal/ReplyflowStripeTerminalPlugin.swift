@@ -255,43 +255,68 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
     #if canImport(StripeTerminal)
     guard let clientSecret = call.getString("clientSecret") else { call.reject("missing clientSecret"); return }
     let attemptId = call.getString("terminalAttemptId")
+    // Focused diagnostics
+    self.emitDiag("PAYMENT_INTENT_RETRIEVE_STARTED", phase: "collect_payment", correlationId: attemptId, meta: nil)
     self.emitDiag("retrieve_payment_intent_started", phase: "collect_payment", correlationId: attemptId, meta: ["clientSecret": true])
     Task { @MainActor in
       do {
         let paymentIntent = try await Terminal.shared.retrievePaymentIntent(clientSecret: clientSecret)
+        let piSuffix = String(paymentIntent.stripeId.suffix(6))
+        let statusStr = String(describing: paymentIntent.status)
+        let pmPresent = (paymentIntent.paymentMethod != nil)
+        self.emitDiag("PAYMENT_INTENT_RETRIEVED", phase: "collect_payment", correlationId: attemptId, meta: ["piSuffix": piSuffix, "status": statusStr, "paymentMethodPresent": pmPresent])
         self.emitDiag("retrieve_payment_intent_completed", phase: "collect_payment", correlationId: attemptId, meta: ["paymentIntentId": paymentIntent.stripeId])
         self.notifyListeners("paymentStatusChanged", data: ["status": "collecting"]) 
+        self.emitDiag("COLLECTION_STARTED", phase: "collect_payment", correlationId: attemptId, meta: ["piSuffix": piSuffix, "preCollectionStatus": statusStr])
         self.collectCancelable = Terminal.shared.collectPaymentMethod(paymentIntent) { collectedIntent, err in
           if let e2 = err {
             if (e2 as NSError).code == ErrorCode.canceled.rawValue {
+              self.emitDiag("COLLECTION_CALLBACK", phase: "collect_payment", correlationId: attemptId, meta: ["success": false, "status": "canceled"]) 
               self.emitDiag("collect_payment_method_failed", phase: "collect_payment", correlationId: attemptId, meta: ["code": "canceled"]) 
               call.resolve(["status": "canceled"]) 
+              self.emitDiag("CAPACITOR_PAYMENT_CALL_RESOLVED", phase: "collect_payment", correlationId: attemptId, meta: ["finalStatus": "canceled"]) 
               return
             }
+            self.emitDiag("COLLECTION_CALLBACK", phase: "collect_payment", correlationId: attemptId, meta: ["success": false, "errorMessage": e2.localizedDescription])
             self.emitDiag("collect_payment_method_failed", phase: "collect_payment", correlationId: attemptId, meta: ["message": e2.localizedDescription])
             call.reject(e2.localizedDescription)
+            self.emitDiag("CAPACITOR_PAYMENT_CALL_REJECTED", phase: "collect_payment", correlationId: attemptId, meta: ["stage": "collect", "message": e2.localizedDescription])
             return
           }
           guard let collectedPaymentIntent = collectedIntent else {
+            self.emitDiag("COLLECTION_CALLBACK", phase: "collect_payment", correlationId: attemptId, meta: ["success": false, "errorMessage": "no_collected_payment_intent"]) 
             call.reject("no_collected_payment_intent")
+            self.emitDiag("CAPACITOR_PAYMENT_CALL_REJECTED", phase: "collect_payment", correlationId: attemptId, meta: ["stage": "collect", "message": "no_collected_payment_intent"]) 
             return
           }
+          let collectedSuffix = String(collectedPaymentIntent.stripeId.suffix(6))
+          let collectedStatus = String(describing: collectedPaymentIntent.status)
+          let collectedPm = (collectedPaymentIntent.paymentMethod != nil)
+          self.emitDiag("COLLECTION_CALLBACK", phase: "collect_payment", correlationId: attemptId, meta: ["success": true, "status": collectedStatus, "paymentMethodPresent": collectedPm, "piSuffix": collectedSuffix])
           self.emitDiag("collect_payment_method_completed", phase: "collect_payment", correlationId: attemptId, meta: ["paymentIntentId": collectedPaymentIntent.stripeId])
           Task { @MainActor in
             do {
+              self.emitDiag("PROCESS_PAYMENT_STARTED", phase: "confirm_payment", correlationId: attemptId, meta: ["piSuffix": collectedSuffix, "status": collectedStatus, "paymentMethodPresent": collectedPm])
               let processedIntent = try await Terminal.shared.confirmPaymentIntent(collectedPaymentIntent)
+              let finalSuffix = String(processedIntent.stripeId.suffix(6))
+              let finalStatus = String(describing: processedIntent.status)
+              self.emitDiag("PROCESS_PAYMENT_CALLBACK", phase: "confirm_payment", correlationId: attemptId, meta: ["success": true, "finalStatus": finalStatus, "piSuffix": finalSuffix])
               self.emitDiag("confirm_payment_intent_completed", phase: "confirm_payment", correlationId: attemptId, meta: ["paymentIntentId": processedIntent.stripeId])
               self.notifyListeners("paymentSucceeded", data: ["paymentIntentId": processedIntent.stripeId])
               call.resolve(["status": "succeeded", "paymentIntentId": processedIntent.stripeId])
+              self.emitDiag("CAPACITOR_PAYMENT_CALL_RESOLVED", phase: "confirm_payment", correlationId: attemptId, meta: ["finalStatus": "succeeded"]) 
             } catch {
+              self.emitDiag("PROCESS_PAYMENT_CALLBACK", phase: "confirm_payment", correlationId: attemptId, meta: ["success": false, "errorMessage": error.localizedDescription])
               self.emitDiag("confirm_payment_intent_failed", phase: "confirm_payment", correlationId: attemptId, meta: ["message": error.localizedDescription])
               call.reject(error.localizedDescription)
+              self.emitDiag("CAPACITOR_PAYMENT_CALL_REJECTED", phase: "confirm_payment", correlationId: attemptId, meta: ["stage": "confirm", "message": error.localizedDescription])
             }
           }
         }
       } catch {
         self.emitDiag("retrieve_payment_intent_failed", phase: "collect_payment", correlationId: attemptId, meta: ["message": error.localizedDescription])
         call.reject(error.localizedDescription)
+        self.emitDiag("CAPACITOR_PAYMENT_CALL_REJECTED", phase: "collect_payment", correlationId: attemptId, meta: ["stage": "retrieve", "message": error.localizedDescription])
       }
     }
     #else
