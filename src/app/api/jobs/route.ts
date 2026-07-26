@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,15 +11,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .select('id')
-      .eq('user_id', user.id)
-      .single()
-
-    if (businessError || !business) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+    // Check subscription access
+    const authResult = await requireSubscriptionAccessWithClient(supabase, user.id);
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error, code: authResult.code }, { status: authResult.statusCode });
     }
+
+    const business = authResult.business;
 
     const url = new URL(request.url)
     const status = url.searchParams.get('status')
@@ -29,7 +28,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('jobs')
       .select('*')
-      .eq('business_id', business.id)
+      .eq('business_id', business.id!)
       .order('scheduled_date', { ascending: true })
       .order('scheduled_time', { ascending: true })
 
@@ -61,15 +60,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .select('id, business_hours_timezone')
-      .eq('user_id', user.id)
-      .single()
-
-    if (businessError || !business) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+    // Check subscription access
+    const authResult = await requireSubscriptionAccessWithClient(supabase, user.id);
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error, code: authResult.code }, { status: authResult.statusCode });
     }
+
+    const business = authResult.business;
 
     const body = await request.json()
     const {

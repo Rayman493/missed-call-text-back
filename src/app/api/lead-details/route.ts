@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
 
 export const dynamic = 'force-dynamic';
 
@@ -50,6 +51,12 @@ export async function GET(request: NextRequest) {
         { ok: false, source: "auth_error", error: 'Authentication required' },
         { status: 401 }
       )
+    }
+
+    // Check subscription access
+    const authResult = await requireSubscriptionAccessWithClient(supabase, user.id);
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error, code: authResult.code }, { status: authResult.statusCode });
     }
 
     // Query lead with RLS protection - user can only access their own leads

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,19 +18,15 @@ export async function GET() {
 
     console.log('[Follow-ups Settings GET] Authenticated user:', user.id)
 
-    // Get the user's business using server client with RLS
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .select('*')
-      .eq('user_id', user.id)
-      .single()
-    
-    if (businessError || !business) {
-      console.error('[Follow-ups Settings GET] Business lookup failed:', businessError?.message)
-      return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+    // Check subscription access
+    const authResult = await requireSubscriptionAccessWithClient(supabase, user.id);
+    if (!authResult.success) {
+      console.error('[Follow-ups Settings GET] Subscription access denied:', authResult.code)
+      return NextResponse.json({ error: authResult.error, code: authResult.code }, { status: authResult.statusCode });
     }
 
-    console.log('[Follow-ups Settings GET] Found business:', business.id)
+    const business = authResult.business;
+    console.log('[Follow-ups Settings GET] Found business with active access:', business.id!)
 
     // Get current follow-up settings or return defaults
     const automationSettings = business.automation_settings || {}
@@ -81,6 +78,13 @@ export async function PUT(request: NextRequest) {
 
     console.log('[Follow-ups Settings PUT] Authenticated user:', user.id)
 
+    // Check subscription access
+    const authResult = await requireSubscriptionAccessWithClient(supabase, user.id);
+    if (!authResult.success) {
+      console.error('[Follow-ups Settings PUT] Subscription access denied:', authResult.code)
+      return NextResponse.json({ error: authResult.error, code: authResult.code }, { status: authResult.statusCode });
+    }
+
     const settings = await request.json()
 
     // Validate the settings structure
@@ -89,19 +93,8 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid settings format' }, { status: 400 })
     }
 
-    // Get the user's business using server client with RLS
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .select('*')
-      .eq('user_id', user.id)
-      .single()
-    
-    if (businessError || !business) {
-      console.error('[Follow-ups Settings PUT] Business lookup failed:', businessError?.message)
-      return NextResponse.json({ error: 'Business not found' }, { status: 404 })
-    }
-
-    console.log('[Follow-ups Settings PUT] Found business:', business.id)
+    const business = authResult.business;
+    console.log('[Follow-ups Settings PUT] Found business with active access:', business.id!)
 
     // Merge with existing automation settings
     const existingAutomationSettings = business.automation_settings || {}

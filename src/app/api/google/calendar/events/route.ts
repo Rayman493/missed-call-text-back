@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,20 +16,14 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get the user's business
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .select('id')
-      .eq('user_id', user.id)
-      .single()
-
-    if (businessError || !business) {
-      console.error('[CALENDAR] Business not found:', businessError)
-      return NextResponse.json(
-        { error: 'Business not found' },
-        { status: 404 }
-      )
+    // Check subscription access
+    const authResult = await requireSubscriptionAccessWithClient(supabase, user.id);
+    if (!authResult.success) {
+      console.error('[CALENDAR] Subscription access denied:', authResult.code)
+      return NextResponse.json({ error: authResult.error, code: authResult.code }, { status: authResult.statusCode });
     }
+
+    const business = authResult.business;
 
     // Get the calendar integration
     const { data: integration, error: integrationError } = await supabase
@@ -84,7 +79,7 @@ export async function GET(request: NextRequest) {
 
       const tokenData = await refreshResponse.json()
       accessToken = tokenData.access_token
-      console.log('[CALENDAR] Token refreshed successfully for business:', business.id)
+      console.log('[CALENDAR] Token refreshed successfully for business:', business.id!)
 
       // Update the integration with new token
       const expiresAt = new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString()

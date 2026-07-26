@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { timelineEvents } from '@/lib/event-timeline'
 import { notificationServiceServer } from '@/lib/notifications-server'
+import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
 
 export async function POST(request: NextRequest) {
   console.log('[Calendar Create] auth check start')
@@ -22,6 +23,13 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[Calendar Create] user found:', user.id)
+
+    // Check subscription access
+    const authResult = await requireSubscriptionAccessWithClient(supabase, user.id);
+    if (!authResult.success) {
+      console.error('[Calendar Create] Subscription access denied:', authResult.code)
+      return NextResponse.json({ error: authResult.error, code: authResult.code }, { status: authResult.statusCode });
+    }
 
     const body = await request.json()
     const {

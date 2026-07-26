@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
 
 async function getBusinessId(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>, userId: string) {
   const { data, error } = await supabase
@@ -17,8 +18,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const businessId = await getBusinessId(supabase, user.id)
-    if (!businessId) return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+    // Check subscription access
+    const authResult = await requireSubscriptionAccessWithClient(supabase, user.id);
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error, code: authResult.code }, { status: authResult.statusCode });
+    }
+
+    const businessId = authResult.business.id!
 
     const { data: job, error } = await supabase
       .from('jobs')
@@ -42,8 +48,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const businessId = await getBusinessId(supabase, user.id)
-    if (!businessId) return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+    // Check subscription access
+    const authResult = await requireSubscriptionAccessWithClient(supabase, user.id);
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error, code: authResult.code }, { status: authResult.statusCode });
+    }
+
+    const businessId = authResult.business.id!
 
     const body = await request.json()
     const allowedFields = [

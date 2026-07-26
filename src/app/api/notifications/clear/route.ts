@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { db, supabaseAdmin } from '@/lib/supabase/admin'
 import { cookies } from 'next/headers'
+import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
 
 /**
  * DELETE /api/notifications/clear
@@ -44,6 +45,13 @@ export async function DELETE(request: NextRequest) {
     if (userError || !user) {
       console.error('[NOTIFICATION CLEAR ALL] Unauthorized: No user found')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Check subscription access
+    const authResult = await requireSubscriptionAccessWithClient(supabase, user.id);
+    if (!authResult.success) {
+      console.error('[NOTIFICATION CLEAR ALL] Subscription access denied:', authResult.code)
+      return NextResponse.json({ error: authResult.error, code: authResult.code }, { status: authResult.statusCode });
     }
 
     // Get businessId from query params

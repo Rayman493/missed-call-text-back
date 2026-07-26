@@ -79,7 +79,7 @@ It runs in the background so you can focus on the job while still capturing ever
     id: 'tmobile-forwarding',
     question: 'How do I forward calls on T-Mobile?',
     summary: 'T-Mobile call forwarding setup.',
-    answer: 'Dial **21* followed by the ReplyFlow number, then #. For example: **21*14125550123#. You\'ll hear a confirmation tone when it\'s enabled.',
+    answer: 'Dial **61* followed by the ReplyFlow number, then #. For example: **61*14125550123#. You\'ll hear a confirmation tone when it\'s enabled.',
     category: 'Call Forwarding',
     source: 'Onboarding Guide',
     keywords: ['t-mobile', 'tmobile', 'forwarding code', 't-mobile code', 'how to forward t-mobile'],
@@ -288,7 +288,7 @@ It runs in the background so you can focus on the job while still capturing ever
     id: 'cancel-forwarding',
     question: 'How do I disable call forwarding?',
     summary: 'Disable call forwarding codes.',
-    answer: 'To disable forwarding, dial your carrier\'s disable code from your business phone. Verizon: *73, AT&T: ##004#, T-Mobile: ##004#, Comcast/Xfinity: *73. For VoIP providers, use the disable option in their web dashboard.',
+    answer: 'See the canonical "Disable call forwarding" article for the latest carrier-specific disable codes and verification steps.',
     category: 'Setup',
     source: 'FAQ',
     keywords: ['disable forwarding', 'turn off', 'stop forwarding', 'cancel forwarding'],
@@ -308,13 +308,32 @@ It runs in the background so you can focus on the job while still capturing ever
   },
   {
     id: 'test-replyflow',
-    question: 'How do I test ReplyFlow?',
-    summary: 'Testing the setup with a missed call.',
-    answer: 'Call your business number from a different phone (not your business phone). Let it ring until it forwards to ReplyFlow. You should receive an automated text message within 1-2 minutes. You can then reply to test the conversation.',
+    question: 'Test your setup',
+    summary: 'Verify forwarding and automated SMS by placing a real missed call from a different phone.',
+    answer: `When you would use this
+Use this after enabling forwarding to confirm end-to-end behavior.
+
+Step-by-step instructions
+1) From a different phone, call your business number.
+2) Do not answer—let it ring until it forwards to ReplyFlow.
+3) Within 1–2 minutes, you should receive an automated text.
+4) Reply to the text to confirm two-way messaging.
+
+Tips / Best Practices
+- Always test from a second phone; calling from the forwarded phone will not forward.
+- If SMS is delayed, wait up to 5 minutes and try once more.
+
+Common problems
+- No lead created or no SMS: see 'No lead after test' and 'SMS did not send'.
+
+Related articles
+- Forwarding basics
+- Carrier Forwarding Codes
+- Troubleshoot call forwarding`,
     category: 'Dashboard',
     source: 'FAQ',
     keywords: ['test replyflow', 'how to test', 'testing replyflow'],
-    readingTime: 1,
+    readingTime: 2,
     relatedQuestions: ['Why can\'t I call from my business phone to test?', 'How long until I receive the auto-reply text?', 'No lead appeared after my test call'],
   },
   {
@@ -596,7 +615,7 @@ It runs in the background so you can focus on the job while still capturing ever
     id: 'forwarding-not-working',
     question: 'Call forwarding is not working',
     summary: 'Troubleshooting call forwarding.',
-    answer: 'If calls aren\'t forwarding: 1) Verify you used the correct carrier code, 2) Confirm you dialed the code on your business phone (not a different phone), 3) Test by calling from a different phone, 4) Check with your carrier that forwarding is enabled on your line, 5) For VoIP providers, check the web dashboard settings. Always test from a different phone. Carrier-specific codes: Verizon (*73 disable, *71+number enable), AT&T (##004# disable, *004*number# enable), T-Mobile (##004# disable, **21*number# enable).',
+    answer: 'If calls aren\'t forwarding: 1) Verify you used the correct carrier code, 2) Confirm you dialed the code on your business phone (not a different phone), 3) Test by calling from a different phone, 4) Check with your carrier that forwarding is enabled on your line, 5) For VoIP providers, check the web dashboard settings. Always test from a different phone. Carrier-specific codes: Verizon (*73 disable, *71+number enable), AT&T (#004# disable, *004*number# enable), T-Mobile (#61# disable, **61*number# enable).',
     category: 'Troubleshooting',
     source: 'Support Guide',
     keywords: ['forwarding not working', 'forwarding broken', 'calls not forwarding', 'forwarding setup failed'],
@@ -607,7 +626,28 @@ It runs in the background so you can focus on the job while still capturing ever
     id: 'disable-forwarding',
     question: 'How do I disable call forwarding?',
     summary: 'Disable forwarding codes.',
-    answer: 'To disable forwarding, dial your carrier\'s disable code from your business phone. Verizon: *73, AT&T: ##004#, T-Mobile: ##004#, Comcast/Xfinity: *73. For VoIP providers, use the disable option in their web dashboard. After disabling, test by calling your business number to confirm calls ring normally.',
+    answer: `When you would use this
+Use this to turn off conditional forwarding (for offboarding, testing, or changes).
+
+Step-by-step instructions
+1) From your business phone, dial your carrier's disable code:
+   - Verizon: *73
+   - AT&T: #004#
+   - T‑Mobile: #61#
+   - Comcast/Xfinity: *73
+   - VoIP (RingCentral/Grasshopper/Google Voice/etc.): turn off in the provider web portal.
+2) Call your business number to confirm it rings normally and does not forward.
+
+Tips / Best Practices
+- Keep your disable code handy for future changes.
+- If you changed your forwarding number, disable first, then re-enable with the new ReplyFlow number.
+
+Common problems
+- Code dialed from a different phone: disable must be dialed from the business line.
+
+Related articles
+- Carrier Forwarding Codes
+- Troubleshoot call forwarding`,
     category: 'Setup',
     source: 'FAQ',
     keywords: ['disable forwarding', 'turn off forwarding', 'stop forwarding', 'cancel forwarding', 'how to disable'],
@@ -679,5 +719,323 @@ It runs in the background so you can focus on the job while still capturing ever
     keywords: ['guarantee', 'delivery guarantee', 'sms guarantee', 'legal guarantee', 'compliance guarantee', 'emergency'],
     readingTime: 2,
     relatedQuestions: ['What can and can\'t ReplyFlow do?', 'How do I contact support?', 'Is ReplyFlow TCPA compliant?'],
+  },
+  {
+    id: 'how-replyflow-works',
+    question: 'How ReplyFlow works',
+    summary: 'From missed call to Customer and beyond—end-to-end flow in minutes.',
+    answer: `When you would use this
+Understand the full journey from call to conversation, appointment, and payment.
+
+Step-by-step instructions
+1) A caller dials your existing business number.
+2) If you don't answer, your carrier forwards the call to your ReplyFlow number.
+3) AI Receptionist answers live (or voicemail fallback) and captures key details.
+4) ReplyFlow sends an SMS to the caller and creates a Customer in your dashboard.
+5) You reply in the Conversation, schedule an appointment, and optionally request payment.
+
+Tips / Best Practices
+- Enable forwarding and test once to unlock the full flow.
+- Connect Google Calendar to create appointments directly.
+- Use Payment Requests to collect deposits or balances.
+
+Common problems
+- Forwarding not triggering; see troubleshooting.
+- SMS delays; see 'SMS did not send'.
+
+Related articles
+- What is ReplyFlow?
+- Setup checklist
+- Test your setup`,
+    category: 'Overview',
+    source: 'Product Guide',
+    keywords: ['how replyflow works', 'flow', 'missed call', 'overview'],
+    readingTime: 3,
+    lastUpdated: '2026-07-24',
+    relatedQuestions: ['What is ReplyFlow?', 'Setup checklist', 'Test your setup'],
+  },
+  {
+    id: 'setup-checklist',
+    question: 'Setup checklist',
+    summary: 'The fastest path from signup to your first Customer.',
+    answer: `When you would use this
+Follow this to complete setup in minutes.
+
+Step-by-step instructions
+1) Enter your business name and phone in onboarding.
+2) Enable conditional forwarding from your business phone to your ReplyFlow number.
+3) Make a test call from a different phone and confirm SMS arrives.
+4) (Optional) Connect Google Calendar.
+5) (Optional) Send a Payment Request to a test Customer.
+
+Tips / Best Practices
+- Save enable/disable codes.
+- Add personal contacts to keep non-customer calls separate.
+
+Common problems
+- Forwarding not working → see troubleshooting.
+- No lead created → see 'No lead after test'.
+
+Related articles
+- Forwarding basics
+- Test your setup
+- Connect Google Calendar`,
+    category: 'Getting Started',
+    source: 'Onboarding Guide',
+    keywords: ['checklist', 'getting started', 'setup steps'],
+    readingTime: 2,
+    lastUpdated: '2026-07-24',
+    relatedQuestions: ['Forwarding basics', 'Test your setup', 'Connect Google Calendar'],
+  },
+  {
+    id: 'carrier-forwarding-codes',
+    question: 'Carrier Forwarding Codes',
+    summary: 'Enable/disable conditional call forwarding by carrier in one place.',
+    answer: `When you would use this
+Use this to quickly find your carrier's enable/disable codes.
+
+Step-by-step instructions
+Enable forwarding (dial from your business phone):
+- Verizon: *71 <ReplyFlowNumber>
+- AT&T: *004*<ReplyFlowNumber>#
+- T‑Mobile: **61*<ReplyFlowNumber>#
+- Comcast/Xfinity: *72 <ReplyFlowNumber>
+- VoIP (RingCentral/Grasshopper/Google Voice/Nextiva/8x8): set in your provider's web portal.
+
+Disable forwarding:
+- Verizon: *73
+- AT&T: #004#
+- T‑Mobile: #61#
+- Comcast/Xfinity: *73
+- VoIP: turn off in portal
+
+Tips / Best Practices
+- Codes must be dialed from the business line.
+- After changes, test from a different phone.
+
+Common problems
+- Using unconditional codes on mobile lines may cause all calls to skip ringing. Prefer conditional (no answer) codes above.
+
+Related articles
+- Forwarding basics
+- Disable call forwarding
+- Troubleshoot call forwarding`,
+    category: 'Call Forwarding',
+    source: 'Onboarding Guide',
+    keywords: ['codes', 'carrier', 'verizon', 'att', 't-mobile', 'comcast', 'conditional forwarding'],
+    readingTime: 3,
+    lastUpdated: '2026-07-24',
+    relatedQuestions: ['Forwarding basics', 'Disable call forwarding', 'Test your setup'],
+  },
+  {
+    id: 'customers-vs-leads',
+    question: 'Customers vs Leads',
+    summary: 'How ReplyFlow organizes people who contact your business.',
+    answer: `When you would use this
+Understand what you see in the dashboard and how statuses work.
+
+Step-by-step instructions
+1) When a new call/text is captured, ReplyFlow creates a Customer record (often called a "lead" at first contact).
+2) Conversations show the full message history with that Customer.
+3) Statuses help you track progress (e.g., New, Active, Completed).
+
+Tips / Best Practices
+- Use statuses consistently to prioritize follow-up.
+- Avoid manual duplicates—search by phone number first.
+
+Common problems
+- Duplicate entries: see 'Handle duplicates & repeat callers'.
+
+Related articles
+- Lead statuses and lifecycle
+- Replying to customers
+- Export customers and conversations`,
+    category: 'Customers & Conversations',
+    source: 'Product Guide',
+    keywords: ['customers', 'leads', 'conversations', 'statuses'],
+    readingTime: 2,
+    lastUpdated: '2026-07-24',
+    relatedQuestions: ['What do lead statuses mean?', 'How do I reply to a customer?'],
+  },
+  {
+    id: 'payment-requests-overview',
+    question: 'Payment Requests overview',
+    summary: 'What Payment Requests are and how they work from send to paid.',
+    answer: `When you would use this
+Collect deposits and balances with a branded link sent via SMS.
+
+Step-by-step instructions
+1) Choose a Customer.
+2) Enter amount and (optional) description.
+3) Send the link via SMS; the customer pays on a secure page.
+4) Track status (pending/paid/cancelled/expired) in Payments.
+
+Tips / Best Practices
+- Include a clear description (e.g., "Deposit for lawn service 7/20").
+- Follow up politely if pending after 24–48 hours.
+
+Common problems
+- Link expired or cancelled—create a new request.
+
+Related articles
+- Create and send a Payment Request
+- Supported payment methods
+- Manage Payment Requests`,
+    category: 'Payments',
+    source: 'Product Guide',
+    keywords: ['payment requests', 'payments', 'collect payment', 'checkout link'],
+    readingTime: 3,
+    lastUpdated: '2026-07-24',
+    relatedQuestions: ['Create and send a Payment Request', 'Supported payment methods'],
+  },
+  {
+    id: 'create-payment-request',
+    question: 'Create and send a Payment Request',
+    summary: 'Step-by-step to request a payment from a Customer.',
+    answer: `When you would use this
+Collect a deposit or balance due for a specific Customer/job.
+
+Step-by-step instructions
+1) Go to Payments → Request Payment.
+2) Select a Customer (and optional Job).
+3) Enter amount and description; choose provider.
+4) Send the request. Copy/open the link if needed.
+
+Tips / Best Practices
+- Verify the phone number on the Customer profile.
+- If using Venmo/PayPal, you may need to mark paid manually after confirmation.
+
+Common problems
+- Customer can't open link—send again or copy the link manually.
+
+Related articles
+- Payment Requests overview
+- Supported payment methods
+- Manage Payment Requests`,
+    category: 'Payments',
+    source: 'Product Guide',
+    keywords: ['create payment request', 'send payment', 'request payment'],
+    readingTime: 2,
+    lastUpdated: '2026-07-24',
+    relatedQuestions: ['Payment Requests overview', 'Supported payment methods'],
+  },
+  {
+    id: 'tap-to-pay-requirements',
+    question: 'Tap to Pay requirements',
+    summary: 'What you need to accept contactless payments with your phone.',
+    answer: `When you would use this
+Verify device and account readiness before enabling Tap to Pay.
+
+Step-by-step instructions
+1) Use a supported mobile device (see device list in app) with the ReplyFlow mobile app.
+2) Connect Stripe in Settings → Payments and enable in-person payments.
+3) Follow the in-app setup prompts before collecting a payment.
+
+Tips / Best Practices
+- Test with a small amount first.
+- Ensure stable network connectivity during payments.
+
+Common problems
+- Stripe not connected—finish onboarding in Settings.
+
+Related articles
+- Set up Tap to Pay
+- Collect a Tap to Pay payment
+- Supported payment methods`,
+    category: 'Tap to Pay',
+    source: 'Product Guide',
+    keywords: ['tap to pay', 'requirements', 'contactless', 'stripe'],
+    readingTime: 2,
+    lastUpdated: '2026-07-24',
+    relatedQuestions: ['Set up Tap to Pay', 'Collect a Tap to Pay payment'],
+  },
+  {
+    id: 'manage-subscription',
+    question: 'Manage subscription (Stripe)',
+    summary: 'Update plan, cancel, change payment method, and access invoices.',
+    answer: `When you would use this
+Self-serve subscription management.
+
+Step-by-step instructions
+1) Go to Dashboard → Settings → Subscription.
+2) Click Manage Subscription to open the Stripe portal.
+3) From the portal you can:
+   - Update payment method
+   - View/download invoices and receipts
+   - Change/cancel your subscription
+
+Tips / Best Practices
+- If the portal won’t open, try an incognito window or clear cookies.
+
+Common problems
+- Portal not accessible—see 'Billing portal troubleshooting'.
+
+Related articles
+- Pricing and trial
+- Billing portal troubleshooting`,
+    category: 'Billing & Subscription',
+    source: 'Billing Guide',
+    keywords: ['manage subscription', 'update payment method', 'invoices', 'cancel'],
+    readingTime: 2,
+    lastUpdated: '2026-07-24',
+    relatedQuestions: ['Pricing and trial', 'Billing portal troubleshooting'],
+  },
+  {
+    id: 'billing-portal',
+    question: 'Billing portal (how to use)',
+    summary: 'Access your Stripe customer portal to manage billing.',
+    answer: `When you would use this
+Open your Stripe portal to manage payment details and invoices.
+
+Step-by-step instructions
+1) Dashboard → Settings → Subscription → Manage Subscription.
+2) In the Stripe portal, choose the action you need (update card, receipts, cancel, etc.).
+
+Tips / Best Practices
+- Use a modern browser; allow pop-ups for the portal domain.
+
+Common problems
+- Portal not loading—see 'Billing portal troubleshooting'.
+
+Related articles
+- Manage subscription (Stripe)
+- Pricing and trial`,
+    category: 'Billing & Subscription',
+    source: 'Billing Guide',
+    keywords: ['billing portal', 'stripe portal', 'manage billing'],
+    readingTime: 1,
+    lastUpdated: '2026-07-24',
+    relatedQuestions: ['Manage subscription (Stripe)', 'Billing portal troubleshooting'],
+  },
+  {
+    id: 'forwarding-basics',
+    question: 'Forwarding basics',
+    summary: 'Forward your existing business number to your ReplyFlow number using conditional call forwarding.',
+    answer: `When you would use this
+Understand what to forward and why before dialing any carrier codes.
+
+Step-by-step instructions
+1) Keep your existing public business number. Do not change what customers dial.
+2) Enable conditional call forwarding from your business line to your ReplyFlow number (for no-answer).
+3) Make a test call from a different phone to confirm it forwards correctly.
+
+Tips / Best Practices
+- Conditional forwarding ensures answered calls still reach you first.
+- Save your enable/disable codes for quick changes.
+
+Common problems
+- Calls not forwarding: see 'Call forwarding is not working'.
+- Testing from the same phone: forwarding won't trigger; use a different phone.
+
+Related articles
+- Carrier Forwarding Codes
+- Disable call forwarding
+- Test your setup`,
+    category: 'Call Forwarding',
+    source: 'Onboarding Guide',
+    keywords: ['forwarding basics', 'which number', 'conditional forwarding', 'business number'],
+    readingTime: 3,
+    lastUpdated: '2026-07-24',
+    relatedQuestions: ['Carrier Forwarding Codes', 'Disable call forwarding', 'Test your setup'],
   },
 ]

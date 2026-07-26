@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,16 +31,13 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user's business
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .select('id')
-      .eq('user_id', user.id)
-      .single()
-
-    if (businessError || !business) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+    // Check subscription access
+    const authResult = await requireSubscriptionAccessWithClient(supabase, user.id);
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error, code: authResult.code }, { status: authResult.statusCode });
     }
+
+    const business = authResult.business;
 
     // Fetch payment requests with lead and job information
     const { data: paymentRequests, error: paymentsError } = await supabase
@@ -56,7 +54,7 @@ export async function GET(request: Request) {
           title
         )
       `)
-      .eq('business_id', business.id)
+      .eq('business_id', business.id!)
       .order('created_at', { ascending: false })
 
     if (paymentsError) {

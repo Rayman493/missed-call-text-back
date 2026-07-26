@@ -18,6 +18,8 @@ export type SetupState =
   | 'complete'
 
 export interface Business {
+  id?: string;
+  user_id?: string | null;
   subscription_status?: string | null;
   twilio_phone_number?: string | null;
   forwarding_enabled?: boolean;
@@ -30,6 +32,9 @@ export interface Business {
   a2p_status?: string | null;
   call_forwarding_enabled?: boolean | null;
   provisioning_status?: string | null;
+  business_hours_timezone?: string | null;
+  name?: string | null;
+  automation_settings?: any;
   // Test call completion fields
   first_test_call_completed_at?: string | null;
   // Manual access fields

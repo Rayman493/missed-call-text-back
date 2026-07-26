@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,16 +37,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get the user's business
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .select('id, forwarding_verified')
-      .eq('user_id', user.id)
-      .single()
-
-    if (businessError || !business) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+    // Check subscription access
+    const authResult = await requireSubscriptionAccessWithClient(supabase, user.id);
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error, code: authResult.code }, { status: authResult.statusCode });
     }
+
+    const business = authResult.business;
 
     // Only set forwarding_verified to true, never back to false (one-way verification)
     if (business.forwarding_verified) {
@@ -62,7 +60,7 @@ export async function POST(request: NextRequest) {
         forwarding_verified: true,
         updated_at: new Date().toISOString()
       })
-      .eq('id', business.id)
+      .eq('id', business.id!)
 
     if (updateError) {
       console.error('Error updating forwarding verification:', updateError)

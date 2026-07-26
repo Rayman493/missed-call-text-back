@@ -5,6 +5,7 @@ import { db, supabaseAdmin } from '@/lib/supabase/admin';
 import { sanitizeMessageContent } from '@/lib/security';
 import { checkManualSmsRateLimit } from '@/lib/rate-limit';
 import { promoteLeadToActiveIfNew } from '@/lib/lead-lifecycle';
+import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,6 +30,13 @@ export async function POST(request: Request) {
     if (userError || !user) {
       console.error('[Security] Unauthorized request to /api/send-sms - invalid token')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Check subscription access
+    const authResult = await requireSubscriptionAccessWithClient(supabase, user.id);
+    if (!authResult.success) {
+      console.error('[Security] Subscription access denied for /api/send-sms:', authResult.code)
+      return NextResponse.json({ error: authResult.error, code: authResult.code }, { status: authResult.statusCode });
     }
 
     // Rate limiting check (user-based)

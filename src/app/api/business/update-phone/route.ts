@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/supabase/admin'
+import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,6 +35,13 @@ export async function POST(request: Request) {
     }
 
     console.log('[api/business/update-phone] User authenticated:', user.id)
+
+    // Check subscription access
+    const authResult = await requireSubscriptionAccessWithClient(supabase, user.id);
+    if (!authResult.success) {
+      console.error('[api/business/update-phone] Subscription access denied:', authResult.code)
+      return NextResponse.json({ error: authResult.error, code: authResult.code }, { status: authResult.statusCode });
+    }
 
     const body = await request.json().catch(() => ({}))
     const { business_phone_number } = body

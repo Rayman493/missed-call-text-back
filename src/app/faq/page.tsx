@@ -12,7 +12,9 @@ export const metadata: Metadata = {
   description: 'Learn how ReplyFlow provides AI Voice, missed-call recovery, lead management, appointment scheduling, and Payment Requests. Setup, pricing, and compliance questions answered.',
 }
 
-export default function FAQPage() {
+export default async function FAQPage({ searchParams }: { searchParams?: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  const sp = searchParams ? await searchParams : undefined
+  const initialKbId = typeof sp?.kb === 'string' ? sp.kb : undefined
   return (
     <PageBackground>
       <ScrollToTopOnMount />
@@ -25,7 +27,7 @@ export default function FAQPage() {
         subtitle="Everything you need to know about ReplyFlow's AI Voice, missed-call recovery, lead management, appointment scheduling, and Payment Requests."
       >
         <div className="mt-8 max-w-4xl mx-auto">
-          <ReplyFlowAssistant defaultCategory="Overview" context={{ currentPage: undefined }} />
+          <ReplyFlowAssistant defaultCategory="Overview" context={{ currentPage: undefined }} initialKbId={initialKbId} />
         </div>
       </DocumentationHero>
 
@@ -46,6 +48,9 @@ export default function FAQPage() {
                 <p className="text-muted-foreground leading-relaxed mt-4">
                   This is <strong>not</strong> bulk marketing or cold outreach. Messages are only sent after
                   an inbound customer initiates contact by calling your business number.
+                </p>
+                <p className="mt-4">
+                  <Link href="/faq?kb=replyflow-overview" className="text-blue-600 dark:text-blue-400 font-medium">Learn More →</Link>
                 </p>
               </div>
             </div>
@@ -112,6 +117,9 @@ export default function FAQPage() {
                 </div>
               </div>
             </div>
+            <div className="px-8 pb-6">
+              <Link href="/faq?kb=how-replyflow-works" className="text-blue-600 dark:text-blue-400 font-medium">Learn More →</Link>
+            </div>
           </div>
 
           {/* Do I keep my existing business number? */}
@@ -149,6 +157,9 @@ export default function FAQPage() {
                 <p className="text-muted-foreground mt-4">
                   No changes to your business cards, website, or marketing materials are needed.
                 </p>
+                <p className="mt-4">
+                  <Link href="/faq?kb=forwarding-basics" className="text-blue-600 dark:text-blue-400 font-medium">Learn More →</Link>
+                </p>
               </div>
             </div>
           </div>
@@ -182,6 +193,9 @@ export default function FAQPage() {
                 </div>
                 <p className="text-muted-foreground mt-4">
                   <strong>Recommendation:</strong> While ReplyFlow supports both dedicated and shared business phones, businesses with a dedicated business phone number receive the most seamless experience.
+                </p>
+                <p className="mt-4">
+                  <Link href="/faq?kb=forwarding-basics" className="text-blue-600 dark:text-blue-400 font-medium">Learn More →</Link>
                 </p>
               </div>
             </div>
@@ -235,6 +249,9 @@ export default function FAQPage() {
                     ReplyFlow identifies callers by their incoming phone number. It can't automatically know whether a missed call is from a customer, a friend, or a family member. Personal Contacts gives you complete control over which phone numbers ReplyFlow should handle and which ones it should leave alone.
                   </p>
                 </div>
+                <p className="mt-4">
+                  <Link href="/faq?kb=customers-vs-leads" className="text-blue-600 dark:text-blue-400 font-medium">Learn More →</Link>
+                </p>
               </div>
             </div>
           </div>
@@ -273,6 +290,9 @@ export default function FAQPage() {
                 </div>
                 <p className="text-muted-foreground mt-4">
                   Continue conversations naturally through the ReplyFlow dashboard. You can also schedule appointments directly from a lead and send Payment Requests via a branded ReplyFlow link — all within the same conversation view.
+                </p>
+                <p className="mt-4">
+                  <Link href="/faq?kb=reply-customer" className="text-blue-600 dark:text-blue-400 font-medium">Learn More →</Link>
                 </p>
               </div>
             </div>
@@ -396,6 +416,9 @@ export default function FAQPage() {
                     <strong>Tip:</strong> The ReplyFlow messaging number appears in customer text conversations, but your business number remains unchanged for all incoming calls.
                   </p>
                 </div>
+                <p className="mt-4">
+                  <Link href="/faq?kb=different-number-text" className="text-blue-600 dark:text-blue-400 font-medium">Learn More →</Link>
+                </p>
               </div>
             </div>
           </div>
@@ -454,6 +477,9 @@ export default function FAQPage() {
                     communications and maintaining compliance with applicable regulations.
                   </p>
                 </div>
+                <p className="mt-4">
+                  <Link href="/faq?kb=tcpa-compliance" className="text-blue-600 dark:text-blue-400 font-medium">Learn More →</Link>
+                </p>
               </div>
             </div>
           </div>
@@ -480,6 +506,9 @@ export default function FAQPage() {
                 <p className="text-muted-foreground mt-4">
                   This quick response helps capture leads while they're actively engaged and thinking about your business.
                 </p>
+                <p className="mt-4">
+                  <Link href="/faq?kb=sms-timing" className="text-blue-600 dark:text-blue-400 font-medium">Learn More →</Link>
+                </p>
               </div>
             </div>
           </div>
@@ -496,6 +525,9 @@ export default function FAQPage() {
                 </p>
                 <p className="text-muted-foreground leading-relaxed mt-4">
                   AI Voice collects details such as the caller's name, reason for calling, important details, location or address, desired completion time, and preferred callback time through a guided conversation. This information is stored in your ReplyFlow dashboard so you can follow up, schedule an appointment, or send a Payment Request without re-entering the details.
+                </p>
+                <p className="mt-4">
+                  <Link href="/faq?kb=ai-voice" className="text-blue-600 dark:text-blue-400 font-medium">Learn More →</Link>
                 </p>
               </div>
             </div>
@@ -524,12 +556,12 @@ export default function FAQPage() {
 
                   <div className="bg-muted rounded-2xl p-4 border border-border">
                     <h4 className="font-semibold text-foreground mb-1">AT&T</h4>
-                    <p className="text-muted-foreground text-sm">Dial <code className="bg-secondary px-2 py-1 rounded text-foreground font-mono">##004#</code> from your business phone.</p>
+                    <p className="text-muted-foreground text-sm">Dial <code className="bg-secondary px-2 py-1 rounded text-foreground font-mono">#004#</code> from your business phone.</p>
                   </div>
 
                   <div className="bg-muted rounded-2xl p-4 border border-border">
                     <h4 className="font-semibold text-foreground mb-1">T-Mobile</h4>
-                    <p className="text-muted-foreground text-sm">Dial <code className="bg-secondary px-2 py-1 rounded text-foreground font-mono">##004#</code> from your business phone.</p>
+                    <p className="text-muted-foreground text-sm">Dial <code className="bg-secondary px-2 py-1 rounded text-foreground font-mono">#61#</code> from your business phone.</p>
                   </div>
 
                   <div className="bg-muted rounded-2xl p-4 border border-border">
@@ -556,6 +588,9 @@ export default function FAQPage() {
 
                 <p className="text-muted-foreground leading-relaxed mt-6">
                   For other carriers, check with your phone provider or look in your phone settings for call forwarding options.
+                </p>
+                <p className="mt-4">
+                  <Link href="/faq?kb=disable-forwarding" className="text-blue-600 dark:text-blue-400 font-medium">Learn how to disable forwarding →</Link>
                 </p>
               </div>
             </div>
@@ -600,6 +635,84 @@ export default function FAQPage() {
             </div>
           </div>
 
+        </div>
+
+        {/* Additional Launch-Critical FAQs (concise) */}
+        <div className="space-y-10 mt-12">
+          {/* Phone Numbers & Forwarding */}
+          <section>
+            <h2 className="text-xl font-semibold text-foreground mb-4">Phone Numbers & Forwarding</h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="bg-card border border-border rounded-xl p-5">
+                <h3 className="font-semibold text-foreground mb-2">Does ReplyFlow work with my carrier?</h3>
+                <p className="text-sm text-muted-foreground mb-3">ReplyFlow supports major carriers like Verizon, AT&T, T‑Mobile, Comcast/Xfinity, and popular VoIP providers. Availability can vary by plan and region.</p>
+                <Link href="/faq?kb=carrier-forwarding-codes" className="text-sm text-blue-600 dark:text-blue-400 font-medium">Learn More →</Link>
+              </div>
+            </div>
+          </section>
+
+          {/* AI Receptionist */}
+          <section>
+            <h2 className="text-xl font-semibold text-foreground mb-4">AI Receptionist</h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="bg-card border border-border rounded-xl p-5">
+                <h3 className="font-semibold text-foreground mb-2">Does the AI Receptionist work after hours?</h3>
+                <p className="text-sm text-muted-foreground mb-3">Yes. When calls forward during After Hours, AI can answer and capture details. You control Business Hours and after-hours messaging in Settings.</p>
+                <Link href="/faq?kb=change-business-hours" className="text-sm text-blue-600 dark:text-blue-400 font-medium">Learn More →</Link>
+              </div>
+            </div>
+          </section>
+
+          {/* Calendar & Scheduling */}
+          <section>
+            <h2 className="text-xl font-semibold text-foreground mb-4">Calendar & Scheduling</h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="bg-card border border-border rounded-xl p-5">
+                <h3 className="font-semibold text-foreground mb-2">Does ReplyFlow support Google Calendar?</h3>
+                <p className="text-sm text-muted-foreground mb-3">Yes. Connect Google Calendar to schedule from a Conversation and keep appointments synced to your account.</p>
+                <Link href="/faq?kb=connect-google-calendar" className="text-sm text-blue-600 dark:text-blue-400 font-medium">Learn More →</Link>
+              </div>
+            </div>
+          </section>
+
+          {/* Payments */}
+          <section>
+            <h2 className="text-xl font-semibold text-foreground mb-4">Payments</h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="bg-card border border-border rounded-xl p-5">
+                <h3 className="font-semibold text-foreground mb-2">Can I send Payment Requests?</h3>
+                <p className="text-sm text-muted-foreground mb-3">Yes. Send a branded link via SMS so Customers can pay securely on their phone.</p>
+                <Link href="/faq?kb=payment-requests-overview" className="text-sm text-blue-600 dark:text-blue-400 font-medium">Learn More →</Link>
+              </div>
+              <div className="bg-card border border-border rounded-xl p-5">
+                <h3 className="font-semibold text-foreground mb-2">Does ReplyFlow support Tap to Pay?</h3>
+                <p className="text-sm text-muted-foreground mb-3">Yes—on supported devices and Stripe accounts. Use your phone to accept contactless payments.</p>
+                <Link href="/faq?kb=tap-to-pay-requirements" className="text-sm text-blue-600 dark:text-blue-400 font-medium">Learn More →</Link>
+              </div>
+              <div className="bg-card border border-border rounded-xl p-5">
+                <h3 className="font-semibold text-foreground mb-2">Do I need special card-reader hardware?</h3>
+                <p className="text-sm text-muted-foreground mb-3">No separate reader is required for Tap to Pay on compatible phones. Device, OS, Stripe eligibility, and region requirements apply.</p>
+                <Link href="/faq?kb=tap-to-pay-requirements" className="text-sm text-blue-600 dark:text-blue-400 font-medium">Learn More →</Link>
+              </div>
+            </div>
+          </section>
+
+          {/* Billing */}
+          <section>
+            <h2 className="text-xl font-semibold text-foreground mb-4">Billing</h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="bg-card border border-border rounded-xl p-5">
+                <h3 className="font-semibold text-foreground mb-2">Is there a free trial?</h3>
+                <p className="text-sm text-muted-foreground mb-3">Yes—a 14‑day free trial is available so you can try ReplyFlow before subscribing.</p>
+                <Link href="/faq?kb=replyflow-overview" className="text-sm text-blue-600 dark:text-blue-400 font-medium">Learn More →</Link>
+              </div>
+              <div className="bg-card border border-border rounded-xl p-5">
+                <h3 className="font-semibold text-foreground mb-2">Can I cancel anytime?</h3>
+                <p className="text-sm text-muted-foreground mb-3">Yes. Manage your plan in the Stripe billing portal from Settings. Access continues through the current billing period.</p>
+                <Link href="/faq?kb=manage-subscription" className="text-sm text-blue-600 dark:text-blue-400 font-medium">Learn More →</Link>
+              </div>
+            </div>
+          </section>
         </div>
 
         {/* CTA Section */}

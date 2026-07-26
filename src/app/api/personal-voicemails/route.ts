@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard';
 
 // GET /api/personal-voicemails - List personal voicemails for the authenticated user's business
 export async function GET(request: NextRequest) {
@@ -30,16 +31,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user's business
-    const { data: business, error: businessError } = await supabaseAdmin
-      .from('businesses')
-      .select('id')
-      .eq('user_id', user.id)
-      .single();
-
-    if (businessError || !business) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+    // Check subscription access
+    const authResult = await requireSubscriptionAccessWithClient(supabase, user.id);
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error, code: authResult.code }, { status: authResult.statusCode });
     }
+
+    const business = authResult.business;
 
     // Fetch personal voicemails (not deleted)
     // Exclude raw recording_url from response for security

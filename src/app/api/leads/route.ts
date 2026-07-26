@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { db } from '@/lib/supabase/admin';
 import { LeadService } from '@/lib/services/LeadService';
 import { ConversationService } from '@/lib/services/ConversationService';
+import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard';
 
 export async function GET(request: NextRequest) {
   console.log('[API LEADS GET] ========== ROUTE ENTERED ==========')
@@ -30,25 +31,15 @@ export async function GET(request: NextRequest) {
 
     console.log('[API LEADS GET] Authenticated user ID:', user.id)
 
-    // Get user's business
-    console.log('[API LEADS GET] Looking up business for user:', user.id)
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .select('id')
-      .eq('user_id', user.id)
-      .single();
-
-    if (businessError) {
-      console.log('[API LEADS GET] Business lookup error:', businessError)
-      return NextResponse.json({ error: 'Business not found', details: businessError.message }, { status: 404 });
+    // Check subscription access
+    const authResult = await requireSubscriptionAccessWithClient(supabase, user.id);
+    if (!authResult.success) {
+      console.log('[API LEADS GET] Subscription access denied:', authResult.code)
+      return NextResponse.json({ error: authResult.error, code: authResult.code }, { status: authResult.statusCode });
     }
 
-    if (!business) {
-      console.log('[API LEADS GET] Business not found for user:', user.id)
-      return NextResponse.json({ error: 'Business not found' }, { status: 404 });
-    }
-
-    console.log('[API LEADS GET] Business found:', business.id)
+    const business = authResult.business;
+    console.log('[API LEADS GET] Business found with active access:', business.id)
 
     // Get query parameters for filtering
     const { searchParams } = new URL(request.url)
@@ -58,11 +49,11 @@ export async function GET(request: NextRequest) {
     console.log('[API LEADS GET] Query params - statusFilter:', statusFilter, 'includeDeleted:', includeDeleted, 'deletedOnly:', deletedOnly)
 
     // Fetch leads for this business (only select columns that exist in the schema)
-    console.log('[API LEADS GET] Fetching leads for business:', business.id)
+    console.log('[API LEADS GET] Fetching leads for business:', business.id!)
     let query = supabase
       .from('leads')
       .select('id, business_id, caller_phone, status, created_at, raw_metadata, deleted_at')
-      .eq('business_id', business.id)
+      .eq('business_id', business.id!)
 
     // Apply deleted filter
     if (deletedOnly) {
@@ -181,25 +172,15 @@ export async function POST(request: NextRequest) {
 
     console.log('[API LEADS POST] Authenticated user ID:', user.id)
 
-    // Get user's business
-    console.log('[API LEADS POST] Looking up business for user:', user.id)
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .select('id')
-      .eq('user_id', user.id)
-      .single();
-
-    if (businessError) {
-      console.log('[API LEADS POST] Business lookup error:', businessError)
-      return NextResponse.json({ error: 'Business not found', details: businessError.message }, { status: 404 });
+    // Check subscription access
+    const authResult = await requireSubscriptionAccessWithClient(supabase, user.id);
+    if (!authResult.success) {
+      console.log('[API LEADS POST] Subscription access denied:', authResult.code)
+      return NextResponse.json({ error: authResult.error, code: authResult.code }, { status: authResult.statusCode });
     }
 
-    if (!business) {
-      console.log('[API LEADS POST] Business not found for user:', user.id)
-      return NextResponse.json({ error: 'Business not found' }, { status: 404 });
-    }
-
-    console.log('[API LEADS POST] Business found:', business.id)
+    const business = authResult.business;
+    console.log('[API LEADS POST] Business found with active access:', business.id!)
 
     const body = await request.json();
     console.log('[API LEADS POST] Incoming payload:', body)
@@ -227,11 +208,11 @@ export async function POST(request: NextRequest) {
     console.log('[API LEADS POST] Normalized phone to E.164:', normalizedPhone)
 
     // Check if lead already exists for this business and caller_phone using LeadService
-    console.log('[API LEADS POST] Looking for existing lead with business_id:', business.id, 'caller_phone:', normalizedPhone)
+    console.log('[API LEADS POST] Looking for existing lead with business_id:', business.id!, 'caller_phone:', normalizedPhone)
     let existingLead
     try {
       existingLead = await LeadService.findLead({
-        business_id: business.id,
+        business_id: business.id!,
         caller_phone: normalizedPhone
       })
     } catch (e) {
@@ -254,7 +235,7 @@ export async function POST(request: NextRequest) {
       try {
         const result = await ConversationService.findOrCreateConversation({
           lead_id: lead.id,
-          business_id: business.id,
+          business_id: business.id!,
           status: 'active'
         })
         conversation = result.conversation
@@ -273,7 +254,7 @@ export async function POST(request: NextRequest) {
       let newLead
       try {
         newLead = await LeadService.createLead({
-          business_id: business.id,
+          business_id: business.id!,
           caller_phone: normalizedPhone,
           status: 'new',
           source: 'manual_payment_request',
@@ -303,7 +284,7 @@ export async function POST(request: NextRequest) {
       try {
         const result = await ConversationService.findOrCreateConversation({
           lead_id: lead.id,
-          business_id: business.id,
+          business_id: business.id!,
           status: 'active'
         })
         conversation = result.conversation

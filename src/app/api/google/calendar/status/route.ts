@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
 
 export async function GET(request: NextRequest) {
   console.log('[Google Calendar Status] Request received')
@@ -37,28 +38,14 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Get the user's business
-    const { data: business, error: businessError } = await supabase
-      .from('businesses')
-      .select('id')
-      .eq('user_id', user.id)
-      .single()
-
-    if (businessError) {
-      console.error('[Google Calendar Status] Business lookup error:', businessError)
-      // Handle missing business gracefully - return not connected
-      return NextResponse.json({
-        connected: false,
-        provider
-      })
+    // Check subscription access
+    const authResult = await requireSubscriptionAccessWithClient(supabase, user.id);
+    if (!authResult.success) {
+      console.error('[Google Calendar Status] Subscription access denied:', authResult.code)
+      return NextResponse.json({ error: authResult.error, code: authResult.code }, { status: authResult.statusCode });
     }
 
-    if (!business) {
-      return NextResponse.json({
-        connected: false,
-        provider
-      })
-    }
+    const business = authResult.business;
 
     // Query calendar_integrations
     const { data: integration, error: integrationError } = await supabase

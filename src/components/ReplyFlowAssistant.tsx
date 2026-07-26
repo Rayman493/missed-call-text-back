@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, MessageCircle, X, ChevronRight, ArrowRight, Clock, Calendar, BookOpen, Mail, Users, Calendar as CalendarIcon, CreditCard, Bot, TrendingUp } from 'lucide-react'
+import { Search, MessageCircle, X, ChevronRight, ArrowRight, Clock, Calendar, BookOpen, Mail, Users, Calendar as CalendarIcon, CreditCard, Bot, TrendingUp, Settings as SettingsIcon, Shield } from 'lucide-react'
 import {
   AssistantContext,
   AssistantArticle,
@@ -19,6 +19,7 @@ interface ReplyFlowAssistantProps {
   defaultCategory?: string
   context?: AssistantContext
   onClose?: () => void
+  initialKbId?: string
 }
 
 const engine = new ReplyFlowAssistantEngine()
@@ -39,46 +40,88 @@ interface SuggestedPrompt {
   prompts: string[]
 }
 
+// Prompts must exactly match KB article questions to ensure 1:1 mapping
 const suggestedPrompts: SuggestedPrompt[] = [
   {
     category: 'Getting Started',
     icon: <BookOpen className="w-4 h-4" />,
     prompts: [
-      'How do I set up call forwarding?',
-      'How to add a new customer',
-      'Connect Google Calendar'
+      'Setup checklist',
+      'Forwarding basics',
+      'Test your setup',
+      'What is ReplyFlow?',
+      'How ReplyFlow works'
+    ]
+  },
+  {
+    category: 'AI Receptionist',
+    icon: <Bot className="w-4 h-4" />,
+    prompts: [
+      'How does AI Voice work?'
+    ]
+  },
+  {
+    category: 'Customers',
+    icon: <Users className="w-4 h-4" />,
+    prompts: [
+      'Customers vs Leads',
+      'How do I reply to a customer?',
+      'What do lead statuses mean?'
+    ]
+  },
+  {
+    category: 'Appointments & Calendar',
+    icon: <CalendarIcon className="w-4 h-4" />,
+    prompts: [
+      'How do I connect Google Calendar?',
+      'Why are events not showing?'
+    ]
+  },
+  {
+    category: 'Payments',
+    icon: <CreditCard className="w-4 h-4" />,
+    prompts: [
+      'Payment Requests overview',
+      'Create and send a Payment Request',
+      'Tap to Pay requirements'
+    ]
+  },
+  {
+    category: 'Business Settings',
+    icon: <SettingsIcon className="w-4 h-4" />,
+    prompts: [
+      'How do I change business hours?',
+      'How do follow-ups work?'
     ]
   },
   {
     category: 'Troubleshooting',
     icon: <Bot className="w-4 h-4" />,
     prompts: [
-      'SMS messages not sending',
-      'Fix call forwarding issues',
-      'AI receptionist not working'
+      'SMS did not send after missed call',
+      'Call forwarding is not working',
+      'Why didn\'t my test call work?',
+      'No lead appeared after my test call'
     ]
   },
   {
-    category: 'Account',
-    icon: <Users className="w-4 h-4" />,
+    category: 'Billing',
+    icon: <CreditCard className="w-4 h-4" />,
     prompts: [
-      'Manage my subscription',
-      'Update payment method',
-      'Change business settings'
+      'Manage subscription (Stripe)',
+      'Billing portal (how to use)'
     ]
   },
   {
-    category: 'Features',
-    icon: <TrendingUp className="w-4 h-4" />,
+    category: 'Security & Privacy',
+    icon: <Shield className="w-4 h-4" />,
     prompts: [
-      'How payment requests work',
-      'AI receptionist overview',
-      'Follow-up messages'
+      'Is ReplyFlow TCPA compliant?'
     ]
   }
 ]
 
-export default function ReplyFlowAssistant({ className = '', defaultCategory, context, onClose }: ReplyFlowAssistantProps) {
+export default function ReplyFlowAssistant({ className = '', defaultCategory, context, onClose, initialKbId }: ReplyFlowAssistantProps) {
   const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
   const resultsRef = useRef<HTMLDivElement>(null)
@@ -107,6 +150,18 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
       return () => clearTimeout(timer)
     }
   }, [])
+
+  // If an initialKbId is provided, directly open that article by ID
+  useEffect(() => {
+    if (!initialKbId) return
+    const article = KNOWLEDGE_BASE.find(a => a.id === initialKbId)
+    if (!article) return
+    setSelectedArticle(article)
+    setRelatedQuestions(documentationProvider.getRelatedArticles(article.id, 3))
+    setShowResults(true)
+    setQuery(article.question)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialKbId])
 
   const reset = useCallback(() => {
     setQuery('')
@@ -487,43 +542,84 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
               <ChevronRight className="w-3.5 h-3.5 rotate-180" />
               Back to results
             </button>
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-2">
               <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded">
                 {selectedArticle.category}
               </span>
               <span className="text-xs text-slate-500 dark:text-slate-400">Source: {selectedArticle.source}</span>
             </div>
-            <h4 className="font-semibold text-slate-900 dark:text-white mb-3 text-base leading-snug">{selectedArticle.question}</h4>
+            <h4 className="font-semibold text-slate-900 dark:text-white mb-2 text-base leading-snug">{selectedArticle.question}</h4>
+
+            {/* Short answer */}
+            {selectedArticle.summary && (
+              <div className="mb-3 p-3 rounded-md bg-white/70 dark:bg-slate-600/50 border border-slate-200 dark:border-slate-500">
+                <p className="text-sm text-slate-800 dark:text-slate-100">
+                  {selectedArticle.summary}
+                </p>
+              </div>
+            )}
+
+            {/* Helpful explanation */}
             <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line space-y-3">
               {selectedArticle.answer}
             </div>
 
-            {/* Article-specific related questions */}
-            {selectedArticle.relatedQuestions && selectedArticle.relatedQuestions.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-600">
-                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Related questions:</p>
-                <div className="space-y-2">
-                  {selectedArticle.relatedQuestions.map((question, i) => (
-                    <button
-                      key={i}
-                      onClick={() => handleSuggestedQuestion(question)}
-                      className="w-full text-left p-2.5 bg-white dark:bg-slate-600 hover:bg-slate-100 dark:hover:bg-slate-500 rounded-lg transition-colors flex items-center gap-2 group"
-                    >
-                      <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 flex-shrink-0" />
-                      <span className="text-xs text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white">
-                        {question}
-                      </span>
-                    </button>
-                  ))}
-                </div>
+            {/* Next recommended action */}
+            {relatedQuestions.length > 0 && (
+              <div className="mt-4">
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Next recommended action</p>
+                <button
+                  onClick={() => handleSuggestedQuestion(relatedQuestions[0].question)}
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium"
+                >
+                  <ArrowRight className="w-3.5 h-3.5" />
+                  {relatedQuestions[0].question}
+                </button>
               </div>
             )}
+
+            {/* Related Articles */}
+            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-600">
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Related Articles</p>
+              <div className="space-y-2">
+                {(relatedQuestions.length > 0 ? relatedQuestions : [])
+                  .slice(0, 4)
+                  .map((article) => (
+                  <button
+                    key={article.id}
+                    onClick={() => handleSuggestedQuestion(article.question)}
+                    className="w-full text-left p-2.5 bg-white dark:bg-slate-600 hover:bg-slate-100 dark:hover:bg-slate-500 rounded-lg transition-colors flex items-center gap-2 group"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 flex-shrink-0" />
+                    <span className="text-xs text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white">
+                      {article.question}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
         {/* Suggested Prompts */}
         {!showResults && (
           <div className="space-y-3 sm:space-y-4">
+            {/* Start Here recommendation */}
+            <div className="p-3 sm:p-4 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-semibold text-blue-900 dark:text-blue-100">Start here: Your first 15 minutes</p>
+                  <p className="text-[11px] text-blue-800/80 dark:text-blue-200/80">Setup checklist → Forwarding → Test → First Customer → Payment Request</p>
+                </div>
+                <button
+                  onClick={() => handleSuggestedQuestion('Setup checklist')}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold"
+                >
+                  Begin
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
             <div className="flex items-center gap-2 mb-2 sm:mb-3">
               <div className="w-1 h-3 bg-blue-600 rounded-full"></div>
               <p className="text-[11px] sm:text-xs font-semibold text-slate-900 dark:text-white">Suggested questions</p>

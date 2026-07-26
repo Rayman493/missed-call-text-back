@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
 
 export async function GET(request: NextRequest) {
   try {
@@ -7,13 +8,13 @@ export async function GET(request: NextRequest) {
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     if (userError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    // Resolve business for this user
-    const { data: business, error: bizErr } = await supabase
-      .from('businesses')
-      .select('id')
-      .eq('user_id', user.id)
-      .single()
-    if (bizErr || !business) return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+    // Check subscription access
+    const authResult = await requireSubscriptionAccessWithClient(supabase, user.id);
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error, code: authResult.code }, { status: authResult.statusCode });
+    }
+
+    const business = authResult.business;
 
     const searchParams = request.nextUrl.searchParams
     const limit = Math.min(parseInt(searchParams.get('limit') || '30', 10), 100)
