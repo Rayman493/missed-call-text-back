@@ -277,7 +277,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
         }
       }}
     >
-      <div className="bg-card rounded-2xl border border-border/50 shadow-2xl shadow-black/10 dark:shadow-black/30 w-full max-w-md max-h-[calc(100dvh-24px-env(safe-area-inset-top)-env(safe-area-inset-bottom))] md:max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 mx-auto sm:mx-0">
+      <div className="bg-card rounded-2xl border border-border/50 shadow-2xl shadow-black/10 dark:shadow-black/30 w-full max-w-md max-h-[calc(100dvh-32px-env(safe-area-inset-top)-env(safe-area-inset-bottom))] md:max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 mx-auto sm:mx-0">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 sm:px-5 sm:py-4 border-b border-border/50 shrink-0">
           <div className="flex items-center gap-2.5">

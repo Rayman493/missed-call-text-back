@@ -402,23 +402,23 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-3">
+    <div className="grid grid-cols-1 gap-4">
       {/* Recovery Rate - Key business impact metric */}
-      <div className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 p-3 sm:p-4 min-h-[7rem] sm:min-h-[8rem] flex flex-col">
-        <div className="flex items-start justify-between mb-3">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 rounded-lg flex items-center justify-center shadow-sm">
+      <div className="bg-slate-50 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200 p-4 sm:p-5 min-h-[8rem] sm:min-h-[9rem] flex flex-col">
+        <div className="flex items-start justify-between mb-4">
+          <div className="w-11 h-11 sm:w-12 sm:h-12 bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50 rounded-xl flex items-center justify-center">
             <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
             {metrics.period}
           </div>
         </div>
-        <div className="space-y-1.5 flex-1">
-          <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 dark:text-foreground leading-tight tracking-tight">
+        <div className="space-y-2 flex-1">
+          <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 dark:text-white leading-tight tracking-tight">
             {metrics.recoveryRate}%
           </div>
-          <div className="flex items-center gap-1">
-            <div className="text-sm sm:text-base font-medium text-slate-600 dark:text-slate-400">
+          <div className="flex items-center gap-1.5">
+            <div className="text-sm sm:text-base font-semibold text-slate-700 dark:text-slate-300">
               Recovery Rate
             </div>
             <span className="inline-flex items-center cursor-help" title="Percentage of captured customers who replied to your messages">
@@ -426,7 +426,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
             </span>
           </div>
           {metrics.recoveryRate === 0 && (
-            <div className="text-xs sm:text-sm text-slate-400 dark:text-slate-500">
+            <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
               ReplyFlow will start tracking recovery as customers reply
             </div>
           )}
@@ -434,21 +434,21 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
       </div>
 
       {/* Captured Customers - Customer generation metric */}
-      <div className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 p-3 sm:p-4 min-h-[7rem] sm:min-h-[8rem] flex flex-col">
-        <div className="flex items-start justify-between mb-3">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 rounded-lg flex items-center justify-center shadow-sm">
+      <div className="bg-slate-50 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200 p-4 sm:p-5 min-h-[8rem] sm:min-h-[9rem] flex flex-col">
+        <div className="flex items-start justify-between mb-4">
+          <div className="w-11 h-11 sm:w-12 sm:h-12 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50 rounded-xl flex items-center justify-center">
             <PhoneMissed className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
             {metrics.period}
           </div>
         </div>
-        <div className="space-y-1.5 flex-1">
-          <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 dark:text-foreground leading-tight tracking-tight">
+        <div className="space-y-2 flex-1">
+          <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 dark:text-white leading-tight tracking-tight">
             {metrics.missedCallsCaptured}
           </div>
-          <div className="flex items-center gap-1">
-            <div className="text-sm sm:text-base font-medium text-slate-600 dark:text-slate-400">
+          <div className="flex items-center gap-1.5">
+            <div className="text-sm sm:text-base font-semibold text-slate-700 dark:text-slate-300">
               Captured Customers
             </div>
             <span className="inline-flex items-center cursor-help" title="Missed calls and customer inquiries captured by ReplyFlow">
@@ -456,7 +456,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
             </span>
           </div>
           {metrics.missedCallsCaptured === 0 && (
-            <div className="text-xs sm:text-sm text-slate-400 dark:text-slate-500">
+            <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
               ReplyFlow will capture missed calls when forwarding is active
             </div>
           )}
@@ -464,21 +464,21 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
       </div>
 
       {/* Messages Sent - Communication volume metric */}
-      <div className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 p-3 sm:p-4 min-h-[7rem] sm:min-h-[8rem] flex flex-col">
-        <div className="flex items-start justify-between mb-3">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800 rounded-lg flex items-center justify-center shadow-sm">
+      <div className="bg-slate-50 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200 p-4 sm:p-5 min-h-[8rem] sm:min-h-[9rem] flex flex-col">
+        <div className="flex items-start justify-between mb-4">
+          <div className="w-11 h-11 sm:w-12 sm:h-12 bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800/50 rounded-xl flex items-center justify-center">
             <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
             {metrics.period}
           </div>
         </div>
-        <div className="space-y-1.5 flex-1">
-          <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 dark:text-foreground leading-tight tracking-tight">
+        <div className="space-y-2 flex-1">
+          <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 dark:text-white leading-tight tracking-tight">
             {metrics.messagesSent}
           </div>
-          <div className="flex items-center gap-1">
-            <div className="text-sm sm:text-base font-medium text-slate-600 dark:text-slate-400">
+          <div className="flex items-center gap-1.5">
+            <div className="text-sm sm:text-base font-semibold text-slate-700 dark:text-slate-300">
               Messages Sent
             </div>
             <span className="inline-flex items-center cursor-help" title="AI and manual messages sent to customers">
@@ -486,7 +486,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
             </span>
           </div>
           {metrics.messagesSent === 0 && (
-            <div className="text-xs sm:text-sm text-slate-400 dark:text-slate-500">
+            <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
               Messages will be sent automatically when customers are captured
             </div>
           )}
@@ -494,21 +494,21 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
       </div>
 
       {/* Customer Replies - Engagement metric */}
-      <div className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 p-3 sm:p-4 min-h-[7rem] sm:min-h-[8rem] flex flex-col">
-        <div className="flex items-start justify-between mb-3">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800 rounded-lg flex items-center justify-center shadow-sm">
+      <div className="bg-slate-50 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200 p-4 sm:p-5 min-h-[8rem] sm:min-h-[9rem] flex flex-col">
+        <div className="flex items-start justify-between mb-4">
+          <div className="w-11 h-11 sm:w-12 sm:h-12 bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800/50 rounded-xl flex items-center justify-center">
             <Reply className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
           <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
             {metrics.period}
           </div>
         </div>
-        <div className="space-y-1.5 flex-1">
-          <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 dark:text-foreground leading-tight tracking-tight">
+        <div className="space-y-2 flex-1">
+          <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 dark:text-white leading-tight tracking-tight">
             {metrics.customerReplies}
           </div>
-          <div className="flex items-center gap-1">
-            <div className="text-sm sm:text-base font-medium text-slate-600 dark:text-slate-400">
+          <div className="flex items-center gap-1.5">
+            <div className="text-sm sm:text-base font-semibold text-slate-700 dark:text-slate-300">
               Customer Replies
             </div>
             <span className="inline-flex items-center cursor-help" title="Customers who replied to your messages">
@@ -516,7 +516,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
             </span>
           </div>
           {metrics.customerReplies === 0 && (
-            <div className="text-xs sm:text-sm text-slate-400 dark:text-slate-500">
+            <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
               Customer replies will appear here as conversations continue
             </div>
           )}

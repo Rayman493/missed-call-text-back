@@ -851,7 +851,7 @@ export default function TapToPayModal({
   return (
     typeof document !== 'undefined' ? createPortal(
     <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-md max-h-[calc(100dvh-24px-env(safe-area-inset-top)-env(safe-area-inset-bottom))] md:max-h-[90vh] overflow-hidden flex flex-col min-h-0 animate-in zoom-in-95 duration-200 mx-auto sm:mx-0">
+      <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-md max-h-[calc(100dvh-32px-env(safe-area-inset-top)-env(safe-area-inset-bottom))] md:max-h-[90vh] overflow-hidden flex flex-col min-h-0 animate-in zoom-in-95 duration-200 mx-auto sm:mx-0">
         {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 sm:px-5 sm:py-4 border-b border-border/50 bg-card shrink-0">
           <div className="flex items-center gap-3">

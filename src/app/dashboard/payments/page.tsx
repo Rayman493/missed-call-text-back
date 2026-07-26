@@ -759,10 +759,10 @@ export default function PaymentsPage() {
                           onClick={() => setShowOlderPayments(!showOlderPayments)}
                           className="w-full bg-[#0f172a] dark:bg-[#0f172a] rounded-lg p-3 border border-slate-700 flex items-center justify-between gap-3 hover:bg-[#1a2235] transition-colors"
                           aria-expanded={showOlderPayments}
-                          aria-label={`Show ${olderPayments.length} older payments`}
+                          aria-label={showOlderPayments ? `Hide ${olderPayments.length} older payments` : `Show ${olderPayments.length} older payments`}
                         >
                           <span className="text-sm font-medium text-gray-300">
-                            Older payments ({olderPayments.length})
+                            {showOlderPayments ? `Hide older payments (${olderPayments.length})` : `Show older payments (${olderPayments.length})`}
                           </span>
                           <ChevronDown
                             className={`h-5 w-5 text-gray-400 transition-transform duration-200 ${
