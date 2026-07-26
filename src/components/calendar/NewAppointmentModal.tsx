@@ -267,7 +267,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
   return (
     <>
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
       role="dialog"
       aria-modal="true"
       aria-labelledby="appointment-title"
@@ -277,7 +277,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
         }
       }}
     >
-      <div className="bg-card rounded-2xl border border-border/50 shadow-2xl shadow-black/10 dark:shadow-black/30 w-full max-w-md max-h-[calc(100dvh-32px-env(safe-area-inset-top)-env(safe-area-inset-bottom))] md:max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 mx-auto sm:mx-0">
+      <div className="bg-card rounded-2xl border border-border/50 shadow-2xl shadow-black/10 dark:shadow-black/30 w-full max-w-md h-[calc(100dvh-180px-env(safe-area-inset-top)-env(safe-area-inset-bottom))] sm:max-h-[90vh] sm:h-auto flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 mx-auto sm:mx-0">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 sm:px-5 sm:py-4 border-b border-border/50 shrink-0">
           <div className="flex items-center gap-2.5">
@@ -299,7 +299,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
         </div>
 
         {/* Form (scrollable body) */}
-        <div data-scroll-lock-allow className="flex-1 min-h-0 overflow-y-auto px-4 py-3 sm:px-5 sm:py-4 overscroll-contain" style={{ WebkitOverflowScrolling: 'touch', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+        <div data-scroll-lock-allow className="flex-1 min-h-0 overflow-y-auto px-4 py-3 sm:px-5 sm:py-4 overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
           <div className="space-y-3 sm:space-y-4">
             {/* Customer */}
             <div className="flex items-start gap-3">
@@ -509,8 +509,8 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
           </div>
         </div>
 
-        {/* Footer (accessible with safe-area padding) */}
-        <div className="px-4 py-3 sm:px-5 sm:py-4 border-t border-border/50 bg-card shrink-0" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+        {/* Footer */}
+        <div className="px-4 py-3 sm:px-5 sm:py-4 border-t border-border/50 bg-card shrink-0" style={{ paddingBottom: 'max(12px, calc(12px + env(safe-area-inset-bottom)))' }}>
           {error && (
             <div className="mb-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
