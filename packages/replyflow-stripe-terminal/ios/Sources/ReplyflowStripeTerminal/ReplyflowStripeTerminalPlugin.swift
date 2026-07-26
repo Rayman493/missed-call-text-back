@@ -98,15 +98,26 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
     emitDiag("initialize_started", phase: "initialize")
     class JsTokenProvider: NSObject, ConnectionTokenProvider {
       weak var plugin: ReplyflowStripeTerminalPlugin?
+      let providerId = UUID().uuidString
+      var requestCount = 0
       init(plugin: ReplyflowStripeTerminalPlugin) { self.plugin = plugin }
       func fetchConnectionToken(_ completion: @escaping ConnectionTokenCompletionBlock) {
+        requestCount += 1
         let requestId = UUID().uuidString
+        let requestNum = requestCount
+        #if DEBUG
+        print("[StripeTokenProvider] providerId=\(providerId) requestNum=\(requestNum) requestId=\(requestId) pendingCount=\(self.plugin?.pendingTokenRequests.count ?? 0)")
+        #endif
         self.plugin?.pendingTokenRequests[requestId] = { result in
+          #if DEBUG
+          print("[StripeTokenProvider] completion_invoked providerId=\(self.providerId) requestNum=\(requestNum) requestId=\(requestId) result=\(result)")
+          #endif
           switch result {
           case .success(let secret): completion(secret, nil)
           case .failure(let err): completion(nil, err)
           }
         }
+        self.plugin?.emitDiag("token_provider_fetch_started", phase: "token", meta: ["providerId": providerId, "requestNum": String(requestNum), "requestId": requestId, "pendingCount": String(self.plugin?.pendingTokenRequests.count ?? 0)])
         self.plugin?.notifyListeners("connectionTokenRequested", data: ["requestId": requestId])
       }
     }
@@ -135,8 +146,17 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
       call.reject("missing parameters")
       return
     }
+    #if DEBUG
+    print("[StripeTokenProvider] supplyConnectionToken requestId=\(requestId) pendingCount=\(pendingTokenRequests.count) hasCallback=\(pendingTokenRequests[requestId] != nil)")
+    #endif
     if let cb = pendingTokenRequests.removeValue(forKey: requestId) {
+      emitDiag("token_provider_supplied", phase: "token", meta: ["requestId": requestId, "pendingCount": String(pendingTokenRequests.count)])
       cb(.success(secret))
+    } else {
+      emitDiag("token_provider_no_matching_callback", phase: "token", meta: ["requestId": requestId, "pendingCount": String(pendingTokenRequests.count)])
+      #if DEBUG
+      print("[StripeTokenProvider] WARNING: No callback found for requestId=\(requestId)")
+      #endif
     }
     call.resolve()
   }

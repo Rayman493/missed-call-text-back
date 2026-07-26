@@ -22,7 +22,6 @@ let singletonInstance: TerminalBridgeService | null = null
 
 export class TerminalBridgeService {
   private plugin: TerminalPlugin | null
-  private activeTokenRequest: TokenRequest | null = null
   private tokenRequestListener: { remove: () => void } | null = null
   private diagListeners: Array<{ remove: () => void; __type: string; __id: string }> = []
   private instanceId: string
@@ -475,45 +474,29 @@ export class TerminalBridgeService {
   private async handleTokenRequest(requestId: string): Promise<void> {
     console.log('[TOKEN_TRACE] stage=js_event_received requestId=' + requestId)
 
-    // Track this request to avoid handling stale responses
-    this.activeTokenRequest = { requestId, timestamp: Date.now() }
-
     try {
       const t0 = Date.now()
-      try { await logTapToPayEvent('token_fetch_started', { phase: 'token', sessionId: this.sessionId }) } catch {}
+      try { await logTapToPayEvent('token_fetch_started', { phase: 'token', sessionId: this.sessionId, meta: { requestId } }) } catch {}
       console.log('[TOKEN_TRACE] stage=api_request_started requestId=' + requestId)
       // Fetch token from backend
       const token = await this.fetchConnectionTokenFromBackend()
       console.log('[TOKEN_TRACE] stage=api_request_success requestId=' + requestId + ' token_present=true token_length=' + token.secret.length)
-      try { await logTapToPayEvent('token_fetch_completed', { phase: 'token', sessionId: this.sessionId, durationMs: Date.now() - t0 }) } catch {}
-
-      // Verify this is still the active request (not stale)
-      if (this.activeTokenRequest?.requestId !== requestId) {
-        console.warn('[TOKEN_TRACE] stage=js_stale_request_ignored requestId=' + requestId)
-        try { await logTapToPayEvent('token_fetch_stale_ignored', { phase: 'token', sessionId: this.sessionId }) } catch {}
-        return
-      }
+      try { await logTapToPayEvent('token_fetch_completed', { phase: 'token', sessionId: this.sessionId, durationMs: Date.now() - t0, meta: { requestId } }) } catch {}
 
       console.log('[TOKEN_TRACE] stage=js_supply_started requestId=' + requestId)
-      // Supply token to native
+      // Supply token to native - always supply regardless of whether a newer request arrived
+      // The native side correlates by requestId, so each request gets its own completion callback
       await this.plugin!.supplyConnectionToken({ requestId, secret: token.secret })
       console.log('[TOKEN_TRACE] stage=js_supply_completed requestId=' + requestId)
     } catch (error) {
-      try { await logTapToPayEvent('token_fetch_failed', { phase: 'token', sessionId: this.sessionId, message: error instanceof Error ? error.message : 'Unknown error' }) } catch {}
+      try { await logTapToPayEvent('token_fetch_failed', { phase: 'token', sessionId: this.sessionId, message: error instanceof Error ? error.message : 'Unknown error', meta: { requestId } }) } catch {}
       console.error('[TOKEN_TRACE] stage=js_fetch_failed requestId=' + requestId + ' error=' + (error instanceof Error ? error.message : 'Unknown error'))
 
-      // Report error to native if still active
-      if (this.activeTokenRequest?.requestId === requestId) {
-        await this.plugin!.supplyConnectionTokenError({
-          requestId,
-          message: error instanceof Error ? error.message : 'Unknown error'
-        })
-      }
-    } finally {
-      // Clear active request after handling
-      if (this.activeTokenRequest?.requestId === requestId) {
-        this.activeTokenRequest = null
-      }
+      // Report error to native
+      await this.plugin!.supplyConnectionTokenError({
+        requestId,
+        message: error instanceof Error ? error.message : 'Unknown error'
+      })
     }
   }
 
@@ -1113,7 +1096,6 @@ export class TerminalBridgeService {
       }
       this.diagListeners = []
     }
-    this.activeTokenRequest = null
 
     // Cleanup diagnostics
     try { logTapToPayEvent('cleanup_started', { phase: 'cleanup', sessionId: this.sessionId }) } catch {}
