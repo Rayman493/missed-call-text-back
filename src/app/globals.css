@@ -42,7 +42,7 @@ html.light {
 }
 
 html.light body {
-  background-color: transparent;
+  background-color: #f8fafc;
   color: #0f172a;
 }
 
@@ -63,7 +63,7 @@ html.dark body {
   }
 
   html:not(.dark):not(.light):not([data-theme]) body {
-    background-color: transparent;
+    background-color: #f8fafc;
     color: #0f172a;
   }
 }
@@ -163,13 +163,13 @@ main {
 
   /* Clean stable backgrounds - removed experimental ambient gradients */
   html.light body {
-    background: var(--background) !important;
+    background: #f8fafc !important;
   }
 
   /* System light mode - clean stable backgrounds */
   @media (prefers-color-scheme: light) {
     html:not(.dark):not(.light):not([data-theme]) body {
-      background: var(--background) !important;
+      background: #f8fafc !important;
     }
   }
 }
