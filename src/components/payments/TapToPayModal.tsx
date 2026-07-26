@@ -46,6 +46,7 @@ export default function TapToPayModal({
   const [isNativeSupported, setIsNativeSupported] = useState(false)
   const [lastSuccessfulStage, setLastSuccessfulStage] = useState<string>('none')
   const [isPaymentInProgress, setIsPaymentInProgress] = useState(false)
+  const [showDiagnostics, setShowDiagnostics] = useState(false)
 
   useBodyScrollLock(isOpen)
 
@@ -56,10 +57,18 @@ export default function TapToPayModal({
   // Emit WAITING_FOR_CONFIRMATION exactly once per attempt when native indicates confirm stage
   const waitingForConfirmationEmitted = useRef<string | null>(null) // attemptId
 
+  // Auto-expand diagnostics on error states
+  useEffect(() => {
+    if (paymentState === 'failure' || paymentState === 'ambiguous' || error) {
+      setShowDiagnostics(true)
+    }
+  }, [paymentState, error])
+
   // Check native support when modal opens
   useEffect(() => {
     if (isOpen) {
       try { logTapToPayEvent('MODAL_OPENED', { phase: 'startup', sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined, meta: { modal: 'TapToPay', visible: true } }) } catch {}
+      setShowDiagnostics(false)
       
       // Development logging for platform detection
       if (process.env.NODE_ENV === 'development') {
@@ -518,9 +527,9 @@ export default function TapToPayModal({
     switch (paymentState) {
       case 'ready':
         return (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Amount Display */}
-            <div className="text-center py-6">
+            <div className="text-center py-4 sm:py-6">
               <p className="text-sm text-muted-foreground mb-2">Amount to collect</p>
               <p className="text-4xl font-bold text-foreground">{formatCurrency(amountCents / 100)}</p>
             </div>
@@ -550,9 +559,30 @@ export default function TapToPayModal({
               </div>
             )}
 
-            {/* Always-visible Tap to Pay Diagnostics (immediately above actions) */}
-            <div className="min-h-[240px]">
-              <TapToPayDiagnosticsPanel />
+            {/* Collapsible Tap to Pay Diagnostics */}
+            <div className="space-y-2">
+              <button
+                onClick={() => setShowDiagnostics(!showDiagnostics)}
+                className="w-full px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors flex items-center justify-center gap-2"
+                aria-expanded={showDiagnostics}
+              >
+                {showDiagnostics ? (
+                  <>
+                    <ChevronUp className="w-3 h-3" />
+                    Hide diagnostics
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="w-3 h-3" />
+                    Show diagnostics
+                  </>
+                )}
+              </button>
+              {showDiagnostics && (
+                <div className="min-h-[240px] animate-in slide-in-from-top-2 duration-200">
+                  <TapToPayDiagnosticsPanel />
+                </div>
+              )}
             </div>
 
             {/* Actions */}
@@ -577,7 +607,7 @@ export default function TapToPayModal({
 
       case 'preparing':
         return (
-          <div className="flex flex-col items-center justify-center py-12 space-y-4">
+          <div className="flex flex-col items-center justify-center py-8 sm:py-12 space-y-4">
             <Loader2 className="w-12 h-12 text-primary animate-spin" />
             <p className="text-lg font-medium">Preparing Tap to Pay...</p>
             <p className="text-sm text-muted-foreground">Keep this screen open</p>
@@ -586,7 +616,7 @@ export default function TapToPayModal({
 
       case 'waiting_for_card':
         return (
-          <div className="flex flex-col items-center justify-center py-12 space-y-6">
+          <div className="flex flex-col items-center justify-center py-8 sm:py-12 space-y-4 sm:space-y-6">
             {/* NFC Icon */}
             <div className="relative">
               <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
@@ -603,9 +633,30 @@ export default function TapToPayModal({
               </p>
             </div>
 
-            {/* Diagnostics directly above the Cancel action */}
-            <div className="w-full px-4 min-h-[240px]">
-              <TapToPayDiagnosticsPanel />
+            {/* Collapsible Diagnostics */}
+            <div className="w-full space-y-2">
+              <button
+                onClick={() => setShowDiagnostics(!showDiagnostics)}
+                className="w-full px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors flex items-center justify-center gap-2"
+                aria-expanded={showDiagnostics}
+              >
+                {showDiagnostics ? (
+                  <>
+                    <ChevronUp className="w-3 h-3" />
+                    Hide diagnostics
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="w-3 h-3" />
+                    Show diagnostics
+                  </>
+                )}
+              </button>
+              {showDiagnostics && (
+                <div className="w-full px-4 min-h-[240px] animate-in slide-in-from-top-2 duration-200">
+                  <TapToPayDiagnosticsPanel />
+                </div>
+              )}
             </div>
 
             <button
@@ -619,7 +670,7 @@ export default function TapToPayModal({
 
       case 'processing':
         return (
-          <div className="flex flex-col items-center justify-center py-12 space-y-4">
+          <div className="flex flex-col items-center justify-center py-8 sm:py-12 space-y-4">
             <Loader2 className="w-12 h-12 text-primary animate-spin" />
             <p className="text-lg font-medium">Processing payment...</p>
             <p className="text-sm text-muted-foreground">Do not retry or close this screen</p>
@@ -628,7 +679,7 @@ export default function TapToPayModal({
 
       case 'success':
         return (
-          <div className="flex flex-col items-center justify-center py-12 space-y-6">
+          <div className="flex flex-col items-center justify-center py-8 sm:py-12 space-y-4 sm:space-y-6">
             <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
               <CheckCircle2 className="w-10 h-10 text-green-600 dark:text-green-400" />
             </div>
@@ -650,7 +701,7 @@ export default function TapToPayModal({
 
       case 'failure':
         return (
-          <div className="flex flex-col items-center justify-center py-12 space-y-6">
+          <div className="flex flex-col items-center justify-center py-8 sm:py-12 space-y-4 sm:space-y-6">
             <div className="w-20 h-20 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
               <XCircle className="w-10 h-10 text-red-600 dark:text-red-400" />
             </div>
@@ -750,7 +801,7 @@ export default function TapToPayModal({
 
       case 'canceled':
         return (
-          <div className="flex flex-col items-center justify-center py-12 space-y-6">
+          <div className="flex flex-col items-center justify-center py-8 sm:py-12 space-y-4 sm:space-y-6">
             <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
               <XCircle className="w-10 h-10 text-slate-600 dark:text-slate-400" />
             </div>
@@ -799,10 +850,10 @@ export default function TapToPayModal({
 
   return (
     typeof document !== 'undefined' ? createPortal(
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-md max-h-[100dvh] md:max-h-[90vh] overflow-hidden flex flex-col min-h-0 animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-md max-h-[calc(100dvh-24px-env(safe-area-inset-top)-env(safe-area-inset-bottom))] md:max-h-[90vh] overflow-hidden flex flex-col min-h-0 animate-in zoom-in-95 duration-200 mx-auto sm:mx-0">
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b border-border/50 bg-card">
+        <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 sm:px-5 sm:py-4 border-b border-border/50 bg-card shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
               <CreditCard className="w-4 h-4 text-primary" />
@@ -821,7 +872,7 @@ export default function TapToPayModal({
         </div>
 
         {/* Content */}
-        <div data-scroll-lock-allow className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 py-6 pb-[env(safe-area-inset-bottom)] space-y-4 touch-pan-y" style={{ WebkitOverflowScrolling: 'touch' as any }}>
+        <div data-scroll-lock-allow className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-3 sm:px-5 sm:py-6 space-y-3 sm:space-y-4 touch-pan-y" style={{ WebkitOverflowScrolling: 'touch' as any, paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
           {renderState()}
         </div>
       </div>
