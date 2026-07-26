@@ -599,6 +599,28 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
         public void onFailure(@NonNull TerminalException e) {
           discovering = false;
 
+          // Suppress error emission when discovery was intentionally canceled during
+          // the normal handoff to connectReader. In this case Stripe reports the
+          // discover completion as a failure with a canceled error even though the
+          // connect flow is proceeding normally. Treat this as benign and return.
+          boolean connectHandoffActive;
+          synchronized (connectGuard) {
+            connectHandoffActive = connectInFlightNative || (activeConnectOpId != null);
+          }
+          String codeStr = e.getErrorCode() != null ? e.getErrorCode().toString() : "";
+          String msgStr = e.getMessage() != null ? e.getMessage() : "";
+          boolean isCancellation =
+            codeStr.toLowerCase(java.util.Locale.US).contains("cancel") ||
+            msgStr.toLowerCase(java.util.Locale.US).contains("cancel");
+          if (connectHandoffActive && isCancellation) {
+            JSObject diag = new JSObject();
+            if (activeConnectOpId != null) diag.put("operationId", activeConnectOpId);
+            if (e.getErrorCode() != null) diag.put("code", e.getErrorCode().toString());
+            diag.put("message", e.getMessage());
+            emitDiag("discover_readers_canceled_intentional", "discover", connectCorrelationId, diag);
+            return;
+          }
+
           // Handle ALREADY_CONNECTED_TO_READER race defensively
           // If discovery failed because a reader connected during the race, treat it as success
           if (e.getErrorCode() == com.stripe.stripeterminal.external.models.TerminalErrorCode.ALREADY_CONNECTED_TO_READER) {

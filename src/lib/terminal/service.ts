@@ -632,6 +632,12 @@ export class TerminalBridgeService {
       const readerConnectedListener = await this.plugin!.addListener('readerConnected', (info: any) => {
         console.log('[TAP_SESSION_TRACE] stage=connect_event_reader_connected')
         try { logTapToPayEvent('connect_completed', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: 'connected', readerId: info?.readerId }) } catch {}
+        // Ensure internal state reflects connected even if global listener hasn't updated yet
+        const prev = this.connectionStatus
+        this.connectionStatus = 'connected'
+        try { logTapToPayEvent('connection_status_changed', { phase: 'connection_status', sessionId: this.sessionId, connectionStatus: 'connected' }) } catch {}
+        this.emitStateChanged('connectionStatus', prev, this.connectionStatus)
+        if (info?.readerId) this.lastReaderId = info.readerId
         resolveConnected?.()
       })
       const statusChangedId = 'statusChanged#' + Date.now()
@@ -639,6 +645,10 @@ export class TerminalBridgeService {
         if (data?.status === 'connected') {
           console.log('[TAP_SESSION_TRACE] stage=connect_event_status_connected')
           try { logTapToPayEvent('connection_status_changed', { phase: 'connection_status', sessionId: this.sessionId, connectionStatus: 'connected' }) } catch {}
+          // Mirror the global listener's effect so state is correct under races
+          const prev = this.connectionStatus
+          this.connectionStatus = 'connected'
+          this.emitStateChanged('connectionStatus', prev, this.connectionStatus)
           resolveConnected?.()
         }
       })

@@ -217,6 +217,22 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
       self.pendingConnectCall = (call, opId, correlationId, locationId)
       self.discoveryCancelable = Terminal.shared.discoverReaders(discoveryConfig, delegate: self) { error in
         if let e = error {
+          // Suppress error when discovery completion reports a cancellation during
+          // the intentional handoff to connectReader. Treat as benign so the
+          // ongoing connect flow can proceed to resolution.
+          var handoffActive = false
+          self.connectGuard.sync { handoffActive = self.connectInFlightNative || (self.activeConnectOpId != nil) }
+          let nsErr = e as NSError
+          let isCanceledCode = (nsErr.code == ErrorCode.canceled.rawValue)
+          let isCanceledMsg = e.localizedDescription.lowercased().contains("cancel")
+          if handoffActive && (isCanceledCode || isCanceledMsg) {
+            var meta: [String: Any] = ["message": e.localizedDescription]
+            if let op = self.activeConnectOpId { meta["operationId"] = op }
+            self.emitDiag("discover_readers_canceled_intentional", phase: "discover_readers", correlationId: correlationId, meta: meta)
+            return
+          }
+
+          // Genuine discovery failure path - propagate to JS and clear flags
           self.emitDiag("discover_readers_failed", phase: "discover_readers", correlationId: correlationId, meta: ["message": e.localizedDescription])
           self.connectGuard.sync { self.connectInFlightNative = false; if self.activeConnectOpId == opId { self.activeConnectOpId = nil } }
           call.reject(e.localizedDescription)
