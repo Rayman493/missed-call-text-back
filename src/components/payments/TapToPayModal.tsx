@@ -60,6 +60,17 @@ export default function TapToPayModal({
   useEffect(() => {
     if (isOpen) {
       try { logTapToPayEvent('MODAL_OPENED', { phase: 'startup', sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined, meta: { modal: 'TapToPay', visible: true } }) } catch {}
+      
+      // Development logging for platform detection
+      if (process.env.NODE_ENV === 'development') {
+        const { Capacitor } = require('@capacitor/core')
+        console.log('[TapToPayModal] Platform detection diagnostics:', {
+          isNativePlatform: Capacitor.isNativePlatform(),
+          getPlatform: Capacitor.getPlatform(),
+          isNativeCapacitor: isNativeCapacitor(),
+        })
+      }
+      
       const supported = isNativeCapacitor()
       setIsNativeSupported(supported)
       if (!supported) {
