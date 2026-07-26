@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
-import { CreditCard, Copy, ExternalLink, User, X, Smartphone, AlertCircle, Info } from 'lucide-react'
+import { CreditCard, Copy, ExternalLink, User, X, Smartphone, AlertCircle, Info, ChevronDown } from 'lucide-react'
 import DashboardShell from '@/components/layout/DashboardShell'
 import Button from '@/components/ui/Button'
 import PageHeader from '@/components/ui/PageHeader'
@@ -111,6 +111,7 @@ export default function PaymentsPage() {
   const [isNativeSupported, setIsNativeSupported] = useState(false)
   const [showTapToPaySetup, setShowTapToPaySetup] = useState(false)
   const [paymentToMarkPaid, setPaymentToMarkPaid] = useState<PaymentRequest | null>(null)
+  const [showOlderPayments, setShowOlderPayments] = useState(false)
   useBodyScrollLock(showPaymentModal)
 
   // Lock background scroll when mark-paid confirm is open as well
@@ -157,6 +158,18 @@ export default function PaymentsPage() {
   }, [isStripeConfigured, isVenmoConfigured, isPaypalConfigured])
 
   const hasAnyPaymentMethod = configuredPaymentMethods.length > 0
+
+  // Split payments into visible (first 20) and older (rest)
+  const { visiblePayments, olderPayments } = useMemo(() => {
+    const VISIBLE_COUNT = 20
+    if (paymentRequests.length <= VISIBLE_COUNT) {
+      return { visiblePayments: paymentRequests, olderPayments: [] }
+    }
+    return {
+      visiblePayments: paymentRequests.slice(0, VISIBLE_COUNT),
+      olderPayments: paymentRequests.slice(VISIBLE_COUNT),
+    }
+  }, [paymentRequests])
 
   // Auto-switch to first configured method if current selection is unavailable
   // Auto-select first available method when modal opens
@@ -633,110 +646,242 @@ export default function PaymentsPage() {
                     </Button>
                   </div>
                 ) : (
-                  paymentRequests.map((payment) => (
-                    <div key={payment.id} className="bg-[#0f172a] dark:bg-[#0f172a] rounded-lg p-3 border border-slate-700">
-                      <div className="flex items-start justify-between gap-3 mb-2.5">
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-gray-400" />
-                          <span className="text-white font-medium text-sm">
-                            {getCustomerName(payment)}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          {payment.payment_method_type === 'card_present' && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-purple-900/50 text-purple-300 border border-purple-700/50">
-                              Terminal
+                  <>
+                    {visiblePayments.map((payment) => (
+                      <div key={payment.id} className="bg-[#0f172a] dark:bg-[#0f172a] rounded-lg p-3 border border-slate-700">
+                        <div className="flex items-start justify-between gap-3 mb-2.5">
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-gray-400" />
+                            <span className="text-white font-medium text-sm">
+                              {getCustomerName(payment)}
                             </span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {payment.payment_method_type === 'card_present' && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-purple-900/50 text-purple-300 border border-purple-700/50">
+                                Terminal
+                              </span>
+                            )}
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${getStatusColor(payment.status)}`}>
+                              {getStatusLabel(payment.status)}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="space-y-1.5 text-xs">
+                          {payment.leads && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-400">Phone</span>
+                              <span className="text-gray-300">{formatPhoneNumber(payment.leads.caller_phone)}</span>
+                            </div>
                           )}
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${getStatusColor(payment.status)}`}>
-                            {getStatusLabel(payment.status)}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="space-y-1.5 text-xs">
-                        {payment.leads && (
                           <div className="flex justify-between">
-                            <span className="text-gray-400">Phone</span>
-                            <span className="text-gray-300">{formatPhoneNumber(payment.leads.caller_phone)}</span>
+                            <span className="text-gray-400">Amount</span>
+                            <span className="text-white font-semibold">{formatCurrency(payment.amount_cents / 100)}</span>
                           </div>
-                        )}
-                        <div className="flex justify-between">
-                          <span className="text-gray-400">Amount</span>
-                          <span className="text-white font-semibold">{formatCurrency(payment.amount_cents / 100)}</span>
-                        </div>
-                        {payment.description && (
+                          {payment.description && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-400">Description</span>
+                              <span className="text-gray-300 truncate max-w-[150px]">{payment.description}</span>
+                            </div>
+                          )}
                           <div className="flex justify-between">
-                            <span className="text-gray-400">Description</span>
-                            <span className="text-gray-300 truncate max-w-[150px]">{payment.description}</span>
+                            <span className="text-gray-400">Requested</span>
+                            <span className="text-gray-300">{new Date(payment.created_at).toLocaleDateString()}</span>
                           </div>
-                        )}
-                        <div className="flex justify-between">
-                          <span className="text-gray-400">Requested</span>
-                          <span className="text-gray-300">{new Date(payment.created_at).toLocaleDateString()}</span>
+                          {payment.paid_at && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-400">Paid</span>
+                              <span className="text-gray-300">{new Date(payment.paid_at).toLocaleDateString()}</span>
+                            </div>
+                          )}
                         </div>
-                        {payment.paid_at && (
-                          <div className="flex justify-between">
-                            <span className="text-gray-400">Paid</span>
-                            <span className="text-gray-300">{new Date(payment.paid_at).toLocaleDateString()}</span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-slate-700">
-                        {payment.leads && (
-                          <button
-                            onClick={() => router.push(`/dashboard/leads/${payment.leads!.id}`)}
-                            className="flex-1 text-blue-400 hover:text-blue-300 text-xs font-medium text-center py-1.5"
-                          >
-                            View Customer
-                          </button>
-                        )}
-                        {payment.status === 'pending' && payment.checkout_url && (
-                          <>
+                        <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-slate-700">
+                          {payment.leads && (
                             <button
-                              onClick={() => copyPaymentLink(payment.checkout_url!)}
-                              className="p-1.5 text-blue-400 hover:text-blue-300"
-                              title="Copy payment link"
+                              onClick={() => router.push(`/dashboard/leads/${payment.leads!.id}`)}
+                              className="flex-1 text-blue-400 hover:text-blue-300 text-xs font-medium text-center py-1.5"
                             >
-                              <Copy className="h-4 w-4" />
+                              View Customer
                             </button>
-                            <a
-                              href={payment.checkout_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-1.5 text-blue-400 hover:text-blue-300"
-                              title="Open payment link"
+                          )}
+                          {payment.status === 'pending' && payment.checkout_url && (
+                            <>
+                              <button
+                                onClick={() => copyPaymentLink(payment.checkout_url!)}
+                                className="p-1.5 text-blue-400 hover:text-blue-300"
+                                title="Copy payment link"
+                              >
+                                <Copy className="h-4 w-4" />
+                              </button>
+                              <a
+                                href={payment.checkout_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-1.5 text-blue-400 hover:text-blue-300"
+                                title="Open payment link"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </a>
+                            </>
+                          )}
+                          {payment.status === 'pending' && (payment.payment_provider === 'paypal' || payment.payment_provider === 'venmo') && (
+                            <button
+                              onClick={() => {
+                                setPaymentToMarkPaid(payment)
+                                setShowMarkPaidConfirm(true)
+                              }}
+                              disabled={isMarkingPaid}
+                              className="p-1.5 text-green-400 hover:text-green-300 disabled:opacity-50 flex items-center gap-1 text-xs font-medium"
+                              title="Mark as paid"
                             >
-                              <ExternalLink className="h-4 w-4" />
-                            </a>
-                          </>
-                        )}
-                        {payment.status === 'pending' && (payment.payment_provider === 'paypal' || payment.payment_provider === 'venmo') && (
-                          <button
-                            onClick={() => {
-                              setPaymentToMarkPaid(payment)
-                              setShowMarkPaidConfirm(true)
-                            }}
-                            disabled={isMarkingPaid}
-                            className="p-1.5 text-green-400 hover:text-green-300 disabled:opacity-50 flex items-center gap-1 text-xs font-medium"
-                            title="Mark as paid"
-                          >
-                            <CreditCard className="h-4 w-4" />
-                            Mark Paid
-                          </button>
-                        )}
-                        {payment.status === 'pending' && (
-                          <button
-                            onClick={() => handleCancelPayment(payment)}
-                            disabled={isCancelling}
-                            className="p-1.5 text-red-400 hover:text-red-300 disabled:opacity-50"
-                            title="Cancel payment request"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        )}
+                              <CreditCard className="h-4 w-4" />
+                              Mark Paid
+                            </button>
+                          )}
+                          {payment.status === 'pending' && (
+                            <button
+                              onClick={() => handleCancelPayment(payment)}
+                              disabled={isCancelling}
+                              className="p-1.5 text-red-400 hover:text-red-300 disabled:opacity-50"
+                              title="Cancel payment request"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    ))}
+
+                    {/* Expandable older payments section */}
+                    {olderPayments.length > 0 && (
+                      <>
+                        <button
+                          onClick={() => setShowOlderPayments(!showOlderPayments)}
+                          className="w-full bg-[#0f172a] dark:bg-[#0f172a] rounded-lg p-3 border border-slate-700 flex items-center justify-between gap-3 hover:bg-[#1a2235] transition-colors"
+                          aria-expanded={showOlderPayments}
+                          aria-label={`Show ${olderPayments.length} older payments`}
+                        >
+                          <span className="text-sm font-medium text-gray-300">
+                            Older payments ({olderPayments.length})
+                          </span>
+                          <ChevronDown
+                            className={`h-5 w-5 text-gray-400 transition-transform duration-200 ${
+                              showOlderPayments ? 'rotate-180' : ''
+                            }`}
+                          />
+                        </button>
+
+                        {showOlderPayments && (
+                          <div className="space-y-2.5">
+                            {olderPayments.map((payment) => (
+                              <div key={payment.id} className="bg-[#0f172a] dark:bg-[#0f172a] rounded-lg p-3 border border-slate-700">
+                                <div className="flex items-start justify-between gap-3 mb-2.5">
+                                  <div className="flex items-center gap-2">
+                                    <User className="h-4 w-4 text-gray-400" />
+                                    <span className="text-white font-medium text-sm">
+                                      {getCustomerName(payment)}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    {payment.payment_method_type === 'card_present' && (
+                                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-purple-900/50 text-purple-300 border border-purple-700/50">
+                                        Terminal
+                                      </span>
+                                    )}
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${getStatusColor(payment.status)}`}>
+                                      {getStatusLabel(payment.status)}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="space-y-1.5 text-xs">
+                                  {payment.leads && (
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-400">Phone</span>
+                                      <span className="text-gray-300">{formatPhoneNumber(payment.leads.caller_phone)}</span>
+                                    </div>
+                                  )}
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-400">Amount</span>
+                                    <span className="text-white font-semibold">{formatCurrency(payment.amount_cents / 100)}</span>
+                                  </div>
+                                  {payment.description && (
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-400">Description</span>
+                                      <span className="text-gray-300 truncate max-w-[150px]">{payment.description}</span>
+                                    </div>
+                                  )}
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-400">Requested</span>
+                                    <span className="text-gray-300">{new Date(payment.created_at).toLocaleDateString()}</span>
+                                  </div>
+                                  {payment.paid_at && (
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-400">Paid</span>
+                                      <span className="text-gray-300">{new Date(payment.paid_at).toLocaleDateString()}</span>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-slate-700">
+                                  {payment.leads && (
+                                    <button
+                                      onClick={() => router.push(`/dashboard/leads/${payment.leads!.id}`)}
+                                      className="flex-1 text-blue-400 hover:text-blue-300 text-xs font-medium text-center py-1.5"
+                                    >
+                                      View Customer
+                                    </button>
+                                  )}
+                                  {payment.status === 'pending' && payment.checkout_url && (
+                                    <>
+                                      <button
+                                        onClick={() => copyPaymentLink(payment.checkout_url!)}
+                                        className="p-1.5 text-blue-400 hover:text-blue-300"
+                                        title="Copy payment link"
+                                      >
+                                        <Copy className="h-4 w-4" />
+                                      </button>
+                                      <a
+                                        href={payment.checkout_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="p-1.5 text-blue-400 hover:text-blue-300"
+                                        title="Open payment link"
+                                      >
+                                        <ExternalLink className="h-4 w-4" />
+                                      </a>
+                                    </>
+                                  )}
+                                  {payment.status === 'pending' && (payment.payment_provider === 'paypal' || payment.payment_provider === 'venmo') && (
+                                    <button
+                                      onClick={() => {
+                                        setPaymentToMarkPaid(payment)
+                                        setShowMarkPaidConfirm(true)
+                                      }}
+                                      disabled={isMarkingPaid}
+                                      className="p-1.5 text-green-400 hover:text-green-300 disabled:opacity-50 flex items-center gap-1 text-xs font-medium"
+                                      title="Mark as paid"
+                                    >
+                                      <CreditCard className="h-4 w-4" />
+                                      Mark Paid
+                                    </button>
+                                  )}
+                                  {payment.status === 'pending' && (
+                                    <button
+                                      onClick={() => handleCancelPayment(payment)}
+                                      disabled={isCancelling}
+                                      className="p-1.5 text-red-400 hover:text-red-300 disabled:opacity-50"
+                                      title="Cancel payment request"
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -791,98 +936,218 @@ export default function PaymentsPage() {
                         </td>
                       </tr>
                     ) : (
-                      paymentRequests.map((payment) => (
-                        <tr key={payment.id} className="hover:bg-[#1a2235] dark:hover:bg-[#1a2235] transition-colors">
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <div className="flex items-center gap-2">
-                              <User className="h-4 w-4 text-gray-400" />
-                              <span className="text-white font-medium text-sm">
-                                {getCustomerName(payment)}
-                              </span>
-                              {payment.payment_method_type === 'card_present' && (
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-purple-900/50 text-purple-300 border border-purple-700/50">
-                                  Terminal
+                      <>
+                        {visiblePayments.map((payment) => (
+                          <tr key={payment.id} className="hover:bg-[#1a2235] dark:hover:bg-[#1a2235] transition-colors">
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="flex items-center gap-2">
+                                <User className="h-4 w-4 text-gray-400" />
+                                <span className="text-white font-medium text-sm">
+                                  {getCustomerName(payment)}
                                 </span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-gray-400 text-sm">
-                            {payment.leads ? formatPhoneNumber(payment.leads.caller_phone) : '-'}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-white font-semibold text-sm">
-                            {formatCurrency(payment.amount_cents / 100)}
-                          </td>
-                          <td className="px-4 py-3 text-gray-400 text-sm max-w-[220px] truncate">
-                            {payment.description}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${getStatusColor(payment.status)}`}>
-                              {getStatusLabel(payment.status)}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-gray-400 text-sm">
-                            {new Date(payment.created_at).toLocaleDateString()}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-gray-400 text-sm">
-                            {payment.paid_at ? new Date(payment.paid_at).toLocaleDateString() : '-'}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <div className="flex items-center gap-1.5 whitespace-nowrap">
-                              {payment.leads && (
-                                <button
-                                  onClick={() => router.push(`/dashboard/leads/${payment.leads!.id}`)}
-                                  className="text-gray-400 hover:text-white text-xs font-medium"
-                                >
-                                  View Customer
-                                </button>
-                              )}
-                              {payment.status === 'pending' && payment.checkout_url && (
-                                <>
+                                {payment.payment_method_type === 'card_present' && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-purple-900/50 text-purple-300 border border-purple-700/50">
+                                    Terminal
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-gray-400 text-sm">
+                              {payment.leads ? formatPhoneNumber(payment.leads.caller_phone) : '-'}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-white font-semibold text-sm">
+                              {formatCurrency(payment.amount_cents / 100)}
+                            </td>
+                            <td className="px-4 py-3 text-gray-400 text-sm max-w-[220px] truncate">
+                              {payment.description}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${getStatusColor(payment.status)}`}>
+                                {getStatusLabel(payment.status)}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-gray-400 text-sm">
+                              {new Date(payment.created_at).toLocaleDateString()}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-gray-400 text-sm">
+                              {payment.paid_at ? new Date(payment.paid_at).toLocaleDateString() : '-'}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="flex items-center gap-1.5 whitespace-nowrap">
+                                {payment.leads && (
                                   <button
-                                    onClick={() => copyPaymentLink(payment.checkout_url!)}
-                                    className="text-blue-400 hover:text-blue-300 p-1"
-                                    title="Copy payment link"
+                                    onClick={() => router.push(`/dashboard/leads/${payment.leads!.id}`)}
+                                    className="text-gray-400 hover:text-white text-xs font-medium"
                                   >
-                                    <Copy className="h-3.5 w-3.5" />
+                                    View Customer
                                   </button>
-                                  <a
-                                    href={payment.checkout_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-400 hover:text-blue-300 p-1"
-                                    title="Open payment link"
+                                )}
+                                {payment.status === 'pending' && payment.checkout_url && (
+                                  <>
+                                    <button
+                                      onClick={() => copyPaymentLink(payment.checkout_url!)}
+                                      className="text-blue-400 hover:text-blue-300 p-1"
+                                      title="Copy payment link"
+                                    >
+                                      <Copy className="h-3.5 w-3.5" />
+                                    </button>
+                                    <a
+                                      href={payment.checkout_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-400 hover:text-blue-300 p-1"
+                                      title="Open payment link"
+                                    >
+                                      <ExternalLink className="h-3.5 w-3.5" />
+                                    </a>
+                                  </>
+                                )}
+                                {payment.status === 'pending' && (payment.payment_provider === 'paypal' || payment.payment_provider === 'venmo') && (
+                                  <button
+                                    onClick={() => {
+                                      setPaymentToMarkPaid(payment)
+                                      setShowMarkPaidConfirm(true)
+                                    }}
+                                    disabled={isMarkingPaid}
+                                    className="text-green-400 hover:text-green-300 text-xs font-medium p-1 disabled:opacity-50 flex items-center gap-1"
                                   >
-                                    <ExternalLink className="h-3.5 w-3.5" />
-                                  </a>
-                                </>
-                              )}
-                              {payment.status === 'pending' && (payment.payment_provider === 'paypal' || payment.payment_provider === 'venmo') && (
+                                    <CreditCard className="h-3.5 w-3.5" />
+                                    Mark Paid
+                                  </button>
+                                )}
+                                {payment.status === 'pending' && (
+                                  <button
+                                    onClick={() => handleCancelPayment(payment)}
+                                    disabled={isCancelling}
+                                    className="text-red-400 hover:text-red-300 p-1 disabled:opacity-50"
+                                    title="Cancel payment request"
+                                  >
+                                    <X className="h-3.5 w-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+
+                        {/* Expandable older payments row */}
+                        {olderPayments.length > 0 && (
+                          <>
+                            <tr>
+                              <td colSpan={8} className="px-4 py-0">
                                 <button
-                                  onClick={() => {
-                                    setPaymentToMarkPaid(payment)
-                                    setShowMarkPaidConfirm(true)
-                                  }}
-                                  disabled={isMarkingPaid}
-                                  className="text-green-400 hover:text-green-300 text-xs font-medium p-1 disabled:opacity-50 flex items-center gap-1"
+                                  onClick={() => setShowOlderPayments(!showOlderPayments)}
+                                  className="w-full bg-[#0f172a] dark:bg-[#0f172a] rounded-lg p-3 border border-slate-700 flex items-center justify-between gap-3 hover:bg-[#1a2235] transition-colors"
+                                  aria-expanded={showOlderPayments}
+                                  aria-label={`Show ${olderPayments.length} older payments`}
                                 >
-                                  <CreditCard className="h-3.5 w-3.5" />
-                                  Mark Paid
+                                  <span className="text-sm font-medium text-gray-300">
+                                    Older payments ({olderPayments.length})
+                                  </span>
+                                  <ChevronDown
+                                    className={`h-5 w-5 text-gray-400 transition-transform duration-200 ${
+                                      showOlderPayments ? 'rotate-180' : ''
+                                    }`}
+                                  />
                                 </button>
-                              )}
-                              {payment.status === 'pending' && (
-                                <button
-                                  onClick={() => handleCancelPayment(payment)}
-                                  disabled={isCancelling}
-                                  className="text-red-400 hover:text-red-300 p-1 disabled:opacity-50"
-                                  title="Cancel payment request"
-                                >
-                                  <X className="h-3.5 w-3.5" />
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))
+                              </td>
+                            </tr>
+
+                            {showOlderPayments && olderPayments.map((payment) => (
+                              <tr key={payment.id} className="hover:bg-[#1a2235] dark:hover:bg-[#1a2235] transition-colors">
+                                <td className="px-4 py-3 whitespace-nowrap">
+                                  <div className="flex items-center gap-2">
+                                    <User className="h-4 w-4 text-gray-400" />
+                                    <span className="text-white font-medium text-sm">
+                                      {getCustomerName(payment)}
+                                    </span>
+                                    {payment.payment_method_type === 'card_present' && (
+                                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-purple-900/50 text-purple-300 border border-purple-700/50">
+                                        Terminal
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-gray-400 text-sm">
+                                  {payment.leads ? formatPhoneNumber(payment.leads.caller_phone) : '-'}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-white font-semibold text-sm">
+                                  {formatCurrency(payment.amount_cents / 100)}
+                                </td>
+                                <td className="px-4 py-3 text-gray-400 text-sm max-w-[220px] truncate">
+                                  {payment.description}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap">
+                                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${getStatusColor(payment.status)}`}>
+                                    {getStatusLabel(payment.status)}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-gray-400 text-sm">
+                                  {new Date(payment.created_at).toLocaleDateString()}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-gray-400 text-sm">
+                                  {payment.paid_at ? new Date(payment.paid_at).toLocaleDateString() : '-'}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap">
+                                  <div className="flex items-center gap-1.5 whitespace-nowrap">
+                                    {payment.leads && (
+                                      <button
+                                        onClick={() => router.push(`/dashboard/leads/${payment.leads!.id}`)}
+                                        className="text-gray-400 hover:text-white text-xs font-medium"
+                                      >
+                                        View Customer
+                                      </button>
+                                    )}
+                                    {payment.status === 'pending' && payment.checkout_url && (
+                                      <>
+                                        <button
+                                          onClick={() => copyPaymentLink(payment.checkout_url!)}
+                                          className="text-blue-400 hover:text-blue-300 p-1"
+                                          title="Copy payment link"
+                                        >
+                                          <Copy className="h-3.5 w-3.5" />
+                                        </button>
+                                        <a
+                                          href={payment.checkout_url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-blue-400 hover:text-blue-300 p-1"
+                                          title="Open payment link"
+                                        >
+                                          <ExternalLink className="h-3.5 w-3.5" />
+                                        </a>
+                                      </>
+                                    )}
+                                    {payment.status === 'pending' && (payment.payment_provider === 'paypal' || payment.payment_provider === 'venmo') && (
+                                      <button
+                                        onClick={() => {
+                                          setPaymentToMarkPaid(payment)
+                                          setShowMarkPaidConfirm(true)
+                                        }}
+                                        disabled={isMarkingPaid}
+                                        className="text-green-400 hover:text-green-300 text-xs font-medium p-1 disabled:opacity-50 flex items-center gap-1"
+                                      >
+                                        <CreditCard className="h-3.5 w-3.5" />
+                                        Mark Paid
+                                      </button>
+                                    )}
+                                    {payment.status === 'pending' && (
+                                      <button
+                                        onClick={() => handleCancelPayment(payment)}
+                                        disabled={isCancelling}
+                                        className="text-red-400 hover:text-red-300 p-1 disabled:opacity-50"
+                                        title="Cancel payment request"
+                                      >
+                                        <X className="h-3.5 w-3.5" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </>
+                        )}
+                      </>
                     )}
                   </tbody>
                 </table>
