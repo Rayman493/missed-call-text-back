@@ -191,17 +191,23 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
     connectGuard.sync { self.connectInFlightNative = false; if self.activeConnectOpId == opId { self.activeConnectOpId = nil } }
     call.resolve(["status": self.connectionStatus])
     #else
-    let discoveryConfig = DiscoveryConfiguration(discoveryMethod: .localMobile, simulated: simulated)
-    self.emitDiag("discover_readers_started", phase: "discover_readers", correlationId: correlationId, meta: ["simulated": simulated])
-    self.pendingConnectCall = (call, opId, correlationId, locationId)
-    self.discoveryCancelable = Terminal.shared.discoverReaders(discoveryConfig, delegate: self) { error in
-      if let e = error {
-        self.emitDiag("discover_readers_failed", phase: "discover_readers", correlationId: correlationId, meta: ["message": e.localizedDescription])
-        self.connectGuard.sync { self.connectInFlightNative = false; if self.activeConnectOpId == opId { self.activeConnectOpId = nil } }
-        call.reject(e.localizedDescription)
-      } else {
-        self.emitDiag("discover_readers_completed", phase: "discover_readers", correlationId: correlationId, meta: nil)
+    do {
+      let discoveryConfig = try TapToPayDiscoveryConfigurationBuilder().setSimulated(simulated).build()
+      self.emitDiag("discover_readers_started", phase: "discover_readers", correlationId: correlationId, meta: ["simulated": simulated])
+      self.pendingConnectCall = (call, opId, correlationId, locationId)
+      self.discoveryCancelable = Terminal.shared.discoverReaders(discoveryConfig, delegate: self) { error in
+        if let e = error {
+          self.emitDiag("discover_readers_failed", phase: "discover_readers", correlationId: correlationId, meta: ["message": e.localizedDescription])
+          self.connectGuard.sync { self.connectInFlightNative = false; if self.activeConnectOpId == opId { self.activeConnectOpId = nil } }
+          call.reject(e.localizedDescription)
+        } else {
+          self.emitDiag("discover_readers_completed", phase: "discover_readers", correlationId: correlationId, meta: nil)
+        }
       }
+    } catch {
+      self.emitDiag("discover_readers_builder_failed", phase: "discover_readers", correlationId: correlationId, meta: ["message": error.localizedDescription])
+      self.connectGuard.sync { self.connectInFlightNative = false; if self.activeConnectOpId == opId { self.activeConnectOpId = nil } }
+      call.reject(error.localizedDescription)
     }
     #endif
     #else
