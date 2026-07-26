@@ -37,6 +37,16 @@ export default function QuickTapToPayModal({
   const [showTapToPay, setShowTapToPay] = useState(false)
   const [showCustomerSelector, setShowCustomerSelector] = useState(false)
 
+  // Ref for modal title for accessibility focus
+  const titleRef = useRef<HTMLHeadingElement>(null)
+
+  // Focus modal title on open for accessibility (prevents keyboard from opening on amount input)
+  useEffect(() => {
+    if (isOpen && titleRef.current) {
+      titleRef.current.focus()
+    }
+  }, [isOpen])
+
   // Debug instrumentation for scroll behavior (development only)
   const scrollRef = useRef<HTMLDivElement | null>(null)
   useEffect(() => {
@@ -273,7 +283,7 @@ export default function QuickTapToPayModal({
                 </div>
 
               
-                <h3 className="text-lg font-semibold text-foreground">Tap to Pay</h3>
+                <h3 ref={titleRef} className="text-lg font-semibold text-foreground" tabIndex={-1}>Tap to Pay</h3>
               </div>
               <button
                 onClick={onClose}
@@ -326,7 +336,6 @@ export default function QuickTapToPayModal({
                     onChange={(e) => handleAmountChange(e.target.value)}
                     placeholder="0.00"
                     className="w-48 text-5xl font-bold text-foreground bg-transparent border-none outline-none text-center placeholder:text-muted-foreground/30"
-                    autoFocus
                   />
                 </div>
               </div>
