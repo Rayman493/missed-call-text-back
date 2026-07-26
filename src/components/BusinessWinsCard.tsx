@@ -311,7 +311,7 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
   const total = allAchievements.length
 
   return (
-    <div className="bg-card text-card-foreground rounded-xl border border-border/50 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 p-3 sm:p-4">
+    <div className="bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.05)_inset] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset] hover:shadow-[0_2px_4px_rgba(0,0,0,0.05),0_8px_16px_rgba(0,0,0,0.04),0_0_0_1px_rgba(255,255,255,0.08)_inset] dark:hover:shadow-[0_2px_4px_rgba(0,0,0,0.35),0_8px_16px_rgba(0,0,0,0.25),0_0_0_1px_rgba(255,255,255,0.08)_inset] hover:-translate-y-0.5 transition-all duration-200 p-3 sm:p-4">
       <div className="flex items-center justify-between mb-2.5">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 sm:w-8 sm:h-8 bg-amber-500/10 dark:bg-amber-500/15 rounded-lg flex items-center justify-center">
