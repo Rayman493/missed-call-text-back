@@ -398,6 +398,18 @@ export default function TapToPayModal({
       // Initialize if needed
       console.log('[TAP_SESSION_TRACE] stage=initialize')
       const initResult = await terminalService.initialize()
+      try {
+        logTapToPayEvent('RIGHT_AFTER_INITIALIZE_RETURN', {
+          phase: 'initialize',
+          sessionId: terminalService.getSessionId(),
+          meta: {
+            returnedKeys: Object.keys(initResult || {}),
+            returnedStatus: (initResult as any)?.status,
+            currentServiceStatus: (terminalService as any).connectionStatus,
+            component: 'TapToPayModal.tsx'
+          }
+        })
+      } catch {}
       if (initResult.status !== 'ready' && initResult.status !== 'connected') {
         try { logTapToPayEvent('INITIALIZE_RESULT_REJECTED', { phase: 'initialize', sessionId: terminalService.getSessionId(), meta: { returnedStatus: initResult.status, reason: 'unexpected_status' } }) } catch {}
         throw new Error('Failed to initialize payment terminal')
