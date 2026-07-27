@@ -648,12 +648,12 @@ export default async function Home() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-900 dark:text-foreground mb-2 text-base">Use your existing business number</h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Keep the number your customers already know.</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Keep the number your customers already know. They simply call your business as normal.</p>
                   </div>
                 </div>
               </div>
 
-              {/* No app required */}
+              {/* Desktop & Mobile Apps */}
               <div className="bg-white dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 rounded-2xl p-6 shadow-sm hover:shadow-lg hover:border-slate-300/80 dark:hover:border-slate-600/60 transition-all duration-300">
                 <div className="flex flex-col gap-4">
                   <div className="w-12 h-12 bg-purple-50 dark:bg-purple-900/20 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -662,8 +662,8 @@ export default async function Home() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-2 text-base">No app required</h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Customers simply call your business as normal.</p>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-2 text-base">Desktop & Mobile Apps</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Manage your business from the web or use the ReplyFlow mobile app while you're on the go.</p>
                   </div>
                 </div>
               </div>
@@ -741,12 +741,12 @@ export default async function Home() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1.5 text-sm sm:text-base">Use your existing business number</h3>
-                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Keep the number your customers already know.</p>
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Keep the number your customers already know. They simply call your business as normal.</p>
                   </div>
                 </div>
               </div>
 
-              {/* No app required */}
+              {/* Desktop & Mobile Apps */}
               <div className="bg-white dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 rounded-2xl p-4 sm:p-5 shadow-sm">
                 <div className="flex items-start gap-4">
                   <div className="w-11 h-11 bg-purple-50 dark:bg-purple-900/20 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -755,8 +755,8 @@ export default async function Home() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1.5 text-sm sm:text-base">No app required</h3>
-                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Customers simply call your business as normal.</p>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1.5 text-sm sm:text-base">Desktop & Mobile Apps</h3>
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Manage your business from the web or use the ReplyFlow mobile app while you're on the go.</p>
                   </div>
                 </div>
               </div>
