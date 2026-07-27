@@ -8,6 +8,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    console.log('[AI Summary] ========== REQUEST START ==========')
     console.log('[AI Summary] Request received')
     
     const apiKey = process.env.OPENAI_API_KEY
@@ -19,7 +20,8 @@ export async function POST(
 
     const { id } = await params
     const leadId = id
-    console.log('[AI Summary] Lead ID:', leadId)
+    console.log('[AI Summary] Requested lead UUID:', leadId)
+    console.log('[AI Summary] UUID format check:', leadId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i) ? 'Valid UUID' : 'Invalid UUID')
     
     const supabase = await createServerSupabaseClient()
     console.log('[AI Summary] Supabase client created')
@@ -30,7 +32,7 @@ export async function POST(
       console.error('[AI Summary] Authentication failed:', userError)
       return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
     }
-    console.log('[AI Summary] User authenticated:', user.id)
+    console.log('[AI Summary] Authenticated user ID:', user.id)
 
     // Get user's business ID
     console.log('[AI Summary] Looking up business for user:', user.id)
@@ -43,13 +45,18 @@ export async function POST(
 
     console.log('[AI Summary] Business lookup result:', { businessData, businessError })
     if (businessError || !businessData) {
-      console.error('[AI Summary] Business not found:', businessError)
+      console.error('[AI Summary] Business not found - CONDITION: businessError || !businessData')
+      console.error('[AI Summary] businessError:', businessError)
+      console.error('[AI Summary] businessData:', businessData)
       return NextResponse.json({ error: 'business_not_found' }, { status: 403 })
     }
-    console.log('[AI Summary] Business ID:', businessData.id)
+    console.log('[AI Summary] Authenticated business ID:', businessData.id)
 
     // Fetch lead data with all related information
-    console.log('[AI Summary] Querying lead with ID:', leadId, 'and business_id:', businessData.id)
+    console.log('[AI Summary] Executing lead query')
+    console.log('[AI Summary] Query conditions: id =', leadId, ', business_id =', businessData.id)
+    console.log('[AI Summary] Table: leads')
+    
     const { data: lead, error: leadError } = await supabase
       .from('leads')
       .select(`
@@ -106,15 +113,33 @@ export async function POST(
       .eq('business_id', businessData.id)
       .single()
 
-    console.log('[AI Summary] Lead query result:', { lead, leadError })
+    console.log('[AI Summary] Lead query completed')
+    console.log('[AI Summary] leadError:', leadError)
+    console.log('[AI Summary] lead data:', lead ? 'ROW RETURNED' : 'NO ROW RETURNED')
+    
+    if (lead) {
+      console.log('[AI Summary] lead.id:', lead.id)
+      console.log('[AI Summary] lead.business_id:', lead.business_id)
+      console.log('[AI Summary] lead.caller_phone:', lead.caller_phone)
+    }
+    
+    console.log('[AI Summary] Comparison: authenticated business_id =', businessData.id, ', lead.business_id =', lead?.business_id)
+    console.log('[AI Summary] Business ID match:', lead?.business_id === businessData.id ? 'MATCH' : 'NO MATCH')
+    
     if (leadError || !lead) {
-      console.error('[AI Summary] Lead not found or error:', leadError)
-      console.log('[AI Summary] Query details:', { leadId, businessId: businessData.id })
+      console.error('[AI Summary] ========== LEAD NOT FOUND ==========')
+      console.error('[AI Summary] CONDITION: leadError || !lead')
+      console.error('[AI Summary] leadError:', leadError)
+      console.error('[AI Summary] lead:', lead)
+      console.error('[AI Summary] leadError code:', leadError?.code)
+      console.error('[AI Summary] leadError message:', leadError?.message)
+      console.error('[AI Summary] leadError details:', leadError?.details)
+      console.error('[AI Summary] Query details: leadId =', leadId, ', businessId =', businessData.id)
+      console.error('[AI Summary] Returning 404 lead_not_found at line 112')
       return NextResponse.json({ error: 'lead_not_found' }, { status: 404 })
     }
     console.log('[AI Summary] Lead data fetched successfully')
-    console.log('[AI Summary] Lead business_id:', lead.business_id)
-    console.log('[AI Summary] Business ID match:', lead.business_id === businessData.id)
+    console.log('[AI Summary] Business ID match confirmed:', lead.business_id === businessData.id)
 
     // Build context for AI summary
     const context: any = {
