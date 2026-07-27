@@ -723,7 +723,7 @@ export default async function Home() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-900 dark:text-foreground mb-2 text-base">Tap to Pay & Payment Requests</h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Accept contactless payments in person with Tap to Pay on iPhone or Android, or send branded SMS payment requests by text.</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Accept contactless payments with Tap to Pay on iPhone or Android, or send branded SMS payment requests—all with no extra hardware required.</p>
                   </div>
                 </div>
               </div>
@@ -816,7 +816,7 @@ export default async function Home() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1.5 text-sm sm:text-base">Tap to Pay & Payment Requests</h3>
-                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Accept contactless payments in person with Tap to Pay on iPhone or Android, or send branded SMS payment requests by text.</p>
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Accept contactless payments with Tap to Pay on iPhone or Android, or send branded SMS payment requests—all with no extra hardware required.</p>
                   </div>
                 </div>
               </div>
