@@ -52,6 +52,18 @@ export default function HomepageInteractiveDemo() {
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut", delay: 0.15 }}
+          viewport={{ once: true }}
+          className="mt-6 sm:mt-8 text-center"
+        >
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Already have existing customers? You can also manually add customers, jobs, appointments, and payments anytime.
+          </p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: "easeOut", delay: 0.2 }}
           viewport={{ once: true }}
           className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4"
