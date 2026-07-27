@@ -12,6 +12,8 @@
  * - Lost: Red (customer declined or opportunity lost)
  */
 
+import { LeadLifecycleStatus } from '@/lib/lead-lifecycle'
+
 export interface StatusColorConfig {
   // Accent color (4px left border, icons, text)
   accent: string
@@ -25,7 +27,7 @@ export interface StatusColorConfig {
   badgeBorder: string
 }
 
-const statusColorMap: Record<string, StatusColorConfig> = {
+const statusColorMap: Record<LeadLifecycleStatus, StatusColorConfig> = {
   'new': {
     accent: 'bg-blue-400',
     border: 'border-blue-500/20',
@@ -81,8 +83,11 @@ const statusColorMap: Record<string, StatusColorConfig> = {
     badgeBg: 'bg-red-500/10 dark:bg-red-400/10',
     badgeText: 'text-red-700 dark:text-red-300',
     badgeBorder: 'ring-1 ring-inset ring-red-500/20 dark:ring-red-400/20'
-  },
-  // Legacy status mappings for backward compatibility
+  }
+}
+
+// Legacy status mappings for backward compatibility (not typed as LeadLifecycleStatus)
+const legacyStatusMap: Record<string, StatusColorConfig> = {
   'Awaiting Response': {
     accent: 'bg-amber-400',
     border: 'border-amber-500/20',
@@ -118,7 +123,18 @@ const statusColorMap: Record<string, StatusColorConfig> = {
  * Falls back to a neutral gray if status not found
  */
 export function getStatusColorConfig(status: string): StatusColorConfig {
-  return statusColorMap[status] || {
+  // Check if status is a LeadLifecycleStatus
+  if (status in statusColorMap) {
+    return statusColorMap[status as LeadLifecycleStatus]
+  }
+  
+  // Check legacy status map
+  if (status in legacyStatusMap) {
+    return legacyStatusMap[status]
+  }
+  
+  // Fallback to neutral gray
+  return {
     accent: 'bg-slate-300',
     border: 'border-slate-500/20',
     badgeBg: 'bg-slate-500/10 dark:bg-slate-400/10',
