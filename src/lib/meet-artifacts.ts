@@ -264,10 +264,27 @@ export class MeetArtifactProcessor {
     // This handles early-completed meetings while avoiding ongoing conferences
     const conferenceEndTs = pick.endTime ? new Date(pick.endTime).getTime() : null
     const isConferenceCompleted = conferenceEndTs !== null && conferenceEndTs < nowTs
+    try {
+      const eid = String(record.google_calendar_event_id || '').slice(-8)
+      const rid = String(record.id || '').slice(-8)
+      console.log('MEETING_AUTO_COMPLETION_EVALUATED', {
+        eid,
+        rid,
+        local_status: record.status,
+        conference_found: !!pick?.name,
+        conference_completed: isConferenceCompleted,
+        already_completed: record.status === 'completed'
+      })
+    } catch {}
     if (record.status !== 'completed' && isConferenceCompleted) {
       const completedAt = pick.endTime || pick.startTime || now().toISOString()
       const changed = await repo.markCompletedIfUpcoming(record.id, completedAt)
       if (changed) {
+        try {
+          const eid = String(record.google_calendar_event_id || '').slice(-8)
+          const rid = String(record.id || '').slice(-8)
+          console.log('MEETING_AUTO_COMPLETED', { eid, rid, completed_at: completedAt })
+        } catch {}
         console.log('[MEET DIAG] Auto-completed meeting based on completed conference record')
         await this.deps.timeline.meetingCompletedOnce(business.id, record.google_calendar_event_id, {
           conference_record: pick.name,
@@ -277,6 +294,13 @@ export class MeetArtifactProcessor {
           had_summary: null,
         })
       }
+    } else {
+      try {
+        const eid = String(record.google_calendar_event_id || '').slice(-8)
+        const rid = String(record.id || '').slice(-8)
+        const reason = record.status === 'completed' ? 'already_completed' : (isConferenceCompleted ? 'no_change' : 'conference_active')
+        console.log('MEETING_AUTO_COMPLETION_SKIPPED', { eid, rid, reason })
+      } catch {}
     }
 
     // If already processed, short-circuit
@@ -287,6 +311,28 @@ export class MeetArtifactProcessor {
     // Discover transcripts
     console.log('[MEET DIAG] listTranscripts.for=%s', pick.name)
     const transcripts = await this.deps.google.listTranscripts(pick.name)
+    try {
+      if (isConferenceCompleted) {
+        const eid = String(record.google_calendar_event_id || '').slice(-8)
+        const rid = String(record.id || '').slice(-8)
+        console.log('MEETING_ARTIFACT_PROCESSING_STARTED_FROM_CONFERENCE_END', { eid, rid })
+      }
+    } catch {}
+    try {
+      const eid = String(record.google_calendar_event_id || '').slice(-8)
+      const confPresent = !!pick.name
+      const count = Array.isArray(transcripts) ? transcripts.length : 0
+      // Conference considered completed if it has an endTime in the past
+      const conferenceEndTs = pick.endTime ? new Date(pick.endTime).getTime() : null
+      const isConferenceCompleted = conferenceEndTs !== null && conferenceEndTs < now().getTime()
+      console.log('GOOGLE_TRANSCRIPT_LOOKUP_RESULT', {
+        eid,
+        conference_present: confPresent,
+        transcript_count: count,
+        attempt: record.processing_attempts || 0,
+        conference_completed: isConferenceCompleted,
+      })
+    } catch {}
     if (!transcripts || transcripts.length === 0) {
       console.log('[MEET DIAG] transcripts.count=0')
       

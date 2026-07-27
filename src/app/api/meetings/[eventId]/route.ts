@@ -49,6 +49,25 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const capability = await getMeetCapability(business.id)
     console.log('[TRANSCRIPT DIAG API] Meet capability:', capability)
     const response = { record: record || null, meetCapability: capability }
+    try {
+      const eid = String(eventId || '').slice(-8)
+      const rid = record?.id ? String(record.id).slice(-8) : null
+      const due = (() => {
+        const npa = (record as any)?.next_processing_attempt_at as string | null | undefined
+        if (!npa) return true
+        try { return new Date(npa) <= new Date() } catch { return false }
+      })()
+      console.log('MEETING_UI_STATUS_RESOLVED', {
+        eid,
+        rid,
+        meeting_status: record?.status || null,
+        transcript_status: record?.transcript_status || null,
+        attempts: (record as any)?.processing_attempts || 0,
+        next_due: due,
+        has_transcript: !!(record as any)?.transcript_text,
+        has_summary: !!(record as any)?.ai_summary || !!(record as any)?.ai_summary_structured,
+      })
+    } catch {}
     console.log('[TRANSCRIPT DIAG API] Returning response:', response)
     return NextResponse.json(response)
   } catch (e) {

@@ -466,6 +466,17 @@ export default function TapToPayModal({
         if (onPaymentComplete) {
           setTimeout(() => onPaymentComplete(), 1500)
         }
+      } else if (
+        paymentResult.status === 'canceled' ||
+        paymentResult?.error?.code === 'USER_ERROR.CANCELED' ||
+        paymentResult?.error?.code === 'canceled'
+      ) {
+        console.log('[TAP_SESSION_TRACE] stage=payment_canceled')
+        setIsPaymentInProgress(false)
+        setStructuredError(null)
+        setJsError(null)
+        setError('')
+        setPaymentState('canceled')
       } else {
         console.log('[TAP_SESSION_TRACE] stage=payment_failure')
         throw new Error(paymentResult.error?.message || 'Payment failed')

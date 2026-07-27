@@ -42,8 +42,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       repo: {
         async getBusinessByUser() { return business as any },
         async getMeetingRecord(businessId, eventId) {
-          if (businessId !== business.id || eventId !== eventId) return null
-          return rec as any
+          if (businessId !== business.id || eventId !== rec.google_calendar_event_id) return null
+          // Always refetch current state to avoid staleness during manual retry
+          const { data } = await supabase
+            .from('meeting_records')
+            .select('*')
+            .eq('id', rec.id)
+            .single()
+          return (data as any) || null
         },
         async updateMeetingRecord(id, patch) {
           await supabase.from('meeting_records').update(patch).eq('id', id)
@@ -65,7 +71,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       windowLateMinutes: 90,
     })
 
-    await supabase.from('meeting_records').update({ processing_attempts: (rec.processing_attempts || 0) + 1 }).eq('id', rec.id)
+    const nextAttempt = (rec.processing_attempts || 0) + 1
+    await supabase.from('meeting_records').update({ processing_attempts: nextAttempt }).eq('id', rec.id)
+    // Refetch the record to ensure latest attempt/backoff state is visible to the processor
+    const { data: fresh } = await supabase
+      .from('meeting_records')
+      .select('id')
+      .eq('id', rec.id)
+      .single()
     const result = await processor.processOne({ id: business.id }, eventId, { start: times.start, end: times.end })
     return NextResponse.json({ success: true, status: result.status })
   } catch (e) {
