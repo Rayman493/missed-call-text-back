@@ -281,7 +281,7 @@ export default async function Home() {
                           <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Step 5</span>
                         </div>
                         <div className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">Get Paid</div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400">$425 Plumbing Repair</div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400">Plumbing Repair</div>
                         <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Accept Tap to Pay on iPhone or Android, or send a branded SMS payment request</div>
                         <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
                           <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">✓ Customer paid</div>
