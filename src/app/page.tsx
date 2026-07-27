@@ -193,15 +193,6 @@ export default async function Home() {
               <div className="relative">
                 {/* Product Mockup Card */}
                 <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden">
-                  {/* Mockup Header */}
-                  <div className="bg-slate-900 dark:bg-slate-950 px-4 sm:px-6 py-3 flex items-center gap-2">
-                    <div className="flex gap-1.5">
-                      <div className="w-3 h-3 rounded-full bg-red-500" />
-                      <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                      <div className="w-3 h-3 rounded-full bg-green-500" />
-                    </div>
-                  </div>
-                  
                   {/* Mockup Content */}
                   <div className="p-4 sm:p-6 md:p-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
