@@ -402,7 +402,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-3.5">
+    <div className="grid grid-cols-1 gap-4">
       {/* Recovery Rate - Key business impact metric */}
       <div className="bg-slate-50 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200 p-3.5 sm:p-4 min-h-[7rem] sm:min-h-[8rem] flex flex-col">
         <div className="flex items-start justify-between mb-3">
