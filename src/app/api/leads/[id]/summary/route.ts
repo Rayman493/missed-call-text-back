@@ -1,0 +1,219 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
+
+const MODEL = process.env.OPENAI_SUMMARY_MODEL || 'gpt-4o-mini'
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const apiKey = process.env.OPENAI_API_KEY
+    if (!apiKey) {
+      return NextResponse.json({ error: 'openai_api_key_missing' }, { status: 500 })
+    }
+
+    const leadId = params.id
+    const supabase = await createServerSupabaseClient()
+
+    // Fetch lead data with all related information
+    const { data: lead, error: leadError } = await supabase
+      .from('leads')
+      .select(`
+        *,
+        messages (
+          id,
+          body,
+          direction,
+          status,
+          created_at
+        ),
+        conversations!conversation_id (
+          id,
+          status,
+          source,
+          started_at,
+          last_activity_at
+        ),
+        voicemail_recordings (
+          id,
+          recording_url,
+          recording_duration,
+          recording_status,
+          created_at
+        ),
+        ai_call_records (
+          id,
+          extracted_info,
+          caller_phone,
+          business_id,
+          lead_id,
+          created_at,
+          outcome
+        ),
+        jobs (
+          id,
+          title,
+          status,
+          scheduled_date,
+          scheduled_time,
+          service_address,
+          notes,
+          created_at
+        ),
+        payment_requests (
+          id,
+          amount,
+          status,
+          requested_at,
+          paid_at
+        )
+      `)
+      .eq('id', leadId)
+      .single()
+
+    if (leadError || !lead) {
+      return NextResponse.json({ error: 'lead_not_found' }, { status: 404 })
+    }
+
+    // Build context for AI summary
+    const context: any = {
+      customer: {
+        name: lead.name || lead.caller_phone || 'Unknown',
+        phone: lead.caller_phone || '',
+        status: lead.status,
+        created_at: lead.created_at,
+        first_contact_at: lead.first_contact_at,
+        last_message_at: lead.last_message_at
+      },
+      aiIntake: null,
+      messages: [],
+      jobs: [],
+      payments: [],
+      voicemails: []
+    }
+
+    // Extract AI intake information
+    if (lead.ai_call_records && lead.ai_call_records.length > 0) {
+      const latestAI = lead.ai_call_records[0]
+      if (latestAI.extracted_info) {
+        context.aiIntake = {
+          serviceRequested: latestAI.extracted_info.service_requested,
+          desiredCompletion: latestAI.extracted_info.desired_completion,
+          serviceAddress: latestAI.extracted_info.service_address,
+          additionalDetails: latestAI.extracted_info.additional_details,
+          customerName: latestAI.extracted_info.customer_name,
+          customerPhone: latestAI.extracted_info.customer_phone,
+          outcome: latestAI.outcome
+        }
+      }
+    }
+
+    // Summarize messages
+    if (lead.messages && lead.messages.length > 0) {
+      const messageCount = lead.messages.length
+      const inboundCount = lead.messages.filter((m: any) => m.direction === 'inbound').length
+      const outboundCount = lead.messages.filter((m: any) => m.direction === 'outbound').length
+      const latestMessage = lead.messages[0]
+      
+      context.messages = {
+        total: messageCount,
+        inbound: inboundCount,
+        outbound: outboundCount,
+        latest: {
+          direction: latestMessage.direction,
+          status: latestMessage.status,
+          created_at: latestMessage.created_at
+        }
+      }
+    }
+
+    // Summarize jobs
+    if (lead.jobs && lead.jobs.length > 0) {
+      context.jobs = lead.jobs.map((job: any) => ({
+        title: job.title,
+        status: job.status,
+        scheduled_date: job.scheduled_date,
+        scheduled_time: job.scheduled_time,
+        service_address: job.service_address,
+        notes: job.notes
+      }))
+    }
+
+    // Summarize payments
+    if (lead.payment_requests && lead.payment_requests.length > 0) {
+      context.payments = lead.payment_requests.map((payment: any) => ({
+        amount: payment.amount,
+        status: payment.status,
+        requested_at: payment.requested_at,
+        paid_at: payment.paid_at
+      }))
+    }
+
+    // Summarize voicemails
+    if (lead.voicemail_recordings && lead.voicemail_recordings.length > 0) {
+      context.voicemails = {
+        count: lead.voicemail_recordings.length,
+        latest: lead.voicemail_recordings[0].created_at
+      }
+    }
+
+    // Add internal notes if available
+    if (lead.notes) {
+      context.notes = lead.notes
+    }
+
+    // Build prompt for OpenAI
+    const systemPrompt = `You are a helpful assistant that summarizes customer information for small service businesses.
+- Produce ONE concise paragraph (120-200 words) summarizing the customer.
+- Use ONLY facts from the provided customer data.
+- Highlight important customer history.
+- Mention outstanding work if applicable.
+- Mention completed work if applicable.
+- Mention payment status if applicable.
+- Mention upcoming appointments if applicable.
+- Keep the tone professional and business-focused.
+- NEVER fabricate information.
+- NEVER guess or speculate.
+- If information is unavailable, simply exclude it.
+- Do not invent preferences or details not in the data.`
+
+    const userPrompt = `Customer Data:\n${JSON.stringify(context, null, 2)}\n\nGenerate a concise business summary of this customer.`
+
+    // Call OpenAI API
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        temperature: 0.3,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        max_tokens: 300
+      })
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      console.error('[AI Summary] OpenAI API error:', errorData)
+      return NextResponse.json({ error: 'openai_api_failed' }, { status: 500 })
+    }
+
+    const data = await response.json()
+    const summary = data?.choices?.[0]?.message?.content || ''
+
+    if (!summary) {
+      return NextResponse.json({ error: 'no_summary_generated' }, { status: 500 })
+    }
+
+    return NextResponse.json({ summary })
+  } catch (error) {
+    console.error('[AI Summary] Error:', error)
+    return NextResponse.json({ error: 'internal_error' }, { status: 500 })
+  }
+}
