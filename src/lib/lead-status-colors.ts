@@ -57,18 +57,18 @@ const statusColorMap: Record<LeadLifecycleStatus, StatusColorConfig> = {
     badgeBorder: 'ring-1 ring-inset ring-amber-500/20 dark:ring-amber-400/20'
   },
   'paid': {
-    accent: 'bg-teal-400',
-    border: 'border-teal-500/20',
-    badgeBg: 'bg-teal-500/10 dark:bg-teal-400/10',
-    badgeText: 'text-teal-700 dark:text-teal-300',
-    badgeBorder: 'ring-1 ring-inset ring-teal-500/20 dark:ring-teal-400/20'
+    accent: 'bg-green-400',
+    border: 'border-green-500/20',
+    badgeBg: 'bg-green-500/10 dark:bg-green-400/10',
+    badgeText: 'text-green-700 dark:text-green-300',
+    badgeBorder: 'ring-1 ring-inset ring-green-500/20 dark:ring-green-400/20'
   },
   'completed': {
-    accent: 'bg-slate-300',
-    border: 'border-slate-500/20',
-    badgeBg: 'bg-slate-500/10 dark:bg-slate-400/10',
-    badgeText: 'text-slate-700 dark:text-slate-300',
-    badgeBorder: 'ring-1 ring-inset ring-slate-500/20 dark:ring-slate-400/20'
+    accent: 'bg-sky-400',
+    border: 'border-sky-500/20',
+    badgeBg: 'bg-sky-500/10 dark:bg-sky-400/10',
+    badgeText: 'text-sky-700 dark:text-sky-300',
+    badgeBorder: 'ring-1 ring-inset ring-sky-500/20 dark:ring-sky-400/20'
   },
   'lost': {
     accent: 'bg-red-400',

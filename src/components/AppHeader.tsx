@@ -11,11 +11,13 @@ import BrandIcon from './BrandIcon'
 interface AppHeaderProps {
   title?: string
   showNavigation?: boolean
+  sticky?: boolean
 }
 
 export default function AppHeader({
   title,
-  showNavigation = true
+  showNavigation = true,
+  sticky = true
 }: AppHeaderProps) {
   const pathname = usePathname()
   
@@ -29,7 +31,7 @@ export default function AppHeader({
 
   return (
     <>
-      <header className="sticky top-0 z-50 flex-shrink-0 border-b border-white/10 bg-slate-950 shadow-[0_1px_0_rgba(255,255,255,0.06),0_18px_52px_rgba(2,6,23,0.34)] relative">
+      <header className={`${sticky ? 'sticky top-0' : ''} z-50 flex-shrink-0 border-b border-white/10 bg-slate-950 shadow-[0_1px_0_rgba(255,255,255,0.06),0_18px_52px_rgba(2,6,23,0.34)] relative`}>
         <div className="max-w-7xl mx-auto pl-3 pr-3 sm:px-6 lg:px-8 pt-4 sm:pt-4.5 pb-2 sm:pb-2.5 border-0" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 8px)' }}>
           <div className="flex items-center justify-between h-11">
             {/* Left side - Logo and navigation */}
