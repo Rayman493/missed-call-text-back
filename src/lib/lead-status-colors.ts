@@ -26,49 +26,56 @@ export interface StatusColorConfig {
 }
 
 const statusColorMap: Record<string, StatusColorConfig> = {
-  'New': {
+  'new': {
     accent: 'bg-blue-400',
     border: 'border-blue-500/20',
     badgeBg: 'bg-blue-500/10 dark:bg-blue-400/10',
     badgeText: 'text-blue-700 dark:text-blue-300',
     badgeBorder: 'ring-1 ring-inset ring-blue-500/20 dark:ring-blue-400/20'
   },
-  'Active': {
+  'active': {
     accent: 'bg-emerald-400',
     border: 'border-emerald-500/20',
     badgeBg: 'bg-emerald-500/10 dark:bg-emerald-400/10',
     badgeText: 'text-emerald-700 dark:text-emerald-300',
     badgeBorder: 'ring-1 ring-inset ring-emerald-500/20 dark:ring-emerald-400/20'
   },
-  'Scheduled': {
+  'scheduled': {
     accent: 'bg-violet-400',
     border: 'border-violet-500/20',
     badgeBg: 'bg-violet-500/10 dark:bg-violet-400/10',
     badgeText: 'text-violet-700 dark:text-violet-300',
     badgeBorder: 'ring-1 ring-inset ring-violet-500/20 dark:ring-violet-400/20'
   },
-  'Payment Requested': {
+  'payment_requested': {
     accent: 'bg-amber-400',
     border: 'border-amber-500/20',
     badgeBg: 'bg-amber-500/10 dark:bg-amber-400/10',
     badgeText: 'text-amber-700 dark:text-amber-300',
     badgeBorder: 'ring-1 ring-inset ring-amber-500/20 dark:ring-amber-400/20'
   },
-  'Paid': {
+  'paid': {
     accent: 'bg-teal-400',
     border: 'border-teal-500/20',
     badgeBg: 'bg-teal-500/10 dark:bg-teal-400/10',
     badgeText: 'text-teal-700 dark:text-teal-300',
     badgeBorder: 'ring-1 ring-inset ring-teal-500/20 dark:ring-teal-400/20'
   },
-  'Completed': {
+  'completed': {
     accent: 'bg-slate-300',
     border: 'border-slate-500/20',
     badgeBg: 'bg-slate-500/10 dark:bg-slate-400/10',
     badgeText: 'text-slate-700 dark:text-slate-300',
     badgeBorder: 'ring-1 ring-inset ring-slate-500/20 dark:ring-slate-400/20'
   },
-  'Lost': {
+  'lost': {
+    accent: 'bg-red-400',
+    border: 'border-red-500/20',
+    badgeBg: 'bg-red-500/10 dark:bg-red-400/10',
+    badgeText: 'text-red-700 dark:text-red-300',
+    badgeBorder: 'ring-1 ring-inset ring-red-500/20 dark:ring-red-400/20'
+  },
+  'ignored': {
     accent: 'bg-red-400',
     border: 'border-red-500/20',
     badgeBg: 'bg-red-500/10 dark:bg-red-400/10',
