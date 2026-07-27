@@ -1,6 +1,7 @@
 import UIKit
 import Capacitor
 import WebKit
+import ReplyflowStripeTerminal
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -62,8 +63,27 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 class CustomBridgeViewController: CAPBridgeViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
+        #if DEBUG
+        print("[ReplyflowStripeTerminal] bridge controller loaded")
+        #endif
+
         let bgColor = UIColor(red: 2.0/255.0, green: 6.0/255.0, blue: 23.0/255.0, alpha: 1.0)
         view.backgroundColor = bgColor
+
+        // Register plugin after bridge is initialized
+        if let bridge = self.bridge {
+            #if DEBUG
+            print("[ReplyflowStripeTerminal] bridge available")
+            #endif
+            bridge.registerPluginType(ReplyflowStripeTerminalPlugin.self)
+            #if DEBUG
+            print("[ReplyflowStripeTerminal] registerPluginType called")
+            #endif
+        } else {
+            #if DEBUG
+            print("[ReplyflowStripeTerminal] ERROR: bridge is nil in viewDidLoad")
+            #endif
+        }
     }
 
     override func webViewDidLoad() {
