@@ -375,14 +375,18 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
 
   @objc public func isTapToPayAccountLinked(_ call: CAPPluginCall) {
     #if canImport(StripeTerminal)
-    let onBehalfOf = call.getString("onBehalfOf")
-    Task { @MainActor in
-      do {
-        let isLinked = try await Terminal.shared.isTapToPayAccountLinked(onBehalfOf)
-        call.resolve(["isLinked": isLinked.boolValue])
-      } catch {
-        call.reject(error.localizedDescription)
+    if #available(iOS 16.4, *) {
+      let onBehalfOf = call.getString("onBehalfOf")
+      Task { @MainActor in
+        do {
+          let isLinked = try await Terminal.shared.isTapToPayAccountLinked(onBehalfOf)
+          call.resolve(["isLinked": isLinked.boolValue])
+        } catch {
+          call.reject(error.localizedDescription)
+        }
       }
+    } else {
+      call.reject("Tap to Pay account-link status requires iOS 16.4 or newer", "IOS_VERSION_UNSUPPORTED")
     }
     #else
     call.reject("Stripe Terminal SDK not available")
