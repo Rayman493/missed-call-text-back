@@ -81,3 +81,22 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
 }
+
+// Custom bridge controller to set background colors after web view is loaded
+class CustomBridgeViewController: CAPBridgeViewController {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        let bgColor = UIColor(red: 2.0/255.0, green: 6.0/255.0, blue: 23.0/255.0, alpha: 1.0)
+        view.backgroundColor = bgColor
+    }
+
+    override func webViewDidLoad() {
+        super.webViewDidLoad()
+        let bgColor = UIColor(red: 2.0/255.0, green: 6.0/255.0, blue: 23.0/255.0, alpha: 1.0)
+        if let wv = bridge?.webView {
+            wv.isOpaque = true
+            wv.backgroundColor = bgColor
+            wv.scrollView.backgroundColor = bgColor
+        }
+    }
+}

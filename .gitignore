@@ -48,6 +48,7 @@ ios/
 !ios/App/App/*.swift
 !ios/App/App.xcodeproj/project.pbxproj
 !ios/App/App/*.entitlements
+!ios/App/App/Base.lproj/*.storyboard
 
 # Allow local Capacitor plugin (including its ios SPM package) to be tracked
 !packages/replyflow-stripe-terminal/
