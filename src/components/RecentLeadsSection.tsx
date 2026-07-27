@@ -7,6 +7,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import DashboardErrorBoundary from './DashboardErrorBoundary'
 import Link from 'next/link'
 import LeadTimeline from '@/components/LeadTimeline'
+import { getCardAccentClasses, getStatusBadgeClasses } from '@/lib/lead-status-colors'
 
 interface RecentLeadsSectionProps {
   businessId: string
@@ -375,27 +376,21 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
                   return (
                     <div key={lead.id} className="block">
                       <Link href={`/dashboard/leads/${lead.id}`}>
-                        <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-2 sm:p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-200 cursor-pointer">
+                        <div className={`bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-2 sm:p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-200 cursor-pointer ${getCardAccentClasses(getLeadStatus(lead))}`}>
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1.5 mb-0.5">
                                 <p className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground truncate leading-tight">
                                   {getLeadDisplayName(lead)}
                                 </p>
-                                <span className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium flex-shrink-0 ${
-                                  getLeadStatus(lead) === 'Awaiting Response'
-                                    ? 'bg-amber-900/20 text-amber-300 ring-1 ring-inset ring-amber-600/30'
-                                    : getLeadStatus(lead) === 'New'
-                                    ? 'bg-blue-900/20 text-blue-300 ring-1 ring-inset ring-blue-600/30'
-                                    : 'bg-green-900/20 text-green-300 ring-1 ring-inset ring-green-600/30'
-                                }`}>
+                                <span className={getStatusBadgeClasses(getLeadStatus(lead))}>
                                   {getLeadStatus(lead)}
                                 </span>
                                 {aiData.urgency && (
-                                  <span className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium flex-shrink-0 ${
+                                  <span className={`inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium flex-shrink-0 ${
                                     aiData.urgency.toLowerCase() === 'urgent' || aiData.urgency.toLowerCase() === 'high'
-                                      ? 'bg-red-900/20 text-red-300 ring-1 ring-inset ring-red-600/30'
-                                      : 'bg-slate-900/20 text-slate-300 ring-1 ring-inset ring-slate-600/30'
+                                      ? 'bg-red-500/10 dark:bg-red-400/10 text-red-700 dark:text-red-300 ring-1 ring-inset ring-red-500/20 dark:ring-red-400/20'
+                                      : 'bg-slate-500/10 dark:bg-slate-400/10 text-slate-700 dark:text-slate-300 ring-1 ring-inset ring-slate-500/20 dark:ring-slate-400/20'
                                   }`}>
                                     {aiData.urgency}
                                   </span>
