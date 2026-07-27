@@ -33,7 +33,7 @@ interface RecoveryResult {
   updated: {
     paid: number
     failed: number
-    canceled: number
+    cancelled: number
   }
   skipped: {
     alreadyTerminal: number
@@ -47,6 +47,9 @@ interface RecoveryResult {
     localStatus: string
     stripeStatus: string
     action: string
+    ageMinutes?: number
+    hasPaymentIntent?: boolean
+    paymentMethodType?: string
   }>
 }
 
@@ -65,7 +68,7 @@ export async function recoverStaleAttempts(options: RecoveryOptions = {}): Promi
 
   const result: RecoveryResult = {
     processed: 0,
-    updated: { paid: 0, failed: 0, canceled: 0 },
+    updated: { paid: 0, failed: 0, cancelled: 0 },
     skipped: { alreadyTerminal: 0, notCardPresent: 0, stripeUnavailable: 0 },
     errors: 0,
     details: [],
@@ -78,7 +81,7 @@ export async function recoverStaleAttempts(options: RecoveryOptions = {}): Promi
     const { data: staleAttempts, error: fetchError } = await supabaseAdmin
       .from('payment_requests')
       .select('id, business_id, terminal_attempt_id, status, stripe_payment_intent_id, stripe_connect_account_id, payment_method_type, created_at')
-      .in('status', ['pending', 'processing'])
+      .eq('status', 'pending')
       .eq('payment_method_type', 'card_present')
       .lt('created_at', cutoffDate)
       .limit(maxAttempts)
@@ -107,12 +110,25 @@ export async function recoverStaleAttempts(options: RecoveryOptions = {}): Promi
     for (const attempt of staleAttempts) {
       result.processed++
 
-      console.log('[STALE_RECOVERY] Processing attempt_id=' + attempt.terminal_attempt_id + ' payment_request_id=' + attempt.id)
+      // Calculate age in minutes
+      const ageMinutes = Math.floor((Date.now() - new Date(attempt.created_at).getTime()) / (60 * 1000))
+
+      console.log('[STALE_RECOVERY] Processing attempt_id=' + attempt.terminal_attempt_id + ' payment_request_id=' + attempt.id + ' age_minutes=' + ageMinutes)
 
       // Verify it's still a card_present payment
       if (attempt.payment_method_type !== 'card_present') {
         console.log('[STALE_RECOVERY] Skipping non-card_present attempt: ' + attempt.payment_method_type)
         result.skipped.notCardPresent++
+        result.details.push({
+          paymentRequestId: attempt.id,
+          terminalAttemptId: attempt.terminal_attempt_id || 'unknown',
+          localStatus: attempt.status,
+          stripeStatus: 'none',
+          action: 'skipped_not_card_present',
+          ageMinutes,
+          hasPaymentIntent: !!attempt.stripe_payment_intent_id,
+          paymentMethodType: attempt.payment_method_type,
+        })
         continue
       }
 
@@ -132,6 +148,9 @@ export async function recoverStaleAttempts(options: RecoveryOptions = {}): Promi
           localStatus: attempt.status,
           stripeStatus: 'none',
           action: 'marked_failed_no_paymentintent',
+          ageMinutes,
+          hasPaymentIntent: false,
+          paymentMethodType: attempt.payment_method_type,
         })
         continue
       }
@@ -165,22 +184,28 @@ export async function recoverStaleAttempts(options: RecoveryOptions = {}): Promi
             localStatus: attempt.status,
             stripeStatus: paymentIntent.status,
             action: 'marked_paid',
+            ageMinutes,
+            hasPaymentIntent: true,
+            paymentMethodType: attempt.payment_method_type,
           })
         } else if (paymentIntent.status === 'canceled') {
-          console.log('[STALE_RECOVERY] Stripe says canceled - updating local status to canceled')
+          console.log('[STALE_RECOVERY] Stripe says canceled - updating local status to cancelled')
           if (!dryRun) {
             await supabaseAdmin
               .from('payment_requests')
-              .update({ status: 'canceled' })
+              .update({ status: 'cancelled' })
               .eq('id', attempt.id)
           }
-          result.updated.canceled++
+          result.updated.cancelled++
           result.details.push({
             paymentRequestId: attempt.id,
             terminalAttemptId: attempt.terminal_attempt_id || 'unknown',
             localStatus: attempt.status,
             stripeStatus: paymentIntent.status,
-            action: 'marked_canceled',
+            action: 'marked_cancelled',
+            ageMinutes,
+            hasPaymentIntent: true,
+            paymentMethodType: attempt.payment_method_type,
           })
         } else if (paymentIntent.status === 'requires_payment_method') {
           console.log('[STALE_RECOVERY] Stripe says requires_payment_method - marking as failed')
@@ -197,6 +222,9 @@ export async function recoverStaleAttempts(options: RecoveryOptions = {}): Promi
             localStatus: attempt.status,
             stripeStatus: paymentIntent.status,
             action: 'marked_failed',
+            ageMinutes,
+            hasPaymentIntent: true,
+            paymentMethodType: attempt.payment_method_type,
           })
         } else {
           // Still processing or requires_action - leave as is
@@ -207,6 +235,9 @@ export async function recoverStaleAttempts(options: RecoveryOptions = {}): Promi
             localStatus: attempt.status,
             stripeStatus: paymentIntent.status,
             action: 'skipped_still_processing',
+            ageMinutes,
+            hasPaymentIntent: true,
+            paymentMethodType: attempt.payment_method_type,
           })
         }
       } catch (stripeError) {
@@ -219,6 +250,9 @@ export async function recoverStaleAttempts(options: RecoveryOptions = {}): Promi
           localStatus: attempt.status,
           stripeStatus: 'error',
           action: 'stripe_retrieve_failed',
+          ageMinutes,
+          hasPaymentIntent: true,
+          paymentMethodType: attempt.payment_method_type,
         })
       }
     }
@@ -227,7 +261,7 @@ export async function recoverStaleAttempts(options: RecoveryOptions = {}): Promi
     console.log('[STALE_RECOVERY] processed=' + result.processed)
     console.log('[STALE_RECOVERY] updated.paid=' + result.updated.paid)
     console.log('[STALE_RECOVERY] updated.failed=' + result.updated.failed)
-    console.log('[STALE_RECOVERY] updated.canceled=' + result.updated.canceled)
+    console.log('[STALE_RECOVERY] updated.cancelled=' + result.updated.cancelled)
     console.log('[STALE_RECOVERY] skipped.alreadyTerminal=' + result.skipped.alreadyTerminal)
     console.log('[STALE_RECOVERY] skipped.notCardPresent=' + result.skipped.notCardPresent)
     console.log('[STALE_RECOVERY] skipped.stripeUnavailable=' + result.skipped.stripeUnavailable)
@@ -250,7 +284,7 @@ export async function recoverSpecificAttempt(terminalAttemptId: string, dryRun =
 
   const result: RecoveryResult = {
     processed: 0,
-    updated: { paid: 0, failed: 0, canceled: 0 },
+    updated: { paid: 0, failed: 0, cancelled: 0 },
     skipped: { alreadyTerminal: 0, notCardPresent: 0, stripeUnavailable: 0 },
     errors: 0,
     details: [],
@@ -317,10 +351,10 @@ export async function recoverSpecificAttempt(terminalAttemptId: string, dryRun =
       if (!dryRun) {
         await supabaseAdmin
           .from('payment_requests')
-          .update({ status: 'canceled' })
+          .update({ status: 'cancelled' })
           .eq('id', attempt.id)
       }
-      result.updated.canceled++
+      result.updated.cancelled++
     } else if (paymentIntent.status === 'requires_payment_method') {
       if (!dryRun) {
         await supabaseAdmin

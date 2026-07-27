@@ -434,7 +434,8 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" 
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-hidden px-4 pt-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 md:items-center md:p-4" 
+      style={{ paddingBottom: 'calc(var(--bottom-nav-height, 80px) + 16px)' }}
       role="dialog" 
       aria-modal="true" 
       aria-labelledby="event-title"
@@ -444,7 +445,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
         }
       }}
     >
-      <div className="bg-card rounded-2xl border border-border/50 shadow-2xl shadow-black/10 dark:shadow-black/30 w-full max-w-md max-h-[90dvh] md:max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200">
+      <div className="bg-card rounded-2xl border border-border/50 shadow-2xl shadow-black/10 dark:shadow-black/30 w-full max-w-md flex max-h-full flex-col overflow-hidden md:max-h-[90vh] animate-in zoom-in-95 duration-200">
         {/* Visually hidden title for accessibility */}
         <h2 id="event-title" className="sr-only">{event.summary}</h2>
         
@@ -466,7 +467,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
         </div>
 
         {/* Event Details */}
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4" style={{ WebkitOverflowScrolling: 'touch' }}>
           <div className="space-y-4">
             {/* Title */}
             <div className="flex items-start gap-3">
@@ -1073,7 +1074,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 border-t border-border/50 bg-card flex-shrink-0" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 0.75rem)' }}>
+        <div className="px-5 py-3 border-t border-border/50 bg-card flex-shrink-0 pb-3">
           {/* Status moved to notes area to avoid duplication */}
           {error && (
             <div className="mb-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2">

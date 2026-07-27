@@ -249,7 +249,7 @@ export default function NotificationsPage() {
             notifications.map(notification => (
               <div
                 key={notification.id}
-                className={`group relative bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-lg p-4 transition-colors hover:shadow-sm ${getNotificationAccent(notification.type)} ${
+                className={`group relative bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-lg p-4 transition-colors hover:shadow-sm select-none touch-pan-y ${getNotificationAccent(notification.type)} ${
                   notification.read 
                     ? '' 
                     : 'bg-slate-50/50 dark:bg-slate-800/50'
@@ -288,7 +288,10 @@ export default function NotificationsPage() {
                 <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   {!notification.read && (
                     <button
-                      onClick={() => handleMarkAsRead(notification.id)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleMarkAsRead(notification.id)
+                      }}
                       className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors bg-white dark:bg-card rounded shadow-sm"
                       title="Mark as read"
                     >
@@ -296,7 +299,10 @@ export default function NotificationsPage() {
                     </button>
                   )}
                   <button
-                    onClick={() => handleDeleteNotification(notification.id)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDeleteNotification(notification.id)
+                    }}
                     className="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors bg-white dark:bg-card rounded shadow-sm"
                     title="Delete notification"
                   >

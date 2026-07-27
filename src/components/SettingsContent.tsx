@@ -1024,13 +1024,11 @@ export default function SettingsContent() {
 
   // Shared helper to calculate scroll offset based on actual header height
   const getScrollOffset = () => {
-    const header = document.querySelector('header') as HTMLElement | null
-    const headerHeight = header ? header.offsetHeight : 0
-    // Find the sticky settings header by looking for the sticky element with z-40
-    const settingsHeader = document.querySelector('.sticky.z-40') as HTMLElement | null
-    const settingsHeaderHeight = settingsHeader ? settingsHeader.offsetHeight : 0
-    // Add extra padding for comfortable spacing
-    return headerHeight + settingsHeaderHeight + 20
+    // Use fixed responsive values matching the sticky top and scroll-margin-top
+    // Mobile: header (76px) + tab bar (~44px) + gap (20px) = 140px
+    // Desktop: header (80px) + tab bar (~44px) + gap (20px) = 144px
+    const isMobile = window.innerWidth < 768
+    return isMobile ? 140 : 144
   }
 
   // Shared scroll-to-section helper
@@ -1069,7 +1067,7 @@ export default function SettingsContent() {
     return (
       <AuthGuard>
         <BusinessGuard>
-          <div className="min-h-screen bg-background dark:bg-background flex flex-col relative overflow-x-hidden">
+          <div className="min-h-screen bg-background dark:bg-background flex flex-col relative overflow-x-clip">
             <AppHeader title="Settings" />
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
@@ -1087,7 +1085,7 @@ export default function SettingsContent() {
     <DashboardErrorBoundary>
       <AuthGuard>
       <BusinessGuard>
-        <div className="min-h-screen bg-background dark:bg-background flex flex-col relative overflow-x-hidden">
+        <div className="min-h-screen bg-background dark:bg-background flex flex-col relative overflow-x-clip">
           {/* Header */}
           <AppHeader title="Settings" />
 
@@ -1106,7 +1104,7 @@ export default function SettingsContent() {
             </div>
 
             {/* Settings Navigation Tabs - sticky only */}
-            <div className="sticky z-40 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 py-2" style={{ top: 'calc(env(safe-area-inset-top) + 60px)' }}>
+            <div className="sticky z-40 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 py-2 top-[76px] md:top-[80px]">
               <nav ref={settingsTabsNavRef} className="flex items-center gap-1 overflow-x-auto custom-scrollbar-horizontal">
                 <button
                   ref={(element) => { sectionTabRefs.current.general = element }}
@@ -1189,7 +1187,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Business Info Section */}
-              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4" style={{ scrollMarginTop: 'calc(env(safe-area-inset-top) + 120px)' }}>
+              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[140px] md:scroll-mt-[144px]">
                 <div className="mb-4">
                   <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Business Info</h2>
                   <p className="text-xs text-slate-500 dark:text-slate-400">Your business identity and contact details.</p>
@@ -1353,7 +1351,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Automation Settings */}
-              <div id="automation" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4" style={{ scrollMarginTop: 'calc(env(safe-area-inset-top) + 120px)' }}>
+              <div id="automation" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[140px] md:scroll-mt-[144px]">
                 <div className="mb-3">
                   <div className="flex items-center justify-between mb-1">
                     <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground">Instant Response Settings</h2>
@@ -1807,7 +1805,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Integrations Section */}
-              <div id="integrations" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4" style={{ scrollMarginTop: 'calc(env(safe-area-inset-top) + 120px)' }}>
+              <div id="integrations" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[140px] md:scroll-mt-[144px]">
                 <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Integrations</h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">Connect services you already use.</p>
                 
@@ -1879,7 +1877,7 @@ export default function SettingsContent() {
                 </div>
               </div>
 
-              <div id="payments" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4" style={{ scrollMarginTop: 'calc(env(safe-area-inset-top) + 120px)' }}>
+              <div id="payments" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[140px] md:scroll-mt-[144px]">
                 <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Payments</h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
                   Connect payment methods for customer requests.
@@ -2079,7 +2077,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Personal Contacts Section */}
-              <div id="contacts" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4" style={{ scrollMarginTop: 'calc(env(safe-area-inset-top) + 120px)' }}>
+              <div id="contacts" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[140px] md:scroll-mt-[144px]">
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <div>
                     <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Personal Contacts</h2>
@@ -2207,7 +2205,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Account Section - Merged Profile and Account Access */}
-              <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4" style={{ scrollMarginTop: 'calc(env(safe-area-inset-top) + 120px)' }}>
+              <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 scroll-mt-[140px] md:scroll-mt-[144px]">
                 <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Account</h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Your account details and status.</p>
                 <div className="bg-slate-50/80 dark:bg-slate-800/40 rounded-md border border-slate-200/60 dark:border-slate-700/40 overflow-hidden">

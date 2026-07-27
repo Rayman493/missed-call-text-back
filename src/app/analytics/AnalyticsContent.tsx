@@ -340,7 +340,7 @@ export default function AnalyticsContent() {
         <div className="min-h-screen bg-[#f5f7fb] dark:bg-background flex flex-col">
           <AppHeader showNavigation={true} />
           
-          <div className="flex-1 pt-2 sm:pt-3 lg:pt-4 px-3 sm:px-4 lg:px-6 pb-8 relative z-10">
+          <div className="flex-1 pt-2.5 sm:pt-3.5 lg:pt-7 px-3 sm:px-4 lg:px-6 pb-20 sm:pb-8 relative z-10" style={{ paddingBottom: 'max(80px, calc(80px + env(safe-area-inset-bottom)))' }}>
             <div className="max-w-[1400px] mx-auto">
               {/* Header */}
               <div className="mb-5">
