@@ -28,7 +28,6 @@ type CardState =
   | 'critical-issue'
   | 'setup-incomplete'
   | 'setup-complete'
-  | 'setup-complete-success'
   | 'healthy'
 
 export default function SetupStatusCard({
@@ -39,7 +38,6 @@ export default function SetupStatusCard({
   const [userHasToggled, setUserHasToggled] = useState(false)
   const [isOpeningBilling, setIsOpeningBilling] = useState(false)
   const [billingError, setBillingError] = useState<string | null>(null)
-  const [successDismissed, setSuccessDismissed] = useState(false)
   const [isAssistantOpen, setIsAssistantOpen] = useState(false)
   const [showForwardingInstructions, setShowForwardingInstructions] = useState(false)
   const [expandedStep, setExpandedStep] = useState<number | null>(null)
@@ -65,21 +63,6 @@ export default function SetupStatusCard({
     business?.forwarding_instructions_confirmed_at
   )
 
-  // Check if success state has been dismissed (localStorage)
-  React.useEffect(() => {
-    if (typeof window !== 'undefined' && business?.id) {
-      const dismissed = localStorage.getItem(`setup-success-dismissed-${business.id}`)
-      setSuccessDismissed(dismissed === 'true')
-    }
-  }, [business?.id])
-
-  // Handle dismissing the success state
-  const handleDismissSuccess = () => {
-    if (business?.id) {
-      localStorage.setItem(`setup-success-dismissed-${business.id}`, 'true')
-      setSuccessDismissed(true)
-    }
-  }
   
   // Handle opening billing portal or checkout
   const handleOpenBilling = async () => {
@@ -183,12 +166,7 @@ export default function SetupStatusCard({
       return 'setup-incomplete'
     }
 
-    // Priority 5: Setup complete success (first lead captured, not yet dismissed)
-    if (setupHealth?.forwardingVerified && missedCallCount > 0 && !successDismissed) {
-      return 'setup-complete-success'
-    }
-
-    // Priority 6: Setup complete but no leads yet
+    // Priority 5: Setup complete but no leads yet
     if (setupHealth?.forwardingVerified && missedCallCount === 0) {
       return 'setup-complete'
     }
@@ -199,12 +177,11 @@ export default function SetupStatusCard({
   
   const cardState = getCardState()
 
-  // Auto-expand during setup states and success state, collapse after setup
+  // Auto-expand during setup states, collapse after setup
   const shouldAutoExpand =
     cardState === 'setup-incomplete' ||
     cardState === 'billing-blocker' ||
     cardState === 'critical-issue' ||
-    cardState === 'setup-complete-success' ||
     cardState === 'subscription-active'
 
   // Initialize isExpanded based on actual card state to prevent race condition
@@ -218,7 +195,7 @@ export default function SetupStatusCard({
 
   React.useEffect(() => {
     // Reset userHasToggled when setup completes to allow auto-collapse
-    if (cardState === 'setup-complete' || cardState === 'setup-complete-success' || cardState === 'healthy') {
+    if (cardState === 'setup-complete' || cardState === 'healthy') {
       setUserHasToggled(false)
     }
   }, [cardState])
@@ -662,42 +639,6 @@ export default function SetupStatusCard({
     )
   }
 
-  // Render setup complete success state (first lead captured)
-  if (cardState === 'setup-complete-success') {
-    return (
-      <div className="bg-slate-900/50 dark:bg-slate-950/50 backdrop-blur-sm rounded-2xl p-6 sm:p-8 shadow-xl border border-slate-200/10 dark:border-slate-800/50 border-l-4 border-l-green-500">
-        <div className="flex flex-col gap-6">
-          <div className="flex items-start gap-4">
-            <div className="flex-shrink-0">
-              <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
-                <CheckCircle className="w-5 h-5 text-green-400" />
-              </div>
-            </div>
-            <div className="flex-1">
-              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">First customer captured</h1>
-              <p className="text-slate-400 text-base sm:text-lg">ReplyFlow captured your first missed call and is ready to help.</p>
-            </div>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Link
-              href="/dashboard"
-              className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all"
-            >
-              View First Customer
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Link>
-            <button
-              onClick={handleDismissSuccess}
-              className="inline-flex items-center justify-center px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-base font-medium rounded-xl transition-colors"
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-  
   
   // Render main card (for setup states)
   return (
