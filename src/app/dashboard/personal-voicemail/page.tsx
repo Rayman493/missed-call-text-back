@@ -113,7 +113,7 @@ export default function PersonalVoicemailPage() {
   return (
     <AuthGuard>
       <BusinessGuard>
-        <div className="min-h-screen bg-background flex flex-col">
+        <div className="min-h-screen bg-background flex flex-col overflow-x-hidden">
           <AppHeader showNavigation={true} />
           
           <main className="flex-1 pt-4 px-4 sm:px-6 lg:px-8 pb-20 sm:pb-8">
