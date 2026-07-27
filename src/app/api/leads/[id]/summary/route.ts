@@ -5,7 +5,7 @@ const MODEL = process.env.OPENAI_SUMMARY_MODEL || 'gpt-4o-mini'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const apiKey = process.env.OPENAI_API_KEY
@@ -13,7 +13,8 @@ export async function POST(
       return NextResponse.json({ error: 'openai_api_key_missing' }, { status: 500 })
     }
 
-    const leadId = params.id
+    const { id } = await params
+    const leadId = id
     const supabase = await createServerSupabaseClient()
 
     // Fetch lead data with all related information
