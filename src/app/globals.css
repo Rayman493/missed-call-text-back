@@ -9,12 +9,13 @@
 
 html {
   background-color: #020617;
+  min-height: 100%;
 }
 
 body {
   background-color: #020617;
   color: #ffffff;
-  min-height: 100vh;
+  min-height: 100dvh;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -157,7 +158,7 @@ main {
   }
   
   body {
-    min-height: 100vh;
+    min-height: 100dvh;
     @apply bg-background text-foreground;
   }
 

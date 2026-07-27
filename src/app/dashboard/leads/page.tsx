@@ -749,7 +749,7 @@ export default function LeadsPage() {
             <AppHeader title="Customers" />
 
           {/* Main Content */}
-          <main className="flex-1 pt-4 lg:pt-8 px-4 lg:px-6 pb-6 md:pb-6 relative z-10 overflow-y-auto" style={{ paddingBottom: 'max(80px, calc(80px + env(safe-area-inset-bottom)))' }}>
+          <main className="flex-1 pt-4 lg:pt-8 px-4 lg:px-6 pb-6 md:pb-6 relative z-10 overflow-y-auto" style={{ paddingBottom: 'var(--bottom-nav-height, 80px)' }}>
             <div className="max-w-[1400px] mx-auto space-y-3 sm:space-y-4 lg:space-y-6">
             {/* SMS Verification Banner */}
             <SmsVerificationBanner business={business} />
@@ -981,7 +981,7 @@ export default function LeadsPage() {
             </div>
 
             {/* Customers Header - Compact on mobile */}
-            <div className="mb-2 sm:mb-4">
+            <div className="mb-1.5 sm:mb-4">
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
                 <div>
                   <h2 className="text-xl sm:text-2xl font-semibold text-foreground tracking-tight">
@@ -995,7 +995,7 @@ export default function LeadsPage() {
             </div>
 
             {/* Search/Filter Toolbar - moved above quick filters for tighter vertical rhythm */}
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-3 sm:mb-4">
+            <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-3 mb-2.5 sm:mb-4">
               <div className="flex-1">
                 <div className="relative">
                   <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1006,18 +1006,18 @@ export default function LeadsPage() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search customers..."
-                    className="w-full pl-10 pr-4 py-2 sm:py-2 bg-background border border-border/50 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all"
+                    className="w-full pl-10 pr-4 py-1.5 sm:py-2 bg-background border border-border/50 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all"
                   />
                 </div>
               </div>
               <div className="flex items-center justify-between gap-2 w-full sm:w-auto">
                 {/* Left group: Secondary filters + Refresh */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button
                         type="button"
-                        className="px-3 py-2 sm:px-4 sm:py-2 bg-background border border-border/50 rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all cursor-pointer flex items-center gap-2 hover:bg-muted/50 data-[state=open]:ring-2 data-[state=open]:ring-offset-2 data-[state=open]:ring-primary"
+                        className="px-3 py-1.5 sm:px-4 sm:py-2 bg-background border border-border/50 rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all cursor-pointer flex items-center gap-2 hover:bg-muted/50 data-[state=open]:ring-2 data-[state=open]:ring-offset-2 data-[state=open]:ring-primary"
                         title={statusFilter === 'all' ? 'More filters' : getStatusFilterLabel(statusFilter)}
                       >
                         {statusFilter === 'all' ? (
@@ -1100,11 +1100,11 @@ export default function LeadsPage() {
             </div>
 
             {/* Premium Filter Chips */}
-            <div className="flex flex-wrap items-center gap-2 mb-3 sm:mb-4">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2.5 sm:mb-4">
               <button
                 onClick={() => setQuickFilter('all')}
                 className={`
-                  inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200
+                  inline-flex items-center gap-2 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200
                   ${quickFilter === 'all'
                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'bg-transparent border border-border/50 text-muted-foreground hover:bg-muted/50 hover:border-border'
@@ -1116,7 +1116,7 @@ export default function LeadsPage() {
               <button
                 onClick={() => setQuickFilter('active')}
                 className={`
-                  inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200
+                  inline-flex items-center gap-2 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200
                   ${quickFilter === 'active'
                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'bg-transparent border border-border/50 text-muted-foreground hover:bg-muted/50 hover:border-border'
@@ -1128,7 +1128,7 @@ export default function LeadsPage() {
               <button
                 onClick={() => setQuickFilter('new')}
                 className={`
-                  inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200
+                  inline-flex items-center gap-2 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200
                   ${quickFilter === 'new'
                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'bg-transparent border border-border/50 text-muted-foreground hover:bg-muted/50 hover:border-border'
@@ -1140,7 +1140,7 @@ export default function LeadsPage() {
               <button
                 onClick={() => setQuickFilter('today')}
                 className={`
-                  inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200
+                  inline-flex items-center gap-2 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200
                   ${quickFilter === 'today'
                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'bg-transparent border border-border/50 text-muted-foreground hover:bg-muted/50 hover:border-border'
@@ -1154,8 +1154,10 @@ export default function LeadsPage() {
               </button>
             </div>
 
-            {/* Small customer count */}
-            <p className="text-xs text-muted-foreground mb-2 sm:mb-3">{leads.filter(l => !l.deleted_at).length} customers</p>
+            {/* Small customer count - hidden on mobile to avoid duplication with single-customer view; correct grammar */}
+            {(() => { const c = leads.filter(l => !l.deleted_at).length; return (
+              <p className="hidden sm:block text-xs text-muted-foreground mb-2 sm:mb-3">{c} {c === 1 ? 'customer' : 'customers'}</p>
+            )})()}
 
             {/* Filter-specific help text - Hide on mobile */}
             {statusFilter === 'ignored' && (
@@ -1290,15 +1292,10 @@ export default function LeadsPage() {
 
                   return (
                     <div className="flex flex-col items-center">
-                      <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
-                        {statusFilter === 'all'
-                          ? `${filteredLeads.length} ${filteredLeads.length === 1 ? 'customer' : 'customers'}`
-                          : `${filteredLeads.length} ${statusFilter} ${filteredLeads.length === 1 ? 'customer' : 'customers'}`
-                        }
-                      </p>
+                      {/* Removed inline count here to avoid duplication and lift the card on mobile */}
                       <div
                         key={lead.id}
-                        className="w-full max-w-2xl h-full flex flex-col rounded-xl border relative overflow-hidden transition-all duration-200 cursor-pointer bg-card border-border/50 hover:border-border hover:bg-muted/20 hover:shadow-sm active:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2"
+                        className="w-full max-w-2xl h-full flex flex-col rounded-xl border relative overflow-hidden transition-all duration-200 cursor-pointer dark:bg-gradient-to-b dark:from-slate-950 dark:to-slate-900 bg-card border-border/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:border-border hover:bg-muted/20 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] active:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2"
                         onClick={() => handleConversationClick(lead.id)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
@@ -1365,7 +1362,7 @@ export default function LeadsPage() {
                           </div>
 
                           {/* Metadata */}
-                          <div className="flex items-center justify-between mb-2.5">
+                          <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={(e) => {
@@ -1391,7 +1388,7 @@ export default function LeadsPage() {
                           </div>
 
                           {/* Action Buttons - Open affordance and overflow menu */}
-                          <div className="flex items-center gap-2 pt-2.5 border-t border-border/30 mt-auto justify-between">
+                          <div className="flex items-center gap-2 pt-2 border-t border-border/30 mt-auto justify-between">
                             <button
                               type="button"
                               onClick={(e) => {
@@ -1504,7 +1501,7 @@ export default function LeadsPage() {
                         return (
                           <div
                             key={lead.id}
-                            className="rounded-xl border relative overflow-hidden transition-all duration-200 cursor-pointer bg-card border-border/50 hover:border-border hover:bg-muted/20 hover:shadow-sm active:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2"
+                            className="rounded-xl border relative overflow-hidden transition-all duration-200 cursor-pointer dark:bg-gradient-to-b dark:from-slate-950 dark:to-slate-900 bg-card border-border/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:border-border hover:bg-muted/20 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] active:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2"
                             onClick={() => handleConversationClick(lead.id)}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' || e.key === ' ') {
@@ -1518,7 +1515,7 @@ export default function LeadsPage() {
                           >
                             {/* Status Accent Bar - Subtle left accent */}
                             <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${getLeadStatusAccentColor(getLeadLifecycleStatus(lead))}`}></div>
-                            <div className="p-2.5 sm:p-3.5 pl-3 sm:pl-4">
+                            <div className="p-2 sm:p-3.5 pl-3 sm:pl-4">
                               {/* Header: Name, Phone, Status - Compact on mobile */}
                               <div className="flex items-start justify-between gap-2 sm:gap-3 mb-1.5 sm:mb-2">
                                 <div className="flex-1 min-w-0">
@@ -1545,7 +1542,7 @@ export default function LeadsPage() {
                               </div>
 
                               {/* Compact Preview - Reduced spacing on mobile */}
-                              <div className="mb-1.5 sm:mb-2 space-y-0.5 sm:space-y-1">
+                              <div className="mb-1 sm:mb-2 space-y-0.5 sm:space-y-1">
                                 {aiData.reason && (
                                   <div>
                                     <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5 font-medium hidden sm:block">Latest Request</p>
@@ -1571,7 +1568,7 @@ export default function LeadsPage() {
                               </div>
 
                               {/* Metadata - Compact on mobile */}
-                              <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+                              <div className="flex items-center justify-between mb-1 sm:mb-2">
                                 <div className="flex items-center gap-1 sm:gap-1.5 sm:gap-2">
                                   <button
                                     onClick={(e) => {
