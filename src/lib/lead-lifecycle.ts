@@ -16,50 +16,50 @@ export interface LeadLifecycleConfig {
 
 export const LEAD_LIFECYCLE_CONFIG: Record<LeadLifecycleStatus, LeadLifecycleConfig> = {
   new: {
-    color: 'text-blue-400',
-    bgColor: 'bg-blue-500/10 dark:bg-blue-400/10',
+    color: getStatusColorConfig('new').text,
+    bgColor: getStatusColorConfig('new').iconBg,
     label: 'New',
     description: 'Recently received missed call'
   },
   active: {
-    color: 'text-emerald-400',
-    bgColor: 'bg-emerald-500/10 dark:bg-emerald-400/10',
+    color: getStatusColorConfig('active').text,
+    bgColor: getStatusColorConfig('active').iconBg,
     label: 'Active',
     description: 'Conversation in progress'
   },
   scheduled: {
-    color: 'text-violet-400',
-    bgColor: 'bg-violet-500/10 dark:bg-violet-400/10',
+    color: getStatusColorConfig('scheduled').text,
+    bgColor: getStatusColorConfig('scheduled').iconBg,
     label: 'Scheduled',
     description: 'Appointment scheduled'
   },
   payment_requested: {
-    color: 'text-amber-400',
-    bgColor: 'bg-amber-500/10 dark:bg-amber-400/10',
+    color: getStatusColorConfig('payment_requested').text,
+    bgColor: getStatusColorConfig('payment_requested').iconBg,
     label: 'Payment Requested',
     description: 'Payment request sent'
   },
   paid: {
-    color: 'text-green-400',
-    bgColor: 'bg-green-500/10 dark:bg-green-400/10',
+    color: getStatusColorConfig('paid').text,
+    bgColor: getStatusColorConfig('paid').iconBg,
     label: 'Paid',
     description: 'Payment received'
   },
   completed: {
-    color: 'text-sky-400',
-    bgColor: 'bg-sky-500/10 dark:bg-sky-400/10',
+    color: getStatusColorConfig('completed').text,
+    bgColor: getStatusColorConfig('completed').iconBg,
     label: 'Completed',
     description: 'Handled and resolved'
   },
   lost: {
-    color: 'text-red-400',
-    bgColor: 'bg-red-500/10 dark:bg-red-400/10',
+    color: getStatusColorConfig('lost').text,
+    bgColor: getStatusColorConfig('lost').iconBg,
     label: 'Lost',
     description: 'Customer lost'
   },
   ignored: {
-    color: 'text-red-400',
-    bgColor: 'bg-red-500/10 dark:bg-red-400/10',
+    color: getStatusColorConfig('ignored').text,
+    bgColor: getStatusColorConfig('ignored').iconBg,
     label: 'Ignored',
     description: 'Customer ignored'
   }

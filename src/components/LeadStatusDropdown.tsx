@@ -195,8 +195,8 @@ export default function LeadStatusDropdown({
                   disabled={isUpdating}
                   className={`w-full px-2 py-1.5 text-left hover:bg-accent/40 transition-colors flex items-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:bg-accent/40 cursor-pointer rounded-md min-h-[36px] group ${isSelected ? 'bg-accent/30' : ''}`}
                 >
-                  <div className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded ${statusConfig.bgColor} ${statusConfig.color} group-hover:opacity-80 transition-opacity`}>
-                    <Icon className="w-3.5 h-3.5" />
+                  <div className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded ${statusConfig.bgColor} group-hover:opacity-80 transition-opacity`}>
+                    <Icon className={`w-3.5 h-3.5 ${statusConfig.color}`} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className={`text-sm font-medium ${statusConfig.color}`}>
@@ -236,8 +236,8 @@ export default function LeadStatusDropdown({
                   disabled={isUpdating}
                   className={`w-full px-2 py-1.5 text-left hover:bg-red-950/10 dark:hover:bg-red-950/15 transition-colors flex items-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:bg-red-950/10 dark:focus:bg-red-950/15 cursor-pointer rounded-md min-h-[36px] group ${isSelected ? 'bg-red-950/10 dark:bg-red-950/15' : ''}`}
                 >
-                  <div className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded ${statusConfig.bgColor} ${statusConfig.color} group-hover:opacity-80 transition-opacity`}>
-                    <Icon className="w-3.5 h-3.5" />
+                  <div className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded ${statusConfig.bgColor} group-hover:opacity-80 transition-opacity`}>
+                    <Icon className={`w-3.5 h-3.5 ${statusConfig.color}`} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className={`text-sm font-medium ${statusConfig.color}`}>

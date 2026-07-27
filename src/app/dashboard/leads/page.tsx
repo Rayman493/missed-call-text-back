@@ -1314,15 +1314,8 @@ export default function LeadsPage() {
                       >
                         {/* Status Accent Bar - 4px left accent */}
                         {(() => {
-                          const resolvedStripeStatus = getLeadLifecycleStatus(lead)
-                          const stripeClass = getCardAccentClasses(resolvedStripeStatus)
-                          console.log('[CARD STRIPE RENDER]', {
-                            leadId: lead.id,
-                            status: lead.status,
-                            leadStatus: lead.lead_status,
-                            resolvedStripeStatus,
-                            stripeClass,
-                          })
+                          const lifecycleStatus = getLeadLifecycleStatus(lead)
+                          const stripeClass = getCardAccentClasses(lifecycleStatus)
                           return <div className={`absolute left-0 top-0 bottom-0 w-1 ${stripeClass}`}></div>
                         })()}
                         <div className="p-4 pl-5 flex-1 flex flex-col">
@@ -1531,15 +1524,8 @@ export default function LeadsPage() {
                           >
                             {/* Status Accent Bar - 4px left accent */}
                             {(() => {
-                              const resolvedStripeStatus = getLeadLifecycleStatus(lead)
-                              const stripeClass = getCardAccentClasses(resolvedStripeStatus)
-                              console.log('[CARD STRIPE RENDER]', {
-                                leadId: lead.id,
-                                status: lead.status,
-                                leadStatus: lead.lead_status,
-                                resolvedStripeStatus,
-                                stripeClass,
-                              })
+                              const lifecycleStatus = getLeadLifecycleStatus(lead)
+                              const stripeClass = getCardAccentClasses(lifecycleStatus)
                               return <div className={`absolute left-0 top-0 bottom-0 w-1 ${stripeClass}`}></div>
                             })()}
                             <div className="p-2 sm:p-3.5 pl-3 sm:pl-4">

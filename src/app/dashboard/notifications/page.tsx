@@ -6,6 +6,7 @@ import { notificationService, Notification, NotificationCount } from '@/lib/noti
 import { Bell, Check, CheckCircle, AlertTriangle, User, MessageSquare, Clock, Settings, CreditCard, ExternalLink, PhoneMissed, Trash2, X } from 'lucide-react'
 import AppHeader from '@/components/AppHeader'
 import Navigation from '@/components/Navigation'
+import AppBackButton from '@/components/AppBackButton'
 
 export default function NotificationsPage() {
   const { business } = useBusiness()
@@ -216,11 +217,14 @@ export default function NotificationsPage() {
       <AppHeader showNavigation={true} />
       <div className="max-w-5xl mx-auto px-4 py-6">
         {/* Header */}
-        <div className="mb-4">
-          <h1 className="text-2xl font-bold text-foreground">Notifications</h1>
-          <p className="text-muted-foreground mt-1">
-            Stay updated on your ReplyFlow activity.
-          </p>
+        <div className="mb-4 flex items-center gap-3">
+          <AppBackButton fallbackHref="/dashboard" label="Back" />
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Notifications</h1>
+            <p className="text-muted-foreground mt-1">
+              Stay updated on your ReplyFlow activity.
+            </p>
+          </div>
         </div>
 
         {/* Actions */}

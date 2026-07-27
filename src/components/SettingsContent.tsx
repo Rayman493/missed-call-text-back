@@ -1065,7 +1065,7 @@ export default function SettingsContent() {
     return (
       <AuthGuard>
         <BusinessGuard>
-          <div className="min-h-screen bg-background dark:bg-background flex flex-col relative overflow-x-clip">
+          <div className="min-h-screen bg-background dark:bg-background flex flex-col relative">
             <AppHeader title="Settings" sticky={false} />
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
@@ -1083,9 +1083,9 @@ export default function SettingsContent() {
     <DashboardErrorBoundary>
       <AuthGuard>
       <BusinessGuard>
-        <div className="min-h-screen bg-background dark:bg-background flex flex-col relative overflow-x-clip">
+        <div className="min-h-screen bg-background dark:bg-background flex flex-col relative">
           {/* Header */}
-          <AppHeader title="Settings" />
+          <AppHeader title="Settings" sticky={false} />
 
             {/* Main Content */}
             <div className="flex-1 px-3 sm:px-4 lg:px-6 pb-20 bg-background dark:bg-background">
