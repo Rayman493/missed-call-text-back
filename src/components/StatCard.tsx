@@ -33,7 +33,7 @@ export default function StatCard({
     bg-white dark:bg-slate-800/80
     shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.05)_inset] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset]
     rounded-2xl
-    p-3 sm:p-4 md:p-5
+    p-3 sm:p-3.5 md:p-4
     h-full
     transition-all duration-200
     hover:-translate-y-0.5
@@ -75,7 +75,7 @@ export default function StatCard({
       <div className="pointer-events-none absolute -left-10 bottom-0 h-20 w-20 rounded-full bg-cyan-500/5 blur-2xl" />
       {/* Icon and Label Header */}
       {(iconNode || icon || label) && (
-        <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+        <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-2.5">
           {(iconNode || icon) && (
             <span className={`
               w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 
@@ -89,14 +89,14 @@ export default function StatCard({
               {iconNode || icon}
             </span>
           )}
-          <h3 className="text-[10px] sm:text-xs font-bold text-slate-300 uppercase tracking-[0.16em] leading-tight">
+          <h3 className="text-[10px] sm:text-xs font-medium text-slate-400 uppercase tracking-[0.16em] leading-tight">
             {label}
           </h3>
         </div>
       )}
 
       {/* Primary Metric */}
-      <div className="mb-1.5 sm:mb-2">
+      <div className="mb-1.5 sm:mb-1.5">
         <p className={`
           text-2xl sm:text-3xl md:text-4xl lg:text-5xl 
           font-black 
@@ -110,7 +110,7 @@ export default function StatCard({
 
       {/* Description */}
       {description && (
-        <p className="text-[10px] sm:text-xs text-slate-400 font-medium leading-snug">
+        <p className="text-[10px] sm:text-xs text-slate-400/90 font-medium leading-snug">
           {description}
         </p>
       )}

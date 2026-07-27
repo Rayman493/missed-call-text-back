@@ -749,8 +749,8 @@ export default function LeadsPage() {
             <AppHeader title="Customers" />
 
           {/* Main Content */}
-          <main className="flex-1 pt-4 lg:pt-8 px-4 lg:px-6 pb-6 md:pb-6 relative z-10 overflow-y-auto" style={{ paddingBottom: 'var(--bottom-nav-height, 80px)' }}>
-            <div className="max-w-[1400px] mx-auto space-y-3 sm:space-y-4 lg:space-y-6">
+          <main className="flex-1 pt-3.5 lg:pt-7 px-4 lg:px-6 pb-6 md:pb-6 relative z-10 overflow-y-auto" style={{ paddingBottom: 'var(--bottom-nav-height, 80px)' }}>
+            <div className="max-w-[1400px] mx-auto space-y-2.5 sm:space-y-3.5 lg:space-y-5">
             {/* SMS Verification Banner */}
             <SmsVerificationBanner business={business} />
 
@@ -929,7 +929,7 @@ export default function LeadsPage() {
               return (
                 <>
             {/* Lifecycle Summary Cards - Compact on mobile */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-3 mb-2 sm:mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-2 sm:mb-6">
               <StatCard
                 value={leadStatusCounts.new}
                 label="New"
@@ -998,7 +998,7 @@ export default function LeadsPage() {
             <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-3 mb-2.5 sm:mb-4">
               <div className="flex-1">
                 <div className="relative">
-                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                   <input
@@ -1006,7 +1006,7 @@ export default function LeadsPage() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search customers..."
-                    className="w-full pl-10 pr-4 py-1.5 sm:py-2 bg-background border border-border/50 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all"
+                    className="w-full pl-10 pr-4 py-1.5 sm:py-2 bg-background border border-border/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all"
                   />
                 </div>
               </div>
@@ -1017,7 +1017,7 @@ export default function LeadsPage() {
                     <DropdownMenuTrigger asChild>
                       <button
                         type="button"
-                        className="px-3 py-1.5 sm:px-4 sm:py-2 bg-background border border-border/50 rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all cursor-pointer flex items-center gap-2 hover:bg-muted/50 data-[state=open]:ring-2 data-[state=open]:ring-offset-2 data-[state=open]:ring-primary"
+                        className="h-9 px-3 sm:px-4 bg-background border border-border/60 rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all cursor-pointer flex items-center gap-2 hover:bg-muted/50 data-[state=open]:ring-2 data-[state=open]:ring-offset-2 data-[state=open]:ring-primary"
                         title={statusFilter === 'all' ? 'More filters' : getStatusFilterLabel(statusFilter)}
                       >
                         {statusFilter === 'all' ? (
@@ -1077,7 +1077,7 @@ export default function LeadsPage() {
                   <button
                     onClick={fetchLeads}
                     disabled={loading || refreshing}
-                    className="p-2 bg-background border border-border/50 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="h-9 w-9 inline-flex items-center justify-center bg-background border border-border/60 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Refresh"
                   >
                     {refreshing ? (
@@ -1107,7 +1107,7 @@ export default function LeadsPage() {
                   inline-flex items-center gap-2 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200
                   ${quickFilter === 'all'
                     ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'bg-transparent border border-border/50 text-muted-foreground hover:bg-muted/50 hover:border-border'
+                    : 'bg-transparent border border-border/60 text-muted-foreground hover:bg-muted/50 hover:border-border'
                   }
                 `}
               >
@@ -1119,7 +1119,7 @@ export default function LeadsPage() {
                   inline-flex items-center gap-2 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200
                   ${quickFilter === 'active'
                     ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'bg-transparent border border-border/50 text-muted-foreground hover:bg-muted/50 hover:border-border'
+                    : 'bg-transparent border border-border/60 text-muted-foreground hover:bg-muted/50 hover:border-border'
                   }
                 `}
               >
@@ -1131,7 +1131,7 @@ export default function LeadsPage() {
                   inline-flex items-center gap-2 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200
                   ${quickFilter === 'new'
                     ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'bg-transparent border border-border/50 text-muted-foreground hover:bg-muted/50 hover:border-border'
+                    : 'bg-transparent border border-border/60 text-muted-foreground hover:bg-muted/50 hover:border-border'
                   }
                 `}
               >
@@ -1143,7 +1143,7 @@ export default function LeadsPage() {
                   inline-flex items-center gap-2 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200
                   ${quickFilter === 'today'
                     ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'bg-transparent border border-border/50 text-muted-foreground hover:bg-muted/50 hover:border-border'
+                    : 'bg-transparent border border-border/60 text-muted-foreground hover:bg-muted/50 hover:border-border'
                   }
                 `}
               >
@@ -1295,7 +1295,7 @@ export default function LeadsPage() {
                       {/* Removed inline count here to avoid duplication and lift the card on mobile */}
                       <div
                         key={lead.id}
-                        className="w-full max-w-2xl h-full flex flex-col rounded-xl border relative overflow-hidden transition-all duration-200 cursor-pointer dark:bg-gradient-to-b dark:from-slate-950 dark:to-slate-900 bg-card border-border/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:border-border hover:bg-muted/20 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] active:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2"
+                        className="w-full max-w-2xl h-full flex flex-col rounded-2xl border relative overflow-hidden transition-all duration-200 cursor-pointer dark:bg-gradient-to-b dark:from-slate-950 dark:to-slate-900 bg-card border-border/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:border-border hover:bg-muted/20 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] active:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2"
                         onClick={() => handleConversationClick(lead.id)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
@@ -1313,10 +1313,10 @@ export default function LeadsPage() {
                           {/* Header: Name, Phone, Status */}
                           <div className="flex items-start justify-between gap-3 mb-2.5">
                             <div className="flex-1 min-w-0">
-                              <h3 className="text-lg font-semibold text-foreground mb-0.5 truncate tracking-tight">
+                              <h3 className="text-lg font-semibold text-foreground mb-0.5 truncate tracking-tight leading-tight">
                                 <span className="text-foreground">{getLeadDisplayName(lead)}</span>
                               </h3>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs text-muted-foreground/90">
                                 {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}
                               </p>
                             </div>
@@ -1339,7 +1339,7 @@ export default function LeadsPage() {
                           <div className="mb-2.5 space-y-1.5 flex-1">
                             {aiData.reason && (
                               <div>
-                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5 font-medium">Latest Request</p>
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 font-medium">Latest Request</p>
                                 <p className="line-clamp-1 text-sm font-semibold text-foreground leading-relaxed">
                                   {sentenceCase(aiData.reason)}
                                 </p>
@@ -1370,7 +1370,7 @@ export default function LeadsPage() {
                                   const status = isNewCustomer ? 'new' : getLeadLifecycleStatus(lead)
                                   setStatusFilter(statusFilter === status ? 'all' : status)
                                 }}
-                                className={`px-2 py-0.5 text-[10px] font-medium rounded-full transition-all duration-200 ${
+                                className={`px-2 py-0.5 text-[10px] font-medium rounded-full ring-1 ring-inset transition-all duration-200 ${
                                   isNewCustomer ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20' :
                                   getLeadLifecycleStatus(lead) === 'new' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20' :
                                   getLeadLifecycleStatus(lead) === 'active' ? 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20' :
@@ -1388,7 +1388,7 @@ export default function LeadsPage() {
                           </div>
 
                           {/* Action Buttons - Open affordance and overflow menu */}
-                          <div className="flex items-center gap-2 pt-2 border-t border-border/30 mt-auto justify-between">
+                          <div className="flex items-center gap-2 pt-2 border-t border-border/40 mt-auto justify-between">
                             <button
                               type="button"
                               onClick={(e) => {
@@ -1519,10 +1519,10 @@ export default function LeadsPage() {
                               {/* Header: Name, Phone, Status - Compact on mobile */}
                               <div className="flex items-start justify-between gap-2 sm:gap-3 mb-1.5 sm:mb-2">
                                 <div className="flex-1 min-w-0">
-                                  <h3 className="text-sm sm:text-base font-semibold text-foreground mb-0.5 truncate tracking-tight">
+                                  <h3 className="text-sm sm:text-base font-semibold text-foreground mb-0.5 truncate tracking-tight leading-tight">
                                     <span className="text-foreground">{getLeadDisplayName(lead)}</span>
                                   </h3>
-                                  <p className="text-[11px] sm:text-xs text-muted-foreground">
+                                  <p className="text-[11px] sm:text-xs text-muted-foreground/90">
                                     {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}
                                   </p>
                                 </div>
@@ -1545,7 +1545,7 @@ export default function LeadsPage() {
                               <div className="mb-1 sm:mb-2 space-y-0.5 sm:space-y-1">
                                 {aiData.reason && (
                                   <div>
-                                    <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5 font-medium hidden sm:block">Latest Request</p>
+                                    <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wider mb-1 font-medium hidden sm:block">Latest Request</p>
                                     <p className="line-clamp-1 text-xs sm:text-sm font-semibold text-foreground leading-relaxed">
                                       {sentenceCase(aiData.reason)}
                                     </p>
@@ -1576,7 +1576,7 @@ export default function LeadsPage() {
                                       const status = isNewCustomer ? 'new' : getLeadLifecycleStatus(lead)
                                       setStatusFilter(statusFilter === status ? 'all' : status)
                                     }}
-                                    className={`px-1.5 py-0.5 sm:px-2 sm:py-0.5 text-[9px] sm:text-[10px] sm:text-xs font-medium rounded-full transition-all duration-200 ${
+                                    className={`px-1.5 py-0.5 sm:px-2 sm:py-0.5 text-[9px] sm:text-[10px] sm:text-xs font-medium rounded-full ring-1 ring-inset transition-all duration-200 ${
                                       isNewCustomer ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20' :
                                       getLeadLifecycleStatus(lead) === 'new' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20' :
                                       getLeadLifecycleStatus(lead) === 'active' ? 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20' :
@@ -1594,7 +1594,7 @@ export default function LeadsPage() {
                               </div>
 
                               {/* Action Buttons - Open affordance and overflow menu */}
-                              <div className="flex items-center gap-1 sm:gap-1.5 pt-1.5 sm:pt-2 border-t border-border/30 justify-between">
+                              <div className="flex items-center gap-1 sm:gap-1.5 pt-1.5 sm:pt-2 border-t border-border/40 justify-between">
                                 <button
                                   type="button"
                                   onClick={(e) => {
