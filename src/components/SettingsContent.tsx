@@ -262,8 +262,6 @@ export default function SettingsContent() {
     if (!dateTimeLocal) return null
 
     try {
-      console.log('[Settings] fromDateTimeLocal input:', dateTimeLocal)
-      
       // Parse the datetime-local value as local time by appending timezone offset
       const date = new Date(dateTimeLocal)
       if (isNaN(date.getTime())) {
@@ -280,7 +278,6 @@ export default function SettingsContent() {
       
       // Format as ISO without timezone indicator to preserve local time
       const result = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`
-      console.log('[Settings] fromDateTimeLocal output:', result)
       return result
     } catch (error) {
       console.error('[Settings] Error converting from datetime-local:', error)
@@ -299,8 +296,6 @@ export default function SettingsContent() {
         return ''
       }
 
-      console.log('[Settings] toDateTimeLocal input:', isoString, 'parsed date:', date.toISOString())
-
       // Format: yyyy-MM-ddThh:mm using local time components
       const year = date.getFullYear()
       const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -309,7 +304,6 @@ export default function SettingsContent() {
       const minutes = String(date.getMinutes()).padStart(2, '0')
 
       const result = `${year}-${month}-${day}T${hours}:${minutes}`
-      console.log('[Settings] toDateTimeLocal output:', result)
       return result
     } catch (error) {
       console.error('[Settings] Error converting datetime:', error)
@@ -537,7 +531,6 @@ export default function SettingsContent() {
       const token = session?.access_token
 
       if (!token) {
-        console.log('[Settings] No session token for calendar status, skipping fetch')
         setCalendarConnected(false)
         return
       }
@@ -616,7 +609,6 @@ export default function SettingsContent() {
       const token = session?.access_token
 
       if (!token) {
-        console.log('[Settings] No session token for phone cooldown check')
         return
       }
 
@@ -742,9 +734,6 @@ export default function SettingsContent() {
   const refreshStripeStatus = async () => {
     if (!business?.stripe_connect_account_id) return
 
-    console.log('[STRIPE CONNECT] Refresh endpoint called')
-    console.log('[STRIPE CONNECT] Connected account id:', business.stripe_connect_account_id)
-
     try {
       const response = await fetch('/api/stripe/connect/refresh', {
         method: 'POST',
@@ -755,16 +744,7 @@ export default function SettingsContent() {
       })
 
       if (response.ok) {
-        console.log('[STRIPE CONNECT] Status refreshed successfully')
-        console.log('[STRIPE CONNECT] Refreshing business data...')
         await refreshBusiness()
-        console.log('[STRIPE CONNECT] Business data refreshed, new state:', {
-          stripe_connect_account_id: business?.stripe_connect_account_id,
-          stripe_connect_status: business?.stripe_connect_status,
-          stripe_charges_enabled: business?.stripe_charges_enabled,
-          stripe_payouts_enabled: business?.stripe_payouts_enabled,
-          stripe_details_submitted: business?.stripe_details_submitted,
-        })
         showToast('Stripe Connect status updated', 'success')
       } else {
         console.error('[STRIPE CONNECT] Failed to refresh status')
@@ -878,7 +858,6 @@ export default function SettingsContent() {
     const urlParams = new URLSearchParams(window.location.search)
     const stripeOnboarding = urlParams.get('stripe_onboarding')
     if (stripeOnboarding === 'complete' && business?.stripe_connect_account_id) {
-      console.log('[STRIPE CONNECT] Onboarding return detected, refreshing status')
       refreshStripeStatus()
       // Clean up URL
       window.history.replaceState({}, '', '/dashboard/settings#payments')
@@ -1102,7 +1081,7 @@ export default function SettingsContent() {
             </div>
 
             {/* Settings Navigation Tabs - sticky only */}
-            <div className="sticky z-40 border-b border-border bg-background py-2 top-0">
+            <div className="sticky z-40 border-b border-border bg-background py-2 top-0" style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}>
               <nav ref={settingsTabsNavRef} className="flex items-center gap-1 overflow-x-auto custom-scrollbar-horizontal">
                 <button
                   ref={(element) => { sectionTabRefs.current.general = element }}
