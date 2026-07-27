@@ -249,21 +249,21 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
           {/* Bottom Navigation Bar - Mobile Only - Improved touch targets */}
           <nav className="fixed bottom-0 left-0 right-0 z-50 pb-safe lg:hidden">
         <div className="mx-auto max-w-7xl px-2 pb-2 sm:px-4" style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
-          <div className="flex h-16 items-center justify-around rounded-3xl border border-white/10 bg-slate-950/88 px-1 shadow-[0_1px_0_rgba(255,255,255,0.07),0_-20px_70px_rgba(2,6,23,0.62)] backdrop-blur-2xl">
+          <div className="flex h-16 items-center justify-around rounded-3xl border border-white/5 bg-slate-950/88 px-1 shadow-[0_1px_0_rgba(255,255,255,0.04),0_-20px_70px_rgba(2,6,23,0.62)] backdrop-blur-2xl">
             {primaryNavItems.map((item) => {
               const Icon = item.icon
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`relative flex h-12 w-full flex-col items-center justify-center rounded-2xl transition-all duration-150 ${
+                  className={`relative flex h-12 w-full flex-col items-center justify-center rounded-2xl transition-all duration-200 ${
                     isActive(item.href)
-                      ? 'text-white bg-white/12 scale-105 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_24px_rgba(37,99,235,0.16)]'
-                      : 'text-slate-400 hover:text-white hover:bg-white/[0.07] active:scale-95'
+                      ? 'text-white bg-white/10 scale-[1.02] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_24px_rgba(37,99,235,0.12)]'
+                      : 'text-slate-300 hover:text-white hover:bg-white/[0.06] active:scale-95'
                   }`}
                 >
-                                    <Icon className="w-5 h-5 sm:w-5 sm:h-5 mb-1 transition-transform duration-150" />
-                  <span className={`text-[10px] sm:text-[10px] font-medium transition-colors duration-150 ${
+                                    <Icon className="w-6 h-6 sm:w-6 sm:h-6 mb-1.5 transition-transform duration-200" />
+                  <span className={`text-[10px] sm:text-[10px] font-medium transition-colors duration-200 ${
                     isActive(item.href) ? 'font-semibold' : ''
                   }`}>{item.label}</span>
                 </Link>
@@ -274,14 +274,14 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
             <button
               ref={moreButtonRef}
               onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
-              className={`relative flex h-12 w-full flex-col items-center justify-center rounded-2xl transition-all duration-150 ${
+              className={`relative flex h-12 w-full flex-col items-center justify-center rounded-2xl transition-all duration-200 ${
                 isMoreMenuOpen
-                  ? 'text-white bg-white/12 scale-105 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_24px_rgba(37,99,235,0.16)]'
-                  : 'text-slate-400 hover:text-white hover:bg-white/[0.07] active:scale-95'
+                  ? 'text-white bg-white/10 scale-[1.02] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_24px_rgba(37,99,235,0.12)]'
+                  : 'text-slate-300 hover:text-white hover:bg-white/[0.06] active:scale-95'
               }`}
             >
-                            <Settings className="w-5 h-5 sm:w-5 sm:h-5 mb-1 transition-transform duration-150" />
-              <span className={`text-[10px] sm:text-[10px] font-medium transition-colors duration-150 ${
+                            <Settings className="w-6 h-6 sm:w-6 sm:h-6 mb-1.5 transition-transform duration-200" />
+              <span className={`text-[10px] sm:text-[10px] font-medium transition-colors duration-200 ${
                 isMoreMenuOpen ? 'font-semibold' : ''
               }`}>More</span>
             </button>
