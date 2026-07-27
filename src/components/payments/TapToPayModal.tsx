@@ -10,6 +10,7 @@ import { isNativeCapacitor } from '@/lib/terminal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import type { TerminalError, DeviceState } from '@/lib/terminal'
 import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
+import { Capacitor } from '@capacitor/core'
 
 interface TapToPayModalProps {
   isOpen: boolean
@@ -49,6 +50,7 @@ export default function TapToPayModal({
   const [lastSuccessfulStage, setLastSuccessfulStage] = useState<string>('none')
   const [isPaymentInProgress, setIsPaymentInProgress] = useState(false)
   const [showDiagnostics, setShowDiagnostics] = useState(false)
+  const [platform, setPlatform] = useState<'ios' | 'android' | 'web'>('web')
 
   useBodyScrollLock(isOpen)
 
@@ -72,12 +74,15 @@ export default function TapToPayModal({
       try { logTapToPayEvent('MODAL_OPENED', { phase: 'startup', sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined, meta: { modal: 'TapToPay', visible: true } }) } catch {}
       setShowDiagnostics(false)
       
+      // Detect platform for platform-specific messaging
+      const detectedPlatform = Capacitor.getPlatform() as 'ios' | 'android' | 'web'
+      setPlatform(detectedPlatform)
+      
       // Development logging for platform detection
       if (process.env.NODE_ENV === 'development') {
-        const { Capacitor } = require('@capacitor/core')
         console.log('[TapToPayModal] Platform detection diagnostics:', {
           isNativePlatform: Capacitor.isNativePlatform(),
-          getPlatform: Capacitor.getPlatform(),
+          getPlatform: detectedPlatform,
           isNativeCapacitor: isNativeCapacitor(),
         })
       }
@@ -660,29 +665,37 @@ export default function TapToPayModal({
 
       case 'preparing':
         return (
-          <div className="flex flex-col items-center justify-center py-8 sm:py-12 space-y-4">
-            <Loader2 className="w-12 h-12 text-primary animate-spin" />
-            <p className="text-lg font-medium">Preparing Tap to Pay...</p>
-            <p className="text-sm text-muted-foreground">Keep this screen open</p>
+          <div className="flex flex-col items-center justify-center py-8 sm:py-12 space-y-4 min-h-[200px]">
+            <div className="relative">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 text-primary motion-reduce:animate-spin" />
+              </div>
+              <div className="absolute inset-0 rounded-full border-2 border-primary/20 motion-safe:animate-pulse" />
+            </div>
+            <p className="text-lg font-medium">Preparing Tap to Pay</p>
+            <p className="text-sm text-muted-foreground">Getting the secure reader ready</p>
           </div>
         )
 
       case 'waiting_for_card':
         return (
-          <div className="flex flex-col items-center justify-center py-8 sm:py-12 space-y-4 sm:space-y-6">
-            {/* NFC Icon */}
+          <div className="flex flex-col items-center justify-center py-8 sm:py-12 space-y-4 sm:space-y-6 min-h-[240px]">
+            {/* NFC Icon with breathing animation */}
             <div className="relative">
-              <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
+              <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
                 <Smartphone className="w-12 h-12 text-primary" />
               </div>
-              <div className="absolute inset-0 rounded-full border-2 border-primary/20 animate-ping" />
+              <div className="absolute inset-0 rounded-full border-2 border-primary/20 motion-safe:animate-pulse" />
+              <div className="absolute inset-0 rounded-full border-2 border-primary/10 motion-safe:animate-ping" style={{ animationDuration: '2s' }} />
             </div>
 
             <div className="text-center space-y-2">
               <p className="text-2xl font-bold">{formatCurrency(amountCents / 100)}</p>
-              <p className="text-lg font-medium">Ready for payment</p>
+              <p className="text-lg font-medium">Ready for Tap</p>
               <p className="text-sm text-muted-foreground">
-                Hold the customer's card or phone near this device
+                {platform === 'ios' ? 'Hold card near the top of this iPhone' :
+                 platform === 'android' ? 'Hold card near the back of this device' :
+                 'Hold the customer\'s card or phone near this device'}
               </p>
             </div>
 
@@ -723,24 +736,31 @@ export default function TapToPayModal({
 
       case 'processing':
         return (
-          <div className="flex flex-col items-center justify-center py-8 sm:py-12 space-y-4">
-            <Loader2 className="w-12 h-12 text-primary animate-spin" />
-            <p className="text-lg font-medium">Processing payment...</p>
-            <p className="text-sm text-muted-foreground">Do not retry or close this screen</p>
+          <div className="flex flex-col items-center justify-center py-8 sm:py-12 space-y-4 min-h-[200px]">
+            <div className="relative">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 text-primary motion-reduce:animate-spin" />
+              </div>
+            </div>
+            <p className="text-lg font-medium">Processing payment</p>
+            <p className="text-sm text-muted-foreground">Keep ReplyFlow open</p>
           </div>
         )
 
       case 'success':
         return (
-          <div className="flex flex-col items-center justify-center py-8 sm:py-12 space-y-4 sm:space-y-6">
-            <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-              <CheckCircle2 className="w-10 h-10 text-green-600 dark:text-green-400" />
+          <div className="flex flex-col items-center justify-center py-8 sm:py-12 space-y-4 sm:space-y-6 min-h-[240px]">
+            <div className="relative transition-opacity duration-300 motion-reduce:opacity-100">
+              <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center motion-safe:scale-95 motion-safe:opacity-0 motion-safe:transition-all motion-safe:duration-300 motion-safe:ease-out motion-safe:opacity-100 motion-safe:scale-100">
+                <CheckCircle2 className="w-10 h-10 text-green-600 dark:text-green-400" />
+              </div>
+              <div className="absolute inset-0 rounded-full border-2 border-green-500/20 motion-safe:scale-100 motion-safe:opacity-100 motion-safe:transition-all motion-safe:duration-500 motion-safe:ease-out motion-safe:opacity-0 motion-safe:scale-125" />
             </div>
 
-            <div className="text-center space-y-2">
-              <p className="text-2xl font-bold">{formatCurrency(amountCents / 100)}</p>
-              <p className="text-lg font-medium">Payment received</p>
-              <p className="text-sm text-muted-foreground">Paid successfully</p>
+            <div className="text-center space-y-2 motion-safe:translate-y-4 motion-safe:opacity-0 motion-safe:transition-all motion-safe:duration-300 motion-safe:ease-out motion-safe:translate-y-0 motion-safe:opacity-100">
+              <p className="text-2xl font-bold">Payment successful</p>
+              <p className="text-lg font-medium">{formatCurrency(amountCents / 100)}</p>
+              <p className="text-sm text-muted-foreground">Payment complete</p>
             </div>
 
             <button
@@ -754,7 +774,7 @@ export default function TapToPayModal({
 
       case 'failure':
         return (
-          <div className="flex flex-col items-center justify-center py-8 sm:py-12 space-y-4 sm:space-y-6">
+          <div className="flex flex-col items-center justify-center py-8 sm:py-12 space-y-4 sm:space-y-6 min-h-[240px] motion-safe:opacity-0 motion-safe:transition-opacity motion-safe:duration-200 motion-safe:opacity-100">
             <div className="w-20 h-20 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
               <XCircle className="w-10 h-10 text-red-600 dark:text-red-400" />
             </div>
@@ -854,14 +874,14 @@ export default function TapToPayModal({
 
       case 'canceled':
         return (
-          <div className="flex flex-col items-center justify-center py-8 sm:py-12 space-y-4 sm:space-y-6">
+          <div className="flex flex-col items-center justify-center py-8 sm:py-12 space-y-4 sm:space-y-6 min-h-[240px] motion-safe:opacity-0 motion-safe:transition-opacity motion-safe:duration-200 motion-safe:opacity-100">
             <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
               <XCircle className="w-10 h-10 text-slate-600 dark:text-slate-400" />
             </div>
 
             <div className="text-center space-y-2">
               <p className="text-lg font-medium">Payment canceled</p>
-              <p className="text-sm text-muted-foreground">No charge was made</p>
+              <p className="text-sm text-muted-foreground">You can try again when ready</p>
             </div>
 
             <button

@@ -13,6 +13,10 @@ import { TerminalBridgeService } from '@/lib/terminal/service'
 import TapToPayDiagnosticsPanel from '@/components/TapToPayDiagnosticsPanel'
 import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
 
+// Diagnostics display flag - set to false for production and Apple review recordings
+// Diagnostics are hidden for production but retained for support troubleshooting
+const SHOW_TAP_TO_PAY_DIAGNOSTICS = false
+
 interface QuickTapToPayModalProps {
   isOpen: boolean
   onClose: () => void
@@ -275,21 +279,20 @@ export default function QuickTapToPayModal({
     <>
       {/* Quick Tap to Pay Modal via portal to ensure top-level stacking context */}
       {!showTapToPay && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-x-0 top-0 h-[100dvh] z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-md max-h-[100dvh] md:max-h-[90vh] overflow-hidden flex flex-col min-h-0 animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-x-0 top-0 h-[100dvh] z-[70] flex items-center justify-center p-3 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-md max-h-[calc(100dvh-env(safe-area-inset-top)-24px)] overflow-hidden flex flex-col min-h-0 animate-in zoom-in-95 duration-200">
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-green-500/10 rounded-lg flex items-center justify-center">
-                  <Smartphone className="w-4 h-4 text-green-600 dark:text-green-400" />
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 bg-green-500/10 rounded-lg flex items-center justify-center">
+                  <Smartphone className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
                 </div>
-
-              
-                <h3 ref={titleRef} className="text-lg font-semibold text-foreground" tabIndex={-1}>Tap to Pay</h3>
+                <h3 ref={titleRef} className="text-base font-semibold text-foreground" tabIndex={-1}>Tap to Pay</h3>
               </div>
               <button
                 onClick={onClose}
-                className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+                className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
+                style={{ minWidth: '44px', minHeight: '44px' }}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -299,45 +302,50 @@ export default function QuickTapToPayModal({
             <div
               ref={scrollRef}
               data-scroll-lock-allow
-              className="flex-1 min-h-0 overflow-y-auto overscroll-contain [touch-action:pan-y] px-5 py-6 space-y-6 pb-[env(safe-area-inset-bottom)]"
-              style={{ WebkitOverflowScrolling: 'touch' as any }}
+              className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-4 space-y-4"
+              style={{ WebkitOverflowScrolling: 'touch' as any, paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
             >
-              {/* Unmistakable debug marker to verify correct component */}
-              <div className="p-3 rounded-lg border-2 border-red-700 bg-red-900/30 text-center">
-                <div className="text-red-300 font-extrabold text-lg tracking-wide">DEBUG PANEL BUILD 2026-07-23</div>
-                <div className="text-xs text-red-200/80">This banner proves this QuickTapToPayModal is rendering from src/components/payments/QuickTapToPayModal.tsx</div>
-              </div>
+                {/* Debug UI - hidden in production */}
+              {SHOW_TAP_TO_PAY_DIAGNOSTICS && (
+                <>
+                  {/* Unmistakable debug marker to verify correct component */}
+                  <div className="p-3 rounded-lg border-2 border-red-700 bg-red-900/30 text-center">
+                    <div className="text-red-300 font-extrabold text-lg tracking-wide">DEBUG PANEL BUILD 2026-07-23</div>
+                    <div className="text-xs text-red-200/80">This banner proves this QuickTapToPayModal is rendering from src/components/payments/QuickTapToPayModal.tsx</div>
+                  </div>
 
-              {/* Always-visible diagnostics directly beneath the title/marker */}
-              <div className="min-h-[240px]">
-                <TapToPayDiagnosticsPanel context={{
-                  ui: {
-                    modal: 'QuickTapToPay',
-                    isOpen,
-                    isNativeSupported,
-                    amountCents,
-                    selectedLeadId,
-                    selectedJobId,
-                  },
-                  service: {
-                    sessionId: terminalService.getSessionId(),
-                    attemptId: terminalService.getCurrentAttemptId() || undefined,
-                    phase: terminalService.getCurrentPhase(),
-                  }
-                }} />
-              </div>
+                  {/* Always-visible diagnostics directly beneath the title/marker */}
+                  <div className="min-h-[240px]">
+                    <TapToPayDiagnosticsPanel context={{
+                      ui: {
+                        modal: 'QuickTapToPay',
+                        isOpen,
+                        isNativeSupported,
+                        amountCents,
+                        selectedLeadId,
+                        selectedJobId,
+                      },
+                      service: {
+                        sessionId: terminalService.getSessionId(),
+                        attemptId: terminalService.getCurrentAttemptId() || undefined,
+                        phase: terminalService.getCurrentPhase(),
+                      }
+                    }} />
+                  </div>
+                </>
+              )}
               {/* Amount Input */}
-              <div className="text-center py-4">
+              <div className="text-center py-2">
                 <p className="text-sm text-muted-foreground mb-2">Enter amount</p>
                 <div className="flex items-center justify-center gap-1">
-                  <span className="text-4xl font-bold text-muted-foreground">$</span>
+                  <span className="text-3xl font-bold text-muted-foreground">$</span>
                   <input
                     type="text"
                     inputMode="decimal"
                     value={amountDisplay}
                     onChange={(e) => handleAmountChange(e.target.value)}
                     placeholder="0.00"
-                    className="w-48 text-5xl font-bold text-foreground bg-transparent border-none outline-none text-center placeholder:text-muted-foreground/30"
+                    className="w-40 text-4xl font-bold text-foreground bg-transparent border-none outline-none text-center placeholder:text-muted-foreground/30"
                   />
                 </div>
               </div>
@@ -348,7 +356,7 @@ export default function QuickTapToPayModal({
                   <button
                     key={amount}
                     onClick={() => handleQuickAmount(amount)}
-                    className="py-3 px-4 text-sm font-medium bg-muted hover:bg-muted/80 rounded-lg transition-colors"
+                    className="h-11 text-sm font-medium bg-muted hover:bg-muted/80 rounded-lg transition-colors active:scale-95"
                   >
                     ${amount}
                   </button>
@@ -356,22 +364,22 @@ export default function QuickTapToPayModal({
               </div>
 
               {/* Optional Customer/Job */}
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <button
                   onClick={() => setShowCustomerSelector(!showCustomerSelector)}
-                  className="w-full p-4 rounded-lg border border-border hover:border-border/80 transition-colors text-left"
+                  className="w-full p-3 rounded-lg border border-border hover:border-border/80 transition-colors text-left active:scale-[0.99]"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
                         {selectedLead ? (
-                          <User className="w-5 h-5 text-foreground" />
+                          <User className="w-4.5 h-4.5 text-foreground" />
                         ) : (
-                          <User className="w-5 h-5 text-muted-foreground" />
+                          <User className="w-4.5 h-4.5 text-muted-foreground" />
                         )}
                       </div>
                       <div className="text-left">
-                        <p className="font-medium text-foreground">
+                        <p className="font-medium text-foreground text-sm">
                           {selectedLead ? selectedLead.name || 'Unknown' : 'Quick Payment'}
                         </p>
                         <p className="text-xs text-muted-foreground">
@@ -380,9 +388,9 @@ export default function QuickTapToPayModal({
                       </div>
                     </div>
                     {showCustomerSelector ? (
-                      <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                      <ChevronUp className="w-4 h-4 text-muted-foreground" />
                     ) : (
-                      <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
                     )}
                   </div>
                 </button>
@@ -395,47 +403,47 @@ export default function QuickTapToPayModal({
                         setSelectedLeadId(null)
                         setSelectedJobId(null)
                       }}
-                      className={`w-full p-3 rounded-lg border transition-colors text-left ${
+                      className={`w-full p-2.5 rounded-lg border transition-colors text-left active:scale-[0.99] ${
                         selectedLeadId === null
                           ? 'border-primary bg-primary/10'
                           : 'border-border hover:border-border/80'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
                           <Smartphone className="w-4 h-4 text-muted-foreground" />
                         </div>
                         <div>
-                          <p className="font-medium text-foreground">Quick Payment</p>
+                          <p className="font-medium text-foreground text-sm">Quick Payment</p>
                           <p className="text-xs text-muted-foreground">No customer or job</p>
                         </div>
                       </div>
                     </button>
 
                     {isLoadingLeads ? (
-                      <div className="flex items-center justify-center py-4">
+                      <div className="flex items-center justify-center py-3">
                         <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                       </div>
                     ) : leads.length === 0 ? (
                       <p className="text-sm text-muted-foreground py-2">No customers found</p>
                     ) : (
-                      <div className="max-h-48 overflow-y-auto space-y-1">
+                      <div className="max-h-40 overflow-y-auto space-y-1">
                         {leads.slice(0, 10).map((lead) => (
                           <button
                             key={lead.id}
                             onClick={() => setSelectedLeadId(lead.id)}
-                            className={`w-full p-3 rounded-lg border transition-colors text-left ${
+                            className={`w-full p-2.5 rounded-lg border transition-colors text-left active:scale-[0.99] ${
                               selectedLeadId === lead.id
                                 ? 'border-primary bg-primary/10'
                                 : 'border-border hover:border-border/80'
                             }`}
                           >
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2.5">
                               <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
                                 <User className="w-4 h-4 text-muted-foreground" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="font-medium text-foreground truncate">{lead.name || 'Unknown'}</p>
+                                <p className="font-medium text-foreground text-sm truncate">{lead.name || 'Unknown'}</p>
                                 <p className="text-xs text-muted-foreground truncate">{lead.caller_phone || ''}</p>
                               </div>
                             </div>
@@ -449,7 +457,7 @@ export default function QuickTapToPayModal({
                       <div className="space-y-2 pt-2 border-t border-border">
                         <p className="text-xs text-muted-foreground uppercase tracking-wider">Select a job (optional)</p>
                         {isLoadingJobs ? (
-                          <div className="flex items-center justify-center py-4">
+                          <div className="flex items-center justify-center py-3">
                             <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                           </div>
                         ) : jobs.length === 0 ? (
@@ -460,18 +468,18 @@ export default function QuickTapToPayModal({
                               <button
                                 key={job.id}
                                 onClick={() => setSelectedJobId(job.id)}
-                                className={`w-full p-3 rounded-lg border transition-colors text-left ${
+                                className={`w-full p-2.5 rounded-lg border transition-colors text-left active:scale-[0.99] ${
                                   selectedJobId === job.id
                                     ? 'border-primary bg-primary/10'
                                     : 'border-border hover:border-border/80'
                                 }`}
                               >
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-2.5">
                                   <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
                                     <Briefcase className="w-4 h-4 text-muted-foreground" />
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-foreground truncate">{job.title || 'Untitled Job'}</p>
+                                    <p className="font-medium text-foreground text-sm truncate">{job.title || 'Untitled Job'}</p>
                                     <p className="text-xs text-muted-foreground truncate">{job.scheduled_date || 'No date'}</p>
                                   </div>
                                 </div>
@@ -498,17 +506,17 @@ export default function QuickTapToPayModal({
             </div>
 
             {/* Footer */}
-            <div className="px-5 py-4 border-t border-border/50 flex gap-3">
+            <div className="px-4 py-3 border-t border-border/50 flex gap-3 shrink-0" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
               <button
                 onClick={onClose}
-                className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+                className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
               >
                 Cancel
               </button>
               <button
                 onClick={handleStartPayment}
                 disabled={amountCents <= 0 || !isNativeSupported}
-                className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-green-600 flex items-center justify-center gap-2 active:scale-95"
               >
                 <Smartphone className="w-4 h-4" />
                 Start Tap to Pay
