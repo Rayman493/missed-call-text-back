@@ -261,7 +261,7 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
     Task { @MainActor in
       do {
         let paymentIntent = try await Terminal.shared.retrievePaymentIntent(clientSecret: clientSecret)
-        let piSuffix = String(paymentIntent.stripeId.suffix(6))
+        let piSuffix = paymentIntent.stripeId.map { String($0.suffix(6)) } ?? "unknown"
         let statusStr = String(describing: paymentIntent.status)
         let pmPresent = (paymentIntent.paymentMethod != nil)
         self.emitDiag("PAYMENT_INTENT_RETRIEVED", phase: "collect_payment", correlationId: attemptId, meta: ["piSuffix": piSuffix, "status": statusStr, "paymentMethodPresent": pmPresent])
@@ -289,7 +289,7 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
             self.emitDiag("CAPACITOR_PAYMENT_CALL_REJECTED", phase: "collect_payment", correlationId: attemptId, meta: ["stage": "collect", "message": "no_collected_payment_intent"]) 
             return
           }
-          let collectedSuffix = String(collectedPaymentIntent.stripeId.suffix(6))
+          let collectedSuffix = collectedPaymentIntent.stripeId.map { String($0.suffix(6)) } ?? "unknown"
           let collectedStatus = String(describing: collectedPaymentIntent.status)
           let collectedPm = (collectedPaymentIntent.paymentMethod != nil)
           self.emitDiag("COLLECTION_CALLBACK", phase: "collect_payment", correlationId: attemptId, meta: ["success": true, "status": collectedStatus, "paymentMethodPresent": collectedPm, "piSuffix": collectedSuffix])
@@ -298,7 +298,7 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
             do {
               self.emitDiag("PROCESS_PAYMENT_STARTED", phase: "confirm_payment", correlationId: attemptId, meta: ["piSuffix": collectedSuffix, "status": collectedStatus, "paymentMethodPresent": collectedPm])
               let processedIntent = try await Terminal.shared.confirmPaymentIntent(collectedPaymentIntent)
-              let finalSuffix = String(processedIntent.stripeId.suffix(6))
+              let finalSuffix = processedIntent.stripeId.map { String($0.suffix(6)) } ?? "unknown"
               let finalStatus = String(describing: processedIntent.status)
               self.emitDiag("PROCESS_PAYMENT_CALLBACK", phase: "confirm_payment", correlationId: attemptId, meta: ["success": true, "finalStatus": finalStatus, "piSuffix": finalSuffix])
               self.emitDiag("confirm_payment_intent_completed", phase: "confirm_payment", correlationId: attemptId, meta: ["paymentIntentId": processedIntent.stripeId])
