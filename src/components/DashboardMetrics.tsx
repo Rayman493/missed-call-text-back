@@ -389,10 +389,17 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 gap-3">
-        <div className="bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-3 sm:p-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="bg-slate-50 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm p-3.5 sm:p-4 min-h-[7rem] sm:min-h-[8rem]">
           <div className="animate-pulse">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-slate-200 dark:bg-slate-700 rounded-lg mb-4"></div>
+            <div className="w-10 h-10 sm:w-11 sm:h-11 bg-slate-200 dark:bg-slate-700 rounded-xl mb-3"></div>
+            <div className="h-8 sm:h-10 bg-slate-200 dark:bg-slate-700 rounded mb-2"></div>
+            <div className="h-4 sm:h-5 bg-slate-200 dark:bg-slate-700 rounded"></div>
+          </div>
+        </div>
+        <div className="bg-slate-50 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm p-3.5 sm:p-4 min-h-[7rem] sm:min-h-[8rem]">
+          <div className="animate-pulse">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 bg-slate-200 dark:bg-slate-700 rounded-xl mb-3"></div>
             <div className="h-8 sm:h-10 bg-slate-200 dark:bg-slate-700 rounded mb-2"></div>
             <div className="h-4 sm:h-5 bg-slate-200 dark:bg-slate-700 rounded"></div>
           </div>
@@ -402,7 +409,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {/* Recovery Rate - Key business impact metric */}
       <div className="bg-slate-50 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200 p-3.5 sm:p-4 min-h-[7rem] sm:min-h-[8rem] flex flex-col">
         <div className="flex items-start justify-between mb-3">
@@ -429,29 +436,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         </div>
       </div>
 
-      {/* Captured Customers - Customer generation metric */}
-      <div className="bg-slate-50 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200 p-3.5 sm:p-4 min-h-[7rem] sm:min-h-[8rem] flex flex-col">
-        <div className="flex items-start justify-between mb-3">
-          <div className="w-10 h-10 sm:w-11 sm:h-11 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50 rounded-xl flex items-center justify-center">
-            <PhoneMissed className="w-5 h-5 sm:w-5.5 sm:h-5.5" />
-          </div>
-          <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">{metrics.period}</div>
-        </div>
-        <div className="space-y-1.5 flex-1">
-          <div className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white leading-tight tracking-tight">{metrics.missedCallsCaptured}</div>
-          <div className="flex items-center gap-1.5">
-            <div className="text-sm sm:text-base font-semibold text-slate-700 dark:text-slate-300">Captured Customers</div>
-            <span className="inline-flex items-center cursor-help" title="Missed calls and customer inquiries captured by ReplyFlow">
-              <HelpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-400 transition-colors" />
-            </span>
-          </div>
-          {metrics.missedCallsCaptured === 0 && (
-            <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">ReplyFlow will capture missed calls when forwarding is active</div>
-          )}
-        </div>
-      </div>
-
-      {/* Messages Sent - Communication volume metric */}
+      {/* Messages Sent - Communication volume metric (distinct from Follow-Ups Sent) */}
       <div className="bg-slate-50 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200 p-3.5 sm:p-4 min-h-[7rem] sm:min-h-[8rem] flex flex-col">
         <div className="flex items-start justify-between mb-3">
           <div className="w-10 h-10 sm:w-11 sm:h-11 bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800/50 rounded-xl flex items-center justify-center">
@@ -469,28 +454,6 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           </div>
           {metrics.messagesSent === 0 && (
             <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Messages will be sent automatically when customers are captured</div>
-          )}
-        </div>
-      </div>
-
-      {/* Customer Replies - Engagement metric */}
-      <div className="bg-slate-50 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200 p-3.5 sm:p-4 min-h-[7rem] sm:min-h-[8rem] flex flex-col">
-        <div className="flex items-start justify-between mb-3">
-          <div className="w-10 h-10 sm:w-11 sm:h-11 bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800/50 rounded-xl flex items-center justify-center">
-            <Reply className="w-5 h-5 sm:w-5.5 sm:h-5.5" />
-          </div>
-          <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">{metrics.period}</div>
-        </div>
-        <div className="space-y-1.5 flex-1">
-          <div className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white leading-tight tracking-tight">{metrics.customerReplies}</div>
-          <div className="flex items-center gap-1.5">
-            <div className="text-sm sm:text-base font-semibold text-slate-700 dark:text-slate-300">Customer Replies</div>
-            <span className="inline-flex items-center cursor-help" title="Customers who replied to your messages">
-              <HelpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-400 transition-colors" />
-            </span>
-          </div>
-          {metrics.customerReplies === 0 && (
-            <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Customer replies will appear here as conversations continue</div>
           )}
         </div>
       </div>
