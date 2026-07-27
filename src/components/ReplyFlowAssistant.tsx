@@ -315,14 +315,14 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
       {/* Fixed header */}
       <div className="flex-shrink-0 z-30 bg-white/95 dark:bg-slate-800/95 backdrop-blur border-b border-slate-200/80 dark:border-slate-700/80 p-3 sm:p-4">
         {/* Header */}
-        <div className="flex items-start gap-2.5 mb-2.5">
+        <div className="flex items-start gap-2.5 mb-3">
           <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0">
             <MessageCircle className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-white" />
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white leading-tight">ReplyFlow Help</h3>
             {!showResults && (
-              <p className="text-[11px] sm:text-xs text-slate-600 dark:text-slate-400 mt-0.5 leading-snug">
+              <p className="text-[11px] sm:text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
                 Search documentation for answers about customers, appointments, payments, and more.
               </p>
             )}
@@ -340,7 +340,7 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
 
         <form onSubmit={handleSearchSubmit}>
           {/* Search Box */}
-          <div className="relative mb-3">
+          <div className="relative mb-4">
             <input
               ref={inputRef}
               type="text"
@@ -605,43 +605,43 @@ export default function ReplyFlowAssistant({ className = '', defaultCategory, co
         {!showResults && (
           <div className="space-y-3 sm:space-y-4">
             {/* Start Here recommendation */}
-            <div className="p-3 sm:p-4 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
+            <div className="p-2.5 sm:p-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <p className="text-xs font-semibold text-blue-900 dark:text-blue-100">Start here: Your first 15 minutes</p>
-                  <p className="text-[11px] text-blue-800/80 dark:text-blue-200/80">Setup checklist → Forwarding → Test → First Customer → Payment Request</p>
+                  <p className="text-xs font-semibold text-blue-900 dark:text-blue-100 leading-tight">Start here: Your first 15 minutes</p>
+                  <p className="text-[11px] text-blue-800/80 dark:text-blue-200/80 mt-0.5 leading-snug">Setup checklist → Forwarding → Test → First Customer → Payment Request</p>
                 </div>
                 <button
                   onClick={() => handleSuggestedQuestion('Setup checklist')}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold"
                 >
                   Begin
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <ArrowRight className="w-3 h-3" />
                 </button>
               </div>
             </div>
-            <div className="flex items-center gap-2 mb-2 sm:mb-3">
+            <div className="flex items-center gap-2 mb-3 sm:mb-4">
               <div className="w-1 h-3 bg-blue-600 rounded-full"></div>
               <p className="text-[11px] sm:text-xs font-semibold text-slate-900 dark:text-white">Suggested questions</p>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {suggestedPrompts.map((category) => (
-                <div key={category.category} className="space-y-1.5">
+                <div key={category.category} className="space-y-2">
                   <div className="flex items-center gap-2 px-1">
                     <div className="p-1 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-600 dark:text-blue-400">
                       {category.icon}
                     </div>
-                    <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">{category.category}</span>
+                    <span className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide leading-tight">{category.category}</span>
                   </div>
                   <div className="pl-7 space-y-1">
                     {category.prompts.map((prompt, idx) => (
                       <button
                         key={idx}
                         onClick={() => handleSuggestedQuestion(prompt)}
-                        className="w-full text-left px-2 py-1.5 sm:py-2 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2 group border border-transparent hover:border-slate-200 dark:hover:border-slate-600"
+                        className="w-full text-left px-2 py-1.5 sm:py-1.5 bg-slate-50/80 dark:bg-slate-700/30 hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-md transition-colors flex items-center gap-2 group border border-transparent hover:border-slate-200/50 dark:hover:border-slate-600/50"
                       >
                         <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 flex-shrink-0 transition-colors" />
-                        <span className="text-xs text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+                        <span className="text-xs text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors leading-snug">
                           {prompt}
                         </span>
                       </button>
