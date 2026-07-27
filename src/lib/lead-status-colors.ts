@@ -20,6 +20,8 @@ export interface StatusColorConfig {
   accent: string
   // Subtle border tint (border-{color}/20)
   border: string
+  // Left border class for card accent
+  borderLeft: string
   // Badge background color
   badgeBg: string
   // Badge text color
@@ -36,6 +38,7 @@ export const statusColorMap: Record<LeadLifecycleStatus, StatusColorConfig> = {
   'new': {
     accent: 'bg-blue-400',
     border: 'border-blue-500/20',
+    borderLeft: 'border-l-blue-400',
     badgeBg: 'bg-blue-500/10 dark:bg-blue-400/10',
     badgeText: 'text-blue-700 dark:text-blue-300',
     badgeBorder: 'ring-1 ring-inset ring-blue-500/20 dark:ring-blue-400/20',
@@ -45,6 +48,7 @@ export const statusColorMap: Record<LeadLifecycleStatus, StatusColorConfig> = {
   'active': {
     accent: 'bg-emerald-400',
     border: 'border-emerald-500/20',
+    borderLeft: 'border-l-emerald-400',
     badgeBg: 'bg-emerald-500/10 dark:bg-emerald-400/10',
     badgeText: 'text-emerald-700 dark:text-emerald-300',
     badgeBorder: 'ring-1 ring-inset ring-emerald-500/20 dark:ring-emerald-400/20',
@@ -54,6 +58,7 @@ export const statusColorMap: Record<LeadLifecycleStatus, StatusColorConfig> = {
   'scheduled': {
     accent: 'bg-violet-400',
     border: 'border-violet-500/20',
+    borderLeft: 'border-l-violet-400',
     badgeBg: 'bg-violet-500/10 dark:bg-violet-400/10',
     badgeText: 'text-violet-700 dark:text-violet-300',
     badgeBorder: 'ring-1 ring-inset ring-violet-500/20 dark:ring-violet-400/20',
@@ -63,6 +68,7 @@ export const statusColorMap: Record<LeadLifecycleStatus, StatusColorConfig> = {
   'payment_requested': {
     accent: 'bg-amber-400',
     border: 'border-amber-500/20',
+    borderLeft: 'border-l-amber-400',
     badgeBg: 'bg-amber-500/10 dark:bg-amber-400/10',
     badgeText: 'text-amber-700 dark:text-amber-300',
     badgeBorder: 'ring-1 ring-inset ring-amber-500/20 dark:ring-amber-400/20',
@@ -72,6 +78,7 @@ export const statusColorMap: Record<LeadLifecycleStatus, StatusColorConfig> = {
   'paid': {
     accent: 'bg-green-400',
     border: 'border-green-500/20',
+    borderLeft: 'border-l-green-400',
     badgeBg: 'bg-green-500/10 dark:bg-green-400/10',
     badgeText: 'text-green-700 dark:text-green-300',
     badgeBorder: 'ring-1 ring-inset ring-green-500/20 dark:ring-green-400/20',
@@ -81,6 +88,7 @@ export const statusColorMap: Record<LeadLifecycleStatus, StatusColorConfig> = {
   'completed': {
     accent: 'bg-sky-400',
     border: 'border-sky-500/20',
+    borderLeft: 'border-l-sky-400',
     badgeBg: 'bg-sky-500/10 dark:bg-sky-400/10',
     badgeText: 'text-sky-700 dark:text-sky-300',
     badgeBorder: 'ring-1 ring-inset ring-sky-500/20 dark:ring-sky-400/20',
@@ -90,6 +98,7 @@ export const statusColorMap: Record<LeadLifecycleStatus, StatusColorConfig> = {
   'lost': {
     accent: 'bg-red-400',
     border: 'border-red-500/20',
+    borderLeft: 'border-l-red-400',
     badgeBg: 'bg-red-500/10 dark:bg-red-400/10',
     badgeText: 'text-red-700 dark:text-red-300',
     badgeBorder: 'ring-1 ring-inset ring-red-500/20 dark:ring-red-400/20',
@@ -99,6 +108,7 @@ export const statusColorMap: Record<LeadLifecycleStatus, StatusColorConfig> = {
   'ignored': {
     accent: 'bg-slate-400',
     border: 'border-slate-500/20',
+    borderLeft: 'border-l-slate-400',
     badgeBg: 'bg-slate-500/10 dark:bg-slate-400/10',
     badgeText: 'text-slate-700 dark:text-slate-300',
     badgeBorder: 'ring-1 ring-inset ring-slate-500/20 dark:ring-slate-400/20',
@@ -112,6 +122,7 @@ const legacyStatusMap: Record<string, StatusColorConfig> = {
   'Awaiting Response': {
     accent: 'bg-amber-400',
     border: 'border-amber-500/20',
+    borderLeft: 'border-l-amber-400',
     badgeBg: 'bg-amber-500/10 dark:bg-amber-400/10',
     badgeText: 'text-amber-700 dark:text-amber-300',
     badgeBorder: 'ring-1 ring-inset ring-amber-500/20 dark:ring-amber-400/20',
@@ -121,6 +132,7 @@ const legacyStatusMap: Record<string, StatusColorConfig> = {
   'Contacted': {
     accent: 'bg-emerald-400',
     border: 'border-emerald-500/20',
+    borderLeft: 'border-l-emerald-400',
     badgeBg: 'bg-emerald-500/10 dark:bg-emerald-400/10',
     badgeText: 'text-emerald-700 dark:text-emerald-300',
     badgeBorder: 'ring-1 ring-inset ring-emerald-500/20 dark:ring-emerald-400/20',
@@ -130,6 +142,7 @@ const legacyStatusMap: Record<string, StatusColorConfig> = {
   'Appointment Scheduled': {
     accent: 'bg-violet-400',
     border: 'border-violet-500/20',
+    borderLeft: 'border-l-violet-400',
     badgeBg: 'bg-violet-500/10 dark:bg-violet-400/10',
     badgeText: 'text-violet-700 dark:text-violet-300',
     badgeBorder: 'ring-1 ring-inset ring-violet-500/20 dark:ring-violet-400/20',
@@ -139,6 +152,7 @@ const legacyStatusMap: Record<string, StatusColorConfig> = {
   'Archived': {
     accent: 'bg-slate-300',
     border: 'border-slate-500/20',
+    borderLeft: 'border-l-slate-300',
     badgeBg: 'bg-slate-500/10 dark:bg-slate-400/10',
     badgeText: 'text-slate-700 dark:text-slate-300',
     badgeBorder: 'ring-1 ring-inset ring-slate-500/20 dark:ring-slate-400/20',
@@ -166,6 +180,7 @@ export function getStatusColorConfig(status: string): StatusColorConfig {
   return {
     accent: 'bg-slate-300',
     border: 'border-slate-500/20',
+    borderLeft: 'border-l-slate-300',
     badgeBg: 'bg-slate-500/10 dark:bg-slate-400/10',
     badgeText: 'text-slate-700 dark:text-slate-300',
     badgeBorder: 'ring-1 ring-inset ring-slate-500/20 dark:ring-slate-400/20',
@@ -183,19 +198,19 @@ export function getStatusBadgeClasses(status: string): string {
 }
 
 /**
- * Get card accent classes for a status
- * Returns the accent color for the 4px left border
- */
-export function getCardAccentClasses(status: string): string {
-  const config = getStatusColorConfig(status)
-  return config.accent
-}
-
-/**
  * Get card border classes for a status
  * Returns the subtle border tint
  */
 export function getCardBorderClasses(status: string): string {
   const config = getStatusColorConfig(status)
   return config.border
+}
+
+/**
+ * Get card accent border classes for a status
+ * Returns the left border class for the 4px accent stripe
+ */
+export function getCardAccentBorderClasses(status: string): string {
+  const config = getStatusColorConfig(status)
+  return `border-l-4 ${config.borderLeft}`
 }

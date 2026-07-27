@@ -60,7 +60,7 @@ import FloatingHelpButton from '@/components/FloatingHelpButton'
 import LeadStatusDropdown from '@/components/LeadStatusDropdown'
 import AddCustomerModal from '@/components/AddCustomerModal'
 import { Wrench, FileText, Clock } from 'lucide-react'
-import { getCardAccentClasses, getCardBorderClasses } from '@/lib/lead-status-colors'
+import { getCardAccentBorderClasses, getCardBorderClasses } from '@/lib/lead-status-colors'
 
 // Helper to get compact summary for lead card
 // [simple_mode_structured_preview_generated]
@@ -648,7 +648,6 @@ export default function LeadsPage() {
   // Handle start subscription
   const handleStartSubscription = async () => {
     setCheckoutLoading(true)
-    console.log('[checkout] ===== STARTING SUBSCRIPTION FLOW =====')
     
     // Eligibility is now handled by useTrialEligibility hook
     
@@ -1300,7 +1299,7 @@ export default function LeadsPage() {
                       {/* Removed inline count here to avoid duplication and lift the card on mobile */}
                       <div
                         key={lead.id}
-                        className={`w-full max-w-2xl h-full flex flex-col rounded-2xl border relative overflow-hidden transition-all duration-200 cursor-pointer dark:bg-gradient-to-b dark:from-slate-950 dark:to-slate-900 bg-card ${getCardBorderClasses(getLeadLifecycleStatus(lead))} shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:border-border hover:bg-muted/20 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] active:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2`}
+                        className={`w-full max-w-2xl h-full flex flex-col rounded-2xl border relative overflow-hidden transition-all duration-200 cursor-pointer dark:bg-gradient-to-b dark:from-slate-950 dark:to-slate-900 bg-card ${getCardBorderClasses(getLeadLifecycleStatus(lead))} ${getCardAccentBorderClasses(getLeadLifecycleStatus(lead))} shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:border-border hover:bg-muted/20 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] active:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2`}
                         onClick={() => handleConversationClick(lead.id)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
@@ -1312,12 +1311,6 @@ export default function LeadsPage() {
                         role="link"
                         aria-label={`Open ${getLeadDisplayName(lead)}`}
                       >
-                        {/* Status Accent Bar - 4px left accent */}
-                        {(() => {
-                          const lifecycleStatus = getLeadLifecycleStatus(lead)
-                          const stripeClass = getCardAccentClasses(lifecycleStatus)
-                          return <div className={`absolute left-0 top-0 bottom-0 w-1 ${stripeClass}`}></div>
-                        })()}
                         <div className="p-4 pl-5 flex-1 flex flex-col">
                           {/* Header: Name, Phone, Status */}
                           <div className="flex items-start justify-between gap-3 mb-2.5">
@@ -1510,7 +1503,7 @@ export default function LeadsPage() {
                         return (
                           <div
                             key={lead.id}
-                            className={`rounded-xl border relative overflow-hidden transition-all duration-200 cursor-pointer dark:bg-gradient-to-b dark:from-slate-950 dark:to-slate-900 bg-card ${getCardBorderClasses(getLeadLifecycleStatus(lead))} shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:border-border hover:bg-muted/20 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] active:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2`}
+                            className={`rounded-xl border relative overflow-hidden transition-all duration-200 cursor-pointer dark:bg-gradient-to-b dark:from-slate-950 dark:to-slate-900 bg-card ${getCardBorderClasses(getLeadLifecycleStatus(lead))} ${getCardAccentBorderClasses(getLeadLifecycleStatus(lead))} shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:border-border hover:bg-muted/20 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] active:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2`}
                             onClick={() => handleConversationClick(lead.id)}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' || e.key === ' ') {
@@ -1522,12 +1515,6 @@ export default function LeadsPage() {
                             role="link"
                             aria-label={`Open ${getLeadDisplayName(lead)}`}
                           >
-                            {/* Status Accent Bar - 4px left accent */}
-                            {(() => {
-                              const lifecycleStatus = getLeadLifecycleStatus(lead)
-                              const stripeClass = getCardAccentClasses(lifecycleStatus)
-                              return <div className={`absolute left-0 top-0 bottom-0 w-1 ${stripeClass}`}></div>
-                            })()}
                             <div className="p-2 sm:p-3.5 pl-3 sm:pl-4">
                               {/* Header: Name, Phone, Status - Compact on mobile */}
                               <div className="flex items-start justify-between gap-2 sm:gap-3 mb-1.5 sm:mb-2">
