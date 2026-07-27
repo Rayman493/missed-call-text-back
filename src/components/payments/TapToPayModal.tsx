@@ -399,19 +399,29 @@ export default function TapToPayModal({
       console.log('[TAP_SESSION_TRACE] stage=initialize')
       const initResult = await terminalService.initialize()
       if (initResult.status !== 'ready' && initResult.status !== 'connected') {
+        try { logTapToPayEvent('INITIALIZE_RESULT_REJECTED', { phase: 'initialize', sessionId: terminalService.getSessionId(), meta: { returnedStatus: initResult.status, reason: 'unexpected_status' } }) } catch {}
         throw new Error('Failed to initialize payment terminal')
       }
+      try {
+        const path = initResult.status === 'connected' ? 'already_connected' : 'ready'
+        logTapToPayEvent('INITIALIZE_RESULT_ACCEPTED', { phase: 'initialize', sessionId: terminalService.getSessionId(), meta: { returnedStatus: initResult.status, path } })
+      } catch {}
       setLastSuccessfulStage('initialized')
 
       // Connect if needed (we'll always try to connect to ensure fresh session)
-      console.log('[TAP_SESSION_TRACE] stage=connect')
-      setPaymentState('preparing')
-      const connectResult = await terminalService.connectTapToPay()
-      console.log('[TAP_SESSION_TRACE] stage=post_connect_continue status=' + connectResult.status)
-      if (connectResult.status !== 'connected') {
-        throw new Error('Failed to connect to payment terminal')
+      if (initResult.status === 'connected') {
+        try { logTapToPayEvent('CONNECT_SKIPPED_ALREADY_CONNECTED', { phase: 'connect_reader', sessionId: terminalService.getSessionId(), meta: { reason: 'already_connected_after_initialize' } }) } catch {}
+        setLastSuccessfulStage('connected')
+      } else {
+        console.log('[TAP_SESSION_TRACE] stage=connect')
+        setPaymentState('preparing')
+        const connectResult = await terminalService.connectTapToPay()
+        console.log('[TAP_SESSION_TRACE] stage=post_connect_continue status=' + connectResult.status)
+        if (connectResult.status !== 'connected') {
+          throw new Error('Failed to connect to payment terminal')
+        }
+        setLastSuccessfulStage('connected')
       }
-      setLastSuccessfulStage('connected')
 
       // Start payment collection (this creates PaymentIntent internally)
       console.log('[TAP_SESSION_TRACE] stage=payment_collect')
