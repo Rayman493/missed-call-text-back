@@ -159,8 +159,8 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
   }
 
   return (
-    <div className="bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/80 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.05)_inset] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset] hover:shadow-[0_2px_4px_rgba(0,0,0,0.05),0_8px_16px_rgba(0,0,0,0.04),0_0_0_1px_rgba(255,255,255,0.08)_inset] dark:hover:shadow-[0_2px_4px_rgba(0,0,0,0.35),0_8px_16px_rgba(0,0,0,0.25),0_0_0_1px_rgba(255,255,255,0.08)_inset] hover:-translate-y-0.5 transition-all duration-200 p-3 sm:p-4">
-      <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-3">Activity Timeline</h3>
+    <div className="bg-white dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.05)_inset] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset] hover:shadow-[0_2px_4px_rgba(0,0,0,0.05),0_8px_16px_rgba(0,0,0,0.04),0_0_0_1px_rgba(255,255,255,0.08)_inset] dark:hover:shadow-[0_2px_4px_rgba(0,0,0,0.35),0_8px_16px_rgba(0,0,0,0.25),0_0_0_1px_rgba(255,255,255,0.08)_inset] hover:-translate-y-0.5 transition-all duration-200 p-3 sm:p-4">
+      <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-2.5 leading-tight">Activity Timeline</h3>
 
       {activities.length === 0 ? (
         <div className="text-center py-6">
@@ -168,19 +168,19 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
         </div>
       ) : (
         <div className="space-y-0">
-          {activities.map((activity, index) => (
-            <div key={activity.id} className="flex items-start gap-2.5 py-3 sm:py-3 border-b border-slate-100 dark:border-slate-800 last:border-0">
+          {activities.map((activity) => (
+            <div key={activity.id} className="flex items-start gap-2.5 py-2.5 sm:py-3 border-b border-slate-100/70 dark:border-slate-800/70 last:border-0">
               <div className="flex-shrink-0 pt-0.5">
-                <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center ${activity.color} bg-slate-100 dark:bg-slate-800`}>
+                <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center ${activity.color} bg-slate-100 dark:bg-slate-800 ring-1 ring-inset ring-white/10`}>
                   {activity.icon}
                 </div>
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-xs font-medium text-slate-900 dark:text-foreground">{activity.title}</p>
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-2 whitespace-nowrap">{formatRelativeTime(activity.timestamp)}</span>
+                <div className="flex items-center justify-between mb-0.5">
+                  <p className="text-xs font-medium text-slate-900 dark:text-foreground leading-snug">{activity.title}</p>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-2 whitespace-nowrap leading-snug">{formatRelativeTime(activity.timestamp)}</span>
                 </div>
-                <p className="text-xs text-slate-600 dark:text-slate-400">{activity.description}</p>
+                <p className="text-[11px] sm:text-xs text-slate-600 dark:text-slate-400 leading-snug">{activity.description}</p>
               </div>
             </div>
           ))}

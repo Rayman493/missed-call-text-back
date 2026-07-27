@@ -79,10 +79,10 @@ export default function ReplyFlowPerformanceCard() {
 
   if (loading) {
     return (
-      <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-700/50 shadow-sm p-5 sm:p-6">
+      <div className="bg-slate-900/60 backdrop-blur-sm rounded-2xl border border-slate-700/50 shadow-sm p-4 sm:p-5">
         <div className="animate-pulse space-y-4">
           <div className="h-6 bg-slate-700 rounded w-1/3"></div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="space-y-2">
                 <div className="h-4 bg-slate-700 rounded w-3/4"></div>
@@ -96,20 +96,20 @@ export default function ReplyFlowPerformanceCard() {
   }
 
   return (
-    <div className="bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-700/50 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 p-5 sm:p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base sm:text-lg font-semibold text-foreground">
+    <div className="bg-slate-900/60 backdrop-blur-sm rounded-2xl border border-slate-700/50 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 p-4 sm:p-5">
+      <div className="flex items-center justify-between mb-3.5">
+        <h3 className="text-base sm:text-lg font-semibold text-foreground leading-tight">
           ReplyFlow Performance
         </h3>
         <Link
           href="/analytics"
-          className="text-xs sm:text-sm text-blue-400 hover:text-blue-300 font-medium flex items-center gap-1 transition-colors"
+          className="inline-flex items-center h-8 px-2.5 sm:px-3 text-xs sm:text-sm text-blue-400 hover:text-blue-300 font-medium gap-1 transition-colors rounded-md hover:bg-white/5"
         >
           View Analytics <ChevronRight className="w-4 h-4" />
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
         <MetricItem
           label="Captured Customers"
           value={metrics?.missedCallsCaptured || 0}
@@ -151,21 +151,21 @@ function MetricItem({
   color: 'blue' | 'green' | 'purple' | 'amber'
 }) {
   const colorClasses = {
-    blue: 'bg-blue-900/30 text-blue-400',
-    green: 'bg-green-900/30 text-green-400',
-    purple: 'bg-purple-900/30 text-purple-400',
-    amber: 'bg-amber-900/30 text-amber-400'
+    blue: 'bg-blue-900/25 text-blue-400',
+    green: 'bg-green-900/25 text-green-400',
+    purple: 'bg-purple-900/25 text-purple-400',
+    amber: 'bg-amber-900/25 text-amber-400'
   }
 
   return (
     <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
-      <div className={`p-2 rounded-lg ${colorClasses[color]} mb-2`}>
+      <div className={`w-8 h-8 rounded-xl ring-1 ring-inset ring-white/10 flex items-center justify-center ${colorClasses[color]} mb-1.5`}>
         <Icon className="w-4 h-4" />
       </div>
-      <p className="text-2xl font-bold text-foreground">
+      <p className="text-2xl sm:text-3xl font-bold text-foreground leading-tight">
         {value}
       </p>
-      <p className="text-xs text-muted-foreground mt-1">
+      <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">
         {label}
       </p>
     </div>

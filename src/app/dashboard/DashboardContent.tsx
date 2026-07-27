@@ -1020,8 +1020,8 @@ export default function DashboardContent() {
             <AppHeader showNavigation={true} />
 
             {/* Main Content - Improved mobile spacing with safe-area */}
-            <div className="flex-1 pt-3 sm:pt-4 lg:pt-8 px-3 sm:px-4 lg:px-6 pb-20 sm:pb-8 relative z-10" style={{ paddingBottom: 'max(80px, calc(80px + env(safe-area-inset-bottom)))' }}>
-              <div className="max-w-[1400px] mx-auto space-y-2.5 sm:space-y-4 lg:space-y-6">
+            <div className="flex-1 pt-2.5 sm:pt-3.5 lg:pt-7 px-3 sm:px-4 lg:px-6 pb-20 sm:pb-8 relative z-10" style={{ paddingBottom: 'max(80px, calc(80px + env(safe-area-inset-bottom)))' }}>
+              <div className="max-w-[1400px] mx-auto space-y-2 sm:space-y-3.5 lg:space-y-5">
 
                 {/* Single Collapsible Setup/Status Card - Consolidates all onboarding/health/status banners */}
                 <SectionErrorBoundary sectionName="SetupStatusCard">
@@ -1133,20 +1133,20 @@ export default function DashboardContent() {
 
                     {/* Beta Feedback Card - Simplified with mobile padding */}
                     <SectionErrorBoundary sectionName="BetaFeedbackCard">
-                      <div className="bg-slate-50/60 dark:bg-slate-800/40 border border-slate-200/40 dark:border-slate-700/40 rounded-lg p-3 sm:p-4">
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+                      <div className="bg-slate-50/70 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 rounded-xl p-3 sm:p-3.5 shadow-sm">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3.5">
                           <div className="flex-1">
-                            <h3 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 sm:gap-2">
+                            <h3 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 sm:gap-2 leading-tight">
                               <MessageSquare className="w-4 h-4" aria-hidden="true" />
                               <span>Feedback</span>
                             </h3>
-                            <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mt-0.5 sm:mt-1">
+                            <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mt-0.5 leading-snug">
                               Found a bug or have an idea? We'd love to hear your feedback.
                             </p>
                           </div>
                           <button
                             onClick={() => setShowBetaFeedbackModal(true)}
-                            className="inline-flex items-center justify-center px-3 sm:px-4 py-2 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-900 dark:text-slate-100 text-xs font-medium rounded-lg transition-colors border border-slate-200 dark:border-slate-600"
+                            className="inline-flex items-center justify-center h-9 px-3 sm:px-4 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-900 dark:text-slate-100 text-xs font-medium rounded-lg transition-colors border border-slate-200 dark:border-slate-600"
                           >
                             Share Feedback
                           </button>
