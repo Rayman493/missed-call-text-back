@@ -20,6 +20,7 @@ interface TapToPayModalProps {
   description?: string
   customerName?: string
   onPaymentComplete?: () => void
+  autoStart?: boolean
 }
 
 type PaymentState = 'ready' | 'preparing' | 'waiting_for_card' | 'processing' | 'success' | 'failure' | 'canceled' | 'pending' | 'ambiguous'
@@ -36,6 +37,7 @@ export default function TapToPayModal({
   description,
   customerName,
   onPaymentComplete,
+  autoStart = false,
 }: TapToPayModalProps) {
   const [paymentState, setPaymentState] = useState<PaymentState>('ready')
   const [error, setError] = useState<string>('')
@@ -94,6 +96,18 @@ export default function TapToPayModal({
         setError('Payment status uncertain - checking...')
         // Trigger recovery check
         checkAttemptStatus(unresolvedAttemptId)
+      } else if (autoStart) {
+        // Auto-start on initial open to remove redundant Start press
+        // Guard with in-progress flag to avoid duplicate starts
+        if (!isPaymentInProgress) {
+          // Defer to next tick to allow initial state to settle
+          setTimeout(() => {
+            // Double-check visibility and no unresolved attempt before starting
+            if (paymentStateRef.current === 'ready') {
+              handleStartPayment()
+            }
+          }, 0)
+        }
       }
     } else {
       // Reset when closed
@@ -213,6 +227,10 @@ export default function TapToPayModal({
             if (name === 'confirm_payment_intent_started' || name === 'collect_payment_method_completed') {
               waitingForConfirmationEmitted.current = attemptId
               logTapToPayEvent('WAITING_FOR_CONFIRMATION', { phase: 'confirm_payment', sessionId: terminalService.getSessionId(), attemptId, paymentIntentId: terminalService.getPaymentIntentId() }).catch(() => {})
+              // Explicitly surface Processing state in UI without delaying success
+              if (paymentStateRef.current === 'waiting_for_card') {
+                setPaymentState('processing')
+              }
             }
           } catch {}
         })
@@ -426,7 +444,9 @@ export default function TapToPayModal({
         setLastSuccessfulStage('connected')
       } else {
         console.log('[TAP_SESSION_TRACE] stage=connect')
-        setPaymentState('preparing')
+        if (paymentStateRef.current !== 'preparing') {
+          setPaymentState('preparing')
+        }
         const connectResult = await terminalService.connectTapToPay()
         console.log('[TAP_SESSION_TRACE] stage=post_connect_continue status=' + connectResult.status)
         if (connectResult.status !== 'connected') {

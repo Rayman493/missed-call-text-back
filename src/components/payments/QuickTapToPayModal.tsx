@@ -16,11 +16,13 @@ import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
 interface QuickTapToPayModalProps {
   isOpen: boolean
   onClose: () => void
+  onRefreshAfterSuccess?: () => Promise<void> | void
 }
 
 export default function QuickTapToPayModal({
   isOpen,
   onClose,
+  onRefreshAfterSuccess,
 }: QuickTapToPayModalProps) {
   const { business } = useBusiness()
   const terminalService = useMemo(() => TerminalBridgeService.getInstance(), [])
@@ -527,7 +529,17 @@ export default function QuickTapToPayModal({
           jobId={selectedJobId || undefined}
           description={description || undefined}
           customerName={selectedLead?.name || undefined}
-          onPaymentComplete={handlePaymentComplete}
+          autoStart={true}
+          onPaymentComplete={async () => {
+            // Close the TapToPay modal immediately after success; keep Quick modal UX smooth
+            setShowTapToPay(false)
+            try {
+              // Fire host refreshes in parallel without reloading the page
+              await Promise.resolve(onRefreshAfterSuccess?.())
+            } catch {}
+            // Close Quick modal after triggering refreshes (no full reload)
+            onClose()
+          }}
         />
       )}
     </>

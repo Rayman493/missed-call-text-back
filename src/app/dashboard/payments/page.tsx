@@ -461,9 +461,9 @@ export default function PaymentsPage() {
     <DashboardShell
       title="Payments"
       maxWidthClassName="max-w-7xl mx-auto"
-      contentClassName="flex-1 px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24 md:pb-8 relative z-10"
+      contentClassName="flex-1 px-3 sm:px-6 lg:px-8 py-3 sm:py-5 pb-24 md:pb-8 relative z-10"
       contentStyle={{ paddingBottom: 'max(80px, calc(80px + env(safe-area-inset-bottom)))' }}
-      innerClassName="space-y-5 sm:space-y-6"
+      innerClassName="space-y-4 sm:space-y-5"
     >
         <PageHeader
           title="Payments"
@@ -471,7 +471,7 @@ export default function PaymentsPage() {
         />
 
         {/* Action Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
           {/* Tap to Pay Card */}
           {(() => {
             const isStripeReady = business?.stripe_connect_status === 'connected' && business?.stripe_charges_enabled
@@ -483,18 +483,19 @@ export default function PaymentsPage() {
               return (
                 <button
                   onClick={() => setShowQuickTapToPay(true)}
-                  className="bg-gradient-to-br from-green-900/30 to-green-800/20 dark:from-green-900/30 dark:to-green-800/20 rounded-lg p-4 sm:p-5 border border-green-700/50 hover:border-green-600/50 transition-all hover:scale-[1.02] text-left"
+                  className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.015] active:scale-[0.995]
+                  bg-gradient-to-br from-green-900/35 to-green-800/25 border-green-700/40 hover:border-green-600/50 shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
                 >
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+                  <div className="flex items-center gap-3.5 mb-2.5">
+                    <div className="w-10 h-10 rounded-xl bg-green-500/15 ring-1 ring-inset ring-green-600/30 shadow-[0_0_20px_rgba(34,197,94,0.18)] flex items-center justify-center">
                       <Smartphone className="w-5 h-5 text-green-400" />
                     </div>
                     <div>
-                      <h3 className="text-white font-semibold text-sm sm:text-base">Tap to Pay</h3>
+                      <h3 className="text-white font-semibold text-base sm:text-lg leading-tight">Tap to Pay</h3>
                       <p className="text-green-300/80 text-xs">Collect in-person</p>
                     </div>
                   </div>
-                  <p className="text-green-200/70 text-xs sm:text-sm">Accept contactless payments now with your phone</p>
+                  <p className="text-green-200/75 text-xs sm:text-sm">Accept contactless payments now with your phone</p>
                 </button>
               )
             }
@@ -502,17 +503,17 @@ export default function PaymentsPage() {
             // State 3: Stripe ready + device unsupported (web)
             if (!isNativeSupported && isStripeReady) {
               return (
-                <div className="bg-slate-800/50 rounded-lg p-4 sm:p-5 border border-slate-700/50">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-slate-700/50 rounded-lg flex items-center justify-center">
+                <div className="rounded-2xl p-4 sm:p-5 border border-slate-700/50 bg-slate-800/50 shadow-[0_6px_18px_rgba(0,0,0,0.18)]">
+                  <div className="flex items-center gap-3.5 mb-2.5">
+                    <div className="w-10 h-10 rounded-xl bg-slate-700/60 ring-1 ring-inset ring-slate-600/40 flex items-center justify-center">
                       <Smartphone className="w-5 h-5 text-slate-400" />
                     </div>
                     <div>
-                      <h3 className="text-slate-300 font-semibold text-sm sm:text-base">Tap to Pay</h3>
-                      <p className="text-slate-500 text-xs">Mobile app required</p>
+                      <h3 className="text-slate-200 font-semibold text-sm sm:text-base leading-tight">Tap to Pay</h3>
+                      <p className="text-slate-400 text-xs">Mobile app required</p>
                     </div>
                   </div>
-                  <p className="text-slate-400 text-xs sm:text-sm">Accept contactless payments from the ReplyFlow mobile app</p>
+                  <p className="text-slate-300/85 text-xs sm:text-sm">Accept contactless payments from the ReplyFlow mobile app</p>
                 </div>
               )
             }
@@ -522,18 +523,19 @@ export default function PaymentsPage() {
               return (
                 <button
                   onClick={() => setShowTapToPaySetup(true)}
-                  className="bg-gradient-to-br from-amber-900/30 to-amber-800/20 dark:from-amber-900/30 dark:to-amber-800/20 rounded-lg p-4 sm:p-5 border border-amber-700/50 hover:border-amber-600/50 transition-all hover:scale-[1.02] text-left"
+                  className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.015] active:scale-[0.995]
+                  bg-gradient-to-br from-amber-900/35 to-amber-800/25 border-amber-700/40 hover:border-amber-600/50 shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
                 >
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-amber-500/20 rounded-lg flex items-center justify-center">
+                  <div className="flex items-center gap-3.5 mb-2.5">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500/15 ring-1 ring-inset ring-amber-600/30 flex items-center justify-center">
                       <AlertCircle className="w-5 h-5 text-amber-400" />
                     </div>
                     <div>
-                      <h3 className="text-white font-semibold text-sm sm:text-base">Tap to Pay</h3>
-                      <p className="text-amber-300/80 text-xs">Finish setup</p>
+                      <h3 className="text-white font-semibold text-sm sm:text-base leading-tight">Tap to Pay</h3>
+                      <p className="text-amber-300/85 text-xs">Finish setup</p>
                     </div>
                   </div>
-                  <p className="text-amber-200/70 text-xs sm:text-sm">Complete Stripe setup to accept contactless payments</p>
+                  <p className="text-amber-200/80 text-xs sm:text-sm">Complete Stripe setup to accept contactless payments</p>
                 </button>
               )
             }
@@ -542,18 +544,19 @@ export default function PaymentsPage() {
             return (
               <button
                 onClick={() => setShowTapToPaySetup(true)}
-                className="bg-gradient-to-br from-green-900/30 to-green-800/20 dark:from-green-900/30 dark:to-green-800/20 rounded-lg p-4 sm:p-5 border border-green-700/50 hover:border-green-600/50 transition-all hover:scale-[1.02] text-left"
+                className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.015] active:scale-[0.995]
+                bg-gradient-to-br from-green-900/35 to-green-800/25 border-green-700/40 hover:border-green-600/50 shadow-[0_6px_18px_rgba(0,0,0,0.25)]"
               >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+                <div className="flex items-center gap-3.5 mb-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-green-500/15 ring-1 ring-inset ring-green-600/30 flex items-center justify-center">
                     <Smartphone className="w-5 h-5 text-green-400" />
                   </div>
                   <div>
-                    <h3 className="text-white font-semibold text-sm sm:text-base">Tap to Pay</h3>
-                    <p className="text-green-300/80 text-xs">Setup required</p>
+                    <h3 className="text-white font-semibold text-sm sm:text-base leading-tight">Tap to Pay</h3>
+                    <p className="text-green-300/85 text-xs">Setup required</p>
                   </div>
                 </div>
-                <p className="text-green-200/70 text-xs sm:text-sm">Accept contactless payments directly from your phone</p>
+                <p className="text-green-200/80 text-xs sm:text-sm">Accept contactless payments directly from your phone</p>
               </button>
             )
           })()}
@@ -561,18 +564,19 @@ export default function PaymentsPage() {
           {/* Request Payment Card */}
           <button
             onClick={handleStartPaymentRequest}
-            className="bg-gradient-to-br from-blue-900/30 to-blue-800/20 dark:from-blue-900/30 dark:to-blue-800/20 rounded-lg p-4 sm:p-5 border border-blue-700/50 hover:border-blue-600/50 transition-all hover:scale-[1.02] text-left"
+            className="relative overflow-hidden rounded-2xl p-4 sm:p-5 text-left border transition-all duration-150 ease-out hover:scale-[1.01] active:scale-[0.995]
+            bg-gradient-to-br from-blue-900/35 to-blue-800/25 border-blue-700/40 hover:border-blue-600/50 shadow-[0_6px_18px_rgba(0,0,0,0.22)]"
           >
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+            <div className="flex items-center gap-3.5 mb-2.5">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/15 ring-1 ring-inset ring-blue-600/30 flex items-center justify-center">
                 <CreditCard className="w-5 h-5 text-blue-400" />
               </div>
               <div>
-                <h3 className="text-white font-semibold text-sm sm:text-base">Request Payment</h3>
-                <p className="text-blue-300/80 text-xs">Send payment link</p>
+                <h3 className="text-white font-semibold text-sm sm:text-base leading-tight">Request Payment</h3>
+                <p className="text-blue-300/85 text-xs">Send payment link</p>
               </div>
             </div>
-            <p className="text-blue-200/70 text-xs sm:text-sm">Send a payment request via SMS to your customer</p>
+            <p className="text-blue-200/80 text-xs sm:text-sm">Send a payment request via SMS to your customer</p>
           </button>
         </div>
 
@@ -587,50 +591,66 @@ export default function PaymentsPage() {
         ) : (
           <>
             {/* Overview Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-              <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-lg p-4 sm:p-5 border border-slate-700/80">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-gray-400 text-sm font-medium">Pending Amount</span>
-                  <CreditCard className="h-4 w-4 text-blue-400" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 mb-4">
+              <div className="rounded-xl p-3.5 sm:p-4 border border-slate-700/70 bg-[#1e293b] shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
+                <div className="flex items-start justify-between mb-1.5">
+                  <span className="text-gray-400 text-xs font-medium">Pending Amount</span>
+                  <div className="h-8 w-8 rounded-lg bg-slate-800/60 ring-1 ring-inset ring-slate-600/40 flex items-center justify-center">
+                    <CreditCard className="h-4 w-4 text-blue-400" />
+                  </div>
                 </div>
-                <div className="text-xl sm:text-2xl font-bold text-white">
+                <div className="text-2xl sm:text-3xl font-bold text-white leading-tight">
                   {formatCurrency(stats.pendingAmount / 100)}
                 </div>
+                {stats.pendingAmount === 0 ? (
+                  <div className="mt-1.5 text-[11px] text-gray-400">No outstanding payments</div>
+                ) : null}
               </div>
 
-              <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-lg p-4 sm:p-5 border border-slate-700/80">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-gray-400 text-sm font-medium">Paid This Month</span>
-                  <CreditCard className="h-4 w-4 text-green-400" />
+              <div className="rounded-xl p-3.5 sm:p-4 border border-slate-700/70 bg-[#1e293b] shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
+                <div className="flex items-start justify-between mb-1.5">
+                  <span className="text-gray-400 text-xs font-medium">Paid This Month</span>
+                  <div className="h-8 w-8 rounded-lg bg-slate-800/60 ring-1 ring-inset ring-slate-600/40 flex items-center justify-center">
+                    <CreditCard className="h-4 w-4 text-green-400" />
+                  </div>
                 </div>
-                <div className="text-xl sm:text-2xl font-bold text-white">
+                <div className="text-2xl sm:text-3xl font-bold text-white leading-tight">
                   {formatCurrency(stats.paidThisMonth / 100)}
                 </div>
               </div>
 
-              <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-lg p-4 sm:p-5 border border-slate-700/80">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-gray-400 text-sm font-medium">Pending Requests</span>
-                  <CreditCard className="h-4 w-4 text-yellow-400" />
+              <div className="rounded-xl p-3.5 sm:p-4 border border-slate-700/70 bg-[#1e293b] shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
+                <div className="flex items-start justify-between mb-1.5">
+                  <span className="text-gray-400 text-xs font-medium">Pending Requests</span>
+                  <div className="h-8 w-8 rounded-lg bg-slate-800/60 ring-1 ring-inset ring-slate-600/40 flex items-center justify-center">
+                    <CreditCard className="h-4 w-4 text-yellow-400" />
+                  </div>
                 </div>
-                <div className="text-xl sm:text-2xl font-bold text-white">
+                <div className="text-2xl sm:text-3xl font-bold text-white leading-tight">
                   {stats.pendingRequests}
                 </div>
+                {stats.pendingRequests > 0 ? (
+                  <div className="mt-1.5 text-[11px] text-gray-400">{stats.pendingRequests} pending</div>
+                ) : (
+                  <div className="mt-1.5 text-[11px] text-gray-400">No pending</div>
+                )}
               </div>
 
-              <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-lg p-4 sm:p-5 border border-slate-700/80">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-gray-400 text-sm font-medium">Collection Rate</span>
-                  <CreditCard className="h-4 w-4 text-purple-400" />
+              <div className="rounded-xl p-3.5 sm:p-4 border border-slate-700/70 bg-[#1e293b] shadow-[0_4px_14px_rgba(0,0,0,0.18)]">
+                <div className="flex items-start justify-between mb-1.5">
+                  <span className="text-gray-400 text-xs font-medium">Collection Rate</span>
+                  <div className="h-8 w-8 rounded-lg bg-slate-800/60 ring-1 ring-inset ring-slate-600/40 flex items-center justify-center">
+                    <CreditCard className="h-4 w-4 text-purple-400" />
+                  </div>
                 </div>
-                <div className="text-xl sm:text-2xl font-bold text-white">
+                <div className="text-2xl sm:text-3xl font-bold text-white leading-tight">
                   {stats.collectionRate}%
                 </div>
               </div>
             </div>
 
             {/* Payment Requests Table - Mobile cards, Desktop table */}
-            <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-lg border border-slate-700 overflow-hidden">
+            <div className="bg-[#1e293b] dark:bg-[#1e293b] rounded-2xl border border-slate-700/80 overflow-hidden shadow-[0_6px_18px_rgba(0,0,0,0.20)]">
               {/* Mobile card view */}
               <div className="md:hidden space-y-2.5 p-3">
                 {paymentRequests.length === 0 ? (
@@ -1427,6 +1447,12 @@ export default function PaymentsPage() {
         <QuickTapToPayModal
           isOpen={showQuickTapToPay}
           onClose={() => setShowQuickTapToPay(false)}
+          onRefreshAfterSuccess={async () => {
+            // Run independent refreshes in parallel without reloading the app
+            await Promise.allSettled([
+              (async () => { try { await fetchPayments() } catch {} })(),
+            ])
+          }}
         />
 
         {/* Tap to Pay Setup Modal */}
