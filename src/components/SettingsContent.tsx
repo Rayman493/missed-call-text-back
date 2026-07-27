@@ -1108,7 +1108,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Settings Navigation Tabs */}
-              <div className="py-1">
+              <div className="py-1 sticky top-0 z-40 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-sm" style={{ top: '68px' }}>
                 <nav ref={settingsTabsNavRef} className="flex items-center gap-1 overflow-x-auto custom-scrollbar-horizontal">
                   <button
                     ref={(element) => { sectionTabRefs.current.general = element }}
@@ -1192,7 +1192,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Business Info Section */}
-              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[200px]">
+              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[140px]">
                 <div className="mb-4">
                   <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Business Info</h2>
                   <p className="text-xs text-slate-500 dark:text-slate-400">Your business identity and contact details.</p>
@@ -1356,7 +1356,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Automation Settings */}
-              <div id="automation" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[200px]">
+              <div id="automation" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[140px]">
                 <div className="mb-3">
                   <div className="flex items-center justify-between mb-1">
                     <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground">Instant Response Settings</h2>
@@ -1810,7 +1810,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Integrations Section */}
-              <div id="integrations" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[200px]">
+              <div id="integrations" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[140px]">
                 <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Integrations</h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">Connect services you already use.</p>
                 
@@ -1882,7 +1882,7 @@ export default function SettingsContent() {
                 </div>
               </div>
 
-              <div id="payments" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[200px]">
+              <div id="payments" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[140px]">
                 <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Payments</h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
                   Connect payment methods for customer requests.
@@ -2082,7 +2082,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Personal Contacts Section */}
-              <div id="contacts" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[200px]">
+              <div id="contacts" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[140px]">
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <div>
                     <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Personal Contacts</h2>
@@ -2210,7 +2210,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Account Section - Merged Profile and Account Access */}
-              <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 scroll-mt-[200px]">
+              <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 scroll-mt-[140px]">
                 <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Account</h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Your account details and status.</p>
                 <div className="bg-slate-50/80 dark:bg-slate-800/40 rounded-md border border-slate-200/60 dark:border-slate-700/40 overflow-hidden">
@@ -2298,7 +2298,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Subscription & Billing Section */}
-              <div id="subscription" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3 sm:p-4 scroll-mt-[220px]">
+              <div id="subscription" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3 sm:p-4 scroll-mt-[160px]">
                 <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-1 sm:mb-2">Subscription & Billing</h2>
                 <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-3 sm:mb-4">Manage your subscription and billing.</p>
                 <div className="space-y-2.5 sm:space-y-3">
@@ -2391,7 +2391,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Security Section */}
-              <div id="security" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3 sm:p-4 scroll-mt-[220px]">
+              <div id="security" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3 sm:p-4 scroll-mt-[160px]">
                 <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-1 sm:mb-2">Security</h2>
                 <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-3 sm:mb-4">Manage your account security and access.</p>
                 <div className="space-y-2 sm:space-y-2.5">
