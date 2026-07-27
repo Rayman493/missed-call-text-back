@@ -279,7 +279,7 @@ export default async function Home() {
                         </div>
                       </div>
 
-                      {/* Step 5: Payment Requested */}
+                      {/* Step 5: Get Paid */}
                       <div className="bg-white dark:bg-slate-800 rounded-xl p-4 sm:p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
                         <div className="flex items-center gap-2 mb-3">
                           <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
@@ -289,11 +289,11 @@ export default async function Home() {
                           </div>
                           <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Step 5</span>
                         </div>
-                        <div className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">Payment Requested</div>
+                        <div className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">Get Paid</div>
                         <div className="text-xs text-slate-600 dark:text-slate-400">$425 Plumbing Repair</div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Text message sent</div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Tap to Pay on iPhone or send a branded payment link</div>
                         <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
-                          <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">✓ Awaiting payment</div>
+                          <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">✓ Customer paid</div>
                         </div>
                       </div>
                     </div>
@@ -401,7 +401,7 @@ export default async function Home() {
                   </svg>
                 </div>
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1.5">Lead Ready in Dashboard</h3>
-                <p className="text-xs text-slate-700 dark:text-slate-400">Reply, schedule appointments, and request payment — all from one place</p>
+                <p className="text-xs text-slate-700 dark:text-slate-400">Reply, schedule appointments, and collect payment — all from one place</p>
               </div>
             </div>
             
@@ -550,7 +550,7 @@ export default async function Home() {
                 Capture Every Missed Call. Book More Jobs.
               </h2>
               <p className="text-sm sm:text-base md:text-lg text-slate-700 dark:text-muted-foreground max-w-2xl mx-auto">
-                AI Voice answers forwarded missed calls, captures lead details, and helps you schedule appointments and send Payment Requests — all in one place.
+                AI Voice answers forwarded missed calls, captures lead details, and helps you schedule appointments and collect payment with Tap to Pay on iPhone or payment requests — all in one place.
               </p>
             </div>
 
@@ -586,18 +586,18 @@ export default async function Home() {
                 </p>
               </div>
 
-              {/* Instant Text-Back */}
+              {/* Tap to Pay on iPhone */}
               <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 sm:p-4 md:p-5 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col">
                 <div className="flex flex-col items-center text-center mb-2 sm:mb-3">
                   <div className="w-11 h-11 sm:w-12 sm:h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mb-2 sm:mb-2.5">
                     <svg className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
                     </svg>
                   </div>
-                  <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground">Instant Text-Back</h3>
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground">Tap to Pay on iPhone</h3>
                 </div>
                 <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 mb-2 sm:mb-3 text-center">
-                  Automatically respond to missed callers quickly after the call.
+                  Accept contactless cards, Apple Pay, and digital wallets directly on your iPhone. No extra hardware required.
                 </p>
               </div>
 
@@ -612,7 +612,7 @@ export default async function Home() {
                   <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground">Appointments & Payments</h3>
                 </div>
                 <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 mb-2 sm:mb-3 text-center">
-                  Schedule jobs with Google Calendar and send branded Payment Requests via text.
+                  Schedule jobs with Google Calendar, accept Tap to Pay on iPhone, or send branded payment requests in seconds.
                 </p>
               </div>
 
@@ -713,7 +713,7 @@ export default async function Home() {
                 </div>
               </div>
 
-              {/* Appointments & Payments */}
+              {/* Tap to Pay & Payment Requests */}
               <div className="bg-white dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 rounded-2xl p-6 shadow-sm hover:shadow-lg hover:border-slate-300/80 dark:hover:border-slate-600/60 transition-all duration-300">
                 <div className="flex flex-col gap-4">
                   <div className="w-12 h-12 bg-rose-50 dark:bg-rose-900/20 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -722,8 +722,8 @@ export default async function Home() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-2 text-base">Appointments & Payment Requests</h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Schedule appointments and send branded payment links.</p>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-2 text-base">Tap to Pay & Payment Requests</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Accept contactless payments in person with Tap to Pay on iPhone or send branded payment links by text.</p>
                   </div>
                 </div>
               </div>
@@ -806,7 +806,7 @@ export default async function Home() {
                 </div>
               </div>
 
-              {/* Appointments & Payments */}
+              {/* Tap to Pay & Payment Requests */}
               <div className="bg-white dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 rounded-2xl p-4 sm:p-5 shadow-sm">
                 <div className="flex items-start gap-4">
                   <div className="w-11 h-11 bg-rose-50 dark:bg-rose-900/20 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -815,8 +815,8 @@ export default async function Home() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1.5 text-sm sm:text-base">Appointments & Payment Requests</h3>
-                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Schedule appointments and send branded payment links.</p>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1.5 text-sm sm:text-base">Tap to Pay & Payment Requests</h3>
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Accept contactless payments in person with Tap to Pay on iPhone or send branded payment links by text.</p>
                   </div>
                 </div>
               </div>

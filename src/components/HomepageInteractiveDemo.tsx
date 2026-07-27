@@ -36,7 +36,7 @@ export default function HomepageInteractiveDemo() {
             See How It Works
           </h2>
           <p className="text-base sm:text-lg md:text-xl text-slate-600 dark:text-muted-foreground max-w-2xl mx-auto">
-            Watch a customer journey unfold from missed call to booked appointment and payment.
+            Watch a customer journey unfold from missed call to booked appointment and payment collection.
           </p>
         </motion.div>
 

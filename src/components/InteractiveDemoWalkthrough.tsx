@@ -34,7 +34,7 @@ const steps = [
   { id: 'lead-created', label: 'Lead Saved Automatically', description: 'Nothing is lost—even if nobody answered the phone.' },
   { id: 'sms-conversation', label: 'Customer Replies by Text', description: 'Customers can add or update information without another phone call.' },
   { id: 'schedule', label: 'Book the Job', description: 'Schedule the appointment directly from ReplyFlow.' },
-  { id: 'payment', label: 'Get Paid', description: 'Send a payment request in seconds after the work is complete.' },
+  { id: 'payment', label: 'Get Paid Your Way', description: 'Accept Tap to Pay on iPhone while you\'re on-site or send a payment request by text when you\'re done.' },
   { id: 'success', label: 'Another Job Captured', description: 'One missed call became a booked customer.' },
 ]
 
