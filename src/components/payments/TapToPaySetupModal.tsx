@@ -26,7 +26,7 @@ export default function TapToPaySetupModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-x-0 top-0 h-[100dvh] z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-md max-h-[100dvh] md:max-h-[90vh] overflow-hidden flex flex-col min-h-0 animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
