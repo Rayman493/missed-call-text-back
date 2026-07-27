@@ -124,7 +124,7 @@ export default async function Home() {
                   Never Miss a Lead Again
                 </h1>
                 <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-slate-700 dark:text-slate-300 max-w-2xl sm:max-w-3xl leading-relaxed sm:leading-relaxed md:leading-relaxed lg:leading-relaxed">
-                  Capture every missed call automatically, then manage every customer, job, appointment, and payment from one place.
+                  Capture every missed call automatically, and manage every customer, job, appointment, and payment from one place.
                 </p>
 
                 <div className="flex flex-col items-center gap-y-3 sm:gap-y-4">
