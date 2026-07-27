@@ -197,9 +197,9 @@ export default function FollowUpSettings({ isOpen, onClose, onSave }: FollowUpSe
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div 
-        className="relative w-full max-w-2xl max-h-[calc(100dvh-2rem-env(safe-area-inset-bottom))] md:max-h-[90vh] overflow-hidden rounded-2xl border border-border/50 bg-card shadow-2xl shadow-black/10 dark:shadow-black/30 flex flex-col animate-in zoom-in-95 duration-200"
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pt-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 md:p-4" style={{ paddingBottom: 'calc(var(--bottom-nav-height, 80px) + 16px)' }}>
+      <div
+        className="relative w-full max-w-2xl max-h-full md:max-h-[90vh] overflow-hidden rounded-2xl border border-border/50 bg-card shadow-2xl shadow-black/10 dark:shadow-black/30 flex flex-col animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -225,7 +225,7 @@ export default function FollowUpSettings({ isOpen, onClose, onSave }: FollowUpSe
         <div
           data-scroll-lock-allow
           className="overflow-y-auto flex-1 min-h-0 px-5 py-4 custom-scrollbar"
-          style={{ maxHeight: 'calc(100dvh - 9rem)', WebkitOverflowScrolling: 'touch' }}
+          style={{ WebkitOverflowScrolling: 'touch' }}
         >
           {loading ? (
             <div className="space-y-4">

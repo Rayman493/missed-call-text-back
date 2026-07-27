@@ -1095,89 +1095,86 @@ export default function SettingsContent() {
             <div className="flex-1 px-3 sm:px-4 lg:px-6 pb-20 bg-background dark:bg-background">
               <div className="max-w-[1400px] mx-auto">
 
-            {/* Settings Header Block - Sticky */}
-            <div className="sticky top-[64px] z-40 bg-background/95 dark:bg-background/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 shadow-sm pt-3 pb-3">
-              {/* Page Header */}
-              <div className="mb-4">
-                <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-foreground mb-1">
-                  Settings
-                </h1>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Manage your business settings and preferences.
-                </p>
-              </div>
+            {/* Page Header - normal flow */}
+            <div className="pt-3 pb-3">
+              <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-foreground mb-1">
+                Settings
+              </h1>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Manage your business settings and preferences.
+              </p>
+            </div>
 
-              {/* Settings Navigation Tabs */}
-              <div className="py-1 sticky top-0 z-40 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-sm" style={{ top: '68px' }}>
-                <nav ref={settingsTabsNavRef} className="flex items-center gap-1 overflow-x-auto custom-scrollbar-horizontal">
-                  <button
-                    ref={(element) => { sectionTabRefs.current.general = element }}
-                    onClick={() => handleSectionClick('general')}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
-                      activeSection === 'general'
-                        ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    General
-                  </button>
-                  <button
-                    ref={(element) => { sectionTabRefs.current.automation = element }}
-                    onClick={() => handleSectionClick('automation')}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
-                      activeSection === 'automation'
-                        ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    Automation
-                  </button>
-                  <button
-                    ref={(element) => { sectionTabRefs.current.integrations = element }}
-                    onClick={() => handleSectionClick('integrations')}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
-                      activeSection === 'integrations'
-                        ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    Integrations
-                  </button>
-                  <button
-                    ref={(element) => { sectionTabRefs.current.payments = element }}
-                    onClick={() => handleSectionClick('payments')}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
-                      activeSection === 'payments'
-                        ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    Payments
-                  </button>
-                  <button
-                    ref={(element) => { sectionTabRefs.current.contacts = element }}
-                    onClick={() => handleSectionClick('contacts')}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
-                      activeSection === 'contacts'
-                        ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    Contacts
-                  </button>
-                  <button
-                    ref={(element) => { sectionTabRefs.current.account = element }}
-                    onClick={() => handleSectionClick('account')}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
-                      activeSection === 'account'
-                        ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    Account
-                  </button>
+            {/* Settings Navigation Tabs - sticky only */}
+            <div className="sticky z-40 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 py-2" style={{ top: 'calc(env(safe-area-inset-top) + 60px)' }}>
+              <nav ref={settingsTabsNavRef} className="flex items-center gap-1 overflow-x-auto custom-scrollbar-horizontal">
+                <button
+                  ref={(element) => { sectionTabRefs.current.general = element }}
+                  onClick={() => handleSectionClick('general')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
+                    activeSection === 'general'
+                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  General
+                </button>
+                <button
+                  ref={(element) => { sectionTabRefs.current.automation = element }}
+                  onClick={() => handleSectionClick('automation')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
+                    activeSection === 'automation'
+                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  Automation
+                </button>
+                <button
+                  ref={(element) => { sectionTabRefs.current.integrations = element }}
+                  onClick={() => handleSectionClick('integrations')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
+                    activeSection === 'integrations'
+                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  Integrations
+                </button>
+                <button
+                  ref={(element) => { sectionTabRefs.current.payments = element }}
+                  onClick={() => handleSectionClick('payments')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
+                    activeSection === 'payments'
+                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  Payments
+                </button>
+                <button
+                  ref={(element) => { sectionTabRefs.current.contacts = element }}
+                  onClick={() => handleSectionClick('contacts')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
+                    activeSection === 'contacts'
+                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  Contacts
+                </button>
+                <button
+                  ref={(element) => { sectionTabRefs.current.account = element }}
+                  onClick={() => handleSectionClick('account')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
+                    activeSection === 'account'
+                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  Account
+                </button>
               </nav>
-              </div>
             </div>
             {/* Spacer to maintain consistent spacing */}
             <div className="mb-3"></div>
@@ -1192,7 +1189,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Business Info Section */}
-              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[140px]">
+              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4" style={{ scrollMarginTop: 'calc(env(safe-area-inset-top) + 120px)' }}>
                 <div className="mb-4">
                   <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Business Info</h2>
                   <p className="text-xs text-slate-500 dark:text-slate-400">Your business identity and contact details.</p>
@@ -1356,7 +1353,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Automation Settings */}
-              <div id="automation" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[140px]">
+              <div id="automation" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4" style={{ scrollMarginTop: 'calc(env(safe-area-inset-top) + 120px)' }}>
                 <div className="mb-3">
                   <div className="flex items-center justify-between mb-1">
                     <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground">Instant Response Settings</h2>
@@ -1810,7 +1807,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Integrations Section */}
-              <div id="integrations" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[140px]">
+              <div id="integrations" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4" style={{ scrollMarginTop: 'calc(env(safe-area-inset-top) + 120px)' }}>
                 <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Integrations</h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">Connect services you already use.</p>
                 
@@ -1882,7 +1879,7 @@ export default function SettingsContent() {
                 </div>
               </div>
 
-              <div id="payments" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[140px]">
+              <div id="payments" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4" style={{ scrollMarginTop: 'calc(env(safe-area-inset-top) + 120px)' }}>
                 <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Payments</h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
                   Connect payment methods for customer requests.
@@ -2082,7 +2079,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Personal Contacts Section */}
-              <div id="contacts" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[140px]">
+              <div id="contacts" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4" style={{ scrollMarginTop: 'calc(env(safe-area-inset-top) + 120px)' }}>
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <div>
                     <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Personal Contacts</h2>
@@ -2210,7 +2207,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Account Section - Merged Profile and Account Access */}
-              <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 scroll-mt-[140px]">
+              <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4" style={{ scrollMarginTop: 'calc(env(safe-area-inset-top) + 120px)' }}>
                 <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Account</h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Your account details and status.</p>
                 <div className="bg-slate-50/80 dark:bg-slate-800/40 rounded-md border border-slate-200/60 dark:border-slate-700/40 overflow-hidden">
