@@ -505,38 +505,6 @@ export default async function Home() {
         </ScrollAnimation>
       </HomepageErrorBoundary>
 
-      {/* Lead Capture Callout */}
-      <HomepageErrorBoundary>
-        <ScrollAnimation>
-          <section className="bg-white dark:bg-background py-3 sm:py-4 md:py-5 border-t border-slate-200 dark:border-slate-800">
-          <div className="max-w-4xl mx-auto px-6 lg:px-8">
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-3 sm:p-4 text-center">
-              <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-foreground mb-1 sm:mb-1.5">
-                AI Voice Answers Forwarded Missed Calls
-              </h3>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-slate-700 dark:text-slate-400">
-                <div className="flex items-center gap-1.5">
-                  <svg className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span>AI Voice answers and collects caller information live</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <svg className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span>Text summary sent to you and the customer</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-        </ScrollAnimation>
-      </HomepageErrorBoundary>
-
-
-
-
       {/* Interactive Demo Section */}
       <HomepageInteractiveDemo />
 
