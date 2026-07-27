@@ -302,7 +302,7 @@ export default function SetupStatusCard({
     return (
       <>
         {modalPortal}
-        <div className="bg-card text-card-foreground rounded-xl shadow-lg border border-border/50 hover:shadow-md transition-all">
+        <div className="bg-card text-card-foreground rounded-xl shadow-md border border-border/50 hover:shadow-lg transition-all">
         <div className="flex items-center justify-between gap-3 p-3 sm:p-3.5">
           <div className="flex items-center gap-2.5 flex-1 min-w-0">
             <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -338,7 +338,7 @@ export default function SetupStatusCard({
     return (
       <>
         {modalPortal}
-        <div className="bg-card text-card-foreground rounded-lg border border-border/40 shadow-[0_2px_8px_rgb(0,0,0,0.06),0_1px_3px_rgb(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgb(0,0,0,0.08),0_2px_6px_rgb(0,0,0,0.05)] transition-all">
+        <div className="bg-card text-card-foreground rounded-lg border border-border/40 shadow-sm hover:shadow-md transition-all">
         <div className="flex items-center justify-between gap-3 p-3 sm:p-3.5">
           <div className="flex items-center gap-2.5 flex-1 min-w-0">
             <div className="w-7 h-7 bg-green-500/10 dark:bg-green-500/15 border border-green-200/50 dark:border-green-800/50 rounded-md flex items-center justify-center flex-shrink-0">
@@ -701,7 +701,7 @@ export default function SetupStatusCard({
   
   // Render main card (for setup states)
   return (
-    <div className="bg-card text-card-foreground rounded-lg shadow-[0_2px_8px_rgb(0,0,0,0.06),0_1px_3px_rgb(0,0,0,0.04)] border border-border/40">
+    <div className="bg-card text-card-foreground rounded-lg shadow-md border border-border/40">
       {modalPortal}
       <div className="flex flex-col gap-3 sm:gap-4 p-4 sm:p-5">
         {/* MODE 1: Setup Incomplete */}
@@ -958,14 +958,14 @@ export default function SetupStatusCard({
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-1">
                   <button
                     onClick={() => setShowForwardingInstructions(true)}
-                    className="inline-flex items-center justify-center px-4 py-2 bg-accent/40 hover:bg-accent/60 text-foreground text-sm font-medium rounded-md transition-colors"
+                    className="inline-flex items-center justify-center px-4 py-2 bg-accent/40 hover:bg-accent/60 text-foreground text-sm font-medium rounded-lg transition-colors"
                   >
                     <RotateCcw className="w-4 h-4 mr-2" />
                     Review Setup
                   </button>
                   <button
                     onClick={() => setIsAssistantOpen(true)}
-                    className="inline-flex items-center justify-center px-4 py-2 bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground text-sm font-medium rounded-md transition-colors"
+                    className="inline-flex items-center justify-center px-4 py-2 bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground text-sm font-medium rounded-lg transition-colors"
                   >
                     <HelpCircle className="w-4 h-4 mr-2" />
                     Help

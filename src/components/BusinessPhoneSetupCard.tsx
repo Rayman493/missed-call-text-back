@@ -134,7 +134,7 @@ export default function BusinessPhoneSetupCard({ business, onUpdate }: BusinessP
                 value={phoneNumber}
                 onChange={handlePhoneChange}
                 placeholder="412-855-3010 or (412) 855-3010"
-                className={`flex-1 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border rounded-md focus:outline-none focus:ring-2 placeholder-gray-400 dark:placeholder-gray-400 ${
+                className={`flex-1 px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border rounded-lg focus:outline-none focus:ring-2 placeholder-gray-400 dark:placeholder-gray-400 ${
                   validationError 
                     ? 'border-red-300 dark:border-red-600 focus:ring-red-500' 
                     : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
@@ -148,7 +148,7 @@ export default function BusinessPhoneSetupCard({ business, onUpdate }: BusinessP
             <button
               onClick={handleSave}
               disabled={isSaving || !phoneNumber.trim()}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSaving ? 'Saving...' : 'Save'}
             </button>

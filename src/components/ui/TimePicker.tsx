@@ -122,7 +122,7 @@ export default function TimePicker({
           required={required}
           disabled={disabled}
           step={60}
-          className={`w-full px-3 py-2 border rounded-md transition-colors ${
+          className={`w-full px-3 py-2 border rounded-lg transition-colors ${
             disabled
               ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed border-border/30'
               : 'bg-card text-foreground border-border/40 hover:border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-border/60'
@@ -136,7 +136,7 @@ export default function TimePicker({
           type="button"
           onClick={() => !disabled && setIsOpen(!isOpen)}
           disabled={disabled}
-          className={`w-full px-3 py-2 border rounded-md flex items-center justify-between gap-2 transition-colors ${
+          className={`w-full px-3 py-2 border rounded-lg flex items-center justify-between gap-2 transition-colors ${
             disabled
               ? 'bg-muted/50 text-muted-foreground/50 cursor-not-allowed border-border/30'
               : 'bg-card text-foreground border-border/40 hover:border-border/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-border/60 cursor-pointer'

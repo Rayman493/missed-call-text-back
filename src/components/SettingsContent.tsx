@@ -1206,7 +1206,7 @@ export default function SettingsContent() {
                       type="text"
                       value={formBusiness.name || ''}
                       onChange={(e) => updateBusiness({ name: e.target.value })}
-                      className="w-full px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all text-sm"
+                      className="w-full px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all text-sm"
                     />
                   </div>
                   <div>
@@ -1221,7 +1221,7 @@ export default function SettingsContent() {
                           onChange={(e) => updateBusiness({ business_phone_number: e.target.value })}
                           placeholder="(555) 123-4567"
                           disabled={phoneCooldown?.inCooldown}
-                          className="flex-1 px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="flex-1 px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                       </div>
                       
@@ -1349,7 +1349,7 @@ export default function SettingsContent() {
                       value={formBusiness.auto_reply_message || ''}
                       onChange={(e) => updateBusiness({ auto_reply_message: e.target.value })}
                       rows={2}
-                      className="w-full px-3 py-2 border border-slate-200/70 dark:border-slate-700/50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all text-sm resize-none"
+                      className="w-full px-3 py-2 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all text-sm resize-none"
                     />
                   </div>
                 </div>
@@ -1394,7 +1394,7 @@ export default function SettingsContent() {
 
                     {/* Filtering Options - Only show when enabled */}
                     {spamFilteringEnabled && (
-                      <div className="space-y-2 border-t border-border/70 pt-3">
+                      <div className="space-y-2 border-t border-border/50 pt-3">
                         {/* Repeat Call Protection */}
                         <div className="flex items-start justify-between p-3 bg-white/60 dark:bg-slate-800/30 rounded-lg border border-slate-200/40 dark:border-slate-700/30">
                           <div className="flex-1 pr-3 sm:pr-4">
@@ -1524,7 +1524,7 @@ export default function SettingsContent() {
                     
                     {/* Timezone and Hours Selector */}
                     {formBusiness.business_hours_enabled && (
-                      <div className="mt-3 pt-3 border-t border-border/70 space-y-3">
+                      <div className="mt-3 pt-3 border-t border-border/50 space-y-3">
                         <div>
                           <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
                             Timezone
@@ -1666,7 +1666,7 @@ export default function SettingsContent() {
 
                     {/* Out of Office Settings */}
                     {formBusiness.out_of_office_enabled && (
-                      <div className="mt-3 pt-3 border-t border-border/70 space-y-3">
+                      <div className="mt-3 pt-3 border-t border-border/50 space-y-3">
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
@@ -2372,7 +2372,7 @@ export default function SettingsContent() {
                     <button
                       onClick={() => handleBillingActionClick('upgrade')}
                       disabled={isStartingCheckout}
-                      className="w-full px-4 py-2.5 text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                      className="w-full px-4 py-2.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
                     >
                       {isStartingCheckout ? (
                         <>
@@ -2677,14 +2677,14 @@ export default function SettingsContent() {
                       setLabel('')
                     }}
                     disabled={isAdding}
-                    className="px-4 py-2 text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
+                    className="px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleAddIgnoredContact}
                     disabled={isAdding || !phoneNumber.trim()}
-                    className="px-4 py-2 text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 text-white"
+                    className="px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     {isAdding ? (
                       <>
@@ -2728,7 +2728,7 @@ export default function SettingsContent() {
                       onChange={(e) => setNewPassword(e.target.value)}
                       required
                       autoComplete="new-password"
-                      className="w-full px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm"
+                      className="w-full px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm"
                       placeholder="Enter new password"
                     />
                     <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
@@ -2747,7 +2747,7 @@ export default function SettingsContent() {
                       onChange={(e) => setConfirmNewPassword(e.target.value)}
                       required
                       autoComplete="new-password"
-                      className="w-full px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm"
+                      className="w-full px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm"
                       placeholder="Confirm new password"
                     />
                   </div>
@@ -2762,14 +2762,14 @@ export default function SettingsContent() {
                       setPasswordError('')
                     }}
                     disabled={isChangingPassword}
-                    className="px-4 py-2 text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
+                    className="px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleChangePassword}
                     disabled={isChangingPassword || !newPassword.trim() || !confirmNewPassword.trim()}
-                    className="px-4 py-2 text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 text-white"
+                    className="px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     {isChangingPassword ? (
                       <>

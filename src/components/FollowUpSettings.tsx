@@ -342,7 +342,7 @@ export default function FollowUpSettings({ isOpen, onClose, onSave }: FollowUpSe
                           value={followUp.message}
                           onChange={(e) => updateFollowUp(followUp.step, { message: e.target.value })}
                           rows={2}
-                          className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
+                          className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
                           placeholder="Enter your follow-up message..."
                           disabled={!followUp.enabled}
                           autoCapitalize="sentences"

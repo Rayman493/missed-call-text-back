@@ -475,7 +475,7 @@ export default function SetupReviewPanel({ isOpen, onClose, business, onTestCall
                 {/* Setup Steps */}
                 <div className="space-y-4">
                   {setupSteps.map((step) => (
-                    <div key={step.id} className="bg-card border border-border rounded-lg p-4">
+                    <div key={step.id} className="bg-card border border-border rounded-xl p-4">
                       <div className="flex items-start gap-3">
                         <div className={`mt-1 ${getStatusColor(step.status)}`}>
                           {getStatusIcon(step.status)}

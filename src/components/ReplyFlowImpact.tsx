@@ -95,7 +95,7 @@ export default function ReplyFlowImpact({ business }: ReplyFlowImpactProps) {
   }
 
   return (
-    <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-lg p-3">
+    <div className="bg-card dark:bg-slate-900/60 backdrop-blur-sm border border-border rounded-xl p-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">

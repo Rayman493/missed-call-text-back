@@ -2192,15 +2192,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               ) : (
                 <div className="space-y-2">
                   {leadJobs.slice(0, 3).map((job: any) => (
-                    <div key={job.id} className="flex items-center justify-between p-2.5 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors">
+                    <div key={job.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors border border-border/30">
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-foreground truncate">{job.title || 'Job'}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-muted-foreground/80">
                           {job.scheduled_date ? new Date(job.scheduled_date).toLocaleDateString() : 'No date'}
                           {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
                         </p>
                       </div>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize whitespace-nowrap ml-2 border border-border/50">
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-muted/80 text-muted-foreground/90 capitalize whitespace-nowrap ml-2 border border-border/40">
                         {job.status}
                       </span>
                     </div>
@@ -2250,17 +2250,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               ) : (
                 <div className="space-y-2">
                   {paymentRequests.map((pr: any) => (
-                    <div key={pr.id} className="flex items-center justify-between p-2.5 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors">
+                    <div key={pr.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors border border-border/30">
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-foreground">{formatCurrency(pr.amount_cents / 100)}</p>
-                        <p className="text-xs text-muted-foreground">{pr.created_at ? new Date(pr.created_at).toLocaleDateString() : ''}</p>
+                        <p className="text-sm font-semibold text-foreground">{formatCurrency(pr.amount_cents / 100)}</p>
+                        <p className="text-xs text-muted-foreground/80">{pr.created_at ? new Date(pr.created_at).toLocaleDateString() : ''}</p>
                       </div>
-                      <span className={`text-xs px-2 py-0.5 rounded-full capitalize whitespace-nowrap ml-2 border border-border/50 ${
+                      <span className={`text-xs px-2 py-0.5 rounded-full capitalize whitespace-nowrap ml-2 border ${
                         pr.status === 'paid'
-                          ? 'bg-green-500/10 text-green-600 dark:text-green-400'
+                          ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20'
                           : pr.status === 'pending'
-                          ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                          : 'bg-muted text-muted-foreground'
+                          ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                          : 'bg-muted/80 text-muted-foreground/90 border-border/40'
                       }`}>
                         {pr.status === 'paid' ? 'Paid' : pr.status === 'pending' ? 'Awaiting Payment' : pr.status}
                       </span>
@@ -2368,8 +2368,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
                     return (
                       <div key={item.id}>
-                        <div className="flex gap-2 sm:gap-3 py-1.5 sm:py-3">
-                          <div className="mt-0.5 flex-shrink-0">
+                        <div className="flex gap-2 sm:gap-3 py-2 sm:py-3">
+                          <div className="mt-0.5 flex-shrink-0 w-5 h-5 flex items-center justify-center">
                             {eventIcon}
                           </div>
                           <div className="min-w-0 flex-1">
@@ -2387,7 +2387,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               <p className="text-[11px] sm:text-sm font-medium text-foreground break-words hover:text-primary transition-colors">
                                 {eventLabel}
                               </p>
-                              <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">{formatRelativeTime(item.created_at)}</p>
+                              <p className="text-[10px] sm:text-xs text-muted-foreground/80 mt-0.5">{formatRelativeTime(item.created_at)}</p>
                             </button>
                             {isExpandable && expandedContent && (
                               <div id={`expanded-${item.id}`} className="hidden">
@@ -2397,7 +2397,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           </div>
                         </div>
                         {index < conversationTimeline.slice(-10).reverse().length - 1 && (
-                          <div className="border-t border-border/30"></div>
+                          <div className="border-t border-border/20"></div>
                         )}
                       </div>
                     )
@@ -2855,7 +2855,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <h1 className="font-bold text-foreground text-lg leading-tight truncate">
                   {getLeadDisplayName(leadData || lead)}
                 </h1>
-                <p className="text-sm text-muted-foreground truncate">
+                <p className="text-sm text-muted-foreground/80 truncate">
                   {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
                 </p>
               </div>
@@ -2865,7 +2865,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 {/* Info Button */}
                 <button
                   onClick={() => setShowLeadInfo(!showLeadInfo)}
-                  className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200"
+                  className="h-9 w-9 inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200"
                   title="Customer information"
                   aria-label="Customer information"
                 >
@@ -2879,7 +2879,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
+                      className="h-9 w-9 inline-flex items-center justify-center text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
                       title="More actions"
                       aria-label="Conversation actions"
                     >
@@ -3098,10 +3098,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
                 {/* Customer Info */}
                 <div className="min-w-0 flex-1 pt-1">
-                  <h1 className="text-3xl font-semibold text-foreground tracking-tight mb-2">
+                  <h1 className="text-3xl font-semibold text-foreground tracking-tight mb-2 leading-tight">
                     {getLeadDisplayName(leadData || lead)}
                   </h1>
-                  <p className="text-base text-muted-foreground mb-3 font-normal">
+                  <p className="text-base text-muted-foreground/80 mb-3 font-normal">
                     {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
                   </p>
                   <div className="flex items-center gap-3 text-sm text-muted-foreground/80">
@@ -3156,7 +3156,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <DropdownMenuTrigger asChild>
                       <button
                         type="button"
-                        className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+                        className="h-10 w-10 inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
                         aria-label="Conversation actions"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3688,12 +3688,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <div className="bg-muted/30 border border-border/40 rounded-xl p-2.5 shadow-sm">
               <button
                 onClick={() => setCollapsedSections((prev: any) => ({ ...prev, aiIntake: !prev.aiIntake }))}
-                className="flex items-center justify-between w-full"
+                className="flex items-center justify-between w-full py-1"
               >
                 <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
+                  <div className="w-5 h-5 flex items-center justify-center">
+                    <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  </div>
                   <span className="text-sm font-semibold text-foreground">AI Intake</span>
                 </div>
                 <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.aiIntake ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3721,12 +3723,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           <div className="bg-muted/30 border border-border/40 rounded-xl p-2.5 shadow-sm">
             <button
               onClick={() => setCollapsedSections((prev: any) => ({ ...prev, jobs: !prev.jobs }))}
-              className="flex items-center justify-between w-full"
+              className="flex items-center justify-between w-full py-1"
             >
               <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
+                <div className="w-5 h-5 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
                 <span className="text-sm font-semibold text-foreground">Jobs</span>
               </div>
               <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.jobs ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3771,12 +3775,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           <div className="bg-muted/30 border border-border/40 rounded-xl p-2.5 shadow-sm">
             <button
               onClick={() => setCollapsedSections((prev: any) => ({ ...prev, payments: !prev.payments }))}
-              className="flex items-center justify-between w-full"
+              className="flex items-center justify-between w-full py-1"
             >
               <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                </svg>
+                <div className="w-5 h-5 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
+                </div>
                 <span className="text-sm font-semibold text-foreground">Payments</span>
               </div>
               <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.payments ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3820,12 +3826,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           <div className="bg-muted/30 border border-border/40 rounded-xl p-2.5 shadow-sm">
             <button
               onClick={() => setCollapsedSections((prev: any) => ({ ...prev, recentActivity: !prev.recentActivity }))}
-              className="flex items-center justify-between w-full"
+              className="flex items-center justify-between w-full py-1"
             >
               <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <div className="w-5 h-5 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
                 <span className="text-sm font-semibold text-foreground">Timeline</span>
               </div>
               <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.recentActivity ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">

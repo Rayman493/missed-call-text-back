@@ -141,7 +141,7 @@ export default function LeadStatusDropdown({
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           onClick={handleClick}
-          className={`${sizeClasses[size]} ${config.bgColor} ${config.color} border rounded-md font-medium transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-80 data-[state=open]:ring-2 data-[state=open]:ring-offset-2 data-[state=open]:ring-primary/50`}
+          className={`${sizeClasses[size]} ${config.bgColor} ${config.color} border rounded-lg font-medium transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-80 data-[state=open]:ring-2 data-[state=open]:ring-offset-2 data-[state=open]:ring-primary/50`}
         >
           <StatusIcon className="w-3.5 h-3.5" />
           <span>{getLeadStatusLabel(currentStatus)}</span>
