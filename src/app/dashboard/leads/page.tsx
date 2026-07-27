@@ -1313,7 +1313,18 @@ export default function LeadsPage() {
                         aria-label={`Open ${getLeadDisplayName(lead)}`}
                       >
                         {/* Status Accent Bar - 4px left accent */}
-                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${getCardAccentClasses(getLeadLifecycleStatus(lead))}`}></div>
+                        {(() => {
+                          const resolvedStripeStatus = getLeadLifecycleStatus(lead)
+                          const stripeClass = getCardAccentClasses(resolvedStripeStatus)
+                          console.log('[CARD STRIPE RENDER]', {
+                            leadId: lead.id,
+                            status: lead.status,
+                            leadStatus: lead.lead_status,
+                            resolvedStripeStatus,
+                            stripeClass,
+                          })
+                          return <div className={`absolute left-0 top-0 bottom-0 w-1 ${stripeClass}`}></div>
+                        })()}
                         <div className="p-4 pl-5 flex-1 flex flex-col">
                           {/* Header: Name, Phone, Status */}
                           <div className="flex items-start justify-between gap-3 mb-2.5">
@@ -1519,7 +1530,18 @@ export default function LeadsPage() {
                             aria-label={`Open ${getLeadDisplayName(lead)}`}
                           >
                             {/* Status Accent Bar - 4px left accent */}
-                            <div className={`absolute left-0 top-0 bottom-0 w-1 ${getCardAccentClasses(getLeadLifecycleStatus(lead))}`}></div>
+                            {(() => {
+                              const resolvedStripeStatus = getLeadLifecycleStatus(lead)
+                              const stripeClass = getCardAccentClasses(resolvedStripeStatus)
+                              console.log('[CARD STRIPE RENDER]', {
+                                leadId: lead.id,
+                                status: lead.status,
+                                leadStatus: lead.lead_status,
+                                resolvedStripeStatus,
+                                stripeClass,
+                              })
+                              return <div className={`absolute left-0 top-0 bottom-0 w-1 ${stripeClass}`}></div>
+                            })()}
                             <div className="p-2 sm:p-3.5 pl-3 sm:pl-4">
                               {/* Header: Name, Phone, Status - Compact on mobile */}
                               <div className="flex items-start justify-between gap-2 sm:gap-3 mb-1.5 sm:mb-2">
