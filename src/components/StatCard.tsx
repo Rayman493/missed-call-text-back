@@ -29,16 +29,16 @@ export default function StatCard({
   // Unified card foundation
   const baseClasses = `
     relative overflow-hidden
-    border border-slate-200/80 dark:border-slate-700/80
-    bg-white dark:bg-slate-800/80
-    shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.05)_inset] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset]
+    border border-slate-200/80 dark:border-slate-700/50
+    bg-white dark:bg-slate-950/70
+    shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.05)_inset] dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_4px_12px_rgba(0,0,0,0.15),0_0_0_1px_rgba(255,255,255,0.03)_inset]
     rounded-2xl
     p-3 sm:p-3.5 md:p-4
     h-full
     transition-all duration-200
     hover:-translate-y-0.5
     hover:border-blue-400/40 dark:hover:border-blue-400/30
-    hover:shadow-[0_2px_4px_rgba(0,0,0,0.05),0_8px_16px_rgba(0,0,0,0.04),0_0_0_1px_rgba(255,255,255,0.08)_inset] dark:hover:shadow-[0_2px_4px_rgba(0,0,0,0.35),0_8px_16px_rgba(0,0,0,0.25),0_0_0_1px_rgba(255,255,255,0.08)_inset]
+    hover:shadow-[0_2px_4px_rgba(0,0,0,0.05),0_8px_16px_rgba(0,0,0,0.04),0_0_0_1px_rgba(255,255,255,0.08)_inset] dark:hover:shadow-[0_2px_4px_rgba(0,0,0,0.5),0_8px_16px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset]
   `
 
   // Interactive hover states
