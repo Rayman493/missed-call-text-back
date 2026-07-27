@@ -84,15 +84,12 @@ class CustomBridgeViewController: CAPBridgeViewController {
             print("[ReplyflowStripeTerminal] ERROR: bridge is nil in viewDidLoad")
             #endif
         }
-    }
 
-    override func webViewDidLoad() {
-        super.webViewDidLoad()
-        let bgColor = UIColor(red: 2.0/255.0, green: 6.0/255.0, blue: 23.0/255.0, alpha: 1.0)
-        if let wv = bridge?.webView {
-            wv.isOpaque = true
-            wv.backgroundColor = bgColor
-            wv.scrollView.backgroundColor = bgColor
+        // Configure WebView background when available
+        if let webView = bridge?.webView {
+            webView.isOpaque = true
+            webView.backgroundColor = bgColor
+            webView.scrollView.backgroundColor = bgColor
         }
     }
 }
