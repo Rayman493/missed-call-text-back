@@ -29,8 +29,8 @@ export default function AppHeader({
 
   return (
     <>
-      <header className="sticky top-0 z-50 flex-shrink-0 border-b border-white/10 bg-slate-950 shadow-[0_1px_0_rgba(255,255,255,0.06),0_18px_52px_rgba(2,6,23,0.34)]" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-        <div className="max-w-7xl mx-auto pl-3 pr-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 border-0">
+      <header className="sticky top-0 z-50 flex-shrink-0 border-b border-white/10 bg-slate-950 shadow-[0_1px_0_rgba(255,255,255,0.06),0_18px_52px_rgba(2,6,23,0.34)] relative">
+        <div className="max-w-7xl mx-auto pl-3 pr-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 border-0" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
           <div className="flex items-center justify-between h-11">
             {/* Left side - Logo and navigation */}
             <div className="flex items-center gap-2 md:gap-4 lg:gap-8">
