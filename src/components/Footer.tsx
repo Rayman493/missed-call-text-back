@@ -18,7 +18,7 @@ export default function Footer() {
               <span className="text-lg font-bold text-slate-900 dark:text-foreground">ReplyFlow</span>
             </div>
             <p className="text-slate-800 dark:text-muted-foreground mb-2 sm:mb-3 max-w-md leading-relaxed text-xs sm:text-sm font-medium">
-              AI Voice, missed-call recovery, lead management, appointment scheduling, and Payment Requests for local businesses.
+              AI Voice, customer management, scheduling, Tap to Pay, and branded SMS payment requests for local businesses.
             </p>
             <div className="flex items-center gap-3">
               <a

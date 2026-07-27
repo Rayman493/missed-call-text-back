@@ -467,7 +467,7 @@ export default async function Home() {
                 </div>
                 <div className="flex-1">
                   <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground">Customer Gets a Text</h3>
-                  <p className="text-[10px] text-slate-700 dark:text-slate-400">A confirmation text is sent automatically</p>
+                  <p className="text-[10px] text-slate-700 dark:text-slate-400">A summary text is sent automatically</p>
                 </div>
               </div>
               
@@ -793,10 +793,10 @@ export default async function Home() {
           <div className="max-w-5xl mx-auto px-6 lg:px-8 text-center">
             <div>
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 dark:text-foreground mb-4 sm:mb-5 md:mb-6">
-                Start Capturing Missed Calls Today
+                Ready to Grow Your Business with ReplyFlow
               </h2>
               <p className="text-base sm:text-lg md:text-xl text-slate-700 dark:text-muted-foreground mb-6 sm:mb-8 md:mb-10 leading-relaxed">
-                When you can't answer, ReplyFlow captures the lead, starts the conversation, and helps you book the job.
+                Capture missed calls automatically, manage every customer, schedule appointments, and get paid—all from one place.
               </p>
               
               <HomepageCTA variant="bottom" showSecondaryButton={true} />
