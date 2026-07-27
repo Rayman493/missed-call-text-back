@@ -5,11 +5,9 @@ import { getMeetCapability } from '@/lib/google/capability'
 export async function GET(request: NextRequest, { params }: { params: Promise<{ eventId: string }> }) {
   try {
     const { eventId } = await params
-    console.log('[TRANSCRIPT DIAG API] ENTER GET /api/meetings/[eventId]', { eventId })
     const supabase = await createServerSupabaseClient()
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     if (userError || !user) {
-      console.log('[TRANSCRIPT DIAG API] SKIP because: Unauthorized')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -20,7 +18,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       .eq('user_id', user.id)
       .single()
     if (bizErr || !business) {
-      console.log('[TRANSCRIPT DIAG API] SKIP because: Business not found', { bizErr })
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
@@ -32,46 +29,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       .maybeSingle()
 
     if (error) {
-      console.log('[TRANSCRIPT DIAG API] SKIP because: Failed to fetch meeting', { error })
       return NextResponse.json({ error: 'Failed to fetch meeting' }, { status: 500 })
     }
-    console.log('[TRANSCRIPT DIAG API] Meeting record found:', record ? 'yes' : 'no')
-    if (record) {
-      console.log('[TRANSCRIPT DIAG API] Record details:', {
-        status: record.status,
-        transcript_status: record.transcript_status,
-        ai_summary: record.ai_summary ? 'present' : 'null',
-        ai_summary_structured: record.ai_summary_structured ? 'present' : 'null',
-        google_meet_space_name: record.google_meet_space_name,
-        google_meet_code: record.google_meet_code,
-      })
-    }
     const capability = await getMeetCapability(business.id)
-    console.log('[TRANSCRIPT DIAG API] Meet capability:', capability)
     const response = { record: record || null, meetCapability: capability }
-    try {
-      const eid = String(eventId || '').slice(-8)
-      const rid = record?.id ? String(record.id).slice(-8) : null
-      const due = (() => {
-        const npa = (record as any)?.next_processing_attempt_at as string | null | undefined
-        if (!npa) return true
-        try { return new Date(npa) <= new Date() } catch { return false }
-      })()
-      console.log('MEETING_UI_STATUS_RESOLVED', {
-        eid,
-        rid,
-        meeting_status: record?.status || null,
-        transcript_status: record?.transcript_status || null,
-        attempts: (record as any)?.processing_attempts || 0,
-        next_due: due,
-        has_transcript: !!(record as any)?.transcript_text,
-        has_summary: !!(record as any)?.ai_summary || !!(record as any)?.ai_summary_structured,
-      })
-    } catch {}
-    console.log('[TRANSCRIPT DIAG API] Returning response:', response)
     return NextResponse.json(response)
   } catch (e) {
-    console.log('[TRANSCRIPT DIAG API] SKIP because: exception', e)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

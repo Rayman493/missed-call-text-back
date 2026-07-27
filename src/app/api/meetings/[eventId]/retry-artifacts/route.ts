@@ -4,6 +4,7 @@ import { MeetArtifactProcessor } from '@/lib/meet-artifacts'
 import { GoogleMeetClientImpl } from '@/lib/google/meet-client'
 import { getEventTimes } from '@/lib/google/calendar'
 import { summarizeMeetingTranscript } from '@/lib/openai-summary'
+import { claimMeetingProcessingLease, releaseMeetingProcessingLease } from '@/lib/meet-lease'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ eventId: string }> }) {
   try {
@@ -29,6 +30,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .maybeSingle()
 
     if (!rec) return NextResponse.json({ error: 'Meeting not found' }, { status: 404 })
+
+    // Claim lease for processing
+    const leaseResult = await claimMeetingProcessingLease(rec.id)
+    if (!leaseResult.success) {
+      return NextResponse.json(
+        { 
+          code: 'MEETING_PROCESSING_IN_PROGRESS',
+          message: 'Meeting artifacts are already being processed.' 
+        },
+        { status: 409 }
+      )
+    }
 
     // Manual retry intentionally bypasses next_processing_attempt_at to allow explicit user-initiated processing
     // Cron processing will continue to respect cooldowns; idempotency is enforced within the processor.
@@ -63,7 +76,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       timeline: {
         async meetingCompletedOnce(businessId, eventId, payload) {
           // Lightweight; durable idempotency via meeting_records
-          console.log('[retry-artifacts] meeting_completed', { businessId, eventId })
         }
       },
       now: () => new Date(),
@@ -71,15 +83,27 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       windowLateMinutes: 90,
     })
 
+    // Increment retry attempts only after successful lease claim
     const nextAttempt = (rec.processing_attempts || 0) + 1
     await supabase.from('meeting_records').update({ processing_attempts: nextAttempt }).eq('id', rec.id)
+    
     // Refetch the record to ensure latest attempt/backoff state is visible to the processor
     const { data: fresh } = await supabase
       .from('meeting_records')
       .select('id')
       .eq('id', rec.id)
       .single()
-    const result = await processor.processOne({ id: business.id }, eventId, { start: times.start, end: times.end })
+    
+    let result
+    try {
+      result = await processor.processOne({ id: business.id }, eventId, { start: times.start, end: times.end })
+    } finally {
+      // Release lease after processing (success or failure)
+      if (leaseResult.claim) {
+        await releaseMeetingProcessingLease(rec.id, leaseResult.claim.claimedAt)
+      }
+    }
+    
     return NextResponse.json({ success: true, status: result.status })
   } catch (e) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

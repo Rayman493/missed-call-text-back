@@ -6,6 +6,7 @@ import { GoogleMeetClientImpl } from '@/lib/google/meet-client'
 import { getEventTimes } from '@/lib/google/calendar'
 import { summarizeMeetingTranscript } from '@/lib/openai-summary'
 import { createClient } from '@supabase/supabase-js'
+import { claimMeetingProcessingLease, releaseMeetingProcessingLease } from '@/lib/meet-lease'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ eventId: string }> }) {
   try {
@@ -108,8 +109,6 @@ async function processTranscriptAsync(
   scheduledEnd: string | undefined
 ): Promise<void> {
   try {
-    console.log('[complete] Starting immediate transcript processing for', eventId)
-    
     // Fetch the meeting record to get current state
     const { data: record } = await supabase
       .from('meeting_records')
@@ -119,19 +118,16 @@ async function processTranscriptAsync(
       .single()
     
     if (!record) {
-      console.log('[complete] No meeting record found for processing')
       return
     }
     
     // Idempotency check: skip if already processed
     if (record.transcript_status === 'processed' && record.ai_summary && record.ai_summary_structured) {
-      console.log('[complete] Transcript already processed, skipping')
       return
     }
     
     // If status is unavailable, reset for manual retry attempt
     if (record.transcript_status === 'unavailable') {
-      console.log('[complete] Manual retry for unavailable meeting, resetting state')
       await supabase
         .from('meeting_records')
         .update({ 
@@ -147,16 +143,16 @@ async function processTranscriptAsync(
       record.next_processing_attempt_at = new Date().toISOString()
     }
     
-    // Concurrency protection: check if another process is already working on this
-    // Use the existing next_processing_attempt_at field as a distributed lock
-    const now = new Date()
-    if (record.next_processing_attempt_at && new Date(record.next_processing_attempt_at) > now) {
-      console.log('[complete] Another process is already handling this meeting, skipping')
+    // Claim lease for processing
+    const leaseResult = await claimMeetingProcessingLease(record.id)
+    if (!leaseResult.success) {
+      // Another process is already handling this meeting
       return
     }
     
-    // Don't set backoff here - let the processor handle it based on actual result
-    // The processor will set appropriate backoff (15min for first missing transcript, 1hr for subsequent)
+    // Increment retry attempts only after successful lease claim
+    const nextAttempt = (record.processing_attempts || 0) + 1
+    await supabase.from('meeting_records').update({ processing_attempts: nextAttempt }).eq('id', record.id)
     
     // Set up repository adapter
     const repo: Repository = {
@@ -182,7 +178,7 @@ async function processTranscriptAsync(
     // Set up timeline adapter
     const timeline: Timeline = {
       async meetingCompletedOnce(bid: string, eid: string, payload: any) {
-        console.log('[complete] meeting_completed_once', { bid, eid, payload })
+        // Intentionally lightweight: rely on meeting_records as durable idempotency guard
       }
     }
     
@@ -203,14 +199,20 @@ async function processTranscriptAsync(
       windowLateMinutes: 90,
     })
     
-    // Process the meeting
-    const result = await processor.processOne(
-      { id: businessId },
-      eventId,
-      { start: times.start || scheduledStart, end: times.end || scheduledEnd }
-    )
-    
-    console.log('[complete] Transcript processing result:', result)
+    let result
+    try {
+      // Process the meeting
+      result = await processor.processOne(
+        { id: businessId },
+        eventId,
+        { start: times.start || scheduledStart, end: times.end || scheduledEnd }
+      )
+    } finally {
+      // Release lease after processing (success or failure)
+      if (leaseResult.claim) {
+        await releaseMeetingProcessingLease(record.id, leaseResult.claim.claimedAt)
+      }
+    }
   } catch (error) {
     console.error('[complete] Transcript processing error:', error)
     // Don't throw - this is a fire-and-forget operation

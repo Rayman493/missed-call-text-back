@@ -5,6 +5,7 @@ import { MeetArtifactProcessor, type Repository, type Timeline } from '@/lib/mee
 import { GoogleMeetClientImpl } from '@/lib/google/meet-client'
 import { getEventTimes } from '@/lib/google/calendar'
 import { summarizeMeetingTranscript } from '@/lib/openai-summary'
+import { claimMeetingProcessingLease, releaseMeetingProcessingLease } from '@/lib/meet-lease'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,15 +38,8 @@ export async function GET(request: NextRequest) {
     .limit(25)
 
   if (qerr) {
-    try {
-      console.log('MEETING_CANDIDATE_QUERY_FAILED', { code: (qerr as any)?.code || 'query_error', message: String((qerr as any)?.message || qerr) })
-    } catch {}
     return NextResponse.json({ success: false, error: 'candidate_query_failed' }, { status: 500 })
   }
-
-  try {
-    console.log('MEETING_CANDIDATE_QUERY_COMPLETED', { candidate_count: (candidates || []).length, nowIso, batch_limit: 25 })
-  } catch {}
 
   let checked = 0, processed = 0, pending = 0, permissionRequired = 0, failed = 0
 
@@ -58,20 +52,17 @@ export async function GET(request: NextRequest) {
 
     // Honor next_processing_attempt_at
     if (rec.next_processing_attempt_at && new Date(rec.next_processing_attempt_at) > now) {
-      try {
-        const eid = String(rec.google_calendar_event_id || '').slice(-8)
-        const bid = String(rec.business_id || '').slice(-8)
-        console.log('MEETING_PROCESSING_SKIPPED', { reason: 'backoff_not_due', eid, bid, next: rec.next_processing_attempt_at, attempts: rec.processing_attempts || 0 })
-      } catch {}
+      continue
+    }
+
+    // Claim lease for processing using shared helper
+    const leaseResult = await claimMeetingProcessingLease(rec.id)
+    if (!leaseResult.success) {
+      // Another worker claimed this record, skip it
       continue
     }
 
     try {
-      try {
-        const eid = String(rec.google_calendar_event_id || '').slice(-8)
-        const bid = String(rec.business_id || '').slice(-8)
-        console.log('MEETING_PROCESSING_TRIGGERED', { eid, bid, status: rec.transcript_status || null, attempts: rec.processing_attempts || 0 })
-      } catch {}
       // Minimal repo and timeline adapters
       const repo: Repository = {
         async getBusinessByUser() { return null },
@@ -97,7 +88,6 @@ export async function GET(request: NextRequest) {
       const timeline: Timeline = {
         async meetingCompletedOnce(businessId, eventId, payload) {
           // Intentionally lightweight: rely on meeting_records as durable idempotency guard
-          console.log('[meet-artifacts] meeting_completed', { businessId, eventId, payload })
         }
       }
 
@@ -117,44 +107,21 @@ export async function GET(request: NextRequest) {
         windowLateMinutes: 90,
       })
 
-      // Increment attempts before processing
+      // Increment attempts only after successful lease claim
       const nextAttempt = (rec.processing_attempts || 0) + 1
       await supabase.from('meeting_records').update({ processing_attempts: nextAttempt }).eq('id', rec.id)
-      try {
-        const eid = String(rec.google_calendar_event_id || '').slice(-8)
-        const bid = String(rec.business_id || '').slice(-8)
-        console.log('MEETING_PROCESSING_ATTEMPT_STARTED', { eid, bid, attempt: nextAttempt })
-      } catch {}
       const result = await processor.processOne({ id: rec.business_id }, rec.google_calendar_event_id, { start: times.start, end: times.end })
-      try {
-        const { data: after } = await supabase
-          .from('meeting_records')
-          .select('transcript_status, processing_attempts, next_processing_attempt_at')
-          .eq('id', rec.id)
-          .single()
-        const eid = String(rec.google_calendar_event_id || '').slice(-8)
-        const bid = String(rec.business_id || '').slice(-8)
-        if (result.status === 'processed') {
-          console.log('MEETING_PROCESSING_COMPLETED', { eid, bid })
-        } else if (result.status === 'pending') {
-          console.log('MEETING_RETRY_SCHEDULED', { eid, bid, attempt: after?.processing_attempts || nextAttempt, next: after?.next_processing_attempt_at || null })
-        } else if (result.status === 'permission_required') {
-          console.log('MEETING_RETRY_SCHEDULED', { eid, bid, attempt: after?.processing_attempts || nextAttempt, next: after?.next_processing_attempt_at || null, reason: 'permission_required' })
-        } else if (result.status === 'unavailable') {
-          console.log('MEETING_MARKED_UNAVAILABLE', { eid, bid })
-        }
-      } catch {}
       if (result.status === 'processed') processed++
       else if (result.status === 'pending') pending++
       else if (result.status === 'permission_required') permissionRequired++
     } catch (e) {
       failed++
-      try {
-        const eid = String(rec.google_calendar_event_id || '').slice(-8)
-        const bid = String(rec.business_id || '').slice(-8)
-        console.log('MEETING_PROCESSING_FAILED', { eid, bid, code: 'exception' })
-      } catch {}
       console.error('[meet-artifacts] record failed', { id: rec.id, error: String(e) })
+    } finally {
+      // Release lease after processing (success or failure)
+      if (leaseResult.claim) {
+        await releaseMeetingProcessingLease(rec.id, leaseResult.claim.claimedAt)
+      }
     }
   }
 
