@@ -33,12 +33,15 @@ export async function POST(
     console.log('[AI Summary] User authenticated:', user.id)
 
     // Get user's business ID
+    console.log('[AI Summary] Looking up business for user:', user.id)
     const { data: businessData, error: businessError } = await supabase
       .from('businesses')
       .select('id')
       .eq('user_id', user.id)
+      .limit(1)
       .single()
 
+    console.log('[AI Summary] Business lookup result:', { businessData, businessError })
     if (businessError || !businessData) {
       console.error('[AI Summary] Business not found:', businessError)
       return NextResponse.json({ error: 'business_not_found' }, { status: 403 })
@@ -46,6 +49,7 @@ export async function POST(
     console.log('[AI Summary] Business ID:', businessData.id)
 
     // Fetch lead data with all related information
+    console.log('[AI Summary] Querying lead with ID:', leadId, 'and business_id:', businessData.id)
     const { data: lead, error: leadError } = await supabase
       .from('leads')
       .select(`
@@ -102,11 +106,15 @@ export async function POST(
       .eq('business_id', businessData.id)
       .single()
 
+    console.log('[AI Summary] Lead query result:', { lead, leadError })
     if (leadError || !lead) {
       console.error('[AI Summary] Lead not found or error:', leadError)
+      console.log('[AI Summary] Query details:', { leadId, businessId: businessData.id })
       return NextResponse.json({ error: 'lead_not_found' }, { status: 404 })
     }
     console.log('[AI Summary] Lead data fetched successfully')
+    console.log('[AI Summary] Lead business_id:', lead.business_id)
+    console.log('[AI Summary] Business ID match:', lead.business_id === businessData.id)
 
     // Build context for AI summary
     const context: any = {
