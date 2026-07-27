@@ -995,10 +995,10 @@ export default function LeadsPage() {
             </div>
 
             {/* Search/Filter Toolbar - moved above quick filters for tighter vertical rhythm */}
-            <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-3 mb-2.5 sm:mb-4">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-3 sm:mb-4">
               <div className="flex-1">
                 <div className="relative">
-                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                   <input
@@ -1006,7 +1006,7 @@ export default function LeadsPage() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search customers..."
-                    className="w-full pl-10 pr-4 py-1.5 sm:py-2 bg-background border border-border/60 rounded-lg text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all"
+                    className="w-full pl-11 pr-4 py-2 bg-background border border-border/50 rounded-lg text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
                   />
                 </div>
               </div>
@@ -1017,15 +1017,15 @@ export default function LeadsPage() {
                     <DropdownMenuTrigger asChild>
                       <button
                         type="button"
-                        className="h-9 px-3 sm:px-4 bg-background border border-border/60 rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all cursor-pointer flex items-center gap-2 hover:bg-muted/50 data-[state=open]:ring-2 data-[state=open]:ring-offset-2 data-[state=open]:ring-primary"
-                        title={statusFilter === 'all' ? 'More filters' : getStatusFilterLabel(statusFilter)}
+                        className="h-9 px-3 bg-background border border-border/50 rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all cursor-pointer flex items-center gap-2 hover:bg-muted/50 data-[state=open]:ring-2 data-[state=open]:ring-offset-2 data-[state=open]:ring-primary"
+                        title={statusFilter === 'all' ? 'Filters' : getStatusFilterLabel(statusFilter)}
                       >
                         {statusFilter === 'all' ? (
                           <>
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L15 12.414V19a1 1 0 01-1.447.894l-2-1A1 1 0 0111 18v-5.586L3.293 6.707A1 1 0 013 6V4z" />
                             </svg>
-                            <span className="whitespace-nowrap">More filters</span>
+                            <span className="whitespace-nowrap">Filters</span>
                           </>
                         ) : (
                           <>
@@ -1077,7 +1077,7 @@ export default function LeadsPage() {
                   <button
                     onClick={fetchLeads}
                     disabled={loading || refreshing}
-                    className="h-9 w-9 inline-flex items-center justify-center bg-background border border-border/60 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="h-9 w-9 inline-flex items-center justify-center bg-background border border-border/50 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Refresh"
                   >
                     {refreshing ? (
@@ -1089,65 +1089,68 @@ export default function LeadsPage() {
                     )}
                   </button>
                 </div>
-                {/* Right: Add Customer link */}
+                {/* Right: Add Customer button - primary CTA */}
                 <button
                   onClick={() => setShowAddCustomerModal(true)}
-                  className="text-sm text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap"
+                  className="inline-flex items-center gap-1.5 h-9 px-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white text-sm font-medium rounded-lg shadow-sm hover:shadow transition-all duration-200 whitespace-nowrap"
                 >
-                  + Add Customer
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Customer
                 </button>
               </div>
             </div>
 
             {/* Premium Filter Chips */}
-            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2.5 sm:mb-4">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 mb-3 sm:mb-4">
               <button
                 onClick={() => setQuickFilter('all')}
                 className={`
-                  inline-flex items-center gap-2 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200
+                  inline-flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200
                   ${quickFilter === 'all'
                     ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'bg-transparent border border-border/60 text-muted-foreground hover:bg-muted/50 hover:border-border'
+                    : 'bg-transparent border border-border/40 text-muted-foreground/70 hover:bg-muted/40 hover:border-border/60 hover:text-muted-foreground'
                   }
                 `}
               >
-                All <span className="opacity-70">({leads.filter(l => !l.deleted_at).length})</span>
+                All <span className="opacity-60">({leads.filter(l => !l.deleted_at).length})</span>
               </button>
               <button
                 onClick={() => setQuickFilter('active')}
                 className={`
-                  inline-flex items-center gap-2 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200
+                  inline-flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200
                   ${quickFilter === 'active'
                     ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'bg-transparent border border-border/60 text-muted-foreground hover:bg-muted/50 hover:border-border'
+                    : 'bg-transparent border border-border/40 text-muted-foreground/70 hover:bg-muted/40 hover:border-border/60 hover:text-muted-foreground'
                   }
                 `}
               >
-                Active <span className="opacity-70">({leadStatusCounts.active})</span>
+                Active <span className="opacity-60">({leadStatusCounts.active})</span>
               </button>
               <button
                 onClick={() => setQuickFilter('new')}
                 className={`
-                  inline-flex items-center gap-2 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200
+                  inline-flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200
                   ${quickFilter === 'new'
                     ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'bg-transparent border border-border/60 text-muted-foreground hover:bg-muted/50 hover:border-border'
+                    : 'bg-transparent border border-border/40 text-muted-foreground/70 hover:bg-muted/40 hover:border-border/60 hover:text-muted-foreground'
                   }
                 `}
               >
-                Needs Reply <span className="opacity-70">({leadStatusCounts.new})</span>
+                Needs Reply <span className="opacity-60">({leadStatusCounts.new})</span>
               </button>
               <button
                 onClick={() => setQuickFilter('today')}
                 className={`
-                  inline-flex items-center gap-2 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200
+                  inline-flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200
                   ${quickFilter === 'today'
                     ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'bg-transparent border border-border/60 text-muted-foreground hover:bg-muted/50 hover:border-border'
+                    : 'bg-transparent border border-border/40 text-muted-foreground/70 hover:bg-muted/40 hover:border-border/60 hover:text-muted-foreground'
                   }
                 `}
               >
-                New Today <span className="opacity-70">({leads.filter(l => {
+                New Today <span className="opacity-60">({leads.filter(l => {
                   const createdToday = new Date(l.created_at).toDateString() === new Date().toDateString()
                   return !l.deleted_at && createdToday
                 }).length})</span>
