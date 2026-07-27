@@ -343,6 +343,16 @@ export default function LeadsPage() {
 
   // Handle lead status change from overview page
   const handleLeadStatusChange = async (leadId: string, newStatus: LeadLifecycleStatus) => {
+    // Store old status for revert on error
+    const oldStatus = leads.find(lead => lead.id === leadId)?.status
+
+    // Optimistic update - update local state immediately
+    setLeads(prev => prev.map(lead => 
+      lead.id === leadId 
+        ? { ...lead, status: newStatus, lead_status: newStatus }
+        : lead
+    ))
+
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
@@ -367,21 +377,31 @@ export default function LeadsPage() {
         const error = await response.json()
         throw new Error(error.error || `Failed to update customer status to ${newStatus}`)
       }
-
-      // Update local state
-      setLeads(prev => prev.map(lead => 
-        lead.id === leadId 
-          ? { ...lead, status: newStatus }
-          : lead
-      ))
     } catch (error) {
       console.error('Error updating lead status:', error)
-      // Optionally show error feedback to user
+      // Revert optimistic update on error
+      if (oldStatus) {
+        setLeads(prev => prev.map(lead => 
+          lead.id === leadId 
+            ? { ...lead, status: oldStatus, lead_status: oldStatus }
+            : lead
+        ))
+      }
     }
   }
 
   // Handle ignoring a lead
   const handleIgnoreLead = async (leadId: string) => {
+    // Store old status for revert on error
+    const oldStatus = leads.find(lead => lead.id === leadId)?.status
+
+    // Optimistic update - update local state immediately
+    setLeads(prev => prev.map(lead => 
+      lead.id === leadId 
+        ? { ...lead, status: 'ignored', lead_status: 'ignored' }
+        : lead
+    ))
+
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
@@ -406,16 +426,16 @@ export default function LeadsPage() {
         const error = await response.json()
         throw new Error(error.error || 'Failed to ignore lead')
       }
-
-      // Update local state
-      setLeads(prev => prev.map(lead => 
-        lead.id === leadId 
-          ? { ...lead, status: 'ignored' }
-          : lead
-      ))
     } catch (error) {
       console.error('Error ignoring lead:', error)
-      alert('Failed to ignore customer. Please try again.')
+      // Revert optimistic update on error
+      if (oldStatus) {
+        setLeads(prev => prev.map(lead => 
+          lead.id === leadId 
+            ? { ...lead, status: oldStatus, lead_status: oldStatus }
+            : lead
+        ))
+      }
     }
   }
 
