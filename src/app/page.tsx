@@ -291,7 +291,7 @@ export default async function Home() {
                         </div>
                         <div className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">Get Paid</div>
                         <div className="text-xs text-slate-600 dark:text-slate-400">$425 Plumbing Repair</div>
-                        <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Tap to Pay on iPhone or send a branded payment link</div>
+                        <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">Accept Tap to Pay on iPhone or Android, or send a branded SMS payment request</div>
                         <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
                           <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">✓ Customer paid</div>
                         </div>
@@ -550,7 +550,7 @@ export default async function Home() {
                 Capture Every Missed Call. Book More Jobs.
               </h2>
               <p className="text-sm sm:text-base md:text-lg text-slate-700 dark:text-muted-foreground max-w-2xl mx-auto">
-                AI Voice answers forwarded missed calls, captures lead details, and helps you schedule appointments and collect payment with Tap to Pay on iPhone or payment requests — all in one place.
+                AI Voice answers missed calls, captures new customers, books appointments, and helps you get paid with Tap to Pay or branded SMS payment requests—all in one place.
               </p>
             </div>
 
@@ -586,7 +586,7 @@ export default async function Home() {
                 </p>
               </div>
 
-              {/* Tap to Pay on iPhone */}
+              {/* Get Paid Anywhere */}
               <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 sm:p-4 md:p-5 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col">
                 <div className="flex flex-col items-center text-center mb-2 sm:mb-3">
                   <div className="w-11 h-11 sm:w-12 sm:h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mb-2 sm:mb-2.5">
@@ -594,10 +594,10 @@ export default async function Home() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
                     </svg>
                   </div>
-                  <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground">Tap to Pay on iPhone</h3>
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground">Get Paid Anywhere</h3>
                 </div>
                 <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 mb-2 sm:mb-3 text-center">
-                  Accept contactless cards, Apple Pay, and digital wallets directly on your iPhone. No extra hardware required.
+                  Accept contactless payments with Tap to Pay on iPhone or Android, or send branded SMS payment requests—all from ReplyFlow. No extra hardware required.
                 </p>
               </div>
 
@@ -612,7 +612,7 @@ export default async function Home() {
                   <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground">Appointments & Payments</h3>
                 </div>
                 <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 mb-2 sm:mb-3 text-center">
-                  Schedule jobs with Google Calendar, accept Tap to Pay on iPhone, or send branded payment requests in seconds.
+                  Schedule jobs with Google Calendar, accept Tap to Pay on iPhone or Android, or send branded SMS payment requests in seconds.
                 </p>
               </div>
 
@@ -723,7 +723,7 @@ export default async function Home() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-900 dark:text-foreground mb-2 text-base">Tap to Pay & Payment Requests</h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Accept contactless payments in person with Tap to Pay on iPhone or send branded payment links by text.</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Accept contactless payments in person with Tap to Pay on iPhone or Android, or send branded SMS payment requests by text.</p>
                   </div>
                 </div>
               </div>
@@ -816,7 +816,7 @@ export default async function Home() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1.5 text-sm sm:text-base">Tap to Pay & Payment Requests</h3>
-                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Accept contactless payments in person with Tap to Pay on iPhone or send branded payment links by text.</p>
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Accept contactless payments in person with Tap to Pay on iPhone or Android, or send branded SMS payment requests by text.</p>
                   </div>
                 </div>
               </div>
