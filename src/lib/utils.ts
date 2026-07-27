@@ -198,21 +198,6 @@ export function normalizePhoneNumber(input: string): string | null {
   return null
 }
 
-export function getLeadStatusColor(status: string): string {
-  switch (status) {
-    case 'new':
-      return 'bg-blue-900/30 text-blue-400'
-    case 'contacted':
-      return 'bg-green-900/30 text-green-400'
-    case 'qualified':
-      return 'bg-purple-900/30 text-purple-400'
-    case 'closed':
-      return 'bg-slate-800 text-slate-400'
-    default:
-      return 'bg-slate-800 text-slate-400'
-  }
-}
-
 /**
  * Normalize punctuation to prevent duplicate periods and other punctuation issues.
  * 

@@ -17,7 +17,6 @@ import {
   formatPhoneNumber, 
   formatRelativeTime, 
   truncateText, 
-  getLeadStatusColor,
   formatDate
 } from '@/lib/utils'
 import { 

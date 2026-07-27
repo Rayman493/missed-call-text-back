@@ -1,13 +1,22 @@
 /**
  * Centralized status color mapping for customer cards
  * Provides accent colors, border colors, and badge styles for each status
+ * 
+ * Semantic color system:
+ * - New: Blue (new lead waiting for first contact)
+ * - Active: Emerald (conversation in progress)
+ * - Scheduled: Violet (appointment booked)
+ * - Payment Requested: Amber (waiting on customer payment)
+ * - Paid: Teal (payment received)
+ * - Completed: Slate (job finished successfully)
+ * - Lost: Red (customer declined or opportunity lost)
  */
 
 export interface StatusColorConfig {
-  // Accent border color (left border, 3-4px)
-  accentBorder: string
-  // Subtle glow color (5-10% opacity, soft blur)
-  glow: string
+  // Accent color (4px left border, icons, text)
+  accent: string
+  // Subtle border tint (border-{color}/20)
+  border: string
   // Badge background color
   badgeBg: string
   // Badge text color
@@ -18,58 +27,79 @@ export interface StatusColorConfig {
 
 const statusColorMap: Record<string, StatusColorConfig> = {
   'New': {
-    accentBorder: 'border-l-blue-500 dark:border-l-blue-400',
-    glow: 'shadow-[0_0_0_1px_rgba(59,130,246,0.05),0_4px_12px_rgba(59,130,246,0.08)] dark:shadow-[0_0_0_1px_rgba(96,165,250,0.05),0_4px_12px_rgba(96,165,250,0.08)]',
+    accent: 'bg-blue-400',
+    border: 'border-blue-500/20',
     badgeBg: 'bg-blue-500/10 dark:bg-blue-400/10',
     badgeText: 'text-blue-700 dark:text-blue-300',
     badgeBorder: 'ring-1 ring-inset ring-blue-500/20 dark:ring-blue-400/20'
   },
+  'Active': {
+    accent: 'bg-emerald-400',
+    border: 'border-emerald-500/20',
+    badgeBg: 'bg-emerald-500/10 dark:bg-emerald-400/10',
+    badgeText: 'text-emerald-700 dark:text-emerald-300',
+    badgeBorder: 'ring-1 ring-inset ring-emerald-500/20 dark:ring-emerald-400/20'
+  },
+  'Scheduled': {
+    accent: 'bg-violet-400',
+    border: 'border-violet-500/20',
+    badgeBg: 'bg-violet-500/10 dark:bg-violet-400/10',
+    badgeText: 'text-violet-700 dark:text-violet-300',
+    badgeBorder: 'ring-1 ring-inset ring-violet-500/20 dark:ring-violet-400/20'
+  },
+  'Payment Requested': {
+    accent: 'bg-amber-400',
+    border: 'border-amber-500/20',
+    badgeBg: 'bg-amber-500/10 dark:bg-amber-400/10',
+    badgeText: 'text-amber-700 dark:text-amber-300',
+    badgeBorder: 'ring-1 ring-inset ring-amber-500/20 dark:ring-amber-400/20'
+  },
+  'Paid': {
+    accent: 'bg-teal-400',
+    border: 'border-teal-500/20',
+    badgeBg: 'bg-teal-500/10 dark:bg-teal-400/10',
+    badgeText: 'text-teal-700 dark:text-teal-300',
+    badgeBorder: 'ring-1 ring-inset ring-teal-500/20 dark:ring-teal-400/20'
+  },
+  'Completed': {
+    accent: 'bg-slate-300',
+    border: 'border-slate-500/20',
+    badgeBg: 'bg-slate-500/10 dark:bg-slate-400/10',
+    badgeText: 'text-slate-700 dark:text-slate-300',
+    badgeBorder: 'ring-1 ring-inset ring-slate-500/20 dark:ring-slate-400/20'
+  },
+  'Lost': {
+    accent: 'bg-red-400',
+    border: 'border-red-500/20',
+    badgeBg: 'bg-red-500/10 dark:bg-red-400/10',
+    badgeText: 'text-red-700 dark:text-red-300',
+    badgeBorder: 'ring-1 ring-inset ring-red-500/20 dark:ring-red-400/20'
+  },
+  // Legacy status mappings for backward compatibility
   'Awaiting Response': {
-    accentBorder: 'border-l-amber-500 dark:border-l-amber-400',
-    glow: 'shadow-[0_0_0_1px_rgba(245,158,11,0.05),0_4px_12px_rgba(245,158,11,0.08)] dark:shadow-[0_0_0_1px_rgba(251,191,36,0.05),0_4px_12px_rgba(251,191,36,0.08)]',
+    accent: 'bg-amber-400',
+    border: 'border-amber-500/20',
     badgeBg: 'bg-amber-500/10 dark:bg-amber-400/10',
     badgeText: 'text-amber-700 dark:text-amber-300',
     badgeBorder: 'ring-1 ring-inset ring-amber-500/20 dark:ring-amber-400/20'
   },
   'Contacted': {
-    accentBorder: 'border-l-emerald-500 dark:border-l-emerald-400',
-    glow: 'shadow-[0_0_0_1px_rgba(16,185,129,0.05),0_4px_12px_rgba(16,185,129,0.08)] dark:shadow-[0_0_0_1px_rgba(52,211,153,0.05),0_4px_12px_rgba(52,211,153,0.08)]',
+    accent: 'bg-emerald-400',
+    border: 'border-emerald-500/20',
     badgeBg: 'bg-emerald-500/10 dark:bg-emerald-400/10',
     badgeText: 'text-emerald-700 dark:text-emerald-300',
     badgeBorder: 'ring-1 ring-inset ring-emerald-500/20 dark:ring-emerald-400/20'
   },
-  // Additional statuses for future use
   'Appointment Scheduled': {
-    accentBorder: 'border-l-purple-500 dark:border-l-purple-400',
-    glow: 'shadow-[0_0_0_1px_rgba(168,85,247,0.05),0_4px_12px_rgba(168,85,247,0.08)] dark:shadow-[0_0_0_1px_rgba(192,132,252,0.05),0_4px_12px_rgba(192,132,252,0.08)]',
-    badgeBg: 'bg-purple-500/10 dark:bg-purple-400/10',
-    badgeText: 'text-purple-700 dark:text-purple-300',
-    badgeBorder: 'ring-1 ring-inset ring-purple-500/20 dark:ring-purple-400/20'
-  },
-  'Payment Requested': {
-    accentBorder: 'border-l-cyan-500 dark:border-l-cyan-400',
-    glow: 'shadow-[0_0_0_1px_rgba(6,182,212,0.05),0_4px_12px_rgba(6,182,212,0.08)] dark:shadow-[0_0_0_1px_rgba(34,211,238,0.05),0_4px_12px_rgba(34,211,238,0.08)]',
-    badgeBg: 'bg-cyan-500/10 dark:bg-cyan-400/10',
-    badgeText: 'text-cyan-700 dark:text-cyan-300',
-    badgeBorder: 'ring-1 ring-inset ring-cyan-500/20 dark:ring-cyan-400/20'
-  },
-  'Paid': {
-    accentBorder: 'border-l-emerald-500 dark:border-l-emerald-400',
-    glow: 'shadow-[0_0_0_1px_rgba(16,185,129,0.05),0_4px_12px_rgba(16,185,129,0.08)] dark:shadow-[0_0_0_1px_rgba(52,211,153,0.05),0_4px_12px_rgba(52,211,153,0.08)]',
-    badgeBg: 'bg-emerald-500/10 dark:bg-emerald-400/10',
-    badgeText: 'text-emerald-700 dark:text-emerald-300',
-    badgeBorder: 'ring-1 ring-inset ring-emerald-500/20 dark:ring-emerald-400/20'
-  },
-  'Completed': {
-    accentBorder: 'border-l-green-500 dark:border-l-green-400',
-    glow: 'shadow-[0_0_0_1px_rgba(34,197,94,0.05),0_4px_12px_rgba(34,197,94,0.08)] dark:shadow-[0_0_0_1px_rgba(74,222,128,0.05),0_4px_12px_rgba(74,222,128,0.08)]',
-    badgeBg: 'bg-green-500/10 dark:bg-green-400/10',
-    badgeText: 'text-green-700 dark:text-green-300',
-    badgeBorder: 'ring-1 ring-inset ring-green-500/20 dark:ring-green-400/20'
+    accent: 'bg-violet-400',
+    border: 'border-violet-500/20',
+    badgeBg: 'bg-violet-500/10 dark:bg-violet-400/10',
+    badgeText: 'text-violet-700 dark:text-violet-300',
+    badgeBorder: 'ring-1 ring-inset ring-violet-500/20 dark:ring-violet-400/20'
   },
   'Archived': {
-    accentBorder: 'border-l-slate-500 dark:border-l-slate-400',
-    glow: 'shadow-[0_0_0_1px_rgba(100,116,139,0.05),0_4px_12px_rgba(100,116,139,0.08)] dark:shadow-[0_0_0_1px_rgba(148,163,184,0.05),0_4px_12px_rgba(148,163,184,0.08)]',
+    accent: 'bg-slate-300',
+    border: 'border-slate-500/20',
     badgeBg: 'bg-slate-500/10 dark:bg-slate-400/10',
     badgeText: 'text-slate-700 dark:text-slate-300',
     badgeBorder: 'ring-1 ring-inset ring-slate-500/20 dark:ring-slate-400/20'
@@ -82,8 +112,8 @@ const statusColorMap: Record<string, StatusColorConfig> = {
  */
 export function getStatusColorConfig(status: string): StatusColorConfig {
   return statusColorMap[status] || {
-    accentBorder: 'border-l-slate-400 dark:border-l-slate-500',
-    glow: 'shadow-[0_0_0_1px_rgba(148,163,184,0.05),0_4px_12px_rgba(148,163,184,0.08)]',
+    accent: 'bg-slate-300',
+    border: 'border-slate-500/20',
     badgeBg: 'bg-slate-500/10 dark:bg-slate-400/10',
     badgeText: 'text-slate-700 dark:text-slate-300',
     badgeBorder: 'ring-1 ring-inset ring-slate-500/20 dark:ring-slate-400/20'
@@ -100,9 +130,18 @@ export function getStatusBadgeClasses(status: string): string {
 
 /**
  * Get card accent classes for a status
- * Includes left border and subtle glow
+ * Returns the accent color for the 4px left border
  */
 export function getCardAccentClasses(status: string): string {
   const config = getStatusColorConfig(status)
-  return `border-l-4 ${config.accentBorder} ${config.glow}`
+  return config.accent
+}
+
+/**
+ * Get card border classes for a status
+ * Returns the subtle border tint
+ */
+export function getCardBorderClasses(status: string): string {
+  const config = getStatusColorConfig(status)
+  return config.border
 }

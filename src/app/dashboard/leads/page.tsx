@@ -28,7 +28,6 @@ import {
   formatPhoneNumber,
   formatRelativeTime,
   truncateText,
-  getLeadStatusColor,
   normalizePhoneNumberForSearch,
   sentenceCase,
   getLeadDisplayName
@@ -61,7 +60,7 @@ import FloatingHelpButton from '@/components/FloatingHelpButton'
 import LeadStatusDropdown from '@/components/LeadStatusDropdown'
 import AddCustomerModal from '@/components/AddCustomerModal'
 import { Wrench, FileText, Clock } from 'lucide-react'
-import { getCardAccentClasses } from '@/lib/lead-status-colors'
+import { getCardAccentClasses, getCardBorderClasses } from '@/lib/lead-status-colors'
 
 // Helper to get compact summary for lead card
 // [simple_mode_structured_preview_generated]
@@ -1281,7 +1280,7 @@ export default function LeadsPage() {
                       {/* Removed inline count here to avoid duplication and lift the card on mobile */}
                       <div
                         key={lead.id}
-                        className="w-full max-w-2xl h-full flex flex-col rounded-2xl border relative overflow-hidden transition-all duration-200 cursor-pointer dark:bg-gradient-to-b dark:from-slate-950 dark:to-slate-900 bg-card border-border/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:border-border hover:bg-muted/20 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] active:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2"
+                        className={`w-full max-w-2xl h-full flex flex-col rounded-2xl border relative overflow-hidden transition-all duration-200 cursor-pointer dark:bg-gradient-to-b dark:from-slate-950 dark:to-slate-900 bg-card ${getCardBorderClasses(getLeadLifecycleStatus(lead))} shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:border-border hover:bg-muted/20 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] active:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2`}
                         onClick={() => handleConversationClick(lead.id)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
@@ -1293,7 +1292,7 @@ export default function LeadsPage() {
                         role="link"
                         aria-label={`Open ${getLeadDisplayName(lead)}`}
                       >
-                        {/* Status Accent Bar - Subtle left accent */}
+                        {/* Status Accent Bar - 4px left accent */}
                         <div className={`absolute left-0 top-0 bottom-0 w-1 ${getCardAccentClasses(getLeadLifecycleStatus(lead))}`}></div>
                         <div className="p-4 pl-5 flex-1 flex flex-col">
                           {/* Header: Name, Phone, Status */}
@@ -1487,7 +1486,7 @@ export default function LeadsPage() {
                         return (
                           <div
                             key={lead.id}
-                            className="rounded-xl border relative overflow-hidden transition-all duration-200 cursor-pointer dark:bg-gradient-to-b dark:from-slate-950 dark:to-slate-900 bg-card border-border/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:border-border hover:bg-muted/20 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] active:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2"
+                            className={`rounded-xl border relative overflow-hidden transition-all duration-200 cursor-pointer dark:bg-gradient-to-b dark:from-slate-950 dark:to-slate-900 bg-card ${getCardBorderClasses(getLeadLifecycleStatus(lead))} shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:border-border hover:bg-muted/20 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] active:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2`}
                             onClick={() => handleConversationClick(lead.id)}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' || e.key === ' ') {
@@ -1499,7 +1498,7 @@ export default function LeadsPage() {
                             role="link"
                             aria-label={`Open ${getLeadDisplayName(lead)}`}
                           >
-                            {/* Status Accent Bar - Subtle left accent */}
+                            {/* Status Accent Bar - 4px left accent */}
                             <div className={`absolute left-0 top-0 bottom-0 w-1 ${getCardAccentClasses(getLeadLifecycleStatus(lead))}`}></div>
                             <div className="p-2 sm:p-3.5 pl-3 sm:pl-4">
                               {/* Header: Name, Phone, Status - Compact on mobile */}
