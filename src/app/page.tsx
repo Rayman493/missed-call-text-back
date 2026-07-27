@@ -631,7 +631,7 @@ export default async function Home() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-900 dark:text-foreground mb-2 text-base">Desktop & Mobile Apps</h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Manage your business from the web or use the ReplyFlow mobile app while you're on the go.</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Manage AI-captured leads or manually add customers and jobs from the web or ReplyFlow mobile app.</p>
                   </div>
                 </div>
               </div>
@@ -724,7 +724,7 @@ export default async function Home() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1.5 text-sm sm:text-base">Desktop & Mobile Apps</h3>
-                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Manage your business from the web or use the ReplyFlow mobile app while you're on the go.</p>
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Manage AI-captured leads or manually add customers and jobs from the web or ReplyFlow mobile app.</p>
                   </div>
                 </div>
               </div>
