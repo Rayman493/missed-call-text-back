@@ -101,7 +101,7 @@ export async function POST(
           notes,
           created_at
         ),
-        payment_requests (
+        payment_requests:payment_requests!payment_requests_lead_id_fkey (
           id,
           amount,
           status,
@@ -126,18 +126,25 @@ export async function POST(
     console.log('[AI Summary] Comparison: authenticated business_id =', businessData.id, ', lead.business_id =', lead?.business_id)
     console.log('[AI Summary] Business ID match:', lead?.business_id === businessData.id ? 'MATCH' : 'NO MATCH')
     
-    if (leadError || !lead) {
-      console.error('[AI Summary] ========== LEAD NOT FOUND ==========')
-      console.error('[AI Summary] CONDITION: leadError || !lead')
+    if (leadError) {
+      console.error('[AI Summary] ========== DATABASE ERROR ==========')
       console.error('[AI Summary] leadError:', leadError)
-      console.error('[AI Summary] lead:', lead)
       console.error('[AI Summary] leadError code:', leadError?.code)
       console.error('[AI Summary] leadError message:', leadError?.message)
       console.error('[AI Summary] leadError details:', leadError?.details)
       console.error('[AI Summary] Query details: leadId =', leadId, ', businessId =', businessData.id)
-      console.error('[AI Summary] Returning 404 lead_not_found at line 112')
+      console.error('[AI Summary] Returning 500 lead_query_failed')
+      return NextResponse.json({ error: 'lead_query_failed' }, { status: 500 })
+    }
+    
+    if (!lead) {
+      console.error('[AI Summary] ========== LEAD NOT FOUND ==========')
+      console.error('[AI Summary] lead:', lead)
+      console.error('[AI Summary] Query details: leadId =', leadId, ', businessId =', businessData.id)
+      console.error('[AI Summary] Returning 404 lead_not_found')
       return NextResponse.json({ error: 'lead_not_found' }, { status: 404 })
     }
+    
     console.log('[AI Summary] Lead data fetched successfully')
     console.log('[AI Summary] Business ID match confirmed:', lead.business_id === businessData.id)
 
