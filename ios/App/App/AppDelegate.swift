@@ -1,6 +1,5 @@
 import UIKit
 import Capacitor
-import ReplyflowStripeTerminal
 import WebKit
 
 @UIApplicationMain
@@ -17,29 +16,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                 wv.isOpaque = true
                 wv.backgroundColor = bgColor
                 wv.scrollView.backgroundColor = bgColor
-            }
-        }
-        // Ensure custom Capacitor plugins from SPM are registered on the active bridge
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            if let vc = self.window?.rootViewController as? CAPBridgeViewController {
-                vc.bridge?.registerPluginInstance(ReplyflowStripeTerminalPlugin())
-                #if DEBUG
-                print("[ReplyflowStripeTerminal] plugin registered via AppDelegate")
-                #endif
-            } else {
-                #if DEBUG
-                print("[ReplyflowStripeTerminal] failed to obtain CAPBridgeViewController for registration")
-                #endif
-            }
-            if let vc = self.window?.rootViewController as? CAPBridgeViewController {
-                let bgColor = UIColor(red: 2.0/255.0, green: 6.0/255.0, blue: 23.0/255.0, alpha: 1.0)
-                vc.view.backgroundColor = bgColor
-                if let wv = vc.bridge?.webView {
-                    wv.isOpaque = true
-                    wv.backgroundColor = bgColor
-                    wv.scrollView.backgroundColor = bgColor
-                }
             }
         }
         return true

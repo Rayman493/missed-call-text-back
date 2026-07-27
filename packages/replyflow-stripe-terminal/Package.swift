@@ -16,7 +16,7 @@ let package = Package(
         // Capacitor SwiftPM core
         .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", .upToNextMajor(from: "8.4.2")),
         // Stripe Terminal iOS SDK
-        .package(url: "https://github.com/stripe/stripe-terminal-ios.git", .upToNextMajor(from: "5.0.0"))
+        .package(url: "https://github.com/stripe/stripe-terminal-ios.git", .upToNextMajor(from: "5.7.0"))
     ],
     targets: [
         .target(
