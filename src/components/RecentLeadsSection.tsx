@@ -7,7 +7,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import DashboardErrorBoundary from './DashboardErrorBoundary'
 import Link from 'next/link'
 import LeadTimeline from '@/components/LeadTimeline'
-import { getCardAccentBorderClasses, getStatusBadgeClasses } from '@/lib/lead-status-colors'
+import { getCardAccentClasses, getStatusBadgeClasses } from '@/lib/lead-status-colors'
 
 interface RecentLeadsSectionProps {
   businessId: string
@@ -376,7 +376,7 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
                   return (
                     <div key={lead.id} className="block">
                       <Link href={`/dashboard/leads/${lead.id}`}>
-                        <div className={`bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-2 sm:p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-200 cursor-pointer ${getCardAccentBorderClasses(getLeadStatus(lead))}`}>
+                        <div className={`bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-2 sm:p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-200 cursor-pointer ${getCardAccentClasses(getLeadStatus(lead))}`}>
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1.5 mb-0.5">
