@@ -8,14 +8,42 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    console.log('[AI Summary] Request received')
+    
     const apiKey = process.env.OPENAI_API_KEY
     if (!apiKey) {
+      console.error('[AI Summary] OpenAI API key missing')
       return NextResponse.json({ error: 'openai_api_key_missing' }, { status: 500 })
     }
+    console.log('[AI Summary] OpenAI API key available')
 
     const { id } = await params
     const leadId = id
+    console.log('[AI Summary] Lead ID:', leadId)
+    
     const supabase = await createServerSupabaseClient()
+    console.log('[AI Summary] Supabase client created')
+
+    // Check authentication
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError || !user) {
+      console.error('[AI Summary] Authentication failed:', userError)
+      return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+    }
+    console.log('[AI Summary] User authenticated:', user.id)
+
+    // Get user's business ID
+    const { data: businessData, error: businessError } = await supabase
+      .from('businesses')
+      .select('id')
+      .eq('user_id', user.id)
+      .single()
+
+    if (businessError || !businessData) {
+      console.error('[AI Summary] Business not found:', businessError)
+      return NextResponse.json({ error: 'business_not_found' }, { status: 403 })
+    }
+    console.log('[AI Summary] Business ID:', businessData.id)
 
     // Fetch lead data with all related information
     const { data: lead, error: leadError } = await supabase
@@ -71,11 +99,14 @@ export async function POST(
         )
       `)
       .eq('id', leadId)
+      .eq('business_id', businessData.id)
       .single()
 
     if (leadError || !lead) {
+      console.error('[AI Summary] Lead not found or error:', leadError)
       return NextResponse.json({ error: 'lead_not_found' }, { status: 404 })
     }
+    console.log('[AI Summary] Lead data fetched successfully')
 
     // Build context for AI summary
     const context: any = {
@@ -164,6 +195,9 @@ export async function POST(
       context.notes = lead.notes
     }
 
+    console.log('[AI Summary] Context assembled')
+    console.log('[AI Summary] Context keys:', Object.keys(context))
+
     // Build prompt for OpenAI
     const systemPrompt = `You are a helpful assistant that summarizes customer information for small service businesses.
 - Produce ONE concise paragraph (120-200 words) summarizing the customer.
@@ -181,6 +215,7 @@ export async function POST(
 
     const userPrompt = `Customer Data:\n${JSON.stringify(context, null, 2)}\n\nGenerate a concise business summary of this customer.`
 
+    console.log('[AI Summary] OpenAI API request started')
     // Call OpenAI API
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -209,9 +244,11 @@ export async function POST(
     const summary = data?.choices?.[0]?.message?.content || ''
 
     if (!summary) {
+      console.error('[AI Summary] No summary generated from OpenAI response')
       return NextResponse.json({ error: 'no_summary_generated' }, { status: 500 })
     }
 
+    console.log('[AI Summary] Summary generated successfully, status: 200')
     return NextResponse.json({ summary })
   } catch (error) {
     console.error('[AI Summary] Error:', error)

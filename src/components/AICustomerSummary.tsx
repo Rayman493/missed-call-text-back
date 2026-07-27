@@ -17,21 +17,37 @@ export default function AICustomerSummary({ leadId }: AICustomerSummaryProps) {
     setError(null)
     
     try {
+      console.log('[AI Summary] Generating summary for lead:', leadId)
       const response = await fetch(`/api/leads/${leadId}/summary`, {
         method: 'POST',
         credentials: 'include'
       })
 
       const data = await response.json()
+      console.log('[AI Summary] Response status:', response.status)
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to generate summary')
+        console.error('[AI Summary] API error:', data.error)
+        let errorMessage = 'Failed to generate summary. Please try again.'
+        if (data.error === 'openai_api_key_missing') {
+          errorMessage = 'AI service is not configured. Please contact support.'
+        } else if (data.error === 'openai_api_failed') {
+          errorMessage = 'AI service is temporarily unavailable. Please try again later.'
+        } else if (data.error === 'lead_not_found') {
+          errorMessage = 'Customer not found.'
+        } else if (data.error === 'unauthorized') {
+          errorMessage = 'You are not authorized to generate summaries.'
+        } else if (data.error === 'business_not_found') {
+          errorMessage = 'Business not found. Please contact support.'
+        }
+        throw new Error(errorMessage)
       }
 
+      console.log('[AI Summary] Summary generated successfully')
       setSummary(data.summary)
     } catch (err) {
       console.error('[AI Summary] Error:', err)
-      setError('Failed to generate summary. Please try again.')
+      setError(err instanceof Error ? err.message : 'Failed to generate summary. Please try again.')
     } finally {
       setIsGenerating(false)
     }

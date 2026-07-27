@@ -61,6 +61,7 @@ import FloatingHelpButton from '@/components/FloatingHelpButton'
 import LeadStatusDropdown from '@/components/LeadStatusDropdown'
 import AddCustomerModal from '@/components/AddCustomerModal'
 import { Wrench, FileText, Clock } from 'lucide-react'
+import { getCardAccentClasses } from '@/lib/lead-status-colors'
 
 // Helper to get compact summary for lead card
 // [simple_mode_structured_preview_generated]
@@ -133,24 +134,6 @@ function getAddress(lead: any): string | null {
   return getLeadAIIntake(lead).serviceAddress
 }
 
-// Helper to get lead status accent color
-function getLeadStatusAccentColor(status: string): string {
-  const normalizedStatus = status?.toLowerCase()
-  switch (normalizedStatus) {
-    case 'new':
-      return 'bg-blue-500'
-    case 'active':
-      return 'bg-green-500'
-    case 'scheduled':
-      return 'bg-purple-500'
-    case 'completed':
-      return 'bg-gray-500'
-    case 'ignored':
-      return 'bg-red-500'
-    default:
-      return 'bg-blue-500'
-  }
-}
 
 // Helper to normalize phone number for deduplication
 function normalizePhoneNumber(phone: string): string {
@@ -1311,7 +1294,7 @@ export default function LeadsPage() {
                         aria-label={`Open ${getLeadDisplayName(lead)}`}
                       >
                         {/* Status Accent Bar - Subtle left accent */}
-                        <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${getLeadStatusAccentColor(getLeadLifecycleStatus(lead))}`}></div>
+                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${getCardAccentClasses(getLeadLifecycleStatus(lead))}`}></div>
                         <div className="p-4 pl-5 flex-1 flex flex-col">
                           {/* Header: Name, Phone, Status */}
                           <div className="flex items-start justify-between gap-3 mb-2.5">
@@ -1517,7 +1500,7 @@ export default function LeadsPage() {
                             aria-label={`Open ${getLeadDisplayName(lead)}`}
                           >
                             {/* Status Accent Bar - Subtle left accent */}
-                            <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${getLeadStatusAccentColor(getLeadLifecycleStatus(lead))}`}></div>
+                            <div className={`absolute left-0 top-0 bottom-0 w-1 ${getCardAccentClasses(getLeadLifecycleStatus(lead))}`}></div>
                             <div className="p-2 sm:p-3.5 pl-3 sm:pl-4">
                               {/* Header: Name, Phone, Status - Compact on mobile */}
                               <div className="flex items-start justify-between gap-2 sm:gap-3 mb-1.5 sm:mb-2">
