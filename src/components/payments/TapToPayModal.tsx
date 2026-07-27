@@ -11,6 +11,7 @@ import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import type { TerminalError, DeviceState } from '@/lib/terminal'
 import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
 import { Capacitor } from '@capacitor/core'
+import { SHOW_TAP_TO_PAY_DIAGNOSTICS } from './tapToPayUiConfig'
 
 interface TapToPayModalProps {
   isOpen: boolean
@@ -618,30 +619,32 @@ export default function TapToPayModal({
             )}
 
             {/* Collapsible Tap to Pay Diagnostics */}
-            <div className="space-y-2">
-              <button
-                onClick={() => setShowDiagnostics(!showDiagnostics)}
-                className="w-full px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors flex items-center justify-center gap-2"
-                aria-expanded={showDiagnostics}
-              >
-                {showDiagnostics ? (
-                  <>
-                    <ChevronUp className="w-3 h-3" />
-                    Hide diagnostics
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown className="w-3 h-3" />
-                    Show diagnostics
-                  </>
+            {SHOW_TAP_TO_PAY_DIAGNOSTICS && (
+              <div className="space-y-2">
+                <button
+                  onClick={() => setShowDiagnostics(!showDiagnostics)}
+                  className="w-full px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors flex items-center justify-center gap-2"
+                  aria-expanded={showDiagnostics}
+                >
+                  {showDiagnostics ? (
+                    <>
+                      <ChevronUp className="w-3 h-3" />
+                      Hide diagnostics
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="w-3 h-3" />
+                      Show diagnostics
+                    </>
+                  )}
+                </button>
+                {showDiagnostics && (
+                  <div className="min-h-[240px] animate-in slide-in-from-top-2 duration-200">
+                    <TapToPayDiagnosticsPanel />
+                  </div>
                 )}
-              </button>
-              {showDiagnostics && (
-                <div className="min-h-[240px] animate-in slide-in-from-top-2 duration-200">
-                  <TapToPayDiagnosticsPanel />
-                </div>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Actions */}
             <div className="flex gap-3">
@@ -668,7 +671,7 @@ export default function TapToPayModal({
           <div className="flex flex-col items-center justify-center py-8 sm:py-12 space-y-4 min-h-[200px]">
             <div className="relative">
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                <Loader2 className="w-8 h-8 text-primary motion-reduce:animate-spin" />
+                <Loader2 className="w-8 h-8 text-primary animate-spin" />
               </div>
               <div className="absolute inset-0 rounded-full border-2 border-primary/20 motion-safe:animate-pulse" />
             </div>
@@ -700,30 +703,32 @@ export default function TapToPayModal({
             </div>
 
             {/* Collapsible Diagnostics */}
-            <div className="w-full space-y-2">
-              <button
-                onClick={() => setShowDiagnostics(!showDiagnostics)}
-                className="w-full px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors flex items-center justify-center gap-2"
-                aria-expanded={showDiagnostics}
-              >
-                {showDiagnostics ? (
-                  <>
-                    <ChevronUp className="w-3 h-3" />
-                    Hide diagnostics
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown className="w-3 h-3" />
-                    Show diagnostics
-                  </>
+            {SHOW_TAP_TO_PAY_DIAGNOSTICS && (
+              <div className="w-full space-y-2">
+                <button
+                  onClick={() => setShowDiagnostics(!showDiagnostics)}
+                  className="w-full px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors flex items-center justify-center gap-2"
+                  aria-expanded={showDiagnostics}
+                >
+                  {showDiagnostics ? (
+                    <>
+                      <ChevronUp className="w-3 h-3" />
+                      Hide diagnostics
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="w-3 h-3" />
+                      Show diagnostics
+                    </>
+                  )}
+                </button>
+                {showDiagnostics && (
+                  <div className="w-full px-4 min-h-[240px] animate-in slide-in-from-top-2 duration-200">
+                    <TapToPayDiagnosticsPanel />
+                  </div>
                 )}
-              </button>
-              {showDiagnostics && (
-                <div className="w-full px-4 min-h-[240px] animate-in slide-in-from-top-2 duration-200">
-                  <TapToPayDiagnosticsPanel />
-                </div>
-              )}
-            </div>
+              </div>
+            )}
 
             <button
               onClick={handleCancel}
@@ -739,8 +744,9 @@ export default function TapToPayModal({
           <div className="flex flex-col items-center justify-center py-8 sm:py-12 space-y-4 min-h-[200px]">
             <div className="relative">
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                <Loader2 className="w-8 h-8 text-primary motion-reduce:animate-spin" />
+                <Loader2 className="w-8 h-8 text-primary animate-spin" />
               </div>
+              <div className="absolute inset-0 rounded-full border-2 border-primary/20 motion-safe:animate-pulse" />
             </div>
             <p className="text-lg font-medium">Processing payment</p>
             <p className="text-sm text-muted-foreground">Keep ReplyFlow open</p>

@@ -12,10 +12,7 @@ import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { TerminalBridgeService } from '@/lib/terminal/service'
 import TapToPayDiagnosticsPanel from '@/components/TapToPayDiagnosticsPanel'
 import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
-
-// Diagnostics display flag - set to false for production and Apple review recordings
-// Diagnostics are hidden for production but retained for support troubleshooting
-const SHOW_TAP_TO_PAY_DIAGNOSTICS = false
+import { SHOW_TAP_TO_PAY_DIAGNOSTICS } from './tapToPayUiConfig'
 
 interface QuickTapToPayModalProps {
   isOpen: boolean
@@ -284,10 +281,10 @@ export default function QuickTapToPayModal({
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 bg-green-500/10 rounded-lg flex items-center justify-center">
+                <div className="w-7 h-7 bg-green-500/10 rounded-lg flex items-center justify-center select-none">
                   <Smartphone className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
                 </div>
-                <h3 ref={titleRef} className="text-base font-semibold text-foreground" tabIndex={-1}>Tap to Pay</h3>
+                <h3 ref={titleRef} className="text-base font-semibold text-foreground select-none" tabIndex={-1}>Tap to Pay</h3>
               </div>
               <button
                 onClick={onClose}
@@ -454,10 +451,10 @@ export default function QuickTapToPayModal({
 
                     {/* Job Selection */}
                     {selectedLeadId && (
-                      <div className="space-y-2 pt-2 border-t border-border">
+                      <div className="space-y-2 pt-2 border-t border-border min-h-[80px]">
                         <p className="text-xs text-muted-foreground uppercase tracking-wider">Select a job (optional)</p>
                         {isLoadingJobs ? (
-                          <div className="flex items-center justify-center py-3">
+                          <div className="flex items-center justify-center py-4">
                             <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                           </div>
                         ) : jobs.length === 0 ? (
