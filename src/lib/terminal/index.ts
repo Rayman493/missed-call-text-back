@@ -9,6 +9,10 @@ export type ConnectTapToPayOptions = {
   locationId?: string
 }
 
+export type IsTapToPayAccountLinkedOptions = {
+  onBehalfOf?: string
+}
+
 export type ConnectOptions = {
   // For Tap to Pay mobile reader
   // Additional options can be added in Phase 3
@@ -90,6 +94,7 @@ export interface TerminalPlugin {
   cancel(): Promise<{ status: TerminalStatus }>
   disconnect(): Promise<{ status: TerminalStatus }>
   teardown(): Promise<{ status: TerminalStatus }>
+  isTapToPayAccountLinked(options?: IsTapToPayAccountLinkedOptions): Promise<{ isLinked: boolean }>
   addListener(
     eventName: 'statusChanged' | 'paymentSucceeded' | 'paymentFailed' | 'error' | 'connectionTokenRequested' | 'readerConnected' | 'paymentStatusChanged',
     listenerFunc: (data: any) => void,

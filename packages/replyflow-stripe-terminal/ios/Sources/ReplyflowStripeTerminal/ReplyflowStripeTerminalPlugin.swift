@@ -32,7 +32,8 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
     CAPPluginMethod(name: "confirmPaymentIntent", returnType: CAPPluginReturnPromise),
     CAPPluginMethod(name: "cancel", returnType: CAPPluginReturnPromise),
     CAPPluginMethod(name: "disconnect", returnType: CAPPluginReturnPromise),
-    CAPPluginMethod(name: "teardown", returnType: CAPPluginReturnPromise)
+    CAPPluginMethod(name: "teardown", returnType: CAPPluginReturnPromise),
+    CAPPluginMethod(name: "isTapToPayAccountLinked", returnType: CAPPluginReturnPromise)
   ]
 
   private var initialized = false
@@ -370,6 +371,22 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
     self.initialized = false
     self.connectionStatus = "not_initialized"
     call.resolve(["status": self.connectionStatus])
+  }
+
+  @objc public func isTapToPayAccountLinked(_ call: CAPPluginCall) {
+    #if canImport(StripeTerminal)
+    let onBehalfOf = call.getString("onBehalfOf")
+    Task { @MainActor in
+      do {
+        let isLinked = try await Terminal.shared.isTapToPayAccountLinked(onBehalfOf)
+        call.resolve(["isLinked": isLinked.boolValue])
+      } catch {
+        call.reject(error.localizedDescription)
+      }
+    }
+    #else
+    call.reject("Stripe Terminal SDK not available")
+    #endif
   }
 }
 

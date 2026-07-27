@@ -1,5 +1,5 @@
 import { WebPlugin } from '@capacitor/core'
-import type { TerminalPlugin, InitializeOptions, ConnectOptions, CollectPaymentOptions, CreateTerminalPaymentOptions, TerminalStatus, TerminalPaymentResult } from './index'
+import type { TerminalPlugin, InitializeOptions, ConnectOptions, CollectPaymentOptions, CreateTerminalPaymentOptions, TerminalStatus, TerminalPaymentResult, IsTapToPayAccountLinkedOptions } from './index'
 
 export class TerminalWeb extends WebPlugin implements TerminalPlugin {
   private status: TerminalStatus = 'not_initialized'
@@ -52,6 +52,10 @@ export class TerminalWeb extends WebPlugin implements TerminalPlugin {
   async teardown(): Promise<{ status: TerminalStatus }> {
     this.status = 'not_initialized'
     return { status: this.status }
+  }
+
+  async isTapToPayAccountLinked(_options?: IsTapToPayAccountLinkedOptions): Promise<{ isLinked: boolean }> {
+    throw this.unavailable('Stripe Terminal is not supported on web')
   }
 
   async addListener(
