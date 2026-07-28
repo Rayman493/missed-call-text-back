@@ -36,7 +36,7 @@ import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { getManualAccessStatus, getManualAccessDisplayInfo } from '@/lib/manual-access'
 import ImportContactsModal from '@/components/ImportContactsModal'
 import FollowUpSettings from '@/components/FollowUpSettings'
-import { getDefaultOutOfOfficeTemplate } from '@/lib/out-of-office'
+import { getDefaultOutOfOfficeTemplate, getDefaultAfterHoursTemplate } from '@/lib/out-of-office'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { CreditCard, Mail, MessageSquare, Trash2, AlertTriangle, FileText, Clock, CheckCircle } from 'lucide-react'
 import ConfirmModal from '@/components/ui/ConfirmModal'
@@ -62,8 +62,8 @@ export default function SettingsContent() {
   // Default out of office message (use canonical template)
   const DEFAULT_OUT_OF_OFFICE_MESSAGE = getDefaultOutOfOfficeTemplate()
 
-  // Default after hours message
-  const DEFAULT_AFTER_HOURS_MESSAGE = "Thanks for contacting {{business_name}}. We're currently closed and will get back to you during business hours."
+  // Default after hours message (use canonical template)
+  const DEFAULT_AFTER_HOURS_MESSAGE = getDefaultAfterHoursTemplate()
 
   // Use centralized onboarding state machine
   const onboardingState = getBusinessOnboardingState(business, {})
@@ -176,14 +176,14 @@ export default function SettingsContent() {
         out_of_office_enabled: businessData.out_of_office_enabled,
         out_of_office_start: businessData.out_of_office_start,
         out_of_office_end: businessData.out_of_office_end,
-        out_of_office_message: businessData.out_of_office_message,
+        out_of_office_message: businessData.out_of_office_message || DEFAULT_OUT_OF_OFFICE_MESSAGE,
         auto_reply_message: businessData.auto_reply_message,
         call_forwarding_enabled: businessData.call_forwarding_enabled,
         business_hours_enabled: businessData.business_hours_enabled,
         business_hours_start: businessData.business_hours_start,
         business_hours_end: businessData.business_hours_end,
         business_hours_timezone: businessData.business_hours_timezone,
-        after_hours_message: businessData.after_hours_message,
+        after_hours_message: businessData.after_hours_message || DEFAULT_AFTER_HOURS_MESSAGE,
         automation_settings: automationSettings,
         venmo_username: businessData.venmo_username,
         paypal_payment_link: businessData.paypal_payment_link
@@ -1579,7 +1579,7 @@ export default function SettingsContent() {
                             After Hours Message
                           </label>
                           <textarea
-                            value={formBusiness.after_hours_message?.trim() ? formBusiness.after_hours_message : DEFAULT_AFTER_HOURS_MESSAGE}
+                            value={formBusiness.after_hours_message || ''}
                             onChange={(e) => updateBusiness({ after_hours_message: e.target.value })}
                             rows={2}
                             className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50 resize-none"
@@ -1587,16 +1587,6 @@ export default function SettingsContent() {
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
                             {`{{business_name}}`} inserts your business name.
                           </p>
-                          {formBusiness.business_hours_enabled && !formBusiness.after_hours_message?.trim() && (
-                            <div className="flex items-start gap-2 mt-2 px-2 py-1.5 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg">
-                              <svg className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                              </svg>
-                              <div className="text-xs text-blue-800 dark:text-blue-200">
-                                You're using ReplyFlow's default after-hours message. Edit the message above to customize it.
-                              </div>
-                            </div>
-                          )}
                         </div>
                       </div>
                     )}
@@ -1686,7 +1676,6 @@ export default function SettingsContent() {
                             onChange={(e) => updateBusiness({ out_of_office_message: e.target.value })}
                             rows={2}
                             className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50 resize-none"
-                            placeholder="Thanks for contacting {{business_name}}. We are currently out of office and will return on {{return_date}}. Please leave details and we'll get back to you as soon as possible."
                           />
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
                             Use <code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{"{{business_name}}"}</code> and <code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{"{{return_date}}"}</code> placeholders.

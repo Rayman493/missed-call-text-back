@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { notificationService, Notification, NotificationCount } from '@/lib/notifications'
 import { Bell, Check, CheckCircle, AlertTriangle, User, MessageSquare, Clock, Settings, CreditCard, ExternalLink, PhoneMissed, Trash2, X } from 'lucide-react'
@@ -13,6 +13,10 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [notificationCount, setNotificationCount] = useState<NotificationCount>({ total: 0, unread: 0 })
   const [loading, setLoading] = useState(true)
+
+  // Track pointer movement to distinguish taps from scrolls
+  const pointerDownRef = useRef<{ x: number; y: number; target: HTMLElement | null } | null>(null)
+  const MOVE_THRESHOLD = 10 // pixels
 
   useEffect(() => {
     if (!business?.id) return
@@ -33,9 +37,14 @@ export default function NotificationsPage() {
     fetchNotifications()
   }, [business?.id])
 
-  const handleMarkAsRead = async (notificationId: string) => {
+  const handleMarkAsRead = async (notificationId: string, e?: React.MouseEvent | React.PointerEvent) => {
+    // Prevent accidental activation during scroll
+    if (e && 'clientX' in e && !isTapGesture(e.clientX, e.clientY)) {
+      return
+    }
+
     // Optimistically update UI
-    setNotifications(prev => 
+    setNotifications(prev =>
       prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
     )
     setNotificationCount(prev => ({
@@ -48,7 +57,7 @@ export default function NotificationsPage() {
     } catch (error) {
       console.error('[NOTIFICATION MARK READ] Failed to mark as read:', error)
       // Revert on error
-      setNotifications(prev => 
+      setNotifications(prev =>
         prev.map(n => n.id === notificationId ? { ...n, read: false } : n)
       )
       setNotificationCount(prev => ({
@@ -84,7 +93,12 @@ export default function NotificationsPage() {
     }
   }
 
-  const handleDeleteNotification = async (notificationId: string) => {
+  const handleDeleteNotification = async (notificationId: string, e?: React.MouseEvent | React.PointerEvent) => {
+    // Prevent accidental activation during scroll
+    if (e && 'clientX' in e && !isTapGesture(e.clientX, e.clientY)) {
+      return
+    }
+
     // Optimistically remove from UI
     const deletedNotification = notifications.find(n => n.id === notificationId)
     setNotifications(prev => prev.filter(n => n.id !== notificationId))
@@ -183,11 +197,33 @@ export default function NotificationsPage() {
     const now = new Date()
     const notificationTime = new Date(timestamp)
     const diffInMinutes = Math.floor((now.getTime() - notificationTime.getTime()) / (1000 * 60))
-    
+
     if (diffInMinutes < 1) return 'Just now'
     if (diffInMinutes < 60) return `${diffInMinutes}m ago`
     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`
     return `${Math.floor(diffInMinutes / 1440)}d ago`
+  }
+
+  // Check if pointer moved beyond threshold (distinguishes tap from scroll)
+  const isTapGesture = (clientX: number, clientY: number): boolean => {
+    if (!pointerDownRef.current) return false
+    const dx = Math.abs(clientX - pointerDownRef.current.x)
+    const dy = Math.abs(clientY - pointerDownRef.current.y)
+    return dx <= MOVE_THRESHOLD && dy <= MOVE_THRESHOLD
+  }
+
+  // Handle pointer down to track start position
+  const handlePointerDown = (e: React.PointerEvent) => {
+    pointerDownRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      target: e.target as HTMLElement
+    }
+  }
+
+  // Handle pointer up to check if it was a tap
+  const handlePointerUp = (e: React.PointerEvent) => {
+    pointerDownRef.current = null
   }
 
   if (loading) {
@@ -253,9 +289,19 @@ export default function NotificationsPage() {
             notifications.map(notification => (
               <div
                 key={notification.id}
-                className={`group relative bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-lg p-4 transition-colors hover:shadow-sm select-none touch-pan-y ${getNotificationAccent(notification.type)} ${
-                  notification.read 
-                    ? '' 
+                onPointerDown={handlePointerDown}
+                onPointerUp={handlePointerUp}
+                onClick={(e) => {
+                  // Only handle click if it was a tap gesture (not a scroll)
+                  if (isTapGesture(e.clientX, e.clientY)) {
+                    if (!notification.read) {
+                      handleMarkAsRead(notification.id)
+                    }
+                  }
+                }}
+                className={`group relative bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-lg p-4 transition-colors hover:shadow-sm select-none touch-pan-y cursor-pointer ${getNotificationAccent(notification.type)} ${
+                  notification.read
+                    ? ''
                     : 'bg-slate-50/50 dark:bg-slate-800/50'
                 }`}
               >
@@ -273,28 +319,28 @@ export default function NotificationsPage() {
                         {formatTime(notification.created_at)}
                       </span>
                     </div>
-                    
+
                     {/* Customer context */}
                     {getLeadContext(notification) && (
                       <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
                         Customer: {getLeadContext(notification)}
                       </p>
                     )}
-                    
+
                     {/* Message */}
                     <p className="text-sm text-slate-600 dark:text-slate-400">
                       {notification.message}
                     </p>
                   </div>
                 </div>
-                
+
                 {/* Hover actions */}
                 <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   {!notification.read && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        handleMarkAsRead(notification.id)
+                        handleMarkAsRead(notification.id, e)
                       }}
                       className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors bg-white dark:bg-card rounded shadow-sm"
                       title="Mark as read"
@@ -305,7 +351,7 @@ export default function NotificationsPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
-                      handleDeleteNotification(notification.id)
+                      handleDeleteNotification(notification.id, e)
                     }}
                     className="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors bg-white dark:bg-card rounded shadow-sm"
                     title="Delete notification"

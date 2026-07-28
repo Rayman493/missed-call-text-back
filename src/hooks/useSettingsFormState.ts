@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Business } from '@/lib/types'
+import { getDefaultOutOfOfficeTemplate, getDefaultAfterHoursTemplate } from '@/lib/out-of-office'
 
 interface SettingsFormState {
   business: Business | null
@@ -35,20 +36,27 @@ export function useSettingsFormState({
   // Update business when initialBusiness changes (e.g., from server refresh)
   useEffect(() => {
     if (initialBusiness && initialBusiness !== prevBusinessRef.current) {
+      // Apply default messages if empty to ensure UI shows the actual value that will be saved
+      const businessWithDefaults = {
+        ...initialBusiness,
+        after_hours_message: initialBusiness.after_hours_message || getDefaultAfterHoursTemplate(),
+        out_of_office_message: initialBusiness.out_of_office_message || getDefaultOutOfOfficeTemplate()
+      }
+
       setState(prev => {
         if (prev.hasUnsavedChanges) {
-          prevBusinessRef.current = initialBusiness
+          prevBusinessRef.current = businessWithDefaults
           return {
             ...prev,
-            originalBusiness: { ...initialBusiness }
+            originalBusiness: { ...businessWithDefaults }
           }
         }
 
-        prevBusinessRef.current = initialBusiness
+        prevBusinessRef.current = businessWithDefaults
         return {
           ...prev,
-          business: { ...initialBusiness },
-          originalBusiness: { ...initialBusiness },
+          business: { ...businessWithDefaults },
+          originalBusiness: { ...businessWithDefaults },
           hasUnsavedChanges: false,
           saveError: null
         }

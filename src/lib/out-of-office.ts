@@ -16,6 +16,15 @@ export function getDefaultOutOfOfficeTemplate(): string {
 }
 
 /**
+ * Get the canonical default After Hours message template
+ * 
+ * @returns The default template with placeholders
+ */
+export function getDefaultAfterHoursTemplate(): string {
+  return "Thanks for contacting {{business_name}}. We're currently closed and will get back to you during business hours."
+}
+
+/**
  * Format the return date in a friendly format
  * 
  * @param date - The return date

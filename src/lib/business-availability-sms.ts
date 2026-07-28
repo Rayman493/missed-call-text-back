@@ -1,3 +1,5 @@
+import { getDefaultOutOfOfficeTemplate, getDefaultAfterHoursTemplate } from '@/lib/out-of-office'
+
 export type BusinessAvailabilityNoticeType = 'none' | 'after_hours' | 'out_of_office'
 
 export interface BusinessAvailabilityNoticeResult {
@@ -59,7 +61,7 @@ export function getBusinessAvailabilityNoticeForSms(business: any): BusinessAvai
     if (now >= start && now <= end) {
       const notice = business.out_of_office_message && business.out_of_office_message.trim()
         ? replaceReturnDate(replaceBusinessName(business.out_of_office_message, business), business)
-        : `Thanks for contacting ${business.name || 'the business'}. We are currently out of office and responses may be delayed. We’ll be back on ${new Date(end).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}. Please provide details about what you need and we will get back to you as soon as possible.`
+        : replaceReturnDate(replaceBusinessName(getDefaultOutOfOfficeTemplate(), business), business)
 
       return { type: 'out_of_office', notice }
     }
@@ -68,7 +70,7 @@ export function getBusinessAvailabilityNoticeForSms(business: any): BusinessAvai
   if (!isWithinBusinessHoursForSms(business)) {
     const notice = business.after_hours_message && business.after_hours_message.trim()
       ? replaceBusinessName(business.after_hours_message, business)
-      : `Thanks for calling ${business.name || 'the business'}. We are currently closed and will get back to you during business hours.`
+      : replaceBusinessName(getDefaultAfterHoursTemplate(), business)
 
     return { type: 'after_hours', notice }
   }
