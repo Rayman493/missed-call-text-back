@@ -78,7 +78,7 @@ const config: CapacitorConfig = {
     SplashScreen: {
       launchShowDuration: 2000,
       launchAutoHide: true,
-      backgroundColor: '#ffffff',
+      backgroundColor: '#020617',
       androidSplashResourceName: 'splash',
       androidScaleType: 'CENTER_CROP',
       showSpinner: true,
@@ -87,7 +87,7 @@ const config: CapacitorConfig = {
     },
     StatusBar: {
       style: 'DARK',
-      overlaysWebView: true,
+      overlaysWebView: false,
     },
     Keyboard: {
       resizeOnFullScreen: false,

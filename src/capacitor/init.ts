@@ -65,10 +65,16 @@ export async function initializeCapacitor() {
 
   try {
     // Initialize Status Bar
+    const platform = Capacitor.getPlatform();
+    
+    // iOS: Prevent WebView from extending beneath status bar
+    if (platform === 'ios') {
+      await StatusBar.setOverlaysWebView({ overlay: false });
+      await StatusBar.setBackgroundColor({ color: '#020617' }); // Match dark theme background
+    }
+    
     await StatusBar.setStyle({ style: Style.Dark })
     console.log('[Capacitor] Status bar configured');
-    // Note: WebView overlays status bar (overlaysWebView: true in capacitor.config.ts)
-    // CSS root scrim handles safe-area background, no native background needed
 
     // Hide splash screen
     await SplashScreen.hide();

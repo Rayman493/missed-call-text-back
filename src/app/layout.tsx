@@ -99,12 +99,6 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.className} antialiased`}>
-        {/* Fixed iPhone safe-area background at root level */}
-        <div
-          aria-hidden="true"
-          className="fixed inset-x-0 top-0 z-[100] bg-background pointer-events-none"
-          style={{ height: 'env(safe-area-inset-top)' }}
-        />
         <CapacitorInitializer />
         <NativeOfflineBoundary>
           <GlobalErrorBoundary>
