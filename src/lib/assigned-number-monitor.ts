@@ -82,8 +82,8 @@ export async function checkAssignedNumberIntegrityWith(deps: MonitorDeps): Promi
         findings.push({ type: 'integrity_error', businessId: b.id, summary: 'twilio_numbers assigned to a different business' })
         await deps.recordIncident({ businessId: b.id, businessName: b.name, phone: phone, sid, timestamp: new Date().toISOString(), reason: 'assigned_number_integrity_error', summary: 'twilio_numbers.business_id mismatch' })
       }
-      if (tn.status !== 'assigned') {
-        findings.push({ type: 'integrity_error', businessId: b.id, summary: `twilio_numbers status is ${tn.status} (expected assigned)` })
+      if (tn.status !== 'assigned' && tn.status !== 'active') {
+        findings.push({ type: 'integrity_error', businessId: b.id, summary: `twilio_numbers status is ${tn.status} (expected assigned or active)` })
         await deps.recordIncident({ businessId: b.id, businessName: b.name, phone: phone, sid, timestamp: new Date().toISOString(), reason: 'assigned_number_integrity_error', summary: `twilio_numbers.status=${tn.status}` })
       }
       if (phone && tn.phone_number !== phone) {
