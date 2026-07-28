@@ -270,6 +270,18 @@ describe('Server Subscription Guard', () => {
       }
     })
 
+    it('should throw error for unexpected Supabase query errors', async () => {
+      mockSupabase.from.mockReturnValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(async () => ({ data: null, error: { code: '42501', message: 'Permission denied' } }))
+          }))
+        }))
+      })
+
+      await expect(requireSubscriptionAccessWithClient(mockSupabase as any, 'user1')).rejects.toThrow('Business lookup failed')
+    })
+
     it('should return 403 when user does not own business', async () => {
       const mockBusiness = {
         id: 'biz1',

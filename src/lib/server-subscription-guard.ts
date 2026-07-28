@@ -68,7 +68,24 @@ async function getBusinessWithSubscriptionFields(
     errorHint: error?.hint
   })
 
-  if (error || !data) {
+  if (error) {
+    // Distinguish between row not found (expected) and other errors (unexpected)
+    if (error.code === 'PGRST116') {
+      // Row not found - this is the expected BUSINESS_NOT_FOUND case
+      return null
+    } else {
+      // Other error (RLS denial, network, schema, etc.) - this is unexpected
+      console.error('[SUBSCRIPTION GUARD] Unexpected business lookup error:', {
+        userId,
+        errorCode: error.code,
+        errorMessage: error.message,
+        errorDetails: error.details
+      })
+      throw new Error(`Business lookup failed: ${error.message}`)
+    }
+  }
+
+  if (!data) {
     return null
   }
 

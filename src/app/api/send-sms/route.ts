@@ -22,7 +22,14 @@ export async function POST(request: Request) {
     const token = authHeader.replace('Bearer ', '')
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      }
     )
 
     const { data: { user }, error: userError } = await supabase.auth.getUser(token)
