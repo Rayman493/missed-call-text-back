@@ -519,25 +519,13 @@ export async function POST(request: NextRequest) {
 
     // Create notification for voicemail
     try {
-      if (isUpdateVoicemail) {
-        // Use repeat caller update notification
-        await notificationServiceServer.notifyVoicemailReceived(
-          business.id,
-          lead.name || 'Customer',
-          normalizedCallerPhone,
-          lead.id
-        );
-        console.log('[UPDATE VOICEMAIL] Repeat caller update notification created');
-      } else {
-        // Use normal voicemail notification
-        await notificationServiceServer.notifyVoicemailReceived(
-          business.id,
-          'Customer',
-          normalizedCallerPhone,
-          lead.id
-        );
-        console.log('[VOICEMAIL] Notification created for voicemail');
-      }
+      await notificationServiceServer.notifyVoicemailReceived(
+        business.id,
+        lead.name || '',
+        normalizedCallerPhone,
+        lead.id
+      );
+      console.log('[VOICEMAIL] Notification created for voicemail');
     } catch (error) {
       console.error('[VOICEMAIL] Failed to create voicemail notification:', error);
     }

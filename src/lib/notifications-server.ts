@@ -71,12 +71,23 @@ export const NOTIFICATION_TEMPLATES = {
     action_text: 'Fix Issue'
   }),
 
-  voicemail_received: (data: { leadName: string; leadPhone: string; leadId: string }) => ({
-    title: 'New Voicemail',
-    message: `${data.leadName} (${data.leadPhone}) left a voicemail`,
-    action_url: `/dashboard/leads/${data.leadId}`,
-    action_text: 'Listen'
-  }),
+  voicemail_received: (data: { leadName: string; leadPhone: string; leadId: string }) => {
+    // Placeholder values that should be treated as missing names
+    const placeholderNames = ['Customer', 'Unknown', 'Unknown Customer', 'Caller']
+    const trimmedName = data.leadName?.trim()
+    const isPlaceholder = trimmedName && placeholderNames.includes(trimmedName)
+    const isMeaningfulName = trimmedName && !isPlaceholder && trimmedName.length > 0
+
+    // Fallback priority: meaningful name > formatted phone > "Customer"
+    const displayName = isMeaningfulName ? trimmedName : (data.leadPhone ? `Customer (${data.leadPhone})` : 'Customer')
+
+    return {
+      title: 'New Voicemail',
+      message: `${displayName} left a voicemail`,
+      action_url: `/dashboard/leads/${data.leadId}`,
+      action_text: 'Listen'
+    }
+  },
 
   ai_intake_completed: (data: { leadName: string; leadPhone: string; leadId: string; serviceRequested?: string; aiCallRecordId?: string }) => ({
     title: 'New AI Intake Lead',
