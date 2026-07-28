@@ -257,32 +257,68 @@ export async function sendSms(
       }
     } else {
       // Insert into messages table for lead/conversation messages
+      console.log('[SMS PERSISTENCE] Attempting to insert simulated message into database', {
+        lead_id: options?.lead_id,
+        conversation_id: options?.conversation_id,
+        client_message_id: options?.clientMessageId,
+        is_simulated: true
+      });
+
+      const simulatedSid = `SIM_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const insertPayload = {
+        lead_id: options?.lead_id,
+        conversation_id: options?.conversation_id,
+        direction: 'outbound' as const,
+        body: message,
+        from_phone: business.twilio_phone_number,
+        to_phone: to,
+        twilio_message_sid: simulatedSid,
+        status: 'simulated',
+        error_message: null,
+        created_at: new Date().toISOString(),
+      };
+
+      console.log('[SMS PERSISTENCE] Simulated insert payload (sanitized):', {
+        lead_id: insertPayload.lead_id,
+        conversation_id: insertPayload.conversation_id,
+        direction: insertPayload.direction,
+        body_length: insertPayload.body.length,
+        from_phone_masked: insertPayload.from_phone ? insertPayload.from_phone.substring(0, 3) + '***' + insertPayload.from_phone.substring(insertPayload.from_phone.length - 4) : null,
+        to_phone_masked: insertPayload.to_phone ? insertPayload.to_phone.substring(0, 3) + '***' + insertPayload.to_phone.substring(insertPayload.to_phone.length - 4) : null,
+        twilio_message_sid: insertPayload.twilio_message_sid,
+        status: insertPayload.status
+      });
+
       const { data: insertedMessage, error: insertError } = await supabase
         .from('messages')
-        .insert({
-          lead_id: options?.lead_id,
-          conversation_id: options?.conversation_id,
-          direction: 'outbound',
-          body: message,
-          from_phone: business.twilio_phone_number,
-          to_phone: to,
-          twilio_message_sid: `SIM_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          status: 'simulated',
-          error_message: null,
-          created_at: new Date().toISOString(),
-        })
+        .insert(insertPayload)
         .select('id')
         .single();
 
+      console.log('[SMS PERSISTENCE] Supabase simulated insert result:', {
+        success: !insertError,
+        message_id: insertedMessage?.id,
+        error_code: insertError?.code,
+        error_message: insertError?.message,
+        error_details: insertError?.details,
+        error_hint: insertError?.hint
+      });
+
       if (insertError) {
-        console.error('[SMS] Failed to insert simulated message record:', insertError);
-      } else {
-        console.log('[MESSAGE INSERTED] Simulated message record inserted successfully', {
+        console.error('[SMS PERSISTENCE FAILED] Simulated database insert error:', {
           lead_id: options?.lead_id,
+          conversation_id: options?.conversation_id,
+          error_code: insertError.code,
+          error_message: insertError.message,
+          error_details: insertError.details,
+          error_hint: insertError.hint
+        });
+      } else {
+        console.log('[SMS PERSISTENCE SUCCESS] Simulated message record stored:', {
           message_id: insertedMessage.id,
-          message_body: message.substring(0, 50),
-          to: maskPhone(to),
-          message_type: 'simulated'
+          lead_id: options?.lead_id,
+          conversation_id: options?.conversation_id,
+          twilio_message_sid: simulatedSid
         });
       }
 
@@ -514,11 +550,10 @@ export async function sendSms(
       console.log('[FOLLOWUP TWILIO SEND RESULT] Twilio API call succeeded (direct from), SID:', messageResult.sid);
     }
 
-    console.log('[SMS SEND] Twilio accepted message:', {
-      business_id: business.id,
-      to,
+    console.log('[SMS SEND] Twilio send succeeded:', {
       message_sid: messageResult.sid,
       status: messageResult.status,
+      business_id: business.id,
       lead_id: options?.lead_id,
       conversation_id: options?.conversation_id
     });
@@ -632,50 +667,78 @@ export async function sendSms(
       console.log('[SMS TRACE sendSms STEP_12A_COMPLETE]', { messageId, insertError: !!insertError });
     } else {
       // Insert into messages table for lead/conversation messages
-      console.log('[SMS TRACE sendSms STEP_12B_INSERTING_MESSAGE]', { lead_id: options?.lead_id, conversation_id: options?.conversation_id, clientMessageId: options?.clientMessageId });
+      console.log('[SMS PERSISTENCE] Attempting to insert message into database', {
+        lead_id: options?.lead_id,
+        conversation_id: options?.conversation_id,
+        client_message_id: options?.clientMessageId,
+        twilio_message_sid: messageResult.sid
+      });
+
+      const insertPayload = {
+        lead_id: options?.lead_id,
+        conversation_id: options?.conversation_id,
+        direction: 'outbound' as const,
+        body: message,
+        from_phone: business.twilio_phone_number,
+        to_phone: to,
+        twilio_message_sid: messageResult.sid,
+        status: actualStatus,
+        sent_at: new Date().toISOString(),
+        status_updated_at: new Date().toISOString(),
+        error_code: twilioErrorCode,
+        error_message: twilioErrorMessage,
+        created_at: new Date().toISOString(),
+        is_manual: options?.isManual || false,
+        client_message_id: options?.clientMessageId || null,
+      };
+
+      console.log('[SMS PERSISTENCE] Insert payload (sanitized):', {
+        lead_id: insertPayload.lead_id,
+        conversation_id: insertPayload.conversation_id,
+        direction: insertPayload.direction,
+        body_length: insertPayload.body.length,
+        from_phone_masked: insertPayload.from_phone ? insertPayload.from_phone.substring(0, 3) + '***' + insertPayload.from_phone.substring(insertPayload.from_phone.length - 4) : null,
+        to_phone_masked: insertPayload.to_phone ? insertPayload.to_phone.substring(0, 3) + '***' + insertPayload.to_phone.substring(insertPayload.to_phone.length - 4) : null,
+        twilio_message_sid: insertPayload.twilio_message_sid,
+        status: insertPayload.status,
+        is_manual: insertPayload.is_manual,
+        client_message_id: insertPayload.client_message_id
+      });
+
       const { data: insertedMessage, error: insertError } = await supabase
         .from('messages')
-        .insert({
-          business_id: business.id,
-          lead_id: options?.lead_id,
-          conversation_id: options?.conversation_id,
-          direction: 'outbound',
-          body: message,
-          from_phone: business.twilio_phone_number,
-          to_phone: to,
-          twilio_message_sid: messageResult.sid,
-          status: actualStatus, // Use fetched status if available
-          sent_at: new Date().toISOString(),
-          status_updated_at: new Date().toISOString(),
-          error_code: twilioErrorCode,
-          error_message: twilioErrorMessage,
-          created_at: new Date().toISOString(),
-          is_manual: options?.isManual || false,
-          client_message_id: options?.clientMessageId || null, // Persist client-generated ID for correlation
-        })
+        .insert(insertPayload)
         .select('id, client_message_id')
         .single();
 
+      console.log('[SMS PERSISTENCE] Supabase insert result:', {
+        success: !insertError,
+        message_id: insertedMessage?.id,
+        client_message_id: insertedMessage?.client_message_id,
+        error_code: insertError?.code,
+        error_message: insertError?.message,
+        error_details: insertError?.details,
+        error_hint: insertError?.hint
+      });
+
       if (insertError) {
-        console.error('[SMS SEND] message insert failed:', {
+        console.error('[SMS PERSISTENCE FAILED] Database insert error:', {
           message_sid: messageResult.sid,
           lead_id: options?.lead_id,
           conversation_id: options?.conversation_id,
-          error: insertError
+          error_code: insertError.code,
+          error_message: insertError.message,
+          error_details: insertError.details,
+          error_hint: insertError.hint
         });
       } else {
-        console.log('[MESSAGE INSERTED] Message record stored with delivery info:', {
+        console.log('[SMS PERSISTENCE SUCCESS] Message record stored:', {
           message_sid: messageResult.sid,
           message_id: insertedMessage.id,
+          client_message_id: insertedMessage.client_message_id,
           business_id: business.id,
           lead_id: options?.lead_id,
-          from: business.twilio_phone_number,
-          to,
-          twilio_sid: messageResult.sid,
-          twilio_status: actualStatus,
-          error_code: twilioErrorCode,
-          error_message: twilioErrorMessage,
-          message_body: message.substring(0, 50)
+          conversation_id: options?.conversation_id
         });
       }
 
@@ -827,7 +890,6 @@ export async function sendMms(
     const { data: insertedMessage, error: insertError } = await supabase
       .from('messages')
       .insert({
-        business_id: business.id,
         lead_id: options?.lead_id,
         conversation_id: options?.conversation_id,
         direction: 'outbound',
@@ -889,48 +951,91 @@ export async function sendMms(
       statusCallback: statusCallbackUrl,
     });
 
-    console.log('[MMS SEND] Twilio API call succeeded:', {
+    console.log('[MMS SEND] Twilio send succeeded:', {
       message_sid: messageResult.sid,
-      status: messageResult.status
+      status: messageResult.status,
+      business_id: business.id,
+      lead_id: options?.lead_id,
+      conversation_id: options?.conversation_id
     });
 
     // Insert successful message record into database
+    console.log('[SMS PERSISTENCE] Attempting to insert MMS message into database', {
+      lead_id: options?.lead_id,
+      conversation_id: options?.conversation_id,
+      client_message_id: options?.clientMessageId,
+      twilio_message_sid: messageResult.sid,
+      media_count: mediaUrls.length
+    });
+
+    const insertPayload = {
+      lead_id: options?.lead_id,
+      conversation_id: options?.conversation_id,
+      direction: 'outbound' as const,
+      body: message,
+      from_phone: business.twilio_phone_number,
+      to_phone: to,
+      twilio_message_sid: messageResult.sid,
+      status: messageResult.status,
+      sent_at: new Date().toISOString(),
+      status_updated_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      is_manual: options?.isManual || false,
+      media_count: mediaUrls.length,
+      message_type: !message && mediaUrls.length > 0 ? 'image' : message && mediaUrls.length > 0 ? 'mixed' : 'text',
+      client_message_id: options?.clientMessageId || null,
+    };
+
+    console.log('[SMS PERSISTENCE] MMS insert payload (sanitized):', {
+      lead_id: insertPayload.lead_id,
+      conversation_id: insertPayload.conversation_id,
+      direction: insertPayload.direction,
+      body_length: insertPayload.body.length,
+      from_phone_masked: insertPayload.from_phone ? insertPayload.from_phone.substring(0, 3) + '***' + insertPayload.from_phone.substring(insertPayload.from_phone.length - 4) : null,
+      to_phone_masked: insertPayload.to_phone ? insertPayload.to_phone.substring(0, 3) + '***' + insertPayload.to_phone.substring(insertPayload.to_phone.length - 4) : null,
+      twilio_message_sid: insertPayload.twilio_message_sid,
+      status: insertPayload.status,
+      media_count: insertPayload.media_count,
+      message_type: insertPayload.message_type,
+      is_manual: insertPayload.is_manual,
+      client_message_id: insertPayload.client_message_id
+    });
+
     const { data: insertedMessage, error: insertError } = await supabase
       .from('messages')
-      .insert({
-        business_id: business.id,
-        lead_id: options?.lead_id,
-        conversation_id: options?.conversation_id,
-        direction: 'outbound',
-        body: message,
-        from_phone: business.twilio_phone_number,
-        to_phone: to,
-        twilio_message_sid: messageResult.sid,
-        status: messageResult.status,
-        sent_at: new Date().toISOString(),
-        status_updated_at: new Date().toISOString(),
-        created_at: new Date().toISOString(),
-        is_manual: options?.isManual || false,
-        media_count: mediaUrls.length,
-        message_type: !message && mediaUrls.length > 0 ? 'image' : message && mediaUrls.length > 0 ? 'mixed' : 'text',
-        client_message_id: options?.clientMessageId || null, // Persist client-generated ID for correlation
-      })
+      .insert(insertPayload)
       .select('id, client_message_id')
       .single();
 
+    console.log('[SMS PERSISTENCE] Supabase MMS insert result:', {
+      success: !insertError,
+      message_id: insertedMessage?.id,
+      client_message_id: insertedMessage?.client_message_id,
+      error_code: insertError?.code,
+      error_message: insertError?.message,
+      error_details: insertError?.details,
+      error_hint: insertError?.hint
+    });
+
     if (insertError) {
-      console.error('[MMS SEND] message insert failed:', insertError);
+      console.error('[SMS PERSISTENCE FAILED] MMS database insert error:', {
+        message_sid: messageResult.sid,
+        lead_id: options?.lead_id,
+        conversation_id: options?.conversation_id,
+        error_code: insertError.code,
+        error_message: insertError.message,
+        error_details: insertError.details,
+        error_hint: insertError.hint
+      });
     } else {
-      console.log('[MESSAGE INSERTED] MMS message record stored successfully', {
+      console.log('[SMS PERSISTENCE SUCCESS] MMS message record stored:', {
         message_sid: messageResult.sid,
         message_id: insertedMessage.id,
+        client_message_id: insertedMessage.client_message_id,
         business_id: business.id,
         lead_id: options?.lead_id,
-        from: business.twilio_phone_number,
-        to,
-        twilio_status: messageResult.status,
-        message_body: message.substring(0, 50),
-        media_count: mediaUrls?.length || 0
+        conversation_id: options?.conversation_id,
+        media_count: mediaUrls.length
       });
     }
 
@@ -1017,32 +1122,63 @@ async function logFailedMessage(
     }
     
     // Insert into messages table for lead/conversation messages
+    console.log('[SMS PERSISTENCE] Attempting to insert failed message into database', {
+      lead_id: options?.lead_id,
+      conversation_id: options?.conversation_id,
+      twilio_api_called: twilioApiCalled,
+      error_code: errorCode
+    });
+
+    const insertPayload = {
+      lead_id: options?.lead_id,
+      conversation_id: options?.conversation_id,
+      direction: 'outbound' as const,
+      body: message,
+      from_phone: business.twilio_phone_number,
+      to_phone: to,
+      twilio_message_sid: null,
+      status: twilioApiCalled ? 'failed' : 'not_sent',
+      status_updated_at: new Date().toISOString(),
+      error_message: errorMessage || 'Failed to send SMS',
+      error_code: errorCode || 'UNKNOWN',
+      created_at: new Date().toISOString(),
+    };
+
+    console.log('[SMS PERSISTENCE] Failed message insert payload (sanitized):', {
+      lead_id: insertPayload.lead_id,
+      conversation_id: insertPayload.conversation_id,
+      direction: insertPayload.direction,
+      body_length: insertPayload.body.length,
+      from_phone_masked: insertPayload.from_phone ? insertPayload.from_phone.substring(0, 3) + '***' + insertPayload.from_phone.substring(insertPayload.from_phone.length - 4) : null,
+      to_phone_masked: insertPayload.to_phone ? insertPayload.to_phone.substring(0, 3) + '***' + insertPayload.to_phone.substring(insertPayload.to_phone.length - 4) : null,
+      status: insertPayload.status,
+      error_code: insertPayload.error_code
+    });
+
     const { error: insertError } = await supabase
       .from('messages')
-      .insert({
-        lead_id: options?.lead_id,
-        conversation_id: options?.conversation_id,
-        direction: 'outbound',
-        body: message,
-        from_phone: business.twilio_phone_number,
-        to_phone: to,
-        twilio_message_sid: null,
-        status: twilioApiCalled ? 'failed' : 'not_sent', // Distinguish between Twilio failed vs never called
-        status_updated_at: new Date().toISOString(),
-        error_message: errorMessage || 'Failed to send SMS',
-        error_code: errorCode || 'UNKNOWN',
-        created_at: new Date().toISOString(),
-      });
+      .insert(insertPayload);
+
+    console.log('[SMS PERSISTENCE] Supabase failed message insert result:', {
+      success: !insertError,
+      error_code: insertError?.code,
+      error_message: insertError?.message,
+      error_details: insertError?.details,
+      error_hint: insertError?.hint
+    });
 
     if (insertError) {
-      console.error('[SMS FAILED] Failed message insert error:', {
+      console.error('[SMS PERSISTENCE FAILED] Failed message database insert error:', {
         business_id: business.id,
         lead_id: options?.lead_id,
         conversation_id: options?.conversation_id,
-        error: insertError
+        error_code: insertError.code,
+        error_message: insertError.message,
+        error_details: insertError.details,
+        error_hint: insertError.hint
       });
     } else {
-      console.log('[SMS FAILED] Failed message logged successfully');
+      console.log('[SMS PERSISTENCE SUCCESS] Failed message logged successfully');
     }
   } catch (logError) {
     console.error('[SMS FAILED] Error logging failed message:', logError);
