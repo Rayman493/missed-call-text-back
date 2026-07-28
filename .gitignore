@@ -83,3 +83,7 @@ Thumbs.db
 
 .vercel
 .env*
+
+# Security reports
+PENETRATION_TEST_REPORT.md
+SECURITY_AUDIT_FINAL.md
