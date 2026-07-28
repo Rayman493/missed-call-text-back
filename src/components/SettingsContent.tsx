@@ -1081,7 +1081,7 @@ export default function SettingsContent() {
             </div>
 
             {/* Settings Navigation Tabs - sticky only */}
-            <div className="sticky z-40 border-b border-border bg-background py-2 top-0">
+            <div className="sticky z-40 border-b border-border bg-background py-2 top-0 backdrop-blur-sm" style={{ backgroundColor: 'var(--background)' }}>
               <nav ref={settingsTabsNavRef} className="flex items-center gap-1 overflow-x-auto custom-scrollbar-horizontal">
                 <button
                   ref={(element) => { sectionTabRefs.current.general = element }}
