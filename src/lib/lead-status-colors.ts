@@ -8,7 +8,7 @@
  * - Scheduled: Violet (appointment booked)
  * - Payment Requested: Amber (waiting on customer payment)
  * - Paid: Green (payment received)
- * - Completed: Sky (job finished successfully)
+ * - Completed: Slate (job finished successfully)
  * - Lost: Red (customer declined or opportunity lost)
  * - Ignored: Slate (customer ignored)
  */
@@ -86,14 +86,14 @@ export const statusColorMap: Record<LeadLifecycleStatus, StatusColorConfig> = {
     iconBg: 'bg-green-500/10 dark:bg-green-400/10'
   },
   'completed': {
-    accent: 'bg-sky-400',
-    border: 'border-sky-500/20',
-    accentColor: 'rgb(56 189 248)',
-    badgeBg: 'bg-sky-500/10 dark:bg-sky-400/10',
-    badgeText: 'text-sky-700 dark:text-sky-300',
-    badgeBorder: 'ring-1 ring-inset ring-sky-500/20 dark:ring-sky-400/20',
-    text: 'text-sky-400',
-    iconBg: 'bg-sky-500/10 dark:bg-sky-400/10'
+    accent: 'bg-slate-400',
+    border: 'border-slate-500/20',
+    accentColor: 'rgb(148 163 184)',
+    badgeBg: 'bg-slate-500/10 dark:bg-slate-400/10',
+    badgeText: 'text-slate-700 dark:text-slate-300',
+    badgeBorder: 'ring-1 ring-inset ring-slate-500/20 dark:ring-slate-400/20',
+    text: 'text-slate-400',
+    iconBg: 'bg-slate-500/10 dark:bg-slate-400/10'
   },
   'lost': {
     accent: 'bg-red-400',
@@ -218,9 +218,8 @@ export function getCardAccentClasses(status: string): string {
     'rgb(192 132 252)': 'before:bg-violet-400',
     'rgb(251 191 36)': 'before:bg-amber-400',
     'rgb(74 222 128)': 'before:bg-green-400',
-    'rgb(56 189 248)': 'before:bg-sky-400',
-    'rgb(248 113 113)': 'before:bg-red-400',
     'rgb(148 163 184)': 'before:bg-slate-400',
+    'rgb(248 113 113)': 'before:bg-red-400',
     'rgb(203 213 225)': 'before:bg-slate-300'
   }
   const bgClass = accentMap[config.accentColor] || 'before:bg-slate-400'
