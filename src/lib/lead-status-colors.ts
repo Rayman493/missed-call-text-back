@@ -87,13 +87,13 @@ export const statusColorMap: Record<LeadLifecycleStatus, StatusColorConfig> = {
   },
   'completed': {
     accent: 'bg-slate-400',
-    border: 'border-slate-500/20',
+    border: 'border-slate-400/30',
     accentColor: 'rgb(148 163 184)',
-    badgeBg: 'bg-slate-500/10 dark:bg-slate-400/10',
+    badgeBg: 'bg-slate-500/20 dark:bg-slate-400/20',
     badgeText: 'text-slate-700 dark:text-slate-300',
-    badgeBorder: 'ring-1 ring-inset ring-slate-500/20 dark:ring-slate-400/20',
-    text: 'text-slate-400',
-    iconBg: 'bg-slate-500/10 dark:bg-slate-400/10'
+    badgeBorder: 'ring-1 ring-inset ring-slate-400/30 dark:ring-slate-400/30',
+    text: 'text-slate-300',
+    iconBg: 'bg-slate-500/20 dark:bg-slate-400/20'
   },
   'lost': {
     accent: 'bg-red-400',
