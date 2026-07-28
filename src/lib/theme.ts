@@ -33,9 +33,9 @@ export const textTokens = {
 
 // Border tokens
 export const borderTokens = {
-  default: 'border-white/10 dark:border-white/10',
+  default: 'border-white/15 dark:border-white/15',
   light: 'border-white/10 dark:border-white/10',
-  heavy: 'border-white/15 dark:border-white/15',
+  heavy: 'border-white/20 dark:border-white/20',
   focus: 'border-blue-500 dark:border-blue-400',
   error: 'border-red-300 dark:border-red-600',
   success: 'border-green-300 dark:border-green-600',
