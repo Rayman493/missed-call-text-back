@@ -34,6 +34,16 @@ async function getBusinessWithSubscriptionFields(
   supabase: any,
   userId: string
 ): Promise<Business | null> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'unknown'
+  const projectHostname = new URL(supabaseUrl).hostname
+
+  console.log('[SUBSCRIPTION GUARD] Business lookup attempt:', {
+    userId,
+    projectHostname,
+    hasData: false,
+    hasError: false
+  })
+
   const { data, error } = await supabase
     .from('businesses')
     .select(`
@@ -46,6 +56,17 @@ async function getBusinessWithSubscriptionFields(
     `)
     .eq('user_id', userId)
     .single()
+
+  console.log('[SUBSCRIPTION GUARD] Business lookup result:', {
+    userId,
+    projectHostname,
+    hasData: !!data,
+    hasError: !!error,
+    errorCode: error?.code,
+    errorMessage: error?.message,
+    errorDetails: error?.details,
+    errorHint: error?.hint
+  })
 
   if (error || !data) {
     return null
