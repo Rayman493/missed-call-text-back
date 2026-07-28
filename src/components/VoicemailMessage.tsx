@@ -193,17 +193,6 @@ export default function VoicemailMessage({
       return
     }
 
-    console.log('[VOICEMAIL PLAY REQUEST]', {
-      voicemailId: recording.id,
-      hasAudioElement: !!audio,
-      src: audio.currentSrc || audio.src,
-      readyState: audio.readyState,
-      networkState: audio.networkState,
-      paused: audio.paused,
-      currentTime: audio.currentTime,
-      duration: audio.duration
-    })
-
     if (isPlaying) {
       audio.pause()
       setIsPlaying(false)
@@ -225,7 +214,6 @@ export default function VoicemailMessage({
 
       // Prevent multiple play requests on the same audio element
       if (!audio.paused) {
-        console.log('[VOICEMAIL PLAY SKIPPED] Audio already playing', { voicemailId: recording.id })
         return
       }
 
@@ -236,13 +224,11 @@ export default function VoicemailMessage({
           // Request play from audio manager (will pause other voicemails if needed)
           const canPlay = await audioManager.requestPlay(recording.id)
           if (!canPlay) {
-            console.log('[VOICEMAIL PLAY DENIED] Audio manager denied play request', { voicemailId: recording.id })
             return
           }
 
           await audio.play()
           setIsPlaying(true)
-          console.log('[VOICEMAIL PLAY SUCCESS] Audio started playing', { voicemailId: recording.id })
         } catch (error) {
           console.error('[VOICEMAIL PLAY FAILED]', {
             voicemailId: recording.id,
@@ -312,18 +298,15 @@ export default function VoicemailMessage({
               
               // Wait for audio to load before playing
               audio.addEventListener('canplay', async () => {
-                console.log('[VOICEMAIL CANPLAY] Audio ready to play', { voicemailId: recording.id })
                 // Request play from audio manager (will pause other voicemails if needed)
                 const canPlay = await audioManager.requestPlay(recording.id)
                 if (!canPlay) {
-                  console.log('[VOICEMAIL PLAY DENIED] Audio manager denied play request on canplay', { voicemailId: recording.id })
                   return
                 }
 
                 try {
                   await audio.play()
                   setIsPlaying(true)
-                  console.log('[VOICEMAIL PLAY SUCCESS] Audio started playing after fetch', { voicemailId: recording.id })
                 } catch (error) {
                   console.error('[VOICEMAIL PLAY FAILED] After audio fetch', {
                     voicemailId: recording.id,
@@ -558,8 +541,6 @@ export default function VoicemailMessage({
                     onEnded={handleEnded}
                     onSeeked={handleSeeked}
                     onError={handleError}
-                    onPlay={() => console.log('[VOICEMAIL DEBUG] native play event fired for:', recording.id)}
-                    onPause={() => console.log('[VOICEMAIL DEBUG] native pause event fired for:', recording.id)}
                   />
                 </div>
               )}

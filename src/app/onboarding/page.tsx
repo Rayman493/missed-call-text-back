@@ -135,13 +135,11 @@ export default function OnboardingPage() {
         // If has business but no active subscription and profile is complete, resume on
         // the dedicated checkout resume page instead of auto-firing Stripe here.
         else if (profileComplete && !hasActiveSub) {
-          console.log('[Onboarding] Business profile complete but no active subscription, redirecting to complete-setup')
           redirectTarget = '/complete-setup'
           redirectReason = 'Business exists, resume checkout'
         }
         // Business exists but profile incomplete - stay on onboarding to complete profile
         else if (!profileComplete) {
-          console.log('[Onboarding] Business exists but profile incomplete, staying on onboarding', { hasName, hasPhone })
           redirectTarget = '/onboarding'
           redirectReason = 'Business exists but profile incomplete'
         }
@@ -253,7 +251,6 @@ export default function OnboardingPage() {
       }
 
       // Use centralized getOrCreateBusiness API - backend will provision dedicated local number
-      console.log('[Onboarding] Creating/updating business for user:', user.id)
       const response = await fetch('/api/business/get-or-create', {
         method: 'POST',
         headers: {
@@ -274,7 +271,6 @@ export default function OnboardingPage() {
       })
 
       const responseData = await response.json()
-      console.log('[Onboarding] API response:', responseData)
 
       if (!response.ok) {
         const errorData = responseData || { error: 'Unknown error' }
@@ -291,8 +287,6 @@ export default function OnboardingPage() {
         console.error('[Onboarding] No business returned from API. Response:', responseData)
         throw new Error('Failed to create business: no business in response')
       }
-
-      console.log('[Onboarding] Business created/updated successfully:', business.id)
 
       // Refresh business context to update state
       await refreshBusiness()

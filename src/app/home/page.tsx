@@ -145,7 +145,6 @@ function HomepageFooter() {
 export default function PublicHome() {
   const [activeTab, setActiveTab] = useState('ai')
   const { user } = useAuth()
-  console.log('[PUBLIC HOME ROUTE RENDER] Rendering public homepage at /home - NO AUTH CHECK')
 
   const isLoggedIn = !!user
   

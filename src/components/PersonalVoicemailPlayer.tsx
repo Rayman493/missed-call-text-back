@@ -148,11 +148,6 @@ export function PersonalVoicemailPlayer({
       // Fall back to storedDuration only if audio.duration is invalid
       const canonicalDuration = (audio.duration && audio.duration > 0) ? audio.duration : (storedDuration || 0)
       setDuration(canonicalDuration)
-      console.log('[PersonalVoicemailPlayer] Duration determined:', {
-        audioDuration: audio.duration,
-        storedDuration,
-        canonicalDuration
-      })
     })
     
     audio.addEventListener('timeupdate', () => {

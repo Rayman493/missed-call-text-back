@@ -61,10 +61,7 @@ export default function MobileConversationComposer({
       textareaWrapperWidth: ta.parentElement ? ta.parentElement.getBoundingClientRect().width : 0,
       sendBtnWidth: send.getBoundingClientRect().width,
     }
-    // eslint-disable-next-line no-console
-    console.log('[ComposerDiag Mobile] attrs', logAttrs)
-    // eslint-disable-next-line no-console
-    console.log('[ComposerDiag Mobile] widths(px)', widths)
+    // Development-only composer diagnostics
   }, [])
 
   // Clear images when onClearImages is called

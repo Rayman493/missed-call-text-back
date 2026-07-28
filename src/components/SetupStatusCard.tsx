@@ -75,7 +75,6 @@ export default function SetupStatusCard({
       // If user has active subscription, go to portal
       // If user needs to subscribe, go to checkout
       if (hasSubscription) {
-        console.log('[SetupStatusCard] Opening billing portal for active subscriber')
         const response = await fetch('/api/stripe/create-portal-session', {
           method: 'POST',
           headers: {
@@ -96,7 +95,6 @@ export default function SetupStatusCard({
           throw new Error('No billing portal URL returned')
         }
       } else {
-        console.log('[SetupStatusCard] Creating checkout session for non-subscriber')
         const response = await fetch('/api/stripe/create-checkout-session', {
           method: 'POST',
           headers: {

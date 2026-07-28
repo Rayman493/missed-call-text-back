@@ -48,7 +48,6 @@ export default function BusinessGuard({ children }: { children: React.ReactNode 
   // This ensures fresh business validation instead of relying on cached state
   useEffect(() => {
     if (checkoutStatus === 'cancelled' && typeof window !== 'undefined') {
-      console.log('[BusinessGuard] checkout=cancelled detected, clearing businessVerified cache')
       sessionStorage.removeItem('replyflow_business_verified')
       setBusinessVerified(false)
     }

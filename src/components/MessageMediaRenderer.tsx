@@ -68,10 +68,7 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
   const [hasLoadedFirstImage, setHasLoadedFirstImage] = useState(false)
   const [authenticatedUrls, setAuthenticatedUrls] = useState<Record<string, string>>({})
 
-  console.log('[MMS UI ATTACHMENTS LOADED]', { 
-    count: media?.length || 0,
-    mediaUrls: media?.map(m => m.media_url) 
-  })
+  // MMS UI attachments loaded
 
   // Fetch authenticated URLs for Twilio media on mount
   useEffect(() => {

@@ -53,18 +53,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Restore session on app load
     const restoreSession = async () => {
-      console.log('[Auth] startup session restore started')
       try {
         const { data: { session }, error } = await supabase.auth.getSession()
-        
-        console.log('[Auth] Initial getSession result:', session ? 'session present' : 'no session')
-        console.log('[Auth] Initial access token present:', session?.access_token ? 'yes' : 'no')
         
         if (error) {
           console.error('[Auth] Session restore error:', error)
           // Check for refresh_token_not_found error and clear stale auth state
           if (error?.message?.includes('refresh_token_not_found') || error?.message?.includes('Refresh Token Not Found')) {
-            console.log('[Auth] stale session detected - clearing Supabase auth state from localStorage')
             // Clear all Supabase keys from localStorage
             if (typeof window !== 'undefined') {
               const keysToRemove: string[] = []
@@ -75,7 +70,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 }
               }
               keysToRemove.forEach(key => localStorage.removeItem(key))
-              console.log('[Auth] stale session cleanup completed - removed', keysToRemove.length, 'Supabase keys')
             }
           }
         }
@@ -92,7 +86,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
             try {
               const { pushService } = await import('@/lib/push-service')
-              console.log('[Auth] Calling pushService.setAccessToken from initial session')
               pushService.setAccessToken(session.access_token)
             } catch (error) {
               console.error('[Auth] Failed to set push access token:', error)
@@ -107,7 +100,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error('[Auth] Session restore failed:', error)
       } finally {
-        console.log('[Auth] startup session restore completed')
         setLoading(false)
         initialLoadRef.current = false
       }
@@ -124,16 +116,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Listen to auth state changes - only once
     if (!authSubscriptionRef.current && supabase) {
       authSubscriptionRef.current = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
-        console.log('[Auth] auth event:', event)
-        console.log('[Auth] Session present:', session ? 'yes' : 'no')
-        console.log('[Auth] Access token present:', session?.access_token ? 'yes' : 'no')
         
         if (event === 'SIGNED_IN' && session) {
-          console.log('[Auth] sign-in succeeded')
           // Track sign-in time to prevent race condition with delayed stale SIGNED_OUT events
           lastSignInTimeRef.current = Date.now()
-          const currentSessionId = session.access_token?.substring(0, 10)
-          console.log('[Auth] new session ID:', currentSessionId)
         }
         
         // Prevent race condition: ignore SIGNED_OUT events within 2 seconds of a sign-in
@@ -141,7 +127,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (event === 'SIGNED_OUT' && !session) {
           const timeSinceSignIn = Date.now() - lastSignInTimeRef.current
           if (timeSinceSignIn < 2000) {
-            console.log('[Auth] ignoring delayed SIGNED_OUT event (race condition protection)', { timeSinceSignIn })
             return // Don't clear the fresh session
           }
         }
@@ -158,7 +143,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
             try {
               const { pushService } = await import('@/lib/push-service')
-              console.log('[Auth] Calling pushService.setAccessToken from auth state change')
               pushService.setAccessToken(session.access_token)
             } catch (error) {
               console.error('[Auth] Failed to set push access token:', error)
@@ -212,12 +196,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async (options?: { manual?: boolean }) => {
     const isManualLogout = options?.manual !== false // Default to true if not specified
 
-    console.log('[LOGOUT] Sign out initiated', {
-      isManualLogout,
-      pathname,
-      timestamp: new Date().toISOString()
-    })
-
     try {
       // Clear any credential-related form data from session storage
       if (typeof window !== 'undefined') {
@@ -254,16 +232,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
         localKeysToRemove.forEach(key => localStorage.removeItem(key))
-
-        console.log('[LOGOUT] Local storage cleared', {
-          keysRemoved: localKeysToRemove.length
-        })
       }
 
       // Unregister push device (native only)
       try {
         await pushService.unregisterDevice()
-        console.log('[LOGOUT] Push device unregistered')
       } catch (error) {
         console.warn('[LOGOUT] Failed to unregister push device:', error)
       }
@@ -271,7 +244,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Sign out from Supabase if available
       if (supabase) {
         await supabase.auth.signOut()
-        console.log('[LOGOUT] Supabase session cleared')
       }
 
       // Clear auth state
@@ -289,19 +261,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      console.log('[LOGOUT] Auth state cleared')
-
       // Redirect: manual logout goes to homepage, session expiration goes to signin
       if (isManualLogout) {
-        console.log('[LOGOUT] Redirecting to homepage')
         router.push('/')
       } else {
         // Session expiration: go to signin if not already on homepage
         if (pathname === '/') {
-          console.log('[LOGOUT] Already on homepage, staying here')
           router.push('/')
         } else {
-          console.log('[LOGOUT] Redirecting to signin')
           router.push('/auth/signin')
         }
       }

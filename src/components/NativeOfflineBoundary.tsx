@@ -44,12 +44,10 @@ export default function NativeOfflineBoundary({ children }: NativeOfflineBoundar
     if (!isNative) return
 
     const networkListener = Network.addListener('networkStatusChange', (status) => {
-      console.log('[OFFLINE BOUNDARY] Network status changed:', status.connected)
       setIsOffline(!status.connected)
       
       // Auto-recover when connectivity returns
       if (status.connected && isOffline) {
-        console.log('[OFFLINE BOUNDARY] Connectivity restored, reloading page')
         setTimeout(() => {
           window.location.reload()
         }, 500)
@@ -68,10 +66,8 @@ export default function NativeOfflineBoundary({ children }: NativeOfflineBoundar
       const status = await Network.getStatus()
       
       if (status.connected) {
-        console.log('[OFFLINE BOUNDARY] Connectivity restored, reloading page')
         window.location.reload()
       } else {
-        console.log('[OFFLINE BOUNDARY] Still offline')
         setIsRetrying(false)
       }
     } catch (error) {

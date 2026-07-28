@@ -59,20 +59,13 @@ export default function QuickTapToPayModal({
     const logDims = () => {
       try {
         const cs = getComputedStyle(el)
-        console.log('[QTTP DEBUG] scroll container', {
-          clientHeight: el.clientHeight,
-          scrollHeight: el.scrollHeight,
-          overflowY: cs.overflowY,
-          position: cs.position,
-          pointerEvents: cs.pointerEvents,
-          touchAction: cs.touchAction,
-        })
+        // Development-only scroll debugging
       } catch {}
     }
     logDims()
-    const onWheel = (e: WheelEvent) => { console.log('[QTTP DEBUG] wheel', { deltaY: e.deltaY }) }
-    const onTs = (e: TouchEvent) => { console.log('[QTTP DEBUG] touchstart', { touches: e.touches.length }) }
-    const onTm = (e: TouchEvent) => { console.log('[QTTP DEBUG] touchmove', { touches: e.touches.length }) }
+    const onWheel = (e: WheelEvent) => { /* wheel event */ }
+    const onTs = (e: TouchEvent) => { /* touchstart event */ }
+    const onTm = (e: TouchEvent) => { /* touchmove event */ }
     el.addEventListener('wheel', onWheel as any, { passive: true })
     el.addEventListener('touchstart', onTs as any, { passive: true })
     el.addEventListener('touchmove', onTm as any, { passive: true })
@@ -98,7 +91,7 @@ export default function QuickTapToPayModal({
       if (process.env.NODE_ENV === 'development') {
         const terminalService = TerminalBridgeService.getInstance()
         const diagnostics = terminalService.getDiagnostics()
-        console.log('[QuickTapToPayModal] Terminal diagnostics:', diagnostics)
+        // Development-only terminal diagnostics
       }
 
       setAmountCents(0)

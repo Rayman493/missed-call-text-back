@@ -195,14 +195,6 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
   const getPrimaryAction = () => {
     if (!business) return null
     
-    console.log('[CompactSetupHealth] getPrimaryAction called', {
-      source: 'CompactSetupHealth.tsx',
-      subscription_status: business?.subscription_status,
-      stripe_customer_id: business?.stripe_customer_id,
-      stripe_subscription_id: business?.stripe_subscription_id,
-      twilio_phone_number: business?.twilio_phone_number,
-    })
-    
     // Check forwarding status - only if subscription is active
     const subscriptionValid = hasValidSubscription(business.subscription_status, business.stripe_customer_id, business.stripe_subscription_id)
     const forwardingNotConfigured = subscriptionValid && (!business.business_phone_number || !business.phone_setup_completed_at || !business.call_forwarding_enabled)
@@ -215,25 +207,12 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
     // Check SMS status
     const smsNotConfigured = !business.twilio_phone_number
     
-    console.log('[CompactSetupHealth] Navigation conditions', {
-      subscriptionValid,
-      forwardingNotConfigured,
-      forwardingActive,
-      subscriptionInactive,
-      smsNotConfigured,
-      wouldNavigateToForwarding: forwardingNotConfigured
-    })
-    
     // Return most critical action first
     if (forwardingActive) {
       return null // No action needed when forwarding is active
     }
     
     if (forwardingNotConfigured) {
-      console.log('[CompactSetupHealth] Would navigate to /setup/phone-forwarding', {
-        allowed: true,
-        reason: 'Subscription valid and forwarding not configured'
-      })
       return {
         text: 'Complete Phone Setup',
         href: '/setup/phone-forwarding',
@@ -242,22 +221,14 @@ export default function CompactSetupHealth({ isExpanded: propExpanded, onToggle 
     }
     
     if (subscriptionInactive) {
-      console.log('[CompactSetupHealth] Would show Manage Subscription', {
-        allowed: true,
-        reason: 'Subscription inactive'
-      })
       return {
         text: 'Manage Subscription',
-        onClick: () => {/* TODO: Handle subscription management */},
+        onClick: () => {},
         type: 'primary' as const
       }
     }
     
     if (smsNotConfigured) {
-      console.log('[CompactSetupHealth] Would navigate to /dashboard/settings', {
-        allowed: true,
-        reason: 'SMS not configured'
-      })
       return {
         text: 'Fix SMS Setup',
         href: '/dashboard/settings',

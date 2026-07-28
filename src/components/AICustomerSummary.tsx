@@ -17,14 +17,12 @@ export default function AICustomerSummary({ leadId }: AICustomerSummaryProps) {
     setError(null)
     
     try {
-      console.log('[AI Summary] Generating summary for lead:', leadId)
       const response = await fetch(`/api/leads/${leadId}/summary`, {
         method: 'POST',
         credentials: 'include'
       })
 
       const data = await response.json()
-      console.log('[AI Summary] Response status:', response.status)
 
       if (!response.ok) {
         console.error('[AI Summary] API error:', data.error)
@@ -43,7 +41,6 @@ export default function AICustomerSummary({ leadId }: AICustomerSummaryProps) {
         throw new Error(errorMessage)
       }
 
-      console.log('[AI Summary] Summary generated successfully')
       setSummary(data.summary)
     } catch (err) {
       console.error('[AI Summary] Error:', err)

@@ -46,7 +46,6 @@ export default function ProvisioningSuccessBanner({ checkoutSuccess = false }: P
 
     setIsPolling(true)
     const pollInterval = setInterval(async () => {
-      console.log('[ProvisioningBanner] Polling provisioning status...')
       await refreshBusiness()
       setPollCount(prev => prev + 1)
     }, 2000)
@@ -57,7 +56,6 @@ export default function ProvisioningSuccessBanner({ checkoutSuccess = false }: P
   // Scroll to forwarding setup section after provisioning completes
   useEffect(() => {
     if (checkoutSuccess && business?.provisioning_status === 'attached' && business.twilio_phone_number) {
-      console.log('[ProvisioningBanner] Provisioning complete, scrolling to Getting Started...')
       // Scroll to Getting Started component
       gettingStartedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }

@@ -112,7 +112,6 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
         business.provisioning_status !== 'provisioning'
       
       if (shouldTrigger) {
-        console.log('[GettingStarted] Triggering fallback provisioning for business:', business.id)
         try {
           const response = await fetch('/api/business/trigger-provisioning', {
             method: 'POST',
@@ -125,7 +124,6 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
           })
           
           if (response.ok) {
-            console.log('[GettingStarted] Fallback provisioning triggered successfully')
             setHasTriggeredProvisioning(true)
             // Refresh business after a short delay to get updated status
             setTimeout(() => refreshBusiness(), 2000)
@@ -207,45 +205,16 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
 
         const hasRealData = (callEventsCount || 0) > 0 || (leadsCount || 0) > 0 || (conversationsCount || 0) > 0
 
-        console.log('[Setup Progress] Step 4 real DB state check:', {
-          businessId: business.id,
-          forwarding_verified: business.forwarding_verified,
-          forwarding_verified_at: business.forwarding_verified_at,
-          callEventsCount,
-          leadsCount,
-          conversationsCount,
-          hasRealData,
-          step4Complete: business.forwarding_verified || hasRealData
-        })
-
         // Log onboarding completion event
         if (hasRealData && !business.forwarding_verified && realCallDataExists === false) {
-          console.log('[ONBOARDING COMPLETE]', {
-            businessId: business.id,
-            reason: 'Real data detected (missed call processed)',
-            leadId: leadsCount > 0 ? 'existing' : 'unknown',
-            conversationId: conversationsCount > 0 ? 'existing' : 'unknown',
-            callEventsCount,
-            leadsCount,
-            conversationsCount
-          })
+          // Onboarding complete - real data detected
         }
 
         setRealCallDataExists(hasRealData)
 
         // Auto-repair: if real data exists but forwarding_verified is false, update it
         if (hasRealData && !business.forwarding_verified) {
-          console.log('[Setup Progress] Auto-repair: marking forwarding_verified for business with real call data:', business.id)
-          console.log('[ONBOARDING COMPLETE]', {
-            businessId: business.id,
-            reason: 'Auto-repair: Real data detected, updating onboarding_status to completed',
-            leadId: leadsCount > 0 ? 'existing' : 'unknown',
-            conversationId: conversationsCount > 0 ? 'existing' : 'unknown',
-            callEventsCount,
-            leadsCount,
-            conversationsCount,
-            previousStatus: business.onboarding_status
-          })
+          // Auto-repair: marking forwarding_verified for business with real call data
           const { error: updateError } = await supabase
             .from('businesses')
             .update({ 
@@ -258,17 +227,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
           if (updateError) {
             console.error('[Setup Progress] Auto-repair failed:', updateError)
           } else {
-            console.log('[Setup Progress] Auto-repair successful for business:', business.id)
-            console.log('[ONBOARDING COMPLETE]', {
-              businessId: business.id,
-              reason: 'Auto-repair completed: forwarding_verified and onboarding_status updated',
-              leadId: leadsCount > 0 ? 'existing' : 'unknown',
-              conversationId: conversationsCount > 0 ? 'existing' : 'unknown',
-              callEventsCount,
-              leadsCount,
-              conversationsCount,
-              newStatus: 'completed'
-            })
+            // Auto-repair successful
             // Refresh business to get updated state
             refreshBusiness()
           }
@@ -288,14 +247,6 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     const forwardingSetupComplete = Boolean(business?.phone_setup_completed_at)
     // Step 3 is complete if forwarding_verified is true (persistent state)
     const testComplete = business?.forwarding_verified === true
-    
-    console.log('[Setup Progress] Step 3 completion check:', {
-      businessId: business.id,
-      missedCallCount,
-      forwarding_verified: business?.forwarding_verified,
-      realCallDataExists,
-      testComplete
-    })
     
     if (!subscriptionActive) return 'no_subscription'
     if (!twilioReady) return 'provisioning_number'
@@ -353,7 +304,6 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   // Listen for expandGettingStarted event from ProvisioningSuccessBanner
   useEffect(() => {
     const handleExpandGettingStarted = () => {
-      console.log('[GettingStarted] Received expandGettingStarted event')
       setIsExpanded(true)
       saveCollapsePreference(false) // Save expanded preference
     }
@@ -377,7 +327,6 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
 
   // Defensive fallback for missing business data
   if (!business) {
-    console.log('[GettingStarted] Business not loaded, using default onboarding state')
     return null
   }
 
@@ -405,11 +354,8 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     const currentBusiness = getCurrentBusiness()
     if (!currentBusiness) return
     
-    console.log('[GettingStarted] Starting forwarding completion - click handler start')
-    
     try {
       setIsCompletingForwarding(true)
-      console.log('[GettingStarted] Database update start')
       
       const supabase = createBrowserClient()
       const { error } = await supabase
@@ -430,8 +376,6 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
         // Show user-friendly error message
         alert('Failed to update forwarding status. Please try again or contact support.')
       } else {
-        console.log('[GettingStarted] Database update success')
-        
         // Optimistic UI update - immediately update local state
         const optimisticBusiness: Business = {
           ...currentBusiness,
@@ -443,11 +387,9 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
           onboarding_step: "phone_setup_completed"
         }
         
-        console.log('[GettingStarted] Local state update - optimistic UI')
         setOptimisticBusinessState(optimisticBusiness)
         
         // Navigate directly to test setup without background refresh to prevent flash
-        console.log('[GettingStarted] Navigating to test setup immediately')
         setTimeout(() => {
           setIsCompletingForwarding(false)
           // Use Next.js router for smoother transition with preserved state
@@ -468,8 +410,6 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     setIsHandlingBilling(true)
     
     try {
-      console.log('[GettingStarted] Starting number provisioning for beta user:', business.id)
-      
       // Get session token for authentication
       const supabase = createBrowserClient()
       const { data: { session } } = await supabase.auth.getSession()
@@ -495,7 +435,6 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
       const data = await response.json()
       
       if (data.success) {
-        console.log('[GettingStarted] Provisioning started for beta user:', business.id)
         // Refresh business data to show provisioning status
         refreshBusiness()
       } else {
@@ -514,16 +453,13 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
     if (isHandlingBilling) return
     
     setIsHandlingBilling(true)
-    console.log('[GettingStarted] Starting trial...')
     
     // Refresh business data to get latest provisioning state
     await refreshBusiness()
     try {
-      console.log('[GettingStarted] Starting trial activation')
       const result = await handleBillingAction()
 
       if (result.success && result.url) {
-        console.log('[GettingStarted] Redirecting to:', result.action)
         window.location.href = result.url
       } else {
         console.error('[GettingStarted] Billing action failed:', result.error)
@@ -612,14 +548,9 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
             : (step2Complete ? '🕒 Usually takes about 1 minute' : 'Available once forwarding is enabled'),
         buttonText: step2Complete && !step3Complete ? 'Run Test Call' : undefined,
         buttonOnClick: step2Complete && !step3Complete ? () => {
-          console.log('[RUN TEST CALL CLICKED]', {
-            source: 'primary',
-            action: 'scroll-to-setup-gate'
-          })
           // Scroll to test call section in Setup Gate
           const setupGate = document.getElementById('setup-gate')
           if (setupGate) {
-            console.log('[GettingStarted] Scrolling to setup-gate element for test')
             setupGate.scrollIntoView({ behavior: 'smooth', block: 'start' })
           } else {
             // Fallback: scroll to top of page and show alert
@@ -630,14 +561,9 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
         } : undefined,
         secondaryButtonText: step3Complete ? 'Run Another Test Call' : undefined,
         secondaryButtonOnClick: step3Complete ? () => {
-          console.log('[RUN TEST CALL CLICKED]', {
-            source: 'secondary',
-            action: 'scroll-to-setup-gate'
-          })
           // Scroll to test call section in Setup Gate
           const setupGate = document.getElementById('setup-gate')
           if (setupGate) {
-            console.log('[GettingStarted] Scrolling to setup-gate element for another test')
             setupGate.scrollIntoView({ behavior: 'smooth', block: 'start' })
           } else {
             // Fallback: scroll to top of page and show alert

@@ -81,11 +81,7 @@ export default function TapToPayModal({
       
       // Development logging for platform detection
       if (process.env.NODE_ENV === 'development') {
-        console.log('[TapToPayModal] Platform detection diagnostics:', {
-          isNativePlatform: Capacitor.isNativePlatform(),
-          getPlatform: detectedPlatform,
-          isNativeCapacitor: isNativeCapacitor(),
-        })
+        // Development-only platform detection diagnostics
       }
       
       const supported = isNativeCapacitor()
@@ -97,7 +93,6 @@ export default function TapToPayModal({
       // Check for unresolved attempt from previous session
       const unresolvedAttemptId = terminalService.getUnresolvedAttempt()
       if (unresolvedAttemptId) {
-        console.log('[TAP_ATTEMPT] attempt_id=' + unresolvedAttemptId + ' stage=modal_open_unresolved_attempt')
         setPaymentState('ambiguous')
         setError('Payment status uncertain - checking...')
         // Trigger recovery check
@@ -212,7 +207,6 @@ export default function TapToPayModal({
         const Terminal = await import('@/lib/terminal')
         const plugin = Terminal.default
         errorListener = await plugin.addListener('error', (data: TerminalError) => {
-          console.log('[TapToPayModal] Structured error received:', data)
           // Guard against stale callbacks after cancel→retry: only react when UI is in a collecting/processing state
           const ps = paymentStateRef.current
           if (ps !== 'waiting_for_card' && ps !== 'processing' && ps !== 'ambiguous') {
@@ -329,7 +323,6 @@ export default function TapToPayModal({
 
       if (response.ok) {
         const data = await response.json()
-        console.log('[TAP_ATTEMPT] attempt_id=' + terminalAttemptId + ' stage=recovery_check status=' + data.status)
 
         if (data.status === 'paid') {
           setPaymentState('success')
@@ -388,21 +381,18 @@ export default function TapToPayModal({
 
     // Double-tap protection - prevent multiple simultaneous payment attempts
     if (isPaymentInProgress) {
-      console.log('[TAP_ATTEMPT] stage=double_tap_blocked payment_already_in_progress')
       return
     }
 
     // Check for unresolved attempt before starting new payment
     const unresolvedAttemptId = terminalService.getUnresolvedAttempt()
     if (unresolvedAttemptId) {
-      console.log('[TAP_ATTEMPT] attempt_id=' + unresolvedAttemptId + ' stage=new_payment_blocked_unresolved_attempt')
       setPaymentState('ambiguous')
       setError('Please resolve the previous payment status first')
       checkAttemptStatus(unresolvedAttemptId)
       return
     }
 
-    console.log('[TAP_SESSION_TRACE] stage=modal_open')
     setIsPaymentInProgress(true)
     setPaymentState('preparing')
     setError('')
@@ -412,7 +402,6 @@ export default function TapToPayModal({
 
     try {
       // Check device support
-      console.log('[TAP_SESSION_TRACE] stage=device_check')
       const supportCheck = await terminalService.isSupported()
       if (!supportCheck.supported) {
         throw new Error('This device does not support Tap to Pay')
@@ -420,7 +409,6 @@ export default function TapToPayModal({
       setLastSuccessfulStage('device_supported')
 
       // Initialize if needed
-      console.log('[TAP_SESSION_TRACE] stage=initialize')
       const initResult = await terminalService.initialize()
       try {
         logTapToPayEvent('RIGHT_AFTER_INITIALIZE_RETURN', {
@@ -449,12 +437,10 @@ export default function TapToPayModal({
         try { logTapToPayEvent('CONNECT_SKIPPED_ALREADY_CONNECTED', { phase: 'connect_reader', sessionId: terminalService.getSessionId(), meta: { reason: 'already_connected_after_initialize' } }) } catch {}
         setLastSuccessfulStage('connected')
       } else {
-        console.log('[TAP_SESSION_TRACE] stage=connect')
         if (paymentStateRef.current !== 'preparing') {
           setPaymentState('preparing')
         }
         const connectResult = await terminalService.connectTapToPay()
-        console.log('[TAP_SESSION_TRACE] stage=post_connect_continue status=' + connectResult.status)
         if (connectResult.status !== 'connected') {
           throw new Error('Failed to connect to payment terminal')
         }
@@ -462,7 +448,6 @@ export default function TapToPayModal({
       }
 
       // Start payment collection (this creates PaymentIntent internally)
-      console.log('[TAP_SESSION_TRACE] stage=payment_collect')
       const paymentPromise = terminalService.startTapToPayPayment({
         amountCents,
         currency: 'usd',
@@ -485,7 +470,6 @@ export default function TapToPayModal({
       const paymentResult = await paymentPromise
 
       if (paymentResult.status === 'succeeded') {
-        console.log('[TAP_SESSION_TRACE] stage=payment_success')
         setLastSuccessfulStage('payment_complete')
         setPaymentState('success')
         setIsPaymentInProgress(false)
@@ -497,14 +481,12 @@ export default function TapToPayModal({
         paymentResult?.error?.code === 'USER_ERROR.CANCELED' ||
         paymentResult?.error?.code === 'canceled'
       ) {
-        console.log('[TAP_SESSION_TRACE] stage=payment_canceled')
         setIsPaymentInProgress(false)
         setStructuredError(null)
         setJsError(null)
         setError('')
         setPaymentState('canceled')
       } else {
-        console.log('[TAP_SESSION_TRACE] stage=payment_failure')
         throw new Error(paymentResult.error?.message || 'Payment failed')
       }
     } catch (err) {

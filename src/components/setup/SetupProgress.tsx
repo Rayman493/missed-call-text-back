@@ -205,7 +205,6 @@ export default function SetupProgress({ missedCallCount = 0, setupHealth }: Setu
         business.provisioning_status !== 'provisioning'
       
       if (shouldTrigger) {
-        console.log('[SetupProgress] Triggering fallback provisioning for business:', business.id)
         try {
           const response = await fetch('/api/business/trigger-provisioning', {
             method: 'POST',
@@ -294,7 +293,6 @@ export default function SetupProgress({ missedCallCount = 0, setupHealth }: Setu
         throw new Error('Failed to complete forwarding setup')
       }
 
-      console.log('[SetupProgress] Forwarding setup completed successfully')
       await refreshBusiness()
     } catch (error) {
       console.error('[SetupProgress] Error completing forwarding setup:', error)

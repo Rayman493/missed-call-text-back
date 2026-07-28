@@ -163,8 +163,6 @@ export default function ResetPasswordPage() {
       // Get current session before attempting to update password
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       
-      console.log('handleSubmit - hasSession:', !!session)
-      
       if (sessionError) {
         console.error('Session check error:', sessionError)
         setError('Unable to verify your session. Please try again.')
@@ -172,7 +170,6 @@ export default function ResetPasswordPage() {
       }
 
       if (!session) {
-        console.log('handleSubmit - no session found')
         setError('Your reset session expired. Please request a new reset link.')
         return
       }
@@ -181,8 +178,6 @@ export default function ResetPasswordPage() {
       const { data: updateData, error: updateError } = await supabase.auth.updateUser({
         password: password,
       })
-
-      console.log('handleSubmit - updateUser success:', !updateError)
       
       if (updateError) {
         console.error('Password update error:', updateError)
@@ -204,8 +199,6 @@ export default function ResetPasswordPage() {
         return
       }
 
-      console.log('handleSubmit - password updated successfully')
-      
       // Success - show success message and redirect
       setSuccess(true)
       

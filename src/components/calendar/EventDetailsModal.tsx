@@ -111,22 +111,16 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
   // Load meeting metadata on open
   useEffect(() => {
     const load = async () => {
-      console.log('[TRANSCRIPT DIAG] ENTER load meeting metadata')
-      console.log('[TRANSCRIPT DIAG] isOpen:', isOpen, 'event?.id:', event?.id)
       if (!isOpen || !event?.id) {
-        console.log('[TRANSCRIPT DIAG] SKIP transcript load because: !isOpen || !event?.id')
         return
       }
       try {
         const res = await fetch(`/api/meetings/${encodeURIComponent(event.id)}`)
         if (!res.ok) {
-          console.log('[TRANSCRIPT DIAG] SKIP transcript load because: !res.ok')
           return
         }
         const data = await res.json().catch(() => ({} as any))
         const rec = data?.record
-        console.log('[TRANSCRIPT DIAG] API response record:', rec)
-        console.log('[TRANSCRIPT DIAG] API response meetCapability:', data?.meetCapability)
         if (rec) {
           setMeetingStatus(rec.status === 'completed' ? 'completed' : 'upcoming')
           setCompletedAt(rec.completed_at || null)
@@ -136,22 +130,14 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
           setActualStart(rec.actual_start || null)
           setActualEnd(rec.actual_end || null)
           setTranscriptStatus(rec.transcript_status || null)
-          console.log('[TRANSCRIPT DIAG] State after load:', {
-            meetingStatus: rec.status === 'completed' ? 'completed' : 'upcoming',
-            transcriptStatus: rec.transcript_status || null,
-            meetCapability: data?.meetCapability,
-            aiSummary: rec.ai_summary || null,
-            aiSummaryStructured: rec.ai_summary_structured || null,
-          })
         } else {
           setMeetingStatus('upcoming')
           setCompletedAt(null)
-          console.log('[TRANSCRIPT DIAG] No record found, set meetingStatus to upcoming')
         }
         const cap = data?.meetCapability === 'available' ? 'available' : (data?.meetCapability === 'reauthorization_required' ? 'reauthorization_required' : null)
         setMeetCapability(cap)
       } catch (e) {
-        console.log('[TRANSCRIPT DIAG] SKIP transcript load because: exception', e)
+        // Exception during transcript load
       }
     }
     load()
@@ -740,15 +726,6 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
 
             {/* AI Meeting Summary & Transcript (Google Meet only) */}
             {(() => {
-              console.log('[TRANSCRIPT DIAG] AI Summary card render check:', {
-                eventIsHoliday: event.isHoliday,
-                eventMeetingUrl: event.meetingUrl,
-                hasMeetUrl: event.meetingUrl?.includes('meet.google.com'),
-                transcriptStatus,
-                aiSummary: aiSummary ? 'present' : 'null',
-                aiSummaryStructured: aiSummaryStructured ? 'present' : 'null',
-                shouldRender: !event.isHoliday && (event.meetingUrl?.includes('meet.google.com') || transcriptStatus || aiSummary || aiSummaryStructured)
-              })
               return !event.isHoliday && (event.meetingUrl?.includes('meet.google.com') || transcriptStatus || aiSummary || aiSummaryStructured)
             })() && (
               <div className="pt-2">
@@ -839,16 +816,8 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
 
                   {/* Pending / preparing states */}
                   {(() => {
-                    console.log('[TRANSCRIPT DIAG] State rendering check:', {
-                      meetingStatus,
-                      transcriptStatus,
-                      aiSummary: aiSummary ? 'present' : 'null',
-                      aiSummaryStructured: aiSummaryStructured ? 'present' : 'null',
-                      meetCapability
-                    })
                     // Upcoming meeting, no transcript/summary yet
                     if (meetingStatus === 'upcoming' && !transcriptStatus && !aiSummary && !aiSummaryStructured) {
-                      console.log('[TRANSCRIPT DIAG] Render state: Available after the meeting (upcoming, no transcript/summary)')
                       return (
                         <div className="mt-2 mb-2 p-3 rounded-lg bg-slate-700/30 text-slate-300 text-xs" role="status">
                           <div className="font-medium text-slate-200 mb-1.5">Available after the meeting</div>
@@ -858,7 +827,6 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                     }
                     // Meeting complete, transcript not yet available
                     if (meetingStatus === 'completed' && (!transcriptStatus || transcriptStatus === 'pending')) {
-                      console.log('[TRANSCRIPT DIAG] Render state: Waiting for Google Meet transcript (completed, no transcript yet)')
                       return (
                         <div className="mt-2 mb-2 p-3 rounded-lg bg-slate-700/30 text-slate-300 text-xs flex items-start gap-2.5 min-h-[2.5rem]" role="status" aria-live="polite" aria-busy="true">
                           <div className="w-3 h-3 mt-0.5 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
@@ -872,7 +840,6 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                     }
                     // Transcript available, summary generation pending
                     if (transcriptStatus === 'available' && !aiSummary && !aiSummaryStructured) {
-                      console.log('[TRANSCRIPT DIAG] Render state: Generating meeting summary (transcript available, no summary)')
                       return (
                         <div className="mt-2 mb-2 p-3 rounded-lg bg-slate-700/30 text-slate-300 text-xs flex items-start gap-2.5 min-h-[2.5rem]" role="status" aria-live="polite" aria-busy="true">
                           <div className="w-3 h-3 mt-0.5 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
@@ -886,7 +853,6 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                     }
                     // Transcript still pending (before meeting complete)
                     if (transcriptStatus === 'pending') {
-                      console.log('[TRANSCRIPT DIAG] Render state: Processing transcript (transcript pending)')
                       return (
                         <div className="mt-2 mb-2 p-3 rounded-lg bg-slate-700/30 text-slate-300 text-xs flex items-start gap-2.5 min-h-[2.5rem]" role="status" aria-live="polite" aria-busy="true">
                           <div className="w-3 h-3 mt-0.5 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
@@ -900,7 +866,6 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                     }
                     // Defensive fallback: if card is rendering but no state matched, show neutral message
                     if (!aiSummary && !aiSummaryStructured) {
-                      console.log('[TRANSCRIPT DIAG] Render state: FALLBACK - Unexpected state combination')
                       if (process.env.NODE_ENV !== 'production') {
                         console.warn('[ai_summary_state_fallback] Unexpected state combination:', {
                           meetingStatus,
@@ -917,7 +882,6 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                         </div>
                       )
                     }
-                    console.log('[TRANSCRIPT DIAG] Render state: Showing summary content (has aiSummary or aiSummaryStructured)')
                     return null
                   })()}
 
@@ -1008,42 +972,34 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                     {((transcriptStatus === 'available' || transcriptStatus === 'processed') || (transcriptText && transcriptText.trim().length > 0)) && (
                       <button
                         onClick={async () => {
-                          console.log('[TRANSCRIPT DIAG] ENTER loadTranscript()')
-                          console.log('[TRANSCRIPT DIAG] isTranscriptOpen:', isTranscriptOpen, 'transcriptText:', transcriptText ? 'present' : 'null', 'event?.id:', event?.id)
                           if (!isTranscriptOpen) {
                             // Lazy-load on first open if not loaded yet
                             if (!transcriptText && event?.id) {
-                              console.log('[TRANSCRIPT DIAG] Loading transcript from API')
                               setTranscriptLoading(true)
                               setTranscriptError(null)
                               try {
                                 const r = await fetch(`/api/meetings/${encodeURIComponent(event.id)}/transcript`)
-                                console.log('[TRANSCRIPT DIAG] API response status:', r.status)
                                 const j = await r.json().catch(() => ({}))
-                                console.log('[TRANSCRIPT DIAG] API response:', j)
                                 if (!r.ok || j?.success === false) {
                                   const stat = (j && typeof j.status === 'string') ? j.status : null
-                                  console.log('[TRANSCRIPT DIAG] Transcript load failed, status:', stat)
                                   if (stat === 'pending' || stat == null) {
                                     setTranscriptError('Processing… Please try again later.')
                                   } else {
                                     setTranscriptError('Transcript unavailable.')
                                   }
                                 } else {
-                                  console.log('[TRANSCRIPT DIAG] Transcript loaded successfully')
                                   setTranscriptText(j?.transcript || '')
                                 }
                               } catch (e) {
-                                console.log('[TRANSCRIPT DIAG] SKIP transcript load because: exception', e)
                                 setTranscriptError('Failed to load transcript')
                               } finally {
                                 setTranscriptLoading(false)
                               }
                             } else {
-                              console.log('[TRANSCRIPT DIAG] SKIP transcript load because: transcriptText already loaded or no event.id')
+                              // Transcript already loaded or no event.id
                             }
                           } else {
-                            console.log('[TRANSCRIPT DIAG] Closing transcript (already open)')
+                            // Closing transcript (already open)
                           }
                           setIsTranscriptOpen((o) => !o)
                         }}

@@ -19,12 +19,10 @@ export function VoicemailPlaybackManagerProvider({ children }: { children: React
   const [registeredVoicemails, setRegisteredVoicemails] = useState<Map<string, HTMLAudioElement>>(new Map())
 
   const registerVoicemail = useCallback((voicemailId: string, audioElement: HTMLAudioElement) => {
-    console.log('[VoicemailPlaybackManager] Registering voicemail:', voicemailId)
     setRegisteredVoicemails(prev => new Map(prev).set(voicemailId, audioElement))
   }, [])
 
   const unregisterVoicemail = useCallback((voicemailId: string) => {
-    console.log('[VoicemailPlaybackManager] Unregistering voicemail:', voicemailId)
     setRegisteredVoicemails(prev => {
       const newMap = new Map(prev)
       newMap.delete(voicemailId)
@@ -39,17 +37,13 @@ export function VoicemailPlaybackManagerProvider({ children }: { children: React
   }, [currentPlayingVoicemailId])
 
   const requestPlay = useCallback(async (voicemailId: string, audioElement: HTMLAudioElement): Promise<boolean> => {
-    console.log('[VoicemailPlaybackManager] Requesting play for voicemail:', voicemailId, 'currently playing:', currentPlayingVoicemailId)
-
     // If this voicemail is already playing, do nothing
     if (currentPlayingVoicemailId === voicemailId) {
-      console.log('[VoicemailPlaybackManager] Voicemail already playing:', voicemailId)
       return true
     }
 
     // Pause any currently playing voicemail
     if (currentPlayingVoicemailId && currentAudioElement && currentPlayingVoicemailId !== voicemailId) {
-      console.log('[VoicemailPlaybackManager] Pausing currently playing voicemail:', currentPlayingVoicemailId)
       try {
         currentAudioElement.pause()
         // Trigger state update for the paused voicemail by dispatching a custom event
@@ -71,8 +65,6 @@ export function VoicemailPlaybackManagerProvider({ children }: { children: React
   }, [currentPlayingVoicemailId, currentAudioElement])
 
   const requestPause = useCallback((voicemailId: string) => {
-    console.log('[VoicemailPlaybackManager] Requesting pause for voicemail:', voicemailId)
-
     if (currentPlayingVoicemailId === voicemailId) {
       setCurrentPlayingVoicemailId(null)
       setCurrentAudioElement(null)
@@ -80,8 +72,6 @@ export function VoicemailPlaybackManagerProvider({ children }: { children: React
   }, [currentPlayingVoicemailId])
 
   const notifyEnded = useCallback((voicemailId: string) => {
-    console.log('[VoicemailPlaybackManager] Voicemail ended:', voicemailId)
-
     if (currentPlayingVoicemailId === voicemailId) {
       setCurrentPlayingVoicemailId(null)
       setCurrentAudioElement(null)

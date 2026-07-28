@@ -52,7 +52,6 @@ export default function UserDropdown() {
       try {
         const { data: { session }, error } = await supabase.auth.getSession()
         if (error || !session) {
-          console.log('[UserDropdown] Invalid or missing session, treating as logged out')
           setIsValidSession(false)
         } else {
           setIsValidSession(true)

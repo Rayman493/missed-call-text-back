@@ -19,7 +19,6 @@ export default function PaymentSuccessPage() {
     fetch(`/api/payments/reconcile?session_id=${sessionId}`)
       .then(res => res.json())
       .then(data => {
-        console.log('[PAYMENT SUCCESS] Reconcile result:', data)
         if (data.status === 'paid' || data.status === 'already_paid') {
           setStatus('paid')
         } else if (data.status === 'pending' || data.status === 'unpaid') {

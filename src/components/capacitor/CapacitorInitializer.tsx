@@ -23,19 +23,14 @@ export function CapacitorInitializer() {
       }
 
       const isNative = isCapacitorNative();
-      console.log('[CapacitorInitializer] Native platform:', isNative);
 
       if (isNative) {
-        console.log('[CapacitorInitializer] Initializing Capacitor');
         initializedRef.current = true;
         try {
           await initializeCapacitor();
-          console.log('[CapacitorInitializer] Initialization completed');
         } catch (error) {
           console.error('[CapacitorInitializer] Initialization failed:', error);
         }
-      } else {
-        console.log('[CapacitorInitializer] Web platform, skipping');
       }
     };
 

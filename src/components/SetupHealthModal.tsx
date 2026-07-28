@@ -12,8 +12,6 @@ interface SetupHealthModalProps {
 }
 
 export default function SetupHealthModal({ isOpen, onClose, setupHealth }: SetupHealthModalProps) {
-  console.log('[SETUP HEALTH]', setupHealth)
-
   // Simple health status type
   type HealthStatus = 'complete' | 'needs_attention' | 'not_configured' | 'optional'
 

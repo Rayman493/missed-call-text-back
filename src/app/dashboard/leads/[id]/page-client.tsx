@@ -152,46 +152,26 @@ function getMonotonicStatus(currentStatus: string, newStatus: string): string {
   
   // Terminal state: Delivered cannot downgrade
   if (currentStatus === 'delivered') {
-    console.log('[MONOTONIC STATUS] Delivered is terminal - preventing downgrade:', {
-      currentStatus,
-      newStatus
-    })
     return currentStatus
   }
   
   // Terminal state: Failed cannot replace Delivered
   if (currentStatus === 'delivered' && (newStatus === 'failed' || newStatus === 'undelivered' || newStatus === 'not_sent')) {
-    console.log('[MONOTONIC STATUS] Failed cannot replace Delivered:', {
-      currentStatus,
-      newStatus
-    })
     return currentStatus
   }
   
   // Terminal state: Delivered cannot replace a confirmed terminal failure
   if ((currentStatus === 'failed' || currentStatus === 'undelivered' || currentStatus === 'not_sent') && newStatus === 'delivered') {
-    console.log('[MONOTONIC STATUS] Delivered cannot replace terminal failure:', {
-      currentStatus,
-      newStatus
-    })
     return currentStatus
   }
   
   // Queued cannot replace Sent
   if (currentStatus === 'sent' && newStatus === 'queued') {
-    console.log('[MONOTONIC STATUS] Queued cannot replace Sent:', {
-      currentStatus,
-      newStatus
-    })
     return currentStatus
   }
   
   // Sent cannot replace Delivered
   if (currentStatus === 'delivered' && newStatus === 'sent') {
-    console.log('[MONOTONIC STATUS] Sent cannot replace Delivered:', {
-      currentStatus,
-      newStatus
-    })
     return currentStatus
   }
   
@@ -201,12 +181,6 @@ function getMonotonicStatus(currentStatus: string, newStatus: string): string {
   }
   
   // Keep current status if new status would downgrade
-  console.log('[MONOTONIC STATUS] Preventing downgrade:', {
-    currentStatus,
-    newStatus,
-    currentRank,
-    newRank
-  })
   return currentStatus
 }
 

@@ -94,7 +94,7 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
             leadsError = result.error
             
             if (!leadsError) {
-              console.log('[NeedsAttention] Minimal query succeeded')
+              // Minimal query succeeded
             }
           } catch (e) {
             leadsError = e

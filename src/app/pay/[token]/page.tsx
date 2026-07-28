@@ -27,19 +27,7 @@ export default async function PayPage({ params }: PayPageProps) {
     .eq('token', token)
     .single()
 
-  console.log('[PAY TOKEN] ============================================')
-  console.log('[PAY TOKEN] Token:', token)
-  console.log('[PAY TOKEN] Payment ID:', paymentRequest?.id)
-  console.log('[PAY TOKEN] Status:', paymentRequest?.status)
-  console.log('[PAY TOKEN] Provider:', paymentRequest?.payment_provider)
-  console.log('[PAY TOKEN] Checkout URL:', paymentRequest?.checkout_url)
-  console.log('[PAY TOKEN] Cancelled At:', paymentRequest?.cancelled_at)
-  console.log('[PAY TOKEN] Expires At:', paymentRequest?.expires_at)
-  console.log('[PAY TOKEN] Query Error:', error)
-  console.log('[PAY TOKEN] ============================================')
-
   if (error || !paymentRequest) {
-    console.log('[PAY TOKEN] redirect=false, reason=missing')
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
@@ -59,7 +47,6 @@ export default async function PayPage({ params }: PayPageProps) {
 
   // Check if payment has expired
   if (paymentRequest.expires_at && new Date(paymentRequest.expires_at) < new Date()) {
-    console.log('[PAY TOKEN] redirect=false, reason=expired')
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
@@ -79,7 +66,6 @@ export default async function PayPage({ params }: PayPageProps) {
 
   // Check if payment is already paid
   if (paymentRequest.status === 'paid') {
-    console.log('[PAY TOKEN] redirect=false, reason=paid')
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
@@ -102,7 +88,6 @@ export default async function PayPage({ params }: PayPageProps) {
 
   // Check if payment is cancelled (defensive: handle both spellings)
   if (paymentRequest.status === 'cancelled' || paymentRequest.status === 'canceled') {
-    console.log('[PAY TOKEN] redirect=false, reason=cancelled, status=', paymentRequest.status)
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
@@ -122,13 +107,11 @@ export default async function PayPage({ params }: PayPageProps) {
 
   // For Stripe, redirect directly to checkout
   if (paymentRequest.payment_provider === 'stripe' && paymentRequest.checkout_url) {
-    console.log('[PAY TOKEN] redirect=true, reason=stripe-pending, url=', paymentRequest.checkout_url)
     redirect(paymentRequest.checkout_url)
   }
 
   // For Venmo/PayPal, show payment handoff page
   if (paymentRequest.payment_provider === 'venmo' || paymentRequest.payment_provider === 'paypal') {
-    console.log('[PAY TOKEN] redirect=false, reason=handoff-page, provider=', paymentRequest.payment_provider)
     const amount = (paymentRequest.amount_cents / 100).toFixed(2)
     const businessName = (paymentRequest as any).businesses?.name || 'the business'
 
@@ -161,7 +144,6 @@ export default async function PayPage({ params }: PayPageProps) {
 
   // Redirect to Stripe Checkout Session (fallback)
   if (paymentRequest.checkout_url) {
-    console.log('[PAY TOKEN] redirect=true, reason=pending-fallback, url=', paymentRequest.checkout_url)
     redirect(paymentRequest.checkout_url)
   }
 

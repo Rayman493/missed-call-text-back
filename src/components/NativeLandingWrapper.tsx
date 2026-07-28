@@ -27,18 +27,15 @@ export default function NativeLandingWrapper({ children }: { children: React.Rea
 
     // Check if running in Capacitor native environment
     const native = Capacitor.isNativePlatform()
-    console.log('[NativeLandingWrapper] Capacitor.isNativePlatform():', native)
     setIsNative(native)
 
     // Only apply to root route to preserve deep links
     if (pathname !== '/') {
-      console.log('[NativeLandingWrapper] Not on root route, skipping redirect')
       return
     }
 
     // If not native, don't redirect - let marketing page render
     if (!native) {
-      console.log('[NativeLandingWrapper] Not in native environment, rendering marketing page')
       return
     }
 
@@ -47,16 +44,13 @@ export default function NativeLandingWrapper({ children }: { children: React.Rea
 
     // Wait for auth state to be determined
     if (authLoading) {
-      console.log('[NativeLandingWrapper] Auth loading, waiting...')
       return
     }
 
     // Redirect based on authentication state
     if (user) {
-      console.log('[NativeLandingWrapper] User authenticated, redirecting to /dashboard')
       router.replace('/dashboard')
     } else {
-      console.log('[NativeLandingWrapper] User not authenticated, redirecting to /auth?mode=signin')
       router.replace('/auth?mode=signin')
     }
   }, [pathname, user, authLoading, router])

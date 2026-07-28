@@ -57,7 +57,6 @@ export default function HomepageAuthRedirect() {
 
         if (business.subscription_status === null) {
           // Incomplete signup - redirect to complete-setup
-          console.log('[HomepageAuthRedirect] Incomplete signup detected, redirecting to /complete-setup')
           router.replace('/complete-setup')
           return
         }
