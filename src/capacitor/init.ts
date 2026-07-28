@@ -67,8 +67,8 @@ export async function initializeCapacitor() {
     // Initialize Status Bar
     await StatusBar.setStyle({ style: Style.Dark })
     console.log('[Capacitor] Status bar configured');
-    await StatusBar.setBackgroundColor({ color: '#ffffff' });
-    console.log('[Capacitor] Status bar configured');
+    // Note: WebView overlays status bar (overlaysWebView: true in capacitor.config.ts)
+    // CSS root scrim handles safe-area background, no native background needed
 
     // Hide splash screen
     await SplashScreen.hide();
