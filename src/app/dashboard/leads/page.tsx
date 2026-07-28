@@ -209,7 +209,7 @@ export default function LeadsPage() {
   const [isStartingCheckout, setIsStartingCheckout] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [quickFilter, setQuickFilter] = useState<'all' | 'active' | 'new' | 'today'>('all')
+  const [quickFilter, setQuickFilter] = useState<'all' | 'active' | 'new' | 'completed' | 'ignored'>('all')
   const [showFilters, setShowFilters] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
@@ -635,9 +635,10 @@ export default function LeadsPage() {
       matchesQuickFilter = leadStatus === 'active'
     } else if (quickFilter === 'new') {
       matchesQuickFilter = leadStatus === 'new'
-    } else if (quickFilter === 'today') {
-      const createdToday = new Date(lead.created_at).toDateString() === new Date().toDateString()
-      matchesQuickFilter = createdToday
+    } else if (quickFilter === 'completed') {
+      matchesQuickFilter = leadStatus === 'completed'
+    } else if (quickFilter === 'ignored') {
+      matchesQuickFilter = isIgnored
     }
 
     return matchesSearch && matchesStatus && (shouldShowIgnored || !isIgnored) && shouldShowDeleted && matchesQuickFilter
@@ -1049,22 +1050,89 @@ export default function LeadsPage() {
               >
                 <span className="truncate">Needs Reply</span> <span className="opacity-60 text-xs">({leadStatusCounts.new})</span>
               </button>
-              {/* New Today - hidden on mobile, shown on desktop */}
-              <button
-                onClick={() => setQuickFilter('today')}
-                className={`
-                  hidden sm:inline-flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap
-                  ${quickFilter === 'today'
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'bg-transparent border border-border/40 text-muted-foreground/70 hover:bg-muted/40 hover:border-border/60 hover:text-muted-foreground'
-                  }
-                `}
-              >
-                New Today <span className="opacity-60">({leads.filter(l => {
-                  const createdToday = new Date(l.created_at).toDateString() === new Date().toDateString()
-                  return !l.deleted_at && createdToday
-                }).length})</span>
-              </button>
+
+              {/* Filter dropdown button */}
+              <div className="shrink-0">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="h-9 w-9 inline-flex items-center justify-center bg-background border border-border/50 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
+                      title="Filter options"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L15 12.414V19a1 1 0 01-1.447.894l-2-1A1 1 0 0111 18v-5.586L3.293 6.707A1 1 0 013 6V4z" />
+                      </svg>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuPortal>
+                    <DropdownMenuContent
+                      align="end"
+                      side="bottom"
+                      sideOffset={8}
+                      collisionPadding={12}
+                      avoidCollisions
+                      className="w-[180px] max-w-[calc(100vw-24px)] bg-card border border-border/50 rounded-lg shadow-xl shadow-black/10 dark:shadow-black/30 z-[10000]"
+                    >
+                      <DropdownMenuItem
+                        onClick={() => setQuickFilter('all')}
+                        className="w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer"
+                      >
+                        <span className="text-sm text-foreground">All</span>
+                        {quickFilter === 'all' && (
+                          <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setQuickFilter('active')}
+                        className="w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer"
+                      >
+                        <span className="text-sm text-foreground">Active</span>
+                        {quickFilter === 'active' && (
+                          <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setQuickFilter('new')}
+                        className="w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer"
+                      >
+                        <span className="text-sm text-foreground">Needs Reply</span>
+                        {quickFilter === 'new' && (
+                          <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setQuickFilter('completed')}
+                        className="w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer"
+                      >
+                        <span className="text-sm text-foreground">Completed</span>
+                        {quickFilter === 'completed' && (
+                          <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setQuickFilter('ignored')}
+                        className="w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer"
+                      >
+                        <span className="text-sm text-foreground">Ignored</span>
+                        {quickFilter === 'ignored' && (
+                          <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenuPortal>
+                </DropdownMenu>
+              </div>
 
               {/* Overflow menu for secondary actions */}
               <div className="ml-auto shrink-0">
@@ -1099,29 +1167,6 @@ export default function LeadsPage() {
                         <span className="text-sm text-foreground">Add Customer</span>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator className="my-1 h-px bg-border/50" />
-                      <DropdownMenuItem
-                        onSelect={() => setShowFilters(!showFilters)}
-                        className="w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center gap-2.5 outline-none focus:bg-muted/50 cursor-pointer"
-                      >
-                        <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L15 12.414V19a1 1 0 01-1.447.894l-2-1A1 1 0 0111 18v-5.586L3.293 6.707A1 1 0 013 6V4z" />
-                        </svg>
-                        <span className="text-sm text-foreground">Filters</span>
-                      </DropdownMenuItem>
-                      {/* New Today - shown on mobile only */}
-                      <DropdownMenuItem
-                        onSelect={() => setQuickFilter('today')}
-                        className="sm:hidden w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center gap-2.5 outline-none focus:bg-muted/50 cursor-pointer"
-                      >
-                        <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span className="text-sm text-foreground">New Today</span>
-                        <span className="opacity-60 text-xs">({leads.filter(l => {
-                          const createdToday = new Date(l.created_at).toDateString() === new Date().toDateString()
-                          return !l.deleted_at && createdToday
-                        }).length})</span>
-                      </DropdownMenuItem>
                       <DropdownMenuItem
                         onSelect={fetchLeads}
                         disabled={loading || refreshing}
