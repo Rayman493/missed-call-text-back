@@ -8,6 +8,7 @@ import { isCompleteAIIntake } from '@/lib/ai-intake-completion'
 import { cancelPendingFollowUpsForLead } from '@/lib/follow-ups'
 import { formatReturnDate } from '@/lib/out-of-office'
 import { notificationServiceServer } from '@/lib/notifications-server'
+import crypto from 'crypto'
 
 
 export const dynamic = 'force-dynamic'
@@ -102,13 +103,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
     }
 
-    if (providedSecret !== expectedSecret) {
+    // Use timing-safe comparison to prevent timing attacks
+    try {
+      const isMatch = crypto.timingSafeEqual(
+        Buffer.from(providedSecret),
+        Buffer.from(expectedSecret)
+      )
+      if (!isMatch) {
+        console.error('[AI CONFIRMATION SMS ERROR] Invalid INTERNAL_API_SECRET')
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+    } catch (error) {
+      // If comparison fails (e.g., different lengths), reject
       console.error('[AI CONFIRMATION SMS ERROR] Invalid INTERNAL_API_SECRET')
-      console.log('[AI CONFIRMATION SMS AUTH DEBUG]', {
-        secretLengthProvided: providedSecret.length,
-        secretLengthExpected: expectedSecret.length,
-        secretsMatch: providedSecret === expectedSecret
-      })
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     

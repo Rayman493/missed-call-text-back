@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cleanupExcessInventory } from '@/lib/warm-number-manager'
+import crypto from 'crypto'
 
 /**
  * Admin endpoint to manually trigger excess inventory cleanup
@@ -27,7 +28,29 @@ export async function POST(request: NextRequest) {
 
     const providedSecret = authHeader.substring(7) // Remove 'Bearer ' prefix
 
-    if (!expectedSecret || providedSecret !== expectedSecret) {
+    if (!expectedSecret) {
+      console.error('[ADMIN CLEANUP] INTERNAL_API_SECRET not configured')
+      return NextResponse.json(
+        { ok: false, error: 'Server configuration error' },
+        { status: 500 }
+      )
+    }
+
+    // Use timing-safe comparison to prevent timing attacks
+    try {
+      const isMatch = crypto.timingSafeEqual(
+        Buffer.from(providedSecret),
+        Buffer.from(expectedSecret)
+      )
+      if (!isMatch) {
+        console.error('[ADMIN CLEANUP] Invalid internal API secret')
+        return NextResponse.json(
+          { ok: false, error: 'Unauthorized' },
+          { status: 401 }
+        )
+      }
+    } catch (error) {
+      // If comparison fails (e.g., different lengths), reject
       console.error('[ADMIN CLEANUP] Invalid internal API secret')
       return NextResponse.json(
         { ok: false, error: 'Unauthorized' },

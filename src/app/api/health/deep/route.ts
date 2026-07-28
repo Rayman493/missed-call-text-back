@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Twilio from 'twilio'
 import Stripe from 'stripe'
+import crypto from 'crypto'
 
 export const dynamic = 'force-dynamic'
 
@@ -65,7 +66,21 @@ export async function GET(request: NextRequest) {
   const internalApiSecret = process.env.INTERNAL_API_SECRET
   const token = getBearerToken(request) || request.headers.get('x-internal-api-secret')
 
-  if (!internalApiSecret || !token || token !== internalApiSecret) {
+  if (!internalApiSecret || !token) {
+    return unauthorized()
+  }
+
+  // Use timing-safe comparison to prevent timing attacks
+  try {
+    const isMatch = crypto.timingSafeEqual(
+      Buffer.from(token),
+      Buffer.from(internalApiSecret)
+    )
+    if (!isMatch) {
+      return unauthorized()
+    }
+  } catch (error) {
+    // If comparison fails (e.g., different lengths), reject
     return unauthorized()
   }
 

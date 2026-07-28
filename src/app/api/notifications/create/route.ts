@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { notificationServiceServer } from '@/lib/notifications-server'
+import crypto from 'crypto'
 
 /**
  * POST /api/notifications/create
@@ -38,7 +39,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
     }
 
-    if (providedSecret !== expectedSecret) {
+    // Use timing-safe comparison to prevent timing attacks
+    try {
+      const isMatch = crypto.timingSafeEqual(
+        Buffer.from(providedSecret),
+        Buffer.from(expectedSecret)
+      )
+      if (!isMatch) {
+        console.error('[NOTIFICATION API ERROR] Invalid INTERNAL_API_SECRET')
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+    } catch (error) {
+      // If comparison fails (e.g., different lengths), reject
       console.error('[NOTIFICATION API ERROR] Invalid INTERNAL_API_SECRET')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

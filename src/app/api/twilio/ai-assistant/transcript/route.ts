@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import crypto from 'crypto'
 
 /**
  * AI Assistant Transcript Append Route
@@ -38,7 +39,19 @@ export async function POST(req: NextRequest) {
     }
 
     const token = authHeader.replace('Bearer ', '')
-    if (token !== internalApiSecret) {
+    
+    // Use timing-safe comparison to prevent timing attacks
+    try {
+      const isMatch = crypto.timingSafeEqual(
+        Buffer.from(token),
+        Buffer.from(internalApiSecret)
+      )
+      if (!isMatch) {
+        console.error('[AI TRANSCRIPT APPEND] Invalid INTERNAL_API_SECRET')
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+    } catch (error) {
+      // If comparison fails (e.g., different lengths), reject
       console.error('[AI TRANSCRIPT APPEND] Invalid INTERNAL_API_SECRET')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { createFollowUpJobs } from '@/lib/follow-ups'
+import crypto from 'crypto'
 
 /**
  * POST /api/follow-ups/create-jobs
@@ -28,9 +29,21 @@ export async function POST(request: NextRequest) {
 
     if (authHeader && internalApiSecret) {
       const [scheme, token] = authHeader.split(' ');
-      if (scheme === 'Bearer' && token === internalApiSecret) {
-        isInternalAuth = true;
-        console.log('[FOLLOWUP API INTERNAL AUTH] Valid internal auth detected');
+      if (scheme === 'Bearer') {
+        // Use timing-safe comparison to prevent timing attacks
+        try {
+          const isMatch = crypto.timingSafeEqual(
+            Buffer.from(token),
+            Buffer.from(internalApiSecret)
+          )
+          if (isMatch) {
+            isInternalAuth = true;
+            console.log('[FOLLOWUP API INTERNAL AUTH] Valid internal auth detected');
+          }
+        } catch (error) {
+          // If comparison fails (e.g., different lengths), reject
+          // Continue to user auth fallback
+        }
       }
     }
 
