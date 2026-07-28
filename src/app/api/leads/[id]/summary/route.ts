@@ -91,7 +91,7 @@ export async function POST(
           created_at,
           outcome
         ),
-        jobs (
+        jobs!jobs_lead_id_fkey (
           id,
           title,
           status,
