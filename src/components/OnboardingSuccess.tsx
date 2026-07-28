@@ -80,13 +80,6 @@ export default function OnboardingSuccess() {
             </div>
 
             <div>
-              <p className="text-sm text-muted-foreground">Auto-Reply Message</p>
-              <p className="text-foreground font-medium text-sm italic">
-                "{business.auto_reply_message}"
-              </p>
-            </div>
-
-            <div>
               <p className="text-sm text-muted-foreground">ReplyFlow Number</p>
               <p className={`font-medium ${hasTwilioNumber ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
                 {hasTwilioNumber ? formatForDisplay(business.twilio_phone_number || '') : 'Assigning...'}

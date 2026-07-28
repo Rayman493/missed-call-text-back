@@ -72,7 +72,6 @@ export function useSettingsFormState({
       'business_type_other',
       'business_phone_number',
       'twilio_phone_number',
-      'auto_reply_message',
       'call_forwarding_enabled',
       'business_hours_enabled',
       'business_hours_start',

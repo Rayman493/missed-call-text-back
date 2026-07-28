@@ -45,7 +45,6 @@ export const messageCreateSchema = z.object({
 // Business-specific validation
 export const businessUpdateSchema = z.object({
   name: businessNameSchema.optional(),
-  auto_reply_message: messageBodySchema.optional(),
   twilio_phone_number: phoneNumberSchema.optional(),
   business_phone_number: phoneNumberSchema.optional(),
   forwarding_phone_number: phoneNumberSchema.optional()

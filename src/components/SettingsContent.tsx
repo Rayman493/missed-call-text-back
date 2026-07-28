@@ -177,7 +177,6 @@ export default function SettingsContent() {
         out_of_office_start: businessData.out_of_office_start,
         out_of_office_end: businessData.out_of_office_end,
         out_of_office_message: businessData.out_of_office_message || DEFAULT_OUT_OF_OFFICE_MESSAGE,
-        auto_reply_message: businessData.auto_reply_message,
         call_forwarding_enabled: businessData.call_forwarding_enabled,
         business_hours_enabled: businessData.business_hours_enabled,
         business_hours_start: businessData.business_hours_start,
@@ -1306,27 +1305,6 @@ export default function SettingsContent() {
                 </div>
               ) : (
               <>
-              {/* Messaging Settings */}
-              <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground">Text Message Settings</h2>
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">Customize automatic replies to missed calls.</p>
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
-                      Instant Response Message
-                    </label>
-                    <textarea
-                      value={formBusiness.auto_reply_message || ''}
-                      onChange={(e) => updateBusiness({ auto_reply_message: e.target.value })}
-                      rows={2}
-                      className="w-full px-3 py-2 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all text-sm resize-none"
-                    />
-                  </div>
-                </div>
-              </div>
-
               {/* Automation Settings */}
               <div id="automation" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[64px]">
                 <div className="mb-3">
