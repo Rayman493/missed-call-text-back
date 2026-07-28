@@ -59,9 +59,11 @@ export async function sendSms(
 
   console.log('[SMS TRACE sendSms STEP_1_APPEND_AVAILABILITY]', { 
     isOffboarding: options?.isOffboarding,
-    skipBusinessAvailabilityAppend: options?.skipBusinessAvailabilityAppend 
+    skipBusinessAvailabilityAppend: options?.skipBusinessAvailabilityAppend,
+    isManual: options?.isManual
   });
-  message = (options?.isOffboarding || options?.skipBusinessAvailabilityAppend) ? message : appendBusinessAvailabilityNote(message, business);
+  // Skip business availability note for manual messages, offboarding, or when explicitly skipped
+  message = (options?.isOffboarding || options?.skipBusinessAvailabilityAppend || options?.isManual) ? message : appendBusinessAvailabilityNote(message, business);
   console.log('[SMS TRACE sendSms STEP_1_COMPLETE]', { message_length_after_append: message?.length });
 
   // Idempotency check for automated messages (prevent duplicates within 5 minutes)

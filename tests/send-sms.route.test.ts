@@ -54,9 +54,15 @@ vi.mock('@/lib/twilio', () => ({
   sendMms: vi.fn()
 }))
 
+vi.mock('@/lib/business-availability-sms', () => ({
+  appendBusinessAvailabilityNote: vi.fn((msg: string) => msg),
+  getBusinessAvailabilityNoticeForSms: vi.fn(() => ({ type: 'none', notice: null }))
+}))
+
 vi.mock('@/lib/security', () => ({ sanitizeMessageContent: (m: string) => m }))
 vi.mock('@/lib/rate-limit', () => ({ checkManualSmsRateLimit: vi.fn(async () => ({ success: true, reset: 0, limit: 100, remaining: 99 })) }))
 vi.mock('@/lib/lead-lifecycle', () => ({ promoteLeadToActiveIfNew: vi.fn(async () => {}) }))
+vi.mock('@/lib/server-subscription-guard', () => ({ requireSubscriptionAccessWithClient: vi.fn(async () => ({ success: true })) }))
 
 async function importRoute() {
   return await import('../src/app/api/send-sms/route')
@@ -138,5 +144,27 @@ describe('/api/send-sms route', () => {
     expect(json.clientMessageId).toBe(clientMessageId)
     // The API returns message with client_message_id field
     expect(json.message.client_message_id).toBe(clientMessageId)
+  })
+
+  it('Manual SMS passes isManual: true to skip business availability footer', async () => {
+    const { POST } = await importRoute()
+
+    const { sendSms } = await import('@/lib/twilio') as any
+    sendSms.mockResolvedValue({ sid: 'SM888', messageId: '77777777-7777-4777-9777-777777777777' })
+
+    const res = await POST(makeRequest({ leadId: 'lead3', message: 'Test message', clientMessageId: '88888888-8888-4888-8888-888888888888' }))
+    const json = await res.json()
+
+    expect(res.ok).toBe(true)
+    
+    // Verify sendSms was called with isManual: true
+    const twilio = await import('@/lib/twilio') as any
+    expect(twilio.sendSms.mock.calls.length).toBe(1)
+    const opts = twilio.sendSms.mock.calls[0][3]
+    expect(opts.isManual).toBe(true)
+    
+    // Verify business availability note was NOT called (isManual skips it)
+    const businessAvailability = await import('@/lib/business-availability-sms') as any
+    expect(businessAvailability.appendBusinessAvailabilityNote).not.toHaveBeenCalled()
   })
 })
