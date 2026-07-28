@@ -103,7 +103,7 @@ export async function POST(
         ),
         payment_requests:payment_requests!payment_requests_lead_id_fkey (
           id,
-          amount,
+          amount_cents,
           status,
           requested_at,
           paid_at
@@ -116,16 +116,7 @@ export async function POST(
     console.log('[AI Summary] Lead query completed')
     console.log('[AI Summary] leadError:', leadError)
     console.log('[AI Summary] lead data:', lead ? 'ROW RETURNED' : 'NO ROW RETURNED')
-    
-    if (lead) {
-      console.log('[AI Summary] lead.id:', lead.id)
-      console.log('[AI Summary] lead.business_id:', lead.business_id)
-      console.log('[AI Summary] lead.caller_phone:', lead.caller_phone)
-    }
-    
-    console.log('[AI Summary] Comparison: authenticated business_id =', businessData.id, ', lead.business_id =', lead?.business_id)
-    console.log('[AI Summary] Business ID match:', lead?.business_id === businessData.id ? 'MATCH' : 'NO MATCH')
-    
+
     if (leadError) {
       console.error('[AI Summary] ========== DATABASE ERROR ==========')
       console.error('[AI Summary] leadError:', leadError)
@@ -136,7 +127,7 @@ export async function POST(
       console.error('[AI Summary] Returning 500 lead_query_failed')
       return NextResponse.json({ error: 'lead_query_failed' }, { status: 500 })
     }
-    
+
     if (!lead) {
       console.error('[AI Summary] ========== LEAD NOT FOUND ==========')
       console.error('[AI Summary] lead:', lead)
@@ -144,9 +135,13 @@ export async function POST(
       console.error('[AI Summary] Returning 404 lead_not_found')
       return NextResponse.json({ error: 'lead_not_found' }, { status: 404 })
     }
-    
+
     console.log('[AI Summary] Lead data fetched successfully')
-    console.log('[AI Summary] Business ID match confirmed:', lead.business_id === businessData.id)
+    console.log('[AI Summary] lead.id:', lead.id)
+    console.log('[AI Summary] lead.business_id:', lead.business_id)
+    console.log('[AI Summary] lead.caller_phone:', lead.caller_phone)
+    console.log('[AI Summary] Comparison: authenticated business_id =', businessData.id, ', lead.business_id =', lead.business_id)
+    console.log('[AI Summary] Business ID match:', lead.business_id === businessData.id ? 'MATCH' : 'NO MATCH')
 
     // Build context for AI summary
     const context: any = {
@@ -215,7 +210,7 @@ export async function POST(
     // Summarize payments
     if (lead.payment_requests && lead.payment_requests.length > 0) {
       context.payments = lead.payment_requests.map((payment: any) => ({
-        amount: payment.amount,
+        amount_cents: payment.amount_cents,
         status: payment.status,
         requested_at: payment.requested_at,
         paid_at: payment.paid_at
