@@ -146,7 +146,7 @@ export async function POST(
     // Build context for AI summary
     const context: any = {
       customer: {
-        name: lead.name || lead.caller_phone || 'Unknown',
+        name: (lead.name && lead.name !== 'Not collected') ? lead.name : (lead.caller_phone || 'Unknown'),
         phone: lead.caller_phone || '',
         status: lead.status,
         created_at: lead.created_at,

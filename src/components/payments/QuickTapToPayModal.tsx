@@ -370,7 +370,7 @@ export default function QuickTapToPayModal({
                       </div>
                       <div className="text-left">
                         <p className="font-medium text-foreground text-sm">
-                          {selectedLead ? selectedLead.name || 'Unknown' : 'Quick Payment'}
+                          {selectedLead ? (selectedLead.name && selectedLead.name !== 'Not collected' ? selectedLead.name : 'Unknown') : 'Quick Payment'}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {selectedLead ? selectedLead.caller_phone : 'No customer or job'}
@@ -433,7 +433,7 @@ export default function QuickTapToPayModal({
                                 <User className="w-4 h-4 text-muted-foreground" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="font-medium text-foreground text-sm truncate">{lead.name || 'Unknown'}</p>
+                                <p className="font-medium text-foreground text-sm truncate">{(lead.name && lead.name !== 'Not collected') ? lead.name : 'Unknown'}</p>
                                 <p className="text-xs text-muted-foreground truncate">{lead.caller_phone || ''}</p>
                               </div>
                             </div>

@@ -119,11 +119,18 @@ export function formatPhoneNumber(phone: string | null | undefined): string {
 /**
  * Get lead display name with graceful fallback.
  * Delegates to getLeadAIIntake for canonical name resolution, then falls back to formatted phone.
+ * Never displays "Not collected" as a customer name.
  */
 export function getLeadDisplayName(lead: any): string {
   const aiIntake = getLeadAIIntake(lead)
-  if (aiIntake.customerName) {
+  // Use extracted customer name if available and not "Not collected"
+  if (aiIntake.customerName && aiIntake.customerName !== 'Not collected') {
     return aiIntake.customerName
+  }
+
+  // Try existing lead name if available and not "Not collected"
+  if (lead?.name && lead.name !== 'Not collected') {
+    return lead.name
   }
 
   // Try formatted phone numbers

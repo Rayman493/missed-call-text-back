@@ -379,7 +379,7 @@ export default function RequestPaymentModal({
               >
                 <option value="">Select a lead</option>
                 {leads.map((lead) => {
-                  const displayName = lead.name || 'Customer'
+                  const displayName = (lead.name && lead.name !== 'Not collected') ? lead.name : 'Customer'
                   return (
                     <option key={lead.id} value={lead.id}>
                       {formatPhoneNumber(lead.caller_phone)} - {displayName}

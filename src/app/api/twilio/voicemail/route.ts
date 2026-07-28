@@ -521,7 +521,7 @@ export async function POST(request: NextRequest) {
     try {
       await notificationServiceServer.notifyVoicemailReceived(
         business.id,
-        lead.name || '',
+        (lead.name && lead.name !== 'Not collected') ? lead.name : '',
         normalizedCallerPhone,
         lead.id
       );

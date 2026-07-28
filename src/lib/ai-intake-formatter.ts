@@ -60,18 +60,19 @@ function isNormalizationDamaged(original: string, normalized: string): boolean {
 
 // Field-specific normalization for customer names
 // Only removes name-specific conversational prefixes
-export const normalizeCustomerName = (text: string | null | undefined): string => {
-  if (!text || text.trim() === '') return 'Not collected';
-  
+// Returns null for missing values instead of "Not collected" to avoid treating it as a valid name
+export const normalizeCustomerName = (text: string | null | undefined): string | null => {
+  if (!text || text.trim() === '') return null;
+
   const original = text.trim();
-  
+
   // Reject if the value looks like a phone number
   if (looksLikePhoneNumber(original)) {
-    return 'Not collected';
+    return null;
   }
-  
+
   let normalized = original;
-  
+
   // Name-specific conversational prefixes (strictly anchored)
   const namePrefixPatterns = [
     /^\s*yeah[\s,]+my name is[\s,:-]+/i,
@@ -85,24 +86,24 @@ export const normalizeCustomerName = (text: string | null | undefined): string =
     /^\s*the name is\s+/i,
     /^\s*i go by\s+/i,
   ];
-  
+
   // Apply name-specific prefixes
   for (const pattern of namePrefixPatterns) {
     normalized = normalized.replace(pattern, '');
   }
-  
+
   // Apply safe trimming and capitalization
   normalized = safeTrimAndCapitalize(normalized);
-  
+
   // Corruption guard: if normalization damaged the value, return original trimmed
   if (isNormalizationDamaged(original, normalized)) {
     return safeTrimAndCapitalize(original);
   }
-  
+
   // Apply content sanitization for display
   normalized = sanitizeCustomerName(normalized);
-  
-  return normalized;
+
+  return normalized || null;
 };
 
 // Field-specific normalization for service reasons
