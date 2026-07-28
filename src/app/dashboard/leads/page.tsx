@@ -995,32 +995,148 @@ export default function LeadsPage() {
               </div>
             </div>
 
-            {/* Search/Filter Toolbar - moved above quick filters for tighter vertical rhythm */}
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-3 sm:mb-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search customers..."
-                    className="w-full pl-11 pr-4 py-2 bg-background border border-border/50 rounded-lg text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
-                  />
-                </div>
+            {/* Full-width Search */}
+            <div className="mb-3 sm:mb-4">
+              <div className="relative">
+                <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search customers..."
+                  className="w-full pl-11 pr-4 py-2 bg-background border border-border/50 rounded-lg text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
+                />
               </div>
-              <div className="flex items-center justify-between gap-2 w-full sm:w-auto">
-                {/* Left group: Secondary filters + Refresh */}
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        type="button"
-                        className="h-9 px-3 bg-background border border-border/50 rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all cursor-pointer flex items-center gap-2 hover:bg-muted/50 data-[state=open]:ring-2 data-[state=open]:ring-offset-2 data-[state=open]:ring-primary"
-                        title={statusFilter === 'all' ? 'Filters' : getStatusFilterLabel(statusFilter)}
+            </div>
+
+            {/* Quick Filter Pills - horizontal scroll, no wrap */}
+            <div className="flex items-center gap-2 mb-3 sm:mb-4 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+              <button
+                onClick={() => setQuickFilter('all')}
+                className={`
+                  inline-flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap
+                  ${quickFilter === 'all'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'bg-transparent border border-border/40 text-muted-foreground/70 hover:bg-muted/40 hover:border-border/60 hover:text-muted-foreground'
+                  }
+                `}
+              >
+                All <span className="opacity-60">({leads.filter(l => !l.deleted_at).length})</span>
+              </button>
+              <button
+                onClick={() => setQuickFilter('active')}
+                className={`
+                  inline-flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap
+                  ${quickFilter === 'active'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'bg-transparent border border-border/40 text-muted-foreground/70 hover:bg-muted/40 hover:border-border/60 hover:text-muted-foreground'
+                  }
+                `}
+              >
+                Active <span className="opacity-60">({leadStatusCounts.active})</span>
+              </button>
+              <button
+                onClick={() => setQuickFilter('new')}
+                className={`
+                  inline-flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap
+                  ${quickFilter === 'new'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'bg-transparent border border-border/40 text-muted-foreground/70 hover:bg-muted/40 hover:border-border/60 hover:text-muted-foreground'
+                  }
+                `}
+              >
+                Needs Reply <span className="opacity-60">({leadStatusCounts.new})</span>
+              </button>
+              <button
+                onClick={() => setQuickFilter('today')}
+                className={`
+                  inline-flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap
+                  ${quickFilter === 'today'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'bg-transparent border border-border/40 text-muted-foreground/70 hover:bg-muted/40 hover:border-border/60 hover:text-muted-foreground'
+                  }
+                `}
+              >
+                New Today <span className="opacity-60">({leads.filter(l => {
+                  const createdToday = new Date(l.created_at).toDateString() === new Date().toDateString()
+                  return !l.deleted_at && createdToday
+                }).length})</span>
+              </button>
+
+              {/* Overflow menu for secondary actions */}
+              <div className="ml-auto">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="h-9 w-9 inline-flex items-center justify-center bg-background border border-border/50 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
+                      title="More options"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                      </svg>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuPortal>
+                    <DropdownMenuContent
+                      align="end"
+                      side="bottom"
+                      sideOffset={8}
+                      collisionPadding={12}
+                      avoidCollisions
+                      className="w-[200px] max-w-[calc(100vw-24px)] bg-card border border-border/50 rounded-lg shadow-xl shadow-black/10 dark:shadow-black/30 z-[10000]"
+                    >
+                      <DropdownMenuItem
+                        onSelect={() => setShowAddCustomerModal(true)}
+                        className="w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center gap-2.5 outline-none focus:bg-muted/50 cursor-pointer"
                       >
+                        <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        <span className="text-sm text-foreground">Add Customer</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator className="my-1 h-px bg-border/50" />
+                      <DropdownMenuItem
+                        onSelect={() => setShowFilters(!showFilters)}
+                        className="w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center gap-2.5 outline-none focus:bg-muted/50 cursor-pointer"
+                      >
+                        <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L15 12.414V19a1 1 0 01-1.447.894l-2-1A1 1 0 0111 18v-5.586L3.293 6.707A1 1 0 013 6V4z" />
+                        </svg>
+                        <span className="text-sm text-foreground">Filters</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onSelect={fetchLeads}
+                        disabled={loading || refreshing}
+                        className="w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center gap-2.5 outline-none focus:bg-muted/50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {refreshing ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                        ) : (
+                          <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                        )}
+                        <span className="text-sm text-foreground">Refresh</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenuPortal>
+                </DropdownMenu>
+              </div>
+            </div>
+
+            {/* Status Filter Dropdown (shown when filters are enabled) */}
+            {showFilters && (
+              <div className="mb-3 sm:mb-4">
+                <DropdownMenu open={showFilters} onOpenChange={setShowFilters}>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="w-full h-9 px-3 bg-background border border-border/50 rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all cursor-pointer flex items-center justify-between hover:bg-muted/50"
+                    >
+                      <div className="flex items-center gap-2">
                         {statusFilter === 'all' ? (
                           <>
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1034,129 +1150,50 @@ export default function LeadsPage() {
                             <span className="whitespace-nowrap">{getStatusFilterLabel(statusFilter)}</span>
                           </>
                         )}
-                        <svg 
-                          className="w-3 h-3 transition-transform duration-200 data-[state=open]:rotate-180" 
-                          fill="none" 
-                          stroke="currentColor" 
-                          viewBox="0 0 24 24"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuPortal>
-                      <DropdownMenuContent
-                        align="end"
-                        side="bottom"
-                        sideOffset={8}
-                        collisionPadding={12}
-                        avoidCollisions
-                        className="w-[240px] max-w-[calc(100vw-24px)] max-h-[min(420px,calc(100dvh-120px))] bg-card border border-border/50 rounded-lg shadow-xl shadow-black/10 dark:shadow-black/30 overflow-y-auto overscroll-contain z-[10000]"
+                      </div>
+                      <svg 
+                        className="w-3 h-3 transition-transform duration-200" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
                       >
-                        {statusFilterOptions.map((option) => (
-                          <DropdownMenuItem
-                            key={option.value}
-                            onSelect={() => setStatusFilter(option.value)}
-                            className="w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center gap-2.5 outline-none focus:bg-muted/50 cursor-pointer"
-                          >
-                            <span className="text-xs">{option.icon}</span>
-                            <div className="flex-1">
-                              <div className="text-xs font-medium text-foreground">
-                                {option.label}
-                              </div>
-                            </div>
-                            {statusFilter === option.value && (
-                              <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                              </svg>
-                            )}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenuPortal>
-                  </DropdownMenu>
-                  <button
-                    onClick={fetchLeads}
-                    disabled={loading || refreshing}
-                    className="h-9 w-9 inline-flex items-center justify-center bg-background border border-border/50 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Refresh"
-                  >
-                    {refreshing ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                    ) : (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
-                    )}
-                  </button>
-                </div>
-                {/* Right: Add Customer button - primary CTA */}
-                <button
-                  onClick={() => setShowAddCustomerModal(true)}
-                  className="inline-flex items-center gap-1.5 h-9 px-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white text-sm font-medium rounded-lg shadow-sm hover:shadow transition-all duration-200 whitespace-nowrap"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Add Customer
-                </button>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuPortal>
+                    <DropdownMenuContent
+                      align="start"
+                      side="bottom"
+                      sideOffset={8}
+                      collisionPadding={12}
+                      avoidCollisions
+                      className="w-full max-w-[calc(100vw-24px)] max-h-[min(420px,calc(100dvh-120px))] bg-card border border-border/50 rounded-lg shadow-xl shadow-black/10 dark:shadow-black/30 overflow-y-auto overscroll-contain z-[10000]"
+                    >
+                      {statusFilterOptions.map((option) => (
+                        <DropdownMenuItem
+                          key={option.value}
+                          onSelect={() => setStatusFilter(option.value)}
+                          className="w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center gap-2.5 outline-none focus:bg-muted/50 cursor-pointer"
+                        >
+                          <span className="text-xs">{option.icon}</span>
+                          <div className="flex-1">
+                            <div className="text-xs font-medium text-foreground">
+                              {option.label}
+                            </div>
+                          </div>
+                          {statusFilter === option.value && (
+                            <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenuPortal>
+                </DropdownMenu>
               </div>
-            </div>
-
-            {/* Premium Filter Chips */}
-            <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 mb-3 sm:mb-4">
-              <button
-                onClick={() => setQuickFilter('all')}
-                className={`
-                  inline-flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200
-                  ${quickFilter === 'all'
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'bg-transparent border border-border/40 text-muted-foreground/70 hover:bg-muted/40 hover:border-border/60 hover:text-muted-foreground'
-                  }
-                `}
-              >
-                All <span className="opacity-60">({leads.filter(l => !l.deleted_at).length})</span>
-              </button>
-              <button
-                onClick={() => setQuickFilter('active')}
-                className={`
-                  inline-flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200
-                  ${quickFilter === 'active'
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'bg-transparent border border-border/40 text-muted-foreground/70 hover:bg-muted/40 hover:border-border/60 hover:text-muted-foreground'
-                  }
-                `}
-              >
-                Active <span className="opacity-60">({leadStatusCounts.active})</span>
-              </button>
-              <button
-                onClick={() => setQuickFilter('new')}
-                className={`
-                  inline-flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200
-                  ${quickFilter === 'new'
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'bg-transparent border border-border/40 text-muted-foreground/70 hover:bg-muted/40 hover:border-border/60 hover:text-muted-foreground'
-                  }
-                `}
-              >
-                Needs Reply <span className="opacity-60">({leadStatusCounts.new})</span>
-              </button>
-              <button
-                onClick={() => setQuickFilter('today')}
-                className={`
-                  inline-flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200
-                  ${quickFilter === 'today'
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'bg-transparent border border-border/40 text-muted-foreground/70 hover:bg-muted/40 hover:border-border/60 hover:text-muted-foreground'
-                  }
-                `}
-              >
-                New Today <span className="opacity-60">({leads.filter(l => {
-                  const createdToday = new Date(l.created_at).toDateString() === new Date().toDateString()
-                  return !l.deleted_at && createdToday
-                }).length})</span>
-              </button>
-            </div>
+            )}
 
             {/* Small customer count - hidden on mobile to avoid duplication with single-customer view; correct grammar */}
             {(() => { const c = leads.filter(l => !l.deleted_at).length; return (
@@ -1436,10 +1473,11 @@ export default function LeadsPage() {
                                   <DropdownMenuItem
                                     onSelect={() => handleRestoreLead(lead.id)}
                                     onPointerDown={(e) => e.stopPropagation()}
+                                    onClick={(e) => e.stopPropagation()}
                                     className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors outline-none focus:bg-muted/50 cursor-pointer"
                                   >
                                     <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.001 0 01-15.357-2m15.357 2H15" />
                                     </svg>
                                     <span>Restore Customer</span>
                                   </DropdownMenuItem>
@@ -1448,6 +1486,7 @@ export default function LeadsPage() {
                                   <DropdownMenuItem
                                     onSelect={() => handleIgnoreLead(lead.id)}
                                     onPointerDown={(e) => e.stopPropagation()}
+                                    onClick={(e) => e.stopPropagation()}
                                     className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors outline-none focus:bg-muted/50 cursor-pointer"
                                   >
                                     <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1460,10 +1499,11 @@ export default function LeadsPage() {
                                   <DropdownMenuItem
                                     onSelect={() => handleLeadStatusChange(lead.id, 'active')}
                                     onPointerDown={(e) => e.stopPropagation()}
+                                    onClick={(e) => e.stopPropagation()}
                                     className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors outline-none focus:bg-muted/50 cursor-pointer"
                                   >
                                     <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.001 0 01-15.357-2m15.357 2H15" />
                                     </svg>
                                     <span>Restore Customer</span>
                                   </DropdownMenuItem>
@@ -1639,10 +1679,11 @@ export default function LeadsPage() {
                                       <DropdownMenuItem
                                         onSelect={() => handleRestoreLead(lead.id)}
                                         onPointerDown={(e) => e.stopPropagation()}
+                                        onClick={(e) => e.stopPropagation()}
                                         className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors outline-none focus:bg-muted/50 cursor-pointer"
                                       >
                                         <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.001 0 01-15.357-2m15.357 2H15" />
                                         </svg>
                                         <span>Restore Customer</span>
                                       </DropdownMenuItem>
@@ -1651,6 +1692,7 @@ export default function LeadsPage() {
                                       <DropdownMenuItem
                                         onSelect={() => handleIgnoreLead(lead.id)}
                                         onPointerDown={(e) => e.stopPropagation()}
+                                        onClick={(e) => e.stopPropagation()}
                                         className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors outline-none focus:bg-muted/50 cursor-pointer"
                                       >
                                         <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1663,10 +1705,11 @@ export default function LeadsPage() {
                                       <DropdownMenuItem
                                         onSelect={() => handleLeadStatusChange(lead.id, 'active')}
                                         onPointerDown={(e) => e.stopPropagation()}
+                                        onClick={(e) => e.stopPropagation()}
                                         className="w-full px-3 py-2.5 text-left text-sm text-foreground hover:bg-muted/50 flex items-center gap-2.5 transition-colors outline-none focus:bg-muted/50 cursor-pointer"
                                       >
                                         <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.001 0 01-15.357-2m15.357 2H15" />
                                         </svg>
                                         <span>Restore Customer</span>
                                       </DropdownMenuItem>

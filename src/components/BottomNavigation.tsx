@@ -262,8 +262,8 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                       : 'text-slate-300 hover:text-white hover:bg-white/[0.06] active:scale-95'
                   }`}
                 >
-                                    <Icon className="w-6 h-6 sm:w-6 sm:h-6 mb-1.5 transition-transform duration-200" />
-                  <span className={`text-[10px] sm:text-[10px] font-medium transition-colors duration-200 ${
+                                    <Icon className="w-[22px] h-[22px] sm:w-[22px] sm:h-[22px] mb-1 transition-transform duration-200" />
+                  <span className={`text-[10px] sm:text-[10px] font-normal transition-colors duration-200 ${
                     isActive(item.href) ? 'font-semibold' : ''
                   }`}>{item.label}</span>
                 </Link>
@@ -280,8 +280,8 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                   : 'text-slate-300 hover:text-white hover:bg-white/[0.06] active:scale-95'
               }`}
             >
-                            <Settings className="w-6 h-6 sm:w-6 sm:h-6 mb-1.5 transition-transform duration-200" />
-              <span className={`text-[10px] sm:text-[10px] font-medium transition-colors duration-200 ${
+                            <Settings className="w-[22px] h-[22px] sm:w-[22px] sm:h-[22px] mb-1 transition-transform duration-200" />
+              <span className={`text-[10px] sm:text-[10px] font-normal transition-colors duration-200 ${
                 isMoreMenuOpen ? 'font-semibold' : ''
               }`}>More</span>
             </button>

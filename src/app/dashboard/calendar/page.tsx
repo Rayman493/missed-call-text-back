@@ -1656,7 +1656,7 @@ export default function SchedulePage() {
                         Connect Google Calendar
                       </h2>
                       <p className="text-sm text-slate-600 dark:text-muted-foreground mb-6 max-w-md mx-auto">
-                        Connect your Google Calendar to view your schedule from ReplyFlow.
+                        Connect your Google account to sync your calendar. You'll be asked to sign in to Google once to grant access.
                       </p>
                       <button
                         onClick={handleConnectCalendarWithExplanation}
@@ -1671,7 +1671,7 @@ export default function SchedulePage() {
                         ) : (
                           <>
                             <Plus className="w-4 h-4" />
-                            <span>Connect Calendar</span>
+                            <span>Connect Google Calendar</span>
                           </>
                         )}
                       </button>
