@@ -40,7 +40,6 @@ import PhotoModal from '@/components/PhotoModal'
 import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
 import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall } from 'lucide-react'
 import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
-import AICustomerSummary from '@/components/AICustomerSummary'
 
 function getErrorMessage(errorCode: string): string {
   // Only show user-friendly messages for known error codes
@@ -3296,11 +3295,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             )}
           </div>
         </div>
-      </div>
-
-      {/* AI Customer Summary Card */}
-      <div className="max-w-7xl mx-auto w-full px-6 lg:px-8 py-4">
-        <AICustomerSummary leadId={params.id} />
       </div>
 
       {/* Conversation Thread - Conditional Rendering to Prevent Duplicate Audio Elements */}

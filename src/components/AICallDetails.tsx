@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatRelativeTime, formatPhoneNumber, sentenceCase } from '@/lib/utils'
-import { MessageCircle, ChevronDown, ChevronUp, Pencil, X, Check, Loader2, User, FileText, MapPin, Calendar, Phone } from 'lucide-react'
+import { MessageCircle, ChevronDown, ChevronUp, Pencil, X, Check, Loader2, User, FileText, MapPin, Calendar, Phone, Sparkles, RefreshCw } from 'lucide-react'
 import { normalizeExtractedInfo, getLeadAIIntake, getAIIntakeStatus } from '@/lib/ai-field-mapping'
 import { normalizeAITranscript } from '@/lib/transcript-normalization'
 import { normalizeAICallRecord, getHistoryCardTitle, getOutcomeColor as getRecordOutcomeColor, getIntakeBadgeLabel, type NormalizedIntake } from '@/lib/ai-call-record-normalizer'
@@ -69,6 +69,10 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
   const [saveError, setSaveError] = useState<string | null>(null)
   const [previousIntakesExpanded, setPreviousIntakesExpanded] = useState(false)
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null)
+  const [aiSummary, setAiSummary] = useState<string | null>(null)
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false)
+  const [summaryError, setSummaryError] = useState<string | null>(null)
+  const [aiSummaryExpanded, setAiSummaryExpanded] = useState(false)
   const supabase = createBrowserClient()
 
   const handleSave = async () => {
@@ -162,6 +166,44 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
       preferredCallbackTime: extractedInfo?.preferredCallbackTime || '',
       desiredCompletionTime: extractedInfo?.desiredCompletionTime || ''
     })
+  }
+
+  const handleGenerateSummary = async () => {
+    setIsGeneratingSummary(true)
+    setSummaryError(null)
+
+    try {
+      const response = await fetch(`/api/leads/${leadId}/summary`, {
+        method: 'POST',
+        credentials: 'include'
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        console.error('[AI Summary] API error:', data.error)
+        let errorMessage = 'Failed to generate summary. Please try again.'
+        if (data.error === 'openai_api_key_missing') {
+          errorMessage = 'AI service is not configured. Please contact support.'
+        } else if (data.error === 'openai_api_failed') {
+          errorMessage = 'AI service is temporarily unavailable. Please try again later.'
+        } else if (data.error === 'lead_not_found') {
+          errorMessage = 'Customer not found.'
+        } else if (data.error === 'unauthorized') {
+          errorMessage = 'You are not authorized to generate summaries.'
+        } else if (data.error === 'business_not_found') {
+          errorMessage = 'Business not found. Please contact support.'
+        }
+        throw new Error(errorMessage)
+      }
+
+      setAiSummary(data.summary)
+    } catch (err) {
+      console.error('[AI Summary] Error:', err)
+      setSummaryError(err instanceof Error ? err.message : 'Failed to generate summary. Please try again.')
+    } finally {
+      setIsGeneratingSummary(false)
+    }
   }
 
   useEffect(() => {
@@ -884,6 +926,79 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           )}
         </div>
       )}
+
+      {/* AI Summary - Collapsible */}
+      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+        <button
+          onClick={() => setAiSummaryExpanded(!aiSummaryExpanded)}
+          className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+              <Sparkles className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-sm font-semibold text-foreground">
+              AI Summary
+            </span>
+          </div>
+          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${aiSummaryExpanded ? 'rotate-180' : 'rotate-0'}`} />
+        </button>
+
+        {aiSummaryExpanded && (
+          <div className="px-4 pb-4 pt-2 border-t border-border/50">
+            {isGeneratingSummary ? (
+              <div className="space-y-3">
+                <div className="animate-pulse space-y-2">
+                  <div className="h-3 bg-muted rounded w-3/4"></div>
+                  <div className="h-3 bg-muted rounded w-full"></div>
+                  <div className="h-3 bg-muted rounded w-5/6"></div>
+                  <div className="h-3 bg-muted rounded w-2/3"></div>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                  <span>Generating summary...</span>
+                </div>
+              </div>
+            ) : summaryError ? (
+              <div className="space-y-3">
+                <p className="text-sm text-red-600 dark:text-red-400">{summaryError}</p>
+                <button
+                  onClick={handleGenerateSummary}
+                  className="inline-flex items-center justify-center h-9 px-4 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 text-sm font-medium rounded-lg transition-colors"
+                >
+                  Try Again
+                </button>
+              </div>
+            ) : aiSummary ? (
+              <div className="space-y-3">
+                <p className="text-sm text-foreground leading-relaxed">
+                  {aiSummary}
+                </p>
+                <button
+                  onClick={handleGenerateSummary}
+                  disabled={isGeneratingSummary}
+                  className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <RefreshCw className={`w-3 h-3 ${isGeneratingSummary ? 'animate-spin' : ''}`} />
+                  Refresh Summary
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  ReplyFlow can summarize everything known about this customer, including conversation history, AI intake information, jobs, payments, and more.
+                </p>
+                <button
+                  onClick={handleGenerateSummary}
+                  className="inline-flex items-center justify-center h-9 px-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-sm font-medium rounded-lg shadow-sm hover:shadow transition-all duration-200"
+                >
+                  Generate Summary
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Request History - Show when multiple records exist - Moved to end */}
       {aiCallRecords.length > 1 && (
