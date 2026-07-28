@@ -1063,6 +1063,12 @@ export default function SettingsContent() {
       <AuthGuard>
       <BusinessGuard>
         <div className="min-h-screen bg-background dark:bg-background flex flex-col relative">
+          {/* Fixed iPhone safe-area background */}
+          <div
+            aria-hidden="true"
+            className="fixed inset-x-0 top-0 z-[60] bg-background dark:bg-background pointer-events-none"
+            style={{ height: 'env(safe-area-inset-top)' }}
+          />
           {/* Header */}
           <AppHeader title="Settings" sticky={false} />
 
@@ -1081,7 +1087,7 @@ export default function SettingsContent() {
             </div>
 
             {/* Settings Navigation Tabs - sticky only */}
-            <div className="sticky z-40 border-b border-border bg-background py-2 top-0" style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}>
+            <div className="sticky z-40 border-b border-border bg-background py-2" style={{ top: 'env(safe-area-inset-top)' }}>
               <nav ref={settingsTabsNavRef} className="flex items-center gap-1 overflow-x-auto custom-scrollbar-horizontal">
                 <button
                   ref={(element) => { sectionTabRefs.current.general = element }}
