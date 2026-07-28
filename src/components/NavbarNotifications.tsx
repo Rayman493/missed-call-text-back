@@ -27,6 +27,45 @@ const useIsMobile = () => {
   return isMobile
 }
 
+// Hook to lock body scroll when modal is open
+const useBodyScrollLock = (isOpen: boolean) => {
+  useEffect(() => {
+    if (!isOpen) return
+
+    // Save current scroll position
+    const scrollY = window.scrollY
+    const scrollX = window.scrollX
+
+    // Lock scroll
+    const originalStyle = window.getComputedStyle(document.body)
+    const originalOverflow = originalStyle.overflow
+    const originalPosition = originalStyle.position
+
+    document.body.style.overflow = 'hidden'
+    document.body.style.position = 'fixed'
+    document.body.style.top = `-${scrollY}px`
+    document.body.style.left = `-${scrollX}px`
+    document.body.style.width = '100%'
+    document.body.style.right = '0'
+
+    // Also lock html element for some browsers
+    document.documentElement.style.overflow = 'hidden'
+
+    return () => {
+      // Restore scroll position
+      document.body.style.overflow = originalOverflow
+      document.body.style.position = originalPosition
+      document.body.style.top = ''
+      document.body.style.left = ''
+      document.body.style.width = ''
+      document.body.style.right = ''
+      document.documentElement.style.overflow = ''
+
+      window.scrollTo(scrollX, scrollY)
+    }
+  }, [isOpen])
+}
+
 export default function NavbarNotifications() {
   const { business } = useBusiness()
   const router = useRouter()
@@ -39,6 +78,9 @@ export default function NavbarNotifications() {
   const [buttonPosition, setButtonPosition] = useState<{ top: number; right: number } | null>(null)
   const isMobile = useIsMobile()
   const supabase = createBrowserClient()
+
+  // Lock body scroll when notifications panel is open
+  useBodyScrollLock(isOpen)
 
   // Calculate button position when dropdown opens
   useEffect(() => {
