@@ -223,7 +223,8 @@ export default function NotificationsPage() {
 
   // Handle pointer up to check if it was a tap
   const handlePointerUp = (e: React.PointerEvent) => {
-    pointerDownRef.current = null
+    // Don't clear the ref yet - let onClick check it first
+    // It will be cleared after onClick processes
   }
 
   if (loading) {
@@ -298,6 +299,8 @@ export default function NotificationsPage() {
                       handleMarkAsRead(notification.id)
                     }
                   }
+                  // Clear the ref after processing
+                  pointerDownRef.current = null
                 }}
                 className={`group relative bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-lg p-4 transition-colors hover:shadow-sm select-none touch-pan-y cursor-pointer ${getNotificationAccent(notification.type)} ${
                   notification.read
