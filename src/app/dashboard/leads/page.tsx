@@ -602,8 +602,8 @@ export default function LeadsPage() {
     const q = searchQuery.toLowerCase()
     const matchesSearch = !searchQuery ||
       lead.caller_phone.includes(searchQuery) ||
-      lead.name?.toLowerCase().includes(q) ||
-      (intake.customerName?.toLowerCase().includes(q)) ||
+      ((lead.name && lead.name !== 'Not collected') ? lead.name.toLowerCase().includes(q) : false) ||
+      ((intake.customerName && intake.customerName !== 'Not collected') ? intake.customerName.toLowerCase().includes(q) : false) ||
       (intake.serviceRequested?.toLowerCase().includes(q)) ||
       (intake.serviceAddress?.toLowerCase().includes(q)) ||
       normalizePhoneNumberForSearch(lead.caller_phone).includes(normalizePhoneNumberForSearch(searchQuery)) ||
@@ -1011,48 +1011,49 @@ export default function LeadsPage() {
               </div>
             </div>
 
-            {/* Quick Filter Pills - horizontal scroll, no wrap */}
-            <div className="flex items-center gap-2 mb-3 sm:mb-4 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+            {/* Quick Filter Pills - strict mobile layout, horizontal scroll on desktop */}
+            <div className="flex items-center gap-2 mb-3 sm:mb-4 overflow-hidden sm:overflow-x-auto sm:scrollbar-hide">
               <button
                 onClick={() => setQuickFilter('all')}
                 className={`
-                  inline-flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap
+                  inline-flex items-center gap-2 px-2.5 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap min-w-0
                   ${quickFilter === 'all'
                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'bg-transparent border border-border/40 text-muted-foreground/70 hover:bg-muted/40 hover:border-border/60 hover:text-muted-foreground'
                   }
                 `}
               >
-                All <span className="opacity-60">({leads.filter(l => !l.deleted_at).length})</span>
+                <span className="truncate">All</span> <span className="opacity-60 text-xs">({leads.filter(l => !l.deleted_at).length})</span>
               </button>
               <button
                 onClick={() => setQuickFilter('active')}
                 className={`
-                  inline-flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap
+                  inline-flex items-center gap-2 px-2.5 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap min-w-0
                   ${quickFilter === 'active'
                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'bg-transparent border border-border/40 text-muted-foreground/70 hover:bg-muted/40 hover:border-border/60 hover:text-muted-foreground'
                   }
                 `}
               >
-                Active <span className="opacity-60">({leadStatusCounts.active})</span>
+                <span className="truncate">Active</span> <span className="opacity-60 text-xs">({leadStatusCounts.active})</span>
               </button>
               <button
                 onClick={() => setQuickFilter('new')}
                 className={`
-                  inline-flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap
+                  inline-flex items-center gap-2 px-2.5 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap min-w-0
                   ${quickFilter === 'new'
                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'bg-transparent border border-border/40 text-muted-foreground/70 hover:bg-muted/40 hover:border-border/60 hover:text-muted-foreground'
                   }
                 `}
               >
-                Needs Reply <span className="opacity-60">({leadStatusCounts.new})</span>
+                <span className="truncate">Needs Reply</span> <span className="opacity-60 text-xs">({leadStatusCounts.new})</span>
               </button>
+              {/* New Today - hidden on mobile, shown on desktop */}
               <button
                 onClick={() => setQuickFilter('today')}
                 className={`
-                  inline-flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap
+                  hidden sm:inline-flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap
                   ${quickFilter === 'today'
                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'bg-transparent border border-border/40 text-muted-foreground/70 hover:bg-muted/40 hover:border-border/60 hover:text-muted-foreground'
@@ -1066,7 +1067,7 @@ export default function LeadsPage() {
               </button>
 
               {/* Overflow menu for secondary actions */}
-              <div className="ml-auto">
+              <div className="ml-auto shrink-0">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
@@ -1106,6 +1107,20 @@ export default function LeadsPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L15 12.414V19a1 1 0 01-1.447.894l-2-1A1 1 0 0111 18v-5.586L3.293 6.707A1 1 0 013 6V4z" />
                         </svg>
                         <span className="text-sm text-foreground">Filters</span>
+                      </DropdownMenuItem>
+                      {/* New Today - shown on mobile only */}
+                      <DropdownMenuItem
+                        onSelect={() => setQuickFilter('today')}
+                        className="sm:hidden w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center gap-2.5 outline-none focus:bg-muted/50 cursor-pointer"
+                      >
+                        <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="text-sm text-foreground">New Today</span>
+                        <span className="opacity-60 text-xs">({leads.filter(l => {
+                          const createdToday = new Date(l.created_at).toDateString() === new Date().toDateString()
+                          return !l.deleted_at && createdToday
+                        }).length})</span>
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onSelect={fetchLeads}
