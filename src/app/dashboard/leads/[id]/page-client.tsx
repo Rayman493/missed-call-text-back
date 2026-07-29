@@ -3488,6 +3488,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   onClearImages={(clearFn: () => void) => {
                     clearComposerImagesRef.current = clearFn
                   }}
+                  onSendViaBusinessNumber={() => {
+                    const customerName = getCustomerName(lead, leadData)
+                    const dialNumber = leadData?.caller_phone || lead?.caller_phone || ''
+                    setBusinessPhoneModalConfig({
+                      title: 'Send Message',
+                      description: 'Send this message from your business phone.',
+                      message: message,
+                      recipient: dialNumber,
+                      recipientName: customerName,
+                      actionType: 'text'
+                    })
+                    setShowBusinessPhoneModal(true)
+                  }}
                 />
               </div>
             </section>

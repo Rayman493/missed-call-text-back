@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react'
-import { Plus, X } from 'lucide-react'
+import { Plus, X, Smartphone } from 'lucide-react'
+import { Capacitor } from '@capacitor/core'
 
 interface ConversationComposerProps {
   message: string
@@ -7,6 +8,7 @@ interface ConversationComposerProps {
   handleSendMessage: (media?: File[]) => void
   sending: boolean
   onClearImages?: (clearFn: () => void) => void
+  onSendViaBusinessNumber?: () => void
 }
 
 interface ImagePreview {
@@ -20,7 +22,8 @@ export default function ConversationComposer({
   setMessage, 
   handleSendMessage, 
   sending,
-  onClearImages
+  onClearImages,
+  onSendViaBusinessNumber
 }: ConversationComposerProps) {
   const [images, setImages] = useState<ImagePreview[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -29,6 +32,8 @@ export default function ConversationComposer({
   const dropZoneRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const sendButtonRef = useRef<HTMLButtonElement>(null)
+
+  const isNativeMobile = Capacitor.isNativePlatform()
 
   // Clear images when onClearImages is called
   React.useEffect(() => {
@@ -272,6 +277,17 @@ export default function ConversationComposer({
               </>
             )}
             </button>
+            {isNativeMobile && onSendViaBusinessNumber && hasContent && !sending && (
+              <button
+                type="button"
+                onClick={onSendViaBusinessNumber}
+                className="px-3 py-3 rounded-xl font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all duration-200 shadow-sm hover:shadow flex items-center gap-2 flex-shrink-0 h-12 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background"
+                aria-label="Send via Business Number"
+              >
+                <Smartphone className="w-4 h-4" />
+                <span className="text-sm hidden sm:inline">Business</span>
+              </button>
+            )}
           </div>
         </div>
         <div className="flex justify-start px-1 pt-1">
