@@ -434,6 +434,7 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
   const transcriptPresent = !!aiCallRecord?.transcript && aiCallRecord.transcript.length > 0
   const extractedInfoPresent = !!aiCallRecord?.extracted_info && Object.keys(aiCallRecord.extracted_info).length > 0
   const summaryPresent = !!aiCallRecord?.summary && aiCallRecord.summary.length > 0
+  const hasUsableCompletedIntake = transcriptPresent || extractedInfoPresent || summaryPresent
   const alreadySent = await hasAutomaticSmsForCall(callSid, businessId)
 
   // Skip if any guard fails
@@ -448,12 +449,8 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
     skipReason = 'call_failed_or_fallback'
   } else if (!outcomeCompleted) {
     skipReason = 'outcome_not_completed'
-  } else if (!transcriptPresent) {
-    skipReason = 'no_transcript'
-  } else if (!extractedInfoPresent) {
-    skipReason = 'no_extracted_info'
-  } else if (!summaryPresent) {
-    skipReason = 'no_summary'
+  } else if (!hasUsableCompletedIntake) {
+    skipReason = 'no_usable_ai_content'
   } else if (alreadySent) {
     skipReason = 'already_sent'
   }
@@ -467,10 +464,21 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
     transcriptPresent,
     extractedInfoPresent,
     summaryPresent,
+    hasUsableCompletedIntake,
     failedOrFallback,
     alreadySent,
     decision: skipReason ? 'skip' : 'send',
     skipReason,
+    timestamp: new Date().toISOString()
+  })
+
+  // Content eligibility diagnostic log
+  console.log('[SUMMARY SMS CONTENT ELIGIBILITY]', {
+    transcriptPresent,
+    extractedInfoPresent,
+    summaryPresent,
+    hasUsableCompletedIntake,
+    templateSource: extractedInfoPresent ? 'extracted_info' : (summaryPresent ? 'summary' : 'transcript'),
     timestamp: new Date().toISOString()
   })
 
