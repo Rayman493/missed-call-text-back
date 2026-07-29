@@ -5,7 +5,7 @@ import { Business } from '@/lib/types'
 export interface Notification {
   id: string
   business_id: string
-  type: 'new_lead' | 'customer_reply' | 'followup_completed' | 'forwarding_disconnected' | 'sms_failed' | 'trial_ending' | 'subscription_issue' | 'voicemail_received' | 'ai_intake_completed' | 'payment_requested' | 'payment_completed' | 'calendar_connected' | 'calendar_disconnected' | 'appointment_created' | 'appointment_deleted' | 'personal_voicemail'
+  type: 'new_lead' | 'customer_reply' | 'followup_completed' | 'forwarding_disconnected' | 'sms_failed' | 'trial_ending' | 'subscription_issue' | 'voicemail_received' | 'ai_intake_completed' | 'payment_requested' | 'payment_created' | 'payment_completed' | 'calendar_connected' | 'calendar_disconnected' | 'appointment_created' | 'appointment_deleted' | 'personal_voicemail'
   title: string
   message: string
   data?: any
@@ -99,6 +99,13 @@ export const NOTIFICATION_TEMPLATES = {
   payment_requested: (data: { leadName: string; leadPhone: string; leadId: string; amountCents: number; description?: string }) => ({
     title: 'Payment Request Sent',
     message: `Payment request of $${(data.amountCents / 100).toFixed(2)} sent to ${data.leadName || data.leadPhone}${data.description ? ` for ${data.description}` : ''}`,
+    action_url: `/dashboard/leads/${data.leadId}`,
+    action_text: 'View Lead'
+  }),
+
+  payment_created: (data: { leadName: string; leadPhone: string; leadId: string; amountCents: number; description?: string }) => ({
+    title: 'Payment Request Ready',
+    message: `Payment request of $${(data.amountCents / 100).toFixed(2)} created for ${data.leadName || data.leadPhone}${data.description ? ` for ${data.description}` : ''}`,
     action_url: `/dashboard/leads/${data.leadId}`,
     action_text: 'View Lead'
   }),
