@@ -37,13 +37,6 @@ export default function BusinessPhoneModal({
   if (!isOpen) return null
 
   const handleSend = async () => {
-    // Copy message to clipboard as fallback
-    try {
-      await navigator.clipboard.writeText(message)
-    } catch (error) {
-      console.error('Failed to copy message:', error)
-    }
-
     // Open native messaging app
     try {
       await onSend()

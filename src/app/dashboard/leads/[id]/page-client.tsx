@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useMemo } from 'react'
+import { Capacitor } from '@capacitor/core'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -4978,6 +4979,14 @@ If you have questions, reply to this message.`
         recipientName={businessPhoneModalConfig.recipientName}
         actionType={businessPhoneModalConfig.actionType}
         onSend={async () => {
+          // Copy the message to clipboard as fallback
+          try {
+            await navigator.clipboard.writeText(businessPhoneModalConfig.message)
+            console.log('[BusinessPhone] Message copied to clipboard')
+          } catch (error) {
+            console.error('[BusinessPhone] Failed to copy message:', error)
+          }
+
           // Record the Business Phone action
           await recordBusinessPhoneAction({
             actionType: businessPhoneModalConfig.actionType,
@@ -4988,18 +4997,17 @@ If you have questions, reply to this message.`
             relatedId: businessPhoneModalConfig.relatedId,
             relatedType: businessPhoneModalConfig.relatedType
           })
-          
-          // Copy the message to clipboard as fallback
-          try {
-            await navigator.clipboard.writeText(businessPhoneModalConfig.message)
-            console.log('[BusinessPhone] Message copied to clipboard')
-          } catch (error) {
-            console.error('[BusinessPhone] Failed to copy message:', error)
-          }
-          
+
           // Launch the native Messages app
           const smsUrl = `sms:${businessPhoneModalConfig.recipient}?body=${encodeURIComponent(businessPhoneModalConfig.message)}`
-          window.open(smsUrl, '_blank')
+
+          // On native mobile, use window.location.href to launch the SMS app
+          if (Capacitor.isNativePlatform()) {
+            window.location.href = smsUrl
+          } else {
+            // On desktop/web, open in new tab
+            window.open(smsUrl, '_blank')
+          }
         }}
       />
     )}
