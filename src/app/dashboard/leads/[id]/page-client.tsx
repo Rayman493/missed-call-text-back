@@ -4939,66 +4939,106 @@ If you have questions, reply to this message.
                 console.log('[PAYMENT MODAL] Native detection:', isNativeMobile(), 'Has message:', !!paymentLinkData.message, 'Has dialNumber:', !!paymentLinkData.dialNumber, 'Has paymentLink:', !!paymentLinkData.paymentLink)
                 return null
               })()}
-              {isNativeMobile() && (
-                <button
-                  onClick={async () => {
-                    // Validate required fields before launching Messages
-                    if (!paymentLinkData.dialNumber) {
-                      setError('Customer phone number is missing. Cannot open Messages.')
-                      return
-                    }
-                    if (!paymentLinkData.message) {
-                      setError('Payment message is missing. Cannot open Messages.')
-                      return
-                    }
-                    if (!paymentLinkData.paymentLink) {
-                      setError('Payment link is missing. Cannot open Messages.')
-                      return
-                    }
-                    // Mark handoff as initiated for confirmation flow
-                    await markHandoffInitiated()
-                    // Use window.open for Capacitor compatibility
-                    const smsUrl = `sms:${paymentLinkData.dialNumber}?body=${encodeURIComponent(paymentLinkData.message)}`
-                    window.open(smsUrl, '_blank')
-                    // Close the ready modal after successful handoff, but preserve pending action
-                    setShowPaymentLinkModal(false)
-                  }}
-                  className="w-full px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-                >
-                  Open Messages
-                </button>
-              )}
-              
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    const message = `${business?.name || 'our business'} has sent you a payment request of $${paymentLinkData.amount}${paymentLinkData.description ? ` for ${paymentLinkData.description}` : ''}.
+              {isNativeMobile() ? (
+                // Native mobile: One-button primary workflow
+                <>
+                  <button
+                    onClick={async () => {
+                      // Validate required fields before launching Messages
+                      if (!paymentLinkData.dialNumber) {
+                        setError('Customer phone number is missing. Cannot send payment request.')
+                        return
+                      }
+                      if (!paymentLinkData.message) {
+                        setError('Payment message is missing. Cannot send payment request.')
+                        return
+                      }
+                      if (!paymentLinkData.paymentLink) {
+                        setError('Payment link is missing. Cannot send payment request.')
+                        return
+                      }
+                      
+                      // Build the complete payment message
+                      const message = `${business?.name || 'our business'} has sent you a payment request of $${paymentLinkData.amount}${paymentLinkData.description ? ` for ${paymentLinkData.description}` : ''}.
 
 Pay securely here:
 ${paymentLinkData.paymentLink}
 
 If you have questions, reply to this message.`
-                    navigator.clipboard.writeText(message)
-                    setSuccessMessage('Payment message copied to clipboard')
-                  }}
-                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-                >
-                  Copy Payment Message
-                </button>
-                <button
-                  onClick={() => {
-                    if (!paymentLinkData.paymentLink) {
-                      setError('Payment link is not available. Please try creating a new payment request.')
-                      return
-                    }
-                    navigator.clipboard.writeText(paymentLinkData.paymentLink)
-                    setSuccessMessage('Payment link copied to clipboard')
-                  }}
-                  className="flex-1 px-4 py-2 text-sm font-medium text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                >
-                  Copy Payment Link
-                </button>
-              </div>
+                      
+                      // Copy the complete payment message to clipboard as fallback
+                      try {
+                        await navigator.clipboard.writeText(message)
+                        console.log('[PAYMENT MODAL] Payment message copied to clipboard as fallback')
+                      } catch (copyError) {
+                        console.error('[PAYMENT MODAL] Failed to copy message to clipboard:', copyError)
+                        // Continue with launch even if copy fails
+                      }
+                      
+                      // Mark handoff as initiated for confirmation flow
+                      await markHandoffInitiated()
+                      
+                      // Use window.open for Capacitor compatibility
+                      const smsUrl = `sms:${paymentLinkData.dialNumber}?body=${encodeURIComponent(paymentLinkData.message)}`
+                      window.open(smsUrl, '_blank')
+                      
+                      // Close the ready modal after successful handoff, but preserve pending action
+                      setShowPaymentLinkModal(false)
+                    }}
+                    className="w-full px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                  >
+                    Send from Business Phone
+                  </button>
+                  
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        if (!paymentLinkData.paymentLink) {
+                          setError('Payment link is not available. Please try creating a new payment request.')
+                          return
+                        }
+                        navigator.clipboard.writeText(paymentLinkData.paymentLink)
+                        setSuccessMessage('Payment link copied to clipboard')
+                      }}
+                      className="flex-1 px-4 py-2 text-sm font-medium text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                    >
+                      Copy Payment Link
+                    </button>
+                  </div>
+                </>
+              ) : (
+                // Desktop/mobile browser: Three-button copy workflow
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      const message = `${business?.name || 'our business'} has sent you a payment request of $${paymentLinkData.amount}${paymentLinkData.description ? ` for ${paymentLinkData.description}` : ''}.
+
+Pay securely here:
+${paymentLinkData.paymentLink}
+
+If you have questions, reply to this message.`
+                      navigator.clipboard.writeText(message)
+                      setSuccessMessage('Payment message copied to clipboard')
+                    }}
+                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                  >
+                    Copy Payment Message
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!paymentLinkData.paymentLink) {
+                        setError('Payment link is not available. Please try creating a new payment request.')
+                        return
+                      }
+                      navigator.clipboard.writeText(paymentLinkData.paymentLink)
+                      setSuccessMessage('Payment link copied to clipboard')
+                    }}
+                    className="flex-1 px-4 py-2 text-sm font-medium text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                  >
+                    Copy Payment Link
+                  </button>
+                </div>
+              )}
               
               <button
                 onClick={() => {
