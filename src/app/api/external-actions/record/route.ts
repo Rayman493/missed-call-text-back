@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
       customerPhone,
       paymentRequestId,
       messageBody,
+      amount,
       businessId
     } = body
 
@@ -60,6 +61,7 @@ export async function POST(request: NextRequest) {
     } else if (actionType === 'business_phone_payment_request') {
       displayText = 'Payment request sent from Business Phone'
       metadata.paymentRequestId = paymentRequestId
+      metadata.amount = amount
     } else if (actionType === 'business_phone_call') {
       displayText = 'Called customer from Business Phone'
     }

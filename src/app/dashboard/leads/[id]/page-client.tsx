@@ -4822,7 +4822,8 @@ If you have questions, reply to this message.`
                         dialNumber,
                         business?.id || '',
                         data.paymentRequestId || data.id,
-                        message
+                        message,
+                        amount
                       )
                       await registerPendingAction(pendingAction)
                       
