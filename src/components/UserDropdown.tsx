@@ -308,7 +308,7 @@ export default function UserDropdown() {
                 className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
               >
                 <Settings className="h-4 w-4 text-slate-400 flex-shrink-0" />
-                Account Settings
+                Account
               </Link>
               <button
                 type="button"
