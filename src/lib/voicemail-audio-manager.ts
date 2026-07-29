@@ -162,8 +162,8 @@ class VoicemailAudioManager {
 
   // Request to play a specific voicemail
   async requestPlay(voicemailId: string): Promise<boolean> {
-    console.log('[VOICEMAIL DEBUG] requestPlay called for voicemail:', voicemailId);
-    
+    console.log('[VOICEMAIL PLAY TRACE] requestPlay called for voicemail:', voicemailId);
+
     const audioElement = this.audioRegistry.get(voicemailId);
     if (!audioElement) {
       console.error('[VoicemailAudioManager] Audio element not found for voicemail:', voicemailId);
@@ -183,6 +183,28 @@ class VoicemailAudioManager {
     this.currentPlayingId = voicemailId;
 
     try {
+      // Apply saved volume immediately before play
+      const { volumeManager } = await import('./volume-manager');
+      const savedVolume = volumeManager.getVolume();
+      const savedMuted = volumeManager.getIsMuted();
+
+      console.log('[VOICEMAIL PLAY TRACE] Applying saved volume before play:', {
+        voicemailId,
+        savedVolume,
+        savedMuted,
+        audioVolumeBefore: audioElement.volume,
+        audioMutedBefore: audioElement.muted
+      });
+
+      audioElement.volume = savedVolume;
+      audioElement.muted = savedMuted;
+
+      console.log('[VOICEMAIL PLAY TRACE] Volume applied:', {
+        voicemailId,
+        audioVolumeAfter: audioElement.volume,
+        audioMutedAfter: audioElement.muted
+      });
+
       // Play the requested audio element
       await audioElement.play();
       console.log('[VoicemailAudioManager] Successfully started playing:', voicemailId);

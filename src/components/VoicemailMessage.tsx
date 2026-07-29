@@ -227,6 +227,17 @@ export default function VoicemailMessage({
             return
           }
 
+          // Apply saved volume immediately before play (redundant but defensive)
+          const normalizedVolume = isMuted ? 0 : Math.min(1, Math.max(0, volume))
+          audio.volume = normalizedVolume
+          audio.muted = isMuted
+
+          console.log('[VOICEMAIL PLAY TRACE] Direct play in VoicemailMessage:', {
+            voicemailId: recording.id,
+            volume: normalizedVolume,
+            muted: isMuted
+          })
+
           await audio.play()
           setIsPlaying(true)
         } catch (error) {
@@ -305,6 +316,17 @@ export default function VoicemailMessage({
                 }
 
                 try {
+                  // Apply saved volume immediately before play (redundant but defensive)
+                  const normalizedVolume = isMuted ? 0 : Math.min(1, Math.max(0, volume))
+                  audio.volume = normalizedVolume
+                  audio.muted = isMuted
+
+                  console.log('[VOICEMAIL PLAY TRACE] Direct play after fetch in VoicemailMessage:', {
+                    voicemailId: recording.id,
+                    volume: normalizedVolume,
+                    muted: isMuted
+                  })
+
                   await audio.play()
                   setIsPlaying(true)
                 } catch (error) {
