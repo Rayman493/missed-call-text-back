@@ -47,14 +47,11 @@ import SuccessBanner from '@/components/SuccessBanner'
 import ExternalActionConfirmationModal from '@/components/ExternalActionConfirmationModal'
 import { useExternalActionConfirmation } from '@/hooks/useExternalActionConfirmation'
 import { createPendingAction } from '@/lib/pending-actions'
+import { Capacitor } from '@capacitor/core'
 
 // Check if running in native mobile app
 const isNativeMobile = () => {
-  try {
-    return (window as any).Capacitor?.isNativePlatform?.() ?? false
-  } catch {
-    return false
-  }
+  return Capacitor.isNativePlatform()
 }
 
 // Helper to get customer name from lead data
@@ -4929,6 +4926,10 @@ If you have questions, reply to this message.
             </div>
             
             <div className="space-y-3">
+              {(() => {
+                console.log('[PAYMENT MODAL] Native detection:', isNativeMobile(), 'Has message:', !!paymentLinkData.message, 'Has dialNumber:', !!paymentLinkData.dialNumber, 'Has paymentLink:', !!paymentLinkData.paymentLink)
+                return null
+              })()}
               {isNativeMobile() && paymentLinkData.message && paymentLinkData.dialNumber && (
                 <button
                   onClick={() => {
