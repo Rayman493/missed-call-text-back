@@ -794,7 +794,7 @@ function AuthContent() {
                     Where do you provide your services?
                   </label>
                   <p className="text-xs text-slate-500 mb-3">
-                    ReplyFlow uses this to tailor the questions your AI receptionist asks callers.
+                    ReplyFlow uses this to tailor the questions AI Voice asks callers.
                   </p>
                   <div className="grid grid-cols-1 gap-2">
                     {[

@@ -11,7 +11,7 @@ When a customer calls your business and you can't answer, ReplyFlow picks up the
 
 What ReplyFlow does:
 - Converts missed calls into structured leads.
-- Answers calls with an AI Receptionist when you are unavailable.
+- Answers calls with AI Voice when you are unavailable.
 - Collects caller details such as name, reason for calling, urgency, and preferred timing.
 - Sends automatic SMS follow-ups to the customer after a missed call.
 - Lets you reply to customers and manage conversations in one place.
@@ -177,7 +177,7 @@ It runs in the background so you can focus on the job while still capturing ever
   {
     id: 'ai-voice',
     question: 'How does AI Voice work?',
-    summary: 'AI Receptionist answers missed calls and captures intake information.',
+    summary: 'AI Voice answers missed calls and captures intake information.',
     answer: 'AI Voice is a production feature that answers calls when you don\'t. When a call forwards to ReplyFlow, AI answers the call, asks scripted questions to collect caller information (name, reason, details, location, timing), and ends with a summary. The caller hears a professional AI assistant that adapts questions based on your business type. After the call, you receive a summary SMS with all captured information. This is not voicemail - it\'s a live AI conversation.',
     category: 'Features',
     source: 'Product Guide',
@@ -730,7 +730,7 @@ Understand the full journey from call to conversation, appointment, and payment.
 Step-by-step instructions
 1) A caller dials your existing business number.
 2) If you don't answer, your carrier forwards the call to your ReplyFlow number.
-3) AI Receptionist answers live (or voicemail fallback) and captures key details.
+3) AI Voice answers live (or voicemail fallback) and captures key details.
 4) ReplyFlow sends an SMS to the caller and creates a Customer in your dashboard.
 5) You reply in the Conversation, schedule an appointment, and optionally request payment.
 
@@ -1037,5 +1037,90 @@ Related articles
     readingTime: 3,
     lastUpdated: '2026-07-24',
     relatedQuestions: ['Carrier Forwarding Codes', 'Disable call forwarding', 'Test your setup'],
+  },
+  {
+    id: 'mobile-communication',
+    question: 'Mobile communication preferences',
+    summary: 'The ReplyFlow mobile app gives you the flexibility to choose whether customer communication uses your ReplyFlow Number or your own business phone.',
+    answer: `When you would use this
+The mobile app's communication preference feature is designed for contractors who are often in the field and need to communicate in the way that works best for each situation.
+
+How it works
+- Desktop: Customer communication is handled through your ReplyFlow Number for a consistent, fully tracked experience
+- Mobile App: You can choose whether customer communication uses your ReplyFlow Number or your own business phone
+- You can override your preference for individual calls, texts, and payment requests
+
+Step-by-step instructions
+1) Open the ReplyFlow mobile app
+2) Go to Settings → Mobile Communication
+3) Choose your preferred communication method (ReplyFlow Number or My Business Phone)
+4) When communicating with a customer, you can override this preference for that specific interaction
+
+Tips / Best Practices
+- Use your ReplyFlow Number for full conversation tracking
+- Use your business phone when you need to communicate from your personal number
+- The mobile app gives you the flexibility to switch based on the situation
+
+Common problems
+- If you don't see the Mobile Communication option, make sure you're using the latest version of the mobile app
+
+Related articles
+- Can I use my own business phone?
+- Does ReplyFlow replace my business phone?
+- Can I switch between the ReplyFlow Number and my business phone?`,
+    category: 'Mobile App',
+    source: 'Product Guide',
+    keywords: ['mobile', 'communication', 'business phone', 'replyflow number', 'mobile app', 'flexibility', 'on the go'],
+    readingTime: 2,
+    lastUpdated: '2026-07-29',
+    relatedQuestions: ['Can I use my own business phone?', 'Does ReplyFlow replace my business phone?', 'Can I switch between the ReplyFlow Number and my business phone?'],
+  },
+  {
+    id: 'desktop-vs-mobile',
+    question: 'What can I do on mobile vs desktop?',
+    summary: 'ReplyFlow is designed around how service businesses actually work. Desktop is for managing your business, while the mobile app is for running your day.',
+    answer: `When you would use this
+ReplyFlow is designed to support contractors throughout their entire workday, whether they're at the office or on the job site. Both platforms are equally important but optimized for different moments.
+
+Desktop: Your business command center
+Use desktop when you need to:
+- Review AI-captured leads from overnight
+- Check your schedule and prepare your day
+- Organize customers and manage jobs
+- Track payments and view reports
+- Plan tomorrow and follow up with customers
+
+Mobile App: Your field companion
+Use the mobile app when you're on the go to:
+- Call and text customers using your ReplyFlow Number or your own business phone
+- Accept Tap to Pay while meeting a customer
+- Send payment requests before leaving the job site
+- Always have today's appointments in your pocket
+- Manage customers while away from your desk
+
+Step-by-step instructions
+1) Start your morning at your desktop: review leads, check schedule, plan your day
+2) Use the mobile app throughout the day: communicate, get paid, manage jobs on site
+3) Return to desktop in the evening: review completed jobs, organize tomorrow, follow up
+
+Tips / Best Practices
+- Desktop is best for organizing and planning your business
+- Mobile is built for contractors, technicians, and real job sites
+- Both platforms sync automatically so you always have up-to-date information
+- You can work entirely from your phone, but desktop offers the best experience for business management
+
+Common problems
+- If you don't see the latest information, check your internet connection and pull to refresh on mobile
+
+Related articles
+- Mobile communication preferences
+- Can I use my own business phone?
+- When should I use the ReplyFlow mobile app?`,
+    category: 'Platform',
+    source: 'Product Guide',
+    keywords: ['desktop', 'mobile', 'platform', 'when to use', 'mobile vs desktop', 'field work', 'office work'],
+    readingTime: 3,
+    lastUpdated: '2026-07-29',
+    relatedQuestions: ['What can I do on mobile?', 'Why download the app?', 'Do I need the mobile app?'],
   },
 ]

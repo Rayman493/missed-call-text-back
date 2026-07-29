@@ -525,7 +525,7 @@ export default async function Home() {
                   <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground">Keep Your Existing Number</h3>
                 </div>
                 <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 mb-2 sm:mb-3 text-center">
-                  No need to change your business phone number. Simply forward missed calls to ReplyFlow.
+                  No need to change your business phone number. Simply forward missed calls to ReplyFlow and continue using your existing workflow.
                 </p>
               </div>
 
@@ -537,10 +537,10 @@ export default async function Home() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                     </svg>
                   </div>
-                  <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground">AI Voice</h3>
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground">AI Answers Missed Calls</h3>
                 </div>
                 <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 mb-2 sm:mb-3 text-center">
-                  AI answers forwarded missed calls live, collects caller information, and sends a text summary.
+                  Customers receive an immediate professional response, even when you're busy.
                 </p>
               </div>
 
@@ -567,10 +567,10 @@ export default async function Home() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   </div>
-                  <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground">Appointments & Payments</h3>
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground">Schedule Jobs & Get Paid</h3>
                 </div>
                 <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 mb-2 sm:mb-3 text-center">
-                  Schedule jobs with Google Calendar, accept Tap to Pay on iPhone or Android, or send branded SMS payment requests in seconds.
+                  Book jobs and collect payments without back-and-forth.
                 </p>
               </div>
 
@@ -621,7 +621,7 @@ export default async function Home() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-900 dark:text-foreground mb-2 text-base">Desktop & Mobile Apps</h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Manage AI-captured leads or manually add customers and jobs from the web or ReplyFlow mobile app.</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Manage your business from your desktop. Keep it moving throughout the day with the ReplyFlow mobile app—communicate with customers, accept Tap to Pay, and request payments while you're on the go.</p>
                   </div>
                 </div>
               </div>
@@ -636,7 +636,7 @@ export default async function Home() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-900 dark:text-foreground mb-2 text-base">Quick setup</h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Get started in minutes with guided onboarding.</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Get started in minutes with guided onboarding. No technical expertise required.</p>
                   </div>
                 </div>
               </div>
@@ -666,7 +666,7 @@ export default async function Home() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-900 dark:text-foreground mb-2 text-base">AI Voice answers missed calls</h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">AI answers live and captures new customer information.</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">AI answers live and captures new customer information. Nothing is forgotten—every lead appears inside ReplyFlow.</p>
                   </div>
                 </div>
               </div>
@@ -680,8 +680,8 @@ export default async function Home() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-2 text-base">Tap to Pay & Payment Requests</h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Accept contactless payments with Tap to Pay on iPhone or Android, or send branded SMS payment requests—all with no extra hardware required.</p>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-2 text-base">Accept Payments Anywhere</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Accept contactless payments with Tap to Pay on iPhone or Android while meeting a customer, or send branded SMS payment requests before leaving the job site—all with no extra hardware required.</p>
                   </div>
                 </div>
               </div>
@@ -699,7 +699,7 @@ export default async function Home() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1.5 text-sm sm:text-base">Use your existing business number</h3>
-                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Keep the number your customers already know. They simply call your business as normal.</p>
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Keep the number your customers already know. Simply forward missed calls to ReplyFlow and continue using your existing workflow.</p>
                   </div>
                 </div>
               </div>
@@ -714,7 +714,7 @@ export default async function Home() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1.5 text-sm sm:text-base">Desktop & Mobile Apps</h3>
-                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Manage AI-captured leads or manually add customers and jobs from the web or ReplyFlow mobile app.</p>
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Manage your business from your desktop. Keep it moving throughout the day with the ReplyFlow mobile app—communicate with customers, accept Tap to Pay, and request payments while you're on the go.</p>
                   </div>
                 </div>
               </div>
@@ -729,7 +729,7 @@ export default async function Home() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1.5 text-sm sm:text-base">Quick setup</h3>
-                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Get started in minutes with guided onboarding.</p>
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Get started in minutes with guided onboarding. No technical expertise required.</p>
                   </div>
                 </div>
               </div>
@@ -759,7 +759,7 @@ export default async function Home() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1.5 text-sm sm:text-base">AI Voice answers missed calls</h3>
-                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">AI answers live and captures new customer information.</p>
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">AI answers live and captures new customer information. Nothing is forgotten—every lead appears inside ReplyFlow.</p>
                   </div>
                 </div>
               </div>
@@ -773,8 +773,8 @@ export default async function Home() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1.5 text-sm sm:text-base">Tap to Pay & Payment Requests</h3>
-                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Accept contactless payments with Tap to Pay on iPhone or Android, or send branded SMS payment requests—all with no extra hardware required.</p>
+                    <h3 className="font-semibold text-slate-900 dark:text-foreground mb-1.5 text-sm sm:text-base">Accept Payments Anywhere</h3>
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">Accept contactless payments with Tap to Pay on iPhone or Android while meeting a customer, or send branded SMS payment requests before leaving the job site—all with no extra hardware required.</p>
                   </div>
                 </div>
               </div>

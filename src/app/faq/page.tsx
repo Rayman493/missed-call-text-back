@@ -298,6 +298,137 @@ export default async function FAQPage({ searchParams }: { searchParams?: Promise
             </div>
           </div>
 
+          {/* Can I use my own business phone? */}
+          <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+            <div className="p-8">
+              <h2 className="text-2xl font-semibold text-foreground mb-4">
+                Can I use my own business phone?
+              </h2>
+              <div className="prose prose-invert max-w-none">
+                <p className="text-muted-foreground leading-relaxed">
+                  <strong>Yes.</strong> When using the ReplyFlow mobile app, you can choose whether customer communication uses your ReplyFlow Number or your own business phone.
+                </p>
+                <p className="text-muted-foreground leading-relaxed mt-4">
+                  The mobile app gives you the flexibility to:
+                </p>
+                <div className="mt-4 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-muted-foreground">Set your preferred communication method (ReplyFlow Number or your business phone)</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-muted-foreground">Override your preference for individual calls, texts, and payment requests</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-muted-foreground">Communicate the way that works best for each situation</span>
+                  </div>
+                </div>
+                <p className="mt-4">
+                  <Link href="/faq?kb=mobile-communication" className="text-blue-600 dark:text-blue-400 font-medium">Learn More →</Link>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Does ReplyFlow replace my business phone? */}
+          <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+            <div className="p-8">
+              <h2 className="text-2xl font-semibold text-foreground mb-4">
+                Does ReplyFlow replace my business phone?
+              </h2>
+              <div className="prose prose-invert max-w-none">
+                <p className="text-muted-foreground leading-relaxed">
+                  <strong>No.</strong> ReplyFlow provides a dedicated ReplyFlow Number for fully tracked communication.
+                </p>
+                <p className="text-muted-foreground leading-relaxed mt-4">
+                  On desktop, customer communication is handled through your ReplyFlow Number for a consistent, fully tracked experience. If you prefer, the mobile app also allows you to communicate using your own business phone when you're away from your desk.
+                </p>
+                <p className="text-muted-foreground leading-relaxed mt-4">
+                  This gives you the best of both worlds:
+                </p>
+                <div className="mt-4 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-muted-foreground">Desktop: Reliable, fully tracked communication through your ReplyFlow Number</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-muted-foreground">Mobile: Flexible communication using ReplyFlow Number or your business phone</span>
+                  </div>
+                </div>
+                <p className="mt-4">
+                  <Link href="/faq?kb=mobile-communication" className="text-blue-600 dark:text-blue-400 font-medium">Learn More →</Link>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Can I switch between the ReplyFlow Number and my business phone? */}
+          <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+            <div className="p-8">
+              <h2 className="text-2xl font-semibold text-foreground mb-4">
+                Can I switch between the ReplyFlow Number and my business phone?
+              </h2>
+              <div className="prose prose-invert max-w-none">
+                <p className="text-muted-foreground leading-relaxed">
+                  <strong>Yes.</strong> The ReplyFlow mobile app lets you choose your preferred communication method and also lets you override it for individual calls, texts, and payment requests.
+                </p>
+                <p className="text-muted-foreground leading-relaxed mt-4">
+                  This flexibility is designed for contractors who are often in the field and need to communicate in the way that works best for each situation.
+                </p>
+                <p className="mt-4">
+                  <Link href="/faq?kb=mobile-communication" className="text-blue-600 dark:text-blue-400 font-medium">Learn More →</Link>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Why doesn't desktop use my business phone? */}
+          <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+            <div className="p-8">
+              <h2 className="text-2xl font-semibold text-foreground mb-4">
+                Why doesn't desktop use my business phone?
+              </h2>
+              <div className="prose prose-invert max-w-none">
+                <p className="text-muted-foreground leading-relaxed">
+                  Desktop communication is handled through your ReplyFlow Number for a consistent, fully tracked experience.
+                </p>
+                <p className="text-muted-foreground leading-relaxed mt-4">
+                  The ReplyFlow mobile app provides the flexibility to use your own business phone when you're away from your desk. This gives you the best of both worlds:
+                </p>
+                <div className="mt-4 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-muted-foreground">Desktop: Reliable management with full conversation tracking</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-muted-foreground">Mobile: Additional flexibility to use your business phone when needed</span>
+                  </div>
+                </div>
+                <p className="mt-4">
+                  <Link href="/faq?kb=mobile-communication" className="text-blue-600 dark:text-blue-400 font-medium">Learn More →</Link>
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Are these marketing texts? */}
           <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
             <div className="p-8">
@@ -639,6 +770,25 @@ export default async function FAQPage({ searchParams }: { searchParams?: Promise
 
         {/* Additional Launch-Critical FAQs (concise) */}
         <div className="space-y-10 mt-12">
+          {/* Desktop & Mobile */}
+          <section>
+            <h2 className="text-xl font-semibold text-foreground mb-4">Desktop & Mobile</h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="bg-card border border-border rounded-xl p-5">
+                <h3 className="font-semibold text-foreground mb-2">When should I use the ReplyFlow mobile app?</h3>
+                <p className="text-sm text-muted-foreground mb-3">Use the mobile app while you're on the go. It's optimized for communication, accepting Tap to Pay, sending payment requests, and managing your day from job sites.</p>
+              </div>
+              <div className="bg-card border border-border rounded-xl p-5">
+                <h3 className="font-semibold text-foreground mb-2">Can I manage my business from my desktop?</h3>
+                <p className="text-sm text-muted-foreground mb-3">Yes. Desktop is your business command center—review AI-captured leads, organize customers, manage jobs, track payments, and plan your day from one place.</p>
+              </div>
+              <div className="bg-card border border-border rounded-xl p-5">
+                <h3 className="font-semibold text-foreground mb-2">Can I work entirely from my phone?</h3>
+                <p className="text-sm text-muted-foreground mb-3">Yes, the mobile app supports full customer communication, payments, and job management. However, desktop offers the best experience for organizing and planning your business.</p>
+              </div>
+            </div>
+          </section>
+
           {/* Phone Numbers & Forwarding */}
           <section>
             <h2 className="text-xl font-semibold text-foreground mb-4">Phone Numbers & Forwarding</h2>
@@ -651,13 +801,13 @@ export default async function FAQPage({ searchParams }: { searchParams?: Promise
             </div>
           </section>
 
-          {/* AI Receptionist */}
+          {/* AI Voice */}
           <section>
-            <h2 className="text-xl font-semibold text-foreground mb-4">AI Receptionist</h2>
+            <h2 className="text-xl font-semibold text-foreground mb-4">AI Voice</h2>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="bg-card border border-border rounded-xl p-5">
-                <h3 className="font-semibold text-foreground mb-2">Does the AI Receptionist work after hours?</h3>
-                <p className="text-sm text-muted-foreground mb-3">Yes. When calls forward during After Hours, AI can answer and capture details. You control Business Hours and after-hours messaging in Settings.</p>
+                <h3 className="font-semibold text-foreground mb-2">Does AI Voice work after hours?</h3>
+                <p className="text-sm text-muted-foreground mb-3">Yes. When calls forward during After Hours, AI Voice can answer and capture details. You control Business Hours and after-hours messaging in Settings.</p>
                 <Link href="/faq?kb=change-business-hours" className="text-sm text-blue-600 dark:text-blue-400 font-medium">Learn More →</Link>
               </div>
             </div>
@@ -681,7 +831,7 @@ export default async function FAQPage({ searchParams }: { searchParams?: Promise
             <div className="grid gap-4 md:grid-cols-2">
               <div className="bg-card border border-border rounded-xl p-5">
                 <h3 className="font-semibold text-foreground mb-2">Can I send Payment Requests?</h3>
-                <p className="text-sm text-muted-foreground mb-3">Yes. Send a branded link via SMS so Customers can pay securely on their phone.</p>
+                <p className="text-sm text-muted-foreground mb-3">Yes. Send a branded link via SMS so customers can pay securely on their phone. All payments are tracked in one place.</p>
                 <Link href="/faq?kb=payment-requests-overview" className="text-sm text-blue-600 dark:text-blue-400 font-medium">Learn More →</Link>
               </div>
               <div className="bg-card border border-border rounded-xl p-5">
@@ -701,6 +851,10 @@ export default async function FAQPage({ searchParams }: { searchParams?: Promise
           <section>
             <h2 className="text-xl font-semibold text-foreground mb-4">Billing</h2>
             <div className="grid gap-4 md:grid-cols-2">
+              <div className="bg-card border border-border rounded-xl p-5">
+                <h3 className="font-semibold text-foreground mb-2">How long does setup take?</h3>
+                <p className="text-sm text-muted-foreground mb-3">Most businesses complete setup in under 10 minutes. Forward missed calls to your ReplyFlow number and you're ready to capture leads.</p>
+              </div>
               <div className="bg-card border border-border rounded-xl p-5">
                 <h3 className="font-semibold text-foreground mb-2">Is there a free trial?</h3>
                 <p className="text-sm text-muted-foreground mb-3">Yes—a 14‑day free trial is available so you can try ReplyFlow before subscribing.</p>
