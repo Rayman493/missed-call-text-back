@@ -4919,31 +4919,56 @@ If you have questions, reply to this message.`
           </p>
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {futureAppointments.map((job: any) => (
-              <button
-                key={job.id}
-                onClick={() => {
-                  handleSendConfirmation(job.id)
-                  setShowAppointmentSelection(false)
-                }}
-                className="w-full text-left p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-              >
-                <div className="font-medium text-slate-900 dark:text-white">
-                  {job.title || 'Appointment'}
-                </div>
-                <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                  {job.scheduled_date && new Date(job.scheduled_date).toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                  {job.scheduled_time && ` • ${job.scheduled_time}`}
-                </div>
-                {job.confirmation_sms_sent_at && (
-                  <div className="text-xs text-green-600 dark:text-green-400 mt-1">
-                    ✓ Confirmation sent
+              <div key={job.id} className="flex flex-col gap-2">
+                <button
+                  onClick={() => {
+                    handleSendConfirmation(job.id)
+                    setShowAppointmentSelection(false)
+                  }}
+                  className="w-full text-left p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <div className="font-medium text-slate-900 dark:text-white">
+                    {job.title || 'Appointment'}
                   </div>
+                  <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                    {job.scheduled_date && new Date(job.scheduled_date).toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                    {job.scheduled_time && ` • ${job.scheduled_time}`}
+                  </div>
+                  {job.confirmation_sms_sent_at && (
+                    <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                      ✓ Confirmation sent
+                    </div>
+                  )}
+                </button>
+                {isNativeMobile() && (
+                  <button
+                    onClick={() => {
+                      const customerName = getCustomerName(lead, leadData)
+                      const dialNumber = leadData?.caller_phone || lead?.caller_phone || ''
+                      const message = `Appointment reminder: ${job.title || 'Appointment'} scheduled for ${job.scheduled_date} at ${job.scheduled_time}.`
+                      setBusinessPhoneModalConfig({
+                        title: 'Send Appointment Reminder',
+                        description: 'Send this appointment reminder from your business phone.',
+                        message: message,
+                        recipient: dialNumber,
+                        recipientName: customerName,
+                        actionType: 'appointment',
+                        relatedId: job.id,
+                        relatedType: 'job'
+                      })
+                      setShowBusinessPhoneModal(true)
+                      setShowAppointmentSelection(false)
+                    }}
+                    className="w-full text-left p-2 rounded-lg border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm"
+                  >
+                    Send via Business Number
+                  </button>
                 )}
-              </button>
+              </div>
             ))}
           </div>
           <div className="flex justify-end mt-4">
@@ -4979,6 +5004,28 @@ If you have questions, reply to this message.`
             {appointmentSuccessData.customerName} is scheduled for {appointmentSuccessData.date} at {appointmentSuccessData.time}.
           </p>
           <div className="space-y-3">
+            {isNativeMobile() && (
+              <button
+                onClick={() => {
+                  const customerName = appointmentSuccessData.customerName
+                  const dialNumber = leadData?.caller_phone || lead?.caller_phone || ''
+                  const message = `Appointment scheduled for ${appointmentSuccessData.date} at ${appointmentSuccessData.time}.`
+                  setBusinessPhoneModalConfig({
+                    title: 'Send Appointment Details',
+                    description: 'Send appointment details from your business phone.',
+                    message: message,
+                    recipient: dialNumber,
+                    recipientName: customerName,
+                    actionType: 'appointment'
+                  })
+                  setShowBusinessPhoneModal(true)
+                  setShowAppointmentSuccessModal(false)
+                }}
+                className="w-full px-4 py-2.5 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+              >
+                Send via Business Number
+              </button>
+            )}
             <button
               onClick={() => {
                 setShowAppointmentSuccessModal(false)
