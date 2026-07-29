@@ -40,7 +40,7 @@ import FloatingHelpButton from '@/components/FloatingHelpButton'
 import PhotoModal from '@/components/PhotoModal'
 import Modal from '@/components/ui/Modal'
 import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
-import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare } from 'lucide-react'
+import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smartphone } from 'lucide-react'
 import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
 
 function getErrorMessage(errorCode: string): string {
@@ -430,6 +430,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const digitCount = dialNumber.replace(/\D/g, '').length
   const canDialPhone = Boolean(dialNumber && (dialNumber.replace(/\D/g, '').length >= 10))
   const handleNativeCall = () => {
+    if (communicationSource === 'business') {
+      // Use native phone app for My Business Number
+      if (!isNativeMobile()) {
+        alert('Open this customer in the ReplyFlow mobile app to call from a number configured on your phone.')
+        return
+      }
+    }
+    // For ReplyFlow Number, use existing call workflow
     try {
       if (canDialPhone) {
         window.location.href = `tel:${dialNumber}`
@@ -438,20 +446,28 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   }
 
   // Text Customer handlers
-  const handleSendWithReplyFlow = () => {
-    setShowTextCustomerModal(false)
-    // Focus on the message composer
-    setTimeout(() => {
-      const composerInput = document.querySelector('textarea[placeholder*="Type a message"]') as HTMLTextAreaElement
-      if (composerInput) {
-        composerInput.focus()
-        composerInput.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      }
-    }, 100)
+  const handleTextCustomer = () => {
+    if (communicationSource === 'replyflow') {
+      // Focus on the message composer
+      setTimeout(() => {
+        const composerInput = document.querySelector('textarea[placeholder*="Type a message"]') as HTMLTextAreaElement
+        if (composerInput) {
+          composerInput.focus()
+          composerInput.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      }, 100)
+    } else {
+      // Open native messaging app
+      handleOpenMessagingApp()
+    }
   }
 
   const handleOpenMessagingApp = () => {
-    setShowTextCustomerModal(false)
+    if (!isNativeMobile()) {
+      // Show message about mobile app availability on web/desktop
+      alert('Open this customer in the ReplyFlow mobile app to text from a number configured on your phone.')
+      return
+    }
     try {
       if (canDialPhone) {
         window.location.href = `sms:${dialNumber}`
@@ -1060,8 +1076,29 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [selectedPaymentProvider, setSelectedPaymentProvider] = useState<'stripe' | 'venmo' | 'paypal'>('stripe')
   const paymentAmountRef = useRef<HTMLInputElement>(null)
 
-  // State for Text Customer modal
-  const [showTextCustomerModal, setShowTextCustomerModal] = useState(false)
+  // State for communication source selector
+  const [communicationSource, setCommunicationSource] = useState<'replyflow' | 'business'>('replyflow')
+
+  // Load communication source preference from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('communicationSource')
+      if (saved === 'replyflow' || saved === 'business') {
+        setCommunicationSource(saved)
+      }
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, [])
+
+  // Save communication source preference to localStorage when changed
+  useEffect(() => {
+    try {
+      localStorage.setItem('communicationSource', communicationSource)
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, [communicationSource])
 
   // State for appointment confirmation
   const [showAppointmentSelection, setShowAppointmentSelection] = useState(false)
@@ -2645,7 +2682,22 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         setLeadData({ ...updatedLead.lead, messages: updatedLead.lead.messages || updatedLead.messages || [] })
       }
 
-      setSuccessMessage('Appointment scheduled successfully')
+      if (communicationSource === 'business') {
+        // Offer to open native messaging app with appointment details
+        if (isNativeMobile() && canDialPhone) {
+          const confirmSend = confirm('Appointment scheduled successfully. Open messaging app to send appointment details to the customer?')
+          if (confirmSend) {
+            const message = `Appointment scheduled for ${appointmentDate} at ${appointmentTime}.`
+            window.location.href = `sms:${dialNumber}?body=${encodeURIComponent(message)}`
+          } else {
+            setSuccessMessage('Appointment scheduled successfully.\nYou can send appointment details manually from your messaging app.')
+          }
+        } else {
+          setSuccessMessage('Appointment scheduled successfully.\nOpen this customer in the ReplyFlow mobile app to send appointment details from your messaging app.')
+        }
+      } else {
+        setSuccessMessage('Appointment scheduled successfully')
+      }
       setIsAppointmentModalOpen(false)
     } catch (error: any) {
       console.error('Failed to create appointment:', error)
@@ -3164,7 +3216,43 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
 
               {/* RIGHT: Status and Actions */}
-              <div className="flex items-center gap-3 flex-shrink-0">
+              <div className="flex flex-col items-end gap-3 flex-shrink-0">
+                {/* Communication Source Selector */}
+                <div className="flex flex-col items-end gap-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-muted-foreground">Contact using</span>
+                  </div>
+                  <div className="flex items-center bg-muted/50 rounded-lg p-1 border border-border/50">
+                    <button
+                      onClick={() => setCommunicationSource('replyflow')}
+                      className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 min-h-[36px] ${
+                        communicationSource === 'replyflow'
+                          ? 'bg-background text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      <span>ReplyFlow Number</span>
+                    </button>
+                    <button
+                      onClick={() => setCommunicationSource('business')}
+                      className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 min-h-[36px] ${
+                        communicationSource === 'business'
+                          ? 'bg-background text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <Smartphone className="w-3.5 h-3.5" />
+                      <span>My Business Number</span>
+                    </button>
+                  </div>
+                  {communicationSource === 'business' && (
+                    <p className="text-[10px] text-muted-foreground/70 text-right max-w-[200px]">
+                      External calls and messages are handled by your device and are not automatically recorded in ReplyFlow.
+                    </p>
+                  )}
+                </div>
+
                 {/* Status Pill */}
                 <div className="flex-shrink-0">
                   <LeadStatusDropdown
@@ -3177,7 +3265,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 {/* Primary Actions */}
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setShowTextCustomerModal(true)}
+                    onClick={handleTextCustomer}
                     className="inline-flex h-10 items-center gap-2 px-4 rounded-lg text-foreground hover:bg-muted/80 transition-colors text-sm font-medium border border-transparent hover:border-border/50"
                     title="Text customer"
                   >
@@ -4351,74 +4439,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       )}
     </main>
 
-    {/* Text Customer Modal */}
-    <Modal
-      isOpen={showTextCustomerModal}
-      onClose={() => setShowTextCustomerModal(false)}
-      title="Text Customer"
-      alignTopOnMobile={true}
-    >
-      <div className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          Choose how you'd like to text {lead?.name || 'this customer'}:
-        </p>
-
-        {/* Option 1: Send with ReplyFlow */}
-        <button
-          onClick={handleSendWithReplyFlow}
-          className="w-full text-left p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors group"
-        >
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <MessageSquare className="w-5 h-5 text-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="font-medium text-foreground mb-1">
-                Send with ReplyFlow
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Send and track the conversation inside ReplyFlow.
-              </div>
-            </div>
-          </div>
-        </button>
-
-        {/* Option 2: Open Messaging App */}
-        <button
-          onClick={handleOpenMessagingApp}
-          disabled={!canDialPhone || !isNativeMobile()}
-          className="w-full text-left p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors group disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-              <PhoneCall className="w-5 h-5 text-accent-foreground" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="font-medium text-foreground mb-1">
-                Open Messaging App
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {!isNativeMobile() 
-                  ? 'External texting is available in the ReplyFlow mobile app.'
-                  : 'Text using a number configured on this phone.'
-                }
-              </div>
-            </div>
-          </div>
-        </button>
-
-        {/* External Messaging Disclosure */}
-        <div className="pt-3 border-t border-border/50">
-          <p className="text-xs text-muted-foreground flex items-start gap-2">
-            <svg className="w-4 h-4 flex-shrink-0 text-amber-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Messages sent outside ReplyFlow will not appear in this conversation.
-          </p>
-        </div>
-      </div>
-    </Modal>
-
     {/* Payment Request Modal */}
     {showPaymentModal && (
       <div 
@@ -4645,8 +4665,24 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   setShowPaymentModal(false)
                   setPaymentAmount('')
                   setPaymentDescription('')
-                  setSuccessMessage('Payment request sent.\nThe customer has been texted a payment link.')
-                  
+
+                  if (communicationSource === 'business') {
+                    // Offer to open native messaging app with payment link
+                    if (isNativeMobile() && canDialPhone && data.paymentLink) {
+                      const confirmSend = confirm('Payment request created. Open messaging app to send the payment link to the customer?')
+                      if (confirmSend) {
+                        const message = `Payment request: ${data.paymentLink}`
+                        window.location.href = `sms:${dialNumber}?body=${encodeURIComponent(message)}`
+                      } else {
+                        setSuccessMessage('Payment request created.\nYou can send the payment link manually from your messaging app.')
+                      }
+                    } else {
+                      setSuccessMessage('Payment request created.\nOpen this customer in the ReplyFlow mobile app to send the payment link from your messaging app.')
+                    }
+                  } else {
+                    setSuccessMessage('Payment request sent.\nThe customer has been texted a payment link.')
+                  }
+
                   // Refresh lead data
                   const updatedData = await getLeadDetails(lead?.id)
                   if (updatedData) {
