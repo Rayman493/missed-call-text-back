@@ -865,18 +865,21 @@ export async function sendMms(
   console.log('[MMS DEBUG] options.isManual:', options?.isManual);
   console.log('[MMS DEBUG] options.isManual type:', typeof options?.isManual);
   console.log('[MMS DEBUG] options.isManual === true:', options?.isManual === true);
+  // @ts-ignore - Debugging for potential string "true" value
+  console.log('[MMS DEBUG] options.isManual === "true" (string):', options?.isManual === 'true');
   console.log('[MMS DEBUG] options object:', options);
   console.log('[MMS DEBUG] Before availability note - message length:', message.length);
   console.log('[MMS DEBUG] Before availability note - message:', message);
 
   // Skip business availability note for manual messages
-  const shouldSkipAvailabilityNote = options?.isManual === true;
+  // Handle both boolean true and string "true" (defensive programming)
+  const shouldSkipAvailabilityNote = options?.isManual === true || (options?.isManual as any) === 'true';
   console.log('[MMS DEBUG] shouldSkipAvailabilityNote:', shouldSkipAvailabilityNote);
   
   if (shouldSkipAvailabilityNote) {
-    console.log('[MMS DEBUG] SKIPPING availability note because isManual=true');
+    console.log('[MMS DEBUG] SKIPPING availability note because isManual is truthy');
   } else {
-    console.log('[MMS DEBUG] APPENDING availability note because isManual is not true');
+    console.log('[MMS DEBUG] APPENDING availability note because isManual is not truthy');
     message = appendBusinessAvailabilityNote(message, business);
   }
 
