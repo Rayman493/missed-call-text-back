@@ -1214,8 +1214,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         const message = `Hi ${customerName}, this is a reminder about your appointment on ${dateTimeString}. Please confirm or let us know if you need to reschedule.`
         
         setBusinessPhoneModalConfig({
-          title: 'Send Appointment Confirmation',
-          description: 'Send this appointment confirmation from your business phone.',
+          title: 'Send from Business Number',
+          description: 'Your messaging app will open with the message ready to send.',
           message: message,
           recipient: dialNumber,
           recipientName: customerName,
@@ -3545,8 +3545,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     const customerName = getCustomerName(lead, leadData)
                     const dialNumber = leadData?.caller_phone || lead?.caller_phone || ''
                     setBusinessPhoneModalConfig({
-                      title: 'Send Message',
-                      description: 'Send this message from your business phone.',
+                      title: 'Send from Business Number',
+                      description: 'Your messaging app will open with the message ready to send.',
                       message: message,
                       recipient: dialNumber,
                       recipientName: customerName,
@@ -4745,9 +4745,8 @@ ${data.payment_link}
 If you have questions, reply to this message.`
 
                     setBusinessPhoneModalConfig({
-                      title: 'Send Payment Request',
-                      description: 'Send this payment request from your business phone.',
-                      secondaryDescription: 'ReplyFlow will open your messaging app with the message prepared for review.',
+                      title: 'Send from Business Number',
+                      description: 'Your messaging app will open with the message ready to send.',
                       message: message,
                       recipient: leadData?.caller_phone || lead?.caller_phone || '',
                       recipientName: getCustomerName(lead, leadData),
@@ -4869,8 +4868,8 @@ If you have questions, reply to this message.`
                       const dialNumber = leadData?.caller_phone || lead?.caller_phone || ''
                       const message = `Appointment reminder: ${job.title || 'Appointment'} scheduled for ${job.scheduled_date} at ${job.scheduled_time}.`
                       setBusinessPhoneModalConfig({
-                        title: 'Send Appointment Reminder',
-                        description: 'Send this appointment reminder from your business phone.',
+                        title: 'Send from Business Number',
+                        description: 'Your messaging app will open with the message ready to send.',
                         message: message,
                         recipient: dialNumber,
                         recipientName: customerName,
@@ -4929,8 +4928,8 @@ If you have questions, reply to this message.`
                   const dialNumber = leadData?.caller_phone || lead?.caller_phone || ''
                   const message = `Appointment scheduled for ${appointmentSuccessData.date} at ${appointmentSuccessData.time}.`
                   setBusinessPhoneModalConfig({
-                    title: 'Send Appointment Details',
-                    description: 'Send appointment details from your business phone.',
+                    title: 'Send from Business Number',
+                    description: 'Your messaging app will open with the message ready to send.',
                     message: message,
                     recipient: dialNumber,
                     recipientName: customerName,
