@@ -1039,43 +1039,6 @@ Related articles
     relatedQuestions: ['Carrier Forwarding Codes', 'Disable call forwarding', 'Test your setup'],
   },
   {
-    id: 'mobile-communication',
-    question: 'Mobile communication preferences',
-    summary: 'The ReplyFlow mobile app gives you the flexibility to choose whether customer communication uses your ReplyFlow Number or your own business phone.',
-    answer: `When you would use this
-The mobile app's communication preference feature is designed for contractors who are often in the field and need to communicate in the way that works best for each situation.
-
-How it works
-- Desktop: Customer communication is handled through your ReplyFlow Number for a consistent, fully tracked experience
-- Mobile App: You can choose whether customer communication uses your ReplyFlow Number or your own business phone
-- You can override your preference for individual calls, texts, and payment requests
-
-Step-by-step instructions
-1) Open the ReplyFlow mobile app
-2) Go to Settings → Mobile Communication
-3) Choose your preferred communication method (ReplyFlow Number or My Business Phone)
-4) When communicating with a customer, you can override this preference for that specific interaction
-
-Tips / Best Practices
-- Use your ReplyFlow Number for full conversation tracking
-- Use your business phone when you need to communicate from your personal number
-- The mobile app gives you the flexibility to switch based on the situation
-
-Common problems
-- If you don't see the Mobile Communication option, make sure you're using the latest version of the mobile app
-
-Related articles
-- Can I use my own business phone?
-- Does ReplyFlow replace my business phone?
-- Can I switch between the ReplyFlow Number and my business phone?`,
-    category: 'Mobile App',
-    source: 'Product Guide',
-    keywords: ['mobile', 'communication', 'business phone', 'replyflow number', 'mobile app', 'flexibility', 'on the go'],
-    readingTime: 2,
-    lastUpdated: '2026-07-29',
-    relatedQuestions: ['Can I use my own business phone?', 'Does ReplyFlow replace my business phone?', 'Can I switch between the ReplyFlow Number and my business phone?'],
-  },
-  {
     id: 'desktop-vs-mobile',
     question: 'What can I do on mobile vs desktop?',
     summary: 'ReplyFlow is designed around how service businesses actually work. Desktop is for managing your business, while the mobile app is for running your day.',
@@ -1113,7 +1076,6 @@ Common problems
 - If you don't see the latest information, check your internet connection and pull to refresh on mobile
 
 Related articles
-- Mobile communication preferences
 - Can I use my own business phone?
 - When should I use the ReplyFlow mobile app?`,
     category: 'Platform',
