@@ -2022,7 +2022,18 @@ export const db = {
   async reactivateLead(leadId: string): Promise<Lead | null> {
     console.log('[REACTIVATE LEAD] Reactivating lead for new request:', leadId)
     console.log('[REACTIVATE LEAD DIAGNOSTICS] =========================================')
-    console.log('[REACTIVATE LEAD DIAGNOSTICS] supabaseUrl:', supabaseAdmin.supabaseUrl)
+    
+    const supabaseUrl = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL
+    let supabaseHost = 'unknown'
+    try {
+      if (supabaseUrl) {
+        supabaseHost = new URL(supabaseUrl).hostname
+      }
+    } catch {
+      supabaseHost = 'invalid_url'
+    }
+    
+    console.log('[REACTIVATE LEAD DIAGNOSTICS] supabaseHost:', supabaseHost)
     console.log('[REACTIVATE LEAD DIAGNOSTICS] table: leads')
     console.log('[REACTIVATE LEAD DIAGNOSTICS] update fields:', ['status'])
     console.log('[REACTIVATE LEAD DIAGNOSTICS] relying on trigger for updated_at')
