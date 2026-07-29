@@ -124,6 +124,9 @@ export interface Business {
   paypal_payment_link?: string | null;
   preferred_payment_provider?: 'stripe' | 'venmo' | 'paypal' | string | null;
 
+  // Mobile-only communication method
+  default_mobile_communication_source?: 'replyflow' | 'business' | string | null;
+
   created_at: string;
   updated_at?: string;
 }

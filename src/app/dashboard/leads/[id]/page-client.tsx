@@ -437,7 +437,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     if (communicationSource === 'business') {
       // Use native phone app for My Business Number
       if (!isNativeMobile()) {
-        alert('Open this customer in the ReplyFlow mobile app to call from a number configured on your phone.')
+        // Desktop: ignore Business Phone preference, always use ReplyFlow
         return
       }
     }
@@ -1077,30 +1077,29 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [paymentAmount, setPaymentAmount] = useState('')
   const [paymentDescription, setPaymentDescription] = useState('')
   const [isCreatingPayment, setIsCreatingPayment] = useState(false)
+  const [showPaymentLinkModal, setShowPaymentLinkModal] = useState(false)
+  const [paymentLinkData, setPaymentLinkData] = useState<{ paymentLink: string; amount: string; description: string } | null>(null)
   const [selectedPaymentProvider, setSelectedPaymentProvider] = useState<'stripe' | 'venmo' | 'paypal'>('stripe')
   const paymentAmountRef = useRef<HTMLInputElement>(null)
 
-  // State for communication source selector
+  // State for communication source selector (mobile only, session-level override)
   const [communicationSource, setCommunicationSource] = useState<'replyflow' | 'business'>('replyflow')
 
-  // Load communication source preference from localStorage on mount
+  // Load communication source preference from business data on mount
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('communicationSource')
-      if (saved === 'replyflow' || saved === 'business') {
-        setCommunicationSource(saved)
-      }
-    } catch {
-      // Ignore localStorage errors
+    if (business?.default_mobile_communication_source) {
+      setCommunicationSource(business.default_mobile_communication_source as 'replyflow' | 'business')
     }
-  }, [])
+  }, [business?.default_mobile_communication_source])
 
-  // Save communication source preference to localStorage when changed
+  // Save communication source preference to localStorage when changed (mobile session override only)
   useEffect(() => {
-    try {
-      localStorage.setItem('communicationSource', communicationSource)
-    } catch {
-      // Ignore localStorage errors
+    if (isNativeMobile()) {
+      try {
+        localStorage.setItem('customerCommunicationSource', communicationSource)
+      } catch {
+        // Ignore localStorage errors
+      }
     }
   }, [communicationSource])
 
@@ -1792,6 +1791,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     // Don't send if message is empty (unless media is present), whitespace, or already sending
     if (!message.trim() && !mediaFiles) return
     if (sending) return
+
+    // Desktop: ignore Business Phone preference, always use ReplyFlow
+    if (communicationSource === 'business' && !isNativeMobile()) {
+      return
+    }
 
     // Create stable client message ID for correlation
     const clientMessageId = crypto.randomUUID()
@@ -3221,46 +3225,38 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
               {/* RIGHT: Status and Actions */}
               <div className="flex flex-col items-end gap-3 flex-shrink-0">
-                {/* Communication Source Selector */}
-                <div className="flex flex-col items-end gap-1.5">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-muted-foreground">Contact using</span>
+                {/* Mobile: Communication Source Selector (session-level override) */}
+                {isNativeMobile() && (
+                  <div className="flex flex-col items-end gap-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-muted-foreground">Contact using</span>
+                    </div>
+                    <div className="flex items-center bg-muted/30 rounded-lg p-1 border border-border/30">
+                      <button
+                        onClick={() => setCommunicationSource('replyflow')}
+                        className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-150 min-h-[36px] ${
+                          communicationSource === 'replyflow'
+                            ? 'bg-background text-foreground'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        <span>ReplyFlow</span>
+                      </button>
+                      <button
+                        onClick={() => setCommunicationSource('business')}
+                        className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-150 min-h-[36px] ${
+                          communicationSource === 'business'
+                            ? 'bg-background text-foreground'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        <Smartphone className="w-3.5 h-3.5" />
+                        <span>My Business Phone</span>
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center bg-muted/30 rounded-lg p-1 border border-border/30">
-                    <button
-                      onClick={() => setCommunicationSource('replyflow')}
-                      className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-150 min-h-[36px] ${
-                        communicationSource === 'replyflow'
-                          ? 'bg-background text-foreground'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      <MessageSquare className="w-3.5 h-3.5" />
-                      <span>ReplyFlow</span>
-                    </button>
-                    <button
-                      onClick={() => setCommunicationSource('business')}
-                      className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-150 min-h-[36px] ${
-                        communicationSource === 'business'
-                          ? 'bg-background text-foreground'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      <Smartphone className="w-3.5 h-3.5" />
-                      <span>My Business Phone</span>
-                    </button>
-                  </div>
-                  {communicationSource === 'replyflow' && (
-                    <p className="text-[10px] text-muted-foreground/70 text-right max-w-[200px]">
-                      Conversations stay organized inside ReplyFlow.
-                    </p>
-                  )}
-                  {communicationSource === 'business' && (
-                    <p className="text-[10px] text-muted-foreground/70 text-right max-w-[200px]">
-                      Calls and texts use your phone and aren't automatically tracked.
-                    </p>
-                  )}
-                </div>
+                )}
 
                 {/* Status Pill */}
                 <div className="flex-shrink-0">
@@ -4695,17 +4691,27 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   setPaymentDescription('')
 
                   if (communicationSource === 'business') {
-                    // Offer to open native messaging app with payment link
+                    // Native SMS composer for mobile
                     if (isNativeMobile() && canDialPhone && data.paymentLink) {
-                      const confirmSend = confirm('Payment request created. Open messaging app to send the payment link to the customer?')
-                      if (confirmSend) {
-                        const message = `Payment request: ${data.paymentLink}`
-                        window.location.href = `sms:${dialNumber}?body=${encodeURIComponent(message)}`
-                      } else {
-                        setSuccessMessage('Payment request created.\nYou can send the payment link manually from your messaging app.')
-                      }
+                      const businessName = business?.name || 'our business'
+                      const amount = (parseFloat(paymentAmount) || 0).toFixed(2)
+                      const description = paymentDescription || 'Service payment'
+                      const message = `${businessName} has sent you a payment request of $${amount}${description ? ` for ${description}` : ''}.
+
+Pay securely here:
+${data.paymentLink}
+
+If you have questions, reply to this message.`
+                      window.location.href = `sms:${dialNumber}?body=${encodeURIComponent(message)}`
+                      setSuccessMessage('Payment request ready.\nThe Messages app is now handling the rest.')
                     } else {
-                      setSuccessMessage('Payment request created.\nOpen this customer in the ReplyFlow mobile app to send the payment link from your messaging app.')
+                      // Desktop: show payment link modal with copy buttons
+                      setPaymentLinkData({
+                        paymentLink: data.paymentLink,
+                        amount: (parseFloat(paymentAmount) || 0).toFixed(2),
+                        description: paymentDescription || 'Service payment'
+                      })
+                      setShowPaymentLinkModal(true)
                     }
                   } else {
                     setSuccessMessage('Payment request sent.\nThe customer has been texted a payment link.')
@@ -4727,6 +4733,93 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isCreatingPayment ? 'Sending Payment Request...' : 'Send Payment Request'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Payment Link Modal for Desktop Business Phone Workflow */}
+    {showPaymentLinkModal && paymentLinkData && (
+      <div 
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            setShowPaymentLinkModal(false)
+            setPaymentLinkData(null)
+          }
+        }}
+      >
+        <div 
+          className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800"
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setShowPaymentLinkModal(false)
+              setPaymentLinkData(null)
+            }
+          }}
+        >
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+            Payment Link Ready
+          </h3>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+            Your payment request has been prepared. Send it from your business phone using your preferred messaging app.
+          </p>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-900 dark:text-white mb-2">
+                Payment Message
+              </label>
+              <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-xs text-slate-700 dark:text-slate-300 font-mono whitespace-pre-wrap break-words">
+                {business?.name || 'our business'} has sent you a payment request of ${paymentLinkData.amount}{paymentLinkData.description ? ` for ${paymentLinkData.description}` : ''}.
+
+Pay securely here:
+{paymentLinkData.paymentLink}
+
+If you have questions, reply to this message.
+              </div>
+            </div>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  const message = `${business?.name || 'our business'} has sent you a payment request of $${paymentLinkData.amount}${paymentLinkData.description ? ` for ${paymentLinkData.description}` : ''}.
+
+Pay securely here:
+${paymentLinkData.paymentLink}
+
+If you have questions, reply to this message.`
+                  navigator.clipboard.writeText(message)
+                  setSuccessMessage('Payment message copied to clipboard')
+                  setShowPaymentLinkModal(false)
+                  setPaymentLinkData(null)
+                }}
+                className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+              >
+                Copy Payment Message
+              </button>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(paymentLinkData.paymentLink)
+                  setSuccessMessage('Payment link copied to clipboard')
+                  setShowPaymentLinkModal(false)
+                  setPaymentLinkData(null)
+                }}
+                className="flex-1 px-4 py-2 text-sm font-medium text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+              >
+                Copy Payment Link
+              </button>
+            </div>
+            
+            <button
+              onClick={() => {
+                setShowPaymentLinkModal(false)
+                setPaymentLinkData(null)
+              }}
+              className="w-full px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+            >
+              Close
             </button>
           </div>
         </div>

@@ -39,7 +39,7 @@ import ImportContactsModal from '@/components/ImportContactsModal'
 import FollowUpSettings from '@/components/FollowUpSettings'
 import { getDefaultOutOfOfficeTemplate, getDefaultAfterHoursTemplate } from '@/lib/out-of-office'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
-import { CreditCard, Mail, MessageSquare, Trash2, AlertTriangle, FileText, Clock, CheckCircle } from 'lucide-react'
+import { CreditCard, Mail, MessageSquare, Trash2, AlertTriangle, FileText, Clock, CheckCircle, Smartphone } from 'lucide-react'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 
 export default function SettingsContent() {
@@ -95,6 +95,9 @@ export default function SettingsContent() {
   const [confirmNewPassword, setConfirmNewPassword] = useState('')
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [passwordError, setPasswordError] = useState('')
+
+  // Communication source preference state
+  const [isUpdatingCommunicationSource, setIsUpdatingCommunicationSource] = useState(false)
 
   // Spam filtering local state for immediate visual feedback
   const [spamFilteringEnabled, setSpamFilteringEnabled] = useState(false)
@@ -521,6 +524,33 @@ export default function SettingsContent() {
     }
   }
 
+  const handleCommunicationSourceChange = async (source: 'replyflow' | 'business') => {
+    setIsUpdatingCommunicationSource(true)
+    try {
+      const supabase = createBrowserClient()
+      const { error } = await supabase
+        .from('businesses')
+        .update({ default_mobile_communication_source: source })
+        .eq('id', business?.id)
+
+      if (error) {
+        throw error
+      }
+
+      // Optimistic update
+      if (business) {
+        setBusiness({ ...business, default_mobile_communication_source: source })
+      }
+
+      showToast('Communication preference saved', 'success')
+    } catch (err) {
+      console.error('[SETTINGS] Failed to update communication source:', err)
+      showToast('Failed to save preference', 'error')
+    } finally {
+      setIsUpdatingCommunicationSource(false)
+    }
+  }
+
   // Google Calendar handlers
   const fetchCalendarStatus = async () => {
     if (!business || !user) return
@@ -889,13 +919,14 @@ export default function SettingsContent() {
     const updateActiveSection = () => {
       // Get section offsets - target divider elements for consistency with scroll-to
       const generalDivider = document.getElementById('general-divider')
+      const communicationDivider = document.getElementById('communication-divider')
       const automationDivider = document.getElementById('automation-divider')
       const integrationsDivider = document.getElementById('integrations-divider')
       const paymentsDivider = document.getElementById('payments-divider')
       const contactsDivider = document.getElementById('contacts-divider')
       const accountDivider = document.getElementById('account-divider')
 
-      if (!generalDivider || !automationDivider || !integrationsDivider || !paymentsDivider || !contactsDivider || !accountDivider) {
+      if (!generalDivider || !communicationDivider || !automationDivider || !integrationsDivider || !paymentsDivider || !contactsDivider || !accountDivider) {
         return
       }
       
@@ -919,6 +950,7 @@ export default function SettingsContent() {
       }
 
       const generalTop = generalDivider.offsetTop
+      const communicationTop = communicationDivider.offsetTop
       const automationTop = automationDivider.offsetTop
       const integrationsTop = integrationsDivider.offsetTop
       const paymentsTop = paymentsDivider.offsetTop
@@ -931,8 +963,10 @@ export default function SettingsContent() {
       // Calculate which section should be active
       let computedActiveSection = 'general'
       
-      if (scrollY < automationTop - offset) {
+      if (scrollY < communicationTop - offset) {
         computedActiveSection = 'general'
+      } else if (scrollY < automationTop - offset) {
+        computedActiveSection = 'communication'
       } else if (scrollY < integrationsTop - offset) {
         computedActiveSection = 'automation'
       } else if (scrollY < paymentsTop - offset) {
@@ -1231,6 +1265,24 @@ export default function SettingsContent() {
                         </button>
                       ))}
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mobile Communication Informational Card */}
+              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-lg border border-blue-200 dark:border-blue-800/50 p-4 mb-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center">
+                    <Smartphone className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Mobile Communication</h3>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
+                      ReplyFlow mobile lets you choose whether customer communication is sent using your ReplyFlow Number or your own business phone.
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-500">
+                      Download the ReplyFlow mobile app to customize your mobile communication preferences.
+                    </p>
                   </div>
                 </div>
               </div>

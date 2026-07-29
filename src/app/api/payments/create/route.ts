@@ -574,14 +574,25 @@ If you have questions, reply to this message.`
                           lead.raw_metadata?.callerName || 
                           lead.raw_metadata?.name || 
                           null
-      await notificationServiceServer.notifyPaymentRequested(
-        business_id,
-        lead_id,
-        lead.caller_phone,
-        amount_cents,
-        paymentDescription,
-        customerName
-      )
+      if (skip_sms) {
+        await notificationServiceServer.notifyPaymentCreated(
+          business_id,
+          lead_id,
+          lead.caller_phone,
+          amount_cents,
+          paymentDescription,
+          customerName
+        )
+      } else {
+        await notificationServiceServer.notifyPaymentRequested(
+          business_id,
+          lead_id,
+          lead.caller_phone,
+          amount_cents,
+          paymentDescription,
+          customerName
+        )
+      }
       console.log('[PAYMENT REQUEST] Notification created successfully')
     } catch (notificationError) {
       console.error('[PAYMENT REQUEST] Failed to create notification:', notificationError)
