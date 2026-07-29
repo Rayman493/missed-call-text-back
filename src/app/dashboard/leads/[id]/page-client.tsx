@@ -47,13 +47,7 @@ import SuccessBanner from '@/components/SuccessBanner'
 import BusinessPhoneModal from '@/components/BusinessPhoneModal'
 import SendingNumberControl from '@/components/SendingNumberControl'
 import { useSendingSource } from '@/hooks/useSendingSource'
-import { supportsBusinessNumber } from '@/lib/platform-capabilities'
-import { Capacitor } from '@capacitor/core'
-
-// Check if running in native mobile app
-const isNativeMobile = () => {
-  return Capacitor.isNativePlatform()
-}
+import { useSupportsBusinessNumber } from '@/lib/platform-capabilities'
 
 // Helper to get customer name from lead data
 const getCustomerName = (lead: any, leadData: any) => {
@@ -339,7 +333,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const { business } = useBusiness()
   const { sendingSource, effectiveSource, isNativeMobile: isNativeMobilePlatform } = useSendingSource()
-  const supportsBusiness = supportsBusinessNumber()
+  const supportsBusiness = useSupportsBusinessNumber()
 
     const [leadData, setLeadData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -3260,7 +3254,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
                 {/* Primary Actions */}
                 <div className="flex items-center gap-2">
-                  {isNativeMobile() && (
+                  {supportsBusiness && (
                     <button
                       onClick={handleTextCustomer}
                       className="inline-flex h-10 items-center gap-2 px-4 rounded-lg text-foreground hover:bg-muted/80 transition-colors text-sm font-medium border border-transparent hover:border-border/50"
@@ -4845,7 +4839,7 @@ If you have questions, reply to this message.`
             }
           }}
         >
-          {isNativeMobile() ? (
+          {supportsBusiness ? (
             // Native mobile: Add "Send via Business Number" secondary action
             <>
               <div className="flex items-center gap-3 mb-4">
@@ -4876,7 +4870,7 @@ If you have questions, reply to this message.`
                   Copy Payment Link
                 </button>
                 
-                {isNativeMobile() && paymentLinkData.dialNumber && paymentLinkData.message && (
+                {supportsBusiness && paymentLinkData.dialNumber && paymentLinkData.message && (
                   <button
                     onClick={() => {
                       setBusinessPhoneModalConfig({
@@ -5050,7 +5044,7 @@ If you have questions, reply to this message.`
                     </div>
                   )}
                 </button>
-                {isNativeMobile() && (
+                {supportsBusiness && (
                   <button
                     onClick={() => {
                       const customerName = getCustomerName(lead, leadData)
@@ -5110,7 +5104,7 @@ If you have questions, reply to this message.`
             {appointmentSuccessData.customerName} is scheduled for {appointmentSuccessData.date} at {appointmentSuccessData.time}.
           </p>
           <div className="space-y-3">
-            {isNativeMobile() && (
+            {supportsBusiness && (
               <button
                 onClick={() => {
                   const customerName = appointmentSuccessData.customerName

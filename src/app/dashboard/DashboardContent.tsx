@@ -12,7 +12,7 @@ import AppLoadingScreen from '@/components/AppLoadingScreen'
 import GenericLoadingScreen from '@/components/GenericLoadingScreen'
 import RoutingDebugBanner from '@/components/RoutingDebugBanner'
 import { isAdminUserById } from '@/lib/admin'
-import { supportsBusinessNumber } from '@/lib/platform-capabilities'
+import { useSupportsBusinessNumber } from '@/lib/platform-capabilities'
 import { CalendarOff, MessageSquare } from 'lucide-react'
 import { 
   formatPhoneNumber, 
@@ -234,6 +234,7 @@ export default function DashboardContent() {
   const isAdmin = isAdminUserById(user?.id)
   
   // ALL hooks must be called before any conditional returns to prevent React #310
+  const supportsBusinessNumber = useSupportsBusinessNumber()
   const [processedLeads, setProcessedLeads] = useState<any[]>([])
   const [missedCallCount, setMissedCallCount] = useState(0)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
@@ -1091,7 +1092,7 @@ export default function DashboardContent() {
                 {hasActiveSubscription(business) ? (
                   <>
                     {/* Sending Number Card - Only show on native mobile platforms */}
-                    {supportsBusinessNumber() && (
+                    {supportsBusinessNumber && (
                       <SectionErrorBoundary sectionName="SendingNumberCard">
                         <SendingNumberCard />
                       </SectionErrorBoundary>
