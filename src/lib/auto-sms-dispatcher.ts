@@ -21,6 +21,20 @@ interface DispatchParams {
   extractedInfo?: any
   aiOutcome?: string | null
   voicemailCompleted?: boolean
+  aiCallRecord?: AiCallRecord
+}
+
+interface AiCallRecord {
+  id: string
+  call_sid: string
+  business_id: string
+  lead_id: string
+  outcome: string
+  extracted_info?: any
+  summary?: string
+  transcript?: string
+  fields_collected_count?: number
+  had_user_speech?: boolean
 }
 
 interface DispatchResult {
@@ -51,7 +65,7 @@ async function getConversationId(leadId: string, businessId: string, conversatio
   return conversation?.id
 }
 
-async function getAiCallRecord(callSid: string, leadId: string) {
+async function getAiCallRecord(callSid: string, leadId: string): Promise<AiCallRecord | null> {
   const { data } = await supabaseAdmin
     .from('ai_call_records')
     .select('id, call_sid, outcome, extracted_info, summary, transcript, fields_collected_count, had_user_speech')
@@ -61,7 +75,7 @@ async function getAiCallRecord(callSid: string, leadId: string) {
     .limit(1)
     .maybeSingle()
 
-  return data
+  return data as AiCallRecord | null
 }
 
 async function getLeadMetadata(leadId: string) {
@@ -384,12 +398,38 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
   }
 
   const businessName = params.businessName || business.name || 'My Business'
-  const aiCallRecord = await getAiCallRecord(callSid, leadId)
+
+  // Use the authoritative aiCallRecord if provided from voice-status webhook
+  // This avoids redundant database queries and ensures the refreshed record is used
+  let aiCallRecord: AiCallRecord | null = params.aiCallRecord || null
+  if (!aiCallRecord) {
+    // Fallback to database query if not provided (for other code paths)
+    aiCallRecord = await getAiCallRecord(callSid, leadId)
+  }
+
   const leadMetadata = await getLeadMetadata(leadId)
+
+  // Diagnostic logging before summary SMS decision
+  console.log('[SUMMARY SMS RECORD SOURCE]', {
+    currentCallSid: callSid,
+    businessId: businessId,
+    source: aiCallRecord ? 'passed_from_webhook' : 'database_query',
+    recordId: aiCallRecord?.id,
+    recordCallSid: aiCallRecord?.call_sid,
+    recordBusinessId: aiCallRecord?.business_id,
+    outcome: aiCallRecord?.outcome,
+    transcriptPresent: !!aiCallRecord?.transcript && aiCallRecord.transcript.length > 0,
+    extractedInfoPresent: !!aiCallRecord?.extracted_info && Object.keys(aiCallRecord.extracted_info).length > 0,
+    summaryPresent: !!aiCallRecord?.summary && aiCallRecord.summary.length > 0,
+    callSidMatch: aiCallRecord?.call_sid === callSid,
+    businessMatch: aiCallRecord?.business_id === businessId,
+    timestamp: new Date().toISOString()
+  })
 
   // HARD GUARDS: Validate exact current call record before proceeding
   const failedOrFallback = params.aiOutcome === 'failed' || params.aiOutcome === 'voicemail_fallback'
   const callSidMatch = aiCallRecord?.call_sid === callSid
+  const businessMatch = aiCallRecord?.business_id === businessId
   const outcomeCompleted = aiCallRecord?.outcome === 'completed' || aiCallRecord?.outcome === 'completed_intake'
   const transcriptPresent = !!aiCallRecord?.transcript && aiCallRecord.transcript.length > 0
   const extractedInfoPresent = !!aiCallRecord?.extracted_info && Object.keys(aiCallRecord.extracted_info).length > 0
@@ -402,6 +442,8 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
     skipReason = 'no_ai_call_record_found'
   } else if (!callSidMatch) {
     skipReason = 'call_sid_mismatch'
+  } else if (!businessMatch) {
+    skipReason = 'business_id_mismatch'
   } else if (failedOrFallback) {
     skipReason = 'call_failed_or_fallback'
   } else if (!outcomeCompleted) {

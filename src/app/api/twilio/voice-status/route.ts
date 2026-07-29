@@ -1178,7 +1178,7 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
         matchedPhrases: transcriptSpamMatchedPhrases
       })
     } else {
-      const dispatchResult = await dispatchAutomaticCustomerSms({
+      const dispatchParams: any = {
         trigger: 'call_finished',
         callSid: CallSid,
         businessId: business.id,
@@ -1188,7 +1188,14 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
         businessName: business.name,
         extractedInfo: aiCallRecord?.extracted_info,
         aiOutcome: aiCallRecord?.outcome
-      })
+      }
+
+      // Only pass aiCallRecord if it exists (avoid passing null)
+      if (aiCallRecord) {
+        dispatchParams.aiCallRecord = aiCallRecord
+      }
+
+      const dispatchResult = await dispatchAutomaticCustomerSms(dispatchParams)
 
       autoReplySent = !!dispatchResult.twilioMessageSid
 
