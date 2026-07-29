@@ -4801,7 +4801,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
                   if (communicationSource === 'business') {
                     // Native SMS composer for mobile
-                    if (isNativeMobile() && canDialPhone && data.paymentLink) {
+                    console.log('[PAYMENT CREATE] Native detection:', isNativeMobile(), 'canDialPhone:', canDialPhone, 'has paymentLink:', !!data.paymentLink, 'communicationSource:', communicationSource)
+                    if (isNativeMobile() && data.paymentLink) {
                       const businessName = business?.name || 'our business'
                       const amount = (parseFloat(paymentAmount) || 0).toFixed(2)
                       const description = paymentDescription || 'Service payment'
@@ -4930,10 +4931,19 @@ If you have questions, reply to this message.
                 console.log('[PAYMENT MODAL] Native detection:', isNativeMobile(), 'Has message:', !!paymentLinkData.message, 'Has dialNumber:', !!paymentLinkData.dialNumber, 'Has paymentLink:', !!paymentLinkData.paymentLink)
                 return null
               })()}
-              {isNativeMobile() && paymentLinkData.message && paymentLinkData.dialNumber && (
+              {isNativeMobile() && (
                 <button
                   onClick={() => {
-                    window.location.href = `sms:${paymentLinkData.dialNumber}?body=${encodeURIComponent(paymentLinkData.message || '')}`
+                    // Validate required fields before launching Messages
+                    if (!paymentLinkData.dialNumber) {
+                      setError('Customer phone number is missing. Cannot open Messages.')
+                      return
+                    }
+                    if (!paymentLinkData.message) {
+                      setError('Payment message is missing. Cannot open Messages.')
+                      return
+                    }
+                    window.location.href = `sms:${paymentLinkData.dialNumber}?body=${encodeURIComponent(paymentLinkData.message)}`
                     setShowPaymentLinkModal(false)
                     setPaymentLinkData(null)
                   }}
@@ -4977,6 +4987,13 @@ If you have questions, reply to this message.`
               <button
                 onClick={() => {
                   setShowPaymentLinkModal(false)
+                  // Clear pending action when modal is closed without opening Messages
+                  if (isNativeMobile() && paymentLinkData.paymentRequestId) {
+                    // Clear the pending external action since user is not sending it now
+                    import('@/lib/pending-actions').then(({ clearPendingAction }) => {
+                      clearPendingAction()
+                    })
+                  }
                   setPaymentLinkData(null)
                 }}
                 className="w-full px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
