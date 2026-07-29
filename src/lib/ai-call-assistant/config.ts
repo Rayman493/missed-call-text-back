@@ -62,6 +62,22 @@ export const AI_CONFIG = {
     // New: 900ms (slightly more patient)
     silenceDurationMs: 900,
   },
+
+  // Per-question silence timeout configurations
+  // SHORT_RESPONSE: For quick, single-word answers (Name, Reason for Calling)
+  // LONG_RESPONSE: For multi-word, thoughtful answers (Address, Phone, Email, Appointment, Timeline)
+  questionTiming: {
+    // Short response timing (900ms) - quick answers like names
+    SHORT_RESPONSE: {
+      silenceDurationMs: 900,
+      description: 'Short response timing for quick answers like Name and Reason for Calling',
+    },
+    // Long response timing (1800ms) - patient timing for addresses, phone numbers, etc.
+    LONG_RESPONSE: {
+      silenceDurationMs: 1800,
+      description: 'Long response timing for multi-word answers like Address, Phone, Email, Appointment, Timeline',
+    },
+  },
   
   // Turn-to-turn pacing configuration
   // Note: Actual pacing is controlled by the external AI Voice service (Fly.io)

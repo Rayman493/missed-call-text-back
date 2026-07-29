@@ -33,6 +33,7 @@ export interface OpenAIConfig {
   onSessionUpdated?: () => void;
   currentStage?: string; // Current intake stage for validation
   responseId?: string; // Current response ID for logging
+  silenceDurationMs?: number; // Dynamic silence timeout per question (default: 1800ms)
 }
 
 enum ConnectionState {
@@ -361,7 +362,7 @@ export class OpenAIRealtimeClient {
               type: 'server_vad',
               threshold: 0.5,
               prefix_padding_ms: 300,
-              silence_duration_ms: 1800,
+              silence_duration_ms: this.config.silenceDurationMs || 1800,
               create_response: false,
             },
           },

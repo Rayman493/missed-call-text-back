@@ -8405,9 +8405,49 @@ Reply to this message if you'd like to update or add any information.
     }
   };
 
+  // Helper to map intake stages to silence duration
+  // SHORT_RESPONSE (900ms): For quick answers like Name and Reason for Calling
+  // LONG_RESPONSE (1800ms): For multi-word answers like Address, Phone, Email, Appointment, Timeline
+  const getSilenceDurationForStage = (stage: string): number => {
+    const shortResponseStages = ['ask_name_reason', 'ask_name_reason_service_only', 'ask_name_reason_name_only'];
+    const isShortResponse = shortResponseStages.includes(stage);
+    return isShortResponse ? 900 : 1800;
+  };
+
   // Helper to send prompt using cached PCMU audio or Realtime response.create
   const sendPrompt = async (stage: string, promptKeyOverride?: string, source?: string, turnId?: number, deliveryAttempt?: number) => {
     const authorizedAt = Date.now();
+    
+    // Update silence duration based on stage before sending prompt
+    const silenceDurationMs = getSilenceDurationForStage(stage);
+    console.log('[STAGE-SPECIFIC TIMING] =========================================');
+    console.log('[STAGE-SPECIFIC TIMING] stage:', stage);
+    console.log('[STAGE-SPECIFIC TIMING] silenceDurationMs:', silenceDurationMs);
+    console.log('[STAGE-SPECIFIC TIMING] timingType:', silenceDurationMs === 900 ? 'SHORT_RESPONSE' : 'LONG_RESPONSE');
+    console.log('[STAGE-SPECIFIC TIMING] Timestamp:', new Date().toISOString());
+    console.log('[STAGE-SPECIFIC TIMING] =========================================');
+    
+    // Update session with stage-specific silence duration
+    if (state.openAiWs && state.openAiWs.readyState === WebSocket.OPEN) {
+      const sessionUpdatePayload = {
+        type: "session.update",
+        session: {
+          audio: {
+            input: {
+              turn_detection: {
+                silence_duration_ms: silenceDurationMs
+              }
+            }
+          }
+        }
+      };
+      try {
+        state.openAiWs.send(JSON.stringify(sessionUpdatePayload));
+        console.log('[STAGE-SPECIFIC TIMING] session.update sent with silence_duration_ms:', silenceDurationMs);
+      } catch (error) {
+        console.log('[STAGE-SPECIFIC TIMING] Failed to send session.update:', error);
+      }
+    }
     
     console.log('[REPROMPT ARGUMENT TRACE] =========================================');
     console.log('[REPROMPT ARGUMENT TRACE] location: sendPrompt_entry');
@@ -13763,12 +13803,13 @@ Return only JSON, no other text.`;
             // Attach listeners - using minimal endpoint pattern
             console.log('[OPENAI STATE AFTER LISTENER] readyState:', openAiWs.readyState, 'OPEN:', WebSocket.OPEN);
             
-            // Define sendSessionUpdate helper function
-            const sendSessionUpdate = () => {
+            // Define sendSessionUpdate helper function with dynamic silence_duration_ms
+            const sendSessionUpdate = (silenceDurationMs: number = 1800) => {
               console.log('[OPENAI SEND PATH ENTERED]');
               console.log('[OPENAI READY] setting openAiReady to true');
               twilioHandler.setOpenAiReady();
               console.log('[OPENAI READY] openAiReady set to true');
+              console.log('[SILENCE DURATION] Setting silence_duration_ms to:', silenceDurationMs);
               
               const sessionUpdatePayload = {
                 type: "session.update",
@@ -13784,6 +13825,9 @@ Return only JSON, no other text.`;
                       },
                       turn_detection: {
                         type: "server_vad",
+                        threshold: 0.5,
+                        prefix_padding_ms: 300,
+                        silence_duration_ms: silenceDurationMs,
                         create_response: false
                       }
                     },
