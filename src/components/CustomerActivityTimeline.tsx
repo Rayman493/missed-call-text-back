@@ -10,15 +10,19 @@ import {
   UserPlus,
   Clock,
   AlertCircle,
-  FileText
+  FileText,
+  MessageCircle
 } from 'lucide-react'
 
 interface ActivityEvent {
   id: string
-  type: 'created' | 'call_received' | 'ai_intake' | 'voicemail' | 'message' | 'appointment_created' | 'appointment_completed' | 'payment_requested' | 'payment_paid' | 'completed' | 'status_changed' | 'photo_sent'
+  type: 'created' | 'call_received' | 'ai_intake' | 'voicemail' | 'message' | 'appointment_created' | 'appointment_completed' | 'payment_requested' | 'payment_paid' | 'completed' | 'status_changed' | 'photo_sent' | 'business_phone_text' | 'business_phone_payment_request' | 'business_phone_call'
   title: string
   timestamp: string
   detail?: string
+  subtitle?: string
+  preview?: string
+  metadata?: Record<string, any>
 }
 
 interface CustomerActivityTimelineProps {
@@ -96,6 +100,55 @@ export default function CustomerActivityTimeline({ leadData }: CustomerActivityT
           timestamp: firstPhotoMessage.created_at,
         })
       }
+    }
+
+    // Business Phone activities from messages table
+    if (leadData.messages && leadData.messages.length > 0) {
+      const businessPhoneMessages = leadData.messages.filter((msg: any) => 
+        msg.direction === 'outbound' && 
+        msg.metadata?.source === 'business_phone' &&
+        msg.metadata?.confirmation_method === 'user_confirmed'
+      )
+      
+      businessPhoneMessages.forEach((msg: any) => {
+        const metadata = msg.metadata || {}
+        const actionType = metadata.actionType || ''
+        
+        if (actionType === 'business_phone_text') {
+          activityEvents.push({
+            id: `business-phone-text-${msg.id}`,
+            type: 'business_phone_text',
+            title: 'Text sent from Business Phone',
+            timestamp: msg.created_at,
+            subtitle: 'Confirmed by you',
+            preview: metadata.messageBody || undefined,
+            metadata,
+          })
+        } else if (actionType === 'business_phone_payment_request') {
+          let detail = ''
+          if (metadata.amount) {
+            detail = `$${parseFloat(metadata.amount).toFixed(0)} payment request`
+          }
+          
+          activityEvents.push({
+            id: `business-phone-payment-${msg.id}`,
+            type: 'business_phone_payment_request',
+            title: 'Payment request sent from Business Phone',
+            timestamp: msg.created_at,
+            detail,
+            metadata,
+          })
+        } else if (actionType === 'business_phone_call') {
+          activityEvents.push({
+            id: `business-phone-call-${msg.id}`,
+            type: 'business_phone_call',
+            title: 'Called customer from Business Phone',
+            timestamp: msg.created_at,
+            subtitle: 'Confirmed by you',
+            metadata,
+          })
+        }
+      })
     }
 
     // Appointments (from jobs)
@@ -213,6 +266,12 @@ export default function CustomerActivityTimeline({ leadData }: CustomerActivityT
         return <CheckCircle className="w-4 h-4 text-green-500" />
       case 'photo_sent':
         return <FileText className="w-4 h-4 text-blue-500" />
+      case 'business_phone_text':
+        return <MessageCircle className="w-4 h-4 text-blue-500" />
+      case 'business_phone_payment_request':
+        return <CreditCard className="w-4 h-4 text-purple-500" />
+      case 'business_phone_call':
+        return <Phone className="w-4 h-4 text-green-500" />
       default:
         return <Clock className="w-4 h-4 text-muted-foreground" />
     }
@@ -259,12 +318,18 @@ export default function CustomerActivityTimeline({ leadData }: CustomerActivityT
                   {getIcon(event.type)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
+                  <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                     <p className="text-sm font-medium text-foreground">{event.title}</p>
                     {event.detail && (
                       <span className="text-xs text-muted-foreground">{event.detail}</span>
                     )}
                   </div>
+                  {event.subtitle && (
+                    <p className="text-xs text-muted-foreground mb-1">{event.subtitle}</p>
+                  )}
+                  {event.preview && (
+                    <p className="text-xs text-muted-foreground mb-1 line-clamp-2 whitespace-pre-wrap">{event.preview}</p>
+                  )}
                   <p className="text-xs text-muted-foreground">{getRelativeTime(event.timestamp)}</p>
                 </div>
               </div>
