@@ -42,6 +42,15 @@ import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { CreditCard, Mail, MessageSquare, Trash2, AlertTriangle, FileText, Clock, CheckCircle, Smartphone } from 'lucide-react'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 
+// Check if running in native mobile app
+const isNativeMobile = () => {
+  try {
+    return (window as any).Capacitor?.isNativePlatform?.() ?? false
+  } catch {
+    return false
+  }
+}
+
 export default function SettingsContent() {
   const router = useRouter()
   const { business, setBusiness, refreshBusiness } = useBusiness()
@@ -1242,7 +1251,7 @@ export default function SettingsContent() {
                       Where do you provide your services?
                     </label>
                     <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
-                      ReplyFlow uses this to tailor the questions your AI receptionist asks callers.
+                      ReplyFlow uses this to tailor the questions your AI Voice asks callers.
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       {[
@@ -1269,23 +1278,105 @@ export default function SettingsContent() {
                 </div>
               </div>
 
-              {/* Mobile Communication Informational Card */}
-              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-lg border border-blue-200 dark:border-blue-800/50 p-4 mb-4">
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center">
-                    <Smartphone className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              {/* Mobile Communication */}
+              {isNativeMobile() ? (
+                // Native mobile app: Show interactive selector
+                <div className="bg-white dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700/60 p-4 mb-4">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center">
+                      <Smartphone className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Mobile Communication</h3>
+                      <p className="text-xs text-slate-600 dark:text-slate-400">
+                        Choose whether calls, texts, and payment requests use your ReplyFlow Number or your own business phone.
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Mobile Communication</h3>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
-                      ReplyFlow mobile lets you choose whether customer communication is sent using your ReplyFlow Number or your own business phone.
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-500">
-                      Download the ReplyFlow mobile app to customize your mobile communication preferences.
-                    </p>
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => handleCommunicationSourceChange('replyflow')}
+                      disabled={isUpdatingCommunicationSource}
+                      className={`w-full text-left p-3 rounded-lg border transition-all ${
+                        business?.default_mobile_communication_source === 'replyflow'
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                          : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 mt-0.5">
+                          <div className={`w-4 h-4 rounded-full border-2 ${
+                            business?.default_mobile_communication_source === 'replyflow'
+                              ? 'border-blue-500 bg-blue-500'
+                              : 'border-slate-300 dark:border-slate-600'
+                          }`}>
+                            {business?.default_mobile_communication_source === 'replyflow' && (
+                              <div className="w-1.5 h-1.5 rounded-full bg-white mt-0.5 ml-0.5" />
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="text-sm font-medium text-slate-900 dark:text-foreground">ReplyFlow Number</div>
+                            {business?.default_mobile_communication_source === 'replyflow' && (
+                              <span className="text-[10px] font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">Recommended</span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-600 dark:text-slate-400">
+                            Calls, texts, and payment requests stay inside ReplyFlow and are fully tracked.
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleCommunicationSourceChange('business')}
+                      disabled={isUpdatingCommunicationSource}
+                      className={`w-full text-left p-3 rounded-lg border transition-all ${
+                        business?.default_mobile_communication_source === 'business'
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                          : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 mt-0.5">
+                          <div className={`w-4 h-4 rounded-full border-2 ${
+                            business?.default_mobile_communication_source === 'business'
+                              ? 'border-blue-500 bg-blue-500'
+                              : 'border-slate-300 dark:border-slate-600'
+                          }`}>
+                            {business?.default_mobile_communication_source === 'business' && (
+                              <div className="w-1.5 h-1.5 rounded-full bg-white mt-0.5 ml-0.5" />
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-slate-900 dark:text-foreground mb-1">My Business Phone</div>
+                          <p className="text-xs text-slate-600 dark:text-slate-400">
+                            Uses your phone's native calling and messaging apps while you're on the go.
+                          </p>
+                        </div>
+                      </div>
+                    </button>
                   </div>
                 </div>
-              </div>
+              ) : (
+                // Desktop web: Show informational card
+                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-lg border border-blue-200 dark:border-blue-800/50 p-4 mb-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center">
+                      <Smartphone className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Mobile Communication</h3>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
+                        In the ReplyFlow mobile app, choose whether calls, texts, and payment requests use your ReplyFlow Number or your own business phone.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Group: Automation */}
               <div id="automation-divider" className="flex items-center gap-3 mb-4 scroll-mt-[64px]">
