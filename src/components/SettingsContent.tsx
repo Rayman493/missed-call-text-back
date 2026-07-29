@@ -887,15 +887,15 @@ export default function SettingsContent() {
     let timeoutId: NodeJS.Timeout | null = null
     
     const updateActiveSection = () => {
-      // Get section elements
-      const generalSection = document.getElementById('general')
-      const automationSection = document.getElementById('automation')
-      const integrationsSection = document.getElementById('integrations')
-      const paymentsSection = document.getElementById('payments')
-      const contactsSection = document.getElementById('contacts')
-      const accountSection = document.getElementById('account')
-      
-      if (!generalSection || !automationSection || !integrationsSection || !paymentsSection || !contactsSection || !accountSection) {
+      // Get section offsets - target divider elements for consistency with scroll-to
+      const generalDivider = document.getElementById('general-divider')
+      const automationDivider = document.getElementById('automation-divider')
+      const integrationsDivider = document.getElementById('integrations-divider')
+      const paymentsDivider = document.getElementById('payments-divider')
+      const contactsDivider = document.getElementById('contacts-divider')
+      const accountDivider = document.getElementById('account-divider')
+
+      if (!generalDivider || !automationDivider || !integrationsDivider || !paymentsDivider || !contactsDivider || !accountDivider) {
         return
       }
       
@@ -917,14 +917,13 @@ export default function SettingsContent() {
         setActiveSection('account')
         return
       }
-      
-      // Get section offsets
-      const generalTop = generalSection.offsetTop
-      const automationTop = automationSection.offsetTop
-      const integrationsTop = integrationsSection.offsetTop
-      const paymentsTop = paymentsSection.offsetTop
-      const contactsTop = contactsSection.offsetTop
-      const accountTop = accountSection.offsetTop
+
+      const generalTop = generalDivider.offsetTop
+      const automationTop = automationDivider.offsetTop
+      const integrationsTop = integrationsDivider.offsetTop
+      const paymentsTop = paymentsDivider.offsetTop
+      const contactsTop = contactsDivider.offsetTop
+      const accountTop = accountDivider.offsetTop
       
       // Calculate offset for header and tabs using shared helper
       const offset = getScrollOffset()
@@ -966,7 +965,9 @@ export default function SettingsContent() {
     const handleHashChange = () => {
       const hash = window.location.hash.slice(1)
       if (sections.includes(hash)) {
-        const element = document.getElementById(hash)
+        // Target the divider element for proper scroll offset
+        const dividerId = `${hash}-divider`
+        const element = document.getElementById(dividerId)
         if (element) {
           // Update active section immediately
           setActiveSection(hash)
@@ -1010,7 +1011,9 @@ export default function SettingsContent() {
 
   // Shared scroll-to-section helper
   const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId)
+    // Target the divider element instead of the section content
+    const dividerId = `${sectionId}-divider`
+    const element = document.getElementById(dividerId)
     if (element) {
       const offset = getScrollOffset()
       const elementPosition = element.getBoundingClientRect().top + window.scrollY - offset
@@ -1105,7 +1108,7 @@ export default function SettingsContent() {
             {/* Settings Sections */}
             <div className="space-y-3 sm:space-y-4 pb-32">
               {/* Group: General */}
-              <div className="flex items-center gap-3 mb-4">
+              <div id="general-divider" className="flex items-center gap-3 mb-4 scroll-mt-[64px]">
                 <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
                 <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{settingsSections.find(s => s.id === 'general')?.label}</h3>
                 <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
@@ -1233,7 +1236,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Group: Automation */}
-              <div className="flex items-center gap-3 mb-4">
+              <div id="automation-divider" className="flex items-center gap-3 mb-4 scroll-mt-[64px]">
                 <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
                 <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{settingsSections.find(s => s.id === 'automation')?.label}</h3>
                 <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
@@ -1691,7 +1694,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Group: Integrations */}
-              <div className="flex items-center gap-3 mb-4">
+              <div id="integrations-divider" className="flex items-center gap-3 mb-4 scroll-mt-[64px]">
                 <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
                 <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{settingsSections.find(s => s.id === 'integrations')?.label}</h3>
                 <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
@@ -1771,7 +1774,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Group: Payments */}
-              <div className="flex items-center gap-3 mb-4">
+              <div id="payments-divider" className="flex items-center gap-3 mb-4 scroll-mt-[64px]">
                 <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
                 <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{settingsSections.find(s => s.id === 'payments')?.label}</h3>
                 <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
@@ -1970,7 +1973,7 @@ export default function SettingsContent() {
               </div>
 
               {/* Group: Contacts */}
-              <div className="flex items-center gap-3 mb-4">
+              <div id="contacts-divider" className="flex items-center gap-3 mb-4 scroll-mt-[64px]">
                 <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
                 <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{settingsSections.find(s => s.id === 'contacts')?.label}</h3>
                 <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
@@ -2098,7 +2101,7 @@ export default function SettingsContent() {
               )}
 
               {/* Group: Account */}
-              <div className="flex items-center gap-3 mb-4">
+              <div id="account-divider" className="flex items-center gap-3 mb-4 scroll-mt-[64px]">
                 <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
                 <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{settingsSections.find(s => s.id === 'account')?.label}</h3>
                 <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>

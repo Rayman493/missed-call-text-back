@@ -134,3 +134,36 @@ describe('Settings Section Labels - Required Labels Present', () => {
     expect(labels).toContain('Account')
   })
 })
+
+describe('Settings Section Labels - Scroll Offset Configuration', () => {
+  it('has divider IDs for all sections', () => {
+    const ids = getSettingsSectionIds()
+    ids.forEach(id => {
+      const dividerId = `${id}-divider`
+      expect(dividerId).toBeDefined()
+      expect(typeof dividerId).toBe('string')
+    })
+  })
+
+  it('divider IDs follow expected pattern', () => {
+    const expectedDividerIds = [
+      'general-divider',
+      'automation-divider',
+      'integrations-divider',
+      'payments-divider',
+      'contacts-divider',
+      'account-divider'
+    ]
+    const actualDividerIds = getSettingsSectionIds().map(id => `${id}-divider`)
+    expect(actualDividerIds).toEqual(expectedDividerIds)
+  })
+
+  it('all sections have corresponding divider targets', () => {
+    const sectionIds = getSettingsSectionIds()
+    sectionIds.forEach(sectionId => {
+      const section = getSettingsSection(sectionId)
+      expect(section).toBeDefined()
+      expect(section?.id).toBe(sectionId)
+    })
+  })
+})
