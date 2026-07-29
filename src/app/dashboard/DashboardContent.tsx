@@ -12,6 +12,7 @@ import AppLoadingScreen from '@/components/AppLoadingScreen'
 import GenericLoadingScreen from '@/components/GenericLoadingScreen'
 import RoutingDebugBanner from '@/components/RoutingDebugBanner'
 import { isAdminUserById } from '@/lib/admin'
+import { supportsBusinessNumber } from '@/lib/platform-capabilities'
 import { CalendarOff, MessageSquare } from 'lucide-react'
 import { 
   formatPhoneNumber, 
@@ -1089,10 +1090,12 @@ export default function DashboardContent() {
                 {/* Telecom-active sections: only render once the user has started a trial/subscription. */}
                 {hasActiveSubscription(business) ? (
                   <>
-                    {/* Sending Number Card */}
-                    <SectionErrorBoundary sectionName="SendingNumberCard">
-                      <SendingNumberCard />
-                    </SectionErrorBoundary>
+                    {/* Sending Number Card - Only show on native mobile platforms */}
+                    {supportsBusinessNumber() && (
+                      <SectionErrorBoundary sectionName="SendingNumberCard">
+                        <SendingNumberCard />
+                      </SectionErrorBoundary>
+                    )}
 
                     {/* ReplyFlow Performance Card */}
                     <SectionErrorBoundary sectionName="ReplyFlowPerformanceCard">

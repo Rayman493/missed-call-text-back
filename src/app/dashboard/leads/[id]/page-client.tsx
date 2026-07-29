@@ -3525,15 +3525,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
               {/* Desktop Message Composer - Fixed to Bottom */}
               <div className="shrink-0 pt-4">
-                <div className="mb-3">
-                  <label className="text-xs text-slate-600 dark:text-slate-400 font-medium mb-2 block">Sending Number</label>
-                  <SendingNumberControl compact showLabel={false} />
-                  {sendingSource === 'business' && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                      Messages will open your phone's messaging app for review before sending.
-                    </p>
-                  )}
-                </div>
+                {supportsBusiness && (
+                  <div className="mb-3">
+                    <label className="text-xs text-slate-600 dark:text-slate-400 font-medium mb-2 block">Sending Number</label>
+                    <SendingNumberControl compact showLabel={false} />
+                    {sendingSource === 'business' && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                        Messages will open your phone's messaging app for review before sending.
+                      </p>
+                    )}
+                  </div>
+                )}
                 <ConversationComposer
                   message={message}
                   setMessage={setMessage}
@@ -3800,16 +3802,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <div className="border-t border-border/30 flex-shrink-0"></div>
             {/* Composer - Integrated at bottom with proper spacing */}
             <div className="px-3 py-3 flex-shrink-0 bg-card/98 shadow-[0_-8px_30px_rgba(2,6,23,0.08)]" style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' }}>
-              {/* Sending Number Control */}
-              <div className="mb-3">
-                <label className="text-xs text-slate-600 dark:text-slate-400 font-medium mb-2 block">Sending Number</label>
-                <SendingNumberControl compact showLabel={false} />
-                {sendingSource === 'business' && (
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                    Messages will open your phone's messaging app for review before sending.
-                  </p>
-                )}
-              </div>
+              {/* Sending Number Control - Only show on native mobile platforms */}
+              {supportsBusiness && (
+                <div className="mb-3">
+                  <label className="text-xs text-slate-600 dark:text-slate-400 font-medium mb-2 block">Sending Number</label>
+                  <SendingNumberControl compact showLabel={false} />
+                  {sendingSource === 'business' && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                      Messages will open your phone's messaging app for review before sending.
+                    </p>
+                  )}
+                </div>
+              )}
               {/* Image Previews */}
               {mobileImages.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-2">
