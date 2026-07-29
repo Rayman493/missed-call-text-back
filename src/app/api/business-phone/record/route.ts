@@ -80,28 +80,29 @@ export async function POST(request: NextRequest) {
     
     switch (actionType) {
       case 'text':
-        displayText = 'Message sent via Business Number'
+        displayText = 'Message prepared via Business Number'
         eventSubtype = 'business_phone_text'
         break
       case 'payment_request':
-        displayText = 'Payment request sent via Business Number'
+        displayText = 'Payment request prepared via Business Number'
         eventSubtype = 'business_phone_payment_request'
         break
       case 'appointment':
-        displayText = 'Appointment message sent via Business Number'
+        displayText = 'Appointment message prepared via Business Number'
         eventSubtype = 'business_phone_appointment'
         break
       case 'follow_up':
-        displayText = 'Follow-up sent via Business Number'
+        displayText = 'Follow-up prepared via Business Number'
         eventSubtype = 'business_phone_follow_up'
         break
     }
 
     // Create trusted server-side metadata
+    // Use 'handoff' semantics since we cannot verify the message was actually sent by the device
     const metadata: Record<string, any> = {
       communication_source: 'business_phone',
-      event_state: 'sent',
-      sent_at: new Date().toISOString(),
+      event_state: 'handoff',
+      handoff_at: new Date().toISOString(),
       actionType
     }
 
