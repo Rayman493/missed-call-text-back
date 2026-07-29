@@ -1197,6 +1197,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [leadJobs, setLeadJobs] = useState<any[]>([])
   const [appointmentDate, setAppointmentDate] = useState('')
   const [appointmentTime, setAppointmentTime] = useState('')
+  const [showAppointmentSuccessModal, setShowAppointmentSuccessModal] = useState(false)
+  const [appointmentSuccessData, setAppointmentSuccessData] = useState<{ customerName: string; date: string; time: string } | null>(null)
   const [appointmentNote, setAppointmentNote] = useState('')
   const [selectedAppointmentJob, setSelectedAppointmentJob] = useState<any>(null)
   const [isSavingAppointment, setIsSavingAppointment] = useState(false)
@@ -2777,6 +2779,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         setLeadData({ ...updatedLead.lead, messages: updatedLead.lead.messages || updatedLead.messages || [] })
       }
 
+      const customerName = getCustomerName(lead, leadData)
+
       if (communicationSource === 'business') {
         // Offer to open native messaging app with appointment details
         if (isNativeMobile() && canDialPhone) {
@@ -2785,13 +2789,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             const message = `Appointment scheduled for ${appointmentDate} at ${appointmentTime}.`
             window.location.href = `sms:${dialNumber}?body=${encodeURIComponent(message)}`
           } else {
-            setSuccessMessage('Appointment scheduled successfully.\nYou can send appointment details manually from your messaging app.')
+            setAppointmentSuccessData({ customerName, date: appointmentDate, time: appointmentTime })
+            setShowAppointmentSuccessModal(true)
           }
         } else {
-          setSuccessMessage('Appointment scheduled successfully.\nOpen this customer in the ReplyFlow mobile app to send appointment details from your messaging app.')
+          setAppointmentSuccessData({ customerName, date: appointmentDate, time: appointmentTime })
+          setShowAppointmentSuccessModal(true)
         }
       } else {
-        setSuccessMessage('Appointment scheduled successfully')
+        setAppointmentSuccessData({ customerName, date: appointmentDate, time: appointmentTime })
+        setShowAppointmentSuccessModal(true)
       }
       setIsAppointmentModalOpen(false)
     } catch (error: any) {
@@ -5087,6 +5094,47 @@ If you have questions, reply to this message.`
           </div>
         </div>
       </div>
+    )}
+
+    {/* Appointment Success Modal */}
+    {showAppointmentSuccessModal && appointmentSuccessData && (
+      <Modal
+        isOpen={showAppointmentSuccessModal}
+        onClose={() => setShowAppointmentSuccessModal(false)}
+        title=""
+        className="max-w-md"
+      >
+        <div className="p-6">
+          <div className="flex items-center justify-center w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full mb-4">
+            <svg className="w-8 h-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2 text-center">
+            Appointment created
+          </h3>
+          <p className="text-sm text-slate-600 dark:text-slate-400 text-center mb-6">
+            {appointmentSuccessData.customerName} is scheduled for {appointmentSuccessData.date} at {appointmentSuccessData.time}.
+          </p>
+          <div className="space-y-3">
+            <button
+              onClick={() => {
+                setShowAppointmentSuccessModal(false)
+                router.push('/dashboard/calendar')
+              }}
+              className="w-full px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+            >
+              View Schedule
+            </button>
+            <button
+              onClick={() => setShowAppointmentSuccessModal(false)}
+              className="w-full px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      </Modal>
     )}
     </DashboardErrorBoundary>
   )
