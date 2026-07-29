@@ -45,6 +45,8 @@ import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smar
 import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
 import SuccessBanner from '@/components/SuccessBanner'
 import BusinessPhoneModal from '@/components/BusinessPhoneModal'
+import SendingNumberControl from '@/components/SendingNumberControl'
+import { useSendingSource } from '@/hooks/useSendingSource'
 import { Capacitor } from '@capacitor/core'
 
 // Check if running in native mobile app
@@ -335,6 +337,7 @@ async function getLeadDetails(leadId: string) {
 export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const { business } = useBusiness()
+  const { sendingSource, effectiveSource, isNativeMobile: isNativeMobilePlatform } = useSendingSource()
 
     const [leadData, setLeadData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -1191,32 +1194,67 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     setConfirmationError(null)
 
     try {
-      // Use existing ReplyFlow API for all platforms
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token
-
-      if (!token) {
-        throw new Error('Not authenticated')
-      }
-
-      const response = await fetch(`/api/jobs/${jobId}/send-confirmation`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+      // Desktop fallback: if Business Number is default but platform is not native mobile, use ReplyFlow
+      const effectiveSource = (sendingSource === 'business' && isNativeMobilePlatform) ? 'business' : 'replyflow'
+      
+      if (effectiveSource === 'business') {
+        // Business Phone flow: get job details and open Business Phone modal
+        const job = leadJobs.find(j => j.id === jobId)
+        if (!job) {
+          throw new Error('Job not found')
         }
-      })
+        
+        const customerName = getCustomerName(lead, leadData)
+        const dialNumber = leadData?.caller_phone || lead?.caller_phone || ''
+        
+        // Format appointment date/time for message
+        const appointmentDate = job.scheduled_date || ''
+        const appointmentTime = job.scheduled_time || ''
+        const dateTimeString = appointmentDate && appointmentTime 
+          ? `${appointmentDate} at ${appointmentTime}` 
+          : appointmentDate || appointmentTime || 'your scheduled time'
+        
+        const message = `Hi ${customerName}, this is a reminder about your appointment on ${dateTimeString}. Please confirm or let us know if you need to reschedule.`
+        
+        setBusinessPhoneModalConfig({
+          title: 'Send Appointment Confirmation',
+          description: 'Send this appointment confirmation from your business phone.',
+          message: message,
+          recipient: dialNumber,
+          recipientName: customerName,
+          actionType: 'appointment',
+          relatedId: jobId
+        })
+        setShowBusinessPhoneModal(true)
+        setShowAppointmentSelection(false)
+      } else {
+        // ReplyFlow Number flow: use existing API
+        const { data: { session } } = await supabase.auth.getSession()
+        const token = session?.access_token
 
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to send confirmation')
+        if (!token) {
+          throw new Error('Not authenticated')
+        }
+
+        const response = await fetch(`/api/jobs/${jobId}/send-confirmation`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || 'Failed to send confirmation')
+        }
+
+        // Refresh lead data to update job confirmation status
+        await handleRefresh()
+        await fetchLeadJobs()
+        setSuccessMessage(successText)
+        setShowAppointmentSelection(false)
       }
-
-      // Refresh lead data to update job confirmation status
-      await handleRefresh()
-      await fetchLeadJobs()
-      setSuccessMessage(successText)
-      setShowAppointmentSelection(false)
     } catch (error: any) {
       setConfirmationError(error.message || 'Failed to send confirmation')
     } finally {
@@ -3445,6 +3483,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           <div className="grid grid-cols-[minmax(0,2.5fr)_340px] gap-10 items-start">
             {/* Desktop Conversation Section - Independent Scroll */}
             <section className="flex flex-col min-h-0 h-[calc(100vh-260px)]">
+              {/* Desktop Conversation Header */}
+              <div className="flex items-center justify-between px-5 py-3 mb-2">
+                <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground">Conversation</h2>
+                <SendingNumberControl compact />
+              </div>
+              
               {/* Desktop Message Thread - Scrollable */}
               <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-5 py-4 min-h-0 custom-scrollbar bg-gradient-to-b from-slate-50/50 via-slate-100/30 to-slate-50/50 dark:from-slate-950/80 dark:via-blue-950/20 dark:to-slate-950/80 border border-slate-200/70 dark:border-slate-800/70 rounded-2xl shadow-[0_4px_24px_rgb(0,0,0,0.10),0_2px_12px_rgb(0,0,0,0.06)] ring-1 ring-slate-900/8 dark:ring-slate-100/8" style={{ minHeight: '200px' }}>
                 {loading ? (
@@ -3485,6 +3529,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   setMessage={setMessage}
                   handleSendMessage={handleSendMessage}
                   sending={sending}
+                  sendingSource={sendingSource}
+                  isNativeMobilePlatform={isNativeMobilePlatform}
                   onClearImages={(clearFn: () => void) => {
                     clearComposerImagesRef.current = clearFn
                   }}
@@ -3679,7 +3725,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           <div className="space-y-2 pb-[calc(6rem+env(safe-area-inset-bottom))]">
           {/* Conversation Header - Establishes the messaging workspace */}
           <div className="px-3 pt-2 pb-1">
-            <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Conversation</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Conversation</h2>
+              <SendingNumberControl compact />
+            </div>
             <div className="flex items-center gap-1.5 mt-1 text-[11px] text-slate-400 dark:text-slate-500">
               {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && (
                 <span>AI answered</span>
@@ -4644,6 +4693,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     skip_sms: false,
                   }
 
+                  // Desktop fallback: if Business Number is default but platform is not native mobile, use ReplyFlow
+                  const effectiveSource = (sendingSource === 'business' && isNativeMobilePlatform) ? 'business' : 'replyflow'
+                  
+                  if (effectiveSource === 'business') {
+                    // Skip SMS and prepare for Business Phone modal
+                    payload.skip_sms = true
+                  }
+
                   console.log('[PAYMENT CREATE] Payload:', payload)
 
                   const response = await fetch('/api/payments/create', {
@@ -4665,8 +4722,31 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   setPaymentAmount('')
                   setPaymentDescription('')
 
-                  // For all platforms, show payment link modal with copy buttons
-                  if (data.payment_link) {
+                  // Handle based on effective sending source
+                  if (effectiveSource === 'business') {
+                    // Open Business Phone modal with payment request message
+                    const businessName = business?.name || 'our business'
+                    const amount = (parseFloat(paymentAmount) || 0).toFixed(2)
+                    const description = paymentDescription || 'Service payment'
+                    const message = `${businessName} has sent you a payment request of $${amount}${description ? ` for ${description}` : ''}.
+
+Pay securely here:
+${data.payment_link}
+
+If you have questions, reply to this message.`
+                    
+                    setBusinessPhoneModalConfig({
+                      title: 'Send Payment Request',
+                      description: 'Send this payment request from your business phone.',
+                      message: message,
+                      recipient: leadData?.caller_phone || lead?.caller_phone || '',
+                      recipientName: getCustomerName(lead, leadData),
+                      actionType: 'payment_request',
+                      relatedId: data.payment_request_id || data.id
+                    })
+                    setShowBusinessPhoneModal(true)
+                  } else if (data.payment_link) {
+                      // ReplyFlow Number flow: show payment link modal with copy buttons
                       const businessName = business?.name || 'our business'
                       const amount = (parseFloat(paymentAmount) || 0).toFixed(2)
                       const description = paymentDescription || 'Service payment'

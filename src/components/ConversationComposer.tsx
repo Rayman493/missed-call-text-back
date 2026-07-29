@@ -9,6 +9,8 @@ interface ConversationComposerProps {
   sending: boolean
   onClearImages?: (clearFn: () => void) => void
   onSendViaBusinessNumber?: () => void
+  sendingSource?: 'replyflow' | 'business'
+  isNativeMobilePlatform?: boolean
 }
 
 interface ImagePreview {
@@ -23,7 +25,9 @@ export default function ConversationComposer({
   handleSendMessage, 
   sending,
   onClearImages,
-  onSendViaBusinessNumber
+  onSendViaBusinessNumber,
+  sendingSource = 'replyflow',
+  isNativeMobilePlatform = false
 }: ConversationComposerProps) {
   const [images, setImages] = useState<ImagePreview[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -136,11 +140,19 @@ export default function ConversationComposer({
 
   const handleSend = () => {
     if (!hasContent || sending) return
-    if (images.length > 0) {
-      const mediaFiles = images.map(img => img.file)
-      handleSendMessage(mediaFiles)
+    
+    // Desktop fallback: if Business Number is default but platform is not native mobile, use ReplyFlow
+    const effectiveSource = (sendingSource === 'business' && isNativeMobilePlatform) ? 'business' : 'replyflow'
+    
+    if (effectiveSource === 'business' && onSendViaBusinessNumber) {
+      onSendViaBusinessNumber()
     } else {
-      handleSendMessage()
+      if (images.length > 0) {
+        const mediaFiles = images.map(img => img.file)
+        handleSendMessage(mediaFiles)
+      } else {
+        handleSendMessage()
+      }
     }
   }
 

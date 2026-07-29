@@ -124,6 +124,9 @@ export interface Business {
   paypal_payment_link?: string | null;
   preferred_payment_provider?: 'stripe' | 'venmo' | 'paypal' | string | null;
 
+  // Default sending source for outbound SMS actions
+  default_sending_source?: 'replyflow' | 'business' | string | null;
+
   created_at: string;
   updated_at?: string;
 }

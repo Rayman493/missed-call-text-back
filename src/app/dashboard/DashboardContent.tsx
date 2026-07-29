@@ -50,6 +50,7 @@ import OffboardingBanner from '@/components/OffboardingBanner'
 import ProvisioningSuccessBanner from '@/components/ProvisioningSuccessBanner'
 import SetupStatusCard from '@/components/SetupStatusCard'
 import PaymentIssueBanner from '@/components/PaymentIssueBanner'
+import SendingNumberCard from '@/components/SendingNumberCard'
 import Footer from '@/components/Footer'
 import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
@@ -1088,6 +1089,11 @@ export default function DashboardContent() {
                 {/* Telecom-active sections: only render once the user has started a trial/subscription. */}
                 {hasActiveSubscription(business) ? (
                   <>
+                    {/* Sending Number Card */}
+                    <SectionErrorBoundary sectionName="SendingNumberCard">
+                      <SendingNumberCard />
+                    </SectionErrorBoundary>
+
                     {/* ReplyFlow Performance Card */}
                     <SectionErrorBoundary sectionName="ReplyFlowPerformanceCard">
                       <ReplyFlowPerformanceCard />
