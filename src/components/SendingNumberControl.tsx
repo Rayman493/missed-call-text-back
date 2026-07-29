@@ -15,9 +15,10 @@ import { supportsBusinessNumber } from '@/lib/platform-capabilities'
 interface SendingNumberControlProps {
   compact?: boolean
   showLabel?: boolean
+  dropdown?: boolean // New prop for compact dropdown style
 }
 
-export default function SendingNumberControl({ compact = false, showLabel = true }: SendingNumberControlProps) {
+export default function SendingNumberControl({ compact = false, showLabel = true, dropdown = false }: SendingNumberControlProps) {
   const { sendingSource, isLoading, error, updateSendingSource } = useSendingSource()
   const [localError, setLocalError] = useState<string | null>(null)
   const [isOpen, setIsOpen] = useState(false)
@@ -31,6 +32,70 @@ export default function SendingNumberControl({ compact = false, showLabel = true
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : 'Failed to update sending number')
     }
+  }
+
+  if (dropdown) {
+    // Compact dropdown version for customer header
+    return (
+      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+        <DropdownMenuTrigger asChild>
+          <button
+            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-md text-xs font-medium text-slate-900 dark:text-foreground transition-colors disabled:opacity-50"
+            disabled={isLoading}
+          >
+            {sendingSource === 'replyflow' ? (
+              <>
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>ReplyFlow</span>
+              </>
+            ) : (
+              <>
+                <Smartphone className="w-3.5 h-3.5" />
+                <span>Business</span>
+              </>
+            )}
+            <ChevronDown className="w-3 h-3" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuPortal>
+          <DropdownMenuContent
+            align="end"
+            sideOffset={4}
+            className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md shadow-lg min-w-[140px] p-1"
+          >
+            <DropdownMenuItem
+              onClick={() => handleSourceChange('replyflow')}
+              className={`flex items-center gap-2 px-3 py-2 rounded-sm text-xs cursor-pointer ${
+                sendingSource === 'replyflow'
+                  ? 'bg-slate-100 dark:bg-slate-900'
+                  : 'hover:bg-slate-50 dark:hover:bg-slate-700'
+              }`}
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span>ReplyFlow</span>
+              {sendingSource === 'replyflow' && (
+                <span className="ml-auto text-xs text-slate-500 dark:text-slate-400">✓</span>
+              )}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => handleSourceChange('business')}
+              disabled={!isNativeMobile}
+              className={`flex items-center gap-2 px-3 py-2 rounded-sm text-xs cursor-pointer ${
+                sendingSource === 'business'
+                  ? 'bg-slate-100 dark:bg-slate-900'
+                  : 'hover:bg-slate-50 dark:hover:bg-slate-700'
+              } ${!isNativeMobile ? 'opacity-50' : ''}`}
+            >
+              <Smartphone className="w-3.5 h-3.5" />
+              <span>Business</span>
+              {sendingSource === 'business' && (
+                <span className="ml-auto text-xs text-slate-500 dark:text-slate-400">✓</span>
+              )}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenuPortal>
+      </DropdownMenu>
+    )
   }
 
   if (compact) {
