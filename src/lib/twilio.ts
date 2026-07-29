@@ -861,11 +861,28 @@ export async function sendMms(
     provisioning_status: business.provisioning_status
   });
 
-  message = appendBusinessAvailabilityNote(message, business);
+  console.log('[MMS DEBUG] Initial message:', message);
+  console.log('[MMS DEBUG] options.isManual:', options?.isManual);
+  console.log('[MMS DEBUG] options.isManual type:', typeof options?.isManual);
+  console.log('[MMS DEBUG] options.isManual === true:', options?.isManual === true);
+  console.log('[MMS DEBUG] options object:', options);
+  console.log('[MMS DEBUG] Before availability note - message length:', message.length);
+  console.log('[MMS DEBUG] Before availability note - message:', message);
 
-  console.log('[MMS TWILIO] After business availability note:', {
-    message_length: message.length
-  });
+  // Skip business availability note for manual messages
+  const shouldSkipAvailabilityNote = options?.isManual === true;
+  console.log('[MMS DEBUG] shouldSkipAvailabilityNote:', shouldSkipAvailabilityNote);
+  
+  if (shouldSkipAvailabilityNote) {
+    console.log('[MMS DEBUG] SKIPPING availability note because isManual=true');
+  } else {
+    console.log('[MMS DEBUG] APPENDING availability note because isManual is not true');
+    message = appendBusinessAvailabilityNote(message, business);
+  }
+
+  console.log('[MMS DEBUG] After availability note - message length:', message.length);
+  console.log('[MMS DEBUG] After availability note - message:', message);
+  console.log('[MMS DEBUG] Final body before Twilio API:', message);
 
   // Validate Twilio environment for SMS operations
   const smsValidation = validateTwilioForSms();
@@ -981,6 +998,9 @@ export async function sendMms(
       mediaUrl: mediaUrls,
       statusCallback: statusCallbackUrl
     })
+    
+    console.log('[MMS DEBUG] FINAL TWILIO BODY:', message);
+    console.log('[MMS DEBUG] FINAL TWILIO BODY contains availability note:', message.includes('Out of Office') || message.includes('business hours'));
 
     // CRITICAL FIX: Twilio expects 'mediaUrl' for single URL or 'mediaUrls' for array
     // Since we're passing an array, use 'mediaUrls' (plural)
