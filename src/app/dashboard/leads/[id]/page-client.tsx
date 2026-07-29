@@ -44,6 +44,9 @@ import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
 import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smartphone } from 'lucide-react'
 import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
 import SuccessBanner from '@/components/SuccessBanner'
+import ExternalActionConfirmationModal from '@/components/ExternalActionConfirmationModal'
+import { useExternalActionConfirmation } from '@/hooks/useExternalActionConfirmation'
+import { createPendingAction } from '@/lib/pending-actions'
 
 // Check if running in native mobile app
 const isNativeMobile = () => {
@@ -344,6 +347,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
+  const [externalActionSuccess, setExternalActionSuccess] = useState<{ primary: string; secondary: string } | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [showMoreActions, setShowMoreActions] = useState(false)
   const [showMobileOverflow, setShowMobileOverflow] = useState(false)
@@ -418,6 +422,55 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [isJobComposerOpen, setIsJobComposerOpen] = useState(false)
   const [jobPrefill, setJobPrefill] = useState<JobPrefill | undefined>(undefined)
 
+  // External action confirmation hook for Business Phone flow
+  const {
+    pendingAction,
+    isSubmitting: isSubmittingExternalAction,
+    error: externalActionError,
+    handleConfirm: handleExternalActionConfirm,
+    handleCancel: handleExternalActionCancel,
+    registerPendingAction,
+    showConfirmation: showExternalActionConfirmation
+  } = useExternalActionConfirmation({
+    onConfirm: async (action) => {
+      const response = await fetch('/api/external-actions/record', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(action)
+      })
+      if (!response.ok) {
+        throw new Error('Failed to record action')
+      }
+      // Refresh lead data to update timeline
+      const updatedData = await getLeadDetails(params.id)
+      if (updatedData) {
+        setLeadData(updatedData)
+      }
+      // Show success message
+      if (action.actionType === 'business_phone_text') {
+        setExternalActionSuccess({
+          primary: 'Text recorded',
+          secondary: 'The business-phone message was added to the customer timeline.'
+        })
+      } else if (action.actionType === 'business_phone_payment_request') {
+        setExternalActionSuccess({
+          primary: 'Payment request recorded',
+          secondary: 'The business-phone send was added to the customer timeline.'
+        })
+      } else if (action.actionType === 'business_phone_call') {
+        setExternalActionSuccess({
+          primary: 'Call recorded',
+          secondary: 'The business-phone call was added to the customer timeline.'
+        })
+      }
+    },
+    onCancel: () => {
+      console.log('[ExternalAction] User cancelled confirmation')
+    },
+    currentLeadId: params.id,
+    communicationSource: (business?.default_mobile_communication_source as 'business' | 'replyflow' | undefined) || undefined
+  })
+
   // (Diagnostics removed) 
 
   // Realtime subscription management
@@ -450,13 +503,25 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const dialNumber = customerPhoneRaw.replace(/[^+\d]/g, '')
   const digitCount = dialNumber.replace(/\D/g, '').length
   const canDialPhone = Boolean(dialNumber && (dialNumber.replace(/\D/g, '').length >= 10))
-  const handleNativeCall = () => {
+  const handleNativeCall = async () => {
     if (communicationSource === 'business') {
       // Use native phone app for My Business Number
       if (!isNativeMobile()) {
         // Desktop: ignore Business Phone preference, always use ReplyFlow
         return
       }
+      // Register pending action before opening native app
+      const customerName = getCustomerName(lead, leadData)
+      const pendingAction = createPendingAction(
+        'business_phone_call',
+        lead?.id || leadData?.id || '',
+        customerName,
+        dialNumber,
+        business?.id || '',
+        undefined,
+        undefined
+      )
+      await registerPendingAction(pendingAction)
     }
     // For ReplyFlow Number, use existing call workflow
     try {
@@ -483,7 +548,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
-  const handleOpenMessagingApp = () => {
+  const handleOpenMessagingApp = async () => {
     if (!isNativeMobile()) {
       // Show message about mobile app availability on web/desktop
       alert('Open this customer in the ReplyFlow mobile app to text from a number configured on your phone.')
@@ -491,6 +556,21 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
     try {
       if (canDialPhone) {
+        const customerName = getCustomerName(lead, leadData)
+        const dialNumber = leadData?.caller_phone || lead?.caller_phone || ''
+        
+        // Register pending action before opening native app
+        const pendingAction = createPendingAction(
+          'business_phone_text',
+          lead?.id || leadData?.id || '',
+          customerName,
+          dialNumber,
+          business?.id || '',
+          undefined,
+          '' // No message body for plain text
+        )
+        await registerPendingAction(pendingAction)
+        
         window.location.href = `sms:${dialNumber}`
       }
     } catch {}
@@ -3482,6 +3562,24 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 onComplete={() => setSuccessMessage('')}
               />
             )}
+
+            {externalActionSuccess && (
+              <SuccessBanner
+                primary={externalActionSuccess.primary}
+                secondary={externalActionSuccess.secondary}
+                onComplete={() => setExternalActionSuccess(null)}
+              />
+            )}
+
+            {showExternalActionConfirmation && pendingAction && (
+              <ExternalActionConfirmationModal
+                pendingAction={pendingAction}
+                onConfirm={handleExternalActionConfirm}
+                onCancel={handleExternalActionCancel}
+                isSubmitting={isSubmittingExternalAction}
+                error={externalActionError}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -4713,6 +4811,21 @@ Pay securely here:
 ${data.paymentLink}
 
 If you have questions, reply to this message.`
+                      
+                      // Register pending action before opening native app
+                      const customerName = getCustomerName(lead, leadData)
+                      const dialNumber = leadData?.caller_phone || lead?.caller_phone || ''
+                      const pendingAction = createPendingAction(
+                        'business_phone_payment_request',
+                        lead?.id || leadData?.id || '',
+                        customerName,
+                        dialNumber,
+                        business?.id || '',
+                        data.paymentRequestId || data.id,
+                        message
+                      )
+                      await registerPendingAction(pendingAction)
+                      
                       window.location.href = `sms:${dialNumber}?body=${encodeURIComponent(message)}`
                       setSuccessMessage('Payment request ready\nOpen Messages to send it from your business phone.')
                     } else {
