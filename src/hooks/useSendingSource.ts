@@ -1,6 +1,67 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { supportsBusinessNumber } from '@/lib/platform-capabilities'
+
+// Check if we're in a browser environment
+const isClient = typeof window !== 'undefined' && typeof document !== 'undefined'
+
+// Toast styles injection
+let toastStylesInjected = false
+
+function injectToastStyles() {
+  if (!isClient) return
+
+  if (document.getElementById('error-toast-styles')) return
+
+  const style = document.createElement('style')
+  style.id = 'error-toast-styles'
+  style.textContent = `
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fade-out {
+      from { opacity: 1; transform: translateY(0); }
+      to { opacity: 0; transform: translateY(10px); }
+    }
+    .animate-fade-in {
+      animation: fade-in 0.3s ease-out;
+    }
+    .animate-fade-out {
+      animation: fade-out 0.3s ease-out;
+    }
+  `
+  document.head.appendChild(style)
+}
+
+function showErrorToast(message: string) {
+  if (!isClient) return
+
+  if (!toastStylesInjected) {
+    injectToastStyles()
+    toastStylesInjected = true
+  }
+
+  const toast = document.createElement('div')
+  toast.className = 'fixed bottom-4 right-4 bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center gap-2 animate-fade-in'
+  toast.innerHTML = `
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+    </svg>
+    <span class="text-sm font-medium">${message}</span>
+  `
+
+  document.body.appendChild(toast)
+
+  setTimeout(() => {
+    toast.classList.add('animate-fade-out')
+    setTimeout(() => {
+      if (document.body.contains(toast)) {
+        document.body.removeChild(toast)
+      }
+    }, 300)
+  }, 3000)
+}
 
 export type SendingSource = 'replyflow' | 'business'
 
@@ -19,11 +80,12 @@ const isNativeMobile = () => {
 }
 
 export function useSendingSource(): UseSendingSourceReturn {
-  const { business, refreshBusiness } = useBusiness()
+  const { business, refreshBusiness, updateBusinessField } = useBusiness()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isMobile] = useState(isNativeMobile())
   const [optimisticSource, setOptimisticSource] = useState<SendingSource | null>(null)
+  const inFlightRef = useRef<SendingSource | null>(null)
 
   // Get the current sending source, defaulting to 'replyflow'
   // Use optimistic value if available, otherwise use business value
@@ -34,21 +96,19 @@ export function useSendingSource(): UseSendingSourceReturn {
   const effectiveSource: SendingSource = (sendingSource === 'business' && isMobile) ? 'business' : 'replyflow'
 
   const updateSendingSource = useCallback(async (source: SendingSource) => {
+    // In-flight guard: prevent duplicate requests for the same source
+    if (inFlightRef.current === source) {
+      return
+    }
+
     setIsLoading(true)
     setError(null)
-
-    console.log('[useSendingSource] Starting update:', {
-      requestedSource: source,
-      currentBusinessId: business?.id,
-      currentSavedSource: business?.default_sending_source,
-      currentOptimisticSource: optimisticSource
-    })
+    inFlightRef.current = source
 
     // Optimistic update
     setOptimisticSource(source)
 
     try {
-      console.log('[useSendingSource] Sending API request to /api/settings/sending-source')
       const response = await fetch('/api/settings/sending-source', {
         method: 'POST',
         headers: {
@@ -57,36 +117,47 @@ export function useSendingSource(): UseSendingSourceReturn {
         body: JSON.stringify({ sendingSource: source })
       })
 
-      console.log('[useSendingSource] API response status:', response.status)
-
       if (!response.ok) {
         const errorData = await response.json()
-        console.error('[useSendingSource] API error response:', errorData)
         throw new Error(errorData.error || 'Failed to update sending source')
       }
 
       const responseData = await response.json()
-      console.log('[useSendingSource] API success response:', responseData)
 
-      // Refresh business data to get the updated value
-      console.log('[useSendingSource] Calling refreshBusiness()')
-      await refreshBusiness()
-      console.log('[useSendingSource] refreshBusiness() completed')
-      
-      // Clear optimistic state after successful refresh
+      // Verify API response matches requested source
+      if (responseData.sendingSource !== source) {
+        console.error('[useSendingSource] API response mismatch:', {
+          requested: source,
+          received: responseData.sendingSource
+        })
+        throw new Error('API response does not match requested source')
+      }
+
+      // Update BusinessContext directly from verified API response
+      updateBusinessField('default_sending_source', responseData.sendingSource)
+
+      // Clear optimistic state after context update
       setOptimisticSource(null)
-      console.log('[useSendingSource] Cleared optimistic state')
+
+      // Optionally refresh business in background for broader reconciliation
+      refreshBusiness().catch(err => {
+        console.error('[useSendingSource] Background refresh failed:', err)
+      })
     } catch (err) {
       console.error('[useSendingSource] Error updating:', err)
       setError(err instanceof Error ? err.message : 'Failed to update sending source')
-      
+
+      // Show user-facing error toast
+      showErrorToast("Couldn't update Sending Number. Please try again.")
+
       // Rollback on failure by clearing optimistic state and refreshing
       setOptimisticSource(null)
       await refreshBusiness()
     } finally {
       setIsLoading(false)
+      inFlightRef.current = null
     }
-  }, [refreshBusiness, business, optimisticSource])
+  }, [refreshBusiness, updateBusinessField])
 
   return {
     sendingSource,

@@ -17,6 +17,7 @@ interface BusinessContextType {
   businessVerified: boolean // True if business was previously verified (cached)
   refreshBusiness: (force?: boolean) => Promise<void>
   setBusiness: (business: Business | null) => void
+  updateBusinessField: (field: string, value: any) => void
 }
 
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined)
@@ -310,6 +311,11 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       businessVerified,
       refreshBusiness: (force?: boolean) => fetchBusiness(force),
       setBusiness,
+      updateBusinessField: (field: string, value: any) => {
+        if (business) {
+          setBusiness({ ...business, [field]: value })
+        }
+      }
     }
   }, [business, loading, error, fetchComplete, businessMissingConfirmed, businessVerified, fetchBusiness])
 

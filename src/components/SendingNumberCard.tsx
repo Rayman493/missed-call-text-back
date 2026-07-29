@@ -11,20 +11,10 @@ export default function SendingNumberCard() {
   const isNativeMobile = supportsBusinessNumber()
 
   const handleSourceChange = async (source: SendingSource) => {
-    const requestId = `sending-source-${Date.now()}-${source}`
-    console.log('[SendingNumberCard] Starting update:', {
-      requestId,
-      component: 'SendingNumberCard',
-      clickedOption: source,
-      currentSendingSource: sendingSource,
-      timestamp: new Date().toISOString()
-    })
     setLocalError(null)
     try {
       await updateSendingSource(source)
-      console.log('[SendingNumberCard] Update completed:', { requestId, source })
     } catch (err) {
-      console.error('[SendingNumberCard] Update failed:', { requestId, error: err })
       setLocalError(err instanceof Error ? err.message : 'Failed to update sending number')
     }
   }

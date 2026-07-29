@@ -25,23 +25,11 @@ export default function SendingNumberControl({ compact = false, showLabel = true
   const isNativeMobile = supportsBusinessNumber()
 
   const handleSourceChange = async (source: SendingSource) => {
-    const requestId = `sending-source-${Date.now()}-${source}`
-    console.log('[SendingNumberControl] Starting update:', {
-      requestId,
-      component: 'SendingNumberControl',
-      dropdownMode: dropdown,
-      compactMode: compact,
-      clickedOption: source,
-      currentSendingSource: sendingSource,
-      timestamp: new Date().toISOString()
-    })
     setLocalError(null)
     setIsOpen(false)
     try {
       await updateSendingSource(source)
-      console.log('[SendingNumberControl] Update completed:', { requestId, source })
     } catch (err) {
-      console.error('[SendingNumberControl] Update failed:', { requestId, error: err })
       setLocalError(err instanceof Error ? err.message : 'Failed to update sending number')
     }
   }
