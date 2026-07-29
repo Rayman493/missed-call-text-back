@@ -537,30 +537,21 @@ export async function POST(request: Request) {
       }
 
       case 'customer.subscription.created': {
-        console.log('[DEBUG] ========== SUBSCRIPTION.CREATED START ==========')
-        console.log('[DEBUG] Event type:', event.type)
-        
         const eventSubscription = event.data.object as Stripe.Subscription
         const subscriptionId = eventSubscription.id
         const customerId = normalizeStripeCustomerId(eventSubscription.customer)
 
         if (!customerId) {
-          console.error('[DEBUG] Invalid customer ID in subscription:', eventSubscription.customer)
+          console.error('[STRIPE WEBHOOK] Invalid customer ID in subscription:', eventSubscription.customer)
           return NextResponse.json({ received: true, warning: 'Invalid customer ID' })
         }
-
-        console.log('[DEBUG] Customer ID:', customerId)
-        console.log('[DEBUG] Subscription ID:', subscriptionId)
 
         // CRITICAL: Retrieve full subscription from Stripe - event data is not fully expanded
         let subscription: Stripe.Subscription | null = null
         try {
           subscription = await stripe.subscriptions.retrieve(subscriptionId)
-          console.log('[DEBUG] Retrieved full subscription from Stripe:', subscription.id)
-          console.log('[DEBUG] subscription.current_period_end:', (subscription as any).current_period_end)
-          console.log('[DEBUG] subscription.trial_end:', (subscription as any).trial_end)
         } catch (retrieveError) {
-          console.error('[DEBUG] Failed to retrieve subscription from Stripe:', retrieveError)
+          console.error('[STRIPE WEBHOOK] Failed to retrieve subscription from Stripe:', retrieveError)
           // Continue with event data as fallback
           subscription = eventSubscription
         }
@@ -569,10 +560,6 @@ export async function POST(request: Request) {
         const priceId = subscription.items.data[0]?.price.id
         const periodEnd = (subscription as any).current_period_end
         const trialEnd = (subscription as any).trial_end
-
-        console.log('[DEBUG] Status:', status)
-        console.log('[DEBUG] Period end:', periodEnd, 'type:', typeof periodEnd)
-        console.log('[DEBUG] Trial end:', trialEnd, 'type:', typeof trialEnd)
 
         // Map subscription timing fields with proper fallback logic
         const trialEndsAt = (subscription as any).trial_end
@@ -588,7 +575,6 @@ export async function POST(request: Request) {
           : null
 
         // Find business by stripe_customer_id
-        console.log('[DEBUG] Looking up business by stripe_customer_id:', customerId)
         const { data: business, error: lookupError } = await supabase
           .from('businesses')
           .select('id, checkout_completed_at, subscription_status')
@@ -596,14 +582,10 @@ export async function POST(request: Request) {
           .limit(1)
           .single()
 
-        console.log('[DEBUG] Business lookup result:', business ? 'FOUND' : 'NOT FOUND')
-        console.log('[DEBUG] Business lookup error:', lookupError)
         if (!business) {
           logOrphanedSubscriptionWarning(subscriptionId, customerId, subscription?.metadata ?? null)
           return NextResponse.json({ received: true, warning: 'No matching business found' }, { status: 200 })
         }
-
-        console.log('[DEBUG] Business ID:', business.id)
 
         // CRITICAL: Only activate if checkout was completed
         // customer.subscription.created fires BEFORE checkout.session.completed
@@ -676,12 +658,9 @@ export async function POST(request: Request) {
             .update(updatePayload)
             .eq('id', business.id)
 
-          console.log('[DEBUG] Supabase update result:', updateError ? 'ERROR' : 'SUCCESS')
           if (updateError) {
-            console.error('[DEBUG] Supabase error:', updateError)
+            console.error('[STRIPE WEBHOOK] Supabase error:', updateError)
           } else {
-            console.log('[DEBUG] Update affected 1 row - business:', business.id)
-          
           // Cancel any scheduled Twilio release since subscription is being created
           await cancelTwilioRelease(business.id)
 
@@ -824,7 +803,6 @@ export async function POST(request: Request) {
             }
           }
         
-        console.log('[DEBUG] ========== SUBSCRIPTION.CREATED END ==========')
         break
       }
 
