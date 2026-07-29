@@ -1091,6 +1091,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [businessPhoneModalConfig, setBusinessPhoneModalConfig] = useState<{
     title: string
     description: string
+    secondaryDescription?: string
     message: string
     recipient: string
     recipientName?: string
@@ -4742,10 +4743,11 @@ Pay securely here:
 ${data.payment_link}
 
 If you have questions, reply to this message.`
-                    
+
                     setBusinessPhoneModalConfig({
                       title: 'Send Payment Request',
                       description: 'Send this payment request from your business phone.',
+                      secondaryDescription: 'ReplyFlow will open your messaging app with the message prepared for review.',
                       message: message,
                       recipient: leadData?.caller_phone || lead?.caller_phone || '',
                       recipientName: getCustomerName(lead, leadData),
@@ -4753,19 +4755,26 @@ If you have questions, reply to this message.`
                       relatedId: data.payment_request_id || data.id
                     })
                     setShowBusinessPhoneModal(true)
+                  } else if (effectiveSource === 'replyflow' && isNativeMobilePlatform) {
+                    // ReplyFlow Number flow on native mobile: ReplyFlow sends the SMS automatically
+                    const customerName = getCustomerName(lead, leadData)
+                    const secondaryText = customerName
+                      ? `${customerName} has been texted a secure payment link.`
+                      : 'The customer has been texted a secure payment link.'
+                    setSuccessMessage(`Payment request sent\n${secondaryText}`)
                   } else if (data.payment_link) {
-                      // ReplyFlow Number flow: show payment link modal with copy buttons
-                      const businessName = business?.name || 'our business'
-                      const amount = (parseFloat(paymentAmount) || 0).toFixed(2)
-                      const description = paymentDescription || 'Service payment'
-                      const message = `${businessName} has sent you a payment request of $${amount}${description ? ` for ${description}` : ''}.
+                    // Desktop or unsupported platform: show payment link modal with copy buttons
+                    const businessName = business?.name || 'our business'
+                    const amount = (parseFloat(paymentAmount) || 0).toFixed(2)
+                    const description = paymentDescription || 'Service payment'
+                    const message = `${businessName} has sent you a payment request of $${amount}${description ? ` for ${description}` : ''}.
 
 Pay securely here:
 ${data.payment_link}
 
 If you have questions, reply to this message.`
-                      
-                      // Show payment link modal with copy buttons for all platforms
+
+                      // Show payment link modal with copy buttons for desktop
                       setPaymentLinkData({
                         paymentLink: data.payment_link,
                         amount: (parseFloat(paymentAmount) || 0).toFixed(2),
@@ -4779,7 +4788,7 @@ If you have questions, reply to this message.`
                   } else {
                     // ReplyFlow Number flow: ReplyFlow sends the SMS
                     const customerName = getCustomerName(lead, leadData)
-                    const secondaryText = customerName 
+                    const secondaryText = customerName
                       ? `${customerName} has been texted a secure payment link.`
                       : 'The customer has been texted a secure payment link.'
                     setSuccessMessage(`Payment request sent\n${secondaryText}`)
@@ -5032,7 +5041,7 @@ If you have questions, reply to this message.`
                     </div>
                   )}
                 </button>
-                {supportsBusiness && (
+                {effectiveSource === 'business' && (
                   <button
                     onClick={() => {
                       const customerName = getCustomerName(lead, leadData)
@@ -5092,7 +5101,7 @@ If you have questions, reply to this message.`
             {appointmentSuccessData.customerName} is scheduled for {appointmentSuccessData.date} at {appointmentSuccessData.time}.
           </p>
           <div className="space-y-3">
-            {supportsBusiness && (
+            {effectiveSource === 'business' && (
               <button
                 onClick={() => {
                   const customerName = appointmentSuccessData.customerName

@@ -8,6 +8,7 @@ interface BusinessPhoneModalProps {
   onClose: () => void
   title: string
   description: string
+  secondaryDescription?: string
   message: string
   recipient: string
   recipientName?: string
@@ -21,6 +22,7 @@ export default function BusinessPhoneModal({
   onClose,
   title,
   description,
+  secondaryDescription,
   message,
   recipient,
   recipientName,
@@ -82,10 +84,18 @@ export default function BusinessPhoneModal({
         <p className="text-base text-slate-600 dark:text-slate-400 mb-2 leading-relaxed">
           {description}
         </p>
-        
-        <p className="text-sm text-slate-500 dark:text-slate-500 mb-6">
-          This will open your messaging app with the message prepared.
-        </p>
+
+        {secondaryDescription && (
+          <p className="text-sm text-slate-500 dark:text-slate-500 mb-6">
+            {secondaryDescription}
+          </p>
+        )}
+
+        {!secondaryDescription && (
+          <p className="text-sm text-slate-500 dark:text-slate-500 mb-6">
+            This will open your messaging app with the message prepared.
+          </p>
+        )}
         
         <div className="space-y-3">
           <button
