@@ -1,5 +1,12 @@
 import React, { useState, useRef } from 'react'
-import { Plus, X } from 'lucide-react'
+import { Plus, X, Smartphone, MessageSquare, ChevronDown } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuPortal,
+} from '@radix-ui/react-dropdown-menu'
 
 interface MobileConversationComposerProps {
   message: string
@@ -7,6 +14,10 @@ interface MobileConversationComposerProps {
   handleSendMessage: (media?: File[]) => void
   sending: boolean
   onClearImages?: (clearFn: () => void) => void
+  onSendViaBusinessNumber?: () => void
+  sendingSource?: 'replyflow' | 'business'
+  isNativeMobilePlatform?: boolean
+  onSendViaReplyFlow?: () => void
 }
 
 interface ImagePreview {
@@ -20,7 +31,11 @@ export default function MobileConversationComposer({
   setMessage, 
   handleSendMessage, 
   sending,
-  onClearImages
+  onClearImages,
+  onSendViaBusinessNumber,
+  sendingSource = 'replyflow',
+  isNativeMobilePlatform = false,
+  onSendViaReplyFlow
 }: MobileConversationComposerProps) {
   const [isTyping, setIsTyping] = useState(false)
   const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null)
@@ -307,6 +322,52 @@ export default function MobileConversationComposer({
                 </svg>
               )}
             </button>
+            
+            {/* One-off Override Menu */}
+            {(message.trim() || images.length > 0) && !sending && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex-shrink-0 w-10 h-10 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center disabled:cursor-not-allowed bg-white/10 hover:bg-white/15 text-slate-400 hover:text-slate-300 ring-1 ring-white/10"
+                    aria-label="Send via alternate method"
+                    disabled={sending || !(message.trim() || images.length > 0)}
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuPortal>
+                  <DropdownMenuContent
+                    align="end"
+                    sideOffset={4}
+                    className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md shadow-lg min-w-[200px] p-1 z-50"
+                  >
+                    {sendingSource === 'replyflow' && onSendViaBusinessNumber && (
+                      <DropdownMenuItem
+                        onClick={onSendViaBusinessNumber}
+                        disabled={!isNativeMobilePlatform}
+                        className="flex items-center gap-2 px-3 py-2 rounded-sm text-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Smartphone className="w-4 h-4" />
+                        <span>Send via Business Number</span>
+                        {!isNativeMobilePlatform && (
+                          <span className="ml-auto text-xs text-muted-foreground">Mobile only</span>
+                        )}
+                      </DropdownMenuItem>
+                    )}
+                    {sendingSource === 'business' && onSendViaReplyFlow && (
+                      <DropdownMenuItem
+                        onClick={onSendViaReplyFlow}
+                        className="flex items-center gap-2 px-3 py-2 rounded-sm text-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700"
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                        <span>Send via ReplyFlow Number</span>
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenuPortal>
+              </DropdownMenu>
+            )}
           </div>
           
           {/* Typing Indicator */}

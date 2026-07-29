@@ -3547,6 +3547,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     })
                     setShowBusinessPhoneModal(true)
                   }}
+                  onSendViaReplyFlow={() => {
+                    // Force send via ReplyFlow regardless of default
+                    // Note: Images are handled by the ConversationComposer component
+                    handleSendMessage()
+                  }}
                 />
               </div>
             </section>

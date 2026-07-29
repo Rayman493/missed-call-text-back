@@ -1,6 +1,13 @@
 import React, { useState, useRef } from 'react'
-import { Plus, X, Smartphone } from 'lucide-react'
+import { Plus, X, Smartphone, MessageSquare, ChevronDown } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuPortal,
+} from '@radix-ui/react-dropdown-menu'
 
 interface ConversationComposerProps {
   message: string
@@ -11,6 +18,7 @@ interface ConversationComposerProps {
   onSendViaBusinessNumber?: () => void
   sendingSource?: 'replyflow' | 'business'
   isNativeMobilePlatform?: boolean
+  onSendViaReplyFlow?: () => void
 }
 
 interface ImagePreview {
@@ -27,7 +35,8 @@ export default function ConversationComposer({
   onClearImages,
   onSendViaBusinessNumber,
   sendingSource = 'replyflow',
-  isNativeMobilePlatform = false
+  isNativeMobilePlatform = false,
+  onSendViaReplyFlow
 }: ConversationComposerProps) {
   const [images, setImages] = useState<ImagePreview[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -289,16 +298,51 @@ export default function ConversationComposer({
               </>
             )}
             </button>
-            {isNativeMobile && onSendViaBusinessNumber && hasContent && !sending && (
-              <button
-                type="button"
-                onClick={onSendViaBusinessNumber}
-                className="px-3 py-3 rounded-xl font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all duration-200 shadow-sm hover:shadow flex items-center gap-2 flex-shrink-0 h-12 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background"
-                aria-label="Send via Business Number"
-              >
-                <Smartphone className="w-4 h-4" />
-                <span className="text-sm hidden sm:inline">Business</span>
-              </button>
+            
+            {/* One-off Override Menu */}
+            {hasContent && !sending && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="px-3 py-3 rounded-xl font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200 shadow-sm hover:shadow flex items-center gap-2 flex-shrink-0 h-12 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background"
+                    aria-label="Send via alternate method"
+                    disabled={sending || !hasContent}
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuPortal>
+                  <DropdownMenuContent
+                    align="end"
+                    sideOffset={4}
+                    className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md shadow-lg min-w-[200px] p-1 z-50"
+                  >
+                    {sendingSource === 'replyflow' && onSendViaBusinessNumber && (
+                      <DropdownMenuItem
+                        onClick={onSendViaBusinessNumber}
+                        disabled={!isNativeMobile}
+                        className="flex items-center gap-2 px-3 py-2 rounded-sm text-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Smartphone className="w-4 h-4" />
+                        <span>Send via Business Number</span>
+                        {!isNativeMobile && (
+                          <span className="ml-auto text-xs text-muted-foreground">Mobile only</span>
+                        )}
+                      </DropdownMenuItem>
+                    )}
+                    {sendingSource === 'business' && onSendViaReplyFlow && (
+                      <DropdownMenuItem
+                        onClick={onSendViaReplyFlow}
+                        className="flex items-center gap-2 px-3 py-2 rounded-sm text-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700"
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                        <span>Send via ReplyFlow Number</span>
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenuPortal>
+              </DropdownMenu>
             )}
           </div>
         </div>
