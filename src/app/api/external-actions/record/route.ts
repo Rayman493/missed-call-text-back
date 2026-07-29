@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
     if (actionType === 'business_phone_text') {
       displayText = 'Text sent from Business Phone'
     } else if (actionType === 'business_phone_payment_request') {
-      displayText = 'Payment request sent from Business Phone'
+      displayText = 'Payment request opened in Messages'
     } else if (actionType === 'business_phone_call') {
       displayText = 'Called customer from Business Phone'
     }

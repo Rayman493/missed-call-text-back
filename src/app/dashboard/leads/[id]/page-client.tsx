@@ -44,9 +44,8 @@ import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
 import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smartphone } from 'lucide-react'
 import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
 import SuccessBanner from '@/components/SuccessBanner'
-import ExternalActionConfirmationModal from '@/components/ExternalActionConfirmationModal'
 import { useExternalActionConfirmation } from '@/hooks/useExternalActionConfirmation'
-import { createPendingAction, clearHandoffMarker } from '@/lib/pending-actions'
+import { createPendingAction } from '@/lib/pending-actions'
 import { Capacitor } from '@capacitor/core'
 
 // Check if running in native mobile app
@@ -421,16 +420,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   // External action confirmation hook for Business Phone flow
   const {
-    pendingAction,
-    isSubmitting: isSubmittingExternalAction,
-    error: externalActionError,
-    handleConfirm: handleExternalActionConfirm,
-    handleCancel: handleExternalActionCancel,
-    handleDismiss: handleExternalActionDismiss,
-    registerPendingAction,
-    markHandoffInitiated,
-    showConfirmation: showExternalActionConfirmation,
-    diagnostics
+    recordPaymentRequestPrepared
   } = useExternalActionConfirmation({
     onConfirm: async (action) => {
       const response = await fetch('/api/external-actions/record', {
@@ -471,9 +461,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           secondary: 'The business-phone call was added to the customer timeline.'
         })
       }
-    },
-    onCancel: () => {
-      console.log('[ExternalAction] User cancelled confirmation')
     },
     currentLeadId: params.id,
     communicationSource: (business?.default_mobile_communication_source as 'business' | 'replyflow' | undefined) || undefined
@@ -529,7 +516,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         undefined,
         undefined
       )
-      await registerPendingAction(pendingAction)
+      // No longer need to register pending action - timeline event is created immediately
     }
     // For ReplyFlow Number, use existing call workflow
     try {
@@ -577,7 +564,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           undefined,
           '' // No message body for plain text
         )
-        await registerPendingAction(pendingAction)
+        // No longer need to register pending action - timeline event is created immediately
         
         window.location.href = `sms:${dialNumber}`
       }
@@ -3578,70 +3565,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 onComplete={() => setExternalActionSuccess(null)}
               />
             )}
-
-            {showExternalActionConfirmation && pendingAction && (
-              <ExternalActionConfirmationModal
-                pendingAction={pendingAction}
-                onConfirm={handleExternalActionConfirm}
-                onCancel={handleExternalActionCancel}
-                onDismiss={handleExternalActionDismiss}
-                isSubmitting={isSubmittingExternalAction}
-                error={externalActionError}
-              />
-            )}
-
-            {/* Development Diagnostic Panel - Only visible in development mode */}
-            {process.env.NODE_ENV === 'development' && isNativeMobile() && (
-              <div className="fixed bottom-4 left-4 right-4 z-[100] bg-slate-900/95 text-white text-xs p-3 rounded-lg shadow-2xl font-mono">
-                <div className="font-bold mb-2">External Action Diagnostics</div>
-                <div className="space-y-1">
-                  <div>Hook Mounted: {diagnostics.hookMounted ? '✓' : '✗'}</div>
-                  <div>Has Pending Action: {diagnostics.hasPendingAction ? '✓' : '✗'}</div>
-                  <div>Handoff Marker: {diagnostics.handoffMarker ? '✓' : '✗'}</div>
-                  <div>Lead Match: {diagnostics.leadMatch ? '✓' : '✗'}</div>
-                  <div>Latest Event: {diagnostics.latestEvent}</div>
-                  <div>Return Check Executed: {diagnostics.returnCheckExecuted ? '✓' : '✗'}</div>
-                  <div>Eligibility Result: {diagnostics.eligibilityResult}</div>
-                  <div>Skip Reason: {diagnostics.skipReason}</div>
-                  <div>Modal State Set: {diagnostics.modalStateSet ? '✓' : '✗'}</div>
-                </div>
-              </div>
-            )}
-
-            {/* Fallback Banner for Native Mobile - Shows when modal should appear but doesn't */}
-            {isNativeMobile() && diagnostics.hasPendingAction && diagnostics.handoffMarker && diagnostics.leadMatch && !showExternalActionConfirmation && diagnostics.eligibilityResult !== 'eligible' && (
-              <div className="fixed top-4 left-4 right-4 z-[100] bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4 shadow-lg">
-                <div className="flex items-center gap-3">
-                  <div className="flex-shrink-0">
-                    <MessageSquare className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-sm font-medium text-amber-900 dark:text-amber-100">
-                      Did you send the payment request?
-                    </div>
-                    <div className="text-xs text-amber-700 dark:text-amber-300 mt-1">
-                      Confirm to add it to this customer's ReplyFlow history.
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-2 mt-3">
-                  <button
-                    onClick={handleExternalActionConfirm}
-                    disabled={isSubmittingExternalAction}
-                    className="flex-1 px-3 py-2 text-sm font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    Yes, record it
-                  </button>
-                  <button
-                    onClick={handleExternalActionCancel}
-                    disabled={isSubmittingExternalAction}
-                    className="flex-1 px-3 py-2 text-sm font-medium text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-800 hover:bg-amber-200 dark:hover:bg-amber-700 rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    No, I didn't send it
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -4890,7 +4813,7 @@ If you have questions, reply to this message.`
                         message,
                         amountCents
                       )
-                      await registerPendingAction(pendingAction)
+                      // No longer need to register pending action - timeline event is created immediately
                       
                       // Show payment link modal with Open Messages option for native mobile
                       setPaymentLinkData({
@@ -4981,7 +4904,7 @@ If you have questions, reply to this message.`
               </p>
               
               <p className="text-sm text-slate-500 dark:text-slate-500 mb-6">
-                We'll ask you to confirm after you return to ReplyFlow.
+                The payment request will be opened in Messages.
               </p>
               
               <div className="space-y-3">
@@ -5005,6 +4928,26 @@ If you have questions, reply to this message.`
                       return
                     }
                     
+                    // Create the timeline event immediately before launching Messages
+                    try {
+                      const action = {
+                        actionId: paymentLinkData.paymentRequestId || '',
+                        actionType: 'business_phone_payment_request' as const,
+                        leadId: params.id,
+                        customerName: leadData?.customer_name || 'Customer',
+                        customerPhone: leadData?.phone || '',
+                        paymentRequestId: paymentLinkData.paymentRequestId,
+                        messageBody: paymentLinkData.message,
+                        timestamp: new Date().toISOString(),
+                        businessId: business?.id || ''
+                      }
+                      await recordPaymentRequestPrepared(action)
+                      console.log('[PAYMENT MODAL] Timeline event created')
+                    } catch (error) {
+                      console.error('[PAYMENT MODAL] Failed to create timeline event:', error)
+                      // Continue with launch even if timeline event creation fails
+                    }
+                    
                     // Build the complete payment message
                     const message = `${business?.name || 'our business'} has sent you a payment request of $${paymentLinkData.amount}${paymentLinkData.description ? ` for ${paymentLinkData.description}` : ''}.
 
@@ -5022,14 +4965,11 @@ If you have questions, reply to this message.`
                       // Continue with launch even if copy fails
                     }
                     
-                    // Mark handoff as initiated for confirmation flow
-                    await markHandoffInitiated()
-                    
                     // Use window.open for Capacitor compatibility
                     const smsUrl = `sms:${paymentLinkData.dialNumber}?body=${encodeURIComponent(paymentLinkData.message)}`
                     window.open(smsUrl, '_blank')
                     
-                    // Close the ready modal after successful handoff, but preserve pending action
+                    // Close the ready modal after successful handoff
                     setShowPaymentLinkModal(false)
                   }}
                   className="w-full px-4 py-3.5 text-base font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors shadow-lg shadow-blue-600/20"
@@ -5054,14 +4994,7 @@ If you have questions, reply to this message.`
                 <button
                   onClick={() => {
                     setShowPaymentLinkModal(false)
-                    // Clear pending action when modal is closed without opening Messages
-                    if (paymentLinkData.paymentRequestId) {
-                      // Clear the pending external action and handoff marker since user is not sending it now
-                      import('@/lib/pending-actions').then(({ clearPendingAction }) => {
-                        clearPendingAction()
-                      })
-                      clearHandoffMarker()
-                    }
+                    // No longer need to clear pending action or handoff marker
                     setPaymentLinkData(null)
                   }}
                   className="w-full px-4 py-2.5 text-sm font-medium text-slate-500 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-400 transition-colors"
