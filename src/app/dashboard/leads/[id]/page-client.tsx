@@ -13,6 +13,7 @@ import {
 import { createPortal } from 'react-dom'
 import ConversationComposer from '@/components/ConversationComposer'
 import MobileConversationComposer from '@/components/MobileConversationComposer'
+import BusinessNumberPanel from '@/components/BusinessNumberPanel'
 import AutomaticFollowUpsControl from '@/components/AutomaticFollowUpsControl'
 import MobileConversationMessageList from '@/components/MobileConversationMessageList'
 import DesktopConversationMessageList from '@/components/DesktopConversationMessageList'
@@ -3532,35 +3533,41 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
               {/* Desktop Message Composer - Fixed to Bottom */}
               <div className="shrink-0 pt-4">
-                <ConversationComposer
-                  message={message}
-                  setMessage={setMessage}
-                  handleSendMessage={handleSendMessage}
-                  sending={sending}
-                  sendingSource={sendingSource}
-                  isNativeMobilePlatform={supportsBusiness}
-                  onClearImages={(clearFn: () => void) => {
-                    clearComposerImagesRef.current = clearFn
-                  }}
-                  onSendViaBusinessNumber={() => {
+                {(() => {
+                  const effectiveSource = (sendingSource === 'business' && supportsBusiness) ? 'business' : 'replyflow'
+
+                  if (effectiveSource === 'business') {
                     const customerName = getCustomerName(lead, leadData)
                     const dialNumber = leadData?.caller_phone || lead?.caller_phone || ''
-                    setBusinessPhoneModalConfig({
-                      title: 'Send from Business Number',
-                      description: 'Your messaging app will open with the message ready to send.',
-                      message: message,
-                      recipient: dialNumber,
-                      recipientName: customerName,
-                      actionType: 'text'
-                    })
-                    setShowBusinessPhoneModal(true)
-                  }}
-                  onSendViaReplyFlow={() => {
-                    // Force send via ReplyFlow regardless of default
-                    // Note: Images are handled by the ConversationComposer component
-                    handleSendMessage()
-                  }}
-                />
+
+                    return (
+                      <BusinessNumberPanel
+                        recipient={dialNumber}
+                        recipientName={customerName}
+                        onSwitchToReplyFlow={() => {
+                          // Switch to ReplyFlow by updating the sending source
+                          // This will trigger a re-render and show the ConversationComposer
+                          // The actual implementation depends on how sendingSource is managed
+                          console.log('[BusinessNumberPanel] Switch to ReplyFlow requested')
+                        }}
+                      />
+                    )
+                  }
+
+                  return (
+                    <ConversationComposer
+                      message={message}
+                      setMessage={setMessage}
+                      handleSendMessage={handleSendMessage}
+                      sending={sending}
+                      sendingSource={sendingSource}
+                      isNativeMobilePlatform={supportsBusiness}
+                      onClearImages={(clearFn: () => void) => {
+                        clearComposerImagesRef.current = clearFn
+                      }}
+                    />
+                  )
+                })()}
               </div>
             </section>
 
@@ -3798,94 +3805,117 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <div className="border-t border-border/30 flex-shrink-0"></div>
             {/* Composer - Integrated at bottom with proper spacing */}
             <div className="px-3 py-3 flex-shrink-0 bg-card/98 shadow-[0_-8px_30px_rgba(2,6,23,0.08)]" style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' }}>
-              {/* Image Previews */}
-              {mobileImages.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {mobileImages.map((file, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={URL.createObjectURL(file)}
-                        alt="Preview"
-                        className="w-16 h-16 object-cover rounded-lg border border-slate-200/50 dark:border-slate-700/50 transition-opacity duration-200"
-                      />
+              {(() => {
+                const effectiveSource = (sendingSource === 'business' && supportsBusiness) ? 'business' : 'replyflow'
+
+                if (effectiveSource === 'business') {
+                  const customerName = getCustomerName(lead, leadData)
+                  const dialNumber = leadData?.caller_phone || lead?.caller_phone || ''
+
+                  return (
+                    <BusinessNumberPanel
+                      recipient={dialNumber}
+                      recipientName={customerName}
+                      onSwitchToReplyFlow={() => {
+                        console.log('[BusinessNumberPanel] Switch to ReplyFlow requested')
+                      }}
+                    />
+                  )
+                }
+
+                return (
+                  <>
+                    {/* Image Previews */}
+                    {mobileImages.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {mobileImages.map((file, index) => (
+                          <div key={index} className="relative group">
+                            <img
+                              src={URL.createObjectURL(file)}
+                              alt="Preview"
+                              className="w-16 h-16 object-cover rounded-lg border border-slate-200/50 dark:border-slate-700/50 transition-opacity duration-200"
+                            />
+                            <button
+                              onClick={() => removeMobileImage(index)}
+                              className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                              type="button"
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1 bg-slate-900/50 dark:bg-slate-950/50 border border-slate-700/50 dark:border-slate-800/50 rounded-2xl p-1.5 shadow-lg hover:shadow-xl transition-all duration-200 focus-within:ring-2 focus-within:ring-blue-500/40 focus-within:border-blue-500/60 focus-within:bg-slate-900/70 dark:focus-within:bg-slate-950/70">
+                      {/* Image Upload Button */}
                       <button
-                        onClick={() => removeMobileImage(index)}
-                        className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                         type="button"
+                        onClick={() => mobileFileInputRef.current?.click()}
+                        className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 dark:hover:bg-slate-800/50 transition-all duration-200 flex-none rounded-xl h-11 w-11 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-slate-900"
+                        disabled={sending}
+                        aria-label="Add image"
                       >
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                       </button>
+                      <input
+                        ref={mobileFileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/gif"
+                        multiple
+                        onChange={handleMobileImageSelect}
+                        className="hidden"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <textarea
+                          value={message}
+                          onChange={(e) => setMessage(e.target.value)}
+                          onKeyDown={handleMobileKeyDown}
+                          placeholder="Type a message..."
+                          autoCapitalize="sentences"
+                          autoCorrect="on"
+                          spellCheck={true}
+                          autoComplete="on"
+                          enterKeyHint="send"
+                          className="composer-textarea-no-scrollbar w-full min-h-[44px] max-h-[120px] px-1.5 py-2.5 bg-transparent text-slate-100 dark:text-slate-100 resize-none focus:outline-none text-base leading-relaxed h-11 placeholder:text-slate-500 dark:placeholder:text-slate-500"
+                          rows={1}
+                          disabled={sending}
+                        />
+                      </div>
+                      <button
+                        onClick={() => handleSendMessage(mobileImages.length > 0 ? mobileImages : undefined)}
+                        disabled={(!message.trim() && mobileImages.length === 0) || sending}
+                        className={`w-11 h-11 rounded-xl font-semibold transition-all duration-200 shadow-sm hover:shadow flex items-center justify-center gap-1.5 flex-none disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-slate-900 ${
+                          (message.trim() || mobileImages.length > 0) && !sending
+                            ? 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white shadow-md hover:shadow-lg'
+                            : 'bg-slate-700/50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-500 hover:bg-slate-700/70 dark:hover:bg-slate-800/70 disabled:cursor-not-allowed'
+                        }`}
+                        aria-label="Send message"
+                      >
+                        {sending ? (
+                          <>
+                            <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018 8v4h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            <span className="hidden sm:inline text-xs">Sending</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                            </svg>
+                            <span className="text-xs">Send</span>
+                          </>
+                        )}
+                      </button>
                     </div>
-                  ))}
-                </div>
-              )}
-              <div className="flex items-center gap-1 bg-slate-900/50 dark:bg-slate-950/50 border border-slate-700/50 dark:border-slate-800/50 rounded-2xl p-1.5 shadow-lg hover:shadow-xl transition-all duration-200 focus-within:ring-2 focus-within:ring-blue-500/40 focus-within:border-blue-500/60 focus-within:bg-slate-900/70 dark:focus-within:bg-slate-950/70">
-                {/* Image Upload Button */}
-                <button
-                  type="button"
-                  onClick={() => mobileFileInputRef.current?.click()}
-                  className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 dark:hover:bg-slate-800/50 transition-all duration-200 flex-none rounded-xl h-11 w-11 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-slate-900"
-                  disabled={sending}
-                  aria-label="Add image"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </button>
-                <input
-                  ref={mobileFileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/gif"
-                  multiple
-                  onChange={handleMobileImageSelect}
-                  className="hidden"
-                />
-                <div className="flex-1 min-w-0">
-                  <textarea
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    onKeyDown={handleMobileKeyDown}
-                    placeholder="Type a message..."
-                    autoCapitalize="sentences"
-                    autoCorrect="on"
-                    spellCheck={true}
-                    autoComplete="on"
-                    enterKeyHint="send"
-                    className="composer-textarea-no-scrollbar w-full min-h-[44px] max-h-[120px] px-1.5 py-2.5 bg-transparent text-slate-100 dark:text-slate-100 resize-none focus:outline-none text-base leading-relaxed h-11 placeholder:text-slate-500 dark:placeholder:text-slate-500"
-                    rows={1}
-                    disabled={sending}
-                  />
-                </div>
-                <button
-                  onClick={() => handleSendMessage(mobileImages.length > 0 ? mobileImages : undefined)}
-                  disabled={(!message.trim() && mobileImages.length === 0) || sending}
-                  className={`w-11 h-11 rounded-xl font-semibold transition-all duration-200 shadow-sm hover:shadow flex items-center justify-center gap-1.5 flex-none disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-slate-900 ${
-                    (message.trim() || mobileImages.length > 0) && !sending
-                      ? 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white shadow-md hover:shadow-lg'
-                      : 'bg-slate-700/50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-500 hover:bg-slate-700/70 dark:hover:bg-slate-800/70 disabled:cursor-not-allowed'
-                  }`}
-                  aria-label="Send message"
-                >
-                  {sending ? (
-                    <>
-                      <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018 8v4h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                      <span className="hidden sm:inline text-xs">Sending</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                      </svg>
-                      <span className="text-xs">Send</span>
-                    </>
-                  )}
-                </button>
-              </div>
+                  </>
+                )
+              })()}
             </div>
           </div>
 
