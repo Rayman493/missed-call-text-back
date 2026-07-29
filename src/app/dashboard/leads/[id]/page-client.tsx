@@ -44,7 +44,7 @@ import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
 import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smartphone } from 'lucide-react'
 import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
 import SuccessBanner from '@/components/SuccessBanner'
-import { useExternalActionConfirmation } from '@/hooks/useExternalActionConfirmation'
+import BusinessPhoneModal from '@/components/BusinessPhoneModal'
 import { createPendingAction } from '@/lib/pending-actions'
 import { Capacitor } from '@capacitor/core'
 
@@ -418,53 +418,35 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [isJobComposerOpen, setIsJobComposerOpen] = useState(false)
   const [jobPrefill, setJobPrefill] = useState<JobPrefill | undefined>(undefined)
 
-  // External action confirmation hook for Business Phone flow
-  const {
-    recordPaymentRequestPrepared
-  } = useExternalActionConfirmation({
-    onConfirm: async (action) => {
-      const response = await fetch('/api/external-actions/record', {
+  // Shared function to record Business Phone actions using the new API
+  const recordBusinessPhoneAction = async (config: {
+    actionType: 'text' | 'payment_request' | 'appointment' | 'follow_up'
+    leadId: string
+    customerName: string
+    customerPhone: string
+    message: string
+    relatedId?: string
+    relatedType?: string
+  }) => {
+    try {
+      const response = await fetch('/api/business-phone/record', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          actionId: action.actionId,
-          actionType: action.actionType,
-          leadId: action.leadId,
-          customerName: action.customerName,
-          customerPhone: action.customerPhone,
-          paymentRequestId: action.paymentRequestId,
-          messageBody: action.messageBody
-        })
+        body: JSON.stringify(config)
       })
       if (!response.ok) {
-        throw new Error('Failed to record action')
+        throw new Error('Failed to record Business Phone action')
       }
       // Refresh lead data to update timeline
-      const updatedData = await getLeadDetails(params.id)
+      const updatedData = await getLeadDetails(config.leadId)
       if (updatedData) {
         setLeadData(updatedData)
       }
-      // Show success message
-      if (action.actionType === 'business_phone_text') {
-        setExternalActionSuccess({
-          primary: 'Text recorded',
-          secondary: 'The business-phone message was added to the customer timeline.'
-        })
-      } else if (action.actionType === 'business_phone_payment_request') {
-        setExternalActionSuccess({
-          primary: 'Payment request recorded',
-          secondary: 'The business-phone send was added to the customer timeline.'
-        })
-      } else if (action.actionType === 'business_phone_call') {
-        setExternalActionSuccess({
-          primary: 'Call recorded',
-          secondary: 'The business-phone call was added to the customer timeline.'
-        })
-      }
-    },
-    currentLeadId: params.id,
-    communicationSource: (business?.default_mobile_communication_source as 'business' | 'replyflow' | undefined) || undefined
-  })
+    } catch (error) {
+      console.error('[BusinessPhone] Failed to record action:', error)
+      throw error
+    }
+  }
 
   // (Diagnostics removed) 
 
@@ -1160,6 +1142,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   // State for communication source selector (mobile only, session-level override)
   const [communicationSource, setCommunicationSource] = useState<'replyflow' | 'business'>('replyflow')
+
+  // State for shared Business Phone modal
+  const [showBusinessPhoneModal, setShowBusinessPhoneModal] = useState(false)
+  const [businessPhoneModalConfig, setBusinessPhoneModalConfig] = useState<{
+    title: string
+    description: string
+    message: string
+    recipient: string
+    recipientName?: string
+    actionType: 'text' | 'payment_request' | 'appointment' | 'follow_up'
+    relatedId?: string
+    relatedType?: string
+  } | null>(null)
 
   // Load communication source preference from business data on mount
   useEffect(() => {
@@ -4930,18 +4925,15 @@ If you have questions, reply to this message.`
                     
                     // Create the timeline event immediately before launching Messages
                     try {
-                      const action = {
-                        actionId: paymentLinkData.paymentRequestId || '',
-                        actionType: 'business_phone_payment_request' as const,
+                      await recordBusinessPhoneAction({
+                        actionType: 'payment_request',
                         leadId: params.id,
                         customerName: leadData?.customer_name || 'Customer',
                         customerPhone: leadData?.phone || '',
-                        paymentRequestId: paymentLinkData.paymentRequestId,
-                        messageBody: paymentLinkData.message,
-                        timestamp: new Date().toISOString(),
-                        businessId: business?.id || ''
-                      }
-                      await recordPaymentRequestPrepared(action)
+                        message: paymentLinkData.message,
+                        relatedId: paymentLinkData.paymentRequestId,
+                        relatedType: 'payment_request'
+                      })
                       console.log('[PAYMENT MODAL] Timeline event created')
                     } catch (error) {
                       console.error('[PAYMENT MODAL] Failed to create timeline event:', error)
@@ -5197,6 +5189,47 @@ If you have questions, reply to this message.`
           </div>
         </div>
       </Modal>
+    )}
+
+    {/* Shared Business Phone Modal */}
+    {showBusinessPhoneModal && businessPhoneModalConfig && (
+      <BusinessPhoneModal
+        isOpen={showBusinessPhoneModal}
+        onClose={() => {
+          setShowBusinessPhoneModal(false)
+          setBusinessPhoneModalConfig(null)
+        }}
+        title={businessPhoneModalConfig.title}
+        description={businessPhoneModalConfig.description}
+        message={businessPhoneModalConfig.message}
+        recipient={businessPhoneModalConfig.recipient}
+        recipientName={businessPhoneModalConfig.recipientName}
+        actionType={businessPhoneModalConfig.actionType}
+        onSend={async () => {
+          // Record the Business Phone action
+          await recordBusinessPhoneAction({
+            actionType: businessPhoneModalConfig.actionType,
+            leadId: params.id,
+            customerName: businessPhoneModalConfig.recipientName || 'Customer',
+            customerPhone: businessPhoneModalConfig.recipient,
+            message: businessPhoneModalConfig.message,
+            relatedId: businessPhoneModalConfig.relatedId,
+            relatedType: businessPhoneModalConfig.relatedType
+          })
+          
+          // Copy the message to clipboard as fallback
+          try {
+            await navigator.clipboard.writeText(businessPhoneModalConfig.message)
+            console.log('[BusinessPhone] Message copied to clipboard')
+          } catch (error) {
+            console.error('[BusinessPhone] Failed to copy message:', error)
+          }
+          
+          // Launch the native Messages app
+          const smsUrl = `sms:${businessPhoneModalConfig.recipient}?body=${encodeURIComponent(businessPhoneModalConfig.message)}`
+          window.open(smsUrl, '_blank')
+        }}
+      />
     )}
     </DashboardErrorBoundary>
   )
