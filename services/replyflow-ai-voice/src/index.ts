@@ -8432,6 +8432,7 @@ Reply to this message if you'd like to update or add any information.
       const sessionUpdatePayload = {
         type: "session.update",
         session: {
+          type: "realtime",
           audio: {
             input: {
               turn_detection: {
@@ -8442,6 +8443,17 @@ Reply to this message if you'd like to update or add any information.
         }
       };
       try {
+        // Safe diagnostics before sending session.update
+        console.log('[OPENAI SESSION UPDATE DIAG]', {
+          event: 'session.update',
+          sessionType: (sessionUpdatePayload as any).session?.type || 'not_set',
+          model: OPENAI_REALTIME_MODEL,
+          stage,
+          turnDetection: {
+            type: 'server_vad',
+            silence_duration_ms: silenceDurationMs
+          }
+        });
         state.openAiWs.send(JSON.stringify(sessionUpdatePayload));
         console.log('[STAGE-SPECIFIC TIMING] session.update sent with silence_duration_ms:', silenceDurationMs);
       } catch (error) {
@@ -8747,6 +8759,14 @@ Reply to this message if you'd like to update or add any information.
         console.log('[AUDIO TIMING] audioPath: direct_pcmu_passthrough');
         console.log('[AUDIO TIMING] =========================================');
 
+        // Abort before starting if AI session already failed
+        if (String(state.aiSessionTracker?.currentState) === 'FAILED') {
+          console.log('[PROMPT PRE-SEND ABORT] aiSessionState is FAILED, aborting cached audio send');
+          state.assistantSpeaking = false;
+          state.promptAudioStartedAt = 0;
+          return;
+        }
+
         // Check if Twilio WebSocket is still open before sending audio
         if (ws.readyState !== WebSocket.OPEN) {
           console.log('[TWILIO_WS_ERROR] =========================================');
@@ -8774,6 +8794,14 @@ Reply to this message if you'd like to update or add any information.
         }
 
         for (let i = 0; i < audioBuffer.length; i += chunkSize) {
+          // Stop immediately if AI session transitions to FAILED mid-send
+          if (String(state.aiSessionTracker?.currentState) === 'FAILED') {
+            console.log('[PROMPT SEND ABORT] aiSessionState transitioned to FAILED mid-send, interrupting playback');
+            state.cachedPlaybackInterrupted = true;
+            state.assistantSpeaking = false;
+            state.ttsCompleteTime = Date.now();
+            break;
+          }
           // Prompt audio lifecycle logging - track first chunk send
           if (i === 0) {
             const firstChunkAt = Date.now();
@@ -8898,6 +8926,11 @@ Reply to this message if you'd like to update or add any information.
 
         // Add trailing silence for final prompt to prevent cutoff
         if (stage === 'complete') {
+          if (String(state.aiSessionTracker?.currentState) === 'FAILED') {
+            console.log('[TRAILING SILENCE SKIPPED] aiSessionState FAILED - aborting');
+            state.assistantSpeaking = false;
+            return;
+          }
           const silenceDurationMs = 500; // 500ms of trailing silence
           const silenceChunks = Math.ceil(silenceDurationMs / 20);
           const silenceChunk = Buffer.alloc(160, 255).toString('base64'); // 255 = silence in PCMU
@@ -8956,6 +8989,10 @@ Reply to this message if you'd like to update or add any information.
             name: markName
           }
         };
+        if (String(state.aiSessionTracker?.currentState) === 'FAILED') {
+          console.log('[MARK SEND SKIPPED] aiSessionState FAILED - skipping mark after abort');
+          return;
+        }
         ws.send(JSON.stringify(markMessage));
         console.log('[SIMPLE MODE] =========================================');
         console.log('[SIMPLE MODE] event: prompt_mark_sent');

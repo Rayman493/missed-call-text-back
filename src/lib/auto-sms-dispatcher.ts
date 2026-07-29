@@ -54,7 +54,7 @@ async function getConversationId(leadId: string, businessId: string, conversatio
 async function getAiCallRecord(callSid: string, leadId: string) {
   const { data } = await supabaseAdmin
     .from('ai_call_records')
-    .select('id, outcome, extracted_info, summary, fields_collected_count, had_user_speech')
+    .select('id, call_sid, outcome, extracted_info, summary, transcript, fields_collected_count, had_user_speech')
     .eq('lead_id', leadId)
     .eq('call_sid', callSid)
     .order('created_at', { ascending: false })
@@ -412,6 +412,20 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
   // Do not append here to avoid duplication
 
   const conversationId = await getConversationId(leadId, businessId, params.conversationId)
+
+  // Structured log before summary SMS with all required fields
+  console.log('[SUMMARY SMS DECISION]', {
+    currentCallSid: callSid,
+    selectedAiCallRecordId: aiCallRecord?.id,
+    selectedRecordCallSid: aiCallRecord?.call_sid,
+    selectedRecordOutcome: aiCallRecord?.outcome,
+    transcriptPresent: !!aiCallRecord?.transcript,
+    extractedInfoPresent: !!aiCallRecord?.extracted_info,
+    summaryPresent: !!aiCallRecord?.summary,
+    alreadySent: await hasAutomaticSmsForCall(callSid, businessId),
+    decision: 'send',
+    timestamp: new Date().toISOString()
+  })
 
   console.log('[AUTO SMS DISPATCH]', {
     callSid,

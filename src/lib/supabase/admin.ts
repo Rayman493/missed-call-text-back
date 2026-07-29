@@ -2018,8 +2018,6 @@ export const db = {
    * 
    * Clears (request-specific):
    * - status (resets to 'new' for new request)
-   * - reason_for_call (previous request reason)
-   * - urgency (previous request urgency)
    */
   async reactivateLead(leadId: string): Promise<Lead | null> {
     console.log('[REACTIVATE LEAD] Reactivating lead for new request:', leadId)
@@ -2028,8 +2026,6 @@ export const db = {
       .from('leads')
       .update({
         status: 'new',
-        reason_for_call: null, // Clear previous request reason
-        urgency: null, // Clear previous request urgency
         // DO NOT clear: name (customer identity), caller_phone, notes, raw_metadata
         updated_at: new Date().toISOString()
       })
