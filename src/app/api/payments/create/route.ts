@@ -53,7 +53,7 @@ export async function POST(request: Request) {
 
     // Get request body
     const body = await request.json()
-    const { business_id, lead_id, conversation_id, amount_cents, description, payment_provider } = body
+    const { business_id, lead_id, conversation_id, amount_cents, description, payment_provider, skip_sms } = body
 
     console.log('[PAYMENT REQUEST] Incoming payload:', {
       business_id,
@@ -62,6 +62,7 @@ export async function POST(request: Request) {
       amount_cents,
       description,
       payment_provider,
+      skip_sms,
     })
 
     // Validate required fields with specific error messages
@@ -482,11 +483,6 @@ export async function POST(request: Request) {
       .update(leadStatusUpdate)
       .eq('id', lead_id)
 
-    // Send SMS with payment link
-    console.log('[PAYMENT REQUEST] Preparing SMS...')
-    const businessName = business.name || 'our business'
-    const amount = (amount_cents / 100).toFixed(2)
-    
     // Use ReplyFlow token URL for all providers to enable cancellation
     let paymentUrl = ''
     if (paymentRequest.token) {
@@ -495,60 +491,73 @@ export async function POST(request: Request) {
       // Fallback to direct checkout URL if token not available
       paymentUrl = paymentRequest.checkout_url || paymentLink
     }
+
+    // Send SMS with payment link (only if skip_sms is not true)
+    console.log('[PAYMENT REQUEST] skip_sms:', skip_sms)
     
-    console.log('[PAYMENT REQUEST SMS LINK LOGIC] =========================================')
-    console.log('[PAYMENT REQUEST SMS LINK LOGIC] Payment request ID:', paymentRequest.id)
-    console.log('[PAYMENT REQUEST SMS LINK LOGIC] Payment provider:', provider)
-    console.log('[PAYMENT REQUEST SMS LINK LOGIC] Token persisted to database:', !!paymentRequest.token)
-    console.log('[PAYMENT REQUEST SMS LINK LOGIC] Token from database:', paymentRequest.token)
-    console.log('[PAYMENT REQUEST SMS LINK LOGIC] Final payment link:', paymentUrl)
-    console.log('[PAYMENT REQUEST SMS LINK LOGIC] Timestamp:', new Date().toISOString())
-    console.log('[PAYMENT REQUEST SMS LINK LOGIC] =========================================')
-    
-    const smsMessage = `${businessName} has sent you a payment request of $${amount}${paymentDescription ? ` for ${paymentDescription}` : ''}.
+    if (!skip_sms) {
+      console.log('[PAYMENT REQUEST] Preparing SMS...')
+      const businessName = business.name || 'our business'
+      const amount = (amount_cents / 100).toFixed(2)
+      
+      console.log('[PAYMENT REQUEST SMS LINK LOGIC] =========================================')
+      console.log('[PAYMENT REQUEST SMS LINK LOGIC] Payment request ID:', paymentRequest.id)
+      console.log('[PAYMENT REQUEST SMS LINK LOGIC] Payment provider:', provider)
+      console.log('[PAYMENT REQUEST SMS LINK LOGIC] Token persisted to database:', !!paymentRequest.token)
+      console.log('[PAYMENT REQUEST SMS LINK LOGIC] Token from database:', paymentRequest.token)
+      console.log('[PAYMENT REQUEST SMS LINK LOGIC] Final payment link:', paymentUrl)
+      console.log('[PAYMENT REQUEST SMS LINK LOGIC] Timestamp:', new Date().toISOString())
+      console.log('[PAYMENT REQUEST SMS LINK LOGIC] =========================================')
+      
+      const smsMessage = `${businessName} has sent you a payment request of $${amount}${paymentDescription ? ` for ${paymentDescription}` : ''}.
 
 Pay securely here:
 ${paymentUrl}
 
 If you have questions, reply to this message.`
 
-    console.log('[PAYMENT REQUEST] SMS message prepared:', smsMessage)
-    console.log('[PAYMENT REQUEST] Sending SMS to:', lead.caller_phone)
+      console.log('[PAYMENT REQUEST] SMS message prepared:', smsMessage)
+      console.log('[PAYMENT REQUEST] Sending SMS to:', lead.caller_phone)
 
-    let smsResult
-    try {
-      smsResult = await sendSms(business, lead.caller_phone, smsMessage, {
-        lead_id: lead_id,
-        conversation_id: conversation_id,
-        source: 'payment_request',
-      })
-      console.log('[PAYMENT REQUEST] SMS result:', JSON.stringify(smsResult, null, 2))
-    } catch (smsError) {
-      console.error('[PAYMENT REQUEST] SMS sending failed with exception:', smsError)
-      console.error('[PAYMENT REQUEST] SMS error stack:', smsError instanceof Error ? smsError.stack : 'No stack trace')
-      // Payment request was created but SMS failed - return partial success
-      return NextResponse.json({
-        payment_request_id: paymentRequest.id,
-        checkout_url: paymentRequest.checkout_url,
-        status: 'pending',
-        sms_sent: false,
-        warning: 'Payment request created, but SMS failed to send. The customer can still pay using the checkout URL.',
-      })
+      let smsResult
+      try {
+        smsResult = await sendSms(business, lead.caller_phone, smsMessage, {
+          lead_id: lead_id,
+          conversation_id: conversation_id,
+          source: 'payment_request',
+        })
+        console.log('[PAYMENT REQUEST] SMS result:', JSON.stringify(smsResult, null, 2))
+      } catch (smsError) {
+        console.error('[PAYMENT REQUEST] SMS sending failed with exception:', smsError)
+        console.error('[PAYMENT REQUEST] SMS error stack:', smsError instanceof Error ? smsError.stack : 'No stack trace')
+        // Payment request was created but SMS failed - return partial success
+        return NextResponse.json({
+          payment_request_id: paymentRequest.id,
+          checkout_url: paymentRequest.checkout_url,
+          payment_link: paymentUrl,
+          status: 'pending',
+          sms_sent: false,
+          warning: 'Payment request created, but SMS failed to send. The customer can still pay using the checkout URL.',
+        })
+      }
+
+      if (!smsResult.sid) {
+        console.error('[PAYMENT REQUEST] SMS sent but no SID returned')
+        // Payment request was created but SMS failed - return partial success
+        return NextResponse.json({
+          payment_request_id: paymentRequest.id,
+          checkout_url: paymentRequest.checkout_url,
+          payment_link: paymentUrl,
+          status: 'pending',
+          sms_sent: false,
+          warning: 'Payment request created, but SMS failed to send. The customer can still pay using the checkout URL.',
+        })
+      }
+
+      console.log('[PAYMENT REQUEST] SMS sent successfully, SID:', smsResult.sid)
+    } else {
+      console.log('[PAYMENT REQUEST] Skipping SMS send due to skip_sms parameter')
     }
-
-    if (!smsResult.sid) {
-      console.error('[PAYMENT REQUEST] SMS sent but no SID returned')
-      // Payment request was created but SMS failed - return partial success
-      return NextResponse.json({
-        payment_request_id: paymentRequest.id,
-        checkout_url: paymentRequest.checkout_url,
-        status: 'pending',
-        sms_sent: false,
-        warning: 'Payment request created, but SMS failed to send. The customer can still pay using the checkout URL.',
-      })
-    }
-
-    console.log('[PAYMENT REQUEST] SMS sent successfully, SID:', smsResult.sid)
 
     // Create timeline event for payment request
     try {
@@ -584,8 +593,9 @@ If you have questions, reply to this message.`
     return NextResponse.json({
       payment_request_id: paymentRequest.id,
       checkout_url: paymentRequest.checkout_url,
+      payment_link: paymentUrl,
       status: 'pending',
-      sms_sent: true,
+      sms_sent: !skip_sms,
     })
   } catch (error) {
     console.error('[PAYMENT REQUEST] UNHANDLED EXCEPTION IN PAYMENT CREATION')

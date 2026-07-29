@@ -35,6 +35,7 @@ import LeadStatusDropdown from '@/components/LeadStatusDropdown'
 import AICallDetails from '@/components/AICallDetails'
 import VoicemailSummary from '@/components/VoicemailSummary'
 import AICustomerSummary from '@/components/AICustomerSummary'
+import CustomerActivityTimeline from '@/components/CustomerActivityTimeline'
 import { ImageMessage } from '@/components/ImageMessage'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import PhotoModal from '@/components/PhotoModal'
@@ -352,7 +353,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         aiIntake: false, // Default to expanded - show current request immediately
         jobs: true, // Default to collapsed for conversation-first
         payments: true, // Default to collapsed for conversation-first
-        recentActivity: true // Default to collapsed for conversation-first
+        recentActivity: true, // Default to collapsed for conversation-first
+        activityTimeline: true // Default to collapsed - expand if few events
       }
     }
     const saved = localStorage.getItem('customerDetailsCollapsedSections')
@@ -369,7 +371,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           aiIntake: false, // Default to expanded - show current request immediately
           jobs: true,
           payments: true,
-          recentActivity: true
+          recentActivity: true,
+          activityTimeline: true // Default to collapsed - expand if few events
         }
       }
     }
@@ -382,7 +385,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       aiIntake: false, // Default to expanded - show current request immediately
       jobs: true, // Default to collapsed for conversation-first
       payments: true, // Default to collapsed for conversation-first
-      recentActivity: true // Default to collapsed for conversation-first
+      recentActivity: true, // Default to collapsed for conversation-first
+      activityTimeline: true // Default to collapsed - expand if few events
     }
   })
   const [photoModalOpen, setPhotoModalOpen] = useState(false)
@@ -3222,33 +3226,38 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-medium text-muted-foreground">Contact using</span>
                   </div>
-                  <div className="flex items-center bg-muted/50 rounded-lg p-1 border border-border/50">
+                  <div className="flex items-center bg-muted/30 rounded-lg p-1 border border-border/30">
                     <button
                       onClick={() => setCommunicationSource('replyflow')}
-                      className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 min-h-[36px] ${
+                      className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-150 min-h-[36px] ${
                         communicationSource === 'replyflow'
-                          ? 'bg-background text-foreground shadow-sm'
+                          ? 'bg-background text-foreground'
                           : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
                       <MessageSquare className="w-3.5 h-3.5" />
-                      <span>ReplyFlow Number</span>
+                      <span>ReplyFlow</span>
                     </button>
                     <button
                       onClick={() => setCommunicationSource('business')}
-                      className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 min-h-[36px] ${
+                      className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-150 min-h-[36px] ${
                         communicationSource === 'business'
-                          ? 'bg-background text-foreground shadow-sm'
+                          ? 'bg-background text-foreground'
                           : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
                       <Smartphone className="w-3.5 h-3.5" />
-                      <span>My Business Number</span>
+                      <span>My Business Phone</span>
                     </button>
                   </div>
+                  {communicationSource === 'replyflow' && (
+                    <p className="text-[10px] text-muted-foreground/70 text-right max-w-[200px]">
+                      Conversations stay organized inside ReplyFlow.
+                    </p>
+                  )}
                   {communicationSource === 'business' && (
                     <p className="text-[10px] text-muted-foreground/70 text-right max-w-[200px]">
-                      External calls and messages are handled by your device and are not automatically recorded in ReplyFlow.
+                      Calls and texts use your phone and aren't automatically tracked.
                     </p>
                   )}
                 </div>
@@ -3571,6 +3580,24 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   {!(leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id) && (
                     <VoicemailSummary leadData={leadData} />
                   )}
+
+                  {/* Activity Timeline - Collapsible */}
+                  <div className="bg-card rounded-xl border border-border/50 p-3 sm:p-4">
+                    <button
+                      onClick={() => setCollapsedSections((prev: any) => ({ ...prev, activityTimeline: !prev.activityTimeline }))}
+                      className="flex items-center justify-between w-full mb-2 sm:mb-3 group"
+                    >
+                      <h3 className="text-sm font-medium text-foreground group-hover:text-foreground/80 transition-colors">Activity Timeline</h3>
+                      <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.activityTimeline ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    {!collapsedSections.activityTimeline && (
+                      <div className="transition-all duration-200">
+                        <CustomerActivityTimeline leadData={leadData} />
+                      </div>
+                    )}
+                  </div>
 
                   {/* Customer Status - Premium rows */}
                   <div>
@@ -4643,6 +4670,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     amount_cents: Math.round(parseFloat(paymentAmount) * 100),
                     description: paymentDescription || undefined,
                     payment_provider: selectedPaymentProvider,
+                    skip_sms: communicationSource === 'business',
                   }
 
                   console.log('[PAYMENT CREATE] Payload:', payload)
