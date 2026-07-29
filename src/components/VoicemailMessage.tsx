@@ -227,18 +227,8 @@ export default function VoicemailMessage({
             return
           }
 
-          // Apply saved volume immediately before play (redundant but defensive)
-          const normalizedVolume = isMuted ? 0 : Math.min(1, Math.max(0, volume))
-          audio.volume = normalizedVolume
-          audio.muted = isMuted
-
-          console.log('[VOICEMAIL PLAY TRACE] Direct play in VoicemailMessage:', {
-            voicemailId: recording.id,
-            volume: normalizedVolume,
-            muted: isMuted
-          })
-
-          await audio.play()
+          // VoicemailAudioManager.requestPlay() handles audio.play() internally
+          // Do not call audio.play() here to avoid duplicate playback
           setIsPlaying(true)
         } catch (error) {
           console.error('[VOICEMAIL PLAY FAILED]', {
@@ -316,18 +306,8 @@ export default function VoicemailMessage({
                 }
 
                 try {
-                  // Apply saved volume immediately before play (redundant but defensive)
-                  const normalizedVolume = isMuted ? 0 : Math.min(1, Math.max(0, volume))
-                  audio.volume = normalizedVolume
-                  audio.muted = isMuted
-
-                  console.log('[VOICEMAIL PLAY TRACE] Direct play after fetch in VoicemailMessage:', {
-                    voicemailId: recording.id,
-                    volume: normalizedVolume,
-                    muted: isMuted
-                  })
-
-                  await audio.play()
+                  // VoicemailAudioManager.requestPlay() handles audio.play() internally
+                  // Do not call audio.play() here to avoid duplicate playback
                   setIsPlaying(true)
                 } catch (error) {
                   console.error('[VOICEMAIL PLAY FAILED] After audio fetch', {
@@ -370,12 +350,45 @@ export default function VoicemailMessage({
     const audio = audioRef.current
     if (!audio || !audioUrl) return
 
+    // Assign stable debug ID for lifecycle tracking
+    const debugId = `voicemail-${recording.id}-${Date.now()}`
+    audio.dataset.debugId = debugId
+
+    const logAudioState = (event: string) => {
+      console.log('[VOICEMAIL AUDIO STATE]', {
+        event,
+        debugId,
+        voicemailId: recording.id,
+        src: audio.src,
+        currentSrc: audio.currentSrc,
+        volume: audio.volume,
+        muted: audio.muted,
+        paused: audio.paused,
+        readyState: audio.readyState
+      })
+    }
+
+    // Log lifecycle events
+    audio.addEventListener('playing', () => logAudioState('playing'))
+    audio.addEventListener('volumechange', () => {
+      console.trace('[VOICEMAIL VOLUME CHANGE]', {
+        debugId,
+        voicemailId: recording.id,
+        volume: audio.volume,
+        muted: audio.muted
+      })
+    })
+    audio.addEventListener('loadedmetadata', () => logAudioState('loadedmetadata'))
+    audio.addEventListener('canplay', () => logAudioState('canplay'))
+    audio.addEventListener('pause', () => logAudioState('pause'))
+    audio.addEventListener('ended', () => logAudioState('ended'))
+
     audioManager.registerAudio(recording.id, audio)
 
     // Cleanup function for unmount
     return () => {
       audioManager.unregisterAudio(recording.id);
-      
+
       // Also pause the audio element directly as a safety measure
       try {
         if (!audio.paused) {

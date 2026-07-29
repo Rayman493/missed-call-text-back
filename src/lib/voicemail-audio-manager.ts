@@ -1,6 +1,23 @@
 // Centralized voicemail audio manager that works at the audio-element level
 // Ensures only one voicemail can play at a time by directly controlling HTMLAudioElement instances
 
+// Global instrumentation for audio.play() calls (production-safe)
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+  const originalPlay = HTMLMediaElement.prototype.play
+  HTMLMediaElement.prototype.play = function (...args) {
+    console.trace('[GLOBAL MEDIA PLAY]', {
+      tagName: this.tagName,
+      src: this.src,
+      currentSrc: this.currentSrc,
+      volume: this.volume,
+      muted: this.muted,
+      connected: this.isConnected,
+      debugId: (this as any).dataset?.debugId
+    })
+    return originalPlay.apply(this, args)
+  }
+}
+
 type PlaybackStateListener = (voicemailId: string, isPlaying: boolean) => void;
 
 class VoicemailAudioManager {

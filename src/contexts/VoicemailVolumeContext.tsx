@@ -86,6 +86,13 @@ export function VoicemailVolumeProvider({ children }: { children: ReactNode }) {
     // Clamp volume between 0 and 1
     const clampedVolume = Math.max(0, Math.min(1, newVolume))
     setVolumeState(clampedVolume)
+
+    // Log volume changes for debugging
+    console.log('[VOICEMAIL VOLUME CONTEXT] setVolume called:', {
+      newVolume: clampedVolume,
+      previousVolume: volume,
+      isMuted
+    })
   }
 
   const setMuted = (muted: boolean) => {

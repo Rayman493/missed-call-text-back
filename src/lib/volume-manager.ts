@@ -75,10 +75,20 @@ class VolumeManager {
 
   setVolume(newVolume: number): void {
     const clamped = Math.max(0, Math.min(1, newVolume));
+    const previousVolume = this.volume;
     this.volume = clamped;
     this.previousVolume = clamped;
     this.isMuted = clamped === 0;
     this.saveToStorage();
+
+    // Log volume changes for debugging
+    console.log('[VOLUME MANAGER] setVolume called:', {
+      newVolume: clamped,
+      previousVolume,
+      isMuted: this.isMuted,
+      registeredElements: this.registeredAudioElements.size
+    });
+
     this.applyToAllRegisteredElements();
     this.notifyListeners();
   }
