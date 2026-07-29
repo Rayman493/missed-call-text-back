@@ -537,12 +537,20 @@ export default function SettingsContent() {
     setIsUpdatingCommunicationSource(true)
     try {
       const supabase = createBrowserClient()
+      console.log('[SETTINGS] Updating communication source:', { source, businessId: business?.id })
+      
       const { error } = await supabase
         .from('businesses')
         .update({ default_mobile_communication_source: source })
         .eq('id', business?.id)
 
       if (error) {
+        console.error('[SETTINGS] Supabase update error:', { 
+          message: error.message, 
+          code: error.code, 
+          details: error.details,
+          hint: error.hint 
+        })
         throw error
       }
 
