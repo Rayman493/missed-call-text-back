@@ -79,8 +79,8 @@ export function useExternalActionConfirmation({
           console.log('[ExternalAction] Found pending action:', action.actionType)
           setPendingActionState(action)
         } else {
-          // Clear if it's for a different lead
-          await clearPendingAction()
+          // Leave the action stored for when the matching customer page is opened
+          console.log('[ExternalAction] Pending action for different lead, leaving stored:', action.leadId, 'current:', currentLeadId)
         }
       }
     } catch (error) {
@@ -123,6 +123,12 @@ export function useExternalActionConfirmation({
     isProcessingRef.current = false
   }, [pendingAction, onCancel])
 
+  const handleDismiss = useCallback(() => {
+    // Dismiss without clearing - just close the modal, leave action stored
+    setPendingActionState(null)
+    setHasBeenBackgrounded(false)
+  }, [])
+
   const registerPendingAction = useCallback(async (action: PendingExternalAction) => {
     if (!isNativeMobile() || communicationSource !== 'business') {
       return
@@ -135,7 +141,7 @@ export function useExternalActionConfirmation({
       console.error('[ExternalAction] Failed to register pending action:', error)
       // If there's an existing action, show a user-friendly error
       if (error instanceof Error && error.message.includes('existing unconfirmed action')) {
-        setError('Please confirm or cancel the pending action before starting another one')
+        setError('You have an unfinished Business Phone action waiting for confirmation. Finish or cancel it before starting another.')
       }
     }
   }, [communicationSource])
@@ -146,6 +152,7 @@ export function useExternalActionConfirmation({
     error,
     handleConfirm,
     handleCancel,
+    handleDismiss,
     registerPendingAction,
     showConfirmation: !!pendingAction
   }

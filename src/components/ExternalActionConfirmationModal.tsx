@@ -6,6 +6,7 @@ interface ExternalActionConfirmationModalProps {
   pendingAction: PendingExternalAction
   onConfirm: () => Promise<void>
   onCancel: () => void
+  onDismiss?: () => void
   isSubmitting: boolean
   error?: string
 }
@@ -14,6 +15,7 @@ export default function ExternalActionConfirmationModal({
   pendingAction,
   onConfirm,
   onCancel,
+  onDismiss,
   isSubmitting,
   error
 }: ExternalActionConfirmationModalProps) {
@@ -48,8 +50,8 @@ export default function ExternalActionConfirmationModal({
   const content = getModalContent()
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-md w-full p-6">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={onDismiss}>
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
         <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">
           {content.title}
         </h3>

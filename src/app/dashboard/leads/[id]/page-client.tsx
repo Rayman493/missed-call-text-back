@@ -429,6 +429,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     error: externalActionError,
     handleConfirm: handleExternalActionConfirm,
     handleCancel: handleExternalActionCancel,
+    handleDismiss: handleExternalActionDismiss,
     registerPendingAction,
     showConfirmation: showExternalActionConfirmation
   } = useExternalActionConfirmation({
@@ -3584,6 +3585,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 pendingAction={pendingAction}
                 onConfirm={handleExternalActionConfirm}
                 onCancel={handleExternalActionCancel}
+                onDismiss={handleExternalActionDismiss}
                 isSubmitting={isSubmittingExternalAction}
                 error={externalActionError}
               />
