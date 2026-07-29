@@ -19,6 +19,7 @@ import PageBackground from '@/components/PageBackground'
 import UserDropdown from '@/components/UserDropdown'
 import AppHeader from '@/components/AppHeader'
 import BottomNavigation from '@/components/BottomNavigation'
+import { settingsSections } from '@/lib/settings-config'
 import {
   getSubscriptionStatusText,
   getSubscriptionStatusDescription,
@@ -882,7 +883,7 @@ export default function SettingsContent() {
 
   // Scroll-aware active section detection using explicit scroll positions
   useEffect(() => {
-    const sections = ['general', 'automation', 'integrations', 'payments', 'contacts', 'account']
+    const sections = settingsSections.map(s => s.id)
     let timeoutId: NodeJS.Timeout | null = null
     
     const updateActiveSection = () => {
@@ -1082,72 +1083,20 @@ export default function SettingsContent() {
             {/* Settings Navigation Tabs - sticky only */}
             <div className="sticky z-40 border-b border-border bg-background py-2 top-0 backdrop-blur-sm" style={{ backgroundColor: 'var(--background)' }}>
               <nav ref={settingsTabsNavRef} className="flex items-center gap-1 overflow-x-auto custom-scrollbar-horizontal">
-                <button
-                  ref={(element) => { sectionTabRefs.current.general = element }}
-                  onClick={() => handleSectionClick('general')}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
-                    activeSection === 'general'
-                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  General
-                </button>
-                <button
-                  ref={(element) => { sectionTabRefs.current.automation = element }}
-                  onClick={() => handleSectionClick('automation')}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
-                    activeSection === 'automation'
-                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  Automation
-                </button>
-                <button
-                  ref={(element) => { sectionTabRefs.current.integrations = element }}
-                  onClick={() => handleSectionClick('integrations')}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
-                    activeSection === 'integrations'
-                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  Integrations
-                </button>
-                <button
-                  ref={(element) => { sectionTabRefs.current.payments = element }}
-                  onClick={() => handleSectionClick('payments')}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
-                    activeSection === 'payments'
-                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  Payments
-                </button>
-                <button
-                  ref={(element) => { sectionTabRefs.current.contacts = element }}
-                  onClick={() => handleSectionClick('contacts')}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
-                    activeSection === 'contacts'
-                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  Contacts
-                </button>
-                <button
-                  ref={(element) => { sectionTabRefs.current.account = element }}
-                  onClick={() => handleSectionClick('account')}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
-                    activeSection === 'account'
-                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  Account
-                </button>
+                {settingsSections.map((section) => (
+                  <button
+                    key={section.id}
+                    ref={(element) => { sectionTabRefs.current[section.id] = element }}
+                    onClick={() => handleSectionClick(section.id)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
+                      activeSection === section.id
+                        ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    {section.label}
+                  </button>
+                ))}
               </nav>
             </div>
             {/* Spacer to maintain consistent spacing */}
@@ -1155,17 +1104,17 @@ export default function SettingsContent() {
 
             {/* Settings Sections */}
             <div className="space-y-3 sm:space-y-4 pb-32">
-              {/* Group: Getting Started */}
+              {/* Group: General */}
               <div className="flex items-center gap-3 mb-4">
                 <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
-                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Getting Started</h3>
+                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{settingsSections.find(s => s.id === 'general')?.label}</h3>
                 <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
               </div>
 
-              {/* Business Info Section */}
+              {/* General Section */}
               <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[64px]">
                 <div className="mb-4">
-                  <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Business Info</h2>
+                  <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">General</h2>
                   <p className="text-xs text-slate-500 dark:text-slate-400">Your business identity and contact details.</p>
                 </div>
                 <div className="space-y-3">
@@ -1283,10 +1232,10 @@ export default function SettingsContent() {
                 </div>
               </div>
 
-              {/* Group: Daily Operations */}
+              {/* Group: Automation */}
               <div className="flex items-center gap-3 mb-4">
                 <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
-                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Daily Operations</h3>
+                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{settingsSections.find(s => s.id === 'automation')?.label}</h3>
                 <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
               </div>
 
@@ -1744,7 +1693,7 @@ export default function SettingsContent() {
               {/* Group: Integrations */}
               <div className="flex items-center gap-3 mb-4">
                 <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
-                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Integrations</h3>
+                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{settingsSections.find(s => s.id === 'integrations')?.label}</h3>
                 <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
               </div>
 
@@ -1819,6 +1768,13 @@ export default function SettingsContent() {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Group: Payments */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
+                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{settingsSections.find(s => s.id === 'payments')?.label}</h3>
+                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
               </div>
 
               <div id="payments" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[64px]">
@@ -2013,14 +1969,14 @@ export default function SettingsContent() {
                 </div>
               </div>
 
-              {/* Group: Personal */}
+              {/* Group: Contacts */}
               <div className="flex items-center gap-3 mb-4">
                 <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
-                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Personal</h3>
+                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{settingsSections.find(s => s.id === 'contacts')?.label}</h3>
                 <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
               </div>
 
-              {/* Personal Contacts Section */}
+              {/* Contacts Section */}
               <div id="contacts" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[64px]">
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <div>
@@ -2144,7 +2100,7 @@ export default function SettingsContent() {
               {/* Group: Account */}
               <div className="flex items-center gap-3 mb-4">
                 <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
-                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Account</h3>
+                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{settingsSections.find(s => s.id === 'account')?.label}</h3>
                 <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
               </div>
 
