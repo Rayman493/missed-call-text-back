@@ -44,6 +44,15 @@ import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
 import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smartphone } from 'lucide-react'
 import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
 
+// Check if running in native mobile app
+const isNativeMobile = () => {
+  try {
+    return (window as any).Capacitor?.isNativePlatform?.() ?? false
+  } catch {
+    return false
+  }
+}
+
 function getErrorMessage(errorCode: string): string {
   // Only show user-friendly messages for known error codes
   if (errorCode === '30007') {
@@ -479,15 +488,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     } catch {}
   }
 
-  // Check if running in native mobile app
-  const isNativeMobile = () => {
-    try {
-      return (window as any).Capacitor?.isNativePlatform?.() ?? false
-    } catch {
-      return false
-    }
-  }
-  
   // Close more actions dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -3269,14 +3269,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
                 {/* Primary Actions */}
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleTextCustomer}
-                    className="inline-flex h-10 items-center gap-2 px-4 rounded-lg text-foreground hover:bg-muted/80 transition-colors text-sm font-medium border border-transparent hover:border-border/50"
-                    title="Text customer"
-                  >
-                    <MessageSquare className="w-4 h-4 stroke-[1.8]" />
-                    <span className="leading-none">Text Customer</span>
-                  </button>
+                  {isNativeMobile() && (
+                    <button
+                      onClick={handleTextCustomer}
+                      className="inline-flex h-10 items-center gap-2 px-4 rounded-lg text-foreground hover:bg-muted/80 transition-colors text-sm font-medium border border-transparent hover:border-border/50"
+                      title="Text customer"
+                    >
+                      <MessageSquare className="w-4 h-4 stroke-[1.8]" />
+                      <span className="leading-none">Text Customer</span>
+                    </button>
+                  )}
                   <button
                     onClick={handleCreateJobClick}
                     className="inline-flex h-10 items-center gap-2 px-4 rounded-lg text-foreground hover:bg-muted/80 transition-colors text-sm font-medium border border-transparent hover:border-border/50"
