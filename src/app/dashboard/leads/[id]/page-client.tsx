@@ -43,6 +43,7 @@ import Modal from '@/components/ui/Modal'
 import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
 import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smartphone } from 'lucide-react'
 import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
+import SuccessBanner from '@/components/SuccessBanner'
 
 // Check if running in native mobile app
 const isNativeMobile = () => {
@@ -51,6 +52,13 @@ const isNativeMobile = () => {
   } catch {
     return false
   }
+}
+
+// Helper to get customer name from lead data
+const getCustomerName = (lead: any, leadData: any) => {
+  const intake = getLeadAIIntake(leadData || lead)
+  const customerName = intake.customerName || leadData?.name || lead?.name || ''
+  return customerName
 }
 
 function getErrorMessage(errorCode: string): string {
@@ -3469,9 +3477,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             {successMessage && (
-              <div className="mt-4 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs font-medium text-green-700 whitespace-pre-line dark:border-green-900/60 dark:bg-green-950/30 dark:text-green-300">
-                {successMessage}
-              </div>
+              <SuccessBanner
+                message={successMessage}
+                onComplete={() => setSuccessMessage('')}
+              />
             )}
           </div>
         </div>
@@ -4705,7 +4714,7 @@ ${data.paymentLink}
 
 If you have questions, reply to this message.`
                       window.location.href = `sms:${dialNumber}?body=${encodeURIComponent(message)}`
-                      setSuccessMessage('Payment request ready.\nThe Messages app is now handling the rest.')
+                      setSuccessMessage('Payment request ready\nOpen Messages to send it from your business phone.')
                     } else {
                       // Desktop: show payment link modal with copy buttons
                       setPaymentLinkData({
@@ -4716,7 +4725,12 @@ If you have questions, reply to this message.`
                       setShowPaymentLinkModal(true)
                     }
                   } else {
-                    setSuccessMessage('Payment request sent.\nThe customer has been texted a payment link.')
+                    // ReplyFlow Number flow: ReplyFlow sends the SMS
+                    const customerName = getCustomerName(lead, leadData)
+                    const secondaryText = customerName 
+                      ? `${customerName} has been texted a secure payment link.`
+                      : 'The customer has been texted a secure payment link.'
+                    setSuccessMessage(`Payment request sent\n${secondaryText}`)
                   }
 
                   // Refresh lead data
