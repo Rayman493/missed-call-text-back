@@ -443,8 +443,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           customerName: action.customerName,
           customerPhone: action.customerPhone,
           paymentRequestId: action.paymentRequestId,
-          messageBody: action.messageBody,
-          amountCents: action.amountCents
+          messageBody: action.messageBody
         })
       })
       if (!response.ok) {

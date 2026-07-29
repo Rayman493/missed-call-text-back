@@ -7,7 +7,6 @@ type ActionType = typeof ALLOWED_ACTION_TYPES[number]
 
 const MAX_ACTION_ID_LENGTH = 256
 const MAX_STRING_LENGTH = 500
-const MAX_AMOUNT_LENGTH = 50
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,8 +33,7 @@ export async function POST(request: NextRequest) {
       customerName,
       customerPhone,
       paymentRequestId,
-      messageBody,
-      amountCents
+      messageBody
     } = body
 
     // Strict request validation
@@ -64,11 +62,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid messageBody' }, { status: 400 })
     }
 
-    if (amountCents !== undefined && (typeof amountCents !== 'number' || amountCents < 0 || !Number.isInteger(amountCents))) {
-      return NextResponse.json({ error: 'Invalid amountCents' }, { status: 400 })
-    }
-
     // Payment request validation
+    let authorizedPaymentAmountCents: number | undefined
     if (actionType === 'business_phone_payment_request') {
       if (!paymentRequestId || typeof paymentRequestId !== 'string') {
         return NextResponse.json({ error: 'paymentRequestId required for payment request actions' }, { status: 400 })
@@ -77,21 +72,34 @@ export async function POST(request: NextRequest) {
       // Verify payment request exists and belongs to the user's business and lead
       const { data: paymentRequest, error: paymentError } = await supabase
         .from('payment_requests')
-        .select('id, business_id, lead_id, conversation_id')
+        .select('id, business_id, lead_id, conversation_id, amount_cents')
         .eq('id', paymentRequestId)
         .maybeSingle()
 
+      // Return generic 404 for missing, foreign, or mismatched payment requests
       if (paymentError || !paymentRequest) {
+        console.log('[ExternalActions] Payment request not found or unauthorized:', paymentRequestId)
         return NextResponse.json({ error: 'Payment request not found' }, { status: 404 })
       }
 
-      if (paymentRequest.business_id !== business.id) {
-        return NextResponse.json({ error: 'Payment request does not belong to your business' }, { status: 403 })
+      if (paymentRequest.business_id !== business.id || paymentRequest.lead_id !== leadId) {
+        console.log('[ExternalActions] Payment request does not belong to this business or lead:', paymentRequestId)
+        return NextResponse.json({ error: 'Payment request not found' }, { status: 404 })
       }
 
-      if (paymentRequest.lead_id !== leadId) {
-        return NextResponse.json({ error: 'Payment request does not match the specified lead' }, { status: 400 })
+      // Validate and use the authoritative amount from the database
+      if (
+        paymentRequest.amount_cents === undefined ||
+        paymentRequest.amount_cents === null ||
+        typeof paymentRequest.amount_cents !== 'number' ||
+        !Number.isInteger(paymentRequest.amount_cents) ||
+        paymentRequest.amount_cents < 0
+      ) {
+        console.error('[ExternalActions] Invalid payment request amount:', paymentRequest.amount_cents)
+        return NextResponse.json({ error: 'Invalid payment request' }, { status: 400 })
       }
+
+      authorizedPaymentAmountCents = paymentRequest.amount_cents
     }
 
     // Verify lead belongs to the user's business
@@ -101,12 +109,15 @@ export async function POST(request: NextRequest) {
       .eq('id', leadId)
       .maybeSingle()
 
+    // Return generic 404 for missing or foreign leads
     if (leadError || !lead) {
+      console.log('[ExternalActions] Lead not found or unauthorized:', leadId)
       return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
     }
 
     if (lead.business_id !== business.id) {
-      return NextResponse.json({ error: 'Lead does not belong to your business' }, { status: 403 })
+      console.log('[ExternalActions] Lead does not belong to this business:', leadId)
+      return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
     }
 
     // Check if this action has already been recorded (idempotency)
@@ -146,8 +157,9 @@ export async function POST(request: NextRequest) {
       if (paymentRequestId) {
         metadata.paymentRequestId = paymentRequestId
       }
-      if (amountCents) {
-        metadata.amountCents = amountCents
+      // Use the authoritative amount from the database
+      if (authorizedPaymentAmountCents !== undefined) {
+        metadata.amountCents = authorizedPaymentAmountCents
       }
     }
 
