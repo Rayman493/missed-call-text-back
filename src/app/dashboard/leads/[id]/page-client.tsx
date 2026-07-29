@@ -915,17 +915,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               isDivider: true
             }
           })
-        } else if (pr.status === 'pending') {
-          systemEvents.push({
-            type: 'system_event',
-            id: `payment-requested-${pr.id}`,
-            created_at: pr.created_at,
-            data: {
-              message: `Payment Requested: $${(pr.amount_cents / 100).toFixed(2)}`,
-              timestamp: pr.created_at
-            }
-          })
         }
+        // Note: "Payment Requested" events are no longer automatically added for pending requests
+        // For ReplyFlow Number: the message record itself appears in the conversation
+        // For Business Phone: the timeline event is created after user confirmation via external-action recording
       })
     }
     
@@ -1175,7 +1168,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [paymentDescription, setPaymentDescription] = useState('')
   const [isCreatingPayment, setIsCreatingPayment] = useState(false)
   const [showPaymentLinkModal, setShowPaymentLinkModal] = useState(false)
-  const [paymentLinkData, setPaymentLinkData] = useState<{ paymentLink: string; amount: string; description: string } | null>(null)
+  const [paymentLinkData, setPaymentLinkData] = useState<{ paymentLink: string; amount: string; description: string; paymentRequestId?: string; message?: string; dialNumber?: string; customerName?: string } | null>(null)
   const [selectedPaymentProvider, setSelectedPaymentProvider] = useState<'stripe' | 'venmo' | 'paypal'>('stripe')
   const paymentAmountRef = useRef<HTMLInputElement>(null)
 
@@ -4839,14 +4832,24 @@ If you have questions, reply to this message.`
                       )
                       await registerPendingAction(pendingAction)
                       
-                      window.location.href = `sms:${dialNumber}?body=${encodeURIComponent(message)}`
-                      setSuccessMessage('Payment request ready\nOpen Messages to send it from your business phone.')
+                      // Show payment link modal with Open Messages option for native mobile
+                      setPaymentLinkData({
+                        paymentLink: data.paymentLink,
+                        amount: (parseFloat(paymentAmount) || 0).toFixed(2),
+                        description: paymentDescription || 'Service payment',
+                        paymentRequestId: data.paymentRequestId || data.id,
+                        message: message,
+                        dialNumber: dialNumber,
+                        customerName: customerName
+                      })
+                      setShowPaymentLinkModal(true)
                     } else {
                       // Desktop: show payment link modal with copy buttons
                       setPaymentLinkData({
                         paymentLink: data.paymentLink,
                         amount: (parseFloat(paymentAmount) || 0).toFixed(2),
-                        description: paymentDescription || 'Service payment'
+                        description: paymentDescription || 'Service payment',
+                        paymentRequestId: data.paymentRequestId || data.id
                       })
                       setShowPaymentLinkModal(true)
                     }
@@ -4905,7 +4908,9 @@ If you have questions, reply to this message.`
             Payment Link Ready
           </h3>
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
-            Your payment request has been prepared. Send it from your business phone using your preferred messaging app.
+            {isNativeMobile() 
+              ? 'Your payment request is ready. Open Messages to send it from your business phone.'
+              : 'Your payment request has been prepared. Send it from your business phone using your preferred messaging app.'}
           </p>
           
           <div className="space-y-4">
@@ -4923,46 +4928,61 @@ If you have questions, reply to this message.
               </div>
             </div>
             
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  const message = `${business?.name || 'our business'} has sent you a payment request of $${paymentLinkData.amount}${paymentLinkData.description ? ` for ${paymentLinkData.description}` : ''}.
+            <div className="space-y-3">
+              {isNativeMobile() && paymentLinkData.message && paymentLinkData.dialNumber && (
+                <button
+                  onClick={() => {
+                    window.location.href = `sms:${paymentLinkData.dialNumber}?body=${encodeURIComponent(paymentLinkData.message || '')}`
+                    setShowPaymentLinkModal(false)
+                    setPaymentLinkData(null)
+                  }}
+                  className="w-full px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                >
+                  Open Messages
+                </button>
+              )}
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    const message = `${business?.name || 'our business'} has sent you a payment request of $${paymentLinkData.amount}${paymentLinkData.description ? ` for ${paymentLinkData.description}` : ''}.
 
 Pay securely here:
-${paymentLinkData.paymentLink}
+-${paymentLinkData.paymentLink}
 
 If you have questions, reply to this message.`
-                  navigator.clipboard.writeText(message)
-                  setSuccessMessage('Payment message copied to clipboard')
-                  setShowPaymentLinkModal(false)
-                  setPaymentLinkData(null)
-                }}
-                className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-              >
-                Copy Payment Message
-              </button>
+                    navigator.clipboard.writeText(message)
+                    setSuccessMessage('Payment message copied to clipboard')
+                    setShowPaymentLinkModal(false)
+                    setPaymentLinkData(null)
+                  }}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                >
+                  Copy Payment Message
+                </button>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(paymentLinkData.paymentLink)
+                    setSuccessMessage('Payment link copied to clipboard')
+                    setShowPaymentLinkModal(false)
+                    setPaymentLinkData(null)
+                  }}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                >
+                  Copy Payment Link
+                </button>
+              </div>
+              
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(paymentLinkData.paymentLink)
-                  setSuccessMessage('Payment link copied to clipboard')
                   setShowPaymentLinkModal(false)
                   setPaymentLinkData(null)
                 }}
-                className="flex-1 px-4 py-2 text-sm font-medium text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                className="w-full px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
               >
-                Copy Payment Link
+                Close
               </button>
             </div>
-            
-            <button
-              onClick={() => {
-                setShowPaymentLinkModal(false)
-                setPaymentLinkData(null)
-              }}
-              className="w-full px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
-            >
-              Close
-            </button>
           </div>
         </div>
       </div>
