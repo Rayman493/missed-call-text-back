@@ -23,9 +23,11 @@ export function useSendingSource(): UseSendingSourceReturn {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isMobile] = useState(isNativeMobile())
+  const [optimisticSource, setOptimisticSource] = useState<SendingSource | null>(null)
 
   // Get the current sending source, defaulting to 'replyflow'
-  const sendingSource: SendingSource = (business?.default_sending_source as SendingSource) || 'replyflow'
+  // Use optimistic value if available, otherwise use business value
+  const sendingSource: SendingSource = optimisticSource || (business?.default_sending_source as SendingSource) || 'replyflow'
 
   // Determine the effective source (considering platform limitations)
   // Desktop can't use Business Number as default, but we preserve the saved preference
@@ -36,11 +38,7 @@ export function useSendingSource(): UseSendingSourceReturn {
     setError(null)
 
     // Optimistic update
-    if (business) {
-      const originalValue = business.default_sending_source
-      // Update local state optimistically through context
-      // This will be reflected in the UI immediately
-    }
+    setOptimisticSource(source)
 
     try {
       const response = await fetch('/api/settings/sending-source', {
@@ -58,16 +56,19 @@ export function useSendingSource(): UseSendingSourceReturn {
 
       // Refresh business data to get the updated value
       await refreshBusiness()
+      // Clear optimistic state after successful refresh
+      setOptimisticSource(null)
     } catch (err) {
       console.error('[useSendingSource] Error updating:', err)
       setError(err instanceof Error ? err.message : 'Failed to update sending source')
       
-      // Rollback on failure by refreshing
+      // Rollback on failure by clearing optimistic state and refreshing
+      setOptimisticSource(null)
       await refreshBusiness()
     } finally {
       setIsLoading(false)
     }
-  }, [business, refreshBusiness])
+  }, [refreshBusiness])
 
   return {
     sendingSource,
