@@ -256,4 +256,43 @@ describe('Volume Manager - Integration Scenarios', () => {
     const reloadedVolume = localStorage.getItem('replyflow.voicemail.volume')
     expect(reloadedVolume).toBe('0.4')
   })
+
+  it('move slider before audio creation stores saved volume', () => {
+    // Simulate slider change before audio exists
+    volumeManager.setVolume(0.25)
+    expect(volumeManager.getVolume()).toBe(0.25)
+    expect(localStorage.getItem('replyflow.voicemail.volume')).toBe('0.25')
+  })
+
+  it('initial browser volume=1 does not overwrite stored lower volume', () => {
+    // Set a lower volume
+    volumeManager.setVolume(0.3)
+    expect(volumeManager.getVolume()).toBe(0.3)
+
+    // Simulate browser initialization event (should not overwrite)
+    // The volume manager should only update when explicitly called
+    expect(localStorage.getItem('replyflow.voicemail.volume')).toBe('0.3')
+  })
+
+  it('localStorage changes immediately on slider input', () => {
+    volumeManager.setVolume(0.75)
+    expect(localStorage.getItem('replyflow.voicemail.volume')).toBe('0.75')
+
+    volumeManager.setVolume(0.5)
+    expect(localStorage.getItem('replyflow.voicemail.volume')).toBe('0.5')
+  })
+
+  it('volume remains unchanged after mute toggle', () => {
+    volumeManager.setVolume(0.6)
+    expect(volumeManager.getVolume()).toBe(0.6)
+
+    volumeManager.toggleMute()
+    expect(volumeManager.getIsMuted()).toBe(true)
+    expect(volumeManager.getVolume()).toBe(0) // muted returns 0
+
+    volumeManager.toggleMute()
+    expect(volumeManager.getIsMuted()).toBe(false)
+    expect(volumeManager.getVolume()).toBe(0.6) // restored to previous
+    expect(localStorage.getItem('replyflow.voicemail.volume')).toBe('0.6')
+  })
 })

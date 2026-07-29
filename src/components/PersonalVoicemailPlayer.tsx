@@ -45,6 +45,7 @@ export function PersonalVoicemailPlayer({
   const volumeButtonRef = useRef<HTMLButtonElement | null>(null)
   const volumePopoverRef = useRef<HTMLDivElement | null>(null)
   const progressAnimationFrameRef = useRef<number | null>(null)
+  const isApplyingSavedVolumeRef = useRef(false) // Guard to prevent volumechange from overwriting saved volume during initialization
   const isCurrentPlayer = globalPlayingId === voicemailId
 
   // Smooth progress update loop using requestAnimationFrame
@@ -193,6 +194,11 @@ export function PersonalVoicemailPlayer({
 
     // Listen for volume changes to sync with volume manager
     audio.addEventListener('volumechange', () => {
+      // Ignore volumechange events while we're applying saved volume during initialization
+      // This prevents the browser's default volume=1 from overwriting the saved preference
+      if (isApplyingSavedVolumeRef.current) {
+        return
+      }
       const newVolume = audio.muted ? 0 : audio.volume
       volumeManager.setVolume(newVolume)
     })
@@ -203,19 +209,34 @@ export function PersonalVoicemailPlayer({
     if (!audioRef.current) {
       createAudio()
     }
-    
+
     const audio = audioRef.current
     if (!audio) return
-    
+
     setPlayerState('loading')
     setErrorMessage(null)
-    
+
+    // Apply saved volume immediately before playback
+    isApplyingSavedVolumeRef.current = true
+    audio.volume = volumeManager.getVolume()
+    audio.muted = volumeManager.getIsMuted()
+    isApplyingSavedVolumeRef.current = false
+
+    // Diagnostic logging for volume playback
+    console.log('[VOICEMAIL VOLUME PLAYBACK]', {
+      savedVolume: volumeManager.getVolume(),
+      audioVolumeBeforePlay: audio.volume,
+      muted: audio.muted,
+      audioReused: true,
+      source: 'play()'
+    })
+
     audio.play()
       .then(() => {
         setPlayerState('playing')
         onSetGlobalPlayingId(voicemailId)
         onPlaybackStart?.()
-        
+
         // Auto-mark as read after 2 seconds of playback
         if (isUnread && onMarkRead) {
           markReadTimeoutRef.current = setTimeout(() => {
@@ -434,7 +455,7 @@ export function PersonalVoicemailPlayer({
                   step="0.01"
                   value={isMuted ? 0 : volume}
                   onChange={handleVolumeChange}
-                  className="w-full h-3 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors duration-200 touch-action-pan-y [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:hover:bg-blue-700 [&::-webkit-slider-thumb]:focus:outline-none [&::-webkit-slider-thumb]:focus:ring-2 [&::-webkit-slider-thumb]:focus:ring-blue-500 [&::-webkit-slider-thumb]:focus:ring-offset-2 [&::-webkit-slider-thumb]:shadow-md [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-600 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:hover:bg-blue-700 [&::-moz-range-thumb]:focus:outline-none [&::-moz-range-thumb]:focus:ring-2 [&::-moz-range-thumb]:focus:ring-blue-500 [&::-moz-range-thumb]:focus:ring-offset-2 [&::-moz-range-thumb]:shadow-md"
+                  className="w-full h-3 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors duration-200 touch-action-pan-y [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:hover:bg-blue-700 [&::-webkit-slider-thumb]:focus:outline-none [&::-webkit-slider-thumb]:focus:ring-2 [&::-webkit-slider-thumb]:focus:ring-blue-500 [&::-webkit-slider-thumb]:focus:ring-offset-2 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:-mt-1 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-600 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:hover:bg-blue-700 [&::-moz-range-thumb]:focus:outline-none [&::-moz-range-thumb]:focus:ring-2 [&::-moz-range-thumb]:focus:ring-blue-500 [&::-moz-range-thumb]:focus:ring-offset-2 [&::-moz-range-thumb]:shadow-md"
                   style={{
                     background: `linear-gradient(to right, #2563eb ${(isMuted ? 0 : volume) * 100}%, #e2e8f0 ${(isMuted ? 0 : volume) * 100}%)`,
                   }}
