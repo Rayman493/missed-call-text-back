@@ -34,6 +34,7 @@ import { RealtimeChannel } from '@supabase/supabase-js'
 import LeadStatusDropdown from '@/components/LeadStatusDropdown'
 import AICallDetails from '@/components/AICallDetails'
 import VoicemailSummary from '@/components/VoicemailSummary'
+import AICustomerSummary from '@/components/AICustomerSummary'
 import { ImageMessage } from '@/components/ImageMessage'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import PhotoModal from '@/components/PhotoModal'
@@ -2834,10 +2835,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       {/* Customer Identity Header - Distinct from global navigation */}
       <div className="bg-muted/30 border-b border-border/50">
-        <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
+        <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-2 sm:py-2.5">
           {/* Mobile Layout: Compact Information Header */}
           <div className="md:hidden">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
               {/* Back button */}
               <div className="flex-shrink-0">
                 <AppBackButton fallbackHref="/dashboard/leads" label="" />
@@ -2849,11 +2850,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <img
                     src={lead.photo_url}
                     alt={getLeadDisplayName(leadData || lead)}
-                    className="w-12 h-12 rounded-full object-cover border-2 border-border/40"
+                    className="w-10 h-10 rounded-full object-cover border-2 border-border/40"
                   />
                 ) : (
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center border-2 border-border/40">
-                    <span className="text-white font-semibold text-base">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center border-2 border-border/40">
+                    <span className="text-white font-semibold text-sm">
                       {getLeadDisplayName(leadData || lead)
                         .split(' ')
                         .map(n => n[0])
@@ -2867,10 +2868,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
               {/* Customer Info */}
               <div className="min-w-0 flex-1">
-                <h1 className="font-bold text-foreground text-lg leading-tight truncate">
+                <h1 className="font-bold text-foreground text-base leading-tight truncate">
                   {getLeadDisplayName(leadData || lead)}
                 </h1>
-                <p className="text-sm text-muted-foreground/80 truncate">
+                <p className="text-xs text-muted-foreground/80 truncate">
                   {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
                 </p>
               </div>
@@ -3081,25 +3082,25 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Desktop Layout: Premium Profile Header */}
           <div className="hidden md:block">
             {/* Back to Leads */}
-            <div className="mb-4">
+            <div className="mb-3">
               <AppBackButton fallbackHref="/dashboard/leads" label="Back to Customers" />
             </div>
 
             {/* Premium Two-Column Header */}
-            <div className="flex items-start gap-8">
+            <div className="flex items-start gap-6">
               {/* LEFT: Avatar and Customer Info */}
-              <div className="flex items-start gap-5 min-w-0 flex-1">
+              <div className="flex items-start gap-4 min-w-0 flex-1">
                 {/* Customer Avatar */}
                 <div className="flex-shrink-0">
                   {lead?.photo_url ? (
                     <img
                       src={lead.photo_url}
                       alt={getLeadDisplayName(leadData || lead)}
-                      className="w-20 h-20 rounded-full object-cover border-2 border-border/30 shadow-sm"
+                      className="w-16 h-16 rounded-full object-cover border-2 border-border/30 shadow-sm"
                     />
                   ) : (
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center border-2 border-border/30 shadow-sm">
-                      <span className="text-white font-semibold text-2xl">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center border-2 border-border/30 shadow-sm">
+                      <span className="text-white font-semibold text-xl">
                         {getLeadDisplayName(leadData || lead)
                           .split(' ')
                           .map(n => n[0])
@@ -3113,15 +3114,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
                 {/* Customer Info */}
                 <div className="min-w-0 flex-1 pt-1">
-                  <h1 className="text-3xl font-semibold text-foreground tracking-tight mb-2 leading-tight">
+                  <h1 className="text-2xl font-semibold text-foreground tracking-tight mb-2 leading-tight">
                     {getLeadDisplayName(leadData || lead)}
                   </h1>
-                  <p className="text-base text-muted-foreground/80 mb-3 font-normal">
+                  <p className="text-sm text-muted-foreground/70 mb-3 font-normal">
                     {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
                   </p>
-                  <div className="flex items-center gap-3 text-sm text-muted-foreground/80">
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground/60">
                     <span>Customer since {formatRelativeTime(lead?.created_at)}</span>
-                    <span className="text-border/40">•</span>
+                    <span className="text-border/30">•</span>
                     <span>{messagesArray.length} message{messagesArray.length !== 1 ? 's' : ''}</span>
                   </div>
                 </div>
@@ -3395,14 +3396,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
             {/* Desktop Sidebar - Simplified */}
             <aside className="sticky top-4 overflow-y-auto max-h-[calc(100vh-260px)]" data-sidebar>
-              <div className="space-y-4">
+              <div className="space-y-5">
+                {/* AI Summary - Hero */}
+                <AICustomerSummary leadId={params.id} />
+
                 {/* Consolidated Information Panel - Simplified */}
                 <div className="bg-card rounded-xl border border-border/40 p-5">
                 <div className="space-y-5">
                   {/* AI Intake Summary */}
                   {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
                     <div>
-                      <h3 className="text-sm font-semibold text-foreground mb-4">AI Intake</h3>
+                      <h3 className="text-sm font-semibold text-foreground mb-3">Current Request</h3>
                       {(() => {
                         const intake = getLeadAIIntake(leadData || lead)
                         const hasIntake = intake.serviceRequested || leadData?.aiCallRecords?.length > 0
@@ -3439,17 +3443,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
                   {/* Customer Status - Premium rows */}
                   <div>
-                    <h3 className="text-sm font-semibold text-foreground mb-4">Customer Status</h3>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between py-2 border-b border-border/20">
-                        <span className="text-sm text-foreground font-medium">AI Intake</span>
-                        <span className={`text-sm font-semibold ${getAIIntakeStatusColor(getAIIntakeStatus(leadData || lead)).replace('bg-', 'text-').replace('dark:bg-', 'dark:text-').replace('/30', '').replace('/20', '')}`}>
+                    <h3 className="text-xs font-medium text-muted-foreground mb-3">Customer Status</h3>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between py-1.5 border-b border-border/10">
+                        <span className="text-xs text-muted-foreground">AI Intake</span>
+                        <span className={`text-xs font-medium ${getAIIntakeStatusColor(getAIIntakeStatus(leadData || lead)).replace('bg-', 'text-').replace('dark:bg-', 'dark:text-').replace('/30', '').replace('/20', '')}`}>
                           {getAIIntakeStatusLabel(getAIIntakeStatus(leadData || lead))}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between py-2 border-b border-border/20">
-                        <span className="text-sm text-foreground font-medium">Customer Replied</span>
-                        <span className={`text-sm font-semibold ${
+                      <div className="flex items-center justify-between py-1.5 border-b border-border/10">
+                        <span className="text-xs text-muted-foreground">Customer Replied</span>
+                        <span className={`text-xs font-medium ${
                           leadData?.raw_metadata?.customer_replied || leadData?.raw_metadata?.replied_after_ai_call || leadData?.raw_metadata?.last_customer_reply_at || followUpJobs.some((j: any) => j.cancelled_reason === 'customer_replied')
                             ? 'text-green-600 dark:text-green-400'
                             : 'text-muted-foreground'
@@ -3457,9 +3461,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           {leadData?.raw_metadata?.customer_replied || leadData?.raw_metadata?.replied_after_ai_call || leadData?.raw_metadata?.last_customer_reply_at || followUpJobs.some((j: any) => j.cancelled_reason === 'customer_replied') ? 'Yes' : 'No'}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between py-2 border-b border-border/20">
-                        <span className="text-sm text-foreground font-medium">Corrections</span>
-                        <span className={`text-sm font-semibold ${
+                      <div className="flex items-center justify-between py-1.5 border-b border-border/10">
+                        <span className="text-xs text-muted-foreground">Corrections</span>
+                        <span className={`text-xs font-medium ${
                           (leadData?.raw_metadata?.corrected_fields && Object.keys(leadData.raw_metadata.corrected_fields).length > 0)
                             ? 'text-amber-600 dark:text-amber-400'
                             : 'text-muted-foreground'
@@ -3467,9 +3471,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           {leadData?.raw_metadata?.corrected_fields ? Object.keys(leadData.raw_metadata.corrected_fields).length : 0}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between py-2">
-                        <span className="text-sm text-foreground font-medium">Follow-Ups</span>
-                        <span className={`text-sm font-semibold ${
+                      <div className="flex items-center justify-between py-1.5">
+                        <span className="text-xs text-muted-foreground">Follow-Ups</span>
+                        <span className={`text-xs font-medium ${
                           !followUpSettings || !followUpSettings.followUps || followUpSettings.followUps.length === 0
                             ? 'text-muted-foreground'
                             : !followUpSettings.enabled
@@ -3497,7 +3501,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   {/* Photos Received - Simplified */}
                   {Object.keys(messageMedia).length > 0 && (
                     <div>
-                      <h3 className="text-sm font-medium text-muted-foreground mb-3">Photos</h3>
+                      <h3 className="text-xs font-medium text-muted-foreground mb-3">Photos</h3>
                       <div className="grid grid-cols-2 gap-2">
                         {Object.entries(messageMedia).slice(0, showAllPhotos ? undefined : 4).map(([messageId, media]: [string, any]) => (
                           media.urls.slice(0, 1).map((url: string, idx: number) => (
@@ -3567,11 +3571,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Conversation Section - Primary content, conversation-first */}
-          <div className="bg-gradient-to-b from-slate-50/50 via-slate-100/30 to-slate-50/50 dark:from-slate-950/80 dark:via-blue-950/20 dark:to-slate-950/80 border border-slate-200/70 dark:border-slate-800/70 rounded-2xl lg:hidden flex flex-col overflow-hidden shadow-[0_4px_24px_rgb(0,0,0,0.10),0_2px_12px_rgb(0,0,0,0.06)] ring-1 ring-slate-900/8 dark:ring-slate-100/8" style={{ minHeight: '420px', height: '60dvh' }}>
+          <div className="bg-background border border-border/40 rounded-2xl lg:hidden flex flex-col overflow-hidden" style={{ minHeight: '420px', height: '60dvh' }}>
             {/* Mobile Message Thread - Scrollable viewport */}
             <div ref={mobileConversationContainerRef} className="flex-1 min-h-0 overflow-y-auto scroll-smooth overscroll-contain" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', scrollPaddingBottom: '5rem' }}>
               {/* Inner content wrapper for justify-end */}
-              <div className="min-h-full px-3 py-2 flex flex-col justify-end">
+              <div className="min-h-full px-4 py-3 flex flex-col justify-end">
                 {loading ? (
                   <div className="flex items-center justify-center py-8">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>

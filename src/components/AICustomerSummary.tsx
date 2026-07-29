@@ -11,6 +11,7 @@ export default function AICustomerSummary({ leadId }: AICustomerSummaryProps) {
   const [summary, setSummary] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showDetails, setShowDetails] = useState(false)
 
   const handleGenerate = async () => {
     setIsGenerating(true)
@@ -51,25 +52,24 @@ export default function AICustomerSummary({ leadId }: AICustomerSummaryProps) {
   }
 
   return (
-    <div className="bg-slate-50 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200 p-4 sm:p-5">
-      <div className="flex items-center gap-2 mb-3">
-        <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex items-center justify-center shadow-sm">
-          <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+    <div className="bg-card rounded-xl border border-border/40 p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="w-7 h-7 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex items-center justify-center shadow-sm">
+          <Sparkles className="w-4 h-4 text-white" />
         </div>
-        <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground leading-tight">
-          AI Customer Summary
+        <h3 className="text-base font-semibold text-foreground leading-tight">
+          AI Summary
         </h3>
       </div>
 
       {isGenerating ? (
         <div className="space-y-3">
           <div className="animate-pulse space-y-2">
-            <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div>
-            <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
-            <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-5/6"></div>
-            <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-2/3"></div>
+            <div className="h-3 bg-muted rounded w-3/4"></div>
+            <div className="h-3 bg-muted rounded w-full"></div>
+            <div className="h-3 bg-muted rounded w-5/6"></div>
           </div>
-          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <RefreshCw className="w-3 h-3 animate-spin" />
             <span>Generating summary...</span>
           </div>
@@ -79,33 +79,59 @@ export default function AICustomerSummary({ leadId }: AICustomerSummaryProps) {
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
           <button
             onClick={handleGenerate}
-            className="inline-flex items-center justify-center h-9 px-4 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 text-sm font-medium rounded-lg transition-colors"
+            className="inline-flex items-center justify-center h-9 px-4 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium rounded-lg transition-colors"
           >
             Try Again
           </button>
         </div>
       ) : summary ? (
-        <div className="space-y-3">
-          <p className="text-sm sm:text-base text-slate-700 dark:text-slate-300 leading-relaxed">
-            {summary}
-          </p>
-          <button
-            onClick={handleGenerate}
-            disabled={isGenerating}
-            className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <RefreshCw className={`w-3 h-3 ${isGenerating ? 'animate-spin' : ''}`} />
-            Refresh Summary
-          </button>
+        <div className="space-y-4">
+          {/* Bullet highlights */}
+          <div className="space-y-2 text-sm">
+            <div className="flex items-start gap-2">
+              <span className="text-muted-foreground/60 mt-0.5">•</span>
+              <span className="text-foreground">AI-generated summary available</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-muted-foreground/60 mt-0.5">•</span>
+              <span className="text-foreground">Click details to view full analysis</span>
+            </div>
+          </div>
+          
+          {/* Expandable details */}
+          {showDetails ? (
+            <div className="pt-3 border-t border-border/30">
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {summary}
+              </p>
+            </div>
+          ) : null}
+          
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowDetails(!showDetails)}
+              className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+            >
+              {showDetails ? 'Hide' : 'Show'} Details
+            </button>
+            <button
+              onClick={handleGenerate}
+              disabled={isGenerating}
+              className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <RefreshCw className={`w-3 h-3 ${isGenerating ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
         </div>
       ) : (
         <div className="space-y-3">
-          <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-            ReplyFlow can summarize everything known about this customer, including conversation history, AI intake information, jobs, payments, and more.
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Generate an AI summary of this customer's conversation history, intake information, jobs, and payments.
           </p>
           <button
             onClick={handleGenerate}
-            className="inline-flex items-center justify-center h-9 px-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-sm font-medium rounded-lg shadow-sm hover:shadow transition-all duration-200"
+            className="inline-flex items-center justify-center h-9 px-4 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium rounded-lg transition-colors"
           >
             Generate Summary
           </button>
