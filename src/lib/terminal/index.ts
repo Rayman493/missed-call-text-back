@@ -109,19 +109,18 @@ const ReplyflowStripeTerminal = registerPlugin<TerminalPlugin>('ReplyflowStripeT
 export function isNativeCapacitor(): boolean {
   const isNative = Capacitor.isNativePlatform()
   const platform = Capacitor.getPlatform()
-  
+
   // Development logging for platform detection diagnostics
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[isNativeCapacitor] Platform detection:', {
-      isNativePlatform: isNative,
-      getPlatform: platform,
-      isWeb: platform === 'web',
-      isIOS: platform === 'ios',
-      isAndroid: platform === 'android',
-      finalResult: isNative || platform === 'ios' || platform === 'android',
-    })
-  }
-  
+  console.log('[TTP NATIVE] Platform detection:', {
+    isNativePlatform: isNative,
+    getPlatform: platform,
+    isWeb: platform === 'web',
+    isIOS: platform === 'ios',
+    isAndroid: platform === 'android',
+    pluginAvailable: Capacitor.isPluginAvailable('ReplyflowStripeTerminal'),
+    finalResult: isNative || platform === 'ios' || platform === 'android',
+  })
+
   // Robust check: consider native if isNativePlatform is true OR platform is ios/android
   // This handles edge cases where isNativePlatform might return false in TestFlight
   // but getPlatform correctly identifies the platform

@@ -23,28 +23,29 @@ import { getAuthenticatedUser } from '@/lib/supabase/auth-helper'
  * - No-store cache headers to prevent token caching
  */
 export async function POST(request: NextRequest) {
-  console.log('[TERMINAL_AUTH] endpoint=connection-token')
+  console.log('[TTP API] Connection token request received')
   try {
     // 1. Authenticate user (supports both bearer token and cookie auth)
     const user = await getAuthenticatedUser(request)
 
     if (!user) {
-      console.error('[TERMINAL_AUTH] user_resolved=false')
+      console.error('[TTP API] Authentication failed - user not resolved')
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
 
-    console.log('[TERMINAL_AUTH] user_resolved=true')
+    console.log('[TTP API] Authentication passed')
     const userId = user.id
-    console.log('[ConnectionToken] User authenticated:', userId)
+    console.log('[TTP API] User authenticated:', userId)
 
     // 2. Resolve authorized business
+    console.log('[TTP API] Resolving business for user:', userId)
     const businessResult = await db.getBusinessByUserId(userId)
 
     if (!businessResult.found || !businessResult.business) {
-      console.error('[ConnectionToken] No business found for user:', userId)
+      console.error('[TTP API] Business access verified - no business found for user:', userId)
       return NextResponse.json(
         { error: 'Business not found' },
         { status: 404 }
@@ -52,13 +53,13 @@ export async function POST(request: NextRequest) {
     }
 
     const business = businessResult.business
-    console.log('[ConnectionToken] Business resolved:', business.id)
+    console.log('[TTP API] Business access verified:', business.id)
 
     // 3. Retrieve connected Stripe account ID
     const stripeAccountId = business.stripe_connect_account_id
 
     if (!stripeAccountId) {
-      console.error('[ConnectionToken] No connected Stripe account for business:', business.id)
+      console.error('[TTP API] Stripe Connect account not configured for business:', business.id)
       return NextResponse.json(
         { error: 'Stripe Connect account not configured' },
         { status: 400 }
@@ -67,26 +68,27 @@ export async function POST(request: NextRequest) {
 
     // Verify the account is in a usable state
     if (business.stripe_connect_status !== 'connected') {
-      console.error('[ConnectionToken] Stripe Connect account not in connected state:', business.stripe_connect_status)
+      console.error('[TTP API] Stripe Connect account not in connected state:', business.stripe_connect_status)
       return NextResponse.json(
         { error: 'Stripe Connect account not ready' },
         { status: 400 }
       )
     }
 
-    console.log('[ConnectionToken] Using connected account:', stripeAccountId)
+    console.log('[TTP API] Using connected account:', stripeAccountId)
 
     // 4. Create ConnectionToken scoped to connected account
     const stripe = getStripe()
 
     if (!stripe) {
-      console.error('[ConnectionToken] Failed to initialize Stripe client')
+      console.error('[TTP API] Failed to initialize Stripe client')
       return NextResponse.json(
         { error: 'Payment service unavailable' },
         { status: 503 }
       )
     }
 
+    console.log('[TTP API] Creating Stripe connection token')
     const connectionToken = await stripe.terminal.connectionTokens.create(
       {}, // No additional parameters needed
       {
@@ -94,7 +96,7 @@ export async function POST(request: NextRequest) {
       }
     )
 
-    console.log('[ConnectionToken] Token created successfully')
+    console.log('[TTP API] Stripe connection token created successfully')
 
     // 5. Return token secret only
     return NextResponse.json(

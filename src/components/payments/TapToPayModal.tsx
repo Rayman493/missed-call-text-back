@@ -361,7 +361,16 @@ export default function TapToPayModal({
   }
 
   const handleStartPayment = async () => {
+    console.log('[TTP UI] Payment started:', {
+      isNativeSupported,
+      platform,
+      amountCents,
+      leadId,
+      jobId
+    })
+
     if (!isNativeSupported) {
+      console.log('[TTP UI] Native support check failed')
       setError('Tap to Pay is only available on the mobile app')
       return
     }
@@ -381,12 +390,14 @@ export default function TapToPayModal({
 
     // Double-tap protection - prevent multiple simultaneous payment attempts
     if (isPaymentInProgress) {
+      console.log('[TTP UI] Payment already in progress, ignoring')
       return
     }
 
     // Check for unresolved attempt before starting new payment
     const unresolvedAttemptId = terminalService.getUnresolvedAttempt()
     if (unresolvedAttemptId) {
+      console.log('[TTP UI] Unresolved attempt found:', unresolvedAttemptId)
       setPaymentState('ambiguous')
       setError('Please resolve the previous payment status first')
       checkAttemptStatus(unresolvedAttemptId)
@@ -401,15 +412,19 @@ export default function TapToPayModal({
     setLastSuccessfulStage('initializing')
 
     try {
+      console.log('[TTP UI] Checking device support')
       // Check device support
       const supportCheck = await terminalService.isSupported()
+      console.log('[TTP UI] Device support check result:', supportCheck)
       if (!supportCheck.supported) {
         throw new Error('This device does not support Tap to Pay')
       }
       setLastSuccessfulStage('device_supported')
 
+      console.log('[TTP UI] Initializing terminal')
       // Initialize if needed
       const initResult = await terminalService.initialize()
+      console.log('[TTP UI] Initialize result:', initResult)
       try {
         logTapToPayEvent('RIGHT_AFTER_INITIALIZE_RETURN', {
           phase: 'initialize',
@@ -440,13 +455,16 @@ export default function TapToPayModal({
         if (paymentStateRef.current !== 'preparing') {
           setPaymentState('preparing')
         }
+        console.log('[TTP UI] Connecting to Tap to Pay')
         const connectResult = await terminalService.connectTapToPay()
+        console.log('[TTP UI] Connect result:', connectResult)
         if (connectResult.status !== 'connected') {
           throw new Error('Failed to connect to payment terminal')
         }
         setLastSuccessfulStage('connected')
       }
 
+      console.log('[TTP UI] Starting payment collection')
       // Start payment collection (this creates PaymentIntent internally)
       const paymentPromise = terminalService.startTapToPayPayment({
         amountCents,
@@ -468,6 +486,7 @@ export default function TapToPayModal({
       } catch {}
 
       const paymentResult = await paymentPromise
+      console.log('[TTP UI] Payment result:', paymentResult)
 
       if (paymentResult.status === 'succeeded') {
         setLastSuccessfulStage('payment_complete')
@@ -490,7 +509,8 @@ export default function TapToPayModal({
         throw new Error(paymentResult.error?.message || 'Payment failed')
       }
     } catch (err) {
-      console.error('[TAP_SESSION_TRACE] stage=payment_error error=' + (err instanceof Error ? err.message : 'Unknown'))
+      console.error('[TTP ERROR] stage=payment_error error=' + (err instanceof Error ? err.message : 'Unknown'))
+      console.error('[TTP ERROR] Full error object:', err)
       console.error('Tap to Pay error:', err)
       setIsPaymentInProgress(false)
 
@@ -498,6 +518,7 @@ export default function TapToPayModal({
       if (err && typeof err === 'object' && 'data' in err) {
         // Capacitor rejection with structured error from native
         const structuredData = (err as any).data
+        console.log('[TTP ERROR] Structured error data:', structuredData)
         if (structuredData && structuredData.stage && structuredData.code) {
           // Check for user cancellation - treat as neutral state, not error
           if (structuredData.code === 'USER_ERROR.CANCELED' || structuredData.nativeCode === 'USER_ERROR.CANCELED') {
@@ -518,6 +539,7 @@ export default function TapToPayModal({
       // Capture JS/service-layer error for diagnostics (only if not structured)
       if (err instanceof Error) {
         const message = err.message.toLowerCase()
+        console.log('[TTP ERROR] Error message:', message)
         if (message.includes('client-secret-required')) {
           setJsError({
             code: 'client-secret-required',

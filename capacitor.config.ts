@@ -92,6 +92,9 @@ const config: CapacitorConfig = {
     Keyboard: {
       resizeOnFullScreen: false,
     },
+    ReplyflowStripeTerminal: {
+      debug: !isProduction,
+    },
   },
 };
 

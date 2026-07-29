@@ -179,32 +179,36 @@ export class TerminalBridgeService {
   }
 
   async initialize(options?: InitializeOptions) {
+    console.log('[TTP NATIVE] Plugin initialization started')
     // Comprehensive diagnostics before any plugin operations
     if (process.env.NODE_ENV === 'development') {
-      console.log('[TerminalBridgeService] === STARTUP DIAGNOSTICS ===')
-      console.log('[TerminalBridgeService] Capacitor.isNativePlatform():', Capacitor.isNativePlatform())
-      console.log('[TerminalBridgeService] Capacitor.getPlatform():', Capacitor.getPlatform())
-      console.log('[TerminalBridgeService] Capacitor.isPluginAvailable("ReplyflowStripeTerminal"):', Capacitor.isPluginAvailable('ReplyflowStripeTerminal'))
-      console.log('[TerminalBridgeService] Plugin instance exists:', this.plugin !== null)
+      console.log('[TTP NATIVE] === STARTUP DIAGNOSTICS ===')
+      console.log('[TTP NATIVE] Capacitor.isNativePlatform():', Capacitor.isNativePlatform())
+      console.log('[TTP NATIVE] Capacitor.getPlatform():', Capacitor.getPlatform())
+      console.log('[TTP NATIVE] Capacitor.isPluginAvailable("ReplyflowStripeTerminal"):', Capacitor.isPluginAvailable('ReplyflowStripeTerminal'))
+      console.log('[TTP NATIVE] Plugin instance exists:', this.plugin !== null)
     }
 
     if (!this.plugin) {
+      console.log('[TTP ERROR] Plugin not available - platform unsupported')
       logTapToPayEvent('platform_unsupported', { phase: 'startup', sessionId: this.sessionId, meta: { platform: Capacitor.getPlatform?.() } }).catch(() => {})
       const error = new Error('Tap to Pay is not available on this device')
       // Log technical error in development
       if (process.env.NODE_ENV === 'development') {
-        console.error('[TerminalBridgeService] Plugin not available:', error)
+        console.error('[TTP ERROR] Plugin not available:', error)
       }
       throw this.mapErrorToFriendlyMessage(error)
     }
 
     try {
+      console.log('[TTP NATIVE] Setting up token request listener')
       // Set up token request listener BEFORE initialization
       // Stripe Terminal may request a connection token during initialization
       await this.setupTokenRequestListener()
       // Global native diagnostic listeners (fire-and-forget)
       try {
         if (this.plugin && this.diagListeners.length === 0) {
+          console.log('[TTP NATIVE] Registering diagnostic listeners')
           const l1Type = 'statusChanged'
           const l1Id = l1Type + '#' + Date.now()
           const l1 = await this.plugin.addListener('statusChanged', async (data: any) => {
@@ -320,7 +324,7 @@ export class TerminalBridgeService {
         }
       } catch {}
       if (process.env.NODE_ENV === 'development') {
-        console.log('[TerminalBridgeService] Token request listener registered')
+        console.log('[TTP NATIVE] Token request listener registered')
       }
 
       // App background/foreground diagnostics (singleton)
@@ -349,34 +353,35 @@ export class TerminalBridgeService {
       } catch {}
 
       // Diagnostic ping before initialization - critical for verifying registration
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[TerminalBridgeService] Calling ping() to verify JS→native communication...')
-        try {
-          const pingResult = await this.plugin.ping()
-          console.log('[TerminalBridgeService] ping() result:', pingResult)
-          if (pingResult.buildMarker) {
-            console.log('[TerminalBridgeService] Build marker:', pingResult.buildMarker)
-          }
-        } catch (pingError) {
-          console.error('[TerminalBridgeService] ping() failed - plugin not registered or not implemented:', pingError)
-          // In development, throw the raw error to surface the root cause
-          throw pingError
+      console.log('[TTP NATIVE] Calling ping() to verify JS→native communication')
+      try {
+        const pingResult = await this.plugin.ping()
+        console.log('[TTP NATIVE] ping() result:', pingResult)
+        if (pingResult.buildMarker) {
+          console.log('[TTP NATIVE] Build marker:', pingResult.buildMarker)
         }
+      } catch (pingError) {
+        console.error('[TTP ERROR] ping() failed - plugin not registered or not implemented:', pingError)
+        // In development, throw the raw error to surface the root cause
+        throw pingError
       }
 
       const t0 = Date.now()
+      console.log('[TTP NATIVE] Calling plugin.initialize()')
       logTapToPayEvent('initialize_started', { phase: 'initialize', sessionId: this.sessionId }).catch(() => {})
       const result = await this.plugin.initialize({ ...(options as any), diagnosticAttemptId: this.sessionId } as any)
       const initMs = Date.now() - t0
       this.sessionTimings.initializeMs = initMs
+      console.log('[TTP NATIVE] plugin.initialize() completed:', result)
       logTapToPayEvent('initialize_completed', { phase: 'initialize', sessionId: this.sessionId, durationMs: initMs, connectionStatus: result.status }).catch(() => {})
 
       return result
     } catch (error) {
+      console.error('[TTP ERROR] Initialize failed:', error)
       logTapToPayEvent('initialize_failed', { phase: 'initialize', sessionId: this.sessionId, message: error instanceof Error ? error.message : String(error) }).catch(() => {})
       // Log technical error in development
       if (process.env.NODE_ENV === 'development') {
-        console.error('[TerminalBridgeService] Initialize failed:', error)
+        console.error('[TTP ERROR] Initialize failed:', error)
       }
       throw this.mapErrorToFriendlyMessage(error)
     }
