@@ -845,24 +845,37 @@ export async function sendMms(
     clientMessageId?: string; // Client-generated UUID for optimistic message correlation
   }
 ): Promise<{ sid: string | null; messageId: string | null }> {
-  message = appendBusinessAvailabilityNote(message, business);
-
-  // Validate Twilio environment for SMS operations
-  const smsValidation = validateTwilioForSms();
-  
-  console.log('[MMS SEND] Starting sendMms:', {
+  console.log('[MMS TWILIO] sendMms ENTRY:', {
     business_id: business.id,
     business_name: business.name,
     to,
     message_length: message.length,
     media_count: mediaUrls.length,
+    mediaUrls: mediaUrls,
     lead_id: options?.lead_id,
     conversation_id: options?.conversation_id,
+    isManual: options?.isManual,
+    clientMessageId: options?.clientMessageId,
     twilio_phone_number: business.twilio_phone_number,
     messaging_service_sid: business.twilio_messaging_service_sid,
     provisioning_status: business.provisioning_status
   });
-  
+
+  message = appendBusinessAvailabilityNote(message, business);
+
+  console.log('[MMS TWILIO] After business availability note:', {
+    message_length: message.length
+  });
+
+  // Validate Twilio environment for SMS operations
+  const smsValidation = validateTwilioForSms();
+
+  console.log('[MMS TWILIO] Twilio validation result:', {
+    isValid: smsValidation.isValid,
+    method: smsValidation.method,
+    error: smsValidation.error
+  });
+
   if (!smsValidation.isValid) {
     console.error('[MMS FAILED] Twilio validation failed:', smsValidation.error);
     await logFailedMessage(business, to, message || '[MMS]', options, smsValidation.error || 'Twilio validation failed', 'CONFIG_ERROR', false);
@@ -870,6 +883,13 @@ export async function sendMms(
   }
 
   // Verify business has a canonical number
+  console.log('[MMS TWILIO] Checking business number:', {
+    has_phone: !!business.twilio_phone_number,
+    has_phone_sid: !!business.twilio_phone_number_sid,
+    phone: business.twilio_phone_number,
+    phone_sid: business.twilio_phone_number_sid
+  });
+
   if (!business.twilio_phone_number || !business.twilio_phone_number_sid) {
     console.error('[MMS FAILED] No canonical Twilio number assigned to business');
     await logFailedMessage(business, to, message || '[MMS]', options, 'No Twilio number assigned to business', 'NO_TWILIO_NUMBER', false);
@@ -877,8 +897,14 @@ export async function sendMms(
   }
 
   // FAIL-SAFE: Check if number is ready for use before sending
+  console.log('[MMS TWILIO] Checking number readiness');
   const isReady = await isNumberReadyForUse(business.id);
-  
+
+  console.log('[MMS TWILIO] Number readiness check:', {
+    isReady,
+    provisioning_status: business.provisioning_status
+  });
+
   if (!isReady) {
     console.error('[MMS FAILED] Number not ready for use - provisioning incomplete');
     await logFailedMessage(business, to, message || '[MMS]', options, 'Number not ready for use - provisioning incomplete', 'NUMBER_NOT_READY', false);
@@ -927,6 +953,8 @@ export async function sendMms(
     process.env.TWILIO_AUTH_TOKEN!
   );
 
+  console.log('[MMS TWILIO] Twilio client created')
+
   let messageResult;
   let errorMessage = '';
   let errorCode = '';
@@ -936,26 +964,49 @@ export async function sendMms(
     const statusCallbackUrl = `${appUrl}/api/twilio/message-status`
     const fromNumber = business.twilio_phone_number;
 
-    console.log('[MMS SEND] Calling Twilio API with media:', {
+    console.log('[MMS TWILIO] Calling Twilio API with media:', {
       business_id: business.id,
       to,
       from: fromNumber,
       mediaUrls,
       messageLength: message.length,
-      statusCallbackUrl
+      statusCallbackUrl,
+      appUrl
     });
 
-    messageResult = await client.messages.create({
+    console.log('[MMS TWILIO] Twilio API call parameters:', {
       body: message,
       to,
       from: fromNumber,
       mediaUrl: mediaUrls,
-      statusCallback: statusCallbackUrl,
-    });
+      statusCallback: statusCallbackUrl
+    })
 
-    console.log('[MMS SEND] Twilio send succeeded:', {
+    // CRITICAL FIX: Twilio expects 'mediaUrl' for single URL or 'mediaUrls' for array
+    // Since we're passing an array, use 'mediaUrls' (plural)
+    const twilioParams: any = {
+      body: message,
+      to,
+      from: fromNumber,
+      statusCallback: statusCallbackUrl,
+    }
+
+    if (mediaUrls.length === 1) {
+      twilioParams.mediaUrl = mediaUrls[0]
+      console.log('[MMS TWILIO] Using single mediaUrl:', mediaUrls[0])
+    } else {
+      twilioParams.mediaUrls = mediaUrls
+      console.log('[MMS TWILIO] Using multiple mediaUrls:', mediaUrls)
+    }
+
+    messageResult = await client.messages.create(twilioParams);
+
+    console.log('[MMS TWILIO] Twilio API call succeeded:', {
       message_sid: messageResult.sid,
       status: messageResult.status,
+      errorCode: messageResult.errorCode,
+      errorMessage: messageResult.errorMessage,
+      direction: messageResult.direction,
       business_id: business.id,
       lead_id: options?.lead_id,
       conversation_id: options?.conversation_id

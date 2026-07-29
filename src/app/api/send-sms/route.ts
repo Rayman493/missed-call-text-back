@@ -72,18 +72,34 @@ export async function POST(request: Request) {
 
     if (contentType.includes('multipart/form-data')) {
       // Handle FormData (MMS)
+      console.log('[MMS API] Parsing FormData request')
       const formData = await request.formData()
       leadId = formData.get('leadId') as string
       message = formData.get('message') as string
       clientMessageId = formData.get('clientMessageId') as string
 
+      console.log('[MMS API] FormData parsed:', {
+        leadId,
+        messageLength: message?.length || 0,
+        clientMessageId,
+        hasFormData: !!formData
+      })
+
       // Extract media files
       for (let i = 0; i < 10; i++) {
         const file = formData.get(`media_${i}`) as File
         if (file && file.size > 0) {
+          console.log('[MMS API] Found media file:', {
+            index: i,
+            fileName: file.name,
+            fileSize: file.size,
+            fileType: file.type
+          })
           mediaFiles.push(file)
         }
       }
+
+      console.log('[MMS API] Total media files extracted:', mediaFiles.length)
     } else {
       // Handle JSON (regular SMS)
       const body = await request.json()
@@ -186,12 +202,13 @@ export async function POST(request: Request) {
 
     // Upload media files to Supabase Storage if present
     if (mediaFiles.length > 0) {
+      console.log('[MMS API] Starting media upload process')
       // Validate file types - Twilio MMS only supports JPEG, PNG, GIF
       const supportedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
       const unsupportedFile = mediaFiles.find(f => !supportedTypes.includes(f.type))
       
       if (unsupportedFile) {
-        console.error('[MMS] Unsupported file type:', {
+        console.error('[MMS API] Unsupported file type:', {
           fileName: unsupportedFile.name,
           fileType: unsupportedFile.type
         })
@@ -202,18 +219,20 @@ export async function POST(request: Request) {
       }
       
       try {
-        console.log('[MMS] Uploading media files to storage:', {
+        console.log('[MMS API] Uploading media files to storage:', {
           mediaCount: mediaFiles.length,
           fileNames: mediaFiles.map(f => f.name),
           fileSizes: mediaFiles.map(f => f.size),
-          bucketName: 'mms-media'
+          bucketName: 'mms-media',
+          businessId: business.id,
+          leadId: lead.id
         })
         
         for (const file of mediaFiles) {
           const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${file.name}`
           const filePath = `${business.id}/${lead.id}/${fileName}`
           
-          console.log('[MMS] Uploading file:', {
+          console.log('[MMS API] Uploading file:', {
             fileName,
             filePath,
             fileSize: file.size,
@@ -225,7 +244,7 @@ export async function POST(request: Request) {
             .upload(filePath, file)
           
           if (uploadError) {
-            console.error('[MMS] Upload error:', {
+            console.error('[MMS API] Upload error:', {
               error: uploadError,
               message: uploadError.message,
               statusCode: uploadError.statusCode,
@@ -238,7 +257,7 @@ export async function POST(request: Request) {
             }, { status: 500 })
           }
           
-          console.log('[MMS] Upload successful:', {
+          console.log('[MMS API] Upload successful:', {
             path: uploadData?.path,
             fullPath: uploadData?.fullPath
           })
@@ -248,7 +267,7 @@ export async function POST(request: Request) {
             .from('mms-media')
             .getPublicUrl(filePath)
           
-          console.log('[MMS] Generated public URL:', {
+          console.log('[MMS API] Generated public URL:', {
             publicUrl: publicUrlData.publicUrl,
             filePath
           })
@@ -256,12 +275,12 @@ export async function POST(request: Request) {
           mediaUrls.push(publicUrlData.publicUrl)
         }
         
-        console.log('[MMS] Media uploaded successfully:', {
+        console.log('[MMS API] Media uploaded successfully:', {
           mediaCount: mediaUrls.length,
           urls: mediaUrls
         })
       } catch (error: any) {
-        console.error('[MMS] Error uploading media:', {
+        console.error('[MMS API] Error uploading media:', {
           error: error,
           message: error?.message,
           stack: error?.stack
@@ -351,12 +370,17 @@ export async function POST(request: Request) {
     let mediaItems: any[] = []
     if (mediaUrls.length > 0 && messageId) {
       try {
-        console.log('[MMS] Inserting media using direct message ID:', {
+        console.log('[MMS API] Inserting media using direct message ID:', {
           messageId,
           mediaCount: mediaUrls.length
         })
-        
+
         for (const mediaUrl of mediaUrls) {
+          console.log('[MMS API] Inserting media record:', {
+            messageId,
+            mediaUrl: mediaUrl.substring(0, 50) + '...'
+          })
+
           const { error: mediaError } = await supabaseAdmin
             .from('message_media')
             .insert({
@@ -365,11 +389,11 @@ export async function POST(request: Request) {
               mime_type: 'image/jpeg', // Simplified - could detect from file
               created_at: new Date().toISOString(),
             })
-          
+
           if (mediaError) {
-            console.error('[MMS] Error storing media in database:', mediaError)
+            console.error('[MMS API] Error storing media in database:', mediaError)
           } else {
-            console.log('[MMS] Media stored successfully:', {
+            console.log('[MMS API] Media stored successfully:', {
               messageId,
               mediaUrl: mediaUrl.substring(0, 50) + '...'
             })
@@ -380,11 +404,11 @@ export async function POST(request: Request) {
           }
         }
       } catch (error) {
-        console.error('[MMS] Error storing media metadata:', error)
+        console.error('[MMS API] Error storing media metadata:', error)
         // Don't fail the request - message was sent successfully
       }
     } else if (mediaUrls.length > 0 && !messageId) {
-      console.error('[MMS] Cannot insert media - messageId is null', {
+      console.error('[MMS API] Cannot insert media - messageId is null', {
         mediaCount: mediaUrls.length,
         messageSid
       })

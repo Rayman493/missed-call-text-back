@@ -44,6 +44,11 @@ export default function ConversationComposer({
     const files = e.target.files
     if (!files) return
 
+    console.log('[MMS] Image selected:', {
+      fileCount: files.length,
+      fileNames: Array.from(files).map(f => f.name)
+    })
+
     const newImages: ImagePreview[] = []
     let unsupportedFile = ''
 
@@ -69,6 +74,10 @@ export default function ConversationComposer({
     }
 
     setImages(prev => [...prev, ...newImages])
+    console.log('[MMS] Images added to state:', {
+      totalImages: newImages.length,
+      newImageNames: newImages.map(img => img.file.name)
+    })
   }
 
   const removeImage = (id: string) => {

@@ -1705,6 +1705,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const mediaFiles = Array.isArray(e) ? e : undefined
     const isMMS = mediaFiles && mediaFiles.length > 0
     
+    console.log('[MMS] handleSendMessage called:', {
+      isMMS,
+      mediaCount: mediaFiles?.length || 0,
+      messageLength: message.trim().length,
+      mediaFileNames: mediaFiles?.map(f => f.name)
+    })
+    
     // Don't send if message is empty (unless media is present), whitespace, or already sending
     if (!message.trim() && !mediaFiles) return
     if (sending) return
@@ -1754,9 +1761,23 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       const supabase = createBrowserClient()
       const { data: { session } } = await supabase.auth.getSession()
 
+      console.log('[MMS] Session obtained:', {
+        hasSession: !!session,
+        hasAccessToken: !!session?.access_token
+      })
+
       let response: Response
 
       if (mediaFiles && mediaFiles.length > 0) {
+        console.log('[MMS] Preparing FormData for MMS:', {
+          leadId: params.id,
+          messageLength: message.trim().length,
+          mediaCount: mediaFiles.length,
+          mediaFileNames: mediaFiles.map(f => f.name),
+          mediaFileSizes: mediaFiles.map(f => f.size),
+          mediaFileTypes: mediaFiles.map(f => f.type)
+        })
+        
         // Use FormData for MMS
         const formData = new FormData()
         formData.append('leadId', params.id)
@@ -1764,14 +1785,22 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         formData.append('clientMessageId', clientMessageId)
         
         mediaFiles.forEach((file, index) => {
+          console.log('[MMS] Appending file to FormData:', {
+            index,
+            fileName: file.name,
+            fileSize: file.size,
+            fileType: file.type
+          })
           formData.append(`media_${index}`, file)
         })
 
         const headers: HeadersInit = {}
         if (session?.access_token) {
           headers['Authorization'] = `Bearer ${session.access_token}`
+          console.log('[MMS] Authorization header set')
         }
 
+        console.log('[MMS] Sending API request to /api/send-sms with FormData')
         response = await fetch('/api/send-sms', {
           method: 'POST',
           headers,
@@ -1795,12 +1824,24 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         })
       }
 
+      console.log('[MMS] API response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      })
+
       console.log('[API REQUEST] Sent message with clientMessageId:', {
         clientMessageId,
         body: message.trim().substring(0, 30)
       })
 
       const result = await response.json()
+      console.log('[MMS] API response parsed:', {
+        success: result.success,
+        error: result.error,
+        hasMessage: !!result.message,
+        messageSid: result.message?.twilio_message_sid
+      })
 
       if (!response.ok) {
         // Update optimistic message to failed state (SMS only)

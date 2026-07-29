@@ -20,33 +20,45 @@ const supabase = createClient(
 
 export async function POST(req: NextRequest) {
   try {
-    console.log('[twilio] status callback received')
+    console.log('[MMS CALLBACK] status callback received')
 
     // Read raw body for signature validation
     const rawBody = await req.text()
     const contentType = req.headers.get('content-type') || ''
     const params = new URLSearchParams(rawBody)
 
+    console.log('[MMS CALLBACK] Raw body parsed:', {
+      bodyLength: rawBody.length,
+      contentType
+    })
+
     // Validate Twilio signature with params object
     const isValid = requireTwilioAuth(req, Object.fromEntries(params), rawBody.length, contentType)
     if (!isValid) {
-      console.error('[twilio] Invalid Twilio signature')
+      console.error('[MMS CALLBACK] Invalid Twilio signature')
       return new Response('Unauthorized', { status: 401 })
     }
 
-    console.log('[twilio] Signature validated successfully')
-    
+    console.log('[MMS CALLBACK] Signature validated successfully')
+
     const MessageSid = params.get('MessageSid')
     const MessageStatus = params.get('MessageStatus')
     const ErrorCode = params.get('ErrorCode')
     const ErrorMessage = params.get('ErrorMessage')
-    
+
+    console.log('[MMS CALLBACK] Status update parameters:', {
+      message_sid: MessageSid,
+      message_status: MessageStatus,
+      error_code: ErrorCode,
+      error_message: ErrorMessage
+    })
+
     if (!MessageSid || !MessageStatus) {
-      console.error('[twilio] status callback missing required fields:', { MessageSid, MessageStatus })
+      console.error('[MMS CALLBACK] Missing required fields:', { MessageSid, MessageStatus })
       return new Response('OK', { status: 200 })
     }
-    
-    console.log('[twilio] status update processing:', {
+
+    console.log('[MMS CALLBACK] Status update processing:', {
       message_sid: MessageSid,
       message_status: MessageStatus,
       error_code: ErrorCode,
