@@ -45,7 +45,6 @@ import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smar
 import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
 import SuccessBanner from '@/components/SuccessBanner'
 import BusinessPhoneModal from '@/components/BusinessPhoneModal'
-import { createPendingAction } from '@/lib/pending-actions'
 import { Capacitor } from '@capacitor/core'
 
 // Check if running in native mobile app
@@ -481,26 +480,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const digitCount = dialNumber.replace(/\D/g, '').length
   const canDialPhone = Boolean(dialNumber && (dialNumber.replace(/\D/g, '').length >= 10))
   const handleNativeCall = async () => {
-    if (communicationSource === 'business') {
-      // Use native phone app for My Business Number
-      if (!isNativeMobile()) {
-        // Desktop: ignore Business Phone preference, always use ReplyFlow
-        return
-      }
-      // Register pending action before opening native app
-      const customerName = getCustomerName(lead, leadData)
-      const pendingAction = createPendingAction(
-        'business_phone_call',
-        lead?.id || leadData?.id || '',
-        customerName,
-        dialNumber,
-        business?.id || '',
-        undefined,
-        undefined
-      )
-      // No longer need to register pending action - timeline event is created immediately
-    }
-    // For ReplyFlow Number, use existing call workflow
+    // Use native phone app for all platforms
     try {
       if (canDialPhone) {
         window.location.href = `tel:${dialNumber}`
@@ -510,34 +490,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   // Text Customer handlers
   const handleTextCustomer = () => {
-    if (communicationSource === 'replyflow') {
-      // Focus on the message composer
-      setTimeout(() => {
-        const composerInput = document.querySelector('textarea[placeholder*="Type a message"]') as HTMLTextAreaElement
-        if (composerInput) {
-          composerInput.focus()
-          composerInput.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        }
-      }, 100)
-    } else {
-      // Show shared Business Phone modal for native mobile
-      if (isNativeMobile()) {
-        const customerName = getCustomerName(lead, leadData)
-        const dialNumber = leadData?.caller_phone || lead?.caller_phone || ''
-        setBusinessPhoneModalConfig({
-          title: 'Send Message',
-          description: 'Send a text message to this customer from your business phone.',
-          message: '', // Empty for plain text
-          recipient: dialNumber,
-          recipientName: customerName,
-          actionType: 'text'
-        })
-        setShowBusinessPhoneModal(true)
-      } else {
-        // Show message about mobile app availability on web/desktop
-        alert('Open this customer in the ReplyFlow mobile app to text from a number configured on your phone.')
+    // Focus on the message composer for all platforms
+    setTimeout(() => {
+      const composerInput = document.querySelector('textarea[placeholder*="Type a message"]') as HTMLTextAreaElement
+      if (composerInput) {
+        composerInput.focus()
+        composerInput.scrollIntoView({ behavior: 'smooth', block: 'center' })
       }
-    }
+    }, 100)
   }
 
   // Close more actions dropdown when clicking outside
@@ -1127,9 +1087,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [selectedPaymentProvider, setSelectedPaymentProvider] = useState<'stripe' | 'venmo' | 'paypal'>('stripe')
   const paymentAmountRef = useRef<HTMLInputElement>(null)
 
-  // State for communication source selector (mobile only, session-level override)
-  const [communicationSource, setCommunicationSource] = useState<'replyflow' | 'business'>('replyflow')
-
   // State for shared Business Phone modal
   const [showBusinessPhoneModal, setShowBusinessPhoneModal] = useState(false)
   const [businessPhoneModalConfig, setBusinessPhoneModalConfig] = useState<{
@@ -1142,24 +1099,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     relatedId?: string
     relatedType?: string
   } | null>(null)
-
-  // Load communication source preference from business data on mount
-  useEffect(() => {
-    if (business?.default_mobile_communication_source) {
-      setCommunicationSource(business.default_mobile_communication_source as 'replyflow' | 'business')
-    }
-  }, [business?.default_mobile_communication_source])
-
-  // Save communication source preference to localStorage when changed (mobile session override only)
-  useEffect(() => {
-    if (isNativeMobile()) {
-      try {
-        localStorage.setItem('customerCommunicationSource', communicationSource)
-      } catch {
-        // Ignore localStorage errors
-      }
-    }
-  }, [communicationSource])
 
   // State for appointment confirmation
   const [showAppointmentSelection, setShowAppointmentSelection] = useState(false)
@@ -1252,55 +1191,32 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     setConfirmationError(null)
 
     try {
-      if (communicationSource === 'business' && isNativeMobile()) {
-        // Use shared Business Phone modal for native mobile
-        const job = futureAppointments.find((j: any) => j.id === jobId)
-        if (job) {
-          const customerName = getCustomerName(lead, leadData)
-          const dialNumber = leadData?.caller_phone || lead?.caller_phone || ''
-          const message = `Appointment reminder: ${job.title || 'Appointment'} scheduled for ${job.scheduled_date} at ${job.scheduled_time}.`
-          
-          setBusinessPhoneModalConfig({
-            title: 'Send Appointment Reminder',
-            description: 'Send an appointment reminder to this customer from your business phone.',
-            message: message,
-            recipient: dialNumber,
-            recipientName: customerName,
-            actionType: 'appointment',
-            relatedId: jobId,
-            relatedType: 'job'
-          })
-          setShowBusinessPhoneModal(true)
-          setShowAppointmentSelection(false)
-        }
-      } else {
-        // Use existing ReplyFlow API for ReplyFlow Number flow
-        const { data: { session } } = await supabase.auth.getSession()
-        const token = session?.access_token
+      // Use existing ReplyFlow API for all platforms
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
 
-        if (!token) {
-          throw new Error('Not authenticated')
-        }
-
-        const response = await fetch(`/api/jobs/${jobId}/send-confirmation`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        })
-
-        if (!response.ok) {
-          const error = await response.json()
-          throw new Error(error.error || 'Failed to send confirmation')
-        }
-
-        // Refresh lead data to update job confirmation status
-        await handleRefresh()
-        await fetchLeadJobs()
-        setSuccessMessage(successText)
-        setShowAppointmentSelection(false)
+      if (!token) {
+        throw new Error('Not authenticated')
       }
+
+      const response = await fetch(`/api/jobs/${jobId}/send-confirmation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to send confirmation')
+      }
+
+      // Refresh lead data to update job confirmation status
+      await handleRefresh()
+      await fetchLeadJobs()
+      setSuccessMessage(successText)
+      setShowAppointmentSelection(false)
     } catch (error: any) {
       setConfirmationError(error.message || 'Failed to send confirmation')
     } finally {
@@ -1875,11 +1791,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     // Don't send if message is empty (unless media is present), whitespace, or already sending
     if (!message.trim() && !mediaFiles) return
     if (sending) return
-
-    // Desktop: ignore Business Phone preference, always use ReplyFlow
-    if (communicationSource === 'business' && !isNativeMobile()) {
-      return
-    }
 
     // Create stable client message ID for correlation
     const clientMessageId = crypto.randomUUID()
@@ -2776,27 +2687,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       const customerName = getCustomerName(lead, leadData)
 
-      if (communicationSource === 'business') {
-        // Use shared Business Phone modal for native mobile
-        if (isNativeMobile() && canDialPhone) {
-          const message = `Appointment scheduled for ${appointmentDate} at ${appointmentTime}.`
-          setBusinessPhoneModalConfig({
-            title: 'Send Appointment Details',
-            description: 'Send appointment details to the customer from your business phone.',
-            message: message,
-            recipient: dialNumber,
-            recipientName: customerName,
-            actionType: 'appointment'
-          })
-          setShowBusinessPhoneModal(true)
-        } else {
-          setAppointmentSuccessData({ customerName, date: appointmentDate, time: appointmentTime })
-          setShowAppointmentSuccessModal(true)
-        }
-      } else {
-        setAppointmentSuccessData({ customerName, date: appointmentDate, time: appointmentTime })
-        setShowAppointmentSuccessModal(true)
-      }
+      // Show appointment success modal for all platforms
+      setAppointmentSuccessData({ customerName, date: appointmentDate, time: appointmentTime })
+      setShowAppointmentSuccessModal(true)
       setIsAppointmentModalOpen(false)
     } catch (error: any) {
       console.error('Failed to create appointment:', error)
@@ -3316,39 +3209,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
               {/* RIGHT: Status and Actions */}
               <div className="flex flex-col items-end gap-3 flex-shrink-0">
-                {/* Mobile: Communication Source Selector (session-level override) */}
-                {isNativeMobile() && (
-                  <div className="flex flex-col items-end gap-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-muted-foreground">Contact using</span>
-                    </div>
-                    <div className="flex items-center bg-muted/30 rounded-lg p-1 border border-border/30">
-                      <button
-                        onClick={() => setCommunicationSource('replyflow')}
-                        className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-150 min-h-[36px] ${
-                          communicationSource === 'replyflow'
-                            ? 'bg-background text-foreground'
-                            : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        <MessageSquare className="w-3.5 h-3.5" />
-                        <span>ReplyFlow</span>
-                      </button>
-                      <button
-                        onClick={() => setCommunicationSource('business')}
-                        className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-150 min-h-[36px] ${
-                          communicationSource === 'business'
-                            ? 'bg-background text-foreground'
-                            : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        <Smartphone className="w-3.5 h-3.5" />
-                        <span>My Business Phone</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-
                 {/* Status Pill */}
                 <div className="flex-shrink-0">
                   <LeadStatusDropdown
@@ -4768,7 +4628,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     amount_cents: Math.round(parseFloat(paymentAmount) * 100),
                     description: paymentDescription || undefined,
                     payment_provider: selectedPaymentProvider,
-                    skip_sms: communicationSource === 'business',
+                    skip_sms: false,
                   }
 
                   console.log('[PAYMENT CREATE] Payload:', payload)
@@ -4792,10 +4652,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   setPaymentAmount('')
                   setPaymentDescription('')
 
-                  if (communicationSource === 'business') {
-                    // Native SMS composer for mobile
-                    console.log('[PAYMENT CREATE] Native detection:', isNativeMobile(), 'canDialPhone:', canDialPhone, 'has paymentLink:', !!data.paymentLink, 'communicationSource:', communicationSource)
-                    if (isNativeMobile() && data.payment_link) {
+                  // For all platforms, show payment link modal with copy buttons
+                  if (data.payment_link) {
                       const businessName = business?.name || 'our business'
                       const amount = (parseFloat(paymentAmount) || 0).toFixed(2)
                       const description = paymentDescription || 'Service payment'
@@ -4806,59 +4664,17 @@ ${data.payment_link}
 
 If you have questions, reply to this message.`
                       
-                      // Register pending action before opening native app
-                      const customerName = getCustomerName(lead, leadData)
-                      const dialNumber = leadData?.caller_phone || lead?.caller_phone || ''
-                      const amountDollars = parseFloat(paymentAmount) || 0
-                      const amountCents = Math.round(amountDollars * 100)
-                      const pendingAction = createPendingAction(
-                        'business_phone_payment_request',
-                        lead?.id || leadData?.id || '',
-                        customerName,
-                        dialNumber,
-                        business?.id || '',
-                        data.paymentRequestId || data.id,
-                        message,
-                        amountCents
-                      )
-                      // No longer need to register pending action - timeline event is created immediately
-                      
-                      // Show payment link modal with Open Messages option for native mobile
+                      // Show payment link modal with copy buttons for all platforms
                       setPaymentLinkData({
                         paymentLink: data.payment_link,
                         amount: (parseFloat(paymentAmount) || 0).toFixed(2),
                         description: paymentDescription || 'Service payment',
                         paymentRequestId: data.payment_request_id || data.id,
                         message: message,
-                        dialNumber: dialNumber,
-                        customerName: customerName
-                      })
-                      // Show shared Business Phone modal for native mobile
-                      if (isNativeMobile() && communicationSource === 'business') {
-                        setBusinessPhoneModalConfig({
-                          title: 'Payment Request Ready',
-                          description: 'Your secure payment request is ready to send from your business phone.',
-                          message: message,
-                          recipient: dialNumber,
-                          recipientName: customerName,
-                          actionType: 'payment_request',
-                          relatedId: data.payment_request_id || data.id,
-                          relatedType: 'payment_request'
-                        })
-                        setShowBusinessPhoneModal(true)
-                      } else {
-                        setShowPaymentLinkModal(true)
-                      }
-                    } else {
-                      // Desktop: show payment link modal with copy buttons
-                      setPaymentLinkData({
-                        paymentLink: data.payment_link,
-                        amount: (parseFloat(paymentAmount) || 0).toFixed(2),
-                        description: paymentDescription || 'Service payment',
-                        paymentRequestId: data.payment_request_id || data.id
+                        dialNumber: leadData?.caller_phone || lead?.caller_phone || '',
+                        customerName: getCustomerName(lead, leadData)
                       })
                       setShowPaymentLinkModal(true)
-                    }
                   } else {
                     // ReplyFlow Number flow: ReplyFlow sends the SMS
                     const customerName = getCustomerName(lead, leadData)
@@ -4911,11 +4727,11 @@ If you have questions, reply to this message.`
           }}
         >
           {isNativeMobile() ? (
-            // Native mobile: Polished one-button workflow
+            // Native mobile: Add "Send via Business Number" secondary action
             <>
               <div className="flex items-center gap-3 mb-4">
                 <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30">
-                  <MessageSquare className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  <CreditCard className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <h3 className="text-xl font-semibold text-slate-900 dark:text-white">
                   Payment Request Ready
@@ -4923,84 +4739,14 @@ If you have questions, reply to this message.`
               </div>
               
               <p className="text-base text-slate-600 dark:text-slate-400 mb-2 leading-relaxed">
-                Your secure payment request is ready to send from your business phone.
-              </p>
-              
-              <p className="text-sm text-slate-500 dark:text-slate-500 mb-6">
-                The payment request will be opened in Messages.
+                Your secure payment request is ready.
               </p>
               
               <div className="space-y-3">
-                {(() => {
-                  console.log('[PAYMENT MODAL] Native detection:', isNativeMobile(), 'Has message:', !!paymentLinkData.message, 'Has dialNumber:', !!paymentLinkData.dialNumber, 'Has paymentLink:', !!paymentLinkData.paymentLink)
-                  return null
-                })()}
-                <button
-                  onClick={async () => {
-                    // Validate required fields before launching Messages
-                    if (!paymentLinkData.dialNumber) {
-                      setError('Customer phone number is missing. Cannot send payment request.')
-                      return
-                    }
-                    if (!paymentLinkData.message) {
-                      setError('Payment message is missing. Cannot send payment request.')
-                      return
-                    }
-                    if (!paymentLinkData.paymentLink) {
-                      setError('Payment link is missing. Cannot send payment request.')
-                      return
-                    }
-                    
-                    // Create the timeline event immediately before launching Messages
-                    try {
-                      await recordBusinessPhoneAction({
-                        actionType: 'payment_request',
-                        leadId: params.id,
-                        customerName: leadData?.customer_name || 'Customer',
-                        customerPhone: leadData?.phone || '',
-                        message: paymentLinkData.message,
-                        relatedId: paymentLinkData.paymentRequestId,
-                        relatedType: 'payment_request'
-                      })
-                      console.log('[PAYMENT MODAL] Timeline event created')
-                    } catch (error) {
-                      console.error('[PAYMENT MODAL] Failed to create timeline event:', error)
-                      // Continue with launch even if timeline event creation fails
-                    }
-                    
-                    // Build the complete payment message
-                    const message = `${business?.name || 'our business'} has sent you a payment request of $${paymentLinkData.amount}${paymentLinkData.description ? ` for ${paymentLinkData.description}` : ''}.
-
-Pay securely here:
-${paymentLinkData.paymentLink}
-
-If you have questions, reply to this message.`
-                    
-                    // Copy the complete payment message to clipboard as fallback
-                    try {
-                      await navigator.clipboard.writeText(message)
-                      console.log('[PAYMENT MODAL] Payment message copied to clipboard as fallback')
-                    } catch (copyError) {
-                      console.error('[PAYMENT MODAL] Failed to copy message to clipboard:', copyError)
-                      // Continue with launch even if copy fails
-                    }
-                    
-                    // Use window.open for Capacitor compatibility
-                    const smsUrl = `sms:${paymentLinkData.dialNumber}?body=${encodeURIComponent(paymentLinkData.message)}`
-                    window.open(smsUrl, '_blank')
-                    
-                    // Close the ready modal after successful handoff
-                    setShowPaymentLinkModal(false)
-                  }}
-                  className="w-full px-4 py-3.5 text-base font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors shadow-lg shadow-blue-600/20"
-                >
-                  Send from My Business Phone
-                </button>
-                
                 <button
                   onClick={() => {
                     if (!paymentLinkData.paymentLink) {
-                      setError('Payment link is not available. Please try creating a new payment request.')
+                      setError('Payment link is missing')
                       return
                     }
                     navigator.clipboard.writeText(paymentLinkData.paymentLink)
@@ -5011,10 +4757,31 @@ If you have questions, reply to this message.`
                   Copy Payment Link
                 </button>
                 
+                {isNativeMobile() && paymentLinkData.dialNumber && paymentLinkData.message && (
+                  <button
+                    onClick={() => {
+                      setBusinessPhoneModalConfig({
+                        title: 'Send Payment Request',
+                        description: 'Send this payment request from your business phone.',
+                        message: paymentLinkData.message || '',
+                        recipient: paymentLinkData.dialNumber || '',
+                        recipientName: paymentLinkData.customerName,
+                        actionType: 'payment_request',
+                        relatedId: paymentLinkData.paymentRequestId,
+                        relatedType: 'payment_request'
+                      })
+                      setShowBusinessPhoneModal(true)
+                      setShowPaymentLinkModal(false)
+                    }}
+                    className="w-full px-4 py-3 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-xl transition-colors"
+                  >
+                    Send via Business Number
+                  </button>
+                )}
+                
                 <button
                   onClick={() => {
                     setShowPaymentLinkModal(false)
-                    // No longer need to clear pending action or handoff marker
                     setPaymentLinkData(null)
                   }}
                   className="w-full px-4 py-2.5 text-sm font-medium text-slate-500 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-400 transition-colors"

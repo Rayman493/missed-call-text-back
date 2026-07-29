@@ -80,19 +80,19 @@ export async function POST(request: NextRequest) {
     
     switch (actionType) {
       case 'text':
-        displayText = 'Message prepared'
+        displayText = 'Message prepared via Business Number'
         eventSubtype = 'business_phone_text'
         break
       case 'payment_request':
-        displayText = 'Payment request prepared'
+        displayText = 'Payment request prepared via Business Number'
         eventSubtype = 'business_phone_payment_request'
         break
       case 'appointment':
-        displayText = 'Appointment reminder prepared'
+        displayText = 'Appointment message prepared via Business Number'
         eventSubtype = 'business_phone_appointment'
         break
       case 'follow_up':
-        displayText = 'Follow-up prepared'
+        displayText = 'Follow-up prepared via Business Number'
         eventSubtype = 'business_phone_follow_up'
         break
     }

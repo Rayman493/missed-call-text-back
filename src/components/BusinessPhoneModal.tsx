@@ -1,6 +1,6 @@
 'use client'
 
-import { MessageSquare } from 'lucide-react'
+import { MessageSquare, Smartphone } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 
 interface BusinessPhoneModalProps {
@@ -72,7 +72,7 @@ export default function BusinessPhoneModal({
       >
         <div className="flex items-center gap-3 mb-4">
           <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30">
-            <MessageSquare className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <Smartphone className="w-5 h-5 text-blue-600 dark:text-blue-400" />
           </div>
           <h3 className="text-xl font-semibold text-slate-900 dark:text-white">
             {title}
@@ -84,7 +84,7 @@ export default function BusinessPhoneModal({
         </p>
         
         <p className="text-sm text-slate-500 dark:text-slate-500 mb-6">
-          The message will be opened in Messages.
+          This will open your messaging app with the message prepared.
         </p>
         
         <div className="space-y-3">
@@ -93,7 +93,7 @@ export default function BusinessPhoneModal({
             disabled={isSending}
             className="w-full px-4 py-3.5 text-base font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors shadow-lg shadow-blue-600/20 disabled:opacity-50"
           >
-            Send from My Business Phone
+            Send via Business Number
           </button>
           
           <button
@@ -107,7 +107,7 @@ export default function BusinessPhoneModal({
             onClick={onClose}
             className="w-full px-4 py-2.5 text-sm font-medium text-slate-500 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-400 transition-colors"
           >
-            Close
+            Cancel
           </button>
         </div>
       </div>
