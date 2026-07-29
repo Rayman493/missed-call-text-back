@@ -5001,9 +5001,11 @@ If you have questions, reply to this message.`
           // Launch the native Messages app
           const smsUrl = `sms:${businessPhoneModalConfig.recipient}?body=${encodeURIComponent(businessPhoneModalConfig.message)}`
 
-          // On native mobile, use window.location.href to launch the SMS app
+          // On native mobile, use anchor element click to launch the SMS app
           if (Capacitor.isNativePlatform()) {
-            window.location.href = smsUrl
+            const link = document.createElement('a')
+            link.href = smsUrl
+            link.click()
           } else {
             // On desktop/web, open in new tab
             window.open(smsUrl, '_blank')

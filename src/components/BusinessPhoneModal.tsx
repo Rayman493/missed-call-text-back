@@ -91,21 +91,9 @@ export default function BusinessPhoneModal({
           </button>
         </div>
 
-        <p className="text-base text-slate-600 dark:text-slate-400 mb-2 leading-relaxed">
+        <p className="text-base text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
           {description}
         </p>
-
-        {secondaryDescription && (
-          <p className="text-sm text-slate-500 dark:text-slate-500 mb-6">
-            {secondaryDescription}
-          </p>
-        )}
-
-        {!secondaryDescription && (
-          <p className="text-sm text-slate-500 dark:text-slate-500 mb-6">
-            Your messaging app will open with the message ready to send.
-          </p>
-        )}
 
         <div className="space-y-3">
           <button
