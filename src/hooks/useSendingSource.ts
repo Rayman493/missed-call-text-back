@@ -29,7 +29,7 @@ export function useSendingSource(): UseSendingSourceReturn {
 
   // Determine the effective source (considering platform limitations)
   // Desktop can't use Business Number as default, but we preserve the saved preference
-  const effectiveSource: SendingSource = sendingSource
+  const effectiveSource: SendingSource = (sendingSource === 'business' && isMobile) ? 'business' : 'replyflow'
 
   const updateSendingSource = useCallback(async (source: SendingSource) => {
     setIsLoading(true)
