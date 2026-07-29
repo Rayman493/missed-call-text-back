@@ -4809,14 +4809,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   if (communicationSource === 'business') {
                     // Native SMS composer for mobile
                     console.log('[PAYMENT CREATE] Native detection:', isNativeMobile(), 'canDialPhone:', canDialPhone, 'has paymentLink:', !!data.paymentLink, 'communicationSource:', communicationSource)
-                    if (isNativeMobile() && data.paymentLink) {
+                    if (isNativeMobile() && data.payment_link) {
                       const businessName = business?.name || 'our business'
                       const amount = (parseFloat(paymentAmount) || 0).toFixed(2)
                       const description = paymentDescription || 'Service payment'
                       const message = `${businessName} has sent you a payment request of $${amount}${description ? ` for ${description}` : ''}.
 
 Pay securely here:
-${data.paymentLink}
+${data.payment_link}
 
 If you have questions, reply to this message.`
                       
@@ -4839,10 +4839,10 @@ If you have questions, reply to this message.`
                       
                       // Show payment link modal with Open Messages option for native mobile
                       setPaymentLinkData({
-                        paymentLink: data.paymentLink,
+                        paymentLink: data.payment_link,
                         amount: (parseFloat(paymentAmount) || 0).toFixed(2),
                         description: paymentDescription || 'Service payment',
-                        paymentRequestId: data.paymentRequestId || data.id,
+                        paymentRequestId: data.payment_request_id || data.id,
                         message: message,
                         dialNumber: dialNumber,
                         customerName: customerName
@@ -4851,10 +4851,10 @@ If you have questions, reply to this message.`
                     } else {
                       // Desktop: show payment link modal with copy buttons
                       setPaymentLinkData({
-                        paymentLink: data.paymentLink,
+                        paymentLink: data.payment_link,
                         amount: (parseFloat(paymentAmount) || 0).toFixed(2),
                         description: paymentDescription || 'Service payment',
-                        paymentRequestId: data.paymentRequestId || data.id
+                        paymentRequestId: data.payment_request_id || data.id
                       })
                       setShowPaymentLinkModal(true)
                     }
@@ -4950,9 +4950,13 @@ If you have questions, reply to this message.
                       setError('Payment message is missing. Cannot open Messages.')
                       return
                     }
-                    window.location.href = `sms:${paymentLinkData.dialNumber}?body=${encodeURIComponent(paymentLinkData.message)}`
-                    setShowPaymentLinkModal(false)
-                    setPaymentLinkData(null)
+                    if (!paymentLinkData.paymentLink) {
+                      setError('Payment link is missing. Cannot open Messages.')
+                      return
+                    }
+                    // Use window.open for Capacitor compatibility
+                    const smsUrl = `sms:${paymentLinkData.dialNumber}?body=${encodeURIComponent(paymentLinkData.message)}`
+                    window.open(smsUrl, '_blank')
                   }}
                   className="w-full px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
                 >
@@ -4966,13 +4970,11 @@ If you have questions, reply to this message.
                     const message = `${business?.name || 'our business'} has sent you a payment request of $${paymentLinkData.amount}${paymentLinkData.description ? ` for ${paymentLinkData.description}` : ''}.
 
 Pay securely here:
--${paymentLinkData.paymentLink}
+${paymentLinkData.paymentLink}
 
 If you have questions, reply to this message.`
                     navigator.clipboard.writeText(message)
                     setSuccessMessage('Payment message copied to clipboard')
-                    setShowPaymentLinkModal(false)
-                    setPaymentLinkData(null)
                   }}
                   className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
                 >
@@ -4980,10 +4982,12 @@ If you have questions, reply to this message.`
                 </button>
                 <button
                   onClick={() => {
+                    if (!paymentLinkData.paymentLink) {
+                      setError('Payment link is not available. Please try creating a new payment request.')
+                      return
+                    }
                     navigator.clipboard.writeText(paymentLinkData.paymentLink)
                     setSuccessMessage('Payment link copied to clipboard')
-                    setShowPaymentLinkModal(false)
-                    setPaymentLinkData(null)
                   }}
                   className="flex-1 px-4 py-2 text-sm font-medium text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
                 >
