@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react'
 import { formatRelativeTime } from '@/lib/utils'
 import VoicemailMessage from '@/components/VoicemailMessage'
 import MessageMediaRenderer from '@/components/MessageMediaRenderer'
+import BusinessPhoneHistoryActions from '@/components/BusinessPhoneHistoryActions'
+import { Smartphone } from 'lucide-react'
 
 // Helper function to extract recording SID from URL
 function extractRecordingSid(url: string): string | null {
@@ -116,6 +118,55 @@ export default function DesktopConversationMessageList({
         const isManual = !isFollowUp && isOutbound && !msg.isOptimistic
         const isOptimistic = msg.isOptimistic
         const isSending = msg.status === 'sending'
+        
+        // Check if this is a Business Phone audit trace
+        const isBusinessPhone = msg.metadata?.communication_source === 'business_phone'
+        
+        // Render Business Phone traces as system events
+        if (isBusinessPhone) {
+          return (
+            <div
+              key={getMessageKey(msg)}
+              id={item.id}
+              className={`flex items-center justify-center my-6 transition-all duration-300 group ${
+                highlightedItemId === item.id
+                  ? 'ring-2 ring-primary/50 ring-offset-2 ring-offset-background bg-primary/5'
+                  : ''
+              }`}
+            >
+              <div className="flex flex-col items-center gap-2 bg-muted/60 px-4 py-3 rounded-xl border border-border/50 shadow-sm max-w-md">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                    <Smartphone className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-medium text-foreground/80">
+                      {msg.body}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground/60">
+                      Using your messaging app
+                    </span>
+                  </div>
+                </div>
+                <BusinessPhoneHistoryActions
+                  messageId={msg.id}
+                  currentNote={msg.body}
+                  onUpdate={() => {
+                    // Trigger timeline refresh by calling parent refresh function
+                    // This will be handled by parent component
+                  }}
+                  onDelete={() => {
+                    // Trigger timeline refresh by calling parent refresh function
+                    // This will be handled by parent component
+                  }}
+                />
+                <span className="text-[11px] text-muted-foreground/60">
+                  {formatRelativeTime(msg.created_at)}
+                </span>
+              </div>
+            </div>
+          )
+        }
         
         // Check if we should show avatar (only when sender changes)
         const prevItem = conversationTimeline[index - 1]

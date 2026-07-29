@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
 
-const ALLOWED_ACTIONS = ['remove', 'mark_not_sent'] as const
+const ALLOWED_ACTIONS = ['remove', 'mark_not_sent', 'edit_note'] as const
 type Action = typeof ALLOWED_ACTIONS[number]
 
 export async function POST(request: NextRequest) {
@@ -25,7 +25,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const {
       messageId,
-      action
+      action,
+      editedNote
     } = body
 
     // Strict request validation
@@ -35,6 +36,11 @@ export async function POST(request: NextRequest) {
 
     if (!action || typeof action !== 'string' || !ALLOWED_ACTIONS.includes(action as Action)) {
       return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
+    }
+
+    // Validate editedNote if action is edit_note
+    if (action === 'edit_note' && (!editedNote || typeof editedNote !== 'string' || editedNote.length > 500)) {
+      return NextResponse.json({ error: 'Invalid editedNote' }, { status: 400 })
     }
 
     // Verify message belongs to the user's business and is a Business Phone message
@@ -89,6 +95,26 @@ export async function POST(request: NextRequest) {
       if (updateError) {
         console.error('[BusinessPhone Edit] Error updating message:', updateError)
         return NextResponse.json({ error: 'Failed to update message' }, { status: 500 })
+      }
+
+      return NextResponse.json({ success: true })
+    } else if (action === 'edit_note') {
+      // Update the message body with the edited note
+      const { error: updateError } = await supabase
+        .from('messages')
+        .update({
+          body: editedNote,
+          metadata: {
+            ...message.metadata,
+            edited_note: editedNote,
+            edited_at: new Date().toISOString()
+          }
+        })
+        .eq('id', messageId)
+
+      if (updateError) {
+        console.error('[BusinessPhone Edit] Error updating message note:', updateError)
+        return NextResponse.json({ error: 'Failed to update note' }, { status: 500 })
       }
 
       return NextResponse.json({ success: true })
