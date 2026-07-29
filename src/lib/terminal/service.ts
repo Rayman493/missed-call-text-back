@@ -179,7 +179,9 @@ export class TerminalBridgeService {
   }
 
   async initialize(options?: InitializeOptions) {
+    const platform = Capacitor.getPlatform()
     console.log('[TTP NATIVE] Plugin initialization started')
+    console.log('[TTP NATIVE] Platform detected:', platform)
     // Comprehensive diagnostics before any plugin operations
     if (process.env.NODE_ENV === 'development') {
       console.log('[TTP NATIVE] === STARTUP DIAGNOSTICS ===')

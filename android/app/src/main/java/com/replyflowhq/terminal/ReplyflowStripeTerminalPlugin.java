@@ -191,6 +191,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     // Capture optional diagnosticAttemptId (used only as fallback elsewhere)
     String diagId = call.getString("diagnosticAttemptId");
     currentCorrelationId = diagId != null && !diagId.isEmpty() ? diagId : currentCorrelationId;
+    Log.d(TAG, "[TTP ANDROID] Plugin initialization started");
     Log.d(TAG, "[STRIPE_TERMINAL_INIT] Starting initialization");
     Log.d(TAG, "[TAP_SESSION_TRACE] stage=terminal_init_start ts=" + System.currentTimeMillis());
     final String initCorrelationId = call.getString("diagnosticAttemptId");
@@ -227,7 +228,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     }
 
     try {
-      Log.d(TAG, "[STRIPE_TERMINAL_INIT] Calling Terminal.init()...");
+      Log.d(TAG, "[TTP ANDROID] Calling Terminal.init()...");
       // The SDK 5.7.0 documentation mentions LocaleConfig but the actual API differs from docs
       // Try using the deprecated overload without LocaleConfig since the new API is not available
       Log.d(TAG, "[STRIPE_TERMINAL_INIT] Using deprecated Terminal.init() overload (without LocaleConfig)");
@@ -242,10 +243,12 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       );
       initialized = true;
       initState = InitState.INITIALIZED;
+      Log.d(TAG, "[TTP ANDROID] Terminal.init() succeeded");
       Log.d(TAG, "[STRIPE_TERMINAL_INIT] Terminal.init() succeeded");
       Log.d(TAG, "[TAP_SESSION_TRACE] stage=terminal_init_complete ts=" + System.currentTimeMillis());
       emitDiag("initialize_completed", "initialize", initCorrelationId, null);
     } catch (Exception e) {
+      Log.e(TAG, "[TTP ANDROID] Terminal.init() failed", e);
       Log.e(TAG, "[STRIPE_TERMINAL_INIT] Terminal.init() failed", e);
       Log.e(TAG, "[STRIPE_TERMINAL_INIT] Exception class: " + e.getClass().getName());
       Log.e(TAG, "[STRIPE_TERMINAL_INIT] Exception message: " + e.getMessage());
@@ -279,7 +282,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
   @PluginMethod
   public void ping(PluginCall call) {
-    Log.d(TAG, "[PLUGIN] ping() called - JS→native communication working");
+    Log.d(TAG, "[TTP ANDROID] ping() called - JS→native communication working");
     JSObject ret = new JSObject();
     ret.put("available", true);
     ret.put("platform", "android");
@@ -289,7 +292,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
   @PluginMethod
   public void isSupported(PluginCall call) {
-    Log.d(TAG, "[DEVICE_COMPAT] Checking device compatibility");
+    Log.d(TAG, "[TTP ANDROID] Checking device compatibility");
     Log.d(TAG, "[DEVICE_COMPAT] Android SDK: " + Build.VERSION.SDK_INT);
     Log.d(TAG, "[DEVICE_COMPAT] Android release: " + Build.VERSION.RELEASE);
     Log.d(TAG, "[DEVICE_COMPAT] Manufacturer: " + Build.MANUFACTURER);

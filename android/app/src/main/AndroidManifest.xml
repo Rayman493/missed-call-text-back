@@ -42,6 +42,12 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+
+        <!-- Stripe Terminal Tap to Pay foreground service -->
+        <service
+            android:name="com.stripe.cots.aidlservice.TtpService"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
     </application>
 
     <!-- Permissions -->
@@ -50,4 +56,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Required by Stripe Terminal SDK for reader discovery per official docs -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Required for Tap to Pay foreground service -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
 </manifest>

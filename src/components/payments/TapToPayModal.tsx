@@ -368,6 +368,7 @@ export default function TapToPayModal({
       leadId,
       jobId
     })
+    console.log('[TTP UI] Platform detected:', platform)
 
     if (!isNativeSupported) {
       console.log('[TTP UI] Native support check failed')
