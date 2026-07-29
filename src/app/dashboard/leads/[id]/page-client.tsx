@@ -38,8 +38,9 @@ import AICustomerSummary from '@/components/AICustomerSummary'
 import { ImageMessage } from '@/components/ImageMessage'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import PhotoModal from '@/components/PhotoModal'
+import Modal from '@/components/ui/Modal'
 import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
-import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall } from 'lucide-react'
+import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare } from 'lucide-react'
 import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
 
 function getErrorMessage(errorCode: string): string {
@@ -434,6 +435,37 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         window.location.href = `tel:${dialNumber}`
       }
     } catch {}
+  }
+
+  // Text Customer handlers
+  const handleSendWithReplyFlow = () => {
+    setShowTextCustomerModal(false)
+    // Focus on the message composer
+    setTimeout(() => {
+      const composerInput = document.querySelector('textarea[placeholder*="Type a message"]') as HTMLTextAreaElement
+      if (composerInput) {
+        composerInput.focus()
+        composerInput.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    }, 100)
+  }
+
+  const handleOpenMessagingApp = () => {
+    setShowTextCustomerModal(false)
+    try {
+      if (canDialPhone) {
+        window.location.href = `sms:${dialNumber}`
+      }
+    } catch {}
+  }
+
+  // Check if running in native mobile app
+  const isNativeMobile = () => {
+    try {
+      return (window as any).Capacitor?.isNativePlatform?.() ?? false
+    } catch {
+      return false
+    }
   }
   
   // Close more actions dropdown when clicking outside
@@ -1027,6 +1059,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [isCreatingPayment, setIsCreatingPayment] = useState(false)
   const [selectedPaymentProvider, setSelectedPaymentProvider] = useState<'stripe' | 'venmo' | 'paypal'>('stripe')
   const paymentAmountRef = useRef<HTMLInputElement>(null)
+
+  // State for Text Customer modal
+  const [showTextCustomerModal, setShowTextCustomerModal] = useState(false)
 
   // State for appointment confirmation
   const [showAppointmentSelection, setShowAppointmentSelection] = useState(false)
@@ -3142,6 +3177,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 {/* Primary Actions */}
                 <div className="flex items-center gap-2">
                   <button
+                    onClick={() => setShowTextCustomerModal(true)}
+                    className="inline-flex h-10 items-center gap-2 px-4 rounded-lg text-foreground hover:bg-muted/80 transition-colors text-sm font-medium border border-transparent hover:border-border/50"
+                    title="Text customer"
+                  >
+                    <MessageSquare className="w-4 h-4 stroke-[1.8]" />
+                    <span className="leading-none">Text Customer</span>
+                  </button>
+                  <button
                     onClick={handleCreateJobClick}
                     className="inline-flex h-10 items-center gap-2 px-4 rounded-lg text-foreground hover:bg-muted/80 transition-colors text-sm font-medium border border-transparent hover:border-border/50"
                     title="Create job"
@@ -4307,6 +4350,74 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
       )}
     </main>
+
+    {/* Text Customer Modal */}
+    <Modal
+      isOpen={showTextCustomerModal}
+      onClose={() => setShowTextCustomerModal(false)}
+      title="Text Customer"
+      alignTopOnMobile={true}
+    >
+      <div className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Choose how you'd like to text {lead?.name || 'this customer'}:
+        </p>
+
+        {/* Option 1: Send with ReplyFlow */}
+        <button
+          onClick={handleSendWithReplyFlow}
+          className="w-full text-left p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors group"
+        >
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <MessageSquare className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-medium text-foreground mb-1">
+                Send with ReplyFlow
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Send and track the conversation inside ReplyFlow.
+              </div>
+            </div>
+          </div>
+        </button>
+
+        {/* Option 2: Open Messaging App */}
+        <button
+          onClick={handleOpenMessagingApp}
+          disabled={!canDialPhone || !isNativeMobile()}
+          className="w-full text-left p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors group disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
+              <PhoneCall className="w-5 h-5 text-accent-foreground" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-medium text-foreground mb-1">
+                Open Messaging App
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {!isNativeMobile() 
+                  ? 'External texting is available in the ReplyFlow mobile app.'
+                  : 'Text using a number configured on this phone.'
+                }
+              </div>
+            </div>
+          </div>
+        </button>
+
+        {/* External Messaging Disclosure */}
+        <div className="pt-3 border-t border-border/50">
+          <p className="text-xs text-muted-foreground flex items-start gap-2">
+            <svg className="w-4 h-4 flex-shrink-0 text-amber-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Messages sent outside ReplyFlow will not appear in this conversation.
+          </p>
+        </div>
+      </div>
+    </Modal>
 
     {/* Payment Request Modal */}
     {showPaymentModal && (
