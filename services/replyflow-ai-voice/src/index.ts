@@ -4850,7 +4850,7 @@ if (!OPENAI_API_KEY) {
 console.log('='.repeat(80));
 console.log('[SERVICE STARTUP] ========================================');
 console.log('[SERVICE STARTUP] ReplyFlow AI Voice Service');
-console.log('[SERVICE STARTUP] Commit: e26bfd33');
+console.log('[SERVICE STARTUP] Commit:', process.env.GIT_COMMIT_SHA || 'unknown');
 console.log('[SERVICE STARTUP] Deployment Timestamp:', new Date().toISOString());
 console.log('[SERVICE STARTUP] Closing Strategy: mark-based-v3-with-hard-stop');
 console.log('[SERVICE STARTUP] Node Version:', process.version);
