@@ -1,7 +1,9 @@
 // Shared volume manager for consistent audio volume across all audio players
 // Uses sessionStorage for session-scoped persistence
+// Uses localStorage for voicemail-specific persistence
 
 const VOLUME_STORAGE_KEY = 'replyflow-audio-volume';
+const VOICEMAIL_VOLUME_KEY = 'replyflow.voicemail.volume';
 
 class VolumeManager {
   private static instance: VolumeManager;
@@ -25,6 +27,18 @@ class VolumeManager {
   private loadFromStorage(): void {
     try {
       if (typeof window !== 'undefined') {
+        // Try voicemail-specific localStorage first
+        const voicemailVolume = localStorage.getItem(VOICEMAIL_VOLUME_KEY);
+        if (voicemailVolume !== null) {
+          const parsed = parseFloat(voicemailVolume);
+          if (!isNaN(parsed) && parsed >= 0 && parsed <= 1) {
+            this.volume = parsed;
+            this.previousVolume = parsed;
+            return;
+          }
+        }
+
+        // Fall back to sessionStorage
         const saved = sessionStorage.getItem(VOLUME_STORAGE_KEY);
         if (saved !== null) {
           const parsed = parseFloat(saved);
@@ -42,6 +56,8 @@ class VolumeManager {
   private saveToStorage(): void {
     try {
       if (typeof window !== 'undefined') {
+        // Save to both localStorage (voicemail) and sessionStorage (general)
+        localStorage.setItem(VOICEMAIL_VOLUME_KEY, this.volume.toString());
         sessionStorage.setItem(VOLUME_STORAGE_KEY, this.volume.toString());
       }
     } catch (error) {

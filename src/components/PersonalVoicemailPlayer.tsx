@@ -133,16 +133,20 @@ export function PersonalVoicemailPlayer({
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
-  // Create audio instance
+  // Create audio instance (only if not already created)
   const createAudio = useCallback(() => {
     if (audioRef.current) {
-      audioRef.current.pause()
-      audioRef.current = null
+      // Reuse existing audio element instead of recreating
+      return
     }
     
     const audio = new Audio(audioProxyUrl)
     audioRef.current = audio
-    
+
+    // Apply saved volume immediately after creation
+    audio.volume = volumeManager.getVolume()
+    audio.muted = volumeManager.getIsMuted()
+
     audio.addEventListener('loadedmetadata', () => {
       // Use audio.duration for accurate playback duration
       // Fall back to storedDuration only if audio.duration is invalid
@@ -185,6 +189,12 @@ export function PersonalVoicemailPlayer({
     audio.addEventListener('seeked', () => {
       setCurrentTime(audio.currentTime)
       setIsSeeking(false)
+    })
+
+    // Listen for volume changes to sync with volume manager
+    audio.addEventListener('volumechange', () => {
+      const newVolume = audio.muted ? 0 : audio.volume
+      volumeManager.setVolume(newVolume)
     })
   }, [audioProxyUrl, storedDuration, playerState, onSetGlobalPlayingId, onPlaybackEnd, onError])
 
@@ -424,7 +434,7 @@ export function PersonalVoicemailPlayer({
                   step="0.01"
                   value={isMuted ? 0 : volume}
                   onChange={handleVolumeChange}
-                  className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors duration-200 touch-action-pan-y"
+                  className="w-full h-3 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors duration-200 touch-action-pan-y [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:hover:bg-blue-700 [&::-webkit-slider-thumb]:focus:outline-none [&::-webkit-slider-thumb]:focus:ring-2 [&::-webkit-slider-thumb]:focus:ring-blue-500 [&::-webkit-slider-thumb]:focus:ring-offset-2 [&::-webkit-slider-thumb]:shadow-md [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-600 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:hover:bg-blue-700 [&::-moz-range-thumb]:focus:outline-none [&::-moz-range-thumb]:focus:ring-2 [&::-moz-range-thumb]:focus:ring-blue-500 [&::-moz-range-thumb]:focus:ring-offset-2 [&::-moz-range-thumb]:shadow-md"
                   style={{
                     background: `linear-gradient(to right, #2563eb ${(isMuted ? 0 : volume) * 100}%, #e2e8f0 ${(isMuted ? 0 : volume) * 100}%)`,
                   }}
