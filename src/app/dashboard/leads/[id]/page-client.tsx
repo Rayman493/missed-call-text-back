@@ -3488,7 +3488,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               {/* Desktop Conversation Header */}
               <div className="flex items-center justify-between px-5 py-3 mb-2">
                 <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground">Conversation</h2>
-                <SendingNumberControl compact />
               </div>
               
               {/* Desktop Message Thread - Scrollable */}
@@ -3525,7 +3524,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
 
               {/* Desktop Message Composer - Fixed to Bottom */}
-              <div className="shrink-0 pt-1">
+              <div className="shrink-0 pt-4">
+                <div className="mb-3">
+                  <label className="text-xs text-slate-600 dark:text-slate-400 font-medium mb-2 block">Sending Number</label>
+                  <SendingNumberControl compact showLabel={false} />
+                  {sendingSource === 'business' && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                      Messages will open your phone's messaging app for review before sending.
+                    </p>
+                  )}
+                </div>
                 <ConversationComposer
                   message={message}
                   setMessage={setMessage}
@@ -3732,10 +3740,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           <div className="space-y-2 pb-[calc(6rem+env(safe-area-inset-bottom))]">
           {/* Conversation Header - Establishes the messaging workspace */}
           <div className="px-3 pt-2 pb-1">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Conversation</h2>
-              <SendingNumberControl compact />
-            </div>
+            <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Conversation</h2>
             <div className="flex items-center gap-1.5 mt-1 text-[11px] text-slate-400 dark:text-slate-500">
               {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && (
                 <span>AI answered</span>
@@ -3795,6 +3800,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <div className="border-t border-border/30 flex-shrink-0"></div>
             {/* Composer - Integrated at bottom with proper spacing */}
             <div className="px-3 py-3 flex-shrink-0 bg-card/98 shadow-[0_-8px_30px_rgba(2,6,23,0.08)]" style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' }}>
+              {/* Sending Number Control */}
+              <div className="mb-3">
+                <label className="text-xs text-slate-600 dark:text-slate-400 font-medium mb-2 block">Sending Number</label>
+                <SendingNumberControl compact showLabel={false} />
+                {sendingSource === 'business' && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                    Messages will open your phone's messaging app for review before sending.
+                  </p>
+                )}
+              </div>
               {/* Image Previews */}
               {mobileImages.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-2">
