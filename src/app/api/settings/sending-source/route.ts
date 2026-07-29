@@ -60,20 +60,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid sending source' }, { status: 400 })
     }
 
-    // Update the business's default sending source
-    const { error: updateError } = await supabase
+    // Update the business's default sending source and return the updated value
+    const { data: updatedBusiness, error: updateError } = await supabase
       .from('businesses')
       .update({ default_sending_source: sendingSource })
       .eq('id', business.id)
+      .select('default_sending_source')
+      .single()
 
     if (updateError) {
       console.error('[Sending Source POST] Error updating:', updateError)
       return NextResponse.json({ error: 'Failed to update sending source' }, { status: 500 })
     }
 
+    // Verify the update actually happened
+    if (!updatedBusiness || updatedBusiness.default_sending_source !== sendingSource) {
+      console.error('[Sending Source POST] Update verification failed:', { 
+        requested: sendingSource, 
+        actual: updatedBusiness?.default_sending_source 
+      })
+      return NextResponse.json({ error: 'Failed to verify update' }, { status: 500 })
+    }
+
+    console.log('[Sending Source POST] Update successful:', { 
+      businessId: business.id, 
+      sendingSource: updatedBusiness.default_sending_source 
+    })
+
     return NextResponse.json({ 
       success: true,
-      sendingSource
+      sendingSource: updatedBusiness.default_sending_source
     })
   } catch (error) {
     console.error('[Sending Source POST] Error:', error)

@@ -37,10 +37,18 @@ export function useSendingSource(): UseSendingSourceReturn {
     setIsLoading(true)
     setError(null)
 
+    console.log('[useSendingSource] Starting update:', {
+      requestedSource: source,
+      currentBusinessId: business?.id,
+      currentSavedSource: business?.default_sending_source,
+      currentOptimisticSource: optimisticSource
+    })
+
     // Optimistic update
     setOptimisticSource(source)
 
     try {
+      console.log('[useSendingSource] Sending API request to /api/settings/sending-source')
       const response = await fetch('/api/settings/sending-source', {
         method: 'POST',
         headers: {
@@ -49,15 +57,25 @@ export function useSendingSource(): UseSendingSourceReturn {
         body: JSON.stringify({ sendingSource: source })
       })
 
+      console.log('[useSendingSource] API response status:', response.status)
+
       if (!response.ok) {
         const errorData = await response.json()
+        console.error('[useSendingSource] API error response:', errorData)
         throw new Error(errorData.error || 'Failed to update sending source')
       }
 
+      const responseData = await response.json()
+      console.log('[useSendingSource] API success response:', responseData)
+
       // Refresh business data to get the updated value
+      console.log('[useSendingSource] Calling refreshBusiness()')
       await refreshBusiness()
+      console.log('[useSendingSource] refreshBusiness() completed')
+      
       // Clear optimistic state after successful refresh
       setOptimisticSource(null)
+      console.log('[useSendingSource] Cleared optimistic state')
     } catch (err) {
       console.error('[useSendingSource] Error updating:', err)
       setError(err instanceof Error ? err.message : 'Failed to update sending source')
@@ -68,7 +86,7 @@ export function useSendingSource(): UseSendingSourceReturn {
     } finally {
       setIsLoading(false)
     }
-  }, [refreshBusiness])
+  }, [refreshBusiness, business, optimisticSource])
 
   return {
     sendingSource,
