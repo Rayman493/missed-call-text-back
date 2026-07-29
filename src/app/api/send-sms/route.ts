@@ -302,6 +302,9 @@ export async function POST(request: Request) {
       messagePreview: sanitizedMessage.substring(0, 50) + '...'
     })
 
+    console.log('[Manual SMS] About to call sendMms with isManual=true');
+    console.log('[Manual SMS] sanitizedMessage before sendMms:', sanitizedMessage);
+
     // Send SMS or MMS
     let messageId: string | null = null
     if (mediaUrls.length > 0) {

@@ -931,6 +931,8 @@ export async function sendMms(
   // Handle simulation mode
   if (smsValidation.method === 'simulated') {
     console.log('[MMS] 🧪 Simulated MMS sent:', { to, mediaCount: mediaUrls.length });
+    console.log('[MMS DEBUG] SIMULATION MODE - message body being inserted:', message);
+    console.log('[MMS DEBUG] SIMULATION MODE - isManual:', options?.isManual);
     
     const { data: insertedMessage, error: insertError } = await supabase
       .from('messages')
