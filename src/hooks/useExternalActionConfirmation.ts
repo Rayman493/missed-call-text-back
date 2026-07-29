@@ -29,7 +29,7 @@ export function useExternalActionConfirmation({
     return Capacitor.isNativePlatform()
   }
 
-  // Lifecycle listener to detect app resume
+  // Lifecycle listener to detect app resume (registered once)
   useEffect(() => {
     if (!isNativeMobile()) {
       return
@@ -59,20 +59,12 @@ export function useExternalActionConfirmation({
 
     return () => {
       if (appStateListener) {
-        appStateListener.then(listener => listener.remove())
+        appStateListener.then(listener => listener.remove()).catch(err => {
+          console.error('[ExternalAction] Failed to remove app state listener:', err)
+        })
       }
     }
-  }, [hasBeenBackgrounded])
-
-  // Check for pending action when component mounts
-  useEffect(() => {
-    if (!isNativeMobile()) {
-      return
-    }
-    
-    // Only check on mount, not on every render
-    checkForPendingAction()
-  }, [])
+  }, []) // No dependencies - register once
 
   const checkForPendingAction = useCallback(async () => {
     if (!isNativeMobile() || isProcessingRef.current) {
@@ -141,6 +133,10 @@ export function useExternalActionConfirmation({
       console.log('[ExternalAction] Registered pending action:', action.actionType)
     } catch (error) {
       console.error('[ExternalAction] Failed to register pending action:', error)
+      // If there's an existing action, show a user-friendly error
+      if (error instanceof Error && error.message.includes('existing unconfirmed action')) {
+        setError('Please confirm or cancel the pending action before starting another one')
+      }
     }
   }, [communicationSource])
 
