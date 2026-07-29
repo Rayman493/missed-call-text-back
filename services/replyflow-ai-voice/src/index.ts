@@ -8436,7 +8436,11 @@ Reply to this message if you'd like to update or add any information.
           audio: {
             input: {
               turn_detection: {
-                silence_duration_ms: silenceDurationMs
+                type: "server_vad",
+                threshold: 0.52,
+                prefix_padding_ms: 500,
+                silence_duration_ms: silenceDurationMs,
+                create_response: false
               }
             }
           }
@@ -8451,7 +8455,10 @@ Reply to this message if you'd like to update or add any information.
           stage,
           turnDetection: {
             type: 'server_vad',
-            silence_duration_ms: silenceDurationMs
+            threshold: 0.52,
+            prefix_padding_ms: 500,
+            silence_duration_ms: silenceDurationMs,
+            create_response: false
           }
         });
         state.openAiWs.send(JSON.stringify(sessionUpdatePayload));
@@ -8800,7 +8807,7 @@ Reply to this message if you'd like to update or add any information.
             state.cachedPlaybackInterrupted = true;
             state.assistantSpeaking = false;
             state.ttsCompleteTime = Date.now();
-            break;
+            return; // Return immediately to prevent success logging
           }
           // Prompt audio lifecycle logging - track first chunk send
           if (i === 0) {
@@ -8922,6 +8929,13 @@ Reply to this message if you'd like to update or add any information.
           
           // Send at real-time rate (20ms chunks)
           await new Promise(resolve => setTimeout(resolve, 20));
+        }
+
+        // Check if playback was interrupted before proceeding
+        if (state.cachedPlaybackInterrupted || String(state.aiSessionTracker?.currentState) === 'FAILED') {
+          console.log('[PROMPT SEND ABORT] Playback interrupted or session FAILED, skipping success lifecycle');
+          state.assistantSpeaking = false;
+          return;
         }
 
         // Add trailing silence for final prompt to prevent cutoff

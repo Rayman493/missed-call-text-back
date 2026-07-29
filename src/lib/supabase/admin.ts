@@ -2021,13 +2021,20 @@ export const db = {
    */
   async reactivateLead(leadId: string): Promise<Lead | null> {
     console.log('[REACTIVATE LEAD] Reactivating lead for new request:', leadId)
+    console.log('[REACTIVATE LEAD DIAGNOSTICS] =========================================')
+    console.log('[REACTIVATE LEAD DIAGNOSTICS] supabaseUrl:', supabaseAdmin.supabaseUrl)
+    console.log('[REACTIVATE LEAD DIAGNOSTICS] table: leads')
+    console.log('[REACTIVATE LEAD DIAGNOSTICS] update fields:', ['status'])
+    console.log('[REACTIVATE LEAD DIAGNOSTICS] relying on trigger for updated_at')
+    console.log('[REACTIVATE LEAD DIAGNOSTICS] Timestamp:', new Date().toISOString())
+    console.log('[REACTIVATE LEAD DIAGNOSTICS] =========================================')
 
     const { data: updatedLead, error } = await supabaseAdmin
       .from('leads')
       .update({
-        status: 'new',
+        status: 'new'
         // DO NOT clear: name (customer identity), caller_phone, notes, raw_metadata
-        updated_at: new Date().toISOString()
+        // updated_at is handled by trigger update_leads_updated_at
       })
       .eq('id', leadId)
       .select()
@@ -2035,6 +2042,12 @@ export const db = {
 
     if (error) {
       console.error('[REACTIVATE LEAD] Failed to reactivate lead:', error)
+      console.error('[REACTIVATE LEAD ERROR DETAILS]', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      })
       return null
     }
 

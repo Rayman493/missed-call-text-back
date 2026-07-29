@@ -386,7 +386,61 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
   const businessName = params.businessName || business.name || 'My Business'
   const aiCallRecord = await getAiCallRecord(callSid, leadId)
   const leadMetadata = await getLeadMetadata(leadId)
-  
+
+  // HARD GUARDS: Validate exact current call record before proceeding
+  const failedOrFallback = params.aiOutcome === 'failed' || params.aiOutcome === 'voicemail_fallback'
+  const callSidMatch = aiCallRecord?.call_sid === callSid
+  const outcomeCompleted = aiCallRecord?.outcome === 'completed' || aiCallRecord?.outcome === 'completed_intake'
+  const transcriptPresent = !!aiCallRecord?.transcript && aiCallRecord.transcript.length > 0
+  const extractedInfoPresent = !!aiCallRecord?.extracted_info && Object.keys(aiCallRecord.extracted_info).length > 0
+  const summaryPresent = !!aiCallRecord?.summary && aiCallRecord.summary.length > 0
+  const alreadySent = await hasAutomaticSmsForCall(callSid, businessId)
+
+  // Skip if any guard fails
+  let skipReason = null
+  if (!aiCallRecord) {
+    skipReason = 'no_ai_call_record_found'
+  } else if (!callSidMatch) {
+    skipReason = 'call_sid_mismatch'
+  } else if (failedOrFallback) {
+    skipReason = 'call_failed_or_fallback'
+  } else if (!outcomeCompleted) {
+    skipReason = 'outcome_not_completed'
+  } else if (!transcriptPresent) {
+    skipReason = 'no_transcript'
+  } else if (!extractedInfoPresent) {
+    skipReason = 'no_extracted_info'
+  } else if (!summaryPresent) {
+    skipReason = 'no_summary'
+  } else if (alreadySent) {
+    skipReason = 'already_sent'
+  }
+
+  // Structured decision log with all required fields
+  console.log('[SUMMARY SMS DECISION]', {
+    currentCallSid: callSid,
+    selectedAiCallRecordId: aiCallRecord?.id,
+    selectedRecordCallSid: aiCallRecord?.call_sid,
+    selectedRecordOutcome: aiCallRecord?.outcome,
+    transcriptPresent,
+    extractedInfoPresent,
+    summaryPresent,
+    failedOrFallback,
+    alreadySent,
+    decision: skipReason ? 'skip' : 'send',
+    skipReason,
+    timestamp: new Date().toISOString()
+  })
+
+  if (skipReason) {
+    console.log('[SUMMARY SMS SKIPPED]', {
+      reason: skipReason,
+      callSid,
+      aiCallRecordId: aiCallRecord?.id
+    })
+    return { success: true, skipped: true, reason: skipReason }
+  }
+
   // Merge extracted info from multiple sources to handle race conditions
   // Priority: params.extractedInfo > aiCallRecord.extracted_info > lead.raw_metadata
   const mergedExtractedInfo = mergeExtractedInfo(params, aiCallRecord, leadMetadata)
@@ -412,20 +466,6 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
   // Do not append here to avoid duplication
 
   const conversationId = await getConversationId(leadId, businessId, params.conversationId)
-
-  // Structured log before summary SMS with all required fields
-  console.log('[SUMMARY SMS DECISION]', {
-    currentCallSid: callSid,
-    selectedAiCallRecordId: aiCallRecord?.id,
-    selectedRecordCallSid: aiCallRecord?.call_sid,
-    selectedRecordOutcome: aiCallRecord?.outcome,
-    transcriptPresent: !!aiCallRecord?.transcript,
-    extractedInfoPresent: !!aiCallRecord?.extracted_info,
-    summaryPresent: !!aiCallRecord?.summary,
-    alreadySent: await hasAutomaticSmsForCall(callSid, businessId),
-    decision: 'send',
-    timestamp: new Date().toISOString()
-  })
 
   console.log('[AUTO SMS DISPATCH]', {
     callSid,
