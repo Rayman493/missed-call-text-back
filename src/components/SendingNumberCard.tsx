@@ -3,10 +3,12 @@
 import { useState } from 'react'
 import { MessageSquare, Smartphone } from 'lucide-react'
 import { useSendingSource, SendingSource } from '@/hooks/useSendingSource'
+import { supportsBusinessNumber } from '@/lib/platform-capabilities'
 
 export default function SendingNumberCard() {
-  const { sendingSource, isLoading, error, updateSendingSource, isNativeMobile } = useSendingSource()
+  const { sendingSource, isLoading, error, updateSendingSource } = useSendingSource()
   const [localError, setLocalError] = useState<string | null>(null)
+  const isNativeMobile = supportsBusinessNumber()
 
   const handleSourceChange = async (source: SendingSource) => {
     setLocalError(null)
@@ -75,11 +77,11 @@ export default function SendingNumberCard() {
               Business Number active
             </p>
             <p className="text-xs text-slate-600 dark:text-slate-400">
-              Messages open in your messaging app for you to review and send.
+              ReplyFlow prepares the message and opens your messaging app for you to review and send.
             </p>
             {!isNativeMobile && (
               <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                Note: Business Number requires a mobile device. Desktop will use ReplyFlow Number.
+                Business Number is your default on mobile. Messages sent from desktop will use your ReplyFlow Number.
               </p>
             )}
           </div>

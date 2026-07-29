@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
+import { supportsBusinessNumber } from '@/lib/platform-capabilities'
 
 export type SendingSource = 'replyflow' | 'business'
 
@@ -12,13 +13,9 @@ interface UseSendingSourceReturn {
   effectiveSource: SendingSource // The actual source to use (considering platform)
 }
 
-// Check if running in native mobile app
+// Check if running in native mobile app - use shared capability helper
 const isNativeMobile = () => {
-  try {
-    return (window as any).Capacitor?.isNativePlatform?.() ?? false
-  } catch {
-    return false
-  }
+  return supportsBusinessNumber()
 }
 
 export function useSendingSource(): UseSendingSourceReturn {

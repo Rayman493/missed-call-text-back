@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react'
 import { Plus, X, Smartphone, MessageSquare, ChevronDown } from 'lucide-react'
-import { Capacitor } from '@capacitor/core'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -8,6 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuPortal,
 } from '@radix-ui/react-dropdown-menu'
+import { supportsBusinessNumber } from '@/lib/platform-capabilities'
 
 interface ConversationComposerProps {
   message: string
@@ -46,7 +46,7 @@ export default function ConversationComposer({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const sendButtonRef = useRef<HTMLButtonElement>(null)
 
-  const isNativeMobile = Capacitor.isNativePlatform()
+  const isNativeMobile = supportsBusinessNumber()
 
   // Clear images when onClearImages is called
   React.useEffect(() => {
@@ -151,7 +151,7 @@ export default function ConversationComposer({
     if (!hasContent || sending) return
     
     // Desktop fallback: if Business Number is default but platform is not native mobile, use ReplyFlow
-    const effectiveSource = (sendingSource === 'business' && isNativeMobilePlatform) ? 'business' : 'replyflow'
+    const effectiveSource = (sendingSource === 'business' && supportsBusinessNumber()) ? 'business' : 'replyflow'
     
     if (effectiveSource === 'business' && onSendViaBusinessNumber) {
       onSendViaBusinessNumber()

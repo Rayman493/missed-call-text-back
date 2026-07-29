@@ -7,6 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuPortal,
 } from '@radix-ui/react-dropdown-menu'
+import { supportsBusinessNumber } from '@/lib/platform-capabilities'
 
 interface MobileConversationComposerProps {
   message: string
@@ -345,12 +346,12 @@ export default function MobileConversationComposer({
                     {sendingSource === 'replyflow' && onSendViaBusinessNumber && (
                       <DropdownMenuItem
                         onClick={onSendViaBusinessNumber}
-                        disabled={!isNativeMobilePlatform}
+                        disabled={!supportsBusinessNumber()}
                         className="flex items-center gap-2 px-3 py-2 rounded-sm text-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Smartphone className="w-4 h-4" />
                         <span>Send via Business Number</span>
-                        {!isNativeMobilePlatform && (
+                        {!supportsBusinessNumber() && (
                           <span className="ml-auto text-xs text-muted-foreground">Mobile only</span>
                         )}
                       </DropdownMenuItem>

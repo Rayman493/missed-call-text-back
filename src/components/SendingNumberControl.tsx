@@ -10,6 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuPortal,
 } from '@radix-ui/react-dropdown-menu'
+import { supportsBusinessNumber } from '@/lib/platform-capabilities'
 
 interface SendingNumberControlProps {
   compact?: boolean
@@ -17,9 +18,10 @@ interface SendingNumberControlProps {
 }
 
 export default function SendingNumberControl({ compact = false, showLabel = true }: SendingNumberControlProps) {
-  const { sendingSource, isLoading, error, updateSendingSource, isNativeMobile } = useSendingSource()
+  const { sendingSource, isLoading, error, updateSendingSource } = useSendingSource()
   const [localError, setLocalError] = useState<string | null>(null)
   const [isOpen, setIsOpen] = useState(false)
+  const isNativeMobile = supportsBusinessNumber()
 
   const handleSourceChange = async (source: SendingSource) => {
     setLocalError(null)

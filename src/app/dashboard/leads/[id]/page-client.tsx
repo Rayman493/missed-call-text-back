@@ -47,6 +47,7 @@ import SuccessBanner from '@/components/SuccessBanner'
 import BusinessPhoneModal from '@/components/BusinessPhoneModal'
 import SendingNumberControl from '@/components/SendingNumberControl'
 import { useSendingSource } from '@/hooks/useSendingSource'
+import { supportsBusinessNumber } from '@/lib/platform-capabilities'
 import { Capacitor } from '@capacitor/core'
 
 // Check if running in native mobile app
@@ -338,6 +339,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const { business } = useBusiness()
   const { sendingSource, effectiveSource, isNativeMobile: isNativeMobilePlatform } = useSendingSource()
+  const supportsBusiness = supportsBusinessNumber()
 
     const [leadData, setLeadData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -1195,7 +1197,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
     try {
       // Desktop fallback: if Business Number is default but platform is not native mobile, use ReplyFlow
-      const effectiveSource = (sendingSource === 'business' && isNativeMobilePlatform) ? 'business' : 'replyflow'
+      const effectiveSource = (sendingSource === 'business' && supportsBusiness) ? 'business' : 'replyflow'
       
       if (effectiveSource === 'business') {
         // Business Phone flow: get job details and open Business Phone modal
@@ -3530,7 +3532,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   handleSendMessage={handleSendMessage}
                   sending={sending}
                   sendingSource={sendingSource}
-                  isNativeMobilePlatform={isNativeMobilePlatform}
+                  isNativeMobilePlatform={supportsBusiness}
                   onClearImages={(clearFn: () => void) => {
                     clearComposerImagesRef.current = clearFn
                   }}
@@ -4699,7 +4701,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   }
 
                   // Desktop fallback: if Business Number is default but platform is not native mobile, use ReplyFlow
-                  const effectiveSource = (sendingSource === 'business' && isNativeMobilePlatform) ? 'business' : 'replyflow'
+                  const effectiveSource = (sendingSource === 'business' && supportsBusiness) ? 'business' : 'replyflow'
                   
                   if (effectiveSource === 'business') {
                     // Skip SMS and prepare for Business Phone modal
