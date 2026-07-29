@@ -436,7 +436,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       const response = await fetch('/api/external-actions/record', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(action)
+        body: JSON.stringify({
+          actionId: action.actionId,
+          actionType: action.actionType,
+          leadId: action.leadId,
+          customerName: action.customerName,
+          customerPhone: action.customerPhone,
+          paymentRequestId: action.paymentRequestId,
+          messageBody: action.messageBody,
+          amountCents: action.amountCents
+        })
       })
       if (!response.ok) {
         throw new Error('Failed to record action')
@@ -4815,6 +4824,8 @@ If you have questions, reply to this message.`
                       // Register pending action before opening native app
                       const customerName = getCustomerName(lead, leadData)
                       const dialNumber = leadData?.caller_phone || lead?.caller_phone || ''
+                      const amountDollars = parseFloat(paymentAmount) || 0
+                      const amountCents = Math.round(amountDollars * 100)
                       const pendingAction = createPendingAction(
                         'business_phone_payment_request',
                         lead?.id || leadData?.id || '',
@@ -4823,7 +4834,7 @@ If you have questions, reply to this message.`
                         business?.id || '',
                         data.paymentRequestId || data.id,
                         message,
-                        amount
+                        amountCents
                       )
                       await registerPendingAction(pendingAction)
                       

@@ -11,7 +11,7 @@ export interface PendingExternalAction {
   customerPhone: string
   paymentRequestId?: string
   messageBody?: string
-  amount?: string
+  amountCents?: number
   timestamp: string
   businessId: string
 }
@@ -92,7 +92,7 @@ export function createPendingAction(
   businessId: string,
   paymentRequestId?: string,
   messageBody?: string,
-  amount?: string
+  amountCents?: number
 ): PendingExternalAction {
   return {
     actionId: generateActionId(),
@@ -102,7 +102,7 @@ export function createPendingAction(
     customerPhone,
     paymentRequestId,
     messageBody,
-    amount,
+    amountCents,
     timestamp: new Date().toISOString(),
     businessId
   }

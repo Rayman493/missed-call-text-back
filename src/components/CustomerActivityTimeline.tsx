@@ -126,8 +126,8 @@ export default function CustomerActivityTimeline({ leadData }: CustomerActivityT
           })
         } else if (actionType === 'business_phone_payment_request') {
           let detail = ''
-          if (metadata.amount) {
-            detail = `$${parseFloat(metadata.amount).toFixed(0)} payment request`
+          if (metadata.amountCents) {
+            detail = `$${(metadata.amountCents / 100).toFixed(2)} payment request`
           }
           
           activityEvents.push({
