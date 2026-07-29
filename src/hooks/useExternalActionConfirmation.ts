@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { App } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core'
-import { PendingExternalAction, getPendingAction, clearPendingAction, createPendingAction, setPendingAction } from '@/lib/pending-actions'
+import { PendingExternalAction, getPendingAction, clearPendingAction, createPendingAction, setPendingAction, setHandoffMarker, clearHandoffMarker } from '@/lib/pending-actions'
 
 interface UseExternalActionConfirmationOptions {
   onConfirm: (action: PendingExternalAction) => Promise<void>
@@ -24,11 +24,60 @@ export function useExternalActionConfirmation({
   const hasBeenBackgroundedRef = useRef(false)
   const isProcessingRef = useRef(false)
   const handoffInitiatedRef = useRef(false)
+  const resumeCheckInFlightRef = useRef(false)
+  const confirmationShownForActionRef = useRef<string | null>(null)
+
+  // Lifecycle diagnostics
+  useEffect(() => {
+    console.log('[ExternalAction] Hook mounted, currentLeadId:', currentLeadId)
+    return () => {
+      console.log('[ExternalAction] Hook unmounted')
+    }
+  }, [currentLeadId])
 
   // Check if running in native Capacitor environment
   const isNativeMobile = () => {
     return Capacitor.isNativePlatform()
   }
+
+  // Deduplicated function to check for pending action after return
+  const checkPendingActionAfterReturn = useCallback(async () => {
+    if (!isNativeMobile() || isProcessingRef.current || resumeCheckInFlightRef.current) {
+      console.log('[ExternalAction] checkPendingActionAfterReturn skipped - not native or already processing')
+      return
+    }
+
+    resumeCheckInFlightRef.current = true
+    console.log('[ExternalAction] checkPendingActionAfterReturn called, handoffInitiated:', handoffInitiatedRef.current)
+
+    try {
+      const action = await getPendingAction()
+      console.log('[ExternalAction] Pending action exists:', !!action, 'currentLeadId:', currentLeadId)
+      
+      if (action) {
+        // Only show if it's for the current lead
+        if (!currentLeadId || action.leadId === currentLeadId) {
+          // Check if we've already shown confirmation for this action
+          if (confirmationShownForActionRef.current === action.actionId) {
+            console.log('[ExternalAction] Confirmation already shown for this action, skipping')
+            return
+          }
+          
+          console.log('[ExternalAction] Showing confirmation for action:', action.actionType)
+          confirmationShownForActionRef.current = action.actionId
+          setPendingActionState(action)
+        } else {
+          console.log('[ExternalAction] Pending action for different lead, leaving stored:', action.leadId, 'current:', currentLeadId)
+        }
+      } else {
+        console.log('[ExternalAction] No pending action found')
+      }
+    } catch (error) {
+      console.error('[ExternalAction] Error checking for pending action:', error)
+    } finally {
+      resumeCheckInFlightRef.current = false
+    }
+  }, [currentLeadId])
 
   // Lifecycle listener to detect app resume (registered once)
   useEffect(() => {
@@ -36,11 +85,14 @@ export function useExternalActionConfirmation({
       return
     }
 
+    console.log('[ExternalAction] Setting up lifecycle listeners')
+
     let appStateListener: Promise<{ remove: () => void }> | null = null
 
     const setupListener = async () => {
       try {
         appStateListener = App.addListener('appStateChange', ({ isActive }) => {
+          console.log('[ExternalAction] appStateChange event, isActive:', isActive)
           if (!isActive) {
             // App went to background
             hasBeenBackgroundedRef.current = true
@@ -48,7 +100,7 @@ export function useExternalActionConfirmation({
           } else if (isActive && hasBeenBackgroundedRef.current && !isProcessingRef.current) {
             // App came back from background and we're not already processing
             console.log('[ExternalAction] App resumed, checking for pending action')
-            checkForPendingAction()
+            checkPendingActionAfterReturn()
           }
         })
       } catch (error) {
@@ -58,40 +110,82 @@ export function useExternalActionConfirmation({
 
     setupListener()
 
+    // Add visibilitychange listener
+    const handleVisibilityChange = () => {
+      console.log('[ExternalAction] visibilitychange event, visibilityState:', document.visibilityState)
+      if (document.visibilityState === 'visible' && handoffInitiatedRef.current && !isProcessingRef.current) {
+        console.log('[ExternalAction] Document visible after handoff, checking for pending action')
+        checkPendingActionAfterReturn()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    // Add focus listener
+    const handleFocus = () => {
+      console.log('[ExternalAction] window focus event')
+      if (handoffInitiatedRef.current && !isProcessingRef.current) {
+        console.log('[ExternalAction] Window focused after handoff, checking for pending action')
+        checkPendingActionAfterReturn()
+      }
+    }
+
+    window.addEventListener('focus', handleFocus)
+
     return () => {
+      console.log('[ExternalAction] Cleaning up lifecycle listeners')
       if (appStateListener) {
         appStateListener.then(listener => listener.remove()).catch(err => {
           console.error('[ExternalAction] Failed to remove app state listener:', err)
         })
       }
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
     }
-  }, []) // No dependencies - register once
+  }, [checkPendingActionAfterReturn]) // Include the check function in dependencies
 
-  const checkForPendingAction = useCallback(async () => {
-    if (!isNativeMobile() || isProcessingRef.current) {
+  // Mount-time recovery for when the page remounts after external app
+  useEffect(() => {
+    if (!isNativeMobile()) {
       return
     }
 
-    try {
-      const action = await getPendingAction()
-      if (action) {
-        // Only show if it's for the current lead
-        if (!currentLeadId || action.leadId === currentLeadId) {
-          console.log('[ExternalAction] Found pending action:', action.actionType)
-          setPendingActionState(action)
+    console.log('[ExternalAction] Mount-time recovery check')
+    
+    const checkMountTimeRecovery = async () => {
+      try {
+        const action = await getPendingAction()
+        if (action) {
+          // Only recover if it matches the current lead and has a handoff marker
+          if (!currentLeadId || action.leadId === currentLeadId) {
+            if (action.handoffInitiated && confirmationShownForActionRef.current !== action.actionId) {
+              console.log('[ExternalAction] Mount-time recovery: showing confirmation for action:', action.actionType)
+              confirmationShownForActionRef.current = action.actionId
+              setPendingActionState(action)
+            } else {
+              console.log('[ExternalAction] Mount-time recovery: action exists but handoff not initiated or already shown')
+            }
+          } else {
+            console.log('[ExternalAction] Mount-time recovery: action for different lead')
+          }
         } else {
-          // Leave the action stored for when the matching customer page is opened
-          console.log('[ExternalAction] Pending action for different lead, leaving stored:', action.leadId, 'current:', currentLeadId)
+          console.log('[ExternalAction] Mount-time recovery: no pending action')
         }
+      } catch (error) {
+        console.error('[ExternalAction] Mount-time recovery error:', error)
       }
-    } catch (error) {
-      console.error('[ExternalAction] Error checking for pending action:', error)
     }
+
+    // Small delay to ensure Preferences are ready
+    const timer = setTimeout(checkMountTimeRecovery, 100)
+    
+    return () => clearTimeout(timer)
   }, [currentLeadId])
 
-  const markHandoffInitiated = useCallback(() => {
+  const markHandoffInitiated = useCallback(async () => {
     handoffInitiatedRef.current = true
     console.log('[ExternalAction] Handoff initiated')
+    await setHandoffMarker()
   }, [])
 
   const handleConfirm = useCallback(async () => {
@@ -106,8 +200,10 @@ export function useExternalActionConfirmation({
     try {
       await onConfirm(pendingAction)
       await clearPendingAction()
+      await clearHandoffMarker()
       setPendingActionState(null)
       hasBeenBackgroundedRef.current = false
+      confirmationShownForActionRef.current = null
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to record action')
     } finally {
@@ -123,8 +219,10 @@ export function useExternalActionConfirmation({
 
     isProcessingRef.current = true
     await clearPendingAction()
+    await clearHandoffMarker()
     setPendingActionState(null)
     hasBeenBackgroundedRef.current = false
+    confirmationShownForActionRef.current = null
     onCancel()
     isProcessingRef.current = false
   }, [pendingAction, onCancel])

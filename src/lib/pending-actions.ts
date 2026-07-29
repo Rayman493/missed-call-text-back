@@ -16,6 +16,7 @@ export interface PendingExternalAction {
   amountCents?: number
   timestamp: string
   businessId: string
+  handoffInitiated?: boolean
 }
 
 const PENDING_ACTION_KEY = 'pending_external_action'
@@ -201,6 +202,39 @@ export function createPendingAction(
     messageBody,
     amountCents,
     timestamp: new Date().toISOString(),
-    businessId
+    businessId,
+    handoffInitiated: false
+  }
+}
+
+// Set handoff marker on existing pending action
+export async function setHandoffMarker(): Promise<void> {
+  const action = await getPendingAction()
+  if (action) {
+    action.handoffInitiated = true
+    const value = JSON.stringify(action)
+    
+    if (isCapacitorNative()) {
+      await Preferences.set({ key: PENDING_ACTION_KEY, value })
+    } else {
+      localStorage.setItem(PENDING_ACTION_KEY, value)
+    }
+    console.log('[PendingActions] Handoff marker set for action:', action.actionId)
+  }
+}
+
+// Clear handoff marker on existing pending action
+export async function clearHandoffMarker(): Promise<void> {
+  const action = await getPendingAction()
+  if (action && action.handoffInitiated) {
+    action.handoffInitiated = false
+    const value = JSON.stringify(action)
+    
+    if (isCapacitorNative()) {
+      await Preferences.set({ key: PENDING_ACTION_KEY, value })
+    } else {
+      localStorage.setItem(PENDING_ACTION_KEY, value)
+    }
+    console.log('[PendingActions] Handoff marker cleared for action:', action.actionId)
   }
 }

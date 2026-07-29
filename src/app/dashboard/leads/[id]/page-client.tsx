@@ -46,7 +46,7 @@ import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
 import SuccessBanner from '@/components/SuccessBanner'
 import ExternalActionConfirmationModal from '@/components/ExternalActionConfirmationModal'
 import { useExternalActionConfirmation } from '@/hooks/useExternalActionConfirmation'
-import { createPendingAction } from '@/lib/pending-actions'
+import { createPendingAction, clearHandoffMarker } from '@/lib/pending-actions'
 import { Capacitor } from '@capacitor/core'
 
 // Check if running in native mobile app
@@ -4941,7 +4941,7 @@ If you have questions, reply to this message.
               })()}
               {isNativeMobile() && (
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     // Validate required fields before launching Messages
                     if (!paymentLinkData.dialNumber) {
                       setError('Customer phone number is missing. Cannot open Messages.')
@@ -4956,7 +4956,7 @@ If you have questions, reply to this message.
                       return
                     }
                     // Mark handoff as initiated for confirmation flow
-                    markHandoffInitiated()
+                    await markHandoffInitiated()
                     // Use window.open for Capacitor compatibility
                     const smsUrl = `sms:${paymentLinkData.dialNumber}?body=${encodeURIComponent(paymentLinkData.message)}`
                     window.open(smsUrl, '_blank')
@@ -5005,10 +5005,11 @@ If you have questions, reply to this message.`
                   setShowPaymentLinkModal(false)
                   // Clear pending action when modal is closed without opening Messages
                   if (isNativeMobile() && paymentLinkData.paymentRequestId) {
-                    // Clear the pending external action since user is not sending it now
+                    // Clear the pending external action and handoff marker since user is not sending it now
                     import('@/lib/pending-actions').then(({ clearPendingAction }) => {
                       clearPendingAction()
                     })
+                    clearHandoffMarker()
                   }
                   setPaymentLinkData(null)
                 }}
