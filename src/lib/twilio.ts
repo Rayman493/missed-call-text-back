@@ -63,7 +63,9 @@ export async function sendSms(
     isManual: options?.isManual
   });
   // Skip business availability note for manual messages, offboarding, or when explicitly skipped
-  message = (options?.isOffboarding || options?.skipBusinessAvailabilityAppend || options?.isManual) ? message : appendBusinessAvailabilityNote(message, business);
+  // Handle both boolean true and string "true" for isManual (defensive programming)
+  const shouldSkipAvailabilityNote = options?.isOffboarding || options?.skipBusinessAvailabilityAppend || options?.isManual === true || (options?.isManual as any) === 'true';
+  message = shouldSkipAvailabilityNote ? message : appendBusinessAvailabilityNote(message, business);
   console.log('[SMS TRACE sendSms STEP_1_COMPLETE]', { message_length_after_append: message?.length });
 
   // Idempotency check for automated messages (prevent duplicates within 5 minutes)
