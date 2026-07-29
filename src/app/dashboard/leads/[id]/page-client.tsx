@@ -428,6 +428,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     handleCancel: handleExternalActionCancel,
     handleDismiss: handleExternalActionDismiss,
     registerPendingAction,
+    markHandoffInitiated,
     showConfirmation: showExternalActionConfirmation
   } = useExternalActionConfirmation({
     onConfirm: async (action) => {
@@ -4954,9 +4955,13 @@ If you have questions, reply to this message.
                       setError('Payment link is missing. Cannot open Messages.')
                       return
                     }
+                    // Mark handoff as initiated for confirmation flow
+                    markHandoffInitiated()
                     // Use window.open for Capacitor compatibility
                     const smsUrl = `sms:${paymentLinkData.dialNumber}?body=${encodeURIComponent(paymentLinkData.message)}`
                     window.open(smsUrl, '_blank')
+                    // Close the ready modal after successful handoff, but preserve pending action
+                    setShowPaymentLinkModal(false)
                   }}
                   className="w-full px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
                 >

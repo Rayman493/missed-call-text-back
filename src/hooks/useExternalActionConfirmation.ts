@@ -21,8 +21,9 @@ export function useExternalActionConfirmation({
   const [pendingAction, setPendingActionState] = useState<PendingExternalAction | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | undefined>()
-  const [hasBeenBackgrounded, setHasBeenBackgrounded] = useState(false)
+  const hasBeenBackgroundedRef = useRef(false)
   const isProcessingRef = useRef(false)
+  const handoffInitiatedRef = useRef(false)
 
   // Check if running in native Capacitor environment
   const isNativeMobile = () => {
@@ -42,9 +43,9 @@ export function useExternalActionConfirmation({
         appStateListener = App.addListener('appStateChange', ({ isActive }) => {
           if (!isActive) {
             // App went to background
-            setHasBeenBackgrounded(true)
+            hasBeenBackgroundedRef.current = true
             console.log('[ExternalAction] App backgrounded')
-          } else if (isActive && hasBeenBackgrounded && !isProcessingRef.current) {
+          } else if (isActive && hasBeenBackgroundedRef.current && !isProcessingRef.current) {
             // App came back from background and we're not already processing
             console.log('[ExternalAction] App resumed, checking for pending action')
             checkForPendingAction()
@@ -88,6 +89,11 @@ export function useExternalActionConfirmation({
     }
   }, [currentLeadId])
 
+  const markHandoffInitiated = useCallback(() => {
+    handoffInitiatedRef.current = true
+    console.log('[ExternalAction] Handoff initiated')
+  }, [])
+
   const handleConfirm = useCallback(async () => {
     if (!pendingAction || isProcessingRef.current) {
       return
@@ -101,7 +107,7 @@ export function useExternalActionConfirmation({
       await onConfirm(pendingAction)
       await clearPendingAction()
       setPendingActionState(null)
-      setHasBeenBackgrounded(false)
+      hasBeenBackgroundedRef.current = false
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to record action')
     } finally {
@@ -118,7 +124,7 @@ export function useExternalActionConfirmation({
     isProcessingRef.current = true
     await clearPendingAction()
     setPendingActionState(null)
-    setHasBeenBackgrounded(false)
+    hasBeenBackgroundedRef.current = false
     onCancel()
     isProcessingRef.current = false
   }, [pendingAction, onCancel])
@@ -126,7 +132,7 @@ export function useExternalActionConfirmation({
   const handleDismiss = useCallback(() => {
     // Dismiss without clearing - just close the modal, leave action stored
     setPendingActionState(null)
-    setHasBeenBackgrounded(false)
+    hasBeenBackgroundedRef.current = false
   }, [])
 
   const registerPendingAction = useCallback(async (action: PendingExternalAction) => {
@@ -154,6 +160,7 @@ export function useExternalActionConfirmation({
     handleCancel,
     handleDismiss,
     registerPendingAction,
+    markHandoffInitiated,
     showConfirmation: !!pendingAction
   }
 }

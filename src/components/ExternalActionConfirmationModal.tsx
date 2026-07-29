@@ -31,9 +31,9 @@ export default function ExternalActionConfirmationModal({
       case 'business_phone_payment_request':
         return {
           title: 'Did you send the payment request?',
-          body: 'Record that the payment link was sent from your business phone?',
-          primaryAction: 'Record as sent',
-          secondaryAction: 'Not sent'
+          body: 'Confirm to add it to this customer\'s ReplyFlow history.',
+          primaryAction: 'Yes, record it',
+          secondaryAction: 'No, I didn\'t send it'
         }
       case 'business_phone_call':
         return {
