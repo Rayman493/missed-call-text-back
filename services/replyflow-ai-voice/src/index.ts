@@ -5715,6 +5715,15 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     lastDetectedSpeechAt: 0,
     lastSpeechStoppedAt: 0,
     lastTranscriptionCompletedAt: 0,
+    // Additional Details stage timing diagnostics
+    detailsTiming: {
+      callerStoppedAt: 0,
+      vadDetectedAt: 0,
+      finalTranscriptAt: 0,
+      settleWindowStart: 0,
+      settleWindowEnd: 0,
+      nextPromptSent: 0
+    } as Record<string, number>,
     // One-time VAD grace for settle finalization (ask_details only)
     settleGraceTimeout: null as NodeJS.Timeout | null,
     settleGraceGeneration: 0,
@@ -8408,10 +8417,19 @@ Reply to this message if you'd like to update or add any information.
   // Helper to map intake stages to silence duration
   // SHORT_RESPONSE (900ms): For quick answers like Name and Reason for Calling
   // LONG_RESPONSE (1800ms): For multi-word answers like Address, Phone, Email, Appointment, Timeline
+  // DETAILS_RESPONSE (1400ms): Optimized for Additional Details stage for better responsiveness
   const getSilenceDurationForStage = (stage: string): number => {
     const shortResponseStages = ['ask_name_reason', 'ask_name_reason_service_only', 'ask_name_reason_name_only'];
     const isShortResponse = shortResponseStages.includes(stage);
-    return isShortResponse ? 900 : 1800;
+    const isDetailsStage = stage === 'ask_details';
+    
+    if (isShortResponse) {
+      return 900;
+    } else if (isDetailsStage) {
+      return 1400; // Stage-specific optimization for ask_details
+    } else {
+      return 1800; // Default LONG_RESPONSE for all other stages
+    }
   };
 
   // Helper to send prompt using cached PCMU audio or Realtime response.create
@@ -9587,7 +9605,7 @@ Reply to this message if you'd like to update or add any information.
               console.log('[CONTINUATION DETECTION TIMING] callerAudioResumedAt:', state.lastInboundAudioAt);
               console.log('[CONTINUATION DETECTION TIMING] speechStartedEventAt:', speechStartedAt);
               console.log('[CONTINUATION DETECTION TIMING] delayBetweenAudioAndSpeechStarted:', delayBetweenAudioAndSpeechStarted);
-              console.log('[CONTINUATION DETECTION TIMING] settleDeadlineAt:', (state.settleWindowTimeout as any)._idleStart ? (state.settleWindowTimeout as any)._idleStart + (state.pendingAnswerStage === 'ask_details' ? 2500 : 1500) : 'unknown');
+              console.log('[CONTINUATION DETECTION TIMING] settleDeadlineAt:', (state.settleWindowTimeout as any)._idleStart ? (state.settleWindowTimeout as any)._idleStart + (state.pendingAnswerStage === 'ask_details' ? 1500 : 1500) : 'unknown');
               console.log('[CONTINUATION DETECTION TIMING] wouldHaveMissedDeadline:', delayBetweenAudioAndSpeechStarted > 0 ? 'audio_before_speech_started' : 'speech_started_first');
               console.log('[CONTINUATION DETECTION TIMING] action:', 'continuation_speech_detected');
               console.log('[CONTINUATION DETECTION TIMING] =========================================');
@@ -10457,16 +10475,23 @@ Reply to this message if you'd like to update or add any information.
                   const segmentCount = state.pendingAnswerSegments.length;
                   
                   // Determine settle window duration based on whether this is intrinsic or continuation
-                  // Intrinsic: ask_details: 2500ms, ask_name_reason: 1500ms
+                  // Intrinsic: ask_details: 1500ms (reduced from 2500ms for better responsiveness), ask_name_reason: 1500ms
                   // Continuation: 1500ms for all stages
                   let settleWindowMs: number;
                   if (hasIntrinsicSettleWindow) {
-                    settleWindowMs = originatingStage === 'ask_details' ? 2500 : 1500;
+                    settleWindowMs = 1500; // Unified 1500ms for both ask_details and ask_name_reason
                   } else {
                     settleWindowMs = 1500; // Continuation settle window for non-intrinsic stages
                   }
                   const settleStartedAt = Date.now();
                   const settleDeadlineAt = settleStartedAt + settleWindowMs;
+                  
+                  // Instrument Additional Details timing
+                  if (originatingStage === 'ask_details') {
+                    state.detailsTiming.finalTranscriptAt = state.lastTranscriptionCompletedAt;
+                    state.detailsTiming.settleWindowStart = settleStartedAt;
+                    state.detailsTiming.callerStoppedAt = state.lastSpeechStoppedAt;
+                  }
                   
                   console.log('[LOGICAL TURN LIFECYCLE] =========================================');
                   console.log('[LOGICAL TURN LIFECYCLE] event: pending_answer_started');
@@ -10530,6 +10555,11 @@ Reply to this message if you'd like to update or add any information.
                     console.log('[ANSWER SETTLE TIMING] msSinceLastCallerActivityAtDeadline:', state.lastInboundAudioAt ? settleDeadlineAt - state.lastInboundAudioAt : 'none');
                     console.log('[ANSWER SETTLE TIMING] action:', 'settle_callback_executed');
                     console.log('[ANSWER SETTLE TIMING] =========================================');
+                    
+                    // Instrument Additional Details timing at settle window end
+                    if (originatingStage === 'ask_details') {
+                      state.detailsTiming.settleWindowEnd = settleCallbackAt;
+                    }
                     
                     // Generation guard: prevent stale callbacks from finalizing
                     if (capturedGeneration !== state.settleGeneration) {
@@ -10609,7 +10639,7 @@ Reply to this message if you'd like to update or add any information.
                     if (!finalizationAllowed) {
                       console.log('[SETTLE FINALIZATION GATE] action:', 'blocked_' + blockedReason);
                       // Do not finalize. Allow continuation to complete and normal transcription flow
-                      // The next completed transcription will restart the 2500ms settle window.
+                      // The next completed transcription will restart the 1500ms settle window.
                       return;
                     }
 
@@ -10706,6 +10736,27 @@ Reply to this message if you'd like to update or add any information.
                           clearPendingAnswerState(state, 'settle_window_finalization');
                           state.answerAcceptedForStage = null;
                           state.answerAcceptedTurnId = 0;
+
+                          // Instrument Additional Details timing at finalization
+                          if (finalStage === 'ask_details') {
+                            state.detailsTiming.nextPromptSent = Date.now();
+                            
+                            // Log complete timing breakdown
+                            const totalLatencyMs = state.detailsTiming.nextPromptSent - state.detailsTiming.callerStoppedAt;
+                            console.log('[DETAILS TIMING] =========================================');
+                            console.log('[DETAILS TIMING] callSid:', state.callSid);
+                            console.log('[DETAILS TIMING] callerStoppedAt:', state.detailsTiming.callerStoppedAt);
+                            console.log('[DETAILS TIMING] vadDetectedAt:', state.detailsTiming.callerStoppedAt); // VAD detection coincides with speech stop
+                            console.log('[DETAILS TIMING] finalTranscriptAt:', state.detailsTiming.finalTranscriptAt);
+                            console.log('[DETAILS TIMING] settleWindowStart:', state.detailsTiming.settleWindowStart);
+                            console.log('[DETAILS TIMING] settleWindowEnd:', state.detailsTiming.settleWindowEnd);
+                            console.log('[DETAILS TIMING] nextPromptSent:', state.detailsTiming.nextPromptSent);
+                            console.log('[DETAILS TIMING] totalLatencyMs:', totalLatencyMs);
+                            console.log('[DETAILS TIMING] vadToTranscriptMs:', state.detailsTiming.finalTranscriptAt - state.detailsTiming.callerStoppedAt);
+                            console.log('[DETAILS TIMING] settleWindowMs:', state.detailsTiming.settleWindowEnd - state.detailsTiming.settleWindowStart);
+                            console.log('[DETAILS TIMING] finalizationToPromptMs:', state.detailsTiming.nextPromptSent - state.detailsTiming.settleWindowEnd);
+                            console.log('[DETAILS TIMING] =========================================');
+                          }
 
                           // Centralized routing after settle finalization, with race-safe mode resolution
                           const needsResolution = finalStage === 'ask_details' && (!state.serviceLocationType || state.serviceLocationType.length === 0);
