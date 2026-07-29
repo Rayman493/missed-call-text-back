@@ -520,37 +520,24 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         }
       }, 100)
     } else {
-      // Open native messaging app
-      handleOpenMessagingApp()
-    }
-  }
-
-  const handleOpenMessagingApp = async () => {
-    if (!isNativeMobile()) {
-      // Show message about mobile app availability on web/desktop
-      alert('Open this customer in the ReplyFlow mobile app to text from a number configured on your phone.')
-      return
-    }
-    try {
-      if (canDialPhone) {
+      // Show shared Business Phone modal for native mobile
+      if (isNativeMobile()) {
         const customerName = getCustomerName(lead, leadData)
         const dialNumber = leadData?.caller_phone || lead?.caller_phone || ''
-        
-        // Register pending action before opening native app
-        const pendingAction = createPendingAction(
-          'business_phone_text',
-          lead?.id || leadData?.id || '',
-          customerName,
-          dialNumber,
-          business?.id || '',
-          undefined,
-          '' // No message body for plain text
-        )
-        // No longer need to register pending action - timeline event is created immediately
-        
-        window.location.href = `sms:${dialNumber}`
+        setBusinessPhoneModalConfig({
+          title: 'Send Message',
+          description: 'Send a text message to this customer from your business phone.',
+          message: '', // Empty for plain text
+          recipient: dialNumber,
+          recipientName: customerName,
+          actionType: 'text'
+        })
+        setShowBusinessPhoneModal(true)
+      } else {
+        // Show message about mobile app availability on web/desktop
+        alert('Open this customer in the ReplyFlow mobile app to text from a number configured on your phone.')
       }
-    } catch {}
+    }
   }
 
   // Close more actions dropdown when clicking outside
@@ -1265,31 +1252,55 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     setConfirmationError(null)
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token
-
-      if (!token) {
-        throw new Error('Not authenticated')
-      }
-
-      const response = await fetch(`/api/jobs/${jobId}/send-confirmation`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+      if (communicationSource === 'business' && isNativeMobile()) {
+        // Use shared Business Phone modal for native mobile
+        const job = futureAppointments.find((j: any) => j.id === jobId)
+        if (job) {
+          const customerName = getCustomerName(lead, leadData)
+          const dialNumber = leadData?.caller_phone || lead?.caller_phone || ''
+          const message = `Appointment reminder: ${job.title || 'Appointment'} scheduled for ${job.scheduled_date} at ${job.scheduled_time}.`
+          
+          setBusinessPhoneModalConfig({
+            title: 'Send Appointment Reminder',
+            description: 'Send an appointment reminder to this customer from your business phone.',
+            message: message,
+            recipient: dialNumber,
+            recipientName: customerName,
+            actionType: 'appointment',
+            relatedId: jobId,
+            relatedType: 'job'
+          })
+          setShowBusinessPhoneModal(true)
+          setShowAppointmentSelection(false)
         }
-      })
+      } else {
+        // Use existing ReplyFlow API for ReplyFlow Number flow
+        const { data: { session } } = await supabase.auth.getSession()
+        const token = session?.access_token
 
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to send confirmation')
+        if (!token) {
+          throw new Error('Not authenticated')
+        }
+
+        const response = await fetch(`/api/jobs/${jobId}/send-confirmation`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || 'Failed to send confirmation')
+        }
+
+        // Refresh lead data to update job confirmation status
+        await handleRefresh()
+        await fetchLeadJobs()
+        setSuccessMessage(successText)
+        setShowAppointmentSelection(false)
       }
-
-      // Refresh lead data to update job confirmation status
-      await handleRefresh()
-      await fetchLeadJobs()
-      setSuccessMessage(successText)
-      setShowAppointmentSelection(false)
     } catch (error: any) {
       setConfirmationError(error.message || 'Failed to send confirmation')
     } finally {
@@ -2766,16 +2777,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       const customerName = getCustomerName(lead, leadData)
 
       if (communicationSource === 'business') {
-        // Offer to open native messaging app with appointment details
+        // Use shared Business Phone modal for native mobile
         if (isNativeMobile() && canDialPhone) {
-          const confirmSend = confirm('Appointment scheduled successfully. Open messaging app to send appointment details to the customer?')
-          if (confirmSend) {
-            const message = `Appointment scheduled for ${appointmentDate} at ${appointmentTime}.`
-            window.location.href = `sms:${dialNumber}?body=${encodeURIComponent(message)}`
-          } else {
-            setAppointmentSuccessData({ customerName, date: appointmentDate, time: appointmentTime })
-            setShowAppointmentSuccessModal(true)
-          }
+          const message = `Appointment scheduled for ${appointmentDate} at ${appointmentTime}.`
+          setBusinessPhoneModalConfig({
+            title: 'Send Appointment Details',
+            description: 'Send appointment details to the customer from your business phone.',
+            message: message,
+            recipient: dialNumber,
+            recipientName: customerName,
+            actionType: 'appointment'
+          })
+          setShowBusinessPhoneModal(true)
         } else {
           setAppointmentSuccessData({ customerName, date: appointmentDate, time: appointmentTime })
           setShowAppointmentSuccessModal(true)
@@ -4820,7 +4833,22 @@ If you have questions, reply to this message.`
                         dialNumber: dialNumber,
                         customerName: customerName
                       })
-                      setShowPaymentLinkModal(true)
+                      // Show shared Business Phone modal for native mobile
+                      if (isNativeMobile() && communicationSource === 'business') {
+                        setBusinessPhoneModalConfig({
+                          title: 'Payment Request Ready',
+                          description: 'Your secure payment request is ready to send from your business phone.',
+                          message: message,
+                          recipient: dialNumber,
+                          recipientName: customerName,
+                          actionType: 'payment_request',
+                          relatedId: data.payment_request_id || data.id,
+                          relatedType: 'payment_request'
+                        })
+                        setShowBusinessPhoneModal(true)
+                      } else {
+                        setShowPaymentLinkModal(true)
+                      }
                     } else {
                       // Desktop: show payment link modal with copy buttons
                       setPaymentLinkData({
