@@ -4802,6 +4802,12 @@ If you have questions, reply to this message.`
                       setPaymentAmount('')
                       setPaymentDescription('')
                       setSuccessMessage(`Payment request sent\nMessage opened in your messaging app.`)
+                      
+                      // Refresh lead data to show timeline event
+                      const updatedData = await getLeadDetails(lead?.id)
+                      if (updatedData) {
+                        setLeadData(updatedData)
+                      }
                     } catch (error) {
                       console.error('[PAYMENT BUSINESS SMS] launch error:', error)
                       // Keep modal open for retry (shared helper handles fallback internally)

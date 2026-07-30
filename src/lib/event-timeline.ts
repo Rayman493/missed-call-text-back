@@ -118,10 +118,11 @@ export const timelineEvents = {
       event_data: { error_code: errorCode, error_message: errorMessage }
     }),
 
-  paymentRequestCreated: (businessId: string, leadId: string, paymentRequestId: string, amountCents: number, description: string) =>
+  paymentRequestCreated: (businessId: string, leadId: string, conversationId: string, paymentRequestId: string, amountCents: number, description: string) =>
     logTimelineEvent({
       business_id: businessId,
       lead_id: leadId,
+      conversation_id: conversationId,
       event_type: 'payment_requested',
       event_data: { payment_request_id: paymentRequestId, amount_cents: amountCents, description }
     }),
