@@ -616,6 +616,35 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
             )}
           </div>
 
+          {/* Request Summary - Canonical Overview */}
+          <div className="space-y-3">
+            {/* Service Name - Large Title */}
+            <div className="bg-slate-50/60 dark:bg-slate-900/30 rounded-xl p-3 border border-slate-200/60 dark:border-slate-800/60">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-4 h-4 text-base leading-none">🛠️</span>
+                  <span className="text-[11px] font-medium text-muted-foreground/70 uppercase tracking-wider">Service</span>
+                </div>
+                {manualFields.has('reasonForCalling') && !isEditMode && (
+                  <span className="text-[9px] px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-medium">Manual</span>
+                )}
+              </div>
+              {isEditMode ? (
+                <textarea
+                  value={editValues.reasonForCalling}
+                  onChange={(e) => setEditValues({ ...editValues, reasonForCalling: e.target.value })}
+                  className="w-full min-h-[64px] px-2 py-1.5 text-lg font-semibold text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 resize-y"
+                  rows={2}
+                  placeholder="Service requested"
+                />
+              ) : (
+                <p className="text-lg font-semibold text-foreground leading-relaxed">
+                  {extractedInfo?.reasonForCalling ? sentenceCase(extractedInfo.reasonForCalling) : 'Not Provided'}
+                </p>
+              )}
+            </div>
+          </div>
+
           {/* Details - Truncated with expansion */}
           {isEditMode || (extractedInfo?.importantDetails || correctedFields?.details) ? (
             <div className="bg-card rounded-xl p-4 border border-border/50">
@@ -654,99 +683,6 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               )}
             </div>
           ) : null}
-
-          {/* Location, Callback, Completion - Premium Overview Card */}
-          <div className="bg-muted/30 rounded-xl p-4 border border-border/20 space-y-4">
-            {/* Request Title */}
-            <div className="pb-3 border-b border-border/10">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-base leading-none">📋</span>
-                <span className="text-xs font-medium text-muted-foreground/70 uppercase tracking-wide">Current Request</span>
-              </div>
-              <p className="text-base font-semibold text-foreground leading-relaxed">
-                {extractedInfo?.reasonForCalling ? sentenceCase(extractedInfo.reasonForCalling) : 'Not Provided'}
-              </p>
-            </div>
-
-            {/* Scheduling Info */}
-            <div className="space-y-3">
-              {/* Location */}
-              {isEditMode || (extractedInfo?.addressOrLocation || correctedFields?.address) ? (
-                <div>
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-sm leading-none">📍</span>
-                    <span className="text-xs font-medium text-muted-foreground/70">Location</span>
-                    {manualFields.has('addressOrLocation') && !isEditMode && (
-                      <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded-md font-medium ml-auto">Manual</span>
-                    )}
-                  </div>
-                  {isEditMode ? (
-                    <textarea
-                      value={editValues.addressOrLocation}
-                      onChange={(e) => setEditValues({ ...editValues, addressOrLocation: e.target.value })}
-                      className="w-full min-h-[64px] px-2 py-1.5 text-sm text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 resize-y"
-                      rows={3}
-                      placeholder="Service address"
-                    />
-                  ) : (
-                    <p className="text-sm text-foreground leading-relaxed pl-6">
-                      {correctedFields?.address || extractedInfo?.addressOrLocation}
-                    </p>
-                  )}
-                </div>
-              ) : null}
-
-              {/* Callback Time */}
-              {isEditMode || extractedInfo?.preferredCallbackTime ? (
-                <div>
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-sm leading-none">☎️</span>
-                    <span className="text-xs font-medium text-muted-foreground/70">Best Callback Time</span>
-                    {manualFields.has('preferredCallbackTime') && !isEditMode && (
-                      <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded-md font-medium ml-auto">Manual</span>
-                    )}
-                  </div>
-                  {isEditMode ? (
-                    <textarea
-                      value={editValues.preferredCallbackTime}
-                      onChange={(e) => setEditValues({ ...editValues, preferredCallbackTime: e.target.value })}
-                      className="w-full min-h-[64px] px-2 py-1.5 text-sm text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 resize-y"
-                      rows={3}
-                      placeholder="Best time to call"
-                    />
-                  ) : (
-                    <p className="text-sm text-foreground leading-relaxed pl-6">
-                      {sentenceCase(extractedInfo.preferredCallbackTime)}
-                    </p>
-                  )}
-                </div>
-              ) : null}
-
-              {/* Desired Completion Time */}
-              <div>
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span className="text-sm leading-none">📅</span>
-                  <span className="text-xs font-medium text-muted-foreground/70">Desired Completion</span>
-                  {manualFields.has('desiredCompletionTime') && !isEditMode && (
-                    <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded-md font-medium ml-auto">Manual</span>
-                  )}
-                </div>
-                {isEditMode ? (
-                  <textarea
-                    value={editValues.desiredCompletionTime}
-                    onChange={(e) => setEditValues({ ...editValues, desiredCompletionTime: e.target.value })}
-                    className="w-full min-h-[64px] px-2 py-1.5 text-sm text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 resize-y"
-                    rows={3}
-                    placeholder="Desired completion"
-                  />
-                ) : (
-                  <p className="text-sm text-foreground leading-relaxed pl-6">
-                    {sentenceCase(extractedInfo.desiredCompletionTime) || 'Not Provided'}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
         </div>
       )}
 
