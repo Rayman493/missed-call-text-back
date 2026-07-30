@@ -362,8 +362,12 @@ export async function POST(request: Request) {
 
     // Promote lead from new to active when business manually sends a message
     try {
-      await promoteLeadToActiveIfNew(leadId, supabaseAdmin)
-      console.log('[Manual SMS] Lead promoted from new to active:', leadId)
+      const wasPromoted = await promoteLeadToActiveIfNew(leadId, supabaseAdmin)
+      if (wasPromoted) {
+        console.log('[Manual SMS] Lead promoted from new to active:', leadId)
+      } else {
+        console.log('[Manual SMS] Lead promotion skipped (not new status):', leadId)
+      }
     } catch (promoteError) {
       console.error('[Manual SMS] Error promoting lead to active:', promoteError)
       // Don't fail the request - message was sent successfully

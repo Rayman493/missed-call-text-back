@@ -578,11 +578,19 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
     })
     
     try {
-      await promoteLeadToActiveIfNew(lead.id, supabaseAdmin)
-      console.log('[LEAD STATUS PROMOTED SUCCESSFULLY]', {
-        leadId: lead.id,
-        reason: 'customer_replied'
-      })
+      const wasPromoted = await promoteLeadToActiveIfNew(lead.id, supabaseAdmin)
+      if (wasPromoted) {
+        console.log('[LEAD STATUS PROMOTED SUCCESSFULLY]', {
+          leadId: lead.id,
+          reason: 'customer_replied'
+        })
+      } else {
+        console.log('[LEAD STATUS PROMOTION SKIPPED]', {
+          leadId: lead.id,
+          reason: 'customer_replied',
+          note: 'Lead was not in new status'
+        })
+      }
     } catch (promoteError) {
       console.error('[LEAD STATUS PROMOTION ERROR]', {
         leadId: lead.id,
