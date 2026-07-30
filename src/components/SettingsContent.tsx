@@ -1290,20 +1290,20 @@ export default function SettingsContent() {
                   </div>
 
                   {/* Communication Section */}
-                  <div id="communication" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[64px]">
-                    <div className="mb-4">
-                      <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Sending Number</h2>
+                  <div id="communication" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-3 scroll-mt-[64px]">
+                    <div className="mb-3">
+                      <h2 className="text-sm font-medium text-slate-900 dark:text-foreground mb-1">Sending Number</h2>
                       <p className="text-xs text-slate-500 dark:text-slate-400">
-                        ReplyFlow Number is recommended for complete tracking and automation.
+                        Choose how ReplyFlow sends customer messages.
                       </p>
                     </div>
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       {/* ReplyFlow Number Option */}
                       <div
                         onClick={() => handleSendingSourceChange('replyflow')}
-                        className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                        className={`p-3 rounded-lg border cursor-pointer transition-all ${
                           sendingSource === 'replyflow'
-                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                            ? 'border-blue-500/50 bg-blue-50/50 dark:bg-blue-900/10 shadow-sm'
                             : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
                         }`}
                         role="radio"
@@ -1312,15 +1312,30 @@ export default function SettingsContent() {
                       >
                         <div className="flex items-start gap-3">
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
+                            <div className="flex items-center gap-2 mb-2">
                               <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">ReplyFlow Number</h3>
-                              <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full">Strongly Recommended</span>
+                              <span className="px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full">Strongly Recommended</span>
                             </div>
-                            <p className="text-xs text-slate-600 dark:text-slate-400">
-                              Complete conversation history, delivery tracking, AI context, and automation.
-                            </p>
+                            <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1">
+                              <li className="flex items-start gap-1.5">
+                                <span className="text-blue-600 dark:text-blue-400 mt-0.5">✓</span>
+                                <span>Automatic conversation tracking</span>
+                              </li>
+                              <li className="flex items-start gap-1.5">
+                                <span className="text-blue-600 dark:text-blue-400 mt-0.5">✓</span>
+                                <span>AI automation</span>
+                              </li>
+                              <li className="flex items-start gap-1.5">
+                                <span className="text-blue-600 dark:text-blue-400 mt-0.5">✓</span>
+                                <span>Delivery tracking</span>
+                              </li>
+                              <li className="flex items-start gap-1.5">
+                                <span className="text-blue-600 dark:text-blue-400 mt-0.5">✓</span>
+                                <span>Best experience</span>
+                              </li>
+                            </ul>
                           </div>
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
                             sendingSource === 'replyflow'
                               ? 'border-blue-500 bg-blue-500'
                               : 'border-slate-300 dark:border-slate-600'
@@ -1337,9 +1352,9 @@ export default function SettingsContent() {
                       {/* Business Number Option */}
                       <div
                         onClick={() => handleSendingSourceChange('business')}
-                        className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                        className={`p-3 rounded-lg border cursor-pointer transition-all ${
                           sendingSource === 'business'
-                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                            ? 'border-blue-500/50 bg-blue-50/50 dark:bg-blue-900/10 shadow-sm'
                             : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
                         }`}
                         role="radio"
@@ -1348,18 +1363,29 @@ export default function SettingsContent() {
                       >
                         <div className="flex items-start gap-3">
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
+                            <div className="flex items-center gap-2 mb-2">
                               <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">Business Number</h3>
-                              <span className="px-2 py-0.5 text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-full">Advanced</span>
+                              <span className="px-1.5 py-0.5 text-[10px] font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-full">Advanced</span>
                             </div>
-                            <p className="text-xs text-slate-600 dark:text-slate-400">
-                              Send from your existing number through your phone's messaging app.
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                              Uses your phone's messaging app.
                             </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
-                              Conversations won't sync to ReplyFlow.
-                            </p>
+                            <ul className="text-xs text-slate-500 dark:text-slate-500 space-y-1">
+                              <li className="flex items-start gap-1.5">
+                                <span className="text-slate-400 dark:text-slate-500 mt-0.5">•</span>
+                                <span>Uses your personal/business number</span>
+                              </li>
+                              <li className="flex items-start gap-1.5">
+                                <span className="text-slate-400 dark:text-slate-500 mt-0.5">•</span>
+                                <span>Conversations don't sync</span>
+                              </li>
+                              <li className="flex items-start gap-1.5">
+                                <span className="text-slate-400 dark:text-slate-500 mt-0.5">•</span>
+                                <span>ReplyFlow still tracks payments and business activity</span>
+                              </li>
+                            </ul>
                           </div>
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
                             sendingSource === 'business'
                               ? 'border-blue-500 bg-blue-500'
                               : 'border-slate-300 dark:border-slate-600'
@@ -2846,43 +2872,35 @@ export default function SettingsContent() {
           {/* Business Number Confirmation Modal */}
           {showBusinessNumberWarning && (
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-              <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl max-w-md w-full p-6">
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">
-                  Business Number Is Not Recommended
+              <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl max-w-md w-full p-5">
+                <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-2">
+                  Switch to Business Number?
                 </h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                  ReplyFlow strongly recommends using your ReplyFlow Number for the best messaging experience.
+                  Messages will open in your phone's messaging app instead of ReplyFlow.
                 </p>
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 mb-4">
-                  <p className="text-sm font-medium text-slate-900 dark:text-foreground mb-2">
-                    When you use Business Number:
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 mb-4">
+                  <p className="text-xs font-medium text-slate-900 dark:text-foreground mb-2">
+                    What to expect:
                   </p>
                   <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1">
-                    <li>• You must leave ReplyFlow to send each message</li>
-                    <li>• Messages and replies won't sync to ReplyFlow</li>
-                    <li>• Sent and delivered tracking is unavailable</li>
-                    <li>• AI won't have the complete conversation history</li>
-                    <li>• Your customer timeline may be less complete</li>
+                    <li>• You'll leave ReplyFlow to send each message</li>
+                    <li>• Messages won't sync to ReplyFlow</li>
+                    <li>• ReplyFlow still tracks payments and business activity</li>
                   </ul>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">
-                    ReplyFlow will still track appointments, payments, AI intake, reminders, and job updates.
-                  </p>
                 </div>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                  Only choose this option if sending from your existing business number is more important than having a complete messaging experience in ReplyFlow.
-                </p>
-                <div className="flex justify-end gap-3">
+                <div className="flex justify-end gap-2">
                   <button
                     onClick={() => setShowBusinessNumberWarning(false)}
-                    className="px-4 py-2 text-sm font-medium rounded-lg transition-colors bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
+                    className="px-3 py-2 text-sm font-medium rounded-lg transition-colors bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
                   >
-                    Keep ReplyFlow Number
+                    Cancel
                   </button>
                   <button
                     onClick={handleConfirmBusinessNumber}
-                    className="px-4 py-2 text-sm font-medium rounded-lg transition-colors bg-blue-600 hover:bg-blue-700 text-white"
+                    className="px-3 py-2 text-sm font-medium rounded-lg transition-colors bg-blue-600 hover:bg-blue-700 text-white"
                   >
-                    Use Business Number Anyway
+                    Switch to Business Number
                   </button>
                 </div>
               </div>
