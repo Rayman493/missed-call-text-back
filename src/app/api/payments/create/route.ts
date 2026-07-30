@@ -561,10 +561,18 @@ If you have questions, reply to this message.`
 
     // Create timeline event for payment request
     try {
+      console.log('[PAYMENT REQUEST TIMELINE] Creating timeline event with:', {
+        business_id,
+        lead_id,
+        conversation_id: finalConversationId,
+        payment_request_id: paymentRequest.id,
+        amount_cents,
+        description: paymentDescription
+      })
       await timelineEvents.paymentRequestCreated(business_id, lead_id, finalConversationId, paymentRequest.id, amount_cents, paymentDescription)
-      console.log('[PAYMENT REQUEST] Timeline event created successfully')
+      console.log('[PAYMENT REQUEST TIMELINE] Timeline event created successfully')
     } catch (timelineError) {
-      console.error('[PAYMENT REQUEST] Failed to create timeline event:', timelineError)
+      console.error('[PAYMENT REQUEST TIMELINE] Failed to create timeline event:', timelineError)
       // Non-critical error, continue
     }
 

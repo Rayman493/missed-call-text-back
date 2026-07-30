@@ -210,6 +210,18 @@ export async function GET(request: NextRequest) {
       .eq("lead_id", leadId)
       .order("created_at", { ascending: false })
 
+    console.log('[LEAD DETAILS] Payment requests fetched:', {
+      leadId,
+      count: paymentRequests?.length || 0,
+      paymentRequests: paymentRequests?.map(pr => ({
+        id: pr.id,
+        amount_cents: pr.amount_cents,
+        conversation_id: pr.conversation_id,
+        status: pr.status,
+        created_at: pr.created_at
+      }))
+    })
+
     // Attach media to messages
     const messagesWithMedia = (messages || []).map(message => ({
       ...message,

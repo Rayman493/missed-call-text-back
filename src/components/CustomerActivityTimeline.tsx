@@ -35,6 +35,18 @@ export default function CustomerActivityTimeline({ leadData }: CustomerActivityT
 
     if (!leadData) return activityEvents
 
+    console.log('[CUSTOMER ACTIVITY TIMELINE] Processing leadData:', {
+      leadId: leadData.id,
+      paymentRequestsCount: leadData.paymentRequests?.length || 0,
+      paymentRequests: leadData.paymentRequests?.map((pr: any) => ({
+        id: pr.id,
+        amount_cents: pr.amount_cents,
+        conversation_id: pr.conversation_id,
+        status: pr.status,
+        created_at: pr.created_at
+      }))
+    })
+
     // Customer created
     activityEvents.push({
       id: `created-${leadData.id}`,

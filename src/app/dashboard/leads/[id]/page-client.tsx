@@ -4787,16 +4787,6 @@ If you have questions, reply to this message.`
                       // Launch SMS using shared helper
                       await openBusinessSms({ recipient, body: message, source: 'payment' })
                       
-                      // Record the Business Phone action only after successful launch
-                      await recordBusinessPhoneAction({
-                        actionType: 'payment_request',
-                        leadId: params.id,
-                        customerName: getCustomerName(lead, leadData),
-                        customerPhone: recipient,
-                        message: message,
-                        relatedId: data.payment_request_id || data.id
-                      })
-                      
                       // Close modal only after successful launch
                       setShowPaymentModal(false)
                       setPaymentAmount('')
@@ -4804,9 +4794,22 @@ If you have questions, reply to this message.`
                       setSuccessMessage(`Payment request sent\nMessage opened in your messaging app.`)
                       
                       // Refresh lead data to show timeline event
+                      console.log('[PAYMENT BUSINESS SMS] Refreshing lead data after successful SMS launch')
                       const updatedData = await getLeadDetails(lead?.id)
+                      console.log('[PAYMENT BUSINESS SMS] Lead data refresh result:', {
+                        leadId: lead?.id,
+                        paymentRequestsCount: updatedData?.lead?.paymentRequests?.length || 0,
+                        paymentRequests: updatedData?.lead?.paymentRequests?.map((pr: any) => ({
+                          id: pr.id,
+                          amount_cents: pr.amount_cents,
+                          conversation_id: pr.conversation_id,
+                          status: pr.status,
+                          created_at: pr.created_at
+                        }))
+                      })
                       if (updatedData) {
                         setLeadData(updatedData)
+                        console.log('[PAYMENT BUSINESS SMS] Lead data state updated')
                       }
                     } catch (error) {
                       console.error('[PAYMENT BUSINESS SMS] launch error:', error)
