@@ -12,7 +12,7 @@ import Twilio from 'twilio';
 
 // Approved assistant utterances per stage - strict allowlist
 const APPROVED_UTTERANCES: Record<string, string> = {
-  ask_name: "Thank you for calling. May I have your name, please?",
+  ask_name: "Hi, thanks for calling. I'm the virtual assistant for the business. I'll gather a few quick details so the business owner can follow up with you. First, may I have your name?",
   ask_reason: "Thank you. What can I help you with today?",
   ask_name_reason: "Hi, I'm the assistant for the business. Can you please tell me your name and what you're calling about today?",
   ask_details: "Thanks. Can you share any important details the business should know?",

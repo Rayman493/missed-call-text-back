@@ -1096,7 +1096,7 @@ export default function SettingsContent() {
             <AppHeader title="Settings" sticky={false} />
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent mx-auto mb-4"></div>
                 <p className="text-slate-600 dark:text-muted-foreground">Loading settings...</p>
               </div>
             </div>
@@ -1115,28 +1115,28 @@ export default function SettingsContent() {
           <AppHeader title="Settings" sticky={false} />
 
             {/* Main Content */}
-            <div className="flex-1 px-3 sm:px-4 lg:px-6 pb-20 bg-background dark:bg-background">
-              <div className="max-w-[1400px] mx-auto">
+            <div className="flex-1 px-4 pb-20 bg-background dark:bg-background">
+              <div className="max-w-[1200px] mx-auto">
 
             {/* Page Header - normal flow */}
-            <div className="pt-3 pb-3">
-              <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-foreground mb-1">
+            <div className="pt-6 pb-4">
+              <h1 className="text-3xl font-semibold text-foreground mb-2">
                 Settings
               </h1>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
+              <p className="text-sm text-muted-foreground">
                 Manage your business settings and preferences.
               </p>
             </div>
 
             {/* Settings Navigation Tabs - sticky only */}
-            <div className="sticky z-40 border-b border-border bg-background py-2 top-0 backdrop-blur-sm" style={{ backgroundColor: 'var(--background)' }}>
-              <nav ref={settingsTabsNavRef} className="flex items-center gap-1 overflow-x-auto custom-scrollbar-horizontal">
+            <div className="sticky z-40 border-b border-border/50 bg-background py-4 top-0 backdrop-blur-sm" style={{ backgroundColor: 'var(--background)' }}>
+              <nav ref={settingsTabsNavRef} className="flex items-center gap-2 overflow-x-auto custom-scrollbar-horizontal">
                 {settingsSections.map((section) => (
                   <button
                     key={section.id}
                     ref={(element) => { sectionTabRefs.current[section.id] = element }}
                     onClick={() => handleSectionClick(section.id)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${
+                    className={`px-5 py-3 text-sm font-medium rounded-lg transition-colors duration-150 whitespace-nowrap flex-shrink-0 ${
                       activeSection === section.id
                         ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -1148,48 +1148,48 @@ export default function SettingsContent() {
               </nav>
             </div>
             {/* Spacer to maintain consistent spacing */}
-            <div className="mb-3"></div>
+            <div className="mb-6"></div>
 
             {/* Settings Sections */}
-            <div className="space-y-3 sm:space-y-4 pb-32">
+            <div className="space-y-6 pb-32">
               {/* Group: General */}
-              <div id="general-divider" className="flex items-center gap-3 mb-4 scroll-mt-[64px]">
-                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
-                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{settingsSections.find(s => s.id === 'general')?.label}</h3>
-                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
+              <div id="general-divider" className="flex items-center gap-4 mb-6 scroll-mt-[64px]">
+                <div className="h-px flex-1 bg-border/30"></div>
+                <h3 className="text-sm font-medium text-muted-foreground">{settingsSections.find(s => s.id === 'general')?.label}</h3>
+                <div className="h-px flex-1 bg-border/30"></div>
               </div>
 
               {/* General Section */}
-              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[64px]">
-                <div className="mb-4">
-                  <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">General</h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Your business identity and contact details.</p>
+              <div id="general" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
+                <div className="mb-5">
+                  <h2 className="text-base font-semibold text-foreground mb-1">General</h2>
+                  <p className="text-sm text-muted-foreground leading-relaxed">Your business identity and contact details.</p>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
+                    <label className="block text-sm font-medium text-foreground mb-1.5">
                       Business Name
                     </label>
                     <input
                       type="text"
                       value={formBusiness.name || ''}
                       onChange={(e) => updateBusiness({ name: e.target.value })}
-                      className="w-full px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all text-sm"
+                      className="w-full px-3 py-2.5 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 bg-white dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-150 text-sm"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
-                      Business Phone Number
+                    <label className="block text-sm font-medium text-foreground mb-1.5">
+                      Business Phone
                     </label>
                     <div className="space-y-3">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-4">
                         <input
                           type="tel"
                           value={formBusiness.business_phone_number || ''}
                           onChange={(e) => updateBusiness({ business_phone_number: e.target.value })}
                           placeholder="(555) 123-4567"
                           disabled={phoneCooldown?.inCooldown}
-                          className="flex-1 px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="flex-1 px-3 py-2.5 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 bg-white dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-150 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                       </div>
                       
@@ -1249,13 +1249,13 @@ export default function SettingsContent() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
-                      Where do you provide your services?
+                    <label className="block text-sm font-medium text-foreground mb-1.5">
+                      Service Location
                     </label>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
+                    <p className="text-sm text-muted-foreground leading-relaxed mb-2">
                       ReplyFlow uses this to tailor the questions your AI Voice asks callers.
                     </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       {[
                         { value: 'onsite', title: 'On-site service', desc: 'You travel to the customer or job location.' },
                         { value: 'customer_comes_to_business', title: 'Customers come to me', desc: 'Customers visit your business location.' },
@@ -1283,25 +1283,25 @@ export default function SettingsContent() {
               {/* Group: Communication - Only show on native mobile */}
               {isNativeMobile() && (
                 <>
-                  <div id="communication-divider" className="flex items-center gap-3 mb-4 scroll-mt-[64px]">
-                    <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
-                    <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Communication</h3>
-                    <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
+                  <div id="communication-divider" className="flex items-center gap-3 mb-6 scroll-mt-[64px]">
+                    <div className="h-px flex-1 bg-border/30"></div>
+                    <h3 className="text-sm font-medium text-muted-foreground">Communication</h3>
+                    <div className="h-px flex-1 bg-border/30"></div>
                   </div>
 
                   {/* Communication Section */}
-                  <div id="communication" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-3 scroll-mt-[64px]">
-                    <div className="mb-3">
-                      <h2 className="text-sm font-medium text-slate-900 dark:text-foreground mb-1">Sending Number</h2>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <div id="communication" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
+                    <div className="mb-5">
+                      <h2 className="text-base font-semibold text-foreground mb-1">Sending Number</h2>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
                         Choose how ReplyFlow sends customer messages.
                       </p>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {/* ReplyFlow Number Option */}
                       <div
                         onClick={() => handleSendingSourceChange('replyflow')}
-                        className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                        className={`p-3 rounded-lg border cursor-pointer transition-all duration-150 ${
                           sendingSource === 'replyflow'
                             ? 'border-blue-500/50 bg-blue-50/50 dark:bg-blue-900/10 shadow-sm'
                             : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
@@ -1310,26 +1310,26 @@ export default function SettingsContent() {
                         aria-checked={sendingSource === 'replyflow'}
                         tabIndex={0}
                       >
-                        <div className="flex items-start gap-3">
+                        <div className="flex items-start gap-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">ReplyFlow Number</h3>
-                              <span className="px-1.5 py-0.5 text-[10px] font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full">Strongly Recommended</span>
+                              <h3 className="text-sm font-semibold text-foreground">ReplyFlow Number</h3>
+                              <span className="px-2 py-0.5 text-[10px] font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full">Strongly Recommended</span>
                             </div>
                             <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1">
-                              <li className="flex items-start gap-1.5">
+                              <li className="flex items-start gap-2">
                                 <span className="text-blue-600 dark:text-blue-400 mt-0.5">✓</span>
                                 <span>Automatic conversation tracking</span>
                               </li>
-                              <li className="flex items-start gap-1.5">
+                              <li className="flex items-start gap-2">
                                 <span className="text-blue-600 dark:text-blue-400 mt-0.5">✓</span>
                                 <span>AI automation</span>
                               </li>
-                              <li className="flex items-start gap-1.5">
+                              <li className="flex items-start gap-2">
                                 <span className="text-blue-600 dark:text-blue-400 mt-0.5">✓</span>
                                 <span>Delivery tracking</span>
                               </li>
-                              <li className="flex items-start gap-1.5">
+                              <li className="flex items-start gap-2">
                                 <span className="text-blue-600 dark:text-blue-400 mt-0.5">✓</span>
                                 <span>Best experience</span>
                               </li>
@@ -1352,7 +1352,7 @@ export default function SettingsContent() {
                       {/* Business Number Option */}
                       <div
                         onClick={() => handleSendingSourceChange('business')}
-                        className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                        className={`p-3 rounded-lg border cursor-pointer transition-all duration-150 ${
                           sendingSource === 'business'
                             ? 'border-blue-500/50 bg-blue-50/50 dark:bg-blue-900/10 shadow-sm'
                             : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
@@ -1361,25 +1361,25 @@ export default function SettingsContent() {
                         aria-checked={sendingSource === 'business'}
                         tabIndex={0}
                       >
-                        <div className="flex items-start gap-3">
+                        <div className="flex items-start gap-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">Business Number</h3>
-                              <span className="px-1.5 py-0.5 text-[10px] font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-full">Advanced</span>
+                              <h3 className="text-sm font-semibold text-foreground">Business Number</h3>
+                              <span className="px-2 py-0.5 text-[10px] font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-full">Advanced</span>
                             </div>
                             <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
                               Uses your phone's messaging app.
                             </p>
                             <ul className="text-xs text-slate-500 dark:text-slate-500 space-y-1">
-                              <li className="flex items-start gap-1.5">
+                              <li className="flex items-start gap-2">
                                 <span className="text-slate-400 dark:text-slate-500 mt-0.5">•</span>
                                 <span>Uses your personal/business number</span>
                               </li>
-                              <li className="flex items-start gap-1.5">
+                              <li className="flex items-start gap-2">
                                 <span className="text-slate-400 dark:text-slate-500 mt-0.5">•</span>
                                 <span>Conversations don't sync</span>
                               </li>
-                              <li className="flex items-start gap-1.5">
+                              <li className="flex items-start gap-2">
                                 <span className="text-slate-400 dark:text-slate-500 mt-0.5">•</span>
                                 <span>ReplyFlow still tracks payments and business activity</span>
                               </li>
@@ -1406,59 +1406,59 @@ export default function SettingsContent() {
               {/* Next section would go here */}
 
               {/* Group: Automation */}
-              <div id="automation-divider" className="flex items-center gap-3 mb-4 scroll-mt-[64px]">
-                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
-                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{settingsSections.find(s => s.id === 'automation')?.label}</h3>
-                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
+              <div id="automation-divider" className="flex items-center gap-3 mb-6 scroll-mt-[64px]">
+                <div className="h-px flex-1 bg-border/30"></div>
+                <h3 className="text-sm font-medium text-muted-foreground">{settingsSections.find(s => s.id === 'automation')?.label}</h3>
+                <div className="h-px flex-1 bg-border/30"></div>
               </div>
 
               {/* Telecom-dependent settings: only shown after the user starts a trial/subscription. */}
               {!hasActiveSubscription(business) ? (
-                <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-5">
-                  <h2 className="text-base font-semibold text-slate-900 dark:text-foreground mb-1.5">Text Messaging & Automation</h2>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-border/40 shadow-sm p-5">
+                  <h2 className="text-base font-semibold text-foreground mb-2">Text Messaging & Automation</h2>
+                  <p className="text-sm text-muted-foreground mb-3">
                     Instant reply messages, business hours, spam filtering, and ignored contacts unlock
                     once you start your free trial. Your dedicated ReplyFlow number is set up
                     automatically right after activation.
                   </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     Use the Billing section below to start your 14-day free trial. No charge today.
                   </p>
                 </div>
               ) : (
               <>
               {/* Automation Settings */}
-              <div id="automation" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[64px]">
-                <div className="mb-3">
+              <div id="automation" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
+                <div className="mb-5">
                   <div className="flex items-center justify-between mb-1">
-                    <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground">Instant Response Settings</h2>
+                    <h2 className="text-base font-semibold text-foreground">Instant Response</h2>
                   </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Control automatic missed-call responses.</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">Control automatic missed-call responses.</p>
                 </div>
                 
-                <div className="space-y-2.5">
+                <div className="space-y-4">
                   {/* Spam & Repeat Call Filtering */}
-                  <div className="p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-md border border-slate-200/60 dark:border-slate-700/40">
+                  <div className="border border-border/30 rounded-lg p-4">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1 pr-4">
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">Spam & Repeat Call Filtering</h3>
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="text-sm font-semibold text-foreground">Spam & Repeat Filtering</h3>
                         </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                        <p className="text-sm text-muted-foreground leading-relaxed">
                           Ignore spam and repeat callers before they become leads.
                         </p>
                       </div>
                       <button
                         onClick={handleToggleSpamFiltering}
                         disabled={isSavingSpamFiltering}
-                        className={`relative inline-flex h-5 w-10 sm:h-6 sm:w-11 items-center rounded-full transition-all duration-300 flex-shrink-0 ${
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-200 flex-shrink-0 ${
                           spamFilteringEnabled ? 'bg-blue-600 hover:bg-blue-700' : 'bg-slate-600 hover:bg-slate-500'
                         } ${isSavingSpamFiltering ? 'opacity-50 cursor-not-allowed' : ''}`}
                         aria-label={spamFilteringEnabled ? 'Disable spam filtering' : 'Enable spam filtering'}
                       >
                         <span
-                          className={`inline-block h-3.5 w-3.5 sm:h-4 sm:w-4 transform rounded-full bg-white transition-all duration-300 shadow-sm ${
-                            spamFilteringEnabled ? 'translate-x-5 sm:translate-x-6' : 'translate-x-1'
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-all duration-200 shadow-sm ${
+                            spamFilteringEnabled ? 'translate-x-6' : 'translate-x-1'
                           }`}
                         />
                       </button>
@@ -1466,14 +1466,14 @@ export default function SettingsContent() {
 
                     {/* Filtering Options - Only show when enabled */}
                     {spamFilteringEnabled && (
-                      <div className="space-y-2 border-t border-border/50 pt-3">
+                      <div className="space-y-4 mt-4">
                         {/* Repeat Call Protection */}
-                        <div className="flex items-start justify-between p-3 bg-white/60 dark:bg-slate-800/30 rounded-lg border border-slate-200/40 dark:border-slate-700/30">
-                          <div className="flex-1 pr-3 sm:pr-4">
-                            <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
-                              <h4 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground">Prevent duplicate instant replies</h4>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 pr-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h4 className="text-sm font-semibold text-foreground">Prevent duplicate replies</h4>
                             </div>
-                            <p className="text-[10px] sm:text-xs text-slate-600 dark:text-muted-foreground">
+                            <p className="text-sm text-muted-foreground leading-relaxed">
                               Avoid repeated instant-reply SMS to the same caller. Does not affect voice call routing.
                             </p>
                           </div>
@@ -1484,26 +1484,26 @@ export default function SettingsContent() {
                               updateAutomationSetting('ignoreRepeatCalls', newValue)
                             }}
                             disabled={isSaving}
-                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 mt-1 ${
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 flex-shrink-0 ${
                               ignoreRepeatCalls ? 'bg-blue-600' : 'bg-slate-600'
                             } ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
                             aria-label={ignoreRepeatCalls ? 'Disable duplicate instant reply prevention' : 'Enable duplicate instant reply prevention'}
                           >
                             <span
-                              className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-                                ignoreRepeatCalls ? 'translate-x-5' : 'translate-x-1'
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
+                                ignoreRepeatCalls ? 'translate-x-6' : 'translate-x-1'
                               }`}
                             />
                           </button>
                         </div>
 
                         {/* Private/Blocked Numbers */}
-                        <div className="flex items-start justify-between p-3 bg-white/60 dark:bg-slate-800/30 rounded-lg border border-slate-200/40 dark:border-slate-700/30">
-                          <div className="flex-1 pr-3 sm:pr-4">
-                            <div className="flex items-center gap-2 mb-1 sm:mb-1.5">
-                              <h4 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground">Skip blocked or hidden callers</h4>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 pr-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h4 className="text-sm font-semibold text-foreground">Skip blocked or hidden callers</h4>
                             </div>
-                            <p className="text-[10px] sm:text-xs text-slate-600 dark:text-muted-foreground">
+                            <p className="text-sm text-muted-foreground">
                               Prevent texts from callers who hide their number.
                             </p>
                           </div>
@@ -1514,26 +1514,26 @@ export default function SettingsContent() {
                               updateAutomationSetting('ignoreBlockedPrivateNumbers', newValue)
                             }}
                             disabled={isSaving}
-                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 mt-1 ${
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 flex-shrink-0 ${
                               ignoreBlockedPrivateNumbers ? 'bg-blue-600' : 'bg-slate-600'
                             } ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
                             aria-label={ignoreBlockedPrivateNumbers ? 'Disable private number blocking' : 'Enable private number blocking'}
                           >
                             <span
-                              className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-                                ignoreBlockedPrivateNumbers ? 'translate-x-5' : 'translate-x-1'
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
+                                ignoreBlockedPrivateNumbers ? 'translate-x-6' : 'translate-x-1'
                               }`}
                             />
                           </button>
                         </div>
 
                         {/* Spam Detection */}
-                        <div className="flex items-start justify-between p-2 sm:p-3 bg-white/60 dark:bg-slate-800/30 rounded-xl border border-slate-200/50 dark:border-slate-700/30">
-                          <div className="flex-1 pr-3 sm:pr-4">
-                            <div className="flex items-center gap-2 mb-0.5 sm:mb-1">
-                              <h4 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground">Skip suspected spam callers</h4>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 pr-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h4 className="text-sm font-semibold text-foreground">Skip suspected spam callers</h4>
                             </div>
-                            <p className="text-[10px] sm:text-xs text-slate-600 dark:text-muted-foreground">
+                            <p className="text-sm text-muted-foreground">
                               Skip obvious spam and robocall numbers.
                             </p>
                           </div>
@@ -1544,14 +1544,14 @@ export default function SettingsContent() {
                               updateAutomationSetting('ignoreSuspectedSpamCallers', newValue)
                             }}
                             disabled={isSaving}
-                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0 mt-1 ${
-                              ignoreSuspectedSpamCallers ? 'bg-blue-600' : 'bg-gray-600'
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 flex-shrink-0 ${
+                              ignoreSuspectedSpamCallers ? 'bg-blue-600' : 'bg-slate-600'
                             } ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
                             aria-label={ignoreSuspectedSpamCallers ? 'Disable spam detection' : 'Enable spam detection'}
                           >
                             <span
-                              className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-                                ignoreSuspectedSpamCallers ? 'translate-x-5' : 'translate-x-1'
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
+                                ignoreSuspectedSpamCallers ? 'translate-x-6' : 'translate-x-1'
                               }`}
                             />
                           </button>
@@ -1561,19 +1561,19 @@ export default function SettingsContent() {
                   </div>
 
                   {/* Business Hours */}
-                  <div className="p-3 bg-slate-50/80 dark:bg-slate-800/40 rounded-lg border border-slate-200/60 dark:border-slate-700/40">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1 pr-3 sm:pr-4">
-                        <div className="flex items-center gap-2 mb-0.5 sm:mb-1">
-                          <h3 className="text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground">Business Hours Only</h3>
+                  <div className="border border-border/30 rounded-lg p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1 pr-4">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-sm font-medium text-foreground">Business Hours</h3>
                           {formBusiness.business_hours_enabled && (
-                            <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1">
+                            <span className="text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-2">
                               <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
                               Active
                             </span>
                           )}
                         </div>
-                        <p className="text-[10px] sm:text-xs text-slate-600 dark:text-muted-foreground mb-0.5 sm:mb-1">
+                        <p className="text-sm text-muted-foreground leading-relaxed mb-2">
                           Send different replies inside and outside business hours.
                         </p>
                       </div>
@@ -1581,13 +1581,13 @@ export default function SettingsContent() {
                         onClick={() => {
                           updateBusiness({ business_hours_enabled: !formBusiness.business_hours_enabled })
                         }}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
-                          formBusiness.business_hours_enabled ? 'bg-blue-600' : 'bg-gray-600'
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 flex-shrink-0 ${
+                          formBusiness.business_hours_enabled ? 'bg-blue-600' : 'bg-slate-600'
                         }`}
                         aria-label={formBusiness.business_hours_enabled ? 'Disable business hours' : 'Enable business hours'}
                       >
                         <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
                             formBusiness.business_hours_enabled ? 'translate-x-6' : 'translate-x-1'
                           }`}
                         />
@@ -1596,7 +1596,7 @@ export default function SettingsContent() {
                     
                     {/* Timezone and Hours Selector */}
                     {formBusiness.business_hours_enabled && (
-                      <div className="mt-3 pt-3 border-t border-border/50 space-y-3">
+                      <div className="mt-4 space-y-4">
                         <div>
                           <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
                             Timezone
@@ -1615,7 +1615,7 @@ export default function SettingsContent() {
                             <option value="America/Phoenix">Arizona Time (MST)</option>
                           </select>
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
                               Open Time
@@ -1674,7 +1674,7 @@ export default function SettingsContent() {
                         <p className="text-xs text-slate-500 dark:text-slate-400">
                           Applies Monday through Friday.
                         </p>
-                        <div className="mt-3 pt-3 border-t border-border">
+                        <div className="mt-4">
                           <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
                             After Hours Message
                           </label>
@@ -1682,7 +1682,7 @@ export default function SettingsContent() {
                             value={formBusiness.after_hours_message || ''}
                             onChange={(e) => updateBusiness({ after_hours_message: e.target.value })}
                             rows={2}
-                            className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50 resize-none"
+                            className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all duration-150 text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50 resize-none"
                           />
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
                             {`{{business_name}}`} inserts your business name.
@@ -1693,13 +1693,13 @@ export default function SettingsContent() {
                   </div>
 
                   {/* Out of Office Mode */}
-                  <div className="p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-lg border border-slate-200/60 dark:border-slate-700/40">
-                    <div className="flex items-start justify-between gap-3">
+                  <div className="p-3 sm:p-4 rounded-lg border border-border/30">
+                    <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 pr-4">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="text-sm font-medium text-slate-900 dark:text-foreground">Out of Office</h3>
                           {formBusiness.out_of_office_enabled && (
-                            <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1">
+                            <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-2">
                               <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
                               Active
                             </span>
@@ -1728,8 +1728,8 @@ export default function SettingsContent() {
 
                     {/* Out of Office Settings */}
                     {formBusiness.out_of_office_enabled && (
-                      <div className="mt-3 pt-3 border-t border-border/50 space-y-3">
-                        <div className="grid grid-cols-2 gap-3">
+                      <div className="mt-4 space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
                               Start Date & Time
@@ -1775,7 +1775,7 @@ export default function SettingsContent() {
                             value={formBusiness.out_of_office_message || ''}
                             onChange={(e) => updateBusiness({ out_of_office_message: e.target.value })}
                             rows={2}
-                            className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50 resize-none"
+                            className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all duration-150 text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50 resize-none"
                           />
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
                             Use <code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{"{{business_name}}"}</code> and <code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{"{{return_date}}"}</code> placeholders.
@@ -1786,8 +1786,8 @@ export default function SettingsContent() {
                   </div>
 
                   {/* Automatic Follow-Ups */}
-                  <div className="p-3 bg-slate-50/80 dark:bg-slate-800/40 rounded-lg border border-slate-200/60 dark:border-slate-700/40">
-                    <div className="flex items-start justify-between gap-3">
+                  <div className="p-3 rounded-lg border border-border/30">
+                    <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 pr-4">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="text-sm font-medium text-slate-900 dark:text-foreground">Automatic Follow-Ups</h3>
@@ -1801,7 +1801,7 @@ export default function SettingsContent() {
                       </div>
                       <button
                         onClick={() => setShowFollowUpSettings(true)}
-                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors duration-150"
                       >
                         Configure
                         <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1812,7 +1812,7 @@ export default function SettingsContent() {
                   </div>
 
                   {/* Automation Status Summary */}
-                  <div className="p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-lg border border-slate-200/60 dark:border-slate-700/40">
+                  <div className="p-3 sm:p-4 rounded-lg border border-border/30">
                     <div className="flex items-start gap-3">
                       <svg className="w-5 h-5 text-slate-600 dark:text-slate-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
@@ -1864,22 +1864,24 @@ export default function SettingsContent() {
               </div>
 
               {/* Group: Integrations */}
-              <div id="integrations-divider" className="flex items-center gap-3 mb-4 scroll-mt-[64px]">
-                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
-                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{settingsSections.find(s => s.id === 'integrations')?.label}</h3>
-                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
+              <div id="integrations-divider" className="flex items-center gap-3 mb-6 scroll-mt-[64px]">
+                <div className="h-px flex-1 bg-border/30"></div>
+                <h3 className="text-sm font-medium text-muted-foreground">{settingsSections.find(s => s.id === 'integrations')?.label}</h3>
+                <div className="h-px flex-1 bg-border/30"></div>
               </div>
 
               {/* Integrations Section */}
-              <div id="integrations" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[64px]">
-                <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Integrations</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">Connect services you already use.</p>
+              <div id="integrations" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
+                <div className="mb-5">
+                  <h2 className="text-base font-semibold text-foreground mb-1">Integrations</h2>
+                  <p className="text-sm text-muted-foreground leading-relaxed">Connect services you already use.</p>
+                </div>
                 
                 {/* Google Calendar & Meet Card */}
-                <div className="p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-md border border-slate-200/60 dark:border-slate-700/40">
+                <div className="border border-border/30 rounded-lg p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1 pr-4">
-                      <div className="flex items-center gap-2.5 mb-1">
+                      <div className="flex items-center gap-2.5 mb-2">
                         <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24">
                           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                           <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -1888,7 +1890,7 @@ export default function SettingsContent() {
                         </svg>
                         <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">Google Calendar & Meet</h3>
                         {calendarConnected && (
-                          <span className="h-10 px-3 text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400 rounded-full flex items-center gap-1.5">
+                          <span className="h-11 px-3 text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400 rounded-full flex items-center gap-2">
                             <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
                             Connected
                           </span>
@@ -1912,7 +1914,7 @@ export default function SettingsContent() {
                       <button
                         onClick={calendarConnected ? handleDisconnectCalendar : handleConnectCalendar}
                         disabled={isConnectingCalendar || isDisconnectingCalendar}
-                        className={`h-10 px-3 text-xs font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
+                        className={`h-11 px-3 text-xs font-medium rounded-md transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
                           calendarConnected
                             ? 'border border-red-200 dark:border-red-800/50 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30'
                             : 'bg-blue-600 hover:bg-blue-700 text-white'
@@ -1944,32 +1946,34 @@ export default function SettingsContent() {
               </div>
 
               {/* Group: Payments */}
-              <div id="payments-divider" className="flex items-center gap-3 mb-4 scroll-mt-[64px]">
-                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
-                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{settingsSections.find(s => s.id === 'payments')?.label}</h3>
-                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
+              <div id="payments-divider" className="flex items-center gap-3 mb-6 scroll-mt-[64px]">
+                <div className="h-px flex-1 bg-border/30"></div>
+                <h3 className="text-sm font-medium text-muted-foreground">{settingsSections.find(s => s.id === 'payments')?.label}</h3>
+                <div className="h-px flex-1 bg-border/30"></div>
               </div>
 
-              <div id="payments" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[64px]">
-                <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Payments</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
-                  Connect payment methods for customer requests.
-                </p>
+              <div id="payments" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
+                <div className="mb-5">
+                  <h2 className="text-base font-semibold text-foreground mb-1">Payments</h2>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Connect payment methods for customer requests.
+                  </p>
+                </div>
                 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-                  <div className="flex flex-col h-full p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-md border border-slate-200/60 dark:border-slate-700/40">
-                    <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-3 mb-3">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <div className="flex flex-col h-full border border-border/30 rounded-lg p-4">
+                    <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-4 mb-4">
                       <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
                           <svg className="w-6 h-6 sm:w-7 sm:h-7 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                           </svg>
-                          <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">Stripe</h3>
+                          <h3 className="text-sm font-semibold text-foreground">Stripe</h3>
                           <span className="text-[10px] px-2 py-0.5 bg-blue-500/10 text-blue-700 dark:text-blue-300 rounded-full font-medium">
                             Recommended
                           </span>
                           {business?.stripe_charges_enabled && business?.stripe_details_submitted ? (
-                            <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
+                            <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-2">
                               <span className="w-1 h-1 bg-green-500 rounded-full" />
                               Connected
                             </span>
@@ -1997,7 +2001,7 @@ export default function SettingsContent() {
                         <button
                           onClick={handleConnectStripe}
                           disabled={isConnectingStripe || isStripeConnectUnavailable}
-                          className={`flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
+                          className={`flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
                             business?.stripe_charges_enabled && business?.stripe_details_submitted
                               ? 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300'
                               : isStripeConnectUnavailable
@@ -2056,7 +2060,7 @@ export default function SettingsContent() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col h-full p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-md border border-slate-200/60 dark:border-slate-700/40">
+                  <div className="flex flex-col h-full p-3 sm:p-4 rounded-md border border-border/30">
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-2 mb-1.5">
                         <svg className="w-6 h-6 sm:w-7 sm:h-7 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -2087,7 +2091,7 @@ export default function SettingsContent() {
                         value={formBusiness.venmo_username || ''}
                         onChange={(e) => updateBusiness({ venmo_username: e.target.value })}
                         placeholder="joesplumbing"
-                        className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
+                        className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all duration-150 text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
                       />
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
                         With or without @.
@@ -2095,7 +2099,7 @@ export default function SettingsContent() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col h-full p-3 sm:p-4 bg-slate-50/80 dark:bg-slate-800/40 rounded-md border border-slate-200/60 dark:border-slate-700/40">
+                  <div className="flex flex-col h-full p-3 sm:p-4 rounded-md border border-border/30">
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-2 mb-1.5">
                         <svg className="w-6 h-6 sm:w-7 sm:h-7 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
@@ -2126,7 +2130,7 @@ export default function SettingsContent() {
                         value={formBusiness.paypal_payment_link || ''}
                         onChange={(e) => updateBusiness({ paypal_payment_link: e.target.value })}
                         placeholder="https://paypal.me/yourbusiness"
-                        className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
+                        className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all duration-150 text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
                       />
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
                         Example: https://paypal.me/joesplumbing
@@ -2143,36 +2147,30 @@ export default function SettingsContent() {
               </div>
 
               {/* Group: Contacts */}
-              <div id="contacts-divider" className="flex items-center gap-3 mb-4 scroll-mt-[64px]">
-                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
-                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{settingsSections.find(s => s.id === 'contacts')?.label}</h3>
-                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
+              <div id="contacts-divider" className="flex items-center gap-3 mb-6 scroll-mt-[64px]">
+                <div className="h-px flex-1 bg-border/30"></div>
+                <h3 className="text-sm font-medium text-muted-foreground">{settingsSections.find(s => s.id === 'contacts')?.label}</h3>
+                <div className="h-px flex-1 bg-border/30"></div>
               </div>
 
               {/* Contacts Section */}
-              <div id="contacts" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[64px]">
-                <div className="flex items-center justify-between gap-3 mb-3">
+              <div id="contacts" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
+                <div className="flex items-center justify-between gap-3 mb-5">
                   <div>
-                    <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Personal Contacts</h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Add your own phone number, friends, family, employees, or other personal callers. Calls from these numbers stay out of your customer workflow and their voicemails appear in ReplyFlow's Personal section.</p>
+                    <h2 className="text-base font-semibold text-foreground mb-1">Personal Contacts</h2>
+                    <p className="text-sm text-muted-foreground leading-relaxed">Add your own phone number, friends, family, employees, or other personal callers. Calls from these numbers stay out of your customer workflow and their voicemails appear in ReplyFlow's Personal section.</p>
                   </div>
                   <div className="flex items-center gap-2">
                   <button
                     onClick={() => setShowAddModal(true)}
-                    className="h-11 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors text-xs inline-flex items-center justify-center gap-2"
+                    className="h-11 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 text-sm inline-flex items-center justify-center"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
                     Add
                   </button>
                   <button
                     onClick={() => setShowImportModal(true)}
-                    className="h-11 px-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-md transition-colors text-xs inline-flex items-center justify-center gap-2"
+                    className="h-11 px-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-lg transition-colors duration-200 text-sm inline-flex items-center justify-center"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                    </svg>
                     Import
                   </button>
                 </div>
@@ -2210,7 +2208,7 @@ export default function SettingsContent() {
                 <div className="space-y-2 sm:space-y-2.5">
                   {isLoadingIgnored ? (
                     <div className="flex items-center justify-center py-4 sm:py-6">
-                      <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-blue-600"></div>
+                      <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-2 border-blue-600 border-t-transparent mx-auto mb-4"></div>
                     </div>
                   ) : ignoredContacts.length === 0 ? (
                     <div className="text-center py-5 sm:py-6 bg-slate-50/50 dark:bg-slate-800/30 rounded-md border border-slate-200/60 dark:border-slate-700/60">
@@ -2229,7 +2227,7 @@ export default function SettingsContent() {
                       {ignoredContacts.map((contact) => (
                         <div
                           key={contact.id}
-                          className="flex items-center justify-between p-2 sm:p-2.5 bg-muted/40 rounded-lg border border-border/60 hover:bg-muted/50 transition-colors"
+                          className="flex items-center justify-between p-2 sm:p-2.5 bg-muted/40 rounded-lg border border-border/60 hover:bg-muted/50 transition-colors duration-150"
                         >
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 sm:gap-2.5 mb-1">
@@ -2256,7 +2254,7 @@ export default function SettingsContent() {
                           </div>
                           <button
                             onClick={() => removeIgnoredContact(contact.id)}
-                            className="ml-2 sm:ml-3 px-2.5 py-1 text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-md transition-colors"
+                            className="ml-2 sm:ml-3 px-2.5 py-1 text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-md transition-colors duration-150"
                           >
                             Remove
                           </button>
@@ -2271,28 +2269,30 @@ export default function SettingsContent() {
               )}
 
               {/* Group: Account */}
-              <div id="account-divider" className="flex items-center gap-3 mb-4 scroll-mt-[64px]">
-                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
-                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{settingsSections.find(s => s.id === 'account')?.label}</h3>
-                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
+              <div id="account-divider" className="flex items-center gap-3 mb-6 scroll-mt-[64px]">
+                <div className="h-px flex-1 bg-border/30"></div>
+                <h3 className="text-sm font-medium text-muted-foreground">{settingsSections.find(s => s.id === 'account')?.label}</h3>
+                <div className="h-px flex-1 bg-border/30"></div>
               </div>
 
               {/* Account Section - Merged Profile and Account Access */}
-              <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 scroll-mt-[64px]">
-                <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Account</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Your account details and status.</p>
-                <div className="bg-slate-50/80 dark:bg-slate-800/40 rounded-md border border-slate-200/60 dark:border-slate-700/40 overflow-hidden">
+              <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
+                <div className="mb-5">
+                  <h2 className="text-base font-semibold text-foreground mb-1">Account</h2>
+                  <p className="text-sm text-muted-foreground leading-relaxed">Your account details and status.</p>
+                </div>
+                <div className="border border-border/30 rounded-lg overflow-hidden">
                   {/* Email */}
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 border-b border-slate-200/60 dark:border-slate-700/40 last:border-b-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 border-b border-border/20 last:border-b-0">
                     <div className="flex items-center gap-2.5">
-                      <Mail className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                      <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Email</span>
+                      <Mail className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm font-medium text-muted-foreground">Email</span>
                     </div>
-                    <span className="text-xs font-semibold text-slate-900 dark:text-foreground">{user?.email}</span>
+                    <span className="text-sm font-semibold text-foreground">{user?.email}</span>
                   </div>
 
                   {/* Status */}
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 border-b border-slate-200/60 dark:border-slate-700/40 last:border-b-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 border-b border-border/20 last:border-b-0">
                     <div className="flex items-center gap-2.5">
                       <div className={`w-2.5 h-2.5 rounded-full ${
                         isInTrialPeriod(business?.subscription_status) 
@@ -2301,9 +2301,9 @@ export default function SettingsContent() {
                             ? 'bg-green-500'
                             : 'bg-amber-500'
                       }`}></div>
-                      <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Status</span>
+                      <span className="text-sm font-medium text-muted-foreground">Status</span>
                     </div>
-                    <span className="text-xs font-semibold text-slate-900 dark:text-foreground">{getSubscriptionStatusText(business?.subscription_status)}</span>
+                    <span className="text-sm font-semibold text-foreground">{getSubscriptionStatusText(business?.subscription_status)}</span>
                   </div>
 
                   {/* Access Status */}
@@ -2312,7 +2312,7 @@ export default function SettingsContent() {
                     const accessInfo = getManualAccessDisplayInfo(business)
                     
                     return (
-                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 sm:gap-2 p-3 sm:p-4 last:border-b-0">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 p-4 last:border-b-0">
                         <div className="flex items-center gap-2.5">
                           <div className={`w-2.5 h-2.5 rounded-full ${
                             manualStatus.hasManualAccess && accessInfo.status === 'active' 
@@ -2321,23 +2321,23 @@ export default function SettingsContent() {
                                 ? 'bg-red-500'
                                 : 'bg-slate-400'
                           }`}></div>
-                          <span className={`text-xs sm:text-sm font-medium ${
+                          <span className={`text-sm font-medium ${
                             manualStatus.hasManualAccess && accessInfo.status === 'active' 
                               ? 'text-green-600 dark:text-green-400'
                               : manualStatus.hasManualAccess && accessInfo.status === 'expired'
                                 ? 'text-red-600 dark:text-red-400'
-                                : 'text-slate-600 dark:text-slate-400'
+                                : 'text-muted-foreground'
                           }`}>
                             Access Status
                           </span>
                         </div>
                         <div className="flex flex-col items-start sm:items-end">
-                          <span className={`text-xs sm:text-sm font-semibold ${
+                          <span className={`text-sm font-semibold ${
                             manualStatus.hasManualAccess && accessInfo.status === 'active' 
                               ? 'text-green-900 dark:text-green-100'
                               : manualStatus.hasManualAccess && accessInfo.status === 'expired'
                                 ? 'text-red-900 dark:text-red-100'
-                                : 'text-slate-900 dark:text-foreground'
+                                : 'text-foreground'
                           }`}>
                             {manualStatus.hasManualAccess 
                               ? (accessInfo.status === 'active' 
@@ -2349,12 +2349,12 @@ export default function SettingsContent() {
                             }
                           </span>
                           {manualStatus.expiresAt && (
-                            <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            <span className="text-xs text-muted-foreground mt-0.5">
                               Until {new Date(manualStatus.expiresAt).toLocaleDateString()}
                             </span>
                           )}
                           {!manualStatus.expiresAt && manualStatus.hasManualAccess && (
-                            <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            <span className="text-xs text-muted-foreground mt-0.5">
                               Lifetime access
                             </span>
                           )}
@@ -2418,7 +2418,7 @@ export default function SettingsContent() {
                           <button
                             onClick={() => handleBillingActionClick('portal')}
                             disabled={isOpeningPortal}
-                            className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
+                            className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
                           >
                             {isOpeningPortal ? (
                               <>
@@ -2440,7 +2440,7 @@ export default function SettingsContent() {
                     <button
                       onClick={() => handleBillingActionClick('upgrade')}
                       disabled={isStartingCheckout}
-                      className="w-full px-4 py-2.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                      className="w-full h-11 px-4 text-sm font-medium rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
                     >
                       {isStartingCheckout ? (
                         <>
@@ -2464,12 +2464,12 @@ export default function SettingsContent() {
                 <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-3 sm:mb-4">Manage your account security and access.</p>
                 <div className="space-y-2 sm:space-y-2.5">
                   {/* Change Password Section */}
-                  <div className="bg-slate-50/60 dark:bg-slate-800/30 rounded-lg border border-slate-200/50 dark:border-slate-700/30 p-3 sm:p-4">
+                  <div className="bg-slate-50/60 dark:bg-slate-800/30 rounded-lg border border-border/30 p-3 sm:p-4">
                     <div>
                       <h3 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground mb-1.5 sm:mb-2">Change Password</h3>
                       <button
                         onClick={() => setShowChangePasswordModal(true)}
-                        className="mt-1 sm:mt-2 px-3 py-1.5 text-xs font-medium rounded-md transition-colors bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
+                        className="mt-1 sm:mt-2 px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
                       >
                         Change Password
                       </button>
@@ -2489,7 +2489,7 @@ export default function SettingsContent() {
                     <h3 className="text-xs sm:text-sm font-semibold text-red-900 dark:text-red-100 mb-1.5 sm:mb-2">Delete Account</h3>
                     <button
                       onClick={() => setShowDeleteModal(true)}
-                      className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors bg-red-600 hover:bg-red-700 text-white"
+                      className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-red-600 hover:bg-red-700 text-white"
                     >
                       Delete Account
                     </button>
@@ -2667,14 +2667,14 @@ export default function SettingsContent() {
                         setDeletePasswordError('')
                       }}
                       disabled={isDeleting}
-                      className="px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors disabled:opacity-50"
+                      className="px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors duration-150 disabled:opacity-50"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleDeleteAccount}
                       disabled={deleteConfirmText !== 'DELETE' || !deletePassword.trim() || isDeleting}
-                      className="px-4 py-2.5 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      className="px-4 py-2.5 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                       {isDeleting ? (
                         <>
@@ -2745,14 +2745,14 @@ export default function SettingsContent() {
                       setLabel('')
                     }}
                     disabled={isAdding}
-                    className="px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
+                    className="h-11 px-4 text-sm font-medium rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleAddIgnoredContact}
                     disabled={isAdding || !phoneNumber.trim()}
-                    className="px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 text-white"
+                    className="h-11 px-4 text-sm font-medium rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     {isAdding ? (
                       <>
@@ -2830,14 +2830,14 @@ export default function SettingsContent() {
                       setPasswordError('')
                     }}
                     disabled={isChangingPassword}
-                    className="px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
+                    className="h-11 px-4 text-sm font-medium rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleChangePassword}
                     disabled={isChangingPassword || !newPassword.trim() || !confirmNewPassword.trim()}
-                    className="px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 text-white"
+                    className="h-11 px-4 text-sm font-medium rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     {isChangingPassword ? (
                       <>
@@ -2892,13 +2892,13 @@ export default function SettingsContent() {
                 <div className="flex justify-end gap-2">
                   <button
                     onClick={() => setShowBusinessNumberWarning(false)}
-                    className="px-3 py-2 text-sm font-medium rounded-lg transition-colors bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
+                    className="h-11 px-4 text-sm font-medium rounded-lg transition-colors duration-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleConfirmBusinessNumber}
-                    className="px-3 py-2 text-sm font-medium rounded-lg transition-colors bg-blue-600 hover:bg-blue-700 text-white"
+                    className="h-11 px-4 text-sm font-medium rounded-lg transition-colors duration-200 bg-blue-600 hover:bg-blue-700 text-white"
                   >
                     Switch to Business Number
                   </button>

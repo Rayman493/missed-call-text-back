@@ -19,7 +19,7 @@ interface ValidationResult {
 
 // Canonical prompts from generation script (must match exactly)
 const CANONICAL_PROMPTS = {
-  ask_name: "Thank you for calling. May I have your name, please?",
+  ask_name: "Hi, thanks for calling. I'm the virtual assistant for the business. I'll gather a few quick details so the business owner can follow up with you. First, may I have your name?",
   ask_reason: "Thank you. What can I help you with today?",
   ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
   ask_name_reason_service_only: "And what do you need help with?",

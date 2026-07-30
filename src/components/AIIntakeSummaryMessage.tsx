@@ -75,28 +75,28 @@ export default function AIIntakeSummaryMessage({ body }: AIIntakeSummaryMessageP
   const { service, address, completionTime, callTime, details } = parseAISummary(body)
 
   return (
-    <div className="max-w-full space-y-2 overflow-hidden rounded-xl bg-slate-50/80 p-2.5 text-left border border-slate-200/60 dark:bg-slate-800/50 dark:border-slate-700/60">
-      <div className="break-words text-sm font-semibold leading-snug text-foreground">
+    <div className="max-w-full space-y-1.5 overflow-hidden rounded-lg bg-muted/30 p-2 text-left border border-border/20 dark:bg-muted/20 dark:border-border/20">
+      <div className="break-words text-xs font-semibold leading-snug text-foreground">
         {service}
       </div>
 
       {(address || completionTime || callTime) && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] leading-relaxed text-muted-foreground">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[10px] leading-relaxed text-muted-foreground">
           {address && (
-            <div className="sm:col-span-2 flex items-start gap-1.5 min-w-0">
-              <MapPin className="mt-0.5 h-3 w-3 flex-shrink-0" />
+            <div className="sm:col-span-2 flex items-start gap-1 min-w-0">
+              <MapPin className="mt-0.5 h-2.5 w-2.5 flex-shrink-0" />
               <span className="min-w-0 break-words leading-snug">{address}</span>
             </div>
           )}
           {completionTime && (
-            <div className="flex items-start gap-1.5 min-w-0">
-              <Calendar className="mt-0.5 h-3 w-3 flex-shrink-0" />
+            <div className="flex items-start gap-1 min-w-0">
+              <Calendar className="mt-0.5 h-2.5 w-2.5 flex-shrink-0" />
               <span className="min-w-0 break-words leading-snug">{completionTime}</span>
             </div>
           )}
           {callTime && (
-            <div className="flex items-start gap-1.5 min-w-0">
-              <Phone className="mt-0.5 h-3 w-3 flex-shrink-0" />
+            <div className="flex items-start gap-1 min-w-0">
+              <Phone className="mt-0.5 h-2.5 w-2.5 flex-shrink-0" />
               <span className="min-w-0 break-words leading-snug">{callTime}</span>
             </div>
           )}
@@ -104,7 +104,7 @@ export default function AIIntakeSummaryMessage({ body }: AIIntakeSummaryMessageP
       )}
 
       {details && (
-        <div className="break-words border-t border-slate-200/60 pt-1.5 text-[11px] leading-relaxed text-muted-foreground dark:border-slate-700/60">
+        <div className="break-words border-t border-border/10 pt-1 text-[10px] leading-relaxed text-muted-foreground">
           {details}
         </div>
       )}

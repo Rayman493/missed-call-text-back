@@ -2219,7 +2219,7 @@ function sendStagePrompt(
  * Note: These prompts are now mapped to APPROVED_PROMPTS in sendApprovedPrompt
  */
 const STAGE_PROMPTS: Record<IntakeStage, string> = {
-  ask_name: "Thank you for calling. May I have your name, please?",
+  ask_name: "Hi, thanks for calling. I'm the virtual assistant for the business. I'll gather a few quick details so the business owner can follow up with you. First, may I have your name?",
   ask_reason: "Thank you. What can I help you with today?",
   ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
   ask_name_reason_service_only: "And what do you need help with?",
@@ -4302,14 +4302,14 @@ function getResponseForMissingField(missingField: string, intake: IntakeData): {
     case 'customer name':
     case 'customerName':
       return {
-        response: 'Thanks for calling. Can I get your name and the reason for your call?',
-        nextStage: 'ask_name_reason'
+        response: 'Hi, thanks for calling. I\'m the virtual assistant for the business. I\'ll gather a few quick details so the business owner can follow up with you. First, may I have your name?',
+        nextStage: 'ask_name'
       };
     case 'service requested':
     case 'serviceRequested':
       return {
-        response: 'Thanks for calling. Can I get your name and the reason for your call?',
-        nextStage: 'ask_name_reason'
+        response: 'Thank you. What can I help you with today?',
+        nextStage: 'ask_reason'
       };
     case 'issue description':
     case 'issueDescription':
@@ -5686,7 +5686,11 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
   console.log('[SIMPLE MODE] =========================================');
   console.log('[SIMPLE MODE] event: connection_start');
-  console.log('[SIMPLE MODE] simple_mode_selected:', true);
+  console.log('[SIMPLE MODE] intakeFlowVersion:', 'separated_ask_name_ask_reason');
+  console.log('[SIMPLE MODE] initialStage:', 'ask_name');
+  console.log('[SIMPLE MODE] initialPromptKey:', 'ask_name');
+  console.log('[SIMPLE MODE] simpleModeSelected:', true);
+  console.log('[SIMPLE MODE] legacyCombinedPromptSelected:', false);
   console.log('[SIMPLE MODE] sourceOfPrompt:', 'simple_mode_intake_templates');
   console.log('[SIMPLE MODE] business_id:', url.searchParams.get('businessId') || 'none');
   console.log('[SIMPLE MODE] call_sid:', url.searchParams.get('callSid') || 'none');
@@ -5702,7 +5706,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     businessName: '',
     forwardedFrom: '',
     streamSid: '',
-    currentStage: 'ask_name_reason' as any,
+    currentStage: 'ask_name' as any,
     assistantSpeaking: false,
     transcript: '',
     intakeData: {} as any,
@@ -5810,7 +5814,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
   // Canonical Simple Mode prompt keys - no mapping layer
   // These are the exact keys used for cached audio lookups
   const prompts: Record<string, string> = {
-    ask_name: "Thank you for calling. May I have your name, please?",
+    ask_name: "Hi, thanks for calling. I'm the virtual assistant for the business. I'll gather a few quick details so the business owner can follow up with you. First, may I have your name?",
     ask_reason: "Thank you. What can I help you with today?",
     ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
     ask_name_reason_service_only: "And what do you need help with?",
@@ -9082,7 +9086,9 @@ Reply to this message if you'd like to update or add any information.
 
     console.log('[SIMPLE MODE] =========================================');
     console.log('[SIMPLE MODE] event: stage_prompt_mapping');
-    console.log('[SIMPLE MODE] simple_mode_selected:', true);
+    console.log('[SIMPLE MODE] intakeFlowVersion:', 'separated_ask_name_ask_reason');
+    console.log('[SIMPLE MODE] simpleModeSelected:', true);
+    console.log('[SIMPLE MODE] legacyCombinedPromptSelected:', promptKey === 'ask_name_reason');
     console.log('[SIMPLE MODE] sourceOfPrompt:', 'simple_mode_intake_templates');
     console.log('[SIMPLE MODE] business_id:', state.businessId);
     console.log('[SIMPLE MODE] logicalStage:', stage);
@@ -12099,7 +12105,7 @@ wss.on('connection', (ws, req) => {
       lastPromptAt: 0,
       activeResponseId: null as string | null,
       intakeData: null as IntakeData | null,
-      currentStage: 'ask_name_reason' as IntakeStage,
+      currentStage: 'ask_name' as IntakeStage,
       sessionId: '',
       businessId: '',
       callSid: '',
@@ -15869,7 +15875,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 console.log('[TRANSCRIPT] response.content', { content: message.content });
                 if (message.content) {
                   const assistantText = message.content;
-                  const currentStage = intakeData?.stage || 'ask_name_reason';
+                  const currentStage = intakeData?.stage || 'ask_name';
                   const intakeTemplate = (ws as any).intakeTemplate || 'on_site';
                   
                   // Get the approved prompt for the current stage
@@ -16026,10 +16032,10 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   console.log('[CODE OWNED FIRST PROMPT SENT] =========================================');
 
                   // Use centralized sendApprovedPrompt for greeting
-                  sendApprovedPrompt('ask_name_reason', openAiWs, ws);
+                  sendApprovedPrompt('ask_name', openAiWs, ws);
                   // Set current stage for validation
                   if (twilioHandler && typeof (twilioHandler as any).setCurrentStage === 'function') {
-                    (twilioHandler as any).setCurrentStage('ask_name_reason');
+                    (twilioHandler as any).setCurrentStage('ask_name');
                   }
                   greetingSent = true;
                   updateAISessionState(aiSessionTracker, 'GREETING_SENT', 'Greeting response.create sent');

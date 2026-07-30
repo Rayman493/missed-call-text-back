@@ -39,29 +39,29 @@ export default function BusinessNumberPanel({
   }
 
   return (
-    <div className="px-3 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl">
-      <div className="flex items-center gap-2.5 mb-2">
+    <div className="px-2 py-1.5">
+      <div className="flex items-center gap-2 mb-1">
         <Smartphone className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
         <div className="flex-1">
-          <h3 className="text-sm font-medium text-slate-900 dark:text-white">
-            Messaging via Business Number
+          <h3 className="text-sm font-medium text-foreground">
+            Business Number
           </h3>
         </div>
       </div>
-      <p className="text-xs text-slate-600 dark:text-slate-400 mb-2.5 leading-relaxed">
+      <p className="text-xs text-muted-foreground/70 mb-2 leading-relaxed">
         Messages open in your phone's messaging app.
       </p>
       <div className="flex items-center gap-2">
         <button
           onClick={handleOpenMessages}
-          className="flex-1 h-11 px-3 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center justify-center gap-1.5"
+          className="flex-1 h-11 px-3 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors flex items-center justify-center gap-1.5"
         >
           <Smartphone className="w-3.5 h-3.5" />
           Open Messages
         </button>
         <button
           onClick={handleManageInSettings}
-          className="h-11 px-3 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors flex items-center justify-center gap-1.5"
+          className="h-11 px-3 text-xs font-medium text-muted-foreground/70 hover:text-foreground transition-colors flex items-center justify-center gap-1.5"
         >
           <Settings className="w-3.5 h-3.5" />
           Manage

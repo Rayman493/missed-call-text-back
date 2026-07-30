@@ -59,7 +59,7 @@ export type IntakeStage =
  */
 export const AI_INTAKE_TEMPLATES: Record<IntakeTemplate, Record<IntakeStage, string>> = {
   on_site: {
-    ask_name: "Thank you for calling. May I have your name, please?",
+    ask_name: "Hi, thanks for calling. I'm the virtual assistant for the business. I'll gather a few quick details so the business owner can follow up with you. First, may I have your name?",
     ask_reason: "Thank you. What can I help you with today?",
     ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
     ask_name_reason_service_only: "And what do you need help with?",
@@ -71,7 +71,7 @@ export const AI_INTAKE_TEMPLATES: Record<IntakeTemplate, Record<IntakeStage, str
     complete: "Okay. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
   },
   appointment: {
-    ask_name: "Thank you for calling. May I have your name, please?",
+    ask_name: "Hi, thanks for calling. I'm the virtual assistant for the business. I'll gather a few quick details so the business owner can follow up with you. First, may I have your name?",
     ask_reason: "Thank you. What can I help you with today?",
     ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
     ask_name_reason_service_only: "And what do you need help with?",
@@ -83,7 +83,7 @@ export const AI_INTAKE_TEMPLATES: Record<IntakeTemplate, Record<IntakeStage, str
     complete: "Okay. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
   },
   lessons: {
-    ask_name: "Thank you for calling. May I have your name, please?",
+    ask_name: "Hi, thanks for calling. I'm the virtual assistant for the business. I'll gather a few quick details so the business owner can follow up with you. First, may I have your name?",
     ask_reason: "Thank you. What can I help you with today?",
     ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
     ask_name_reason_service_only: "And what do you need help with?",
@@ -95,7 +95,7 @@ export const AI_INTAKE_TEMPLATES: Record<IntakeTemplate, Record<IntakeStage, str
     complete: "Okay. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
   },
   professional: {
-    ask_name: "Thank you for calling. May I have your name, please?",
+    ask_name: "Hi, thanks for calling. I'm the virtual assistant for the business. I'll gather a few quick details so the business owner can follow up with you. First, may I have your name?",
     ask_reason: "Thank you. What can I help you with today?",
     ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
     ask_name_reason_service_only: "And what do you need help with?",
@@ -123,7 +123,7 @@ export function getIntakeStageText(template: IntakeTemplate, stage: IntakeStage)
  * Used as final fallback if template system fails
  */
 const LEGACY_FALLBACK_PROMPTS: Record<IntakeStage, string> = {
-  ask_name: "Thank you for calling. May I have your name, please?",
+  ask_name: "Hi, thanks for calling. I'm the virtual assistant for the business. I'll gather a few quick details so the business owner can follow up with you. First, may I have your name?",
   ask_reason: "Thank you. What can I help you with today?",
   ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
   ask_name_reason_service_only: "And what do you need help with?",
