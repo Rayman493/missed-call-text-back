@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { Capacitor } from '@capacitor/core'
+import { App } from '@capacitor/app'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -951,6 +952,73 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       })
     }
   }, [loading, messagesArray.length, hasScrolledToBottomOnLoad])
+
+  // App-resume refresh for Business Number payment handoff
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) {
+      return
+    }
+
+    const handleAppResume = async () => {
+      console.log('[APP RESUME] App resumed, checking for pending payment refresh')
+      
+      try {
+        const pendingRefresh = localStorage.getItem('pendingPaymentRefresh')
+        if (!pendingRefresh) {
+          console.log('[APP RESUME] No pending payment refresh found')
+          return
+        }
+
+        const { leadId, conversationId, paymentRequestId } = JSON.parse(pendingRefresh)
+        console.log('[APP RESUME] Pending payment refresh found:', { leadId, conversationId, paymentRequestId })
+
+        // Only refresh if we're still on the same lead
+        if (leadId !== params.id) {
+          console.log('[APP RESUME] Lead ID mismatch, skipping refresh')
+          localStorage.removeItem('pendingPaymentRefresh')
+          return
+        }
+
+        console.log('[APP RESUME] Refreshing lead data')
+        const updatedData = await getLeadDetails(leadId)
+        console.log('[APP RESUME] Lead data refresh result:', {
+          leadId,
+          paymentRequestsCount: updatedData?.lead?.paymentRequests?.length || 0,
+          paymentRequests: updatedData?.lead?.paymentRequests?.map((pr: any) => ({
+            id: pr.id,
+            amount_cents: pr.amount_cents,
+            conversation_id: pr.conversation_id,
+            status: pr.status,
+            created_at: pr.created_at
+          }))
+        })
+
+        if (updatedData) {
+          setLeadData(updatedData)
+          console.log('[APP RESUME] Lead data state updated')
+        }
+
+        // Clear the pending refresh flag
+        localStorage.removeItem('pendingPaymentRefresh')
+        console.log('[APP RESUME] Pending payment refresh cleared')
+      } catch (error) {
+        console.error('[APP RESUME] Error during refresh:', error)
+        // Clear the flag even on error to prevent retry loops
+        localStorage.removeItem('pendingPaymentRefresh')
+      }
+    }
+
+    const listener = App.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) {
+        console.log('[APP RESUME] App became active')
+        handleAppResume()
+      }
+    })
+
+    return () => {
+      listener.then(fn => fn.remove())
+    }
+  }, [params.id])
 
   // Final scroll after media fetch completes during initial load
   useEffect(() => {
@@ -4784,33 +4852,30 @@ If you have questions, reply to this message.`
                       }
                       setIsLaunchingSMS(true)
                       
-                      // Launch SMS using shared helper
-                      await openBusinessSms({ recipient, body: message, source: 'payment' })
+                      console.log('[PAYMENT BUSINESS SMS] Storing payment data locally before modal close')
+                      // Store payment data locally for app-resume refresh
+                      const pendingPaymentRefresh = {
+                        leadId: lead?.id,
+                        conversationId: leadData?.conversationId,
+                        paymentRequestId: data.payment_request_id || data.id
+                      }
+                      localStorage.setItem('pendingPaymentRefresh', JSON.stringify(pendingPaymentRefresh))
                       
-                      // Close modal only after successful launch
+                      console.log('[PAYMENT BUSINESS SMS] Closing modal before native launch')
+                      // Close modal immediately before native launch
                       setShowPaymentModal(false)
                       setPaymentAmount('')
                       setPaymentDescription('')
                       setSuccessMessage(`Payment request sent\nMessage opened in your messaging app.`)
                       
-                      // Refresh lead data to show timeline event
-                      console.log('[PAYMENT BUSINESS SMS] Refreshing lead data after successful SMS launch')
-                      const updatedData = await getLeadDetails(lead?.id)
-                      console.log('[PAYMENT BUSINESS SMS] Lead data refresh result:', {
-                        leadId: lead?.id,
-                        paymentRequestsCount: updatedData?.lead?.paymentRequests?.length || 0,
-                        paymentRequests: updatedData?.lead?.paymentRequests?.map((pr: any) => ({
-                          id: pr.id,
-                          amount_cents: pr.amount_cents,
-                          conversation_id: pr.conversation_id,
-                          status: pr.status,
-                          created_at: pr.created_at
-                        }))
-                      })
-                      if (updatedData) {
-                        setLeadData(updatedData)
-                        console.log('[PAYMENT BUSINESS SMS] Lead data state updated')
-                      }
+                      // Allow React to commit the close before native launch
+                      await new Promise(resolve => setTimeout(resolve, 0))
+                      
+                      console.log('[PAYMENT BUSINESS SMS] Launching native Messages')
+                      // Launch SMS using shared helper
+                      await openBusinessSms({ recipient, body: message, source: 'payment' })
+                      
+                      console.log('[PAYMENT BUSINESS SMS] Native launch completed, refresh will happen on app resume')
                     } catch (error) {
                       console.error('[PAYMENT BUSINESS SMS] launch error:', error)
                       // Keep modal open for retry (shared helper handles fallback internally)
