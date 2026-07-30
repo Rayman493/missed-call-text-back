@@ -54,14 +54,14 @@ export default function BusinessNumberPanel({
       <div className="flex items-center gap-2">
         <button
           onClick={handleOpenMessages}
-          className="flex-1 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center justify-center gap-1.5"
+          className="flex-1 h-11 px-3 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors flex items-center justify-center gap-1.5"
         >
           <Smartphone className="w-3.5 h-3.5" />
           Open Messages
         </button>
         <button
           onClick={handleManageInSettings}
-          className="px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors flex items-center justify-center gap-1.5"
+          className="h-11 px-3 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors flex items-center justify-center gap-1.5"
         >
           <Settings className="w-3.5 h-3.5" />
           Manage

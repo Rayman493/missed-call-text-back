@@ -3099,7 +3099,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
               {/* Customer Info */}
               <div className="min-w-0 flex-1">
-                <h1 className="font-semibold text-foreground text-sm leading-tight truncate">
+                <h1 className="font-medium text-foreground text-sm leading-tight truncate">
                   {getLeadDisplayName(leadData || lead)}
                 </h1>
                 <p className="text-[11px] text-muted-foreground/80 truncate">
@@ -3112,7 +3112,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 {/* Info Button */}
                 <button
                   onClick={() => setShowLeadInfo(!showLeadInfo)}
-                  className="h-9 w-9 inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200"
+                  className="h-11 w-11 inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200"
                   title="Customer information"
                   aria-label="Customer information"
                 >
@@ -3126,7 +3126,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      className="h-9 w-9 inline-flex items-center justify-center text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
+                      className="h-11 w-11 inline-flex items-center justify-center text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
                       title="More actions"
                       aria-label="Conversation actions"
                     >
@@ -3600,7 +3600,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               {/* Desktop Conversation Header */}
               <div className="flex items-center justify-between px-5 py-3 mb-2">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground">Conversation</h2>
+                  <h2 className="text-sm font-medium text-slate-900 dark:text-foreground">Conversation</h2>
                   {(() => {
                     const effectiveSource = (sendingSource === 'business' && supportsBusiness) ? 'business' : 'replyflow'
                     return (
@@ -3686,20 +3686,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <AICustomerSummary leadId={params.id} />
 
                 {/* Consolidated Information Panel - Simplified */}
-                <div className="bg-card rounded-xl border border-border/40 p-5">
-                <div className="space-y-5">
+                <div className="bg-card rounded-xl border border-border/40 p-4">
+                <div className="space-y-4">
                   {/* AI Intake Summary */}
                   {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
                     <div>
-                      <h3 className="text-sm font-semibold text-foreground mb-3">Current Request</h3>
+                      <h3 className="text-sm font-medium text-foreground mb-2">Current Request</h3>
                       {(() => {
                         const intake = getLeadAIIntake(leadData || lead)
                         const hasIntake = intake.serviceRequested || leadData?.aiCallRecords?.length > 0
                         if (hasIntake && (intake.serviceRequested || intake.desiredCompletion || intake.callbackTime)) {
                           return (
-                            <div className="mb-5 p-4 bg-muted/40 rounded-xl border border-border/30">
-                              <p className="text-xs font-medium text-muted-foreground/70 mb-2 uppercase tracking-wide">Current Request</p>
-                              <p className="text-sm font-semibold text-foreground mb-2 leading-snug">{intake.serviceRequested || 'Service request'}</p>
+                            <div className="mb-3 p-3 bg-muted/30 rounded-lg border border-border/20">
+                              <p className="text-sm font-semibold text-foreground mb-1.5 leading-snug">{intake.serviceRequested || 'Service request'}</p>
                               <div className="flex items-center gap-2 text-xs text-muted-foreground/80">
                                 {intake.desiredCompletion && <span>{intake.desiredCompletion}</span>}
                                 {intake.callbackTime && <span className="text-border/40">•</span>}
@@ -3727,10 +3726,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   )}
 
                   {/* Activity Timeline - Collapsible */}
-                  <div className="bg-card rounded-xl border border-border/50 p-3 sm:p-4">
+                  <div className="bg-card rounded-xl border border-border/50 p-2.5">
                     <button
                       onClick={() => setCollapsedSections((prev: any) => ({ ...prev, activityTimeline: !prev.activityTimeline }))}
-                      className="flex items-center justify-between w-full mb-2 sm:mb-3 group"
+                      className="flex items-center justify-between w-full mb-2 group"
                     >
                       <h3 className="text-sm font-medium text-foreground group-hover:text-foreground/80 transition-colors">Activity Timeline</h3>
                       <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.activityTimeline ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3746,8 +3745,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
                   {/* Customer Status - Premium rows */}
                   <div>
-                    <h3 className="text-xs font-medium text-muted-foreground mb-3">Customer Status</h3>
-                    <div className="space-y-2">
+                    <h3 className="text-xs font-medium text-muted-foreground mb-2">Customer Status</h3>
+                    <div className="space-y-1.5">
                       <div className="flex items-center justify-between py-1.5 border-b border-border/10">
                         <span className="text-xs text-muted-foreground">AI Intake</span>
                         <span className={`text-xs font-medium ${getAIIntakeStatusColor(getAIIntakeStatus(leadData || lead)).replace('bg-', 'text-').replace('dark:bg-', 'dark:text-').replace('/30', '').replace('/20', '')}`}>
@@ -4038,7 +4037,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
                   </div>
-                  <span className="text-sm font-semibold text-foreground">AI Intake</span>
+                  <span className="text-sm font-medium text-foreground">AI Intake</span>
                 </div>
                 <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.aiIntake ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -4062,7 +4061,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           )}
 
           {/* Jobs - Collapsible */}
-          <div className="bg-muted/30 border border-border/40 rounded-xl p-2.5 shadow-sm">
+          <div className="bg-muted/30 border border-border/40 rounded-xl p-2 shadow-sm">
             <button
               onClick={() => setCollapsedSections((prev: any) => ({ ...prev, jobs: !prev.jobs }))}
               className="flex items-center justify-between w-full py-1"
@@ -4073,14 +4072,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                   </svg>
                 </div>
-                <span className="text-sm font-semibold text-foreground">Jobs</span>
+                <span className="text-sm font-medium text-foreground">Jobs</span>
+                {leadJobs.length > 0 && (
+                  <span className="text-xs text-muted-foreground">({leadJobs.length})</span>
+                )}
               </div>
               <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.jobs ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
             {!collapsedSections.jobs && (
-              <div className="mt-2">
+              <div className="mt-1.5">
                 {leadJobs.length === 0 ? (
                   <button
                     onClick={handleCreateJobClick}
@@ -4092,7 +4094,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     Add Job
                   </button>
                 ) : (
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     {leadJobs.slice(0, 3).map((job: any) => (
                       <div key={job.id} className="flex items-center justify-between p-2 bg-muted/50 hover:bg-muted/70 rounded-lg transition-colors">
                         <div className="min-w-0 flex-1">
@@ -4114,7 +4116,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Payments - Collapsible */}
-          <div className="bg-muted/30 border border-border/40 rounded-xl p-2.5 shadow-sm">
+          <div className="bg-muted/30 border border-border/40 rounded-xl p-2 shadow-sm">
             <button
               onClick={() => setCollapsedSections((prev: any) => ({ ...prev, payments: !prev.payments }))}
               className="flex items-center justify-between w-full py-1"
@@ -4125,7 +4127,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                   </svg>
                 </div>
-                <span className="text-sm font-semibold text-foreground">Payments</span>
+                <span className="text-sm font-medium text-foreground">Payments</span>
               </div>
               <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.payments ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -4176,7 +4178,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <span className="text-sm font-semibold text-foreground">Timeline</span>
+                <span className="text-sm font-medium text-foreground">Timeline</span>
               </div>
               <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.recentActivity ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />

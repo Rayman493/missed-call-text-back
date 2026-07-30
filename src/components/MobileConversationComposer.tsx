@@ -256,7 +256,7 @@ export default function MobileConversationComposer({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200 flex-shrink-0 rounded-lg h-9 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2"
+              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200 flex-shrink-0 rounded-lg h-11 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2"
               disabled={sending}
               aria-label="Add image"
             >
@@ -309,7 +309,7 @@ export default function MobileConversationComposer({
               ref={sendButtonRef}
               onClick={handleSend}
               disabled={sending || !(message.trim() || images.length > 0)}
-              className={`flex-shrink-0 w-9 h-9 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center disabled:cursor-not-allowed ${
+              className={`flex-shrink-0 w-11 h-11 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center disabled:cursor-not-allowed ${
                 (message.trim() || images.length > 0) && !sending
                   ? 'bg-blue-600 text-white shadow-sm hover:bg-blue-700'
                   : 'bg-muted hover:bg-muted/80 text-muted-foreground'
@@ -330,7 +330,7 @@ export default function MobileConversationComposer({
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="flex-shrink-0 w-9 h-9 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center disabled:cursor-not-allowed bg-muted hover:bg-muted/80 text-muted-foreground"
+                    className="flex-shrink-0 w-11 h-11 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center disabled:cursor-not-allowed bg-muted hover:bg-muted/80 text-muted-foreground"
                     aria-label="Send via alternate method"
                     disabled={sending || !(message.trim() || images.length > 0)}
                   >
