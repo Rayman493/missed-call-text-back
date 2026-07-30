@@ -56,8 +56,14 @@ public class SmsLauncherPlugin extends Plugin {
                 return;
             }
 
+            // Check if activity is available
+            if (getActivity() == null) {
+                call.reject("Activity is unavailable", "NO_ACTIVITY");
+                return;
+            }
+
             // Launch the intent
-            startActivity(intent);
+            getActivity().startActivity(intent);
 
             // Return success
             JSObject result = new JSObject();
