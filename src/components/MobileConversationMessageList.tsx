@@ -118,27 +118,28 @@ export default function MobileConversationMessageList({
             <div
               key={item.id}
               id={item.id}
-              className="flex items-center justify-center my-4"
+              className="flex items-center justify-center my-3"
             >
-              <div className="flex flex-col items-center gap-2 bg-muted/60 px-4 py-3 rounded-xl border border-border/50 shadow-sm max-w-[85%]">
-                <div className="flex items-center gap-2">
-                  <StatusIcon className={`w-4 h-4 ${statusUI.iconColor}`} />
-                  <span className="text-sm font-semibold text-foreground">
-                    {statusUI.title}
-                  </span>
-                </div>
-                <div className="text-sm text-foreground/90">
-                  ${(payment.amount_cents / 100).toFixed(2)} • {payment.description}
-                </div>
-                <div className="flex flex-col items-center gap-1 text-[10px] text-muted-foreground/60">
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2 py-0.5 rounded-full ${statusUI.bgColor} ${statusUI.iconColor}`}>
-                      {statusUI.label}
-                    </span>
-                    <span className="bg-purple-500/10 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded-full">
-                      Business #
+              <div className="flex flex-col items-center gap-1.5 bg-muted/50 px-3 py-2 rounded-lg border border-border/40 shadow-sm max-w-[85%]">
+                <div className="flex items-center gap-2 w-full justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <StatusIcon className={`w-3.5 h-3.5 ${statusUI.iconColor}`} />
+                    <span className="text-xs font-semibold text-foreground">
+                      {statusUI.title}
                     </span>
                   </div>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${statusUI.bgColor} ${statusUI.iconColor}`}>
+                    {statusUI.label}
+                  </span>
+                </div>
+                <div className="text-xs text-foreground/90 font-medium">
+                  ${(payment.amount_cents / 100).toFixed(2)} • {payment.description}
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/60">
+                  <span className="bg-purple-500/10 text-purple-600 dark:text-purple-400 px-1.5 py-0.5 rounded-full">
+                    Business #
+                  </span>
+                  <span>•</span>
                   <span>{formatRelativeTime(payment.timestamp)}</span>
                 </div>
               </div>
@@ -226,13 +227,13 @@ export default function MobileConversationMessageList({
         return (
           <div
             key={getMessageKey(msg)}
-            className={`flex items-start gap-2 ${msg.media && msg.media.length > 0 ? 'mb-3' : 'mb-2.5'} ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
+            className={`flex items-start gap-2 ${msg.media && msg.media.length > 0 ? 'mb-3' : 'mb-2'} ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
           >
             {/* Message Content */}
             <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} ${isAISummary ? 'max-w-[86%]' : 'max-w-[80%] sm:max-w-[72%]'}`}>
               {/* Message Bubble - Modern messaging app styling */}
               <div
-                className={`rounded-2xl shadow-sm transition-colors duration-200 overflow-hidden ${
+                className={`rounded-xl shadow-sm transition-colors duration-200 overflow-hidden ${
                   isAISummary
                     ? 'bg-transparent border-0 shadow-none'
                     : isInbound
@@ -242,7 +243,7 @@ export default function MobileConversationMessageList({
                     : 'bg-blue-600 text-white rounded-br-md hover:bg-blue-700 border border-blue-700/60'
                 }`}
               >
-                <div className={`${isAISummary ? 'p-0' : msg.media && msg.media.length > 0 ? 'p-1.5' : 'px-3 py-2.5'}`}>
+                <div className={`${isAISummary ? 'p-0' : msg.media && msg.media.length > 0 ? 'p-1.5' : 'px-3 py-2'}`}>
                   {msg.body && !isAISummary && (
                     <p
                       className="text-sm leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap min-w-0 max-w-full"

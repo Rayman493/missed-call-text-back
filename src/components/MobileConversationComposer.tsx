@@ -211,27 +211,27 @@ export default function MobileConversationComposer({
   }
 
   return (
-    <div className="border-t border-white/10 bg-slate-950/80 backdrop-blur-xl p-3 sm:p-5 lg:p-6 pb-6 sm:pb-8 z-50 shadow-[0_-18px_60px_rgba(2,6,23,0.45)]" style={{ paddingBottom: 'max(18px, env(safe-area-inset-bottom))' }}>
+    <div className="border-t border-border/50 bg-background/95 backdrop-blur-xl p-2.5 sm:p-4 lg:p-5 pb-3 sm:pb-4 z-50 shadow-sm" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
       <div className="max-w-5xl mx-auto">
         {/* Composer Container */}
         <div className="relative">
           {/* Image Previews */}
           {images.length > 0 && (
-            <div className="flex flex-wrap gap-3 mb-3">
+            <div className="flex flex-wrap gap-2 mb-2">
               {images.map(img => (
                 <div key={img.id} className="relative group">
                   <img
                     src={img.preview}
                     alt="Preview"
-                    className="w-20 h-20 object-cover rounded-xl border border-gray-300 dark:border-gray-600 shadow-sm"
+                    className="w-16 h-16 object-cover rounded-lg border border-border shadow-sm"
                   />
                   <button
                     onClick={() => removeImage(img.id)}
-                    className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                    className="absolute -top-1.5 -right-1.5 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
                     type="button"
                     aria-label="Remove image"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <X className="w-3 h-3" />
                   </button>
                 </div>
               ))}
@@ -240,7 +240,7 @@ export default function MobileConversationComposer({
 
           {/* Error Message */}
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-xl text-sm shadow-sm mb-3">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-3 py-2 rounded-lg text-xs shadow-sm mb-2">
               {error}
             </div>
           )}
@@ -250,17 +250,17 @@ export default function MobileConversationComposer({
             ref={rowContainerRef}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
-            className="flex items-center gap-2 rounded-3xl border border-white/10 bg-white/[0.045] px-2.5 py-3 shadow-[0_1px_0_rgba(255,255,255,0.04),0_12px_36px_rgba(2,6,23,0.32)] transition-all duration-200 focus-within:border-blue-400/40 focus-within:bg-white/[0.065]"
+            className="flex items-center gap-2 rounded-2xl border border-border/50 bg-muted/50 px-2.5 py-2 shadow-sm transition-all duration-200 focus-within:border-blue-400/40 focus-within:bg-muted/70"
           >
             {/* Attachment Button */}
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-white/10 transition-all duration-200 flex-shrink-0 rounded-xl h-10 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2"
+              className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200 flex-shrink-0 rounded-lg h-9 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2"
               disabled={sending}
               aria-label="Add image"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4" />
             </button>
             <input
               ref={fileInputRef}
@@ -278,19 +278,19 @@ export default function MobileConversationComposer({
                 value={message}
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
-                placeholder="TYPE HERE TEST 7429 - MOBILE"
+                placeholder="Type a message..."
                 disabled={sending}
                 autoCapitalize="sentences"
                 autoComplete="on"
                 spellCheck={true}
                 data-testid="composer-textarea-mobile"
-                className={`w-full bg-transparent border-none resize-none focus:outline-none placeholder:text-slate-500 text-base leading-normal py-2 px-1 max-h-32 text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed ${
+                className={`w-full bg-transparent border-none resize-none focus:outline-none placeholder:text-muted-foreground text-sm leading-relaxed py-2 px-1 max-h-32 text-foreground disabled:opacity-50 disabled:cursor-not-allowed ${
                   isAtMaxHeight ? 'overflow-y-auto' : 'overflow-y-hidden'
                 }`}
                 rows={1}
                 style={{ 
                   fieldSizing: 'content', 
-                  minHeight: '44px',
+                  minHeight: '40px',
                   scrollbarWidth: 'none',
                   msOverflowStyle: 'none'
                 }}
@@ -309,16 +309,16 @@ export default function MobileConversationComposer({
               ref={sendButtonRef}
               onClick={handleSend}
               disabled={sending || !(message.trim() || images.length > 0)}
-              className={`flex-shrink-0 w-10 h-10 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center disabled:cursor-not-allowed ${
+              className={`flex-shrink-0 w-9 h-9 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center disabled:cursor-not-allowed ${
                 (message.trim() || images.length > 0) && !sending
-                  ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-[0_10px_25px_rgba(37,99,235,0.35)] hover:from-blue-500 hover:to-cyan-500 hover:shadow-[0_14px_34px_rgba(37,99,235,0.42)]'
-                  : 'bg-white/8 hover:bg-white/10 text-slate-500 ring-1 ring-white/10'
+                  ? 'bg-blue-600 text-white shadow-sm hover:bg-blue-700'
+                  : 'bg-muted hover:bg-muted/80 text-muted-foreground'
               }`}
             >
               {sending ? (
-                <div className="w-5 h-5 animate-spin rounded-full border-2 border-white/30 border-t-white"></div>
+                <div className="w-4 h-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></div>
               ) : (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                 </svg>
               )}
@@ -330,7 +330,7 @@ export default function MobileConversationComposer({
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="flex-shrink-0 w-10 h-10 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center disabled:cursor-not-allowed bg-white/10 hover:bg-white/15 text-slate-400 hover:text-slate-300 ring-1 ring-white/10"
+                    className="flex-shrink-0 w-9 h-9 rounded-full transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center disabled:cursor-not-allowed bg-muted hover:bg-muted/80 text-muted-foreground"
                     aria-label="Send via alternate method"
                     disabled={sending || !(message.trim() || images.length > 0)}
                   >

@@ -118,27 +118,28 @@ export default function DesktopConversationMessageList({
             <div
               key={item.id}
               id={item.id}
-              className="flex items-center justify-center my-6"
+              className="flex items-center justify-center my-4"
             >
-              <div className="flex flex-col items-center gap-2 bg-muted/60 px-4 py-3 rounded-xl border border-border/50 shadow-sm max-w-md">
-                <div className="flex items-center gap-2">
-                  <StatusIcon className={`w-4 h-4 ${statusUI.iconColor}`} />
-                  <span className="text-sm font-semibold text-foreground">
-                    {statusUI.title}
-                  </span>
-                </div>
-                <div className="text-sm text-foreground/90">
-                  ${(payment.amount_cents / 100).toFixed(2)} • {payment.description}
-                </div>
-                <div className="flex flex-col items-center gap-1 text-[11px] text-muted-foreground/60">
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2 py-0.5 rounded-full ${statusUI.bgColor} ${statusUI.iconColor}`}>
-                      {statusUI.label}
-                    </span>
-                    <span className="bg-purple-500/10 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded-full">
-                      Business #
+              <div className="flex flex-col items-center gap-1.5 bg-muted/50 px-3 py-2 rounded-lg border border-border/40 shadow-sm max-w-md">
+                <div className="flex items-center gap-2 w-full justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <StatusIcon className={`w-3.5 h-3.5 ${statusUI.iconColor}`} />
+                    <span className="text-xs font-semibold text-foreground">
+                      {statusUI.title}
                     </span>
                   </div>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${statusUI.bgColor} ${statusUI.iconColor}`}>
+                    {statusUI.label}
+                  </span>
+                </div>
+                <div className="text-xs text-foreground/90 font-medium">
+                  ${(payment.amount_cents / 100).toFixed(2)} • {payment.description}
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/60">
+                  <span className="bg-purple-500/10 text-purple-600 dark:text-purple-400 px-1.5 py-0.5 rounded-full">
+                    Business #
+                  </span>
+                  <span>•</span>
                   <span>{formatRelativeTime(payment.timestamp)}</span>
                 </div>
               </div>
@@ -271,13 +272,13 @@ export default function DesktopConversationMessageList({
         return (
           <div
             key={getMessageKey(msg)}
-            className={`flex items-start gap-3 ${msg.media && msg.media.length > 0 ? 'mb-5' : 'mb-4'} ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
+            className={`flex items-start gap-3 ${msg.media && msg.media.length > 0 ? 'mb-4' : 'mb-3'} ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
           >
             {/* Message Content */}
             <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} ${isOutbound ? 'max-w-[75%]' : 'max-w-[85%]'}`}>
               {/* Message Bubble - Desktop styling */}
               <div
-                className={`rounded-2xl shadow-sm transition-colors duration-200 overflow-hidden ${
+                className={`rounded-xl shadow-sm transition-colors duration-200 overflow-hidden ${
                   isInbound
                     ? 'bg-white dark:bg-slate-800/95 text-slate-900 dark:text-slate-100 rounded-bl-md border border-slate-200/80 dark:border-slate-700/80'
                     : isOptimistic && isSending
@@ -285,7 +286,7 @@ export default function DesktopConversationMessageList({
                     : 'bg-blue-600 text-white rounded-br-md hover:bg-blue-700 border border-blue-700/80'
                 }`}
               >
-                <div className={`${msg.media && msg.media.length > 0 ? 'p-2' : 'px-4 py-3'}`}>
+                <div className={`${msg.media && msg.media.length > 0 ? 'p-2' : 'px-4 py-2.5'}`}>
                   {msg.body && (
                     <p 
                       className={`${isOutbound ? 'text-[14px]' : 'text-[15px]'} leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap min-w-0 max-w-full`}

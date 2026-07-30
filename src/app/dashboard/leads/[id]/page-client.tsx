@@ -3066,10 +3066,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       {/* Customer Identity Header - Distinct from global navigation */}
       <div className="bg-muted/30 border-b border-border/50">
-        <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-2 sm:py-2.5">
+        <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-2">
           {/* Mobile Layout: Compact Information Header */}
           <div className="md:hidden">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2">
               {/* Back button */}
               <div className="flex-shrink-0">
                 <AppBackButton fallbackHref="/dashboard/leads" label="" />
@@ -3081,11 +3081,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <img
                     src={lead.photo_url}
                     alt={getLeadDisplayName(leadData || lead)}
-                    className="w-10 h-10 rounded-full object-cover border-2 border-border/40"
+                    className="w-9 h-9 rounded-full object-cover border border-border/40"
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center border-2 border-border/40">
-                    <span className="text-white font-semibold text-sm">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center border border-border/40">
+                    <span className="text-white font-semibold text-xs">
                       {getLeadDisplayName(leadData || lead)
                         .split(' ')
                         .map(n => n[0])
@@ -3099,10 +3099,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
               {/* Customer Info */}
               <div className="min-w-0 flex-1">
-                <h1 className="font-bold text-foreground text-base leading-tight truncate">
+                <h1 className="font-semibold text-foreground text-sm leading-tight truncate">
                   {getLeadDisplayName(leadData || lead)}
                 </h1>
-                <p className="text-xs text-muted-foreground/80 truncate">
+                <p className="text-[11px] text-muted-foreground/80 truncate">
                   {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
                 </p>
               </div>
@@ -3852,9 +3852,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         {isMobileView && (
           <div className="space-y-2 pb-[calc(6rem+env(safe-area-inset-bottom))]">
           {/* Conversation Header - Establishes the messaging workspace */}
-          <div className="px-3 pt-2 pb-1">
-            <h2 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Conversation</h2>
-            <div className="flex items-center gap-1.5 mt-1 text-[11px] text-slate-400 dark:text-slate-500">
+          <div className="px-3 pt-1.5 pb-1">
+            <h2 className="text-xs font-medium text-slate-600 dark:text-slate-400">Conversation</h2>
+            <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-slate-400 dark:text-slate-500">
               {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && (
                 <span>AI answered</span>
               )}
@@ -3874,11 +3874,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Conversation Section - Primary content, conversation-first */}
-          <div className="bg-background border border-border/40 rounded-2xl lg:hidden flex flex-col overflow-hidden" style={{ minHeight: '420px', height: '60dvh' }}>
+          <div className="bg-background border border-border/50 rounded-xl lg:hidden flex flex-col overflow-hidden" style={{ minHeight: '420px', height: '60dvh' }}>
             {/* Mobile Message Thread - Scrollable viewport */}
             <div ref={mobileConversationContainerRef} className="flex-1 min-h-0 overflow-y-auto scroll-smooth overscroll-contain" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', scrollPaddingBottom: '5rem' }}>
               {/* Inner content wrapper for justify-end */}
-              <div className="min-h-full px-4 py-3 flex flex-col justify-end">
+              <div className="min-h-full px-3 py-2.5 flex flex-col justify-end">
                 {loading ? (
                   <div className="flex items-center justify-center py-8">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
