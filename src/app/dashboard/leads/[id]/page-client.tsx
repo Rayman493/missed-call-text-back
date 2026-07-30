@@ -819,10 +819,31 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     // Add Payment Request events - permanent history for all statuses
     const paymentRequests = leadData?.paymentRequests || []
     const currentConversationId = leadData?.conversationId || leadData?.conversation?.id
+
+    console.log('[TIMELINE PAYMENT FILTER] Filtering payment requests:', {
+      totalPaymentRequests: paymentRequests.length,
+      currentConversationId,
+      paymentRequestIds: paymentRequests.map((pr: any) => ({
+        id: pr.id,
+        conversation_id: pr.conversation_id,
+        status: pr.status
+      }))
+    })
+
     if (paymentRequests.length > 0) {
       paymentRequests.forEach((pr: any) => {
         // Only show payment events for the current conversation
-        if (pr.conversation_id === currentConversationId) {
+        const isIncluded = pr.conversation_id === currentConversationId
+        console.log('[TIMELINE PAYMENT FILTER] Payment request:', {
+          payment_request_id: pr.id,
+          payment_conversation_id: pr.conversation_id,
+          active_conversation_id: currentConversationId,
+          included: isIncluded,
+          exclusion_reason: isIncluded ? null : 'conversation_id_mismatch',
+          payment_status: pr.status
+        })
+
+        if (isIncluded) {
           systemEvents.push({
             type: 'payment_requested',
             id: `payment-requested-${pr.id}`,
@@ -844,6 +865,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         }
       })
     }
+
+    console.log('[TIMELINE PAYMENT FILTER] Final payment events in timeline:', {
+      paymentEventCount: systemEvents.filter((e: any) => e.type === 'payment_requested').length,
+      totalSystemEvents: systemEvents.length
+    })
     
     // Add Lead Marked Complete event
     if (leadData?.status === 'completed') {
@@ -990,6 +1016,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         const updatedData = await getLeadDetails(leadId)
         console.log('[APP RESUME] Lead data refresh result:', {
           leadId,
+          hasData: !!updatedData,
           paymentRequestsCount: updatedData?.lead?.paymentRequests?.length || 0,
           paymentRequests: updatedData?.lead?.paymentRequests?.map((pr: any) => ({
             id: pr.id,
@@ -1000,9 +1027,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           }))
         })
 
-        if (updatedData) {
+        // Only update state if we got valid data - preserve existing state to prevent Unknown Caller
+        if (updatedData && updatedData.lead) {
           setLeadData(updatedData)
-          console.log('[APP RESUME] Lead data state updated')
+          console.log('[APP RESUME] Lead data state updated successfully')
+        } else {
+          console.error('[APP RESUME] Failed to get valid lead data, preserving existing state')
         }
 
         // Clear the pending refresh flag
@@ -4798,25 +4828,37 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     throw new Error('Not authenticated')
                   }
 
+                  // Resolve canonical conversation ID from multiple sources
+                  const resolvedConversationId = leadData?.conversationId || leadData?.conversation?.id
+
+                  if (!resolvedConversationId) {
+                    console.error('[PAYMENT CREATE] No conversation ID available from leadData:', {
+                      conversationId: leadData?.conversationId,
+                      conversationIdNested: leadData?.conversation?.id,
+                      leadId: leadData?.id
+                    })
+                    throw new Error('Unable to determine conversation for payment request. Please refresh the page and try again.')
+                  }
+
                   const payload = {
                     business_id: business?.id,
                     lead_id: leadData?.id || params.id,
-                    conversation_id: leadData?.conversation?.id,
+                    conversation_id: resolvedConversationId,
                     amount_cents: Math.round(parseFloat(paymentAmount) * 100),
                     description: paymentDescription || undefined,
                     payment_provider: selectedPaymentProvider,
                     skip_sms: false,
                   }
 
+                  console.log('[PAYMENT CREATE] Payload:', payload)
+
                   // Desktop fallback: if Business Number is default but platform is not native mobile, use ReplyFlow
                   const effectiveSource = (sendingSource === 'business' && supportsBusiness) ? 'business' : 'replyflow'
-                  
+
                   if (effectiveSource === 'business') {
                     // Skip SMS and prepare for Business Phone modal
                     payload.skip_sms = true
                   }
-
-                  console.log('[PAYMENT CREATE] Payload:', payload)
 
                   const response = await fetch('/api/payments/create', {
                     method: 'POST',
@@ -4833,10 +4875,36 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   }
 
                   const data = await response.json()
-                  
+
                   console.log('[PAYMENT BUSINESS SMS] submit entered')
                   console.log('[PAYMENT BUSINESS SMS] effective source:', effectiveSource)
                   console.log('[PAYMENT BUSINESS SMS] API success, payment_request_id:', data.payment_request_id || data.id)
+
+                  // Optimistic insertion: Add new payment request to leadData immediately
+                  if (data.payment_request_id && data.conversation_id) {
+                    const newPaymentRequest = {
+                      id: data.payment_request_id,
+                      conversation_id: data.conversation_id,
+                      lead_id: data.lead_id,
+                      business_id: data.business_id,
+                      amount_cents: data.amount_cents,
+                      description: data.description,
+                      status: data.status,
+                      payment_provider: data.payment_provider,
+                      created_at: data.created_at
+                    }
+
+                    console.log('[PAYMENT OPTIMISTIC] Adding payment request to leadData:', {
+                      payment_request_id: newPaymentRequest.id,
+                      conversation_id: newPaymentRequest.conversation_id,
+                      amount_cents: newPaymentRequest.amount_cents
+                    })
+
+                    setLeadData((prev: any) => ({
+                      ...prev,
+                      paymentRequests: [...(prev?.paymentRequests || []), newPaymentRequest]
+                    }))
+                  }
 
                   // Handle based on effective sending source
                   if (effectiveSource === 'business') {

@@ -178,22 +178,36 @@ export async function POST(request: Request) {
     // Handle conversation_id - look it up automatically if missing
     let finalConversationId = conversation_id
     let conversation
+    let conversationIdSource = 'frontend'
+
+    console.log('[PAYMENT REQUEST] Conversation ID resolution:', {
+      conversation_id_received: conversation_id,
+      conversation_id_type: typeof conversation_id
+    })
 
     if (!conversation_id) {
-      console.log('[PAYMENT REQUEST] No conversation_id provided, looking up conversation for lead')
+      console.log('[PAYMENT REQUEST] No conversation_id provided, using fallback lookup')
+      conversationIdSource = 'fallback'
+
       // Automatically look up conversation for this lead
-      const { data: existingConversation, error: lookupError } = await supabase
+      const { data: existingConversations, error: lookupError } = await supabase
         .from('conversations')
-        .select('id, business_id, lead_id')
+        .select('id, business_id, lead_id, status, created_at')
         .eq('lead_id', lead_id)
         .eq('business_id', business.id)
-        .maybeSingle()
+        .order('created_at', { ascending: false })
 
-      if (existingConversation) {
-        finalConversationId = existingConversation.id
-        conversation = existingConversation
-        console.log('[PAYMENT REQUEST] Found existing conversation for lead:', finalConversationId)
-      } else {
+      console.log('[PAYMENT REQUEST] Fallback lookup result:', {
+        fallback_candidate_count: existingConversations?.length || 0,
+        lookupError: lookupError?.message
+      })
+
+      if (lookupError) {
+        console.error('[PAYMENT REQUEST] Fallback lookup failed:', lookupError)
+        return NextResponse.json({ error: 'Missing conversation for selected lead. Could not determine conversation.' }, { status: 400 })
+      }
+
+      if (!existingConversations || existingConversations.length === 0) {
         console.log('[PAYMENT REQUEST] No existing conversation found for lead, creating one')
         // Create a new conversation for this lead
         const { data: newConversation, error: createError } = await supabase
@@ -214,6 +228,21 @@ export async function POST(request: Request) {
         finalConversationId = newConversation.id
         conversation = newConversation
         console.log('[PAYMENT REQUEST] Created new conversation for lead:', finalConversationId)
+      } else if (existingConversations.length === 1) {
+        // Single conversation - use it
+        finalConversationId = existingConversations[0].id
+        conversation = existingConversations[0]
+        console.log('[PAYMENT REQUEST] Found single existing conversation for lead:', finalConversationId)
+      } else {
+        // Multiple conversations - use the most recent active one
+        const activeConversation = existingConversations.find(c => c.status === 'active') || existingConversations[0]
+        finalConversationId = activeConversation.id
+        conversation = activeConversation
+        console.log('[PAYMENT REQUEST] Found multiple conversations, using most recent active:', {
+          total_count: existingConversations.length,
+          selected_id: finalConversationId,
+          selected_status: activeConversation.status
+        })
       }
     } else {
       // Verify conversation exists and user has access (RLS will handle authorization)
@@ -246,6 +275,13 @@ export async function POST(request: Request) {
 
       conversation = conversationData
     }
+
+    console.log('[PAYMENT REQUEST] Final conversation ID resolution:', {
+      conversation_id_source: conversationIdSource,
+      final_conversation_id: finalConversationId,
+      conversation_business_id: conversation?.business_id,
+      conversation_lead_id: conversation?.lead_id
+    })
 
     if (conversation.business_id !== business.id || conversation.lead_id !== lead.id) {
       console.error('[PAYMENT REQUEST] Conversation/business/lead mismatch', {
@@ -611,9 +647,16 @@ If you have questions, reply to this message.`
 
     return NextResponse.json({
       payment_request_id: paymentRequest.id,
+      conversation_id: finalConversationId,
+      lead_id: lead_id,
+      business_id: business_id,
+      amount_cents: amount_cents,
+      description: paymentDescription,
+      status: paymentRequest.status,
+      payment_provider: provider,
+      created_at: paymentRequest.created_at,
       checkout_url: paymentRequest.checkout_url,
       payment_link: paymentUrl,
-      status: 'pending',
       sms_sent: !skip_sms,
     })
   } catch (error) {

@@ -130,15 +130,15 @@ export default function DesktopConversationMessageList({
                 <div className="text-sm text-foreground/90">
                   ${(payment.amount_cents / 100).toFixed(2)} • {payment.description}
                 </div>
-                <div className="flex items-center gap-2 text-[11px] text-muted-foreground/60">
-                  <span className={`px-2 py-0.5 rounded-full ${statusUI.bgColor} ${statusUI.iconColor}`}>
-                    {statusUI.label}
-                  </span>
-                  <span>•</span>
-                  <span className="bg-purple-500/10 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded-full">
-                    Business Number
-                  </span>
-                  <span>•</span>
+                <div className="flex flex-col items-center gap-1 text-[11px] text-muted-foreground/60">
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-0.5 rounded-full ${statusUI.bgColor} ${statusUI.iconColor}`}>
+                      {statusUI.label}
+                    </span>
+                    <span className="bg-purple-500/10 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded-full">
+                      Business #
+                    </span>
+                  </div>
                   <span>{formatRelativeTime(payment.timestamp)}</span>
                 </div>
               </div>
