@@ -31,6 +31,28 @@ function validateStageAnswer(stage: string, transcript: string, existingIntakeDa
   
   // Stage-specific validation
   switch (stage) {
+    case 'ask_name':
+      // Reject filler-only responses
+      if (isFillerOnly(trimmed)) {
+        return { accepted: false, rejectionReason: 'filler_only' };
+      }
+      // Accept if it has name content or is at least 2 characters
+      if (hasNameContent(trimmed) || trimmed.length >= 2) {
+        return { accepted: true };
+      }
+      return { accepted: false, rejectionReason: 'no_name_content' };
+
+    case 'ask_reason':
+      // Reject filler-only responses
+      if (isFillerOnly(trimmed)) {
+        return { accepted: false, rejectionReason: 'filler_only' };
+      }
+      // Accept if it has service content or is at least 3 characters
+      if (hasServiceContent(trimmed) || trimmed.length >= 3) {
+        return { accepted: true };
+      }
+      return { accepted: false, rejectionReason: 'no_service_content' };
+
     case 'ask_name_reason':
       // Check existing intake state for ask_name_reason
       const hasExistingName = existingIntakeData?.customerName && existingIntakeData.customerName.trim().length > 0;

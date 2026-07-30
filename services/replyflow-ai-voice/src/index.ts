@@ -8715,6 +8715,28 @@ Reply to this message if you'd like to update or add any information.
     
     // Stage-specific validation
     switch (stage) {
+      case 'ask_name':
+        // Reject filler-only responses
+        if (isFillerOnly(trimmed)) {
+          return { accepted: false, rejectionReason: 'filler_only' };
+        }
+        // Accept if it has name content or is at least 2 characters
+        if (hasNameContent(trimmed) || trimmed.length >= 2) {
+          return { accepted: true };
+        }
+        return { accepted: false, rejectionReason: 'no_name_content' };
+
+      case 'ask_reason':
+        // Reject filler-only responses
+        if (isFillerOnly(trimmed)) {
+          return { accepted: false, rejectionReason: 'filler_only' };
+        }
+        // Accept if it has service content or is at least 3 characters
+        if (hasServiceContent(trimmed) || trimmed.length >= 3) {
+          return { accepted: true };
+        }
+        return { accepted: false, rejectionReason: 'no_service_content' };
+
       case 'ask_name_reason':
         // Check existing intake state for ask_name_reason
         const hasExistingName = existingIntakeData?.customerName && existingIntakeData.customerName.trim().length > 0;
@@ -10425,7 +10447,7 @@ Reply to this message if you'd like to update or add any information.
                 return;
               }
 
-              const stages = ['ask_name_reason', 'ask_details', 'ask_location', 'ask_completion_time', 'ask_callback_time'];
+              const stages = ['ask_name', 'ask_reason', 'ask_name_reason', 'ask_details', 'ask_location', 'ask_completion_time', 'ask_callback_time'];
               const currentIndex = stages.indexOf(state.currentStage);
               const isValidStage = currentIndex !== -1;
               const isFinalStage = currentIndex === stages.length - 1;
@@ -10684,7 +10706,7 @@ Reply to this message if you'd like to update or add any information.
             }
 
             // Log transcription decision using originating stage
-            const stages = ['ask_name_reason', 'ask_details', 'ask_location', 'ask_completion_time', 'ask_callback_time'];
+            const stages = ['ask_name', 'ask_reason', 'ask_name_reason', 'ask_details', 'ask_location', 'ask_completion_time', 'ask_callback_time'];
             const currentIndex = stages.indexOf(originatingStage);
             const isValidStage = currentIndex !== -1;
             const isFinalStage = currentIndex === stages.length - 1;
@@ -10793,7 +10815,7 @@ Reply to this message if you'd like to update or add any information.
                 const newerSpeechExists = state.speechGeneration > transcriptionGeneration;
                 
                 // Determine if this stage requires a settle window (either intrinsic or due to continuation)
-                const stagesWithIntrinsicSettleWindow = ['ask_details', 'ask_name_reason'];
+                const stagesWithIntrinsicSettleWindow = ['ask_name', 'ask_reason', 'ask_details', 'ask_name_reason'];
                 const hasIntrinsicSettleWindow = stagesWithIntrinsicSettleWindow.includes(originatingStage);
                 const hasContinuation = sameTurnSpeechActive || newerSpeechExists || speechOngoingNoStop;
                 const requiresSettleWindow = hasIntrinsicSettleWindow || (hasContinuation && originatingStage === state.currentStage);
@@ -11347,6 +11369,8 @@ Reply to this message if you'd like to update or add any information.
             console.log('[SIMPLE MODE] accepted:', accepted);
             console.log('[SIMPLE MODE] ignoredReason:', ignoredReason);
             console.log('[SIMPLE MODE] timeSinceTtsCompleteMs:', timeSinceTtsCompleteMs);
+            console.log('[SIMPLE MODE] transcriptionStageAccepted:', isValidStage);
+            console.log('[SIMPLE MODE] stageValidatorResult:', accepted ? 'passed' : 'failed');
             console.log('[SIMPLE MODE] =========================================');
 
             logSimple('user_transcription', { transcript: transcript.substring(0, 50), stage: originatingStage });
@@ -11368,6 +11392,17 @@ Reply to this message if you'd like to update or add any information.
 
             // Use originating stage for storage and processing
             const fieldName = accepted ? storeStageCapture(originatingStage, meaningfulTranscript, 'openai_transcription_completed') : null;
+
+            // Log extraction and persistence results
+            console.log('[TRANSCRIPTION PROCESSING] =========================================');
+            console.log('[TRANSCRIPTION PROCESSING] event: extraction_persistence');
+            console.log('[TRANSCRIPTION PROCESSING] originatingStage:', originatingStage);
+            console.log('[TRANSCRIPTION PROCESSING] extractedName:', state.intakeData.customerName);
+            console.log('[TRANSCRIPTION PROCESSING] extractedReason:', state.intakeData.serviceRequested);
+            console.log('[TRANSCRIPTION PROCESSING] extractedField:', fieldName);
+            console.log('[TRANSCRIPTION PROCESSING] partialPersistResult:', fieldName ? 'success' : 'failed');
+            console.log('[TRANSCRIPTION PROCESSING] Timestamp:', new Date().toISOString());
+            console.log('[TRANSCRIPTION PROCESSING] =========================================');
             
             // Track turn ID for targeted reprompt authorization
             // Initialize with current turn ID, will be updated after successful processing
@@ -11484,8 +11519,17 @@ Reply to this message if you'd like to update or add any information.
                   console.log('[STAGE TRANSITION] timeSinceTtsCompleteMs:', timeSinceTtsCompleteMs);
                   console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
                   console.log('[STAGE TRANSITION] =========================================');
-                  
+
+                  const nextPromptKey = state.currentStage;
                   sendPrompt(state.currentStage);
+
+                  console.log('[PROMPT SENDING] =========================================');
+                  console.log('[PROMPT SENDING] event: prompt_sent');
+                  console.log('[PROMPT SENDING] nextStage:', nextStage);
+                  console.log('[PROMPT SENDING] nextPromptKey:', nextPromptKey);
+                  console.log('[PROMPT SENDING] promptSendResult:', 'queued');
+                  console.log('[PROMPT SENDING] Timestamp:', new Date().toISOString());
+                  console.log('[PROMPT SENDING] =========================================');
                 } else {
                   // Missing one or both fields: reprompt with targeted prompt variant
                   console.log('[STAGE TRANSITION] =========================================');
@@ -11935,38 +11979,104 @@ Reply to this message if you'd like to update or add any information.
     }
     
     console.log('[SIMPLE MODE] WebSocket closed');
+    console.log('[DISCONNECT SOURCE] =========================================');
+    console.log('[DISCONNECT SOURCE] source: websocket_close');
+    console.log('[DISCONNECT SOURCE] Timestamp:', new Date().toISOString());
+    console.log('[DISCONNECT SOURCE] =========================================');
+
+    console.log('[FINALIZATION STARTED] =========================================');
+    console.log('[FINALIZATION STARTED] event: finalization_triggered');
+    console.log('[FINALIZATION STARTED] callSid:', state.callSid);
+    console.log('[FINALIZATION STARTED] Timestamp:', new Date().toISOString());
+    console.log('[FINALIZATION STARTED] =========================================');
+
     if (state.openAiWs) state.openAiWs.close();
 
     // INCOMPLETE FINALIZE: If completion hasn't been processed, persist latest in-memory data
     // This ensures partial intake data is available for voice-status webhook
     if (!state.completionPersistenceStarted && (state.stageCaptures.length > 0 || Object.keys(state.intakeData).some(k => state.intakeData[k as keyof typeof state.intakeData]))) {
+      console.log('[PARTIAL FIELDS AT DISCONNECT] =========================================');
+      console.log('[PARTIAL FIELDS AT DISCONNECT] customerName:', state.intakeData.customerName);
+      console.log('[PARTIAL FIELDS AT DISCONNECT] serviceRequested:', state.intakeData.serviceRequested);
+      console.log('[PARTIAL FIELDS AT DISCONNECT] issueDescription:', state.intakeData.issueDescription);
+      console.log('[PARTIAL FIELDS AT DISCONNECT] serviceAddress:', state.intakeData.serviceAddress);
+      console.log('[PARTIAL FIELDS AT DISCONNECT] desiredCompletionTime:', state.intakeData.desiredCompletionTime);
+      console.log('[PARTIAL FIELDS AT DISCONNECT] callbackTime:', state.intakeData.callbackTime);
+      console.log('[PARTIAL FIELDS AT DISCONNECT] Timestamp:', new Date().toISOString());
+      console.log('[PARTIAL FIELDS AT DISCONNECT] =========================================');
+
       console.log('[INCOMPLETE FINALIZE] =========================================');
       console.log('[INCOMPLETE FINALIZE] callSid:', state.callSid);
       console.log('[INCOMPLETE FINALIZE] reason: websocket_closed');
       console.log('[INCOMPLETE FINALIZE] stageCaptures:', state.stageCaptures.length);
       console.log('[INCOMPLETE FINALIZE] intakeDataKeys:', Object.keys(state.intakeData).filter(k => state.intakeData[k as keyof typeof state.intakeData]));
-      
+
       const canonicalExtractedInfo = buildCanonicalExtractedInfo(state.intakeData, state.callerPhone || '');
       const extractedInfoKeys = Object.keys(canonicalExtractedInfo).filter(k => canonicalExtractedInfo[k as keyof typeof canonicalExtractedInfo]);
-      
+
       console.log('[INCOMPLETE FINALIZE] finalExtractedInfoKeys:', extractedInfoKeys);
-      
+
       try {
         if (state.callSid && state.businessId && state.callerPhone) {
           await persistPartialIntake('websocket_close', 'finalize');
+          console.log('[CALL RECORD PERSISTED] =========================================');
+          console.log('[CALL RECORD PERSISTED] success: true');
+          console.log('[CALL RECORD PERSISTED] callSid:', state.callSid);
+          console.log('[CALL RECORD PERSISTED] Timestamp:', new Date().toISOString());
+          console.log('[CALL RECORD PERSISTED] =========================================');
+
+          console.log('[LEAD UPDATED] =========================================');
+          console.log('[LEAD UPDATED] success: true');
+          console.log('[LEAD UPDATED] businessId:', state.businessId);
+          console.log('[LEAD UPDATED] callerPhone:', state.callerPhone);
+          console.log('[LEAD UPDATED] Timestamp:', new Date().toISOString());
+          console.log('[LEAD UPDATED] =========================================');
+
+          console.log('[SMS ELIGIBLE] =========================================');
+          console.log('[SMS ELIGIBLE] eligible: true');
+          console.log('[SMS ELIGIBLE] reason: partial_intake_persisted');
+          console.log('[SMS ELIGIBLE] Note: SMS dispatch owned by voice-status webhook');
+          console.log('[SMS ELIGIBLE] Timestamp:', new Date().toISOString());
+          console.log('[SMS ELIGIBLE] =========================================');
+
           console.log('[INCOMPLETE FINALIZE] persistedBeforeVoiceStatus: true');
         } else {
           console.log('[INCOMPLETE FINALIZE] persistedBeforeVoiceStatus: false');
           console.log('[INCOMPLETE FINALIZE] reason: missing_required_context');
+          console.log('[SMS ELIGIBLE] =========================================');
+          console.log('[SMS ELIGIBLE] eligible: false');
+          console.log('[SMS ELIGIBLE] reason: missing_required_context');
+          console.log('[SMS ELIGIBLE] Timestamp:', new Date().toISOString());
+          console.log('[SMS ELIGIBLE] =========================================');
         }
       } catch (error) {
         console.log('[INCOMPLETE FINALIZE] persistedBeforeVoiceStatus: false');
         console.log('[INCOMPLETE FINALIZE] reason: exception');
         console.log('[INCOMPLETE FINALIZE] error:', error);
+        console.log('[SMS ELIGIBLE] =========================================');
+        console.log('[SMS ELIGIBLE] eligible: false');
+        console.log('[SMS ELIGIBLE] reason: exception');
+        console.log('[SMS ELIGIBLE] error:', error);
+        console.log('[SMS ELIGIBLE] Timestamp:', new Date().toISOString());
+        console.log('[SMS ELIGIBLE] =========================================');
       }
-      
+
       console.log('[INCOMPLETE FINALIZE] =========================================');
+    } else {
+      console.log('[FINALIZATION SKIPPED] =========================================');
+      console.log('[FINALIZATION SKIPPED] reason: completion_already_processed_or_no_data');
+      console.log('[FINALIZATION SKIPPED] completionPersistenceStarted:', state.completionPersistenceStarted);
+      console.log('[FINALIZATION SKIPPED] hasStageCaptures:', state.stageCaptures.length > 0);
+      console.log('[FINALIZATION SKIPPED] hasIntakeData:', Object.keys(state.intakeData).some(k => state.intakeData[k as keyof typeof state.intakeData]));
+      console.log('[FINALIZATION SKIPPED] Timestamp:', new Date().toISOString());
+      console.log('[FINALIZATION SKIPPED] =========================================');
     }
+
+    console.log('[FINALIZATION COMPLETED] =========================================');
+    console.log('[FINALIZATION COMPLETED] event: finalization_complete');
+    console.log('[FINALIZATION COMPLETED] callSid:', state.callSid);
+    console.log('[FINALIZATION COMPLETED] Timestamp:', new Date().toISOString());
+    console.log('[FINALIZATION COMPLETED] =========================================');
   });
 
   ws.on('error', (error) => {
