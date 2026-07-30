@@ -37,6 +37,7 @@ export async function sendSms(
     isOffboarding?: boolean; // Flag to bypass number readiness check for offboarding/system SMS
     skipBusinessAvailabilityAppend?: boolean; // Flag to skip appending business availability notes (for appointment confirmations)
     clientMessageId?: string; // Client-generated UUID for optimistic message correlation
+    callSid?: string; // Twilio call SID for durable idempotency and webhook correlation
   }
 ): Promise<{ sid: string | null; messageId: string | null }> {
   console.log('[SMS TRACE sendSms ENTRY]', {
@@ -686,6 +687,7 @@ export async function sendSms(
         from_phone: business.twilio_phone_number,
         to_phone: to,
         twilio_message_sid: messageResult.sid,
+        call_sid: options?.callSid || null,
         status: actualStatus,
         sent_at: new Date().toISOString(),
         status_updated_at: new Date().toISOString(),
