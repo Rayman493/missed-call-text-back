@@ -1,11 +1,18 @@
 import { Capacitor } from '@capacitor/core'
+import { registerPlugin } from '@capacitor/core'
+
+interface SmsLauncherPlugin {
+  openSms(options: { recipient: string; body?: string }): Promise<{ opened: boolean; code?: string; message?: string }>
+}
+
+const SmsLauncher = registerPlugin<SmsLauncherPlugin>('SmsLauncher')
 
 /**
  * Launch the native SMS app with recipient and message body.
- * Works on both Android and iOS native platforms.
+ * Uses native Android intent on Android, window.open on iOS.
  *
  * @param recipient - Phone number to send to
- * @param message - Message body to prefill
+ * @param message - Message body to prefill (optional for manual messages)
  * @returns Promise that resolves if launch succeeds, rejects if it fails
  */
 export async function launchSMS(recipient: string, message: string): Promise<void> {
@@ -13,23 +20,39 @@ export async function launchSMS(recipient: string, message: string): Promise<voi
     throw new Error('SMS launch is only supported on native mobile platforms')
   }
 
-  const smsUrl = `sms:${recipient}?body=${encodeURIComponent(message)}`
+  const platform = Capacitor.getPlatform()
 
-  // Try to launch the SMS app
-  try {
-    // On Android, window.open with sms: URL should launch the default SMS app
-    // On iOS, this also works to launch Messages
-    const opened = window.open(smsUrl, '_self')
-    
-    if (!opened) {
-      throw new Error('Failed to open SMS app')
+  if (platform === 'android') {
+    // Use native Android plugin
+    try {
+      const result = await SmsLauncher.openSms({ recipient, body: message })
+      
+      if (!result.opened) {
+        throw new Error(result.message || 'Failed to open messaging app')
+      }
+    } catch (error) {
+      console.error('[SMS Launch] Native plugin failed:', error)
+      throw new Error('Failed to open messaging app')
     }
+  } else if (platform === 'ios') {
+    // Use iOS window.open approach (preserved working behavior)
+    const smsUrl = `sms:${recipient}${message ? `&body=${encodeURIComponent(message)}` : ''}`
+    
+    try {
+      const opened = window.open(smsUrl, '_self')
+      
+      if (!opened) {
+        throw new Error('Failed to open SMS app')
+      }
 
-    // Give it a moment to see if it worked
-    await new Promise((resolve) => setTimeout(resolve, 100))
-  } catch (error) {
-    console.error('[SMS Launch] Failed to launch SMS app:', error)
-    throw new Error('Failed to open messaging app')
+      // Give it a moment to see if it worked
+      await new Promise((resolve) => setTimeout(resolve, 100))
+    } catch (error) {
+      console.error('[SMS Launch] iOS launch failed:', error)
+      throw new Error('Failed to open messaging app')
+    }
+  } else {
+    throw new Error('SMS launch not supported on this platform')
   }
 }
 

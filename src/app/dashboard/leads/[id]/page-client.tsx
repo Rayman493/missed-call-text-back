@@ -1083,6 +1083,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [paymentAmount, setPaymentAmount] = useState('')
   const [paymentDescription, setPaymentDescription] = useState('')
   const [isCreatingPayment, setIsCreatingPayment] = useState(false)
+  const [isLaunchingSMS, setIsLaunchingSMS] = useState(false)
   const [showPaymentLinkModal, setShowPaymentLinkModal] = useState(false)
   const [paymentLinkData, setPaymentLinkData] = useState<{ paymentLink: string; amount: string; description: string; paymentRequestId?: string; message?: string; dialNumber?: string; customerName?: string } | null>(null)
   const [selectedPaymentProvider, setSelectedPaymentProvider] = useState<'stripe' | 'venmo' | 'paypal'>('stripe')
@@ -1216,7 +1217,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         const message = `Hi ${customerName}, this is a reminder about your appointment on ${dateTimeString}. Please confirm or let us know if you need to reschedule.`
 
         try {
-          // Record the Business Phone action
+          // Launch SMS directly first
+          await launchSMS(dialNumber, message)
+          
+          // Record the Business Phone action only after successful launch
           await recordBusinessPhoneAction({
             actionType: 'appointment',
             leadId: params.id,
@@ -1225,22 +1229,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             message: message,
             relatedId: jobId
           })
-
-          // Launch SMS directly
-          await launchSMS(dialNumber, message)
+          
           setShowAppointmentSelection(false)
           setSuccessMessage(`Reminder sent\nMessage opened in your messaging app.`)
         } catch (error) {
           console.error('[Appointment Confirmation] Failed to launch SMS:', error)
-          // Fallback: copy to clipboard
+          // Fallback: copy to clipboard only if message exists
           try {
             await copyToClipboard(message)
             setShowAppointmentSelection(false)
-            setSuccessMessage(`Reminder sent\nMessage copied to clipboard.`)
+            setSuccessMessage(`Reminder sent\nCouldn't open your messaging app. The message was copied so you can paste it manually.`)
           } catch (copyError) {
             console.error('[Appointment Confirmation] Failed to copy to clipboard:', copyError)
             setShowAppointmentSelection(false)
-            setSuccessMessage(`Reminder sent\nPlease manually send the reminder.`)
+            setSuccessMessage(`Reminder sent\nCouldn't open your messaging app.`)
           }
         }
       } else {
@@ -4784,7 +4786,16 @@ If you have questions, reply to this message.`
                     const recipient = leadData?.caller_phone || lead?.caller_phone || ''
 
                     try {
-                      // Record the Business Phone action
+                      // In-flight guard to prevent duplicate launches
+                      if (isLaunchingSMS) {
+                        return
+                      }
+                      setIsLaunchingSMS(true)
+                      
+                      // Launch SMS directly first
+                      await launchSMS(recipient, message)
+                      
+                      // Record the Business Phone action only after successful launch
                       await recordBusinessPhoneAction({
                         actionType: 'payment_request',
                         leadId: params.id,
@@ -4793,20 +4804,20 @@ If you have questions, reply to this message.`
                         message: message,
                         relatedId: data.payment_request_id || data.id
                       })
-
-                      // Launch SMS directly
-                      await launchSMS(recipient, message)
+                      
                       setSuccessMessage(`Payment request sent\nMessage opened in your messaging app.`)
                     } catch (error) {
                       console.error('[Payment Request] Failed to launch SMS:', error)
-                      // Fallback: copy to clipboard
+                      // Fallback: copy to clipboard only if message exists
                       try {
                         await copyToClipboard(message)
-                        setSuccessMessage(`Payment request sent\nMessage copied to clipboard.`)
+                        setSuccessMessage(`Payment request sent\nCouldn't open your messaging app. The message was copied so you can paste it manually.`)
                       } catch (copyError) {
                         console.error('[Payment Request] Failed to copy to clipboard:', copyError)
-                        setSuccessMessage(`Payment request sent\nPlease manually send the payment request.`)
+                        setSuccessMessage(`Payment request sent\nCouldn't open your messaging app.`)
                       }
+                    } finally {
+                      setIsLaunchingSMS(false)
                     }
                   } else if (effectiveSource === 'replyflow' && isNativeMobilePlatform) {
                     // ReplyFlow Number flow on native mobile: ReplyFlow sends the SMS automatically
@@ -4923,7 +4934,10 @@ If you have questions, reply to this message.`
                       const message = `Appointment reminder: ${job.title || 'Appointment'} scheduled for ${job.scheduled_date} at ${job.scheduled_time}.`
 
                       try {
-                        // Record the Business Phone action
+                        // Launch SMS directly first
+                        await launchSMS(dialNumber, message)
+                        
+                        // Record the Business Phone action only after successful launch
                         await recordBusinessPhoneAction({
                           actionType: 'appointment',
                           leadId: params.id,
@@ -4933,22 +4947,20 @@ If you have questions, reply to this message.`
                           relatedId: job.id,
                           relatedType: 'job'
                         })
-
-                        // Launch SMS directly
-                        await launchSMS(dialNumber, message)
+                        
                         setShowAppointmentSelection(false)
                         setSuccessMessage(`Reminder sent\nMessage opened in your messaging app.`)
                       } catch (error) {
                         console.error('[Appointment Reminder] Failed to launch SMS:', error)
-                        // Fallback: copy to clipboard
+                        // Fallback: copy to clipboard only if message exists
                         try {
                           await copyToClipboard(message)
                           setShowAppointmentSelection(false)
-                          setSuccessMessage(`Reminder sent\nMessage copied to clipboard.`)
+                          setSuccessMessage(`Reminder sent\nCouldn't open your messaging app. The message was copied so you can paste it manually.`)
                         } catch (copyError) {
                           console.error('[Appointment Reminder] Failed to copy to clipboard:', copyError)
                           setShowAppointmentSelection(false)
-                          setSuccessMessage(`Reminder sent\nPlease manually send the reminder.`)
+                          setSuccessMessage(`Reminder sent\nCouldn't open your messaging app.`)
                         }
                       }
                     }}
@@ -5001,7 +5013,10 @@ If you have questions, reply to this message.`
                   const message = `Appointment scheduled for ${appointmentSuccessData.date} at ${appointmentSuccessData.time}.`
 
                   try {
-                    // Record the Business Phone action
+                    // Launch SMS directly first
+                    await launchSMS(dialNumber, message)
+                    
+                    // Record the Business Phone action only after successful launch
                     await recordBusinessPhoneAction({
                       actionType: 'appointment',
                       leadId: params.id,
@@ -5009,22 +5024,20 @@ If you have questions, reply to this message.`
                       customerPhone: dialNumber,
                       message: message
                     })
-
-                    // Launch SMS directly
-                    await launchSMS(dialNumber, message)
+                    
                     setShowAppointmentSuccessModal(false)
                     setSuccessMessage(`Appointment sent\nMessage opened in your messaging app.`)
                   } catch (error) {
                     console.error('[Appointment Success] Failed to launch SMS:', error)
-                    // Fallback: copy to clipboard
+                    // Fallback: copy to clipboard only if message exists
                     try {
                       await copyToClipboard(message)
                       setShowAppointmentSuccessModal(false)
-                      setSuccessMessage(`Appointment sent\nMessage copied to clipboard.`)
+                      setSuccessMessage(`Appointment sent\nCouldn't open your messaging app. The message was copied so you can paste it manually.`)
                     } catch (copyError) {
                       console.error('[Appointment Success] Failed to copy to clipboard:', copyError)
                       setShowAppointmentSuccessModal(false)
-                      setSuccessMessage(`Appointment sent\nPlease manually send the appointment.`)
+                      setSuccessMessage(`Appointment sent\nCouldn't open your messaging app.`)
                     }
                   }
                 }}

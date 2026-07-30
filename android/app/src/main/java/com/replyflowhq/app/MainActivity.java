@@ -25,6 +25,7 @@ import com.getcapacitor.BridgeWebViewClient;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import com.replyflowhq.terminal.ReplyflowStripeTerminalPlugin;
+import com.replyflowhq.app.SmsLauncherPlugin;
 
 public class MainActivity extends BridgeActivity {
     private static final String TAG = "ReplyFlowOffline";
@@ -38,11 +39,15 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        // Register custom local plugin for Stripe Terminal BEFORE super.onCreate()
+        // Register custom local plugins BEFORE super.onCreate()
         // Per Capacitor documentation: registerPlugin must come before super.onCreate()
         Log.d(TAG, "[PLUGIN] Registering ReplyflowStripeTerminalPlugin...");
         registerPlugin(ReplyflowStripeTerminalPlugin.class);
         Log.d(TAG, "[PLUGIN] ReplyflowStripeTerminalPlugin registered successfully");
+        
+        Log.d(TAG, "[PLUGIN] Registering SmsLauncherPlugin...");
+        registerPlugin(SmsLauncherPlugin.class);
+        Log.d(TAG, "[PLUGIN] SmsLauncherPlugin registered successfully");
 
         super.onCreate(savedInstanceState);
 

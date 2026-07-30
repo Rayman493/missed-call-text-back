@@ -22,7 +22,7 @@ export default function BusinessNumberPanel({
       await launchSMS(recipient, '')
     } catch (error) {
       console.error('[BusinessNumberPanel] Failed to launch SMS:', error)
-      // Fallback: use anchor element
+      // Fallback: use anchor element (no clipboard for manual messages)
       const smsUrl = `sms:${recipient}`
       if (Capacitor.isNativePlatform()) {
         const link = document.createElement('a')
