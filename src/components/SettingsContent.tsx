@@ -1278,95 +1278,99 @@ export default function SettingsContent() {
                 </div>
               </div>
 
-              {/* Group: Communication */}
-              <div id="communication-divider" className="flex items-center gap-3 mb-4 scroll-mt-[64px]">
-                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
-                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Communication</h3>
-                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
-              </div>
+              {/* Group: Communication - Only show on native mobile */}
+              {isNativeMobile() && (
+                <>
+                  <div id="communication-divider" className="flex items-center gap-3 mb-4 scroll-mt-[64px]">
+                    <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
+                    <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Communication</h3>
+                    <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
+                  </div>
 
-              {/* Communication Section */}
-              <div id="communication" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[64px]">
-                <div className="mb-4">
-                  <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Sending Number</h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-                    Choose how ReplyFlow sends customer messages. ReplyFlow Number is recommended for complete tracking and automation.
-                  </p>
-                </div>
-                <div className="space-y-3">
-                  {/* ReplyFlow Number Option */}
-                  <div
-                    onClick={() => handleSendingSourceChange('replyflow')}
-                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                      sendingSource === 'replyflow'
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                        : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">ReplyFlow Number</h3>
-                          <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full">Strongly Recommended</span>
+                  {/* Communication Section */}
+                  <div id="communication" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[64px]">
+                    <div className="mb-4">
+                      <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Sending Number</h2>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                        Choose how ReplyFlow sends customer messages. ReplyFlow Number is recommended for complete tracking and automation.
+                      </p>
+                    </div>
+                    <div className="space-y-3">
+                      {/* ReplyFlow Number Option */}
+                      <div
+                        onClick={() => handleSendingSourceChange('replyflow')}
+                        className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                          sendingSource === 'replyflow'
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                            : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">ReplyFlow Number</h3>
+                              <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full">Strongly Recommended</span>
+                            </div>
+                            <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">
+                              Send and receive messages directly in ReplyFlow with complete conversation history, delivery tracking, AI context, and automation.
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-500">
+                              Best for the full ReplyFlow experience.
+                            </p>
+                          </div>
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                            sendingSource === 'replyflow'
+                              ? 'border-blue-500 bg-blue-500'
+                              : 'border-slate-300 dark:border-slate-600'
+                          }`}>
+                            {sendingSource === 'replyflow' && (
+                              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </div>
                         </div>
-                        <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">
-                          Send and receive messages directly in ReplyFlow with complete conversation history, delivery tracking, AI context, and automation.
-                        </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-500">
-                          Best for the full ReplyFlow experience.
-                        </p>
                       </div>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                        sendingSource === 'replyflow'
-                          ? 'border-blue-500 bg-blue-500'
-                          : 'border-slate-300 dark:border-slate-600'
-                      }`}>
-                        {sendingSource === 'replyflow' && (
-                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
+
+                      {/* Business Number Option */}
+                      <div
+                        onClick={() => handleSendingSourceChange('business')}
+                        className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                          sendingSource === 'business'
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                            : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">Business Number</h3>
+                              <span className="px-2 py-0.5 text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-full">Advanced</span>
+                            </div>
+                            <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">
+                              Send messages from your existing number through your phone's messaging app.
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-500">
+                              Conversations will not sync back to ReplyFlow, and the workflow is less seamless.
+                            </p>
+                          </div>
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                            sendingSource === 'business'
+                              ? 'border-blue-500 bg-blue-500'
+                              : 'border-slate-300 dark:border-slate-600'
+                          }`}>
+                            {sendingSource === 'business' && (
+                              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
-
-                  {/* Business Number Option */}
-                  <div
-                    onClick={() => handleSendingSourceChange('business')}
-                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                      sendingSource === 'business'
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                        : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">Business Number</h3>
-                          <span className="px-2 py-0.5 text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-full">Advanced</span>
-                        </div>
-                        <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">
-                          Send messages from your existing number through your phone's messaging app.
-                        </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-500">
-                          Conversations will not sync back to ReplyFlow, and the workflow is less seamless.
-                        </p>
-                      </div>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                        sendingSource === 'business'
-                          ? 'border-blue-500 bg-blue-500'
-                          : 'border-slate-300 dark:border-slate-600'
-                      }`}>
-                        {sendingSource === 'business' && (
-                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                </>
+              )}
 
               {/* Next section would go here */}
 
