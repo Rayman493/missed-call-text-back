@@ -220,7 +220,7 @@ export class TerminalBridgeService {
             this.emitStateChanged('connectionStatus', prev, this.connectionStatus)
           })
           const c1 = this.bumpListener(l1Type, 1); this.addListenerId(l1Type, l1Id); this.diagListeners.push({ remove: l1.remove, __type: l1Type, __id: l1Id })
-          logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l1Type, listenerId: l1Id, activeListenerCount: c1.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds(l1Type) } }).catch(() => {})
+          logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l1Type, listenerId: l1Id, scope: 'persistent', activeListenerCount: c1.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds(l1Type) } }).catch(() => {})
           if (c1.next > 1) {
             logTapToPayEvent('DUPLICATE_LISTENER_DETECTED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l1Type, activeListenerCount: c1.next, activeListenerIds: this.getActiveListenerIds(l1Type), totalActiveListenerCount: this.totalActiveListeners } }).catch(() => {})
           }
@@ -234,7 +234,7 @@ export class TerminalBridgeService {
             this.emitStateChanged('paymentStatus', prev, this.paymentStatus)
           })
           const c2 = this.bumpListener(l2Type, 1); this.addListenerId(l2Type, l2Id); this.diagListeners.push({ remove: l2.remove, __type: l2Type, __id: l2Id })
-          logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l2Type, listenerId: l2Id, activeListenerCount: c2.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds(l2Type) } }).catch(() => {})
+          logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l2Type, listenerId: l2Id, scope: 'persistent', activeListenerCount: c2.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds(l2Type) } }).catch(() => {})
           if (c2.next > 1) {
             logTapToPayEvent('DUPLICATE_LISTENER_DETECTED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l2Type, activeListenerCount: c2.next, activeListenerIds: this.getActiveListenerIds(l2Type), totalActiveListenerCount: this.totalActiveListeners } }).catch(() => {})
           }
@@ -246,7 +246,7 @@ export class TerminalBridgeService {
             logTapToPayEvent('reader_connected', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: 'connected', readerId: info?.readerId }).catch(() => {})
           })
           const c3 = this.bumpListener(l3Type, 1); this.addListenerId(l3Type, l3Id); this.diagListeners.push({ remove: l3.remove, __type: l3Type, __id: l3Id })
-          logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l3Type, listenerId: l3Id, activeListenerCount: c3.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds(l3Type) } }).catch(() => {})
+          logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l3Type, listenerId: l3Id, scope: 'persistent', activeListenerCount: c3.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds(l3Type) } }).catch(() => {})
           if (c3.next > 1) {
             logTapToPayEvent('DUPLICATE_LISTENER_DETECTED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l3Type, activeListenerCount: c3.next, activeListenerIds: this.getActiveListenerIds(l3Type), totalActiveListenerCount: this.totalActiveListeners } }).catch(() => {})
           }
@@ -257,7 +257,7 @@ export class TerminalBridgeService {
             logTapToPayEvent('native_payment_succeeded', { phase: 'confirm_payment', sessionId: this.sessionId, paymentIntentId: info?.paymentIntentId }).catch(() => {})
           })
           const c4 = this.bumpListener(l4Type, 1); this.addListenerId(l4Type, l4Id); this.diagListeners.push({ remove: l4.remove, __type: l4Type, __id: l4Id })
-          logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l4Type, listenerId: l4Id, activeListenerCount: c4.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds(l4Type) } }).catch(() => {})
+          logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l4Type, listenerId: l4Id, scope: 'persistent', activeListenerCount: c4.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds(l4Type) } }).catch(() => {})
           if (c4.next > 1) {
             logTapToPayEvent('DUPLICATE_LISTENER_DETECTED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l4Type, activeListenerCount: c4.next, activeListenerIds: this.getActiveListenerIds(l4Type), totalActiveListenerCount: this.totalActiveListeners } }).catch(() => {})
           }
@@ -268,7 +268,7 @@ export class TerminalBridgeService {
             logTapToPayEvent('native_error', { phase: 'startup', sessionId: this.sessionId, code: e?.code || e?.nativeCode, message: e?.message }).catch(() => {})
           })
           const c5 = this.bumpListener(l5Type, 1); this.addListenerId(l5Type, l5Id); this.diagListeners.push({ remove: l5.remove, __type: l5Type, __id: l5Id })
-          logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l5Type, listenerId: l5Id, activeListenerCount: c5.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds(l5Type) } }).catch(() => {})
+          logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l5Type, listenerId: l5Id, scope: 'persistent', activeListenerCount: c5.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds(l5Type) } }).catch(() => {})
           if (c5.next > 1) {
             logTapToPayEvent('DUPLICATE_LISTENER_DETECTED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l5Type, activeListenerCount: c5.next, activeListenerIds: this.getActiveListenerIds(l5Type), totalActiveListenerCount: this.totalActiveListeners } }).catch(() => {})
           }
@@ -323,6 +323,8 @@ export class TerminalBridgeService {
             }
           })
           this.diagListeners.push({ remove: l0.remove, __type: 'tpDiagnostics', __id: 'tpDiagnostics' })
+        } else {
+          console.log('[TTP NATIVE] Diagnostic listeners already registered, skipping')
         }
       } catch {}
       if (process.env.NODE_ENV === 'development') {
@@ -593,7 +595,6 @@ export class TerminalBridgeService {
       if (!this.sessionTimings.connectStart) return 'cold_start'
       return 'reconnect_or_resumed'
     })()
-    logTapToPayEvent('connect_started', { phase: 'connect_reader', sessionId: this.sessionId, meta: { reason: __connectReason } }).catch(() => {})
 
     // Short-circuit if already connected
     if (this.connectionStatus === 'connected') {
@@ -609,6 +610,9 @@ export class TerminalBridgeService {
       logTapToPayEvent('CONNECT_DEDUP_REUSED_INFLIGHT', { phase: 'connect_reader', sessionId: this.sessionId }).catch(() => {})
       return this.connectInFlight
     }
+
+    // Log connect_started AFTER dedup check to prevent duplicate events from concurrent calls
+    logTapToPayEvent('connect_started', { phase: 'connect_reader', sessionId: this.sessionId, meta: { reason: __connectReason } }).catch(() => {})
 
     // Wrap full connect into a single in-flight promise to dedupe callers
     this.connectInFlight = (async () => {
@@ -664,8 +668,11 @@ export class TerminalBridgeService {
         const code = String(e?.code || e?.nativeCode || '').toLowerCase()
         const msg = String(e?.message || '').toLowerCase()
         if (code.includes('already') && code.includes('connected')) {
-          try { logTapToPayEvent('connect_already_connected_treated_success', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: this.connectionStatus || 'unknown', readerId: this.lastReaderId, code: e?.code || e?.nativeCode, message: e?.message }) } catch {}
-          resolveConnected?.()
+          // Do NOT treat ALREADY_CONNECTED_TO_READER as automatic success
+          // Require native verification before proceeding
+          try { logTapToPayEvent('connect_already_connected_unverified', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: this.connectionStatus || 'unknown', readerId: this.lastReaderId, code: e?.code || e?.nativeCode, message: e?.message }) } catch {}
+          // Reject to allow the connectedPromise to wait for actual native confirmation
+          rejectOnError?.(new Error('ALREADY_CONNECTED_TO_READER - awaiting native verification'))
           return
         }
         console.warn('[TAP_SESSION_TRACE] stage=connect_event_error')
@@ -889,6 +896,29 @@ export class TerminalBridgeService {
     }
     if (!terminalAttemptId || typeof terminalAttemptId !== 'string') {
       throw new Error('Invalid terminalAttemptId: must be non-empty string')
+    }
+
+    // Pre-collection native reader readiness guard
+    // Do not rely only on React/JavaScript connectionStatus
+    // Verify native SDK has an actual connected reader before collection
+    try { await logTapToPayEvent('pre_collect_reader_verification', { phase: 'collect_payment', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId, connectionStatus: this.connectionStatus, readerId: this.lastReaderId }) } catch {}
+    
+    if (this.connectionStatus !== 'connected' || !this.lastReaderId) {
+      // Native state does not confirm a connected reader - attempt reconnect once
+      try { await logTapToPayEvent('pre_collect_reconnect_started', { phase: 'collect_payment', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId, connectionStatus: this.connectionStatus, readerId: this.lastReaderId }) } catch {}
+      
+      try {
+        const reconnectResult = await this.connectTapToPay()
+        if (reconnectResult.status !== 'connected') {
+          throw new Error('Reader not connected - reconnect failed')
+        }
+        try { await logTapToPayEvent('pre_collect_reconnect_completed', { phase: 'collect_payment', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId, connectionStatus: 'connected', readerId: this.lastReaderId }) } catch {}
+      } catch (reconnectError) {
+        try { await logTapToPayEvent('pre_collect_reconnect_failed', { phase: 'collect_payment', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId, message: reconnectError instanceof Error ? reconnectError.message : 'Unknown' }) } catch {}
+        throw new Error('Reader not connected. Please ensure the reader is connected before collecting payment.')
+      }
+    } else {
+      try { await logTapToPayEvent('pre_collect_reader_verified', { phase: 'collect_payment', sessionId: this.sessionId, attemptId: terminalAttemptId, paymentIntentId, connectionStatus: this.connectionStatus, readerId: this.lastReaderId }) } catch {}
     }
 
     // Collect payment via native Terminal with correlation ID

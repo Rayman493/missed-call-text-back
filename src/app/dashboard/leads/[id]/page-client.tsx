@@ -2408,29 +2408,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <span className="hidden sm:inline">Add Job</span>
                     <span className="sm:hidden">Add Job</span>
                   </button>
-          {/* Internal Notes quick entry/visibility */}
-          <div className="mt-3 bg-muted/30 rounded-lg p-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="text-sm font-medium text-foreground">Internal Notes</div>
-                <div className="text-[11px] text-muted-foreground">Private to your business. Customers cannot see these notes.</div>
-                {Boolean((leadData?.notes || '').trim()) && (
-                  <div className="mt-1 text-xs text-muted-foreground line-clamp-2 break-words">
-                    {(leadData?.notes || '').trim()}
-                  </div>
-                )}
-              </div>
-              <div className="flex-shrink-0">
-                <button
-                  type="button"
-                  onClick={() => { setShowCustomerInfoModal(true); setAutoFocusNotes(true) }}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-muted text-foreground text-xs font-medium rounded-md border border-border/60 transition-colors"
-                >
-                  {Boolean((leadData?.notes || '').trim()) ? 'Review' : 'Add note'}
-                </button>
-              </div>
-            </div>
-          </div>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -2513,6 +2490,36 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               )}
             </div>
           )}
+        </div>
+
+        {/* Internal Notes - Standalone Section */}
+        <div className="bg-card rounded-xl border border-border/50 p-3 sm:p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="text-sm font-medium text-foreground">Internal Notes</h3>
+                <div className="text-[10px] text-muted-foreground/70">Private to your business</div>
+              </div>
+              {Boolean((leadData?.notes || '').trim()) ? (
+                <div className="mt-2 text-xs text-muted-foreground line-clamp-3 break-words">
+                  {(leadData?.notes || '').trim()}
+                </div>
+              ) : (
+                <div className="mt-2 text-xs text-muted-foreground/70">
+                  No notes yet
+                </div>
+              )}
+            </div>
+            <div className="flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => { setShowCustomerInfoModal(true); setAutoFocusNotes(true) }}
+                className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors"
+              >
+                {Boolean((leadData?.notes || '').trim()) ? 'Edit' : 'Add note'}
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Recent Activity - Collapsible - Compact on mobile */}
@@ -3596,9 +3603,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         {!isMobileView && (
           <div className="grid grid-cols-[minmax(0,1fr)_minmax(360px,400px)] gap-12 items-start">
             {/* Desktop Conversation Section - Primary workspace */}
-            <section className="flex flex-col min-h-0 h-[calc(100vh-280px)]">
+            <section className="flex flex-col min-h-0 h-[calc(100vh-280px)] bg-card/50 rounded-xl border border-border/30 shadow-sm">
               {/* Desktop Conversation Header */}
-              <div className="flex items-center justify-between px-4 py-3 mb-2">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border/20">
                 <div className="flex items-center gap-2">
                   <h2 className="text-sm font-medium text-foreground">Conversation</h2>
                 </div>
