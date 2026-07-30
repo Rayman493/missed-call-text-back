@@ -4767,9 +4767,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   }
 
                   const data = await response.json()
-                  setShowPaymentModal(false)
-                  setPaymentAmount('')
-                  setPaymentDescription('')
+                  
+                  console.log('[PAYMENT BUSINESS SMS] submit entered')
+                  console.log('[PAYMENT BUSINESS SMS] effective source:', effectiveSource)
+                  console.log('[PAYMENT BUSINESS SMS] API success, payment_request_id:', data.payment_request_id || data.id)
 
                   // Handle based on effective sending source
                   if (effectiveSource === 'business') {
@@ -4784,16 +4785,22 @@ ${data.payment_link}
 
 If you have questions, reply to this message.`
                     const recipient = leadData?.caller_phone || lead?.caller_phone || ''
+                    
+                    console.log('[PAYMENT BUSINESS SMS] recipient:', recipient.substring(0, 3) + '***' + recipient.substring(recipient.length - 4))
+                    console.log('[PAYMENT BUSINESS SMS] message length:', message.length)
+                    console.log('[PAYMENT BUSINESS SMS] calling launchSMS')
 
                     try {
                       // In-flight guard to prevent duplicate launches
                       if (isLaunchingSMS) {
+                        console.log('[PAYMENT BUSINESS SMS] blocked by in-flight guard')
                         return
                       }
                       setIsLaunchingSMS(true)
                       
                       // Launch SMS directly first
                       await launchSMS(recipient, message)
+                      console.log('[PAYMENT BUSINESS SMS] launch result: opened')
                       
                       // Record the Business Phone action only after successful launch
                       await recordBusinessPhoneAction({
@@ -4805,17 +4812,23 @@ If you have questions, reply to this message.`
                         relatedId: data.payment_request_id || data.id
                       })
                       
+                      // Close modal only after successful launch
+                      setShowPaymentModal(false)
+                      setPaymentAmount('')
+                      setPaymentDescription('')
                       setSuccessMessage(`Payment request sent\nMessage opened in your messaging app.`)
+                      console.log('[PAYMENT BUSINESS SMS] closing modal')
                     } catch (error) {
-                      console.error('[Payment Request] Failed to launch SMS:', error)
+                      console.error('[PAYMENT BUSINESS SMS] launch error:', error)
                       // Fallback: copy to clipboard only if message exists
                       try {
                         await copyToClipboard(message)
                         setSuccessMessage(`Payment request sent\nCouldn't open your messaging app. The message was copied so you can paste it manually.`)
                       } catch (copyError) {
-                        console.error('[Payment Request] Failed to copy to clipboard:', copyError)
+                        console.error('[PAYMENT BUSINESS SMS] clipboard error:', copyError)
                         setSuccessMessage(`Payment request sent\nCouldn't open your messaging app.`)
                       }
+                      // Keep modal open for retry
                     } finally {
                       setIsLaunchingSMS(false)
                     }

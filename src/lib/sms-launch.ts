@@ -21,17 +21,22 @@ export async function launchSMS(recipient: string, message: string): Promise<voi
   }
 
   const platform = Capacitor.getPlatform()
+  console.log('[SMS LAUNCH] platform:', platform)
+  console.log('[SMS LAUNCH] isNativePlatform:', Capacitor.isNativePlatform())
+  console.log('[SMS LAUNCH] plugin available:', Capacitor.isPluginAvailable('SmsLauncher'))
 
   if (platform === 'android') {
     // Use native Android plugin
     try {
+      console.log('[SMS LAUNCH] calling native plugin')
       const result = await SmsLauncher.openSms({ recipient, body: message })
+      console.log('[SMS LAUNCH] plugin result:', result)
       
       if (!result.opened) {
         throw new Error(result.message || 'Failed to open messaging app')
       }
     } catch (error) {
-      console.error('[SMS Launch] Native plugin failed:', error)
+      console.error('[SMS LAUNCH] Native plugin failed:', error)
       throw new Error('Failed to open messaging app')
     }
   } else if (platform === 'ios') {
@@ -48,7 +53,7 @@ export async function launchSMS(recipient: string, message: string): Promise<voi
       // Give it a moment to see if it worked
       await new Promise((resolve) => setTimeout(resolve, 100))
     } catch (error) {
-      console.error('[SMS Launch] iOS launch failed:', error)
+      console.error('[SMS LAUNCH] iOS launch failed:', error)
       throw new Error('Failed to open messaging app')
     }
   } else {
@@ -63,7 +68,7 @@ export async function copyToClipboard(message: string): Promise<void> {
   try {
     await navigator.clipboard.writeText(message)
   } catch (error) {
-    console.error('[SMS Launch] Failed to copy to clipboard:', error)
+    console.error('[SMS LAUNCH] Failed to copy to clipboard:', error)
     throw new Error('Failed to copy message to clipboard')
   }
 }
