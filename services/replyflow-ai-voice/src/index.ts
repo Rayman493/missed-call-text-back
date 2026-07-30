@@ -70,6 +70,8 @@ import { logModelConfiguration } from './model-config';
 
 // Canonical Simple Mode prompt keys - single source of truth for all prompt validation
 const REQUIRED_PROMPTS = [
+  'ask_name',
+  'ask_reason',
   'ask_name_reason',
   'ask_name_reason_service_only',
   'ask_name_reason_name_only',
