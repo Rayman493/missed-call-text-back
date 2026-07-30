@@ -335,7 +335,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 </svg>
               </div>
               <span className="text-sm font-semibold text-foreground">
-                Current Request
+                Request Summary
               </span>
             </button>
             <div className="flex items-center gap-2">
@@ -457,33 +457,36 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
             )}
           </div>
 
-          {/* Service Requested - Prominent */}
-          <div className="bg-muted/40 rounded-xl p-4 border border-border/30">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-muted-foreground" />
-                <span className="text-[11px] font-medium text-muted-foreground/70 uppercase tracking-wide">Reason</span>
+          {/* Request Summary - Canonical Overview */}
+          <div className="space-y-3">
+            {/* Service Name - Large Title */}
+            <div className="bg-muted/40 rounded-xl p-4 border border-border/30">
+              <div className="flex items-center justify-between gap-1 mb-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-4 h-4 text-base leading-none">🛠️</span>
+                  <span className="text-[11px] font-medium text-muted-foreground/70 tracking-wide">Service</span>
+                </div>
+                {manualFields.has('reasonForCalling') && !isEditMode && (
+                  <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md font-medium">Manual</span>
+                )}
               </div>
-              {manualFields.has('reasonForCalling') && !isEditMode && (
-                <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md font-medium">Manual</span>
+              {isEditMode ? (
+                <textarea
+                  value={editValues.reasonForCalling}
+                  onChange={(e) => setEditValues({ ...editValues, reasonForCalling: e.target.value })}
+                  className="w-full min-h-[64px] px-3 py-2 text-lg font-semibold text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
+                  rows={2}
+                  placeholder="Service requested"
+                  autoCapitalize="sentences"
+                  autoCorrect="on"
+                  spellCheck={true}
+                />
+              ) : (
+                <p className="text-lg font-semibold text-foreground leading-snug">
+                  {extractedInfo?.reasonForCalling ? sentenceCase(extractedInfo.reasonForCalling) : 'Not Provided'}
+                </p>
               )}
             </div>
-            {isEditMode ? (
-              <textarea
-                value={editValues.reasonForCalling}
-                onChange={(e) => setEditValues({ ...editValues, reasonForCalling: e.target.value })}
-                className="w-full min-h-[80px] px-3 py-2 text-sm font-medium text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
-                rows={3}
-                placeholder="Service requested"
-                autoCapitalize="sentences"
-                autoCorrect="on"
-                spellCheck={true}
-              />
-            ) : (
-              <p className="text-sm font-semibold text-foreground leading-relaxed">
-                {extractedInfo?.reasonForCalling ? sentenceCase(extractedInfo.reasonForCalling) : 'Not Provided'}
-              </p>
-            )}
           </div>
 
           {/* Details - Truncated with expansion */}
@@ -528,103 +531,6 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
             </div>
           ) : null}
 
-          {/* Stacked Cards: Location, Callback, Completion */}
-          <div className="space-y-3">
-            {/* Location Card */}
-            {(() => {
-              const mode = (business as any)?.service_location_type || 'onsite'
-              const hasLocationValue = Boolean(correctedFields?.address || (extractedInfo?.addressOrLocation && extractedInfo.addressOrLocation !== 'Not collected'))
-              const showCard = isEditMode || hasLocationValue || mode === 'onsite'
-              if (!showCard) return null
-              return (
-              <div className="bg-muted/40 rounded-xl p-4 border border-border/30">
-                <div className="flex items-center justify-between gap-1 mb-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    <span className="text-[11px] font-medium text-muted-foreground/70 tracking-wide">Location</span>
-                  </div>
-                  {manualFields.has('addressOrLocation') && !isEditMode && (
-                    <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md font-medium">Manual</span>
-                  )}
-                </div>
-                {isEditMode ? (
-                  <textarea
-                    value={editValues.addressOrLocation}
-                    onChange={(e) => setEditValues({ ...editValues, addressOrLocation: e.target.value })}
-                    className="w-full min-h-[64px] px-3 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
-                    rows={3}
-                    placeholder="Service address"
-                    autoCapitalize="sentences"
-                    autoCorrect="on"
-                    spellCheck={true}
-                  />
-                ) : (
-                  <p className="text-sm text-foreground leading-snug">
-                    {correctedFields?.address || (extractedInfo?.addressOrLocation === 'Not collected' ? 'Not Provided' : extractedInfo?.addressOrLocation)}
-                  </p>
-                )}
-              </div>
-              )
-            })()}
-
-            {/* Callback Card */}
-            <div className="bg-muted/40 rounded-xl p-4 border border-border/30">
-              <div className="flex items-center justify-between gap-1 mb-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                  <span className="text-[11px] font-medium text-muted-foreground/70 tracking-wide">Callback</span>
-                </div>
-                {manualFields.has('preferredCallbackTime') && !isEditMode && (
-                  <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md font-medium">Manual</span>
-                )}
-              </div>
-              {isEditMode ? (
-                <textarea
-                  value={editValues.preferredCallbackTime}
-                  onChange={(e) => setEditValues({ ...editValues, preferredCallbackTime: e.target.value })}
-                  className="w-full min-h-[64px] px-3 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
-                  rows={3}
-                  placeholder="Best time to call"
-                  autoCapitalize="sentences"
-                  autoCorrect="on"
-                  spellCheck={true}
-                />
-              ) : (
-                <p className="text-sm text-foreground leading-snug">
-                  {sentenceCase(extractedInfo.preferredCallbackTime) || 'Not Provided'}
-                </p>
-              )}
-            </div>
-
-            {/* Completion Card */}
-            <div className="bg-muted/40 rounded-xl p-4 border border-border/30">
-              <div className="flex items-center justify-between gap-1 mb-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                  <span className="text-[11px] font-medium text-muted-foreground/70 tracking-wide">Completion</span>
-                </div>
-                {manualFields.has('desiredCompletionTime') && !isEditMode && (
-                  <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md font-medium">Manual</span>
-                )}
-              </div>
-              {isEditMode ? (
-                <textarea
-                  value={editValues.desiredCompletionTime}
-                  onChange={(e) => setEditValues({ ...editValues, desiredCompletionTime: e.target.value })}
-                  className="w-full min-h-[64px] px-3 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
-                  rows={3}
-                  placeholder="Desired completion"
-                  autoCapitalize="sentences"
-                  autoCorrect="on"
-                  spellCheck={true}
-                />
-              ) : (
-                <p className="text-sm text-foreground leading-snug">
-                  {sentenceCase(extractedInfo.desiredCompletionTime) || 'Not Provided'}
-                </p>
-              )}
-            </div>
-          </div>
             </div>
           </div>
         )}
@@ -707,32 +613,6 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               <span className="text-base font-semibold text-foreground">
                 {extractedInfo?.callerName || 'Not Provided'}
               </span>
-            )}
-          </div>
-
-          {/* Service Requested - Prominent */}
-          <div className="bg-slate-50/60 dark:bg-slate-900/30 rounded-xl p-3 border border-slate-200/60 dark:border-slate-800/60">
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex items-center gap-2.5">
-                <span className="w-4 h-4 text-base leading-none">🛠️</span>
-                <span className="text-[11px] font-medium text-muted-foreground/70 uppercase tracking-wider">Reason</span>
-              </div>
-              {manualFields.has('reasonForCalling') && !isEditMode && (
-                <span className="text-[9px] px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-medium">Manual</span>
-              )}
-            </div>
-            {isEditMode ? (
-              <textarea
-                value={editValues.reasonForCalling}
-                onChange={(e) => setEditValues({ ...editValues, reasonForCalling: e.target.value })}
-                className="w-full min-h-[80px] px-2 py-1.5 text-base font-medium text-foreground bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 resize-y"
-                rows={3}
-                placeholder="Service requested"
-              />
-            ) : (
-              <p className="text-base font-semibold text-foreground leading-relaxed">
-                {extractedInfo?.reasonForCalling ? sentenceCase(extractedInfo.reasonForCalling) : 'Not Provided'}
-              </p>
             )}
           </div>
 
