@@ -267,7 +267,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
   return (
     <>
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 sm:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 sm:p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-200"
       role="dialog"
       aria-modal="true"
       aria-labelledby="appointment-title"
@@ -277,29 +277,29 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
         }
       }}
     >
-      <div className="bg-card rounded-t-2xl sm:rounded-2xl border border-border/50 shadow-2xl shadow-black/10 dark:shadow-black/30 w-full max-w-md max-h-[65vh] sm:max-h-[90vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-200 mx-auto sm:mx-0">
+      <div className="bg-card rounded-t-2xl sm:rounded-xl border border-border/30 shadow-xl shadow-black/8 dark:shadow-black/20 w-full max-w-md max-h-[65vh] sm:max-h-[90vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-200 mx-auto sm:mx-0">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 sm:px-5 sm:py-4 border-b border-border/50 shrink-0">
+        <div className="flex items-center justify-between px-4 py-3 sm:px-4 sm:py-3 border-b border-border/30 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/10">
               <Plus className="w-4 h-4 text-primary" />
             </div>
             <div>
               <h2 id="appointment-title" className="text-base font-semibold text-foreground tracking-tight">New Appointment</h2>
-              <p className="text-xs text-slate-400 dark:text-slate-500">Add something to your calendar without creating a customer job.</p>
+              <p className="text-xs text-muted-foreground/70">Add something to your calendar without creating a customer job.</p>
             </div>
           </div>
           <button
             onClick={handleCancel}
-            className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+            className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded-md transition-colors"
             aria-label="Close modal"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Form (scrollable body) */}
-        <div data-scroll-lock-allow className="flex-1 min-h-0 overflow-y-auto px-4 py-3 sm:px-5 sm:py-4 overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div data-scroll-lock-allow className="flex-1 min-h-0 overflow-y-auto px-4 py-3 sm:px-4 sm:py-3 overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
           <div className="space-y-3 sm:space-y-4">
             {/* Customer */}
             <div className="flex items-start gap-3">
@@ -510,9 +510,9 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-3 sm:px-5 sm:py-4 border-t border-border/50 bg-card shrink-0" style={{ paddingBottom: 'max(12px, calc(12px + env(safe-area-inset-bottom)))' }}>
+        <div className="px-4 py-3 sm:px-4 sm:py-3 border-t border-border/30 bg-card shrink-0" style={{ paddingBottom: 'max(12px, calc(12px + env(safe-area-inset-bottom)))' }}>
           {error && (
-            <div className="mb-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2">
+            <div className="mb-3 p-2.5 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-red-400">{error}</p>
             </div>
@@ -522,14 +522,14 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
             <button
               onClick={handleCancel}
               disabled={isCreating}
-              className="flex-1 px-4 py-2.5 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-2 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>
             <button
               onClick={handleCreate}
               disabled={isCreating}
-              className="flex-1 px-4 py-2.5 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isCreating ? (
                 <>

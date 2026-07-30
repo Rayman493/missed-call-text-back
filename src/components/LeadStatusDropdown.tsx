@@ -171,17 +171,17 @@ export default function LeadStatusDropdown({
             left: 12,
           }}
           avoidCollisions
-          className="w-[260px] max-w-[calc(100vw-24px)] max-h-[min(420px,calc(100dvh-140px))] bg-popover/95 backdrop-blur-sm border border-border/40 rounded-lg shadow-[0_2px_12px_rgb(0,0,0,0.08),0_1px_4px_rgb(0,0,0,0.06)] overflow-y-auto overscroll-contain z-[10000]"
+          className="w-[260px] max-w-[calc(100vw-24px)] max-h-[min(420px,calc(100dvh-140px))] bg-popover/90 backdrop-blur-md border border-border/30 rounded-lg shadow-[0_2px_8px_rgb(0,0,0,0.06),0_1px_2px_rgb(0,0,0,0.04)] overflow-y-auto overscroll-contain z-[10000]"
         >
           {/* Section Label */}
-          <div className="px-3 py-2">
-            <div className="px-0.5 py-1 text-[9px] font-medium text-muted-foreground/60 uppercase tracking-[0.12em]">
+          <div className="px-2.5 py-1.5">
+            <div className="px-0.5 py-0.5 text-[9px] font-medium text-muted-foreground/50 uppercase tracking-[0.12em]">
               Status
             </div>
           </div>
 
           {/* Workflow Statuses */}
-          <div className="px-1.5 py-1 space-y-0.5">
+          <div className="px-1 py-1 space-y-0.5">
             {workflowStatuses.map((status: LeadLifecycleStatus) => {
               const Icon = getStatusIcon(status)
               const statusConfig = getLeadLifecycleConfig(status)
@@ -193,7 +193,7 @@ export default function LeadStatusDropdown({
                   onSelect={() => handleStatusSelect(status)}
                   onPointerDown={(e) => e.stopPropagation()}
                   disabled={isUpdating}
-                  className={`w-full px-2 py-1.5 text-left hover:bg-accent/40 transition-colors flex items-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:bg-accent/40 cursor-pointer rounded-md min-h-[36px] group ${isSelected ? 'bg-accent/30' : ''}`}
+                  className={`w-full px-2 py-1.5 text-left hover:bg-accent/30 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:bg-accent/30 cursor-pointer rounded-md min-h-[36px] group ${isSelected ? 'bg-accent/20' : ''}`}
                 >
                   <div className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded ${statusConfig.bgColor} group-hover:opacity-80 transition-opacity`}>
                     <Icon className={`w-3.5 h-3.5 ${statusConfig.color}`} />
@@ -202,13 +202,13 @@ export default function LeadStatusDropdown({
                     <div className={`text-sm font-medium ${statusConfig.color}`}>
                       {getLeadStatusLabel(status)}
                     </div>
-                    <div className="text-[10px] text-muted-foreground/70 font-normal leading-tight">
+                    <div className="text-[10px] text-muted-foreground/60 font-normal leading-tight">
                       {getStatusDescription(status)}
                     </div>
                   </div>
                   {isSelected && (
                     <div className="flex-shrink-0">
-                      <Check className="w-3.5 h-3.5 text-muted-foreground/60" />
+                      <Check className="w-3.5 h-3.5 text-muted-foreground/50" />
                     </div>
                   )}
                 </DropdownMenuItem>
@@ -217,12 +217,12 @@ export default function LeadStatusDropdown({
           </div>
 
           {/* Subtle Divider */}
-          <div className="px-3 py-1">
-            <div className="h-px bg-border/20"></div>
+          <div className="px-2.5 py-1">
+            <div className="h-px bg-border/10"></div>
           </div>
 
           {/* Terminal Statuses */}
-          <div className="px-1.5 py-1">
+          <div className="px-1 py-1">
             {terminalStatuses.map((status: LeadLifecycleStatus) => {
               const Icon = getStatusIcon(status)
               const statusConfig = getLeadLifecycleConfig(status)
@@ -234,7 +234,7 @@ export default function LeadStatusDropdown({
                   onSelect={() => handleStatusSelect(status)}
                   onPointerDown={(e) => e.stopPropagation()}
                   disabled={isUpdating}
-                  className={`w-full px-2 py-1.5 text-left hover:bg-red-950/10 dark:hover:bg-red-950/15 transition-colors flex items-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:bg-red-950/10 dark:focus:bg-red-950/15 cursor-pointer rounded-md min-h-[36px] group ${isSelected ? 'bg-red-950/10 dark:bg-red-950/15' : ''}`}
+                  className={`w-full px-2 py-1.5 text-left hover:bg-red-950/5 dark:hover:bg-red-950/10 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:bg-red-950/5 dark:focus:bg-red-950/10 cursor-pointer rounded-md min-h-[36px] group ${isSelected ? 'bg-red-950/5 dark:bg-red-950/10' : ''}`}
                 >
                   <div className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded ${statusConfig.bgColor} group-hover:opacity-80 transition-opacity`}>
                     <Icon className={`w-3.5 h-3.5 ${statusConfig.color}`} />
@@ -243,13 +243,13 @@ export default function LeadStatusDropdown({
                     <div className={`text-sm font-medium ${statusConfig.color}`}>
                       {getLeadStatusLabel(status)}
                     </div>
-                    <div className="text-[10px] text-muted-foreground/70 font-normal leading-tight">
+                    <div className="text-[10px] text-muted-foreground/60 font-normal leading-tight">
                       {getStatusDescription(status)}
                     </div>
                   </div>
                   {isSelected && (
                     <div className="flex-shrink-0">
-                      <Check className="w-3.5 h-3.5 text-muted-foreground/60" />
+                      <Check className="w-3.5 h-3.5 text-muted-foreground/50" />
                     </div>
                   )}
                 </DropdownMenuItem>

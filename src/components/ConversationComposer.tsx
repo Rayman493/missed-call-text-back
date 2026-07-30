@@ -171,21 +171,21 @@ export default function ConversationComposer({
   const hasContent = message.trim() || images.length > 0
 
   return (
-    <div className="p-3 sm:p-4 bg-transparent">
-      <div className="flex flex-col gap-2 sm:gap-3">
+    <div className="p-2 bg-transparent">
+      <div className="flex flex-col gap-2">
         {/* Image Previews */}
         {images.length > 0 && (
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2">
             {images.map(img => (
               <div key={img.id} className="relative group">
                 <img
                   src={img.preview}
                   alt="Preview"
-                  className="w-24 h-24 object-cover rounded-xl border border-gray-300 dark:border-gray-600 shadow-sm"
+                  className="w-24 h-24 object-cover rounded-md border border-border/20 shadow-sm"
                 />
                 <button
                   onClick={() => removeImage(img.id)}
-                  className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                  className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
                   type="button"
                   aria-label="Remove image"
                 >
@@ -198,7 +198,7 @@ export default function ConversationComposer({
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-xl text-sm shadow-sm">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-2.5 py-1.5 rounded-md text-sm shadow-sm">
             {error}
           </div>
         )}
@@ -210,12 +210,12 @@ export default function ConversationComposer({
           onDrop={handleDrop}
           className="relative"
         >
-          <div className="flex items-center gap-2 bg-muted/50 border border-border/60 rounded-2xl p-3 shadow-sm hover:shadow-md transition-all duration-200 focus-within:ring-2 focus-within:ring-primary/40 focus-within:border-primary/60 focus-within:bg-muted/70 sm:rounded-b-2xl sm:rounded-t-lg">
+          <div className="flex items-center gap-2 bg-muted/20 border border-border/10 rounded-lg p-2 hover:bg-muted/30 transition-all duration-200 focus-within:ring-2 focus-within:ring-primary/10 focus-within:border-primary/20 focus-within:bg-muted/40">
             {/* Image Upload Button */}
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-3 text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200 flex-shrink-0 rounded-xl h-12 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background"
+              className="p-2 text-muted-foreground/50 hover:text-foreground hover:bg-muted/30 transition-all duration-200 flex-shrink-0 rounded-md h-11 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/10 focus:ring-offset-2 focus:ring-offset-background"
               disabled={sending}
               aria-label="Add image"
             >
@@ -239,12 +239,12 @@ export default function ConversationComposer({
               autoCapitalize="sentences"
               autoComplete="on"
               spellCheck={true}
-              className={`flex-1 px-4 py-3 bg-transparent text-foreground resize-none focus:outline-none text-base leading-relaxed h-12 placeholder:text-muted-foreground/50 ${
+              className={`flex-1 px-3 py-2 bg-transparent text-foreground resize-none focus:outline-none text-base leading-relaxed h-11 placeholder:text-muted-foreground/40 ${
                 isAtMaxHeight ? 'overflow-y-auto' : 'overflow-y-hidden'
               }`}
               rows={1}
               style={{ 
-                minHeight: '48px', 
+                minHeight: '44px', 
                 maxHeight: '144px',
                 scrollbarWidth: 'none',
                 msOverflowStyle: 'none'
@@ -256,10 +256,10 @@ export default function ConversationComposer({
               type="button"
               onClick={handleSend}
               disabled={sending || !hasContent}
-              className={`px-5 py-3 rounded-xl font-semibold transition-all duration-200 shadow-sm hover:shadow flex items-center gap-2 flex-shrink-0 h-12 disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background ${
+              className={`px-4 py-2 rounded-md font-medium transition-all duration-200 flex items-center gap-2 flex-shrink-0 h-11 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary/10 focus:ring-offset-2 focus:ring-offset-background ${
                 hasContent && !sending
-                  ? 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-md hover:shadow-lg'
-                  : 'bg-muted/50 text-muted-foreground hover:bg-muted/70 disabled:cursor-not-allowed'
+                  ? 'bg-primary hover:bg-primary/90 text-primary-foreground'
+                  : 'bg-muted/30 text-muted-foreground/40'
               }`}
               aria-label="Send message"
             >
@@ -282,8 +282,8 @@ export default function ConversationComposer({
             </button>
           </div>
         </div>
-        <div className="flex justify-start px-1 pt-1">
-          <div className="text-[11px] text-muted-foreground/50">
+        <div className="flex justify-start px-1 pt-0">
+          <div className="text-[10px] text-muted-foreground/30">
             <span className="hidden sm:inline">Enter to send</span>
             <span className="hidden sm:inline ml-2">Shift+Enter for new line</span>
           </div>

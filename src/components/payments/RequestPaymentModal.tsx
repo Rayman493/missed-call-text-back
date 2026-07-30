@@ -328,29 +328,29 @@ export default function RequestPaymentModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 md:items-center md:justify-center">
-      <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 max-w-md w-full max-h-[100dvh] md:max-h-[90vh] overflow-hidden flex flex-col min-h-0 border border-border/50 animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-2 sm:p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-200 md:items-center md:justify-center">
+      <div className="bg-card rounded-xl shadow-xl shadow-black/8 dark:shadow-black/20 max-w-md w-full max-h-[100dvh] md:max-h-[90vh] overflow-hidden flex flex-col min-h-0 border border-border/30 animate-in zoom-in-95 duration-200">
         {/* Header - shrink-0 */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border/50 shrink-0">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border/30 shrink-0">
           <div className="min-w-0 pr-3">
-            <h3 className="text-lg font-semibold text-foreground leading-tight">
+            <h3 className="text-base font-semibold text-foreground leading-tight">
               New Payment Request
             </h3>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground/70 mt-0.5">
               Send a secure payment link by text.
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+            className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded-md transition-colors"
             aria-label="Close modal"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Content - single primary scroll container */}
-        <div data-scroll-lock-allow className="flex-1 min-h-0 overflow-y-auto overscroll-contain [touch-action:pan-y] px-4 py-3 md:px-5 md:py-4 space-y-2.5 md:space-y-3 pb-[env(safe-area-inset-bottom)]" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div data-scroll-lock-allow className="flex-1 min-h-0 overflow-y-auto overscroll-contain [touch-action:pan-y] px-4 py-3 md:px-4 md:py-3 space-y-2.5 md:space-y-3 pb-[env(safe-area-inset-bottom)]" style={{ WebkitOverflowScrolling: 'touch' }}>
           <div>
             <label className="block text-sm font-medium text-slate-100 mb-1.5">
               Recipient
@@ -539,11 +539,11 @@ export default function RequestPaymentModal({
         </div>
 
         {/* Footer/Actions - shrink-0 */}
-        <div className="flex gap-3 justify-end px-5 py-4 border-t border-border/50 shrink-0 pb-safe bg-card">
+        <div className="flex gap-3 justify-end px-4 py-3 border-t border-border/30 shrink-0 pb-safe bg-card">
           <button
             onClick={onClose}
             disabled={isCreatingPayment}
-            className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>

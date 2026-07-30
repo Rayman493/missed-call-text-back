@@ -106,7 +106,7 @@ export default function DesktopConversationMessageList({
   }, [messagesArray.length, previousMessageCount])
 
   return (
-    <div className="space-y-5 pb-24" data-desktop-layout data-active-conversation-list>
+    <div className="space-y-3 pb-24" data-desktop-layout data-active-conversation-list>
       {conversationTimeline.map((item: any, index: number) => {
         // Handle payment requested events
         if (item.type === 'payment_requested') {
@@ -120,11 +120,11 @@ export default function DesktopConversationMessageList({
               id={item.id}
               className="flex items-center justify-center my-4"
             >
-              <div className="flex flex-col items-center gap-1.5 bg-muted/50 px-3 py-2 rounded-lg border border-border/40 shadow-sm max-w-md">
+              <div className="flex flex-col items-center gap-1 bg-muted/30 px-3 py-2 rounded-md border border-border/20 shadow-sm max-w-md">
                 <div className="flex items-center gap-2 w-full justify-between">
                   <div className="flex items-center gap-1.5">
                     <StatusIcon className={`w-3.5 h-3.5 ${statusUI.iconColor}`} />
-                    <span className="text-xs font-semibold text-foreground">
+                    <span className="text-xs font-medium text-foreground">
                       {statusUI.title}
                     </span>
                   </div>
@@ -132,10 +132,10 @@ export default function DesktopConversationMessageList({
                     {statusUI.label}
                   </span>
                 </div>
-                <div className="text-xs text-foreground/90 font-medium">
+                <div className="text-xs text-foreground/80 font-normal">
                   ${(payment.amount_cents / 100).toFixed(2)} • {payment.description}
                 </div>
-                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/60">
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50">
                   <span className="bg-purple-500/10 text-purple-600 dark:text-purple-400 px-1.5 py-0.5 rounded-full">
                     Business #
                   </span>
@@ -152,12 +152,12 @@ export default function DesktopConversationMessageList({
           const event = item.data
           if (event.isDivider) {
             return (
-              <div key={item.id} className="flex items-center justify-center my-6">
-                <div className="flex-1 border-t border-border/40"></div>
-                <div className="px-4 text-xs font-medium text-muted-foreground/70">
+              <div key={item.id} className="flex items-center justify-center my-5">
+                <div className="flex-1 border-t border-border/20"></div>
+                <div className="px-4 text-xs font-medium text-muted-foreground/50">
                   {event.message}
                 </div>
-                <div className="flex-1 border-t border-border/40"></div>
+                <div className="flex-1 border-t border-border/20"></div>
               </div>
             )
           }
@@ -165,18 +165,18 @@ export default function DesktopConversationMessageList({
             <div
               key={item.id}
               id={item.id}
-              className={`flex items-center justify-center my-6 transition-all duration-300 ${
+              className={`flex items-center justify-center my-5 transition-all duration-300 ${
                 highlightedItemId === item.id
                   ? 'ring-2 ring-primary/50 ring-offset-2 ring-offset-background bg-primary/5'
                   : ''
               }`}
             >
-              <div className="flex items-center gap-2.5 bg-muted/60 px-4 py-2 rounded-full border border-border/50 shadow-sm">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
-                <span className="text-xs font-medium text-foreground/80">
+              <div className="flex items-center gap-2 bg-muted/40 px-3 py-1.5 rounded-full border border-border/30 shadow-sm">
+                <div className="w-1 h-1 rounded-full bg-primary/60"></div>
+                <span className="text-xs font-medium text-foreground/70">
                   {event.message}
                 </span>
-                <span className="text-[11px] text-muted-foreground/60">
+                <span className="text-[10px] text-muted-foreground/50">
                   {formatRelativeTime(event.timestamp)}
                 </span>
               </div>
@@ -217,22 +217,22 @@ export default function DesktopConversationMessageList({
             <div
               key={getMessageKey(msg)}
               id={item.id}
-              className={`flex items-center justify-center my-6 transition-all duration-300 group ${
+              className={`flex items-center justify-center my-5 transition-all duration-300 group ${
                 highlightedItemId === item.id
                   ? 'ring-2 ring-primary/50 ring-offset-2 ring-offset-background bg-primary/5'
                   : ''
               }`}
             >
-              <div className="flex flex-col items-center gap-2 bg-muted/60 px-4 py-3 rounded-xl border border-border/50 shadow-sm max-w-md">
+              <div className="flex flex-col items-center gap-2 bg-muted/40 px-3 py-2.5 rounded-lg border border-border/30 shadow-sm max-w-md">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                    <Smartphone className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <div className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
+                    <Smartphone className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-xs font-medium text-foreground/80">
+                    <span className="text-xs font-medium text-foreground/70">
                       {msg.body}
                     </span>
-                    <span className="text-[11px] text-muted-foreground/60">
+                    <span className="text-[10px] text-muted-foreground/50">
                       Using your messaging app
                     </span>
                   </div>
@@ -249,7 +249,7 @@ export default function DesktopConversationMessageList({
                     // This will be handled by parent component
                   }}
                 />
-                <span className="text-[11px] text-muted-foreground/60">
+                <span className="text-[10px] text-muted-foreground/50">
                   {formatRelativeTime(msg.created_at)}
                 </span>
               </div>
@@ -272,21 +272,21 @@ export default function DesktopConversationMessageList({
         return (
           <div
             key={getMessageKey(msg)}
-            className={`flex items-start gap-3 ${msg.media && msg.media.length > 0 ? 'mb-4' : 'mb-3'} ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
+            className={`flex items-start gap-3 ${msg.media && msg.media.length > 0 ? 'mb-2.5' : 'mb-2'} ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
           >
             {/* Message Content */}
-            <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} ${isOutbound ? 'max-w-[75%]' : 'max-w-[85%]'}`}>
+            <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} ${isOutbound ? 'max-w-[65%]' : 'max-w-[70%]'}`}>
               {/* Message Bubble - Desktop styling */}
               <div
-                className={`rounded-xl shadow-sm transition-colors duration-200 overflow-hidden ${
+                className={`rounded-lg shadow-sm transition-colors duration-200 overflow-hidden ${
                   isInbound
-                    ? 'bg-white dark:bg-slate-800/95 text-slate-900 dark:text-slate-100 rounded-bl-md border border-slate-200/80 dark:border-slate-700/80'
+                    ? 'bg-white dark:bg-slate-800/90 text-slate-900 dark:text-slate-100 rounded-bl-sm border border-slate-200/50 dark:border-slate-700/50'
                     : isOptimistic && isSending
-                    ? 'bg-blue-600 text-white rounded-br-md opacity-90 border border-blue-700/80'
-                    : 'bg-blue-600 text-white rounded-br-md hover:bg-blue-700 border border-blue-700/80'
+                    ? 'bg-blue-600 text-white rounded-br-sm opacity-90 border border-blue-700/50'
+                    : 'bg-blue-600 text-white rounded-br-sm hover:bg-blue-700 border border-blue-700/50'
                 }`}
               >
-                <div className={`${msg.media && msg.media.length > 0 ? 'p-2' : 'px-4 py-2.5'}`}>
+                <div className={`${msg.media && msg.media.length > 0 ? 'p-2' : 'px-3.5 py-2'}`}>
                   {msg.body && (
                     <p 
                       className={`${isOutbound ? 'text-[14px]' : 'text-[15px]'} leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap min-w-0 max-w-full`}
@@ -307,44 +307,44 @@ export default function DesktopConversationMessageList({
               </div>
               
               {/* Message Status/Timestamp - Beneath bubble, aligned with bubble */}
-              <div className={`mt-1 flex items-center gap-1.5 ${isOutbound ? 'justify-end' : 'justify-start'}`}>
+              <div className={`mt-0.5 flex items-center gap-1 ${isOutbound ? 'justify-end' : 'justify-start'}`}>
                 {isOutbound && (
                   <>
                     {msg.status === 'delivered' && (
                       <>
-                        <span className="text-[10px] text-muted-foreground/50 font-medium">Delivered</span>
-                        <span className="text-[10px] text-muted-foreground/30">•</span>
+                        <span className="text-[10px] text-muted-foreground/40 font-medium">Delivered</span>
+                        <span className="text-[10px] text-muted-foreground/20">•</span>
                       </>
                     )}
                     {msg.status === 'sent' && (
                       <>
-                        <span className="text-[10px] text-muted-foreground/50 font-medium">Sent</span>
-                        <span className="text-[10px] text-muted-foreground/30">•</span>
+                        <span className="text-[10px] text-muted-foreground/40 font-medium">Sent</span>
+                        <span className="text-[10px] text-muted-foreground/20">•</span>
                       </>
                     )}
                     {msg.status === 'failed' && (
                       <>
-                        <span className="text-[10px] text-red-500/60 font-medium">Failed</span>
-                        <span className="text-[10px] text-muted-foreground/30">•</span>
+                        <span className="text-[10px] text-red-500/50 font-medium">Failed</span>
+                        <span className="text-[10px] text-muted-foreground/20">•</span>
                       </>
                     )}
                     {msg.status === 'sending' && (
                       <>
-                        <span className="text-[10px] text-blue-500/60 font-medium">Sending</span>
-                        <span className="text-[10px] text-muted-foreground/30">•</span>
+                        <span className="text-[10px] text-blue-500/50 font-medium">Sending</span>
+                        <span className="text-[10px] text-muted-foreground/20">•</span>
                       </>
                     )}
                   </>
                 )}
-                <span className="text-[10px] text-muted-foreground/50 font-medium" title={new Date(msg.created_at).toLocaleString()}>
+                <span className="text-[10px] text-muted-foreground/30 font-medium" title={new Date(msg.created_at).toLocaleString()}>
                   {formatRelativeTime(msg.created_at)}
                 </span>
               </div>
               
               {/* Error State */}
               {(hasError || (isOptimistic && msg.status === 'failed')) && (
-                <div className="mt-2 flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">
+                <div className="mt-1 flex items-center gap-2 text-sm">
+                  <span className="text-muted-foreground/70">
                     Couldn't send.
                   </span>
                   <button
@@ -354,7 +354,7 @@ export default function DesktopConversationMessageList({
                       }
                     }}
                     disabled={sending}
-                    className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                    className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-normal"
                   >
                     {sending ? 'Sending again...' : 'Try again'}
                   </button>
