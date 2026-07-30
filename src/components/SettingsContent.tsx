@@ -1291,8 +1291,8 @@ export default function SettingsContent() {
                   <div id="communication" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[64px]">
                     <div className="mb-4">
                       <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Sending Number</h2>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-                        Choose how ReplyFlow sends customer messages. ReplyFlow Number is recommended for complete tracking and automation.
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        ReplyFlow Number is recommended for complete tracking and automation.
                       </p>
                     </div>
                     <div className="space-y-3">
@@ -1304,6 +1304,9 @@ export default function SettingsContent() {
                             ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                             : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
                         }`}
+                        role="radio"
+                        aria-checked={sendingSource === 'replyflow'}
+                        tabIndex={0}
                       >
                         <div className="flex items-start gap-3">
                           <div className="flex-1">
@@ -1311,11 +1314,8 @@ export default function SettingsContent() {
                               <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">ReplyFlow Number</h3>
                               <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full">Strongly Recommended</span>
                             </div>
-                            <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">
-                              Send and receive messages directly in ReplyFlow with complete conversation history, delivery tracking, AI context, and automation.
-                            </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-500">
-                              Best for the full ReplyFlow experience.
+                            <p className="text-xs text-slate-600 dark:text-slate-400">
+                              Complete conversation history, delivery tracking, AI context, and automation.
                             </p>
                           </div>
                           <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
@@ -1340,6 +1340,9 @@ export default function SettingsContent() {
                             ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                             : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
                         }`}
+                        role="radio"
+                        aria-checked={sendingSource === 'business'}
+                        tabIndex={0}
                       >
                         <div className="flex items-start gap-3">
                           <div className="flex-1">
@@ -1347,11 +1350,11 @@ export default function SettingsContent() {
                               <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">Business Number</h3>
                               <span className="px-2 py-0.5 text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-full">Advanced</span>
                             </div>
-                            <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">
-                              Send messages from your existing number through your phone's messaging app.
+                            <p className="text-xs text-slate-600 dark:text-slate-400">
+                              Send from your existing number through your phone's messaging app.
                             </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-500">
-                              Conversations will not sync back to ReplyFlow, and the workflow is less seamless.
+                            <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
+                              Conversations won't sync to ReplyFlow.
                             </p>
                           </div>
                           <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
@@ -2846,25 +2849,25 @@ export default function SettingsContent() {
                   Business Number Is Not Recommended
                 </h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                  ReplyFlow strongly recommends using your ReplyFlow Number for the best and most complete messaging experience.
+                  ReplyFlow strongly recommends using your ReplyFlow Number for the best messaging experience.
                 </p>
                 <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 mb-4">
                   <p className="text-sm font-medium text-slate-900 dark:text-foreground mb-2">
-                    When you use your Business Number:
+                    When you use Business Number:
                   </p>
                   <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1">
                     <li>• You must leave ReplyFlow to send each message</li>
-                    <li>• Messages and replies do not sync back to ReplyFlow</li>
+                    <li>• Messages and replies won't sync to ReplyFlow</li>
                     <li>• Sent and delivered tracking is unavailable</li>
-                    <li>• AI will not have the complete conversation history</li>
+                    <li>• AI won't have the complete conversation history</li>
                     <li>• Your customer timeline may be less complete</li>
                   </ul>
                   <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">
-                    ReplyFlow will still track business activity it creates, including appointments, payment requests, payments, AI intake, reminders, and job updates.
+                    ReplyFlow will still track appointments, payments, AI intake, reminders, and job updates.
                   </p>
                 </div>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                  Only choose this option if sending from your existing business number is more important than having a complete, fully managed messaging experience in ReplyFlow.
+                  Only choose this option if sending from your existing business number is more important than having a complete messaging experience in ReplyFlow.
                 </p>
                 <div className="flex justify-end gap-3">
                   <button

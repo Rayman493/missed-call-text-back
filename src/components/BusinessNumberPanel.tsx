@@ -44,7 +44,7 @@ export default function BusinessNumberPanel({
             Messaging via Business Number
           </h3>
           <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-            Messaging from your Business Number happens in your phone's messaging app. Messages and replies are not synced to ReplyFlow, but important business activity will continue to be tracked.
+            Messages open in your phone's messaging app. Conversations won't sync to ReplyFlow, but appointments, payments, and AI intake will still be tracked.
           </p>
         </div>
       </div>
