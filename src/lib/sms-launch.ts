@@ -7,41 +7,64 @@ interface SmsLauncherPlugin {
 
 const SmsLauncher = registerPlugin<SmsLauncherPlugin>('SmsLauncher')
 
+interface OpenBusinessSmsOptions {
+  recipient: string
+  body?: string
+  source?: 'manual' | 'payment' | 'reminder' | 'confirmation'
+}
+
 /**
- * Launch the native SMS app with recipient and message body.
- * Uses native Android intent on Android, window.open on iOS.
- *
- * @param recipient - Phone number to send to
- * @param message - Message body to prefill (optional for manual messages)
+ * Shared helper for Business Number SMS launch.
+ * Uses the proven working path from BusinessNumberPanel.
+ * 
+ * @param options - Recipient and optional message body
  * @returns Promise that resolves if launch succeeds, rejects if it fails
  */
-export async function launchSMS(recipient: string, message: string): Promise<void> {
+export async function openBusinessSms(options: OpenBusinessSmsOptions): Promise<void> {
+  const { recipient, body = '', source = 'manual' } = options
+  
+  console.log('[BUSINESS SMS] source:', source)
+  console.log('[BUSINESS SMS] platform:', Capacitor.getPlatform())
+  console.log('[BUSINESS SMS] isNativePlatform:', Capacitor.isNativePlatform())
+  console.log('[BUSINESS SMS] plugin available:', Capacitor.isPluginAvailable('SmsLauncher'))
+  console.log('[BUSINESS SMS] recipient suffix:', recipient.substring(recipient.length - 4))
+  console.log('[BUSINESS SMS] body length:', body.length)
+  console.log('[BUSINESS SMS] calling shared launcher')
+
   if (!Capacitor.isNativePlatform()) {
     throw new Error('SMS launch is only supported on native mobile platforms')
   }
 
   const platform = Capacitor.getPlatform()
-  console.log('[SMS LAUNCH] platform:', platform)
-  console.log('[SMS LAUNCH] isNativePlatform:', Capacitor.isNativePlatform())
-  console.log('[SMS LAUNCH] plugin available:', Capacitor.isPluginAvailable('SmsLauncher'))
 
   if (platform === 'android') {
-    // Use native Android plugin
+    // Try native plugin first
     try {
-      console.log('[SMS LAUNCH] calling native plugin')
-      const result = await SmsLauncher.openSms({ recipient, body: message })
-      console.log('[SMS LAUNCH] plugin result:', result)
+      console.log('[BUSINESS SMS] calling native plugin')
+      const result = await SmsLauncher.openSms({ recipient, body })
+      console.log('[BUSINESS SMS] native result:', result)
       
-      if (!result.opened) {
-        throw new Error(result.message || 'Failed to open messaging app')
+      if (result.opened) {
+        console.log('[BUSINESS SMS] completed successfully')
+        return
       }
+      
+      console.log('[BUSINESS SMS] native returned opened=false, using anchor fallback')
     } catch (error) {
-      console.error('[SMS LAUNCH] Native plugin failed:', error)
-      throw new Error('Failed to open messaging app')
+      console.error('[BUSINESS SMS] native plugin failed:', error)
+      console.log('[BUSINESS SMS] fallback reason: native exception')
     }
+
+    // Fallback: use anchor element (proven working path from BusinessNumberPanel)
+    console.log('[BUSINESS SMS] using anchor fallback')
+    const smsUrl = `sms:${recipient}${body ? `?body=${encodeURIComponent(body)}` : ''}`
+    const link = document.createElement('a')
+    link.href = smsUrl
+    link.click()
+    console.log('[BUSINESS SMS] completed via anchor fallback')
   } else if (platform === 'ios') {
     // Use iOS window.open approach (preserved working behavior)
-    const smsUrl = `sms:${recipient}${message ? `&body=${encodeURIComponent(message)}` : ''}`
+    const smsUrl = `sms:${recipient}${body ? `&body=${encodeURIComponent(body)}` : ''}`
     
     try {
       const opened = window.open(smsUrl, '_self')
@@ -52,13 +75,22 @@ export async function launchSMS(recipient: string, message: string): Promise<voi
 
       // Give it a moment to see if it worked
       await new Promise((resolve) => setTimeout(resolve, 100))
+      console.log('[BUSINESS SMS] completed via iOS window.open')
     } catch (error) {
-      console.error('[SMS LAUNCH] iOS launch failed:', error)
+      console.error('[BUSINESS SMS] iOS launch failed:', error)
       throw new Error('Failed to open messaging app')
     }
   } else {
     throw new Error('SMS launch not supported on this platform')
   }
+}
+
+/**
+ * Legacy launchSMS function for backward compatibility.
+ * Delegates to openBusinessSms.
+ */
+export async function launchSMS(recipient: string, message: string): Promise<void> {
+  return openBusinessSms({ recipient, body: message, source: 'manual' })
 }
 
 /**
@@ -68,7 +100,7 @@ export async function copyToClipboard(message: string): Promise<void> {
   try {
     await navigator.clipboard.writeText(message)
   } catch (error) {
-    console.error('[SMS LAUNCH] Failed to copy to clipboard:', error)
+    console.error('[BUSINESS SMS] Failed to copy to clipboard:', error)
     throw new Error('Failed to copy message to clipboard')
   }
 }
