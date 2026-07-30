@@ -47,6 +47,7 @@ import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smar
 import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
 import SuccessBanner from '@/components/SuccessBanner'
 import BusinessPhoneModal from '@/components/BusinessPhoneModal'
+import { launchSMS } from '@/lib/sms-launch'
 import { useSendingSource } from '@/hooks/useSendingSource'
 import { useSupportsBusinessNumber } from '@/lib/platform-capabilities'
 
@@ -1213,18 +1214,35 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           : appointmentDate || appointmentTime || 'your scheduled time'
         
         const message = `Hi ${customerName}, this is a reminder about your appointment on ${dateTimeString}. Please confirm or let us know if you need to reschedule.`
-        
-        setBusinessPhoneModalConfig({
-          title: 'Send from Business Number',
-          description: 'Your messaging app will open with the message ready to send.',
-          message: message,
-          recipient: dialNumber,
-          recipientName: customerName,
-          actionType: 'appointment',
-          relatedId: jobId
-        })
-        setShowBusinessPhoneModal(true)
-        setShowAppointmentSelection(false)
+
+        try {
+          // Record the Business Phone action
+          await recordBusinessPhoneAction({
+            actionType: 'appointment',
+            leadId: params.id,
+            customerName: customerName,
+            customerPhone: dialNumber,
+            message: message,
+            relatedId: jobId
+          })
+
+          // Launch SMS directly
+          await launchSMS(dialNumber, message)
+          setShowAppointmentSelection(false)
+          setSuccessMessage(`Reminder sent\nMessage opened in your messaging app.`)
+        } catch (error) {
+          console.error('[Appointment Confirmation] Failed to launch SMS:', error)
+          // Fallback: copy to clipboard
+          try {
+            await copyToClipboard(message)
+            setShowAppointmentSelection(false)
+            setSuccessMessage(`Reminder sent\nMessage copied to clipboard.`)
+          } catch (copyError) {
+            console.error('[Appointment Confirmation] Failed to copy to clipboard:', copyError)
+            setShowAppointmentSelection(false)
+            setSuccessMessage(`Reminder sent\nPlease manually send the reminder.`)
+          }
+        }
       } else {
         // ReplyFlow Number flow: use existing API
         const { data: { session } } = await supabase.auth.getSession()
@@ -4753,7 +4771,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
                   // Handle based on effective sending source
                   if (effectiveSource === 'business') {
-                    // Open Business Phone modal with payment request message
+                    // Launch SMS directly with payment request message
                     const businessName = business?.name || 'our business'
                     const amount = (parseFloat(paymentAmount) || 0).toFixed(2)
                     const description = paymentDescription || 'Service payment'
@@ -4763,17 +4781,33 @@ Pay securely here:
 ${data.payment_link}
 
 If you have questions, reply to this message.`
+                    const recipient = leadData?.caller_phone || lead?.caller_phone || ''
 
-                    setBusinessPhoneModalConfig({
-                      title: 'Send from Business Number',
-                      description: 'Your messaging app will open with the message ready to send.',
-                      message: message,
-                      recipient: leadData?.caller_phone || lead?.caller_phone || '',
-                      recipientName: getCustomerName(lead, leadData),
-                      actionType: 'payment_request',
-                      relatedId: data.payment_request_id || data.id
-                    })
-                    setShowBusinessPhoneModal(true)
+                    try {
+                      // Record the Business Phone action
+                      await recordBusinessPhoneAction({
+                        actionType: 'payment_request',
+                        leadId: params.id,
+                        customerName: getCustomerName(lead, leadData),
+                        customerPhone: recipient,
+                        message: message,
+                        relatedId: data.payment_request_id || data.id
+                      })
+
+                      // Launch SMS directly
+                      await launchSMS(recipient, message)
+                      setSuccessMessage(`Payment request sent\nMessage opened in your messaging app.`)
+                    } catch (error) {
+                      console.error('[Payment Request] Failed to launch SMS:', error)
+                      // Fallback: copy to clipboard
+                      try {
+                        await copyToClipboard(message)
+                        setSuccessMessage(`Payment request sent\nMessage copied to clipboard.`)
+                      } catch (copyError) {
+                        console.error('[Payment Request] Failed to copy to clipboard:', copyError)
+                        setSuccessMessage(`Payment request sent\nPlease manually send the payment request.`)
+                      }
+                    }
                   } else if (effectiveSource === 'replyflow' && isNativeMobilePlatform) {
                     // ReplyFlow Number flow on native mobile: ReplyFlow sends the SMS automatically
                     const customerName = getCustomerName(lead, leadData)
@@ -4883,22 +4917,40 @@ If you have questions, reply to this message.`
                 </button>
                 {effectiveSource === 'business' && (
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       const customerName = getCustomerName(lead, leadData)
                       const dialNumber = leadData?.caller_phone || lead?.caller_phone || ''
                       const message = `Appointment reminder: ${job.title || 'Appointment'} scheduled for ${job.scheduled_date} at ${job.scheduled_time}.`
-                      setBusinessPhoneModalConfig({
-                        title: 'Send from Business Number',
-                        description: 'Your messaging app will open with the message ready to send.',
-                        message: message,
-                        recipient: dialNumber,
-                        recipientName: customerName,
-                        actionType: 'appointment',
-                        relatedId: job.id,
-                        relatedType: 'job'
-                      })
-                      setShowBusinessPhoneModal(true)
-                      setShowAppointmentSelection(false)
+
+                      try {
+                        // Record the Business Phone action
+                        await recordBusinessPhoneAction({
+                          actionType: 'appointment',
+                          leadId: params.id,
+                          customerName: customerName,
+                          customerPhone: dialNumber,
+                          message: message,
+                          relatedId: job.id,
+                          relatedType: 'job'
+                        })
+
+                        // Launch SMS directly
+                        await launchSMS(dialNumber, message)
+                        setShowAppointmentSelection(false)
+                        setSuccessMessage(`Reminder sent\nMessage opened in your messaging app.`)
+                      } catch (error) {
+                        console.error('[Appointment Reminder] Failed to launch SMS:', error)
+                        // Fallback: copy to clipboard
+                        try {
+                          await copyToClipboard(message)
+                          setShowAppointmentSelection(false)
+                          setSuccessMessage(`Reminder sent\nMessage copied to clipboard.`)
+                        } catch (copyError) {
+                          console.error('[Appointment Reminder] Failed to copy to clipboard:', copyError)
+                          setShowAppointmentSelection(false)
+                          setSuccessMessage(`Reminder sent\nPlease manually send the reminder.`)
+                        }
+                      }
                     }}
                     className="w-full text-left p-2 rounded-lg border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm"
                   >
@@ -4943,20 +4995,38 @@ If you have questions, reply to this message.`
           <div className="space-y-3">
             {effectiveSource === 'business' && (
               <button
-                onClick={() => {
+                onClick={async () => {
                   const customerName = appointmentSuccessData.customerName
                   const dialNumber = leadData?.caller_phone || lead?.caller_phone || ''
                   const message = `Appointment scheduled for ${appointmentSuccessData.date} at ${appointmentSuccessData.time}.`
-                  setBusinessPhoneModalConfig({
-                    title: 'Send from Business Number',
-                    description: 'Your messaging app will open with the message ready to send.',
-                    message: message,
-                    recipient: dialNumber,
-                    recipientName: customerName,
-                    actionType: 'appointment'
-                  })
-                  setShowBusinessPhoneModal(true)
-                  setShowAppointmentSuccessModal(false)
+
+                  try {
+                    // Record the Business Phone action
+                    await recordBusinessPhoneAction({
+                      actionType: 'appointment',
+                      leadId: params.id,
+                      customerName: customerName,
+                      customerPhone: dialNumber,
+                      message: message
+                    })
+
+                    // Launch SMS directly
+                    await launchSMS(dialNumber, message)
+                    setShowAppointmentSuccessModal(false)
+                    setSuccessMessage(`Appointment sent\nMessage opened in your messaging app.`)
+                  } catch (error) {
+                    console.error('[Appointment Success] Failed to launch SMS:', error)
+                    // Fallback: copy to clipboard
+                    try {
+                      await copyToClipboard(message)
+                      setShowAppointmentSuccessModal(false)
+                      setSuccessMessage(`Appointment sent\nMessage copied to clipboard.`)
+                    } catch (copyError) {
+                      console.error('[Appointment Success] Failed to copy to clipboard:', copyError)
+                      setShowAppointmentSuccessModal(false)
+                      setSuccessMessage(`Appointment sent\nPlease manually send the appointment.`)
+                    }
+                  }
                 }}
                 className="w-full px-4 py-2.5 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
               >

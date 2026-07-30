@@ -3,6 +3,7 @@
 import { Smartphone, Settings } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { useRouter } from 'next/navigation'
+import { launchSMS, copyToClipboard } from '@/lib/sms-launch'
 
 interface BusinessNumberPanelProps {
   recipient: string
@@ -15,17 +16,21 @@ export default function BusinessNumberPanel({
 }: BusinessNumberPanelProps) {
   const router = useRouter()
 
-  const handleOpenMessages = () => {
-    const smsUrl = `sms:${recipient}`
-
-    // On native mobile, use anchor element click to launch the SMS app
-    if (Capacitor.isNativePlatform()) {
-      const link = document.createElement('a')
-      link.href = smsUrl
-      link.click()
-    } else {
-      // On desktop/web, open in new tab
-      window.open(smsUrl, '_blank')
+  const handleOpenMessages = async () => {
+    try {
+      // Launch SMS with recipient only (no body for manual messages)
+      await launchSMS(recipient, '')
+    } catch (error) {
+      console.error('[BusinessNumberPanel] Failed to launch SMS:', error)
+      // Fallback: use anchor element
+      const smsUrl = `sms:${recipient}`
+      if (Capacitor.isNativePlatform()) {
+        const link = document.createElement('a')
+        link.href = smsUrl
+        link.click()
+      } else {
+        window.open(smsUrl, '_blank')
+      }
     }
   }
 

@@ -129,7 +129,10 @@ export default function SettingsContent() {
     setShowBusinessNumberWarning(false)
     try {
       await updateSendingSource('business')
-      showToast('Business Number enabled. Messages will open in your phone\'s messaging app.', 'success')
+      // Delay toast to ensure modal is fully closed
+      setTimeout(() => {
+        showToast('Business Number enabled. Messages will open in your phone\'s messaging app.', 'success')
+      }, 100)
     } catch (err) {
       showToast('Failed to switch sending number. Please try again.', 'error')
     }
