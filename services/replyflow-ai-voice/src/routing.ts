@@ -8,6 +8,10 @@ export function normalizeServiceLocationType(value: any): ServiceLocationType {
 
 export function getNextIntakeStage(currentStage: string, mode: ServiceLocationType): string {
   switch (currentStage) {
+    case 'ask_name':
+      return 'ask_reason'
+    case 'ask_reason':
+      return 'ask_details'
     case 'ask_name_reason':
       return 'ask_details'
     case 'ask_details':

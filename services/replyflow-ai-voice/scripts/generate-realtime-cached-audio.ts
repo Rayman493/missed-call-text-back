@@ -32,6 +32,8 @@ const CACHED_AUDIO_GENERATION_VERSION = "realtime-pcmu-marin-canonical";
 // Production prompts for Simple Mode (canonical runtime stage names)
 // These are the exact keys used by the runtime state machine - no aliases allowed
 const prompts = {
+  ask_name: "Thank you for calling. May I have your name, please?",
+  ask_reason: "Thank you. What can I help you with today?",
   ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
   ask_name_reason_service_only: "And what do you need help with?",
   ask_name_reason_name_only: "And what's your name?",

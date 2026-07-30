@@ -653,7 +653,7 @@ interface CallContext {
 }
 
 // Intake state machine types
-type IntakeStage = 'ask_name_reason' | 'ask_name_reason_service_only' | 'ask_name_reason_name_only' | 'ask_details' | 'ask_location_or_context' | 'ask_timing' | 'ask_callback_time' | 'complete';
+type IntakeStage = 'ask_name' | 'ask_reason' | 'ask_name_reason' | 'ask_name_reason_service_only' | 'ask_name_reason_name_only' | 'ask_details' | 'ask_location_or_context' | 'ask_timing' | 'ask_callback_time' | 'complete';
 
 /**
  * AI Intake Flow Documentation
@@ -725,6 +725,8 @@ interface IntakeData {
   businessId: string;
   sessionId: string;
   startTime: number;
+  skipNextStage?: boolean; // Flag to skip next stage (used when both name and reason captured in ask_name)
+  needsNameReprompt?: boolean; // Flag to trigger targeted name-only reprompt (used when only reason given in ask_name)
 }
 
 interface LeadSummary {
@@ -1508,7 +1510,7 @@ function executeTwilioFallback(ws: any, twilioHandler: any, closingState: any): 
 
 function createIntakeData(businessName: string, callSid: string, businessId: string, sessionId: string): IntakeData {
   return {
-    stage: 'ask_name_reason',
+    stage: 'ask_name',
     businessName,
     callSid,
     businessId,
@@ -2215,6 +2217,8 @@ function sendStagePrompt(
  * Note: These prompts are now mapped to APPROVED_PROMPTS in sendApprovedPrompt
  */
 const STAGE_PROMPTS: Record<IntakeStage, string> = {
+  ask_name: "Thank you for calling. May I have your name, please?",
+  ask_reason: "Thank you. What can I help you with today?",
   ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
   ask_name_reason_service_only: "And what do you need help with?",
   ask_name_reason_name_only: "And what's your name?",
@@ -2228,16 +2232,19 @@ const STAGE_PROMPTS: Record<IntakeStage, string> = {
 /**
  * Simple scripted stage progression - deterministic, no GPT decisions
  * The app follows a conditional sequence based on service_location_type:
- * - onsite: ask_name_reason → ask_details → ask_location_or_context → ask_timing → ask_callback_time → complete
- * - customer_comes_to_business/remote: ask_name_reason → ask_details → ask_timing → ask_callback_time → complete
+ * - onsite: ask_name → ask_reason → ask_details → ask_location_or_context → ask_timing → ask_callback_time → complete
+ * - customer_comes_to_business/remote: ask_name → ask_reason → ask_details → ask_timing → ask_callback_time → complete
  */
-function getNextStage(currentStage: IntakeStage, serviceLocationType: string): IntakeStage {
+function getNextStage(currentStage: IntakeStage, serviceLocationType: string, skipNext: boolean = false): IntakeStage {
   console.log('[SCRIPTED FLOW] =========================================');
   console.log('[SCRIPTED FLOW] stage advanced');
   console.log('[SCRIPTED FLOW] fromStage:', currentStage);
   console.log('[SCRIPTED FLOW] serviceLocationType:', serviceLocationType);
+  console.log('[SCRIPTED FLOW] skipNext:', skipNext);
 
   const stageSequence: Record<IntakeStage, IntakeStage> = {
+    ask_name: 'ask_reason',
+    ask_reason: 'ask_details',
     ask_name_reason: 'ask_details',
     ask_name_reason_service_only: 'ask_details',
     ask_name_reason_name_only: 'ask_details',
@@ -2249,7 +2256,13 @@ function getNextStage(currentStage: IntakeStage, serviceLocationType: string): I
     complete: 'complete'
   };
 
-  const nextStage = stageSequence[currentStage] || currentStage;
+  let nextStage = stageSequence[currentStage] || currentStage;
+
+  // If skipNext is true and we're transitioning from ask_name to ask_reason, skip to ask_details
+  if (skipNext && currentStage === 'ask_name' && nextStage === 'ask_reason') {
+    console.log('[SCRIPTED FLOW] skipping ask_reason stage (both fields captured)');
+    nextStage = stageSequence['ask_reason'] || 'ask_details';
+  }
 
   console.log('[SCRIPTED FLOW] toStage:', nextStage);
   console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
@@ -2281,6 +2294,46 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
   // Save transcript directly to the corresponding field based on current stage
   if (transcript && transcript.trim().length > 0) {
     switch (intake.stage) {
+      case 'ask_name':
+        // Only set if field is not already captured - prevent overwriting valid answers
+        if (!intake.customerName) {
+          intake.customerName = transcript.trim();
+          console.log('[SCRIPTED FLOW] =========================================');
+          console.log('[SCRIPTED FLOW] field saved');
+          console.log('[SCRIPTED FLOW] field: customerName');
+          console.log('[SCRIPTED FLOW] value:', transcript.trim());
+          console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+          console.log('[SCRIPTED FLOW] =========================================');
+        } else {
+          console.log('[FIELD LOCK PROTECTION] =========================================');
+          console.log('[FIELD LOCK PROTECTION] field: customerName');
+          console.log('[FIELD LOCK PROTECTION] current value:', intake.customerName);
+          console.log('[FIELD LOCK PROTECTION] attempted overwrite:', transcript.trim());
+          console.log('[FIELD LOCK PROTECTION] reason: field already captured, overwrite prevented');
+          console.log('[FIELD LOCK PROTECTION] Timestamp:', new Date().toISOString());
+          console.log('[FIELD LOCK PROTECTION] =========================================');
+        }
+        break;
+      case 'ask_reason':
+        // Only set if field is not already captured - prevent overwriting valid answers
+        if (!intake.serviceRequested) {
+          intake.serviceRequested = transcript.trim();
+          console.log('[SCRIPTED FLOW] =========================================');
+          console.log('[SCRIPTED FLOW] field saved');
+          console.log('[SCRIPTED FLOW] field: serviceRequested');
+          console.log('[SCRIPTED FLOW] value:', transcript.trim());
+          console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
+          console.log('[SCRIPTED FLOW] =========================================');
+        } else {
+          console.log('[FIELD LOCK PROTECTION] =========================================');
+          console.log('[FIELD LOCK PROTECTION] field: serviceRequested');
+          console.log('[FIELD LOCK PROTECTION] current value:', intake.serviceRequested);
+          console.log('[FIELD LOCK PROTECTION] attempted overwrite:', transcript.trim());
+          console.log('[FIELD LOCK PROTECTION] reason: field already captured, overwrite prevented');
+          console.log('[FIELD LOCK PROTECTION] Timestamp:', new Date().toISOString());
+          console.log('[FIELD LOCK PROTECTION] =========================================');
+        }
+        break;
       case 'ask_name_reason':
         // Apply name-only heuristic before GPT extraction
         const strippedTranscript = transcript.trim().replace(/[.,!?;:]$/, '');
@@ -2554,10 +2607,23 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
   }
 
   // App determines next stage deterministically (fixed sequence)
-  const nextStage = getNextStage(intake.stage, serviceLocationType || 'onsite');
+  const nextStage = getNextStage(intake.stage, serviceLocationType || 'onsite', intake.skipNextStage || false);
 
   // Get predefined prompt for the next stage
-  const response = STAGE_PROMPTS[nextStage] || STAGE_PROMPTS.ask_name_reason;
+  let response = STAGE_PROMPTS[nextStage] || STAGE_PROMPTS.ask_name_reason;
+
+  // If needsNameReprompt is set, use targeted name-only prompt instead
+  if (intake.needsNameReprompt) {
+    console.log('[TARGETED NAME REPROMPT] =========================================');
+    console.log('[TARGETED NAME REPROMPT] action: using_name_only_reprompt');
+    console.log('[TARGETED NAME REPROMPT] reason: caller_only_provided_reason_in_name_stage');
+    console.log('[TARGETED NAME REPROMPT] preservedService:', intake.serviceRequested);
+    console.log('[TARGETED NAME REPROMPT] Timestamp:', new Date().toISOString());
+    console.log('[TARGETED NAME REPROMPT] =========================================');
+    response = "Thank you. May I have your name, please?";
+    // Clear the flag after using it
+    intake.needsNameReprompt = false;
+  }
 
   console.log('[PREDEFINED PROMPT SENT] =========================================');
   console.log('[PREDEFINED PROMPT SENT] stage:', nextStage);
@@ -5701,6 +5767,9 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     pendingAnswerTurnId: 0 as number,
     settleWindowTimeout: null as NodeJS.Timeout | null,
     settleWindowMs: 1500,
+    // Intake edge case flags
+    skipNextStage: false as boolean,
+    needsNameReprompt: false as boolean,
     settleGeneration: 0,
     transcriptionPending: false,
     // Per-speech-generation transcription tracking to prevent overlap bugs
@@ -5739,6 +5808,8 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
   // Canonical Simple Mode prompt keys - no mapping layer
   // These are the exact keys used for cached audio lookups
   const prompts: Record<string, string> = {
+    ask_name: "Thank you for calling. May I have your name, please?",
+    ask_reason: "Thank you. What can I help you with today?",
     ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
     ask_name_reason_service_only: "And what do you need help with?",
     ask_name_reason_name_only: "And what's your name?",
@@ -5828,6 +5899,8 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
   const storeStageCapture = (stage: string, rawTranscript: string, source: string): string | null => {
     const stageToFieldMap: Record<string, string> = {
+      ask_name: 'customerName',
+      ask_reason: 'serviceRequested',
       ask_name_reason: 'customerName',
       ask_details: 'issueDescription',
       ask_location: 'serviceAddress',
@@ -5852,8 +5925,350 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     let parserRuleMatched = 'none';
     let parseNameAndServiceCalled = false;
 
+    // Special handling for ask_name: detect if caller provides both name and reason
+    if (stage === 'ask_name') {
+      console.log('[ASK_NAME EDGE CASE DETECTION] =========================================');
+      console.log('[ASK_NAME EDGE CASE DETECTION] rawTranscript:', rawTranscript);
+      console.log('[ASK_NAME EDGE CASE DETECTION] existingCustomerName:', state.intakeData.customerName);
+      console.log('[ASK_NAME EDGE CASE DETECTION] existingServiceRequested:', state.intakeData.serviceRequested);
+      console.log('[ASK_NAME EDGE CASE DETECTION] Timestamp:', new Date().toISOString());
+      console.log('[ASK_NAME EDGE CASE DETECTION] =========================================');
+
+      // Reuse the parseNameAndService function from ask_name_reason logic
+      const parseNameAndService = (text: string, existingService?: string, existingName?: string): { customerName: string; serviceRequested: string } => {
+        if (!text || typeof text !== 'string') {
+          return { customerName: existingName ?? '', serviceRequested: existingService ?? '' };
+        }
+
+        const trimmed = text.trim();
+        let customerName = existingName ?? trimmed;
+        let serviceRequested = existingService ?? '';
+
+        // Strip conversational fillers
+        const stripConversationalFillers = (s: string): string => {
+          const fillerPattern = /^(?:(?:yeah|yep|yes|uh|um|well|so|okay|ok|alright|hi|hey)(?=[,\s]|$)[,\s]*){1,2}/i;
+          return s.replace(fillerPattern, '').trim();
+        };
+
+        const normalizedInput = stripConversationalFillers(trimmed);
+        const parseText = normalizedInput;
+
+        // Common prefixes to strip from a name candidate
+        const stripNamePrefix = (s: string): string =>
+          s
+            .replace(/^(?:hi|hello|hey)[,\s]+/i, '')
+            .replace(/^(?:my name is|my name's|name is|i am|i'm|this is|it is|it's)[\s,]*/i, '')
+            .replace(/^(?:uh|um|yeah|well|actually)[\s,]+/i, '')
+            .replace(/\s+here$/i, '')
+            .trim();
+
+        const normalizeNameCandidate = (s: string): string => {
+          let normalized = stripNamePrefix(s)
+            .replace(/\s+(?:and\s+)?(?:i\s+(?:need|want|would like|am looking for|am looking to)|i'm\s+(?:looking for|looking to|trying to)|calling about)\b.*$/i, '')
+            .replace(/[.,;:]\s*$/i, '')
+            .trim();
+          normalized = stripNamePrefix(normalized);
+          return normalized;
+        };
+
+        // Common prefixes to strip from a service candidate
+        const stripServicePrefix = (s: string): string =>
+          s
+            .replace(/^(?:i want to|i would like to|i'd like to|i need to|i need|i'm looking to|i am looking to|looking to|calling about|i'm calling about|i am calling about|need someone to|to get my|get my)\s+/i, '')
+            .replace(/^[.,;:]\s*/, '')
+            .trim();
+
+        // Two-sentence pattern handling
+        const sentences = parseText.split(/\.\s+/).filter(s => s.trim());
+        if (sentences.length >= 2) {
+          const firstSentence = sentences[0].trim();
+          const secondSentence = sentences.slice(1).join('. ').trim();
+
+          const nameIntroPatterns = [
+            /^(?:hi|hello|hey)[,\s]+(?:this is|my name is|my name's|name is|i am|i'm)[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+)$/i,
+            /^(?:this is|my name is|my name's|name is|i am|i'm)[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+)$/i,
+            /^([a-z][a-z' -]{1,40}?)\s+here$/i,
+          ];
+
+          let nameFromFirstSentence: string | null = null;
+          for (const pattern of nameIntroPatterns) {
+            const match = firstSentence.match(pattern);
+            if (match) {
+              nameFromFirstSentence = normalizeNameCandidate(match[1].trim());
+              break;
+            }
+          }
+
+          const servicePatterns = [
+            /(?:i'm calling because|i am calling because|calling because)\s+(.+)/i,
+            /(?:i'm calling about|i am calling about|calling about)\s+(.+)/i,
+            /(?:i need|i want|i'd like|i would like)\s+(.+)/i,
+            /(?:looking for|looking to|need someone to)\s+(.+)/i,
+          ];
+
+          let serviceFromSecondSentence: string | null = null;
+          for (const pattern of servicePatterns) {
+            const match = secondSentence.match(pattern);
+            if (match) {
+              serviceFromSecondSentence = stripServicePrefix(match[1].trim()).replace(/[.,;]\s*$/, '');
+              break;
+            }
+          }
+
+          if (nameFromFirstSentence && serviceFromSecondSentence) {
+            customerName = nameFromFirstSentence;
+            serviceRequested = serviceFromSecondSentence;
+            parserRuleMatched = 'two_sentence_pattern';
+            return { customerName, serviceRequested };
+          }
+        }
+
+        // Comma-separated pattern handling
+        const commaIndex = parseText.indexOf(',');
+        if (commaIndex > 0 && commaIndex < parseText.length - 1) {
+          const leftSide = parseText.slice(0, commaIndex).trim();
+          const rightSide = parseText.slice(commaIndex + 1).trim();
+
+          const looksLikeName = (candidate: string): boolean => {
+            const trimmedCandidate = candidate.trim();
+            const lowerCandidate = trimmedCandidate.toLowerCase();
+            const wordCount = trimmedCandidate.split(/\s+/).length;
+            if (wordCount < 2 || wordCount > 4) return false;
+            const alphaRatio = (trimmedCandidate.match(/[a-z]/gi) || []).length / trimmedCandidate.length;
+            if (alphaRatio < 0.7) return false;
+            const servicePhrases = [
+              "i need", "i'm calling", "i am calling", "calling about",
+              "my sink", "my air conditioner", "my kitchen", "my bathroom",
+              "the pipe", "the toilet", "the faucet", "the water",
+              "looking for", "looking to", "need someone", "want to",
+              "would like", "leaking", "clogged", "stopped working",
+              "broken", "not working", "issue", "problem"
+            ];
+            if (servicePhrases.some(phrase => lowerCandidate.includes(phrase))) return false;
+            const invalidStarts = [
+              "i need", "i'm", "i am", "calling", "looking", "need",
+              "my sink", "my air", "my kitchen", "my bathroom", "my toilet",
+              "the pipe", "the toilet", "the faucet", "the water"
+            ];
+            if (invalidStarts.some(start => lowerCandidate.startsWith(start))) return false;
+            return true;
+          };
+
+          const looksLikeService = (candidate: string): boolean => {
+            const trimmedCandidate = candidate.trim();
+            const lowerCandidate = trimmedCandidate.toLowerCase();
+            const nameIntroPatterns = [
+              /^hi, this is .+$/i,
+              /^this is .+$/i,
+              /^my name is .+$/i,
+              /^my name's .+$/i,
+              /^i'm .+$/i,
+              /^i am .+$/i
+            ];
+            if (nameIntroPatterns.some(pattern => pattern.test(trimmedCandidate))) return false;
+            return true;
+          };
+
+          if (looksLikeName(leftSide) && looksLikeService(rightSide)) {
+            const nameCandidate = normalizeNameCandidate(leftSide);
+            const serviceCandidate = stripServicePrefix(rightSide).replace(/[.,;]\s*$/, '');
+            if (nameCandidate && serviceCandidate) {
+              customerName = nameCandidate;
+              serviceRequested = serviceCandidate;
+              parserRuleMatched = 'comma_separated_pattern';
+              return { customerName, serviceRequested };
+            }
+          }
+        }
+
+        // Try explicit combined patterns
+        const combinedPatterns = [
+          /(?:name is|my name is|my name's)\s+(.+?)\s*(?:\.|,|;|\band\s+i\s+(?:need|want|would like|am looking|would like)|\band\s+i'm\s+(?:looking|trying)|\band\b|$)\s*(?:i\s+(?:need|want|would like|am looking|would like)|i'm\s+(?:looking|trying))\s+(?:to\s+)?(.+)/i,
+          /(?:i'm|i am)\s+(.+?)\s*(?:\.|,|;|\band\s+i\s+(?:need|want|would like|am looking|would like)|\band\s+i'm\s+(?:looking|trying)|\band\b|$)\s*(?:i\s+(?:need|want|would like|am looking|would like)|i'm\s+(?:looking|trying))\s+(?:to\s+)?(.+)/i,
+          /(?:this is)\s+(.+?)\s*(?:\.|,|;|\band\s+i\s+(?:need|want|would like|am looking|would like)|\band\s+i'm\s+(?:looking|trying)|\band\b|$)\s*(?:i\s+(?:need|want|would like|am looking|would like)|i'm\s+(?:looking|trying))\s+(?:to\s+)?(.+)/i,
+          /^([a-z][a-z' -]{1,40}?)\s+here(?:\.|,|;|\band\b|$)\s*(?:looking for|looking to|calling about)\s+(.+)/i,
+          /^([a-z][a-z' -]{1,40}?)\.\s*(?:need someone to|looking for|looking to|calling about)\s+(.+)/i,
+          /(?:name's)\s+(.+?)\.\s*(?:calling about|looking for|looking to)\s+(.+)/i,
+        ];
+        for (const pattern of combinedPatterns) {
+          const match = parseText.match(pattern);
+          if (match) {
+            const namePart = normalizeNameCandidate(match[1].trim());
+            const servicePart = stripServicePrefix(match[2].trim()).replace(/[.,;]\s*$/, '');
+            if (namePart) customerName = namePart;
+            if (servicePart) serviceRequested = servicePart;
+            if (namePart && servicePart) {
+              parserRuleMatched = 'combined_pattern';
+              return { customerName, serviceRequested };
+            }
+          }
+        }
+
+        // Extract name first
+        const namePatterns = [
+          /^(?:hi|hello|hey)[,\s]+my name is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^my name is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^my name's[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^name is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^i am[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^i'm[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^this is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^it is[\s,]*(?:(?:uh|um|yeah|well|actually)[\s,]*)*(.+?)(?:\.|,|;|\band\b|$)/i,
+          /^([a-z][a-z' -]{1,40}?)\s+here(?:\.|,|;|\band\b|$)/i,
+          /^([a-z][a-z' -]{1,40}?)\.(?:\s|$)/i,
+        ];
+        let nameMatch: RegExpMatchArray | null = null;
+        for (const pattern of namePatterns) {
+          nameMatch = parseText.match(pattern);
+          if (nameMatch) break;
+        }
+
+        let remainingText = parseText;
+        if (nameMatch) {
+          const namePart = normalizeNameCandidate(nameMatch[1].trim());
+          if (namePart) {
+            customerName = namePart;
+            const matchIndex = parseText.indexOf(nameMatch[0]);
+            if (matchIndex >= 0) {
+              remainingText = parseText.slice(matchIndex + nameMatch[0].length).trim();
+            }
+          }
+        }
+
+        // Extract service from remaining text
+        const servicePatterns = [
+          /(?:i want to|i need to|i'd like to|i would like to|i'm looking to|i am looking to)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+          /(?:i need|i want)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+          /(?:i'm calling about|i am calling about|calling about)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+          /(?:looking for|looking to get|trying to get|need someone to)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+          /(?:to get my|get my)\s+(.+?)(?:\.|,|;|\band\b|$)/i,
+        ];
+        let serviceMatch: RegExpMatchArray | null = null;
+        for (const pattern of servicePatterns) {
+          serviceMatch = remainingText.match(pattern);
+          if (serviceMatch) break;
+        }
+
+        if (nameMatch && !serviceMatch) {
+          parserRuleMatched = 'name_only';
+        } else if (!nameMatch && serviceMatch) {
+          parserRuleMatched = 'service_only';
+        } else if (nameMatch && serviceMatch) {
+          parserRuleMatched = 'name_then_service';
+        }
+
+        if (nameMatch) {
+          const namePart = normalizeNameCandidate(nameMatch[1].trim());
+          if (namePart) customerName = namePart;
+        }
+        if (serviceMatch) {
+          const servicePart = stripServicePrefix(serviceMatch[1].trim()).replace(/[.,;]\s*$/, '');
+          if (servicePart) serviceRequested = servicePart;
+        }
+
+        // Fallback for service if no match
+        if (!serviceRequested && remainingText.length > 0) {
+          const servicePhrases = [
+            "i need", "i want", "i'd like", "i would like", "i'm calling", "i am calling",
+            "calling about", "looking for", "looking to", "need someone", "trying to"
+          ];
+          const hasServicePhrase = servicePhrases.some(phrase => remainingText.toLowerCase().includes(phrase));
+          if (hasServicePhrase) {
+            serviceRequested = remainingText;
+            parserRuleMatched = 'service_phrase_fallback';
+          }
+        }
+
+        return { customerName, serviceRequested };
+      };
+
+      parseNameAndServiceCalled = true;
+      const parseResult = parseNameAndService(rawTranscript, state.intakeData.serviceRequested, state.intakeData.customerName);
+
+      // Validation functions
+      const isValidCustomerName = (name: string): boolean => {
+        if (!name || typeof name !== 'string') return false;
+        const trimmed = name.trim();
+        if (isNonAnswer(trimmed)) return false;
+        if (trimmed.length > 50) return false;
+        const servicePhrases = [
+          "i'm calling because", "i am calling because", "i need",
+          "calling about", "looking for", "i want to", "i would like"
+        ];
+        const lowerName = trimmed.toLowerCase();
+        if (servicePhrases.some(phrase => lowerName.includes(phrase))) return false;
+        if (lowerName.includes("leaking") || lowerName.includes("stopped working") || lowerName.includes("clogged")) return false;
+        return true;
+      };
+
+      const isValidServiceRequested = (service: string): boolean => {
+        if (!service || typeof service !== 'string') return false;
+        const trimmed = service.trim();
+        const nameIntroPatterns = [
+          /^hi, this is .+$/i, /^this is .+$/i, /^my name is .+$/i,
+          /^my name's .+$/i, /^i'm .+$/i, /^i am .+$/i
+        ];
+        if (nameIntroPatterns.some(pattern => pattern.test(trimmed))) return false;
+        return true;
+      };
+
+      const parsedNameValid = parseResult.customerName && isValidCustomerName(parseResult.customerName);
+      const parsedServiceValid = parseResult.serviceRequested && isValidServiceRequested(parseResult.serviceRequested);
+
+      console.log('[ASK_NAME PARSE RESULT] =========================================');
+      console.log('[ASK_NAME PARSE RESULT] parsedName:', parseResult.customerName);
+      console.log('[ASK_NAME PARSE RESULT] parsedService:', parseResult.serviceRequested);
+      console.log('[ASK_NAME PARSE RESULT] parsedNameValid:', parsedNameValid);
+      console.log('[ASK_NAME PARSE RESULT] parsedServiceValid:', parsedServiceValid);
+      console.log('[ASK_NAME PARSE RESULT] parserRuleMatched:', parserRuleMatched);
+      console.log('[ASK_NAME PARSE RESULT] Timestamp:', new Date().toISOString());
+      console.log('[ASK_NAME PARSE RESULT] =========================================');
+
+      // Edge case 1: Caller answers both name and reason
+      if (parsedNameValid && parsedServiceValid) {
+        console.log('[ASK_NAME EDGE CASE: BOTH PROVIDED] =========================================');
+        console.log('[ASK_NAME EDGE CASE: BOTH PROVIDED] action: capture_both_and_skip_reason_stage');
+        console.log('[ASK_NAME EDGE CASE: BOTH PROVIDED] Timestamp:', new Date().toISOString());
+        console.log('[ASK_NAME EDGE CASE: BOTH PROVIDED] =========================================');
+        state.intakeData.customerName = parseResult.customerName;
+        state.intakeData.serviceRequested = parseResult.serviceRequested;
+        state.skipNextStage = true; // Skip ask_reason stage
+        capturedAnswer = parseResult.customerName;
+        extractedField = 'customerName';
+      }
+      // Edge case 2: Caller only gives reason (no name)
+      else if (!parsedNameValid && parsedServiceValid) {
+        console.log('[ASK_NAME EDGE CASE: REASON ONLY] =========================================');
+        console.log('[ASK_NAME EDGE CASE: REASON ONLY] action: capture_service_and_stay_in_name_stage');
+        console.log('[ASK_NAME EDGE CASE: REASON ONLY] Timestamp:', new Date().toISOString());
+        console.log('[ASK_NAME EDGE CASE: REASON ONLY] =========================================');
+        state.intakeData.serviceRequested = parseResult.serviceRequested;
+        state.needsNameReprompt = true; // Flag to trigger targeted name-only reprompt
+        capturedAnswer = parseResult.serviceRequested;
+        extractedField = 'serviceRequested';
+      }
+      // Normal case: Caller gives name only
+      else if (parsedNameValid) {
+        console.log('[ASK_NAME NORMAL: NAME ONLY] =========================================');
+        console.log('[ASK_NAME NORMAL: NAME ONLY] action: capture_name_and_proceed_to_reason');
+        console.log('[ASK_NAME NORMAL: NAME ONLY] Timestamp:', new Date().toISOString());
+        console.log('[ASK_NAME NORMAL: NAME ONLY] =========================================');
+        state.intakeData.customerName = parseResult.customerName;
+        capturedAnswer = parseResult.customerName;
+        extractedField = 'customerName';
+      }
+      // Fallback: No valid data
+      else {
+        console.log('[ASK_NAME FALLBACK: NO VALID DATA] =========================================');
+        console.log('[ASK_NAME FALLBACK: NO VALID DATA] action: stay_in_name_stage');
+        console.log('[ASK_NAME FALLBACK: NO VALID DATA] Timestamp:', new Date().toISOString());
+        console.log('[ASK_NAME FALLBACK: NO VALID DATA] =========================================');
+        state.answerAcceptedForStage = null; // Force re-prompt
+        return null;
+      }
+    }
     // Special handling for ask_name_reason: parse name and service from combined response
-    if (stage === 'ask_name_reason') {
+    else if (stage === 'ask_name_reason') {
       const stateCustomerNameBefore = state.intakeData.customerName;
       const stateServiceRequestedBefore = state.intakeData.serviceRequested;
       
@@ -11686,6 +12101,9 @@ wss.on('connection', (ws, req) => {
       sessionId: '',
       businessId: '',
       callSid: '',
+      // Intake edge case flags
+      skipNextStage: false as boolean,
+      needsNameReprompt: false as boolean,
       // Answer gating state
       promptStartedAt: null as number | null,
       promptCompletedAt: null as number | null,
@@ -14377,9 +14795,14 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   if (!callSessionState.intakeData && intakeData) {
                     callSessionState.intakeData = intakeData;
                     callSessionState.currentStage = intakeData.stage;
+                    // Sync flags from intakeData to state
+                    callSessionState.skipNextStage = intakeData.skipNextStage || false;
+                    callSessionState.needsNameReprompt = intakeData.needsNameReprompt || false;
                     console.log('[CALL SESSION STATE SYNC] =========================================');
                     console.log('[CALL SESSION STATE SYNC] intakeData initialized and synced to callSessionState');
                     console.log('[CALL SESSION STATE SYNC] currentStage:', callSessionState.currentStage);
+                    console.log('[CALL SESSION STATE SYNC] skipNextStage:', callSessionState.skipNextStage);
+                    console.log('[CALL SESSION STATE SYNC] needsNameReprompt:', callSessionState.needsNameReprompt);
                     console.log('[CALL SESSION STATE SYNC] Timestamp:', new Date().toISOString());
                     console.log('[CALL SESSION STATE SYNC] =========================================');
                   }
@@ -14388,10 +14811,15 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   if (callSessionState.intakeData && intakeData && callSessionState.currentStage !== intakeData.stage) {
                     callSessionState.intakeData = intakeData;
                     callSessionState.currentStage = intakeData.stage;
+                    // Sync flags from intakeData to state
+                    callSessionState.skipNextStage = intakeData.skipNextStage || false;
+                    callSessionState.needsNameReprompt = intakeData.needsNameReprompt || false;
                     console.log('[CALL SESSION STATE SYNC] =========================================');
                     console.log('[CALL SESSION STATE SYNC] stage updated and synced to callSessionState');
                     console.log('[CALL SESSION STATE SYNC] oldStage:', callSessionState.currentStage);
                     console.log('[CALL SESSION STATE SYNC] newStage:', intakeData.stage);
+                    console.log('[CALL SESSION STATE SYNC] skipNextStage:', callSessionState.skipNextStage);
+                    console.log('[CALL SESSION STATE SYNC] needsNameReprompt:', callSessionState.needsNameReprompt);
                     console.log('[CALL SESSION STATE SYNC] Timestamp:', new Date().toISOString());
                     console.log('[CALL SESSION STATE SYNC] =========================================');
                   }
@@ -14804,6 +15232,10 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                   }
 
                   intakeData!.stage = intakeResponse.nextStage;
+
+                  // Sync state flags to intakeData for persistence across stage changes
+                  intakeData!.skipNextStage = callSessionState.skipNextStage;
+                  intakeData!.needsNameReprompt = callSessionState.needsNameReprompt;
                   
                   if (intakeData!.stage === 'complete') {
                     console.log('[INTAKE COMPLETE] =========================================');
