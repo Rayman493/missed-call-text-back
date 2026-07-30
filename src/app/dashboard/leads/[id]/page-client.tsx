@@ -818,8 +818,24 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     
     // Add Payment Request events
     const paymentRequests = leadData?.paymentRequests || []
+    const currentConversationId = leadData?.conversationId || leadData?.conversation?.id
     if (paymentRequests.length > 0) {
       paymentRequests.forEach((pr: any) => {
+        // Only show payment requested events for the current conversation
+        if (pr.status === 'pending' && pr.conversation_id === currentConversationId) {
+          systemEvents.push({
+            type: 'payment_requested',
+            id: `payment-requested-${pr.id}`,
+            created_at: pr.created_at,
+            data: {
+              payment_request_id: pr.id,
+              amount_cents: pr.amount_cents,
+              description: pr.description,
+              timestamp: pr.created_at,
+              conversation_id: pr.conversation_id
+            }
+          })
+        }
         if (pr.status === 'paid') {
           systemEvents.push({
             type: 'system_event',
@@ -832,9 +848,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             }
           })
         }
-        // Note: "Payment Requested" events are no longer automatically added for pending requests
-        // For ReplyFlow Number: the message record itself appears in the conversation
-        // For Business Phone: the timeline event is created after user confirmation via external-action recording
       })
     }
     

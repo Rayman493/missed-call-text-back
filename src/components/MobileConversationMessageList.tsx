@@ -3,6 +3,7 @@ import { formatRelativeTime } from '@/lib/utils'
 import VoicemailMessage from '@/components/VoicemailMessage'
 import MessageMediaRenderer from '@/components/MessageMediaRenderer'
 import AIIntakeSummaryMessage, { isAISummaryMessage } from '@/components/AIIntakeSummaryMessage'
+import { CreditCard } from 'lucide-react'
 
 // Helper function to extract recording SID from URL
 function extractRecordingSid(url: string): string | null {
@@ -57,6 +58,37 @@ export default function MobileConversationMessageList({
   return (
     <div className="space-y-3" data-mobile-layout data-active-conversation-list>
       {conversationTimeline.map((item: any, index: number) => {
+        // Handle payment requested events
+        if (item.type === 'payment_requested') {
+          const payment = item.data
+          return (
+            <div
+              key={item.id}
+              id={item.id}
+              className="flex items-center justify-center my-4"
+            >
+              <div className="flex flex-col items-center gap-2 bg-muted/60 px-4 py-3 rounded-xl border border-border/50 shadow-sm max-w-[85%]">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-purple-500" />
+                  <span className="text-sm font-semibold text-foreground">
+                    Payment requested
+                  </span>
+                </div>
+                <div className="text-sm text-foreground/90">
+                  ${(payment.amount_cents / 100).toFixed(2)} • {payment.description}
+                </div>
+                <div className="flex items-center gap-2 text-[10px] text-muted-foreground/60">
+                  <span className="bg-purple-500/10 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded-full">
+                    Business Number
+                  </span>
+                  <span>•</span>
+                  <span>{formatRelativeTime(payment.timestamp)}</span>
+                </div>
+              </div>
+            </div>
+          )
+        }
+
         // Handle system events
         if (item.type === 'system_event') {
           const event = item.data
