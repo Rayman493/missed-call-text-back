@@ -3,7 +3,57 @@ import { formatRelativeTime } from '@/lib/utils'
 import VoicemailMessage from '@/components/VoicemailMessage'
 import MessageMediaRenderer from '@/components/MessageMediaRenderer'
 import AIIntakeSummaryMessage, { isAISummaryMessage } from '@/components/AIIntakeSummaryMessage'
-import { CreditCard } from 'lucide-react'
+import { CreditCard, CheckCircle2, XCircle, Clock, AlertCircle } from 'lucide-react'
+
+// Payment status to UI mapping
+function getPaymentStatusUI(status: string) {
+  const statusMap: Record<string, { title: string; label: string; icon: any; iconColor: string; bgColor: string }> = {
+    draft: {
+      title: 'Payment requested',
+      label: 'Draft',
+      icon: Clock,
+      iconColor: 'text-slate-500',
+      bgColor: 'bg-slate-500/10'
+    },
+    pending: {
+      title: 'Payment requested',
+      label: 'Pending',
+      icon: Clock,
+      iconColor: 'text-amber-500',
+      bgColor: 'bg-amber-500/10'
+    },
+    paid: {
+      title: 'Payment completed',
+      label: 'Paid',
+      icon: CheckCircle2,
+      iconColor: 'text-green-500',
+      bgColor: 'bg-green-500/10'
+    },
+    failed: {
+      title: 'Payment failed',
+      label: 'Failed',
+      icon: XCircle,
+      iconColor: 'text-red-500',
+      bgColor: 'bg-red-500/10'
+    },
+    cancelled: {
+      title: 'Payment canceled',
+      label: 'Canceled',
+      icon: XCircle,
+      iconColor: 'text-slate-500',
+      bgColor: 'bg-slate-500/10'
+    },
+    expired: {
+      title: 'Payment expired',
+      label: 'Expired',
+      icon: Clock,
+      iconColor: 'text-slate-500',
+      bgColor: 'bg-slate-500/10'
+    }
+  }
+
+  return statusMap[status] || statusMap.pending
+}
 
 // Helper function to extract recording SID from URL
 function extractRecordingSid(url: string): string | null {
@@ -61,6 +111,9 @@ export default function MobileConversationMessageList({
         // Handle payment requested events
         if (item.type === 'payment_requested') {
           const payment = item.data
+          const statusUI = getPaymentStatusUI(payment.status)
+          const StatusIcon = statusUI.icon
+
           return (
             <div
               key={item.id}
@@ -69,15 +122,19 @@ export default function MobileConversationMessageList({
             >
               <div className="flex flex-col items-center gap-2 bg-muted/60 px-4 py-3 rounded-xl border border-border/50 shadow-sm max-w-[85%]">
                 <div className="flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-purple-500" />
+                  <StatusIcon className={`w-4 h-4 ${statusUI.iconColor}`} />
                   <span className="text-sm font-semibold text-foreground">
-                    Payment requested
+                    {statusUI.title}
                   </span>
                 </div>
                 <div className="text-sm text-foreground/90">
                   ${(payment.amount_cents / 100).toFixed(2)} • {payment.description}
                 </div>
                 <div className="flex items-center gap-2 text-[10px] text-muted-foreground/60">
+                  <span className={`px-2 py-0.5 rounded-full ${statusUI.bgColor} ${statusUI.iconColor}`}>
+                    {statusUI.label}
+                  </span>
+                  <span>•</span>
                   <span className="bg-purple-500/10 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded-full">
                     Business Number
                   </span>

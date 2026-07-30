@@ -816,13 +816,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       })
     }
     
-    // Add Payment Request events
+    // Add Payment Request events - permanent history for all statuses
     const paymentRequests = leadData?.paymentRequests || []
     const currentConversationId = leadData?.conversationId || leadData?.conversation?.id
     if (paymentRequests.length > 0) {
       paymentRequests.forEach((pr: any) => {
-        // Only show payment requested events for the current conversation
-        if (pr.status === 'pending' && pr.conversation_id === currentConversationId) {
+        // Only show payment events for the current conversation
+        if (pr.conversation_id === currentConversationId) {
           systemEvents.push({
             type: 'payment_requested',
             id: `payment-requested-${pr.id}`,
@@ -831,20 +831,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               payment_request_id: pr.id,
               amount_cents: pr.amount_cents,
               description: pr.description,
+              status: pr.status,
+              payment_provider: pr.payment_provider,
               timestamp: pr.created_at,
-              conversation_id: pr.conversation_id
-            }
-          })
-        }
-        if (pr.status === 'paid') {
-          systemEvents.push({
-            type: 'system_event',
-            id: `payment-paid-${pr.id}`,
-            created_at: pr.paid_at || pr.created_at,
-            data: {
-              message: `Payment Received: $${(pr.amount_cents / 100).toFixed(2)}`,
-              timestamp: pr.paid_at || pr.created_at,
-              isDivider: true
+              conversation_id: pr.conversation_id,
+              paid_at: pr.paid_at,
+              cancelled_at: pr.cancelled_at,
+              failed_at: pr.failed_at,
+              expires_at: pr.expires_at
             }
           })
         }
