@@ -1,19 +1,20 @@
 'use client'
 
-import { Smartphone, MessageSquare } from 'lucide-react'
+import { Smartphone, Settings } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
+import { useRouter } from 'next/navigation'
 
 interface BusinessNumberPanelProps {
   recipient: string
   recipientName?: string
-  onSwitchToReplyFlow?: () => void
 }
 
 export default function BusinessNumberPanel({
   recipient,
-  recipientName,
-  onSwitchToReplyFlow
+  recipientName
 }: BusinessNumberPanelProps) {
+  const router = useRouter()
+
   const handleOpenMessages = () => {
     const smsUrl = `sms:${recipient}`
 
@@ -28,6 +29,10 @@ export default function BusinessNumberPanel({
     }
   }
 
+  const handleManageInSettings = () => {
+    router.push('/dashboard/settings#communication')
+  }
+
   return (
     <div className="p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl">
       <div className="flex items-start gap-3 mb-4">
@@ -39,30 +44,26 @@ export default function BusinessNumberPanel({
             Messaging via Business Number
           </h3>
           <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-            You're using your own phone number for this customer. Messages are sent and received in your messaging app and aren't synced to ReplyFlow.
+            Messaging from your Business Number happens in your phone's messaging app. ReplyFlow will continue tracking important business activity like appointments, payment requests, and AI intake.
           </p>
         </div>
       </div>
 
       <button
         onClick={handleOpenMessages}
-        className="w-full px-4 py-3 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2"
+        className="w-full px-4 py-3 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors shadow-sm flex items-center justify-center gap-2 mb-3"
       >
         <Smartphone className="w-4 h-4" />
         Open Messages
       </button>
 
-      {onSwitchToReplyFlow && (
-        <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800">
-          <button
-            onClick={onSwitchToReplyFlow}
-            className="w-full px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors flex items-center justify-center gap-2"
-          >
-            <MessageSquare className="w-4 h-4" />
-            Switch to ReplyFlow Number to keep a complete conversation history
-          </button>
-        </div>
-      )}
+      <button
+        onClick={handleManageInSettings}
+        className="w-full px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors flex items-center justify-center gap-2"
+      >
+        <Settings className="w-4 h-4" />
+        Manage in Settings
+      </button>
     </div>
   )
 }

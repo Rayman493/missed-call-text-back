@@ -39,6 +39,7 @@ import ImportContactsModal from '@/components/ImportContactsModal'
 import FollowUpSettings from '@/components/FollowUpSettings'
 import { getDefaultOutOfOfficeTemplate, getDefaultAfterHoursTemplate } from '@/lib/out-of-office'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { useSendingSource, SendingSource } from '@/hooks/useSendingSource'
 import { CreditCard, Mail, MessageSquare, Trash2, AlertTriangle, FileText, Clock, CheckCircle, Smartphone } from 'lucide-react'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 
@@ -55,6 +56,7 @@ export default function SettingsContent() {
   const router = useRouter()
   const { business, setBusiness, refreshBusiness } = useBusiness()
   const { user, signOut } = useAuth()
+  const { sendingSource, isLoading: sendingSourceLoading, updateSendingSource } = useSendingSource()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
@@ -68,6 +70,7 @@ export default function SettingsContent() {
   const [isStartingCheckout, setIsStartingCheckout] = useState(false)
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
   const [activeSection, setActiveSection] = useState('general')
+  const [showBusinessNumberWarning, setShowBusinessNumberWarning] = useState(false)
 
   // Default out of office message (use canonical template)
   const DEFAULT_OUT_OF_OFFICE_MESSAGE = getDefaultOutOfOfficeTemplate()
@@ -104,6 +107,33 @@ export default function SettingsContent() {
   const [confirmNewPassword, setConfirmNewPassword] = useState('')
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [passwordError, setPasswordError] = useState('')
+
+  // Handle Sending Number change with Business Number confirmation
+  const handleSendingSourceChange = async (source: SendingSource) => {
+    if (source === 'business') {
+      // Show confirmation modal for Business Number
+      setShowBusinessNumberWarning(true)
+    } else {
+      // Switch to ReplyFlow Number immediately (no confirmation needed)
+      try {
+        await updateSendingSource('replyflow')
+        showToast('Messaging switched to ReplyFlow Number.', 'success')
+      } catch (err) {
+        showToast('Failed to switch sending number. Please try again.', 'error')
+      }
+    }
+  }
+
+  // Confirm Business Number selection
+  const handleConfirmBusinessNumber = async () => {
+    setShowBusinessNumberWarning(false)
+    try {
+      await updateSendingSource('business')
+      showToast('Messaging switched to Business Number.', 'success')
+    } catch (err) {
+      showToast('Failed to switch sending number. Please try again.', 'error')
+    }
+  }
 
   // Spam filtering local state for immediate visual feedback
   const [spamFilteringEnabled, setSpamFilteringEnabled] = useState(false)
@@ -1243,6 +1273,87 @@ export default function SettingsContent() {
                           <div className="text-xs text-slate-600 dark:text-slate-400">{opt.desc}</div>
                         </button>
                       ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Group: Communication */}
+              <div id="communication-divider" className="flex items-center gap-3 mb-4 scroll-mt-[64px]">
+                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
+                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Communication</h3>
+                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700"></div>
+              </div>
+
+              {/* Communication Section */}
+              <div id="communication" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-slate-200/60 dark:border-slate-700/40 shadow-sm p-4 scroll-mt-[64px]">
+                <div className="mb-4">
+                  <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Sending Number</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Choose how messages are sent to your customers.</p>
+                </div>
+                <div className="space-y-3">
+                  {/* ReplyFlow Number Option */}
+                  <div
+                    onClick={() => handleSendingSourceChange('replyflow')}
+                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                      sendingSource === 'replyflow'
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                        : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">ReplyFlow Number</h3>
+                          {sendingSource === 'replyflow' && (
+                            <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full">Recommended</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-600 dark:text-slate-400">
+                          Send and receive messages directly in ReplyFlow with complete conversation history, delivery tracking, AI context, and automation.
+                        </p>
+                      </div>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                        sendingSource === 'replyflow'
+                          ? 'border-blue-500 bg-blue-500'
+                          : 'border-slate-300 dark:border-slate-600'
+                      }`}>
+                        {sendingSource === 'replyflow' && (
+                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Business Number Option */}
+                  <div
+                    onClick={() => handleSendingSourceChange('business')}
+                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                      sendingSource === 'business'
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                        : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1">
+                        <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Business Number</h3>
+                        <p className="text-xs text-slate-600 dark:text-slate-400">
+                          Send messages from your existing business number using your phone's messaging app.
+                        </p>
+                      </div>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                        sendingSource === 'business'
+                          ? 'border-blue-500 bg-blue-500'
+                          : 'border-slate-300 dark:border-slate-600'
+                      }`}>
+                        {sendingSource === 'business' && (
+                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2713,6 +2824,48 @@ export default function SettingsContent() {
               showToast('✓ Settings saved', 'success')
             }}
           />
+
+          {/* Business Number Confirmation Modal */}
+          {showBusinessNumberWarning && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+              <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl max-w-md w-full p-6">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">
+                  Use Your Business Number?
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                  ReplyFlow recommends using your ReplyFlow Number for the best messaging experience.
+                </p>
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 mb-4">
+                  <p className="text-sm font-medium text-slate-900 dark:text-foreground mb-2">
+                    When using your Business Number:
+                  </p>
+                  <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1">
+                    <li>• Messages are sent through your phone's messaging app</li>
+                    <li>• Conversations do not sync back to ReplyFlow</li>
+                    <li>• Sent and delivered tracking is unavailable</li>
+                    <li>• AI will not have the complete message history</li>
+                  </ul>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">
+                    ReplyFlow will still track important business activity such as appointments, payment requests, payments, AI intake, and job updates.
+                  </p>
+                </div>
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => setShowBusinessNumberWarning(false)}
+                    className="px-4 py-2 text-sm font-medium rounded-lg transition-colors bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
+                  >
+                    Keep ReplyFlow Number
+                  </button>
+                  <button
+                    onClick={handleConfirmBusinessNumber}
+                    className="px-4 py-2 text-sm font-medium rounded-lg transition-colors bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    Use Business Number Anyway
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Toast Container */}
           <ToastContainer toasts={toasts} onRemoveToast={removeToast} />

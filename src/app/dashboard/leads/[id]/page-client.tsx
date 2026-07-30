@@ -47,7 +47,6 @@ import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smar
 import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
 import SuccessBanner from '@/components/SuccessBanner'
 import BusinessPhoneModal from '@/components/BusinessPhoneModal'
-import SendingNumberControl from '@/components/SendingNumberControl'
 import { useSendingSource } from '@/hooks/useSendingSource'
 import { useSupportsBusinessNumber } from '@/lib/platform-capabilities'
 
@@ -2994,10 +2993,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               
               {/* Actions */}
               <div className="flex items-center gap-1.5 flex-shrink-0">
-                {/* Sending Number Dropdown - Only show on native mobile */}
-                {supportsBusiness && (
-                  <SendingNumberControl compact showLabel={false} dropdown />
-                )}
                 {/* Info Button */}
                 <button
                   onClick={() => setShowLeadInfo(!showLeadInfo)}
@@ -3259,13 +3254,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   />
                 </div>
 
-                {/* Sending Number Dropdown - Only show on native mobile */}
-                {supportsBusiness && (
-                  <div className="flex-shrink-0">
-                    <SendingNumberControl compact showLabel={false} dropdown />
-                  </div>
-                )}
-
                 {/* Primary Actions */}
                 <div className="flex items-center gap-2">
                   {supportsBusiness && (
@@ -3495,7 +3483,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <section className="flex flex-col min-h-0 h-[calc(100vh-260px)]">
               {/* Desktop Conversation Header */}
               <div className="flex items-center justify-between px-5 py-3 mb-2">
-                <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground">Conversation</h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-semibold text-slate-900 dark:text-foreground">Conversation</h2>
+                  {(() => {
+                    const effectiveSource = (sendingSource === 'business' && supportsBusiness) ? 'business' : 'replyflow'
+                    return (
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                        {effectiveSource === 'replyflow' ? 'Messaging via ReplyFlow Number' : 'Messaging via Business Number'}
+                      </span>
+                    )
+                  })()}
+                </div>
               </div>
               
               {/* Desktop Message Thread - Scrollable */}
@@ -3544,12 +3542,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <BusinessNumberPanel
                         recipient={dialNumber}
                         recipientName={customerName}
-                        onSwitchToReplyFlow={() => {
-                          // Switch to ReplyFlow by updating the sending source
-                          // This will trigger a re-render and show the ConversationComposer
-                          // The actual implementation depends on how sendingSource is managed
-                          console.log('[BusinessNumberPanel] Switch to ReplyFlow requested')
-                        }}
                       />
                     )
                   }
@@ -3816,9 +3808,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <BusinessNumberPanel
                       recipient={dialNumber}
                       recipientName={customerName}
-                      onSwitchToReplyFlow={() => {
-                        console.log('[BusinessNumberPanel] Switch to ReplyFlow requested')
-                      }}
                     />
                   )
                 }
