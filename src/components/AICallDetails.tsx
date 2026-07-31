@@ -209,12 +209,12 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
   // Unified intake field rendering for both desktop and mobile
   const renderIntakeFields = () => {
     return (
-      <div className="space-y-5">
+      <div className="space-y-3">
         {/* Name */}
         {isEditMode || extractedInfo?.callerName ? (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Name</span>
+          <div className="rounded-lg border border-border/25 bg-background/25 px-3.5 py-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">Name</span>
               {manualFields.has('callerName') && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
               )}
@@ -228,8 +228,8 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 placeholder="Customer name"
               />
             ) : (
-              <p className="text-sm text-foreground leading-relaxed">
-                {extractedInfo?.callerName || 'Not Provided'}
+              <p className="text-sm font-medium leading-relaxed text-foreground">
+                {extractedInfo?.callerName || 'Not provided'}
               </p>
             )}
           </div>
@@ -237,9 +237,9 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
         {/* Request - Combined field */}
         {isEditMode || extractedInfo?.reasonForCalling || extractedInfo?.importantDetails || correctedFields?.details ? (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Request</span>
+          <div className="rounded-lg border border-border/25 bg-background/25 px-3.5 py-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">Request</span>
               {(manualFields.has('reasonForCalling') || manualFields.has('importantDetails')) && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
               )}
@@ -270,15 +270,15 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 placeholder="What can we help you with? Feel free to include any details."
               />
             ) : (
-              <p className="text-sm text-foreground leading-relaxed">
+              <p className="text-sm font-medium leading-relaxed text-foreground">
                 {(() => {
                   const reason = correctedFields?.serviceRequested ? sentenceCase(correctedFields.serviceRequested) : (extractedInfo?.reasonForCalling ? sentenceCase(extractedInfo.reasonForCalling) : '');
                   const details = correctedFields?.details ? sentenceCase(correctedFields.details) : (extractedInfo?.importantDetails ? sentenceCase(extractedInfo.importantDetails) : '');
-                  
+
                   // Only concatenate details if it contains a real value (not a placeholder)
                   const isPlaceholder = (text: string) => !text || text === 'Not collected' || text === 'Not Provided' || text === 'Unknown' || text === 'N/A';
-                  const combined = reason && !isPlaceholder(details) ? `${reason}\n\n${details}` : (reason || (!isPlaceholder(details) ? details : 'Not Provided'));
-                  
+                  const combined = reason && !isPlaceholder(details) ? `${reason}\n\n${details}` : (reason || (!isPlaceholder(details) ? details : 'Not provided'));
+
                   if (!detailsExpanded && combined.length > 200) {
                     return combined.substring(0, 200) + '...';
                   }
@@ -291,9 +291,9 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
         {/* Address - only show for onsite mode or if address is provided */}
         {isEditMode || (requiresServiceAddress && (extractedInfo?.addressOrLocation || correctedFields?.address)) ? (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Address</span>
+          <div className="rounded-lg border border-border/25 bg-background/25 px-3.5 py-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">Address</span>
               {manualFields.has('addressOrLocation') && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
               )}
@@ -307,7 +307,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 placeholder="Service address"
               />
             ) : (
-              <p className="text-sm text-foreground leading-relaxed">
+              <p className="text-sm font-medium leading-relaxed text-foreground">
                 {correctedFields?.address || extractedInfo?.addressOrLocation || 'Not provided'}
               </p>
             )}
@@ -316,9 +316,9 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
         {/* Completion Time */}
         {isEditMode || extractedInfo?.desiredCompletionTime ? (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Completion Time</span>
+          <div className="rounded-lg border border-border/25 bg-background/25 px-3.5 py-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">Completion Time</span>
               {manualFields.has('desiredCompletionTime') && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
               )}
@@ -332,7 +332,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 placeholder="Desired completion"
               />
             ) : (
-              <p className="text-sm text-foreground leading-relaxed">
+              <p className="text-sm font-medium leading-relaxed text-foreground">
                 {sentenceCase(extractedInfo.desiredCompletionTime)}
               </p>
             )}
@@ -341,9 +341,9 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
         {/* Callback Time */}
         {isEditMode || extractedInfo?.preferredCallbackTime ? (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Callback Time</span>
+          <div className="rounded-lg border border-border/25 bg-background/25 px-3.5 py-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">Callback Time</span>
               {manualFields.has('preferredCallbackTime') && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
               )}
@@ -357,7 +357,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 placeholder="Best time to call"
               />
             ) : (
-              <p className="text-sm text-foreground leading-relaxed">
+              <p className="text-sm font-medium leading-relaxed text-foreground">
                 {sentenceCase(extractedInfo.preferredCallbackTime)}
               </p>
             )}
@@ -494,76 +494,87 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
     <div className="space-y-4">
       {/* AI Summary Card - Compact and Collapsible - Current Request */}
       {collapsible ? (
-        <div className="bg-muted/70 rounded-xl border border-border/60 shadow-xl overflow-hidden relative">
-          {/* Left Accent - Inset to align with content */}
-          <div className="absolute left-4 top-5 bottom-5 w-1 bg-blue-500 rounded-l-xl"></div>
-          <div className="px-6 py-5 flex items-center justify-between border-b border-border/40 pl-8">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setSummaryExpanded(!summaryExpanded)}
-                className="flex items-center gap-3 hover:bg-muted/50 transition-colors duration-200"
-              >
-                <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shadow-sm">
-                  <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="bg-muted/45 rounded-xl border border-border/45 shadow-md overflow-hidden relative">
+          {/* Header Region */}
+          <div className="px-5 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {/* Blue check icon container - 36-40px */}
+                <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center relative">
+                  {/* Blue accent bar - contained within header */}
+                  <div className="absolute left-0 top-1 bottom-1 w-0.5 bg-blue-500 rounded-l"></div>
+                  <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 relative z-10 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
+                {/* Title and subtitle */}
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-base font-semibold text-foreground leading-tight">
+                  <span className="text-sm font-semibold text-foreground leading-tight">
                     AI Intake
                   </span>
                   <span className="text-[11px] text-muted-foreground font-normal leading-tight">
                     Captured from AI Voice
                   </span>
                 </div>
-              </button>
-            </div>
-            <div className="flex items-center gap-2 self-center">
-              {isEditMode ? (
-                <div className="flex items-center gap-2">
+              </div>
+
+              <div className="flex items-center gap-2">
+                {isEditMode ? (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleCancel}
+                      disabled={isSaving}
+                      className="text-xs text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-medium disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSave}
+                      disabled={isSaving}
+                      className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium disabled:opacity-50 flex items-center gap-1"
+                    >
+                      {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                      Save
+                    </button>
+                  </div>
+                ) : (
                   <button
-                    onClick={handleCancel}
-                    disabled={isSaving}
-                    className="text-xs text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-medium disabled:opacity-50"
+                    onClick={() => {
+                      setSummaryExpanded(true)
+                      setIsEditMode(true)
+                      setEditValues({
+                        callerName: extractedInfo?.callerName || '',
+                        reasonForCalling: extractedInfo?.reasonForCalling || '',
+                        importantDetails: extractedInfo?.importantDetails || '',
+                        addressOrLocation: extractedInfo?.addressOrLocation || '',
+                        preferredCallbackTime: extractedInfo?.preferredCallbackTime || '',
+                        desiredCompletionTime: extractedInfo?.desiredCompletionTime || ''
+                      })
+                    }}
+                    className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
+                    title="Edit customer information"
+                    aria-label="Edit customer information"
                   >
-                    Cancel
+                    <Pencil className="w-4 h-4" />
                   </button>
-                  <button
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium disabled:opacity-50 flex items-center gap-1"
-                  >
-                    {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                    Save
-                  </button>
-                </div>
-              ) : (
+                )}
                 <button
-                  onClick={() => {
-                    setSummaryExpanded(true)
-                    setIsEditMode(true)
-                    setEditValues({
-                      callerName: extractedInfo?.callerName || '',
-                      reasonForCalling: extractedInfo?.reasonForCalling || '',
-                      importantDetails: extractedInfo?.importantDetails || '',
-                      addressOrLocation: extractedInfo?.addressOrLocation || '',
-                      preferredCallbackTime: extractedInfo?.preferredCallbackTime || '',
-                      desiredCompletionTime: extractedInfo?.desiredCompletionTime || ''
-                    })
-                  }}
-                  className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
-                  title="Edit customer information"
-                  aria-label="Edit customer information"
+                  onClick={() => setSummaryExpanded(!summaryExpanded)}
+                  className="p-2 text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
+                  aria-label={summaryExpanded ? 'Collapse' : 'Expand'}
                 >
-                  <Pencil className="w-3.5 h-3.5" />
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${summaryExpanded ? 'rotate-180' : 'rotate-0'}`} />
                 </button>
-              )}
-              <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${summaryExpanded ? 'rotate-180' : 'rotate-0'}`} />
+              </div>
             </div>
           </div>
+
+          {/* Divider */}
+          <div className="border-t border-border/30" />
           
+          {/* Content Region */}
           {summaryExpanded && (
-            <div className="px-7 pb-6 pt-5 pr-7">
+            <div className="px-5 py-5">
               {/* Save error */}
               {saveError && (
                 <div className="mb-3 px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-xs text-red-600 dark:text-red-400">
@@ -577,78 +588,76 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           )}
       </div>
       ) : (
-        <div className="space-y-4">
-          {/* Card Header */}
-          <div className="flex items-center justify-between border-b border-border/40 pb-5 relative">
-            {/* Left Accent - Inset to align with content */}
-            <div className="absolute left-4 top-0 bottom-0 w-1 bg-blue-500 rounded-t-xl"></div>
-            <div className="flex items-center gap-4 pl-8">
-              <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shadow-sm">
-                <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <span className="text-base font-semibold text-foreground leading-tight">
-                  AI Intake
-                </span>
-                <span className="text-[11px] text-muted-foreground font-normal leading-tight">
-                  Captured from AI Voice
-                </span>
-              </div>
-            </div>
-            {/* Edit Controls */}
-            <div className="flex items-center gap-2 self-center">
-              {isEditMode ? (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleCancel}
-                    disabled={isSaving}
-                    className="text-xs text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-medium disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium disabled:opacity-50 flex items-center gap-1"
-                  >
-                    {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                    Save
-                  </button>
+        <div className="bg-muted/45 rounded-xl border border-border/45 shadow-md overflow-hidden">
+          {/* Header Region */}
+          <div className="px-5 py-4 border-b border-border/30">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {/* Blue check icon container - 36-40px */}
+                <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center relative">
+                  {/* Blue accent bar - contained within header */}
+                  <div className="absolute left-0 top-1 bottom-1 w-0.5 bg-blue-500 rounded-l"></div>
+                  <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 relative z-10 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
                 </div>
-              ) : (
-                <button
-                  onClick={() => {
-                    setIsEditMode(true)
-                    setEditValues({
-                      callerName: extractedInfo?.callerName || '',
-                      reasonForCalling: extractedInfo?.reasonForCalling || '',
-                      importantDetails: extractedInfo?.importantDetails || '',
-                      addressOrLocation: extractedInfo?.addressOrLocation || '',
-                      preferredCallbackTime: extractedInfo?.preferredCallbackTime || '',
-                      desiredCompletionTime: extractedInfo?.desiredCompletionTime || ''
-                    })
-                  }}
-                  className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
-                  title="Edit customer information"
-                  aria-label="Edit customer information"
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                </button>
-              )}
+                {/* Title and subtitle */}
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-sm font-semibold text-foreground leading-tight">
+                    AI Intake
+                  </span>
+                  <span className="text-[11px] text-muted-foreground font-normal leading-tight">
+                    Captured from AI Voice
+                  </span>
+                </div>
+              </div>
+
+              {/* Edit Controls */}
+              <div className="flex items-center gap-2">
+                {isEditMode ? (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleCancel}
+                      disabled={isSaving}
+                      className="text-xs text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-medium disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSave}
+                      disabled={isSaving}
+                      className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium disabled:opacity-50 flex items-center gap-1"
+                    >
+                      {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                      Save
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setIsEditMode(true)
+                      setEditValues({
+                        callerName: extractedInfo?.callerName || '',
+                        reasonForCalling: extractedInfo?.reasonForCalling || '',
+                        importantDetails: extractedInfo?.importantDetails || '',
+                        addressOrLocation: extractedInfo?.addressOrLocation || '',
+                        preferredCallbackTime: extractedInfo?.preferredCallbackTime || '',
+                        desiredCompletionTime: extractedInfo?.desiredCompletionTime || ''
+                      })
+                    }}
+                    className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
+                    title="Edit customer information"
+                    aria-label="Edit customer information"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Save error */}
-          {saveError && (
-            <div className="mb-3 px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-xs text-red-600 dark:text-red-400 pl-7">
-              {saveError}
-            </div>
-          )}
-
-          {/* Unified Intake Fields */}
-          <div className="pl-7">
+          {/* Content Region */}
+          <div className="px-5 py-5">
             {renderIntakeFields()}
           </div>
         </div>
@@ -656,12 +665,12 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
       {/* Full AI Conversation Transcript - Collapsible */}
       {selectedRecord?.transcript && selectedRecord.transcript.length > 0 && (
-        <div className="bg-card/50 border border-border/30 rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-card/60 border border-border/25 rounded-lg shadow-sm overflow-hidden">
           <button
             onClick={() => setFullTranscriptExpanded(!fullTranscriptExpanded)}
-            className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-muted/40 transition-colors"
+            className="w-full px-3.5 py-3 flex items-center justify-between hover:bg-muted/30 transition-colors"
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800/50 flex items-center justify-center">
                 <MessageCircle className="w-4 h-4 text-slate-600 dark:text-slate-400" />
               </div>
@@ -673,7 +682,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           </button>
 
           {fullTranscriptExpanded && (
-            <div className="px-4 pb-4 pt-2 border-t border-border/50">
+            <div className="px-3.5 pb-3 pt-2 border-t border-border/30">
               <div className="space-y-2.5 max-h-96 overflow-y-auto">
                 {(() => {
                   const messages = normalizeAITranscript(selectedRecord.transcript);
@@ -718,12 +727,12 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
       )}
 
       {/* AI Summary - Collapsible */}
-      <div className="bg-card/50 border border-border/30 rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-card/60 border border-border/25 rounded-lg shadow-sm overflow-hidden">
         <button
           onClick={() => setAiSummaryExpanded(!aiSummaryExpanded)}
-          className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-muted/40 transition-colors"
+          className="w-full px-3.5 py-3 flex items-center justify-between hover:bg-muted/30 transition-colors"
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
               <Sparkles className="w-4 h-4 text-white" />
             </div>
