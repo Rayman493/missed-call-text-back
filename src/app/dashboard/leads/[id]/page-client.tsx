@@ -4119,7 +4119,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <button
                         onClick={() => handleSendMessage(mobileImages.length > 0 ? mobileImages : undefined)}
                         disabled={(!message.trim() && mobileImages.length === 0) || sending}
-                        className={`w-11 h-11 rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow flex items-center justify-center gap-1.5 flex-none disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:ring-offset-2 focus:ring-offset-background ${
+                        className={`w-11 h-11 rounded-lg font-medium transition-all duration-200 shadow-sm hover:shadow flex items-center justify-center flex-none disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:ring-offset-2 focus:ring-offset-background ${
                           (message.trim() || mobileImages.length > 0) && !sending
                             ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-md hover:shadow-lg'
                             : 'bg-muted/50 dark:bg-muted/30 text-muted-foreground/50 dark:text-muted-foreground/40 hover:bg-muted/60 dark:hover:bg-muted/40 disabled:cursor-not-allowed'
@@ -4127,10 +4127,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         aria-label="Send message"
                       >
                         {sending ? (
-                          <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018 8v4h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
+                          <span
+                            aria-hidden="true"
+                            className="h-3.5 w-3.5 rounded-full border-2 border-current/30 border-t-current motion-safe:animate-spin motion-reduce:animate-none"
+                          />
                         ) : (
                           <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
