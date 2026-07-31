@@ -26,9 +26,20 @@ function getMediaUrl(originalUrl: string): string {
 
 // Helper function to fetch authenticated media for Twilio URLs with one-time recovery
 async function fetchAuthenticatedMedia(mediaUrl: string, mediaId: string, recoveryState: 'idle' | 'refreshing' | 'recovered' | 'failed', setRecoveryState: (state: 'idle' | 'refreshing' | 'recovered' | 'failed') => void): Promise<string | null> {
+  // If it's a blob: URL (local preview), return as-is - no auth or recovery needed
+  if (mediaUrl.startsWith('blob:')) {
+    return mediaUrl
+  }
+
   // If it's a Supabase URL, return as-is
   if (mediaUrl.includes('supabase.co') || mediaUrl.includes('/storage/v1')) {
     return mediaUrl
+  }
+
+  // Guard against empty URLs
+  if (!mediaUrl || mediaUrl.trim() === '') {
+    console.error('[MessageMediaRenderer] Empty media URL provided')
+    return null
   }
 
   // If it's a ReplyFlow MMS media URL, try to recover it once if expired

@@ -50,6 +50,7 @@ export function assertValidOutboundMmsMediaUrl(urlString: string): URL {
     console.log('[MMS URL Validator] Valid MMS media URL:', {
       pathname: url.pathname,
       tokenLength: token.length,
+      tokenSegmentCount: dotCount + 1,
       tokenDotCount: dotCount,
       tokenPrefix: token.substring(0, 6),
       tokenSuffix: token.slice(-6)

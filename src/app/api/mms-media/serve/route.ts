@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
       pathPreview: filePath ? filePath.substring(0, 50) : undefined,
       tokenPresent: !!authToken,
       tokenLength: authToken?.length,
+      tokenSegmentCount: authToken ? authToken.split('.').length : 0,
       tokenDotCount: authToken ? authToken.split('.').length - 1 : 0,
       tokenPrefix: authToken ? authToken.substring(0, 6) : undefined,
       tokenSuffix: authToken ? authToken.slice(-6) : undefined

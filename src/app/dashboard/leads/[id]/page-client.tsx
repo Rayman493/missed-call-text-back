@@ -2095,7 +2095,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         success: result.success,
         error: result.error,
         hasMessage: !!result.message,
-        messageSid: result.message?.twilio_message_sid
+        messageSid: result.message?.twilio_message_sid,
+        twilioAccepted: result.twilioAccepted,
+        messagePersisted: result.messagePersisted,
+        mediaPersisted: result.mediaPersisted,
+        mediaPersistenceError: result.mediaPersistenceError
       })
 
       if (!response.ok) {

@@ -55,7 +55,8 @@ export async function generateMmsMediaToken(filePath: string): Promise<string> {
 
   console.log('[MMS Media Token] Token generated successfully:', {
     tokenLength: token.length,
-    tokenDotCount: segments.length,
+    tokenSegmentCount: segments.length,
+    tokenDotCount: segments.length - 1,
     expiresAt: new Date(exp * 1000).toISOString(),
     storagePath: filePath.substring(0, 50)
   })
@@ -71,6 +72,7 @@ export async function verifyMmsMediaToken(token: string, expectedPath: string): 
   console.log('[MMS Media Token] Verification attempt:', {
     tokenPresent: !!token,
     tokenLength: token?.length,
+    tokenSegmentCount: token ? token.split('.').length : 0,
     tokenDotCount: token ? token.split('.').length - 1 : 0,
     tokenPrefix: token ? token.substring(0, 6) : undefined,
     tokenSuffix: token ? token.slice(-6) : undefined,

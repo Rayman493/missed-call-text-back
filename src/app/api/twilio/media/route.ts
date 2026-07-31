@@ -55,6 +55,7 @@ export async function GET(request: NextRequest) {
       console.log('[Twilio Media Proxy] ReplyFlow URL request:', {
         tokenPresent: !!token,
         tokenLength: token?.length,
+        tokenSegmentCount: token ? token.split('.').length : 0,
         tokenDotCount: token ? token.split('.').length - 1 : 0,
         tokenPrefix: token ? token.substring(0, 6) : undefined,
         tokenSuffix: token ? token.slice(-6) : undefined,

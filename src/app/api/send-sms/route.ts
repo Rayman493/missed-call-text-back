@@ -394,6 +394,9 @@ export async function POST(request: Request) {
 
     // Store media in message_media table if present
     let mediaItems: any[] = []
+    let mediaPersisted = false
+    let mediaPersistenceError = null
+
     if (mediaUrls.length > 0 && messageId) {
       try {
         console.log('[MMS API] Inserting media using direct message ID:', {
@@ -416,22 +419,21 @@ export async function POST(request: Request) {
             created_at: new Date().toISOString(),
           }
 
-          // Include storage_path if available (for new schema)
-          if (storagePath) {
-            insertData.storage_path = storagePath
-          }
-
+          // Note: storage_path is not included because production schema doesn't have this column yet
+          // Storage path can be derived from media_url when needed for recovery
           const { error: mediaError } = await supabaseAdmin
             .from('message_media')
             .insert(insertData)
 
           if (mediaError) {
             console.error('[MMS API] Error storing media in database:', mediaError)
+            mediaPersistenceError = mediaError.message
           } else {
             console.log('[MMS API] Media stored successfully:', {
               messageId,
               mediaUrl: mediaUrl.substring(0, 50) + '...'
             })
+            mediaPersisted = true
             mediaItems.push({
               media_url: mediaUrl,
               mime_type: 'image/jpeg'
@@ -440,6 +442,7 @@ export async function POST(request: Request) {
         }
       } catch (error) {
         console.error('[MMS API] Error storing media metadata:', error)
+        mediaPersistenceError = error instanceof Error ? error.message : String(error)
         // Don't fail the request - message was sent successfully
       }
     } else if (mediaUrls.length > 0 && !messageId) {
@@ -465,6 +468,10 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       clientMessageId: clientMessageId,
+      twilioAccepted: true,
+      messagePersisted: !!messageId,
+      mediaPersisted: mediaPersisted,
+      mediaPersistenceError: mediaPersistenceError,
       message: {
         id: messageId,
         lead_id: leadId,
