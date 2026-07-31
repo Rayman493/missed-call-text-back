@@ -8660,6 +8660,106 @@ Reply to this message if you'd like to update or add any information.
         console.log('[SIMPLE MODE] conversationId:', conversation.id);
         console.log('[SIMPLE MODE] =========================================');
 
+        // Persist AI summary and transcript messages to the conversation
+        console.log('[SIMPLE MODE] =========================================');
+        console.log('[SIMPLE MODE] event: simple_mode_message_persistence_started');
+        console.log('[SIMPLE MODE] callSid:', state.callSid);
+        console.log('[SIMPLE MODE] leadId:', lead.id);
+        console.log('[SIMPLE MODE] conversationId:', conversation.id);
+        console.log('[SIMPLE MODE] =========================================');
+
+        try {
+          // Construct a business-facing summary from intake data (conditional, no placeholders)
+          const parts: string[] = [];
+          
+          if (state.intakeData.customerName) {
+            parts.push(`${state.intakeData.customerName} called`);
+          } else {
+            parts.push('Caller called');
+          }
+          
+          if (state.intakeData.serviceRequested) {
+            parts.push(`regarding ${state.intakeData.serviceRequested}`);
+          }
+          
+          if (state.intakeData.issueDescription) {
+            parts.push(state.intakeData.issueDescription);
+          }
+          
+          if (state.intakeData.serviceAddress) {
+            parts.push(`Service location: ${state.intakeData.serviceAddress}`);
+          }
+          
+          if (state.intakeData.desiredCompletionTime) {
+            parts.push(`Requested completion: ${state.intakeData.desiredCompletionTime}`);
+          }
+          
+          if (state.intakeData.callbackTime) {
+            parts.push(`Callback requested: ${state.intakeData.callbackTime}`);
+          }
+          
+          const summaryMessage = parts.join('. ') + (parts.length > 0 ? '.' : '');
+
+          // Construct readable transcript from stage captures (Simple Mode doesn't have role labels)
+          let transcriptMessage = '';
+          if (state.stageCaptures && state.stageCaptures.length > 0) {
+            transcriptMessage = state.stageCaptures
+              .map(c => c.rawTranscript)
+              .join('\n');
+          } else if (state.transcript) {
+            // Fallback to raw transcript if no stage captures
+            transcriptMessage = state.transcript;
+          }
+
+          const persistResult = await persistAiCallConversationMessages({
+            supabase,
+            callSid: state.callSid,
+            conversationId: conversation.id,
+            leadId: lead.id,
+            fromPhone: state.callerPhone,
+            toPhone: state.businessPhone,
+            summary: summaryMessage,
+            transcript: transcriptMessage,
+            extractedFields: canonicalExtractedInfo,
+          });
+
+          const summarySucceeded = persistResult.summary.status === 'inserted' || persistResult.summary.status === 'already_exists';
+          const transcriptSucceeded = persistResult.transcript.status === 'inserted' || persistResult.transcript.status === 'already_exists';
+          const anyFailed = persistResult.summary.status === 'failed' || persistResult.transcript.status === 'failed';
+          
+          if (summarySucceeded || transcriptSucceeded) {
+            console.log('[SIMPLE MODE] =========================================');
+            console.log('[SIMPLE MODE] event: simple_mode_message_persistence_succeeded');
+            console.log('[SIMPLE MODE] callSid:', state.callSid);
+            console.log('[SIMPLE MODE] leadId:', lead.id);
+            console.log('[SIMPLE MODE] conversationId:', conversation.id);
+            console.log('[SIMPLE MODE] summaryStatus:', persistResult.summary.status);
+            console.log('[SIMPLE MODE] transcriptStatus:', persistResult.transcript.status);
+            console.log('[SIMPLE MODE] =========================================');
+          }
+          
+          if (anyFailed) {
+            console.log('[SIMPLE MODE] =========================================');
+            console.log('[SIMPLE MODE] event: simple_mode_message_persistence_failed');
+            console.log('[SIMPLE MODE] callSid:', state.callSid);
+            console.log('[SIMPLE MODE] leadId:', lead.id);
+            console.log('[SIMPLE MODE] conversationId:', conversation.id);
+            console.log('[SIMPLE MODE] summaryStatus:', persistResult.summary.status);
+            console.log('[SIMPLE MODE] summaryError:', persistResult.summary.error);
+            console.log('[SIMPLE MODE] transcriptStatus:', persistResult.transcript.status);
+            console.log('[SIMPLE MODE] transcriptError:', persistResult.transcript.error);
+            console.log('[SIMPLE MODE] =========================================');
+          }
+        } catch (persistError: any) {
+          console.log('[SIMPLE MODE] =========================================');
+          console.log('[SIMPLE MODE] event: simple_mode_message_persistence_failed');
+          console.log('[SIMPLE MODE] callSid:', state.callSid);
+          console.log('[SIMPLE MODE] leadId:', lead.id);
+          console.log('[SIMPLE MODE] conversationId:', conversation.id);
+          console.log('[SIMPLE MODE] error:', persistError?.message || String(persistError));
+          console.log('[SIMPLE MODE] =========================================');
+        }
+
         // ── A: Update leads.raw_metadata with completion metadata only ───────
         // CRITICAL: Do NOT overwrite extracted_info fields - preserve historical intake data
         // ai_call_records is the authoritative intake history
