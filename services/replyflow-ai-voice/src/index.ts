@@ -4947,7 +4947,7 @@ async function createFallbackLead(
         caller_phone: callerPhone || 'unknown',
         call_sid: callSid || 'unknown',
         transcript: [],
-        outcome: 'ai_failed_voicemail',
+        outcome: 'voicemail_fallback',
         extraction_failed: false
       };
     console.log('[AI CALL RECORD OUTCOME]', {
@@ -17413,7 +17413,7 @@ Return only JSON, no other text.`;
                     caller_phone: sessionCallerPhone || 'unknown',
                     call_sid: sessionCallSid || 'unknown',
                     transcript: [],
-                    outcome: 'ai_failed_voicemail',
+                    outcome: 'voicemail_fallback',
                     extracted_info: null,
                     summary: 'AI call completed (no transcript)',
                     extraction_failed: true
@@ -17499,7 +17499,7 @@ Return only JSON, no other text.`;
                     call_sid: sessionCallSid || 'unknown',
                     ai_session_id: sessionSessionId,
                     transcript: Array.isArray(transcript) ? transcript : [],
-                    outcome: 'ai_completed',
+                    outcome: 'completed',
                     extracted_info: buildCanonicalExtractedInfo(extractedFields, sessionCallerPhone),
                     summary: extractedFields.summary,
                     extraction_failed: false
@@ -17846,7 +17846,7 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
                     call_sid: sessionCallSid || 'unknown',
                     ai_session_id: sessionSessionId,
                     transcript: Array.isArray(transcript) ? transcript : [],
-                    outcome: 'ai_partial',
+                    outcome: 'partial_intake',
                     extraction_failed: false
                   };
                 console.log('[AI CALL RECORD OUTCOME]', {
@@ -18131,7 +18131,7 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
                       call_sid: sessionCallSid || 'unknown',
                       ai_session_id: sessionSessionId,
                       transcript: Array.isArray(transcript) ? transcript : [],
-                      outcome: 'ai_failed_voicemail',
+                      outcome: 'voicemail_fallback',
                       extracted_info: null,
                       summary: `AI call transcript: ${fullTranscript}`,
                       extraction_failed: true
