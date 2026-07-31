@@ -5,10 +5,9 @@ import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
-import { notificationService, Notification, NotificationCount } from '@/lib/notifications'
-import { createBrowserClient } from '@/lib/supabase/browser'
+import { useNotifications } from '@/contexts/NotificationContext'
+import { Notification } from '@/lib/notifications'
 import { Bell, Check, MessageCircle, PhoneMissed, Send, Calendar, Info, CheckCircle, AlertTriangle, User, MessageSquare, Clock, CreditCard, Trash2, X } from 'lucide-react'
-import { getLeadDisplayName, formatPhoneNumber } from '@/lib/utils'
 
 // Hook to detect mobile breakpoint
 const useIsMobile = () => {
@@ -69,15 +68,21 @@ const useBodyScrollLock = (isOpen: boolean) => {
 export default function NavbarNotifications() {
   const { business } = useBusiness()
   const router = useRouter()
+  const {
+    notifications,
+    notificationCount,
+    displayedUnreadCount,
+    loading,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    initializeForBusiness,
+  } = useNotifications()
   const [isOpen, setIsOpen] = useState(false)
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [notificationCount, setNotificationCount] = useState<NotificationCount>({ unread: 0, total: 0 })
-  const [loading, setLoading] = useState(true)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const [buttonPosition, setButtonPosition] = useState<{ top: number; right: number } | null>(null)
   const isMobile = useIsMobile()
-  const supabase = createBrowserClient()
 
   // Lock body scroll when notifications panel is open
   useBodyScrollLock(isOpen)
@@ -107,349 +112,131 @@ export default function NavbarNotifications() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Fetch notifications when business is available
+  // Initialize notifications when business is available
   useEffect(() => {
     if (!business) return
 
-    const fetchNotifications = async () => {
-      try {
-        setLoading(true)
-        const [notificationsData, countData] = await Promise.all([
-          notificationService.getNotifications(business.id, 10),
-          notificationService.getNotificationCount(business.id)
-        ])
-        
-        setNotifications(notificationsData)
-        setNotificationCount(countData)
-      } catch (error) {
-        console.error('Error fetching notifications:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchNotifications()
-
-    // Subscribe to realtime notification updates
-    const channel = supabase
-      .channel('notifications-channel')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `business_id=eq.${business.id}`
-        },
-        async (payload: any) => {
-          // Optimistically add new notification to state
-          setNotifications(prev => [payload.new, ...prev].slice(0, 10))
-          setNotificationCount(prev => ({ 
-            unread: prev.unread + 1, 
-            total: prev.total + 1 
-          }))
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'notifications',
-          filter: `business_id=eq.${business.id}`
-        },
-        async (payload: any) => {
-          // Update existing notification in state
-          setNotifications(prev => 
-            prev.map(n => n.id === payload.new.id ? payload.new : n)
-          )
-          if (payload.new.read && !payload.old.read) {
-            setNotificationCount(prev => ({ 
-              ...prev, 
-              unread: Math.max(0, prev.unread - 1) 
-            }))
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'notifications',
-          filter: `business_id=eq.${business.id}`
-        },
-        async (payload: any) => {
-          // Remove deleted notification from state
-          const deletedNotification = notifications.find(n => n.id === payload.old.id)
-          setNotifications(prev => prev.filter(n => n.id !== payload.old.id))
-          setNotificationCount(prev => ({
-            unread: deletedNotification && !deletedNotification.read ? Math.max(0, prev.unread - 1) : prev.unread,
-            total: Math.max(0, prev.total - 1)
-          }))
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [business])
+    initializeForBusiness(business.id)
+  }, [business, initializeForBusiness])
 
   const handleMarkAsRead = async (notificationId: string) => {
-    await notificationService.markAsRead(notificationId)
-    setNotifications(prev => 
-      prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
-    )
-    setNotificationCount(prev => ({ ...prev, unread: Math.max(0, prev.unread - 1) }))
+    await markAsRead(notificationId)
   }
 
   const handleMarkAllAsRead = async () => {
-    if (!business) return
-    
-    // Optimistically update UI before API call
-    const previousNotifications = [...notifications]
-    const previousCount = { ...notificationCount }
-    
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
-    setNotificationCount({ unread: 0, total: notifications.length })
-
-    try {
-      await notificationService.markAllAsRead(business.id)
-      // State already updated, no need to do anything
-    } catch (error) {
-      console.error('[NOTIFICATION MARK ALL READ] Failed to mark all as read:', error)
-      // Revert to previous state if API call failed
-      setNotifications(previousNotifications)
-      setNotificationCount(previousCount)
-    }
+    await markAllAsRead()
   }
 
   const handleDeleteNotification = async (notificationId: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    
-    // Optimistically remove from UI
-    const deletedNotification = notifications.find(n => n.id === notificationId)
-    setNotifications(prev => prev.filter(n => n.id !== notificationId))
-    setNotificationCount(prev => ({
-      unread: deletedNotification && !deletedNotification.read ? Math.max(0, prev.unread - 1) : prev.unread,
-      total: Math.max(0, prev.total - 1)
-    }))
+    await deleteNotification(notificationId)
+  }
 
-    try {
-      await notificationService.deleteNotification(notificationId)
-    } catch (error) {
-      console.error('[NOTIFICATION DELETE] Failed to delete notification:', error)
-      // Restore notification if delete failed
-      if (deletedNotification) {
-        setNotifications(prev => [...prev, deletedNotification])
-        setNotificationCount(prev => ({
-          unread: deletedNotification && !deletedNotification.read ? prev.unread + 1 : prev.unread,
-          total: prev.total + 1
-        }))
-      }
+  const handleNotificationClick = (notification: Notification) => {
+    // Mark as read when clicking
+    if (!notification.read) {
+      handleMarkAsRead(notification.id)
+    }
+
+    // Navigate if there's a link
+    if (notification.action_url) {
+      router.push(notification.action_url)
+      setIsOpen(false)
     }
   }
 
-  const handleClearAll = async (e: React.MouseEvent) => {
-    e.stopPropagation()
-    
-    if (!business || notifications.length === 0) return
-
-    // Optimistically clear all from UI
-    const previousNotifications = [...notifications]
-    setNotifications([])
-    setNotificationCount({ unread: 0, total: 0 })
-
-    try {
-      await notificationService.clearAllNotifications(business.id)
-    } catch (error) {
-      console.error('[NOTIFICATION CLEAR ALL] Failed to clear notifications:', error)
-      // Restore notifications if clear failed
-      setNotifications(previousNotifications)
-      setNotificationCount({
-        unread: previousNotifications.filter(n => !n.read).length,
-        total: previousNotifications.length
-      })
-    }
-  }
-
-  const getNotificationIcon = (type: Notification['type']) => {
+  const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'new_lead':
-        return <PhoneMissed className="w-4 h-4 text-amber-600" />
-      case 'customer_reply':
-        return <MessageCircle className="w-4 h-4 text-blue-600" />
-      case 'followup_completed':
-        return <Send className="w-4 h-4 text-purple-600" />
-      case 'forwarding_disconnected':
-      case 'sms_failed':
-        return <AlertTriangle className="w-4 h-4 text-red-600" />
-      case 'trial_ending':
-      case 'subscription_issue':
-        return <Info className="w-4 h-4 text-slate-600" />
-      case 'voicemail_received':
-        return <MessageSquare className="w-4 h-4 text-indigo-600" />
-      case 'ai_intake_completed':
-        return <User className="w-4 h-4 text-emerald-600" />
-      case 'payment_requested':
-        return <CreditCard className="w-4 h-4 text-orange-600" />
-      case 'payment_completed':
-        return <CheckCircle className="w-4 h-4 text-green-600" />
-      case 'calendar_connected':
-        return <Calendar className="w-4 h-4 text-blue-500" />
-      case 'calendar_disconnected':
-        return <AlertTriangle className="w-4 h-4 text-red-600" />
-      case 'appointment_created':
-        return <Calendar className="w-4 h-4 text-green-500" />
-      case 'appointment_deleted':
-        return <AlertTriangle className="w-4 h-4 text-red-600" />
-      case 'personal_voicemail':
-        return <MessageSquare className="w-4 h-4 text-pink-600" />
+      case 'sms':
+        return <MessageCircle className="w-4 h-4" />
+      case 'call':
+        return <PhoneMissed className="w-4 h-4" />
+      case 'payment':
+        return <CreditCard className="w-4 h-4" />
+      case 'appointment':
+        return <Calendar className="w-4 h-4" />
+      case 'info':
+        return <Info className="w-4 h-4" />
+      case 'success':
+        return <CheckCircle className="w-4 h-4" />
+      case 'warning':
+        return <AlertTriangle className="w-4 h-4" />
+      case 'user':
+        return <User className="w-4 h-4" />
       default:
-        return <Bell className="w-4 h-4 text-slate-600" />
+        return <Bell className="w-4 h-4" />
     }
   }
 
-  const getNotificationColor = (type: Notification['type'], read: boolean) => {
-    if (read) return 'bg-white dark:bg-card'
-    
+  const getNotificationColor = (type: string) => {
     switch (type) {
-      case 'new_lead':
-        return 'bg-amber-50/50 dark:bg-amber-900/10'
-      case 'customer_reply':
-        return 'bg-blue-50/50 dark:bg-blue-900/10'
-      case 'followup_completed':
-        return 'bg-purple-50/50 dark:bg-purple-900/10'
-      case 'forwarding_disconnected':
-      case 'sms_failed':
-        return 'bg-red-50/50 dark:bg-red-900/10'
-      case 'trial_ending':
-      case 'subscription_issue':
-        return 'bg-slate-50/50 dark:bg-slate-900/10'
-      case 'voicemail_received':
-        return 'bg-indigo-50/50 dark:bg-indigo-900/10'
-      case 'ai_intake_completed':
-        return 'bg-emerald-50/50 dark:bg-emerald-900/10'
-      case 'payment_requested':
-        return 'bg-orange-50/50 dark:bg-orange-900/10'
-      case 'payment_completed':
-        return 'bg-green-50/50 dark:bg-green-900/10'
-      case 'calendar_connected':
-        return 'bg-blue-50/50 dark:bg-blue-900/10'
-      case 'calendar_disconnected':
-        return 'bg-red-50/50 dark:bg-red-900/10'
-      case 'appointment_created':
-        return 'bg-green-50/50 dark:bg-green-900/10'
-      case 'appointment_deleted':
-        return 'bg-red-50/50 dark:bg-red-900/10'
-      case 'personal_voicemail':
-        return 'bg-pink-50/50 dark:bg-pink-900/10'
+      case 'sms':
+        return 'bg-blue-500/20 text-blue-400'
+      case 'call':
+        return 'bg-red-500/20 text-red-400'
+      case 'payment':
+        return 'bg-green-500/20 text-green-400'
+      case 'appointment':
+        return 'bg-purple-500/20 text-purple-400'
+      case 'info':
+        return 'bg-slate-500/20 text-slate-400'
+      case 'success':
+        return 'bg-emerald-500/20 text-emerald-400'
+      case 'warning':
+        return 'bg-amber-500/20 text-amber-400'
+      case 'user':
+        return 'bg-cyan-500/20 text-cyan-400'
       default:
-        return 'bg-white dark:bg-card'
+        return 'bg-slate-500/20 text-slate-400'
     }
   }
 
-  const getNotificationAccent = (type: Notification['type']) => {
+  const getNotificationDotColor = (type: string) => {
     switch (type) {
-      case 'new_lead':
-        return 'border-l-2 border-l-amber-500'
-      case 'customer_reply':
-        return 'border-l-2 border-l-blue-500'
-      case 'followup_completed':
-        return 'border-l-2 border-l-purple-500'
-      case 'forwarding_disconnected':
-      case 'sms_failed':
-        return 'border-l-2 border-l-red-500'
-      case 'trial_ending':
-      case 'subscription_issue':
-        return 'border-l-2 border-l-slate-500'
-      case 'voicemail_received':
-        return 'border-l-2 border-l-indigo-500'
-      case 'ai_intake_completed':
-        return 'border-l-2 border-l-emerald-500'
-      case 'payment_requested':
-        return 'border-l-2 border-l-orange-500'
-      case 'payment_completed':
-        return 'border-l-2 border-l-green-500'
-      case 'calendar_connected':
-        return 'border-l-2 border-l-blue-500'
-      case 'calendar_disconnected':
-        return 'border-l-2 border-l-red-500'
-      case 'appointment_created':
-        return 'border-l-2 border-l-green-500'
-      case 'appointment_deleted':
-        return 'border-l-2 border-l-red-500'
-      case 'personal_voicemail':
-        return 'border-l-2 border-l-pink-500'
+      case 'sms':
+        return 'bg-blue-400'
+      case 'call':
+        return 'bg-red-400'
+      case 'payment':
+        return 'bg-green-400'
+      case 'appointment':
+        return 'bg-purple-400'
+      case 'info':
+        return 'bg-slate-400'
+      case 'success':
+        return 'bg-emerald-400'
+      case 'warning':
+        return 'bg-amber-400'
+      case 'user':
+        return 'bg-cyan-400'
       default:
-        return 'border-l-2 border-l-slate-300 dark:border-l-slate-600'
+        return 'bg-slate-400'
     }
   }
 
-  const getNotificationDotColor = (type: Notification['type']) => {
-    switch (type) {
-      case 'new_lead':
-        return 'bg-amber-500'
-      case 'customer_reply':
-        return 'bg-blue-500'
-      case 'followup_completed':
-        return 'bg-purple-500'
-      case 'forwarding_disconnected':
-      case 'sms_failed':
-        return 'bg-red-500'
-      case 'trial_ending':
-      case 'subscription_issue':
-        return 'bg-slate-500'
-      case 'voicemail_received':
-        return 'bg-indigo-500'
-      case 'ai_intake_completed':
-        return 'bg-emerald-500'
-      case 'payment_requested':
-        return 'bg-orange-500'
-      case 'payment_completed':
-        return 'bg-green-500'
-      case 'calendar_connected':
-        return 'bg-blue-500'
-      case 'calendar_disconnected':
-        return 'bg-red-500'
-      case 'appointment_created':
-        return 'bg-green-500'
-      case 'appointment_deleted':
-        return 'bg-red-500'
-      case 'personal_voicemail':
-        return 'bg-pink-500'
-      default:
-        return 'bg-slate-500'
-    }
-  }
-
-  const getLeadContext = (notification: Notification) => {
-    if (notification.data?.leadName) return notification.data.leadName
-    if (notification.data?.leadPhone) return formatPhoneNumber(notification.data.leadPhone)
-    return null
-  }
-
-  const getLeadDisplayInfo = (notification: Notification) => {
-    const lead = {
-      name: notification.data?.leadName || notification.data?.caller_name || null,
-      phone: notification.data?.leadPhone || null
-    }
-    return lead
-  }
-
-  const formatTime = (timestamp: string) => {
+  const formatNotificationTime = (timestamp: string) => {
+    const date = new Date(timestamp)
     const now = new Date()
-    const notificationTime = new Date(timestamp)
-    const diffInMinutes = Math.floor((now.getTime() - notificationTime.getTime()) / (1000 * 60))
-    
-    if (diffInMinutes < 1) return 'Just now'
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`
-    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`
-    return `${Math.floor(diffInMinutes / 1440)}d ago`
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
+
+    if (diffMins < 1) return 'Just now'
+    if (diffMins < 60) return `${diffMins}m ago`
+    if (diffHours < 24) return `${diffHours}h ago`
+    if (diffDays < 7) return `${diffDays}d ago`
+    return date.toLocaleDateString()
   }
 
   const groupNotificationsByRecency = (notifications: Notification[]) => {
+    const groups: { [key: string]: Notification[] } = {
+      'Today': [],
+      'Yesterday': [],
+      'Earlier This Week': [],
+      'Older': []
+    }
+
     const now = new Date()
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     const yesterday = new Date(today)
@@ -457,25 +244,17 @@ export default function NavbarNotifications() {
     const thisWeek = new Date(today)
     thisWeek.setDate(thisWeek.getDate() - 7)
 
-    const groups: Record<string, Notification[]> = {
-      Today: [],
-      Yesterday: [],
-      'Earlier This Week': [],
-      Older: []
-    }
-
     notifications.forEach(notification => {
       const notificationDate = new Date(notification.created_at)
-      const notificationDay = new Date(notificationDate.getFullYear(), notificationDate.getMonth(), notificationDate.getDate())
-
-      if (notificationDay.getTime() === today.getTime()) {
-        groups.Today.push(notification)
-      } else if (notificationDay.getTime() === yesterday.getTime()) {
-        groups.Yesterday.push(notification)
-      } else if (notificationDay >= thisWeek) {
+      
+      if (notificationDate >= today) {
+        groups['Today'].push(notification)
+      } else if (notificationDate >= yesterday) {
+        groups['Yesterday'].push(notification)
+      } else if (notificationDate >= thisWeek) {
         groups['Earlier This Week'].push(notification)
       } else {
-        groups.Older.push(notification)
+        groups['Older'].push(notification)
       }
     })
 
@@ -483,58 +262,48 @@ export default function NavbarNotifications() {
   }
 
   return (
-    <div className="relative">
-      {/* UPDATED HEADER COMPONENT - Notification Bell */}
+    <>
+      {/* Notification Bell Button */}
       <button
         ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
-        className="relative h-10 w-10 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/70 active:bg-slate-800/90 active:scale-[0.98] motion-safe:transition-all motion-safe:duration-200 motion-reduce:transition-none motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+        className="relative h-10 w-10 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
         aria-label="Notifications"
       >
         <Bell className="w-5 h-5" />
         
-        {/* Unread count badge */}
-        {notificationCount.unread > 0 && (
-          <span className="absolute -top-0.5 -right-1 w-5 h-5 bg-red-600 text-white text-xs font-medium rounded-full flex items-center justify-center animate-pulse">
-            {notificationCount.unread > 99 ? '99+' : notificationCount.unread}
+        {/* Unread Badge - Only show when displayedUnreadCount > 0 */}
+        {displayedUnreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 h-5 min-w-[1.25rem] px-1 flex items-center justify-center bg-blue-600 text-white text-[10px] font-bold rounded-full">
+            {displayedUnreadCount > 99 ? '99+' : displayedUnreadCount}
           </span>
         )}
       </button>
 
-      {/* Dropdown - Rendered via Portal to document.body - Improved mobile */}
-      {isOpen && buttonPosition && createPortal(
-        <>
-          {/* Mobile backdrop */}
-          {isMobile && (
-            <div
-              className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 animate-in fade-in duration-200"
-              onClick={() => setIsOpen(false)}
-            />
-          )}
+      {/* Notifications Dropdown */}
+      {isOpen && typeof window !== 'undefined' &&
+        createPortal(
           <div
             ref={dropdownRef}
-            className={`${
-            isMobile
-              ? 'fixed left-3 right-3 sm:left-4 sm:right-4 top-16 sm:top-20 max-w-sm mx-auto bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl z-[1000] max-h-[calc(100vh-140px)] sm:max-h-[calc(100vh-160px)] overflow-hidden animate-in slide-in-from-top-2 duration-200'
-              : 'fixed bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-[1000] animate-in fade-in slide-in-from-top-2 duration-200'
-          }`}
-          style={!isMobile ? { top: `${buttonPosition.top + 8}px`, right: `${buttonPosition.right}px`, width: '400px' } : undefined}
+            className="fixed z-50 w-[calc(100vw-2rem)] sm:w-96 max-h-[80vh] bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden"
+            style={{
+              top: isMobile ? 'auto' : `${buttonPosition?.top || 0}px`,
+              bottom: isMobile ? '0' : 'auto',
+              right: isMobile ? '1rem' : `${buttonPosition?.right || 0}px`,
+              maxHeight: isMobile ? '80vh' : '600px'
+            }}
           >
-          {/* Header - Improved mobile padding */}
-          <div className="flex items-center justify-between px-4 py-3 sm:px-4 sm:py-3 border-b border-slate-200 dark:border-slate-700">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">Notifications</h3>
-
-            <div className="flex items-center gap-1">
-              {notifications.length > 0 && (
-                <button
-                  onClick={handleClearAll}
-                  className="px-2.5 py-1.5 sm:px-2.5 sm:py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                  title="Clear all notifications"
-                >
-                  Clear all
-                </button>
-              )}
-              {notificationCount.unread > 0 && (
+            {/* Header */}
+            <div className="px-4 py-3 border-b border-slate-700 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-white">Notifications</h3>
+                {displayedUnreadCount > 0 && (
+                  <span className="px-2 py-0.5 bg-blue-600/20 text-blue-400 text-xs font-medium rounded-full">
+                    {displayedUnreadCount} unread
+                  </span>
+                )}
+              </div>
+              {displayedUnreadCount > 0 && (
                 <button
                   onClick={handleMarkAllAsRead}
                   className="px-2.5 py-1.5 sm:px-2.5 sm:py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
@@ -543,79 +312,57 @@ export default function NavbarNotifications() {
                 </button>
               )}
             </div>
-          </div>
 
-          {/* Notifications List - Improved mobile spacing */}
-          <div className="max-h-96 overflow-y-auto p-2 sm:p-3">
-            {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-slate-600"></div>
-              </div>
-            ) : notifications.length === 0 ? (
-              <div className="text-center py-12 px-4">
-                <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Bell className="w-8 h-8 text-slate-400" />
+            {/* Notifications List - Improved mobile spacing */}
+            <div className="max-h-96 overflow-y-auto p-2 sm:p-3">
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-slate-600"></div>
                 </div>
-                <p className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Everything looks good. No new notifications.</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">New activity will appear here when available.</p>
-              </div>
-            ) : (
-              <>
-                {(() => {
-                  const groupedNotifications = groupNotificationsByRecency(notifications)
-                  const groupOrder = ['Today', 'Yesterday', 'Earlier This Week', 'Older']
-                  
-                  return groupOrder.map(groupName => {
-                    const groupNotifications = groupedNotifications[groupName]
-                    if (groupNotifications.length === 0) return null
+              ) : notifications.length === 0 ? (
+                <div className="text-center py-12 px-4">
+                  <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <Bell className="w-8 h-8 text-slate-400" />
+                  </div>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Everything looks good. No new notifications.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">New activity will appear here when available.</p>
+                </div>
+              ) : (
+                <>
+                  {(() => {
+                    const groupedNotifications = groupNotificationsByRecency(notifications)
+                    const groupOrder = ['Today', 'Yesterday', 'Earlier This Week', 'Older']
                     
-                    return (
-                      <div key={groupName} className="mb-4 last:mb-0">
-                        {groupName !== 'Today' && (
-                          <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 px-1">
+                    return groupOrder.map(groupName => {
+                      const groupNotifications = groupedNotifications[groupName]
+                      if (groupNotifications.length === 0) return null
+                      
+                      return (
+                        <div key={groupName} className="mb-4 last:mb-0">
+                          <div className="px-2 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                             {groupName}
-                          </p>
-                        )}
-                        <div className="space-y-2">
-                          {groupNotifications.map((notification) => {
-                            const leadInfo = getLeadDisplayInfo(notification)
-                            const displayName = leadInfo.name || (leadInfo.phone ? formatPhoneNumber(leadInfo.phone) : null)
-                            
-                            return (
-                              <div
-                                key={notification.id}
-                                className={`group relative rounded-lg border transition-all duration-200 cursor-pointer ${
-                                  notification.read 
-                                    ? 'bg-card border-slate-700 opacity-75' 
-                                    : 'bg-slate-800/50 border-slate-600 shadow-sm'
-                                } hover:border-slate-500 hover:shadow-md ${getNotificationAccent(notification.type)}`}
-                                onClick={() => {
-                                  if (notification.action_url) {
-                                    if (!notification.read) {
-                                      handleMarkAsRead(notification.id)
-                                    }
-                                    router.push(notification.action_url)
-                                  }
-                                }}
-                              >
-                                <div className="flex items-start gap-3 p-3 sm:p-4">
+                          </div>
+                          <div className="space-y-1">
+                            {groupNotifications.map((notification) => {
+                              const displayName = notification.data?.leadName || notification.data?.lead_phone || null
+                              
+                              return (
+                                <div
+                                  key={notification.id}
+                                  onClick={() => handleNotificationClick(notification)}
+                                  className="group relative flex items-start gap-3 p-3 rounded-xl hover:bg-slate-800/50 transition-colors cursor-pointer"
+                                >
                                   {/* Icon */}
-                                  <div className="flex-shrink-0 mt-0.5">
-                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${notification.read ? 'bg-slate-800' : 'bg-slate-700'}`}>
-                                      {getNotificationIcon(notification.type)}
-                                    </div>
+                                  <div className={`flex-shrink-0 w-8 h-8 rounded-lg ${getNotificationColor(notification.type)} flex items-center justify-center`}>
+                                    {getNotificationIcon(notification.type)}
                                   </div>
                                   
+                                  {/* Content */}
                                   <div className="flex-1 min-w-0">
-                                    {/* Title with timestamp */}
-                                    <div className="flex items-start justify-between mb-1">
-                                      <h4 className={`text-sm sm:text-base ${notification.read ? 'font-medium text-slate-400' : 'font-semibold text-foreground'}`}>
-                                        {notification.title}
-                                      </h4>
-                                      <span className="text-xs text-slate-500 flex-shrink-0 ml-2 whitespace-nowrap">
-                                        {formatTime(notification.created_at)}
-                                      </span>
-                                    </div>
+                                    {/* Title */}
+                                    <p className="text-sm font-medium text-slate-200 mb-0.5">
+                                      {notification.title}
+                                    </p>
                                     
                                     {/* Customer name or phone number */}
                                     {displayName && (
@@ -628,6 +375,11 @@ export default function NavbarNotifications() {
                                     <p className="text-xs sm:text-sm text-slate-400 truncate">
                                       {notification.message}
                                     </p>
+                                    
+                                    {/* Time */}
+                                    <p className="text-[10px] sm:text-xs text-slate-500 mt-1">
+                                      {formatNotificationTime(notification.created_at)}
+                                    </p>
                                   </div>
                                   
                                   {/* Unread indicator dot */}
@@ -636,58 +388,57 @@ export default function NavbarNotifications() {
                                       <div className={`w-2 h-2 rounded-full ${getNotificationDotColor(notification.type)}`}></div>
                                     </div>
                                   )}
-                                </div>
-                                
-                                {/* Hover actions */}
-                                <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  {!notification.read && (
+                                  
+                                  {/* Hover actions */}
+                                  <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    {!notification.read && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleMarkAsRead(notification.id)
+                                        }}
+                                        className="p-1.5 text-slate-400 hover:text-slate-300 hover:bg-slate-800 rounded-md transition-colors"
+                                        title="Mark as read"
+                                      >
+                                        <Check className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
                                     <button
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        handleMarkAsRead(notification.id)
-                                      }}
-                                      className="p-1.5 text-slate-400 hover:text-slate-300 hover:bg-slate-800 rounded-md transition-colors"
-                                      title="Mark as read"
+                                      onClick={(e) => handleDeleteNotification(notification.id, e)}
+                                      className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-md transition-colors"
+                                      title="Delete notification"
                                     >
-                                      <Check className="w-3.5 h-3.5" />
+                                      <X className="w-3.5 h-3.5" />
                                     </button>
-                                  )}
-                                  <button
-                                    onClick={(e) => handleDeleteNotification(notification.id, e)}
-                                    className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-md transition-colors"
-                                    title="Delete notification"
-                                  >
-                                    <X className="w-3.5 h-3.5" />
-                                  </button>
+                                  </div>
                                 </div>
-                              </div>
-                            )
-                          })}
+                              )
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    )
-                  })
-                })()}
-              </>
-            )}
-          </div>
-
-          {/* Footer */}
-          {notifications.length > 0 && (
-            <div className="p-3 border-t border-slate-700">
-              <Link
-                href="/dashboard/notifications"
-                onClick={() => setIsOpen(false)}
-                className="block w-full px-4 py-2.5 text-center text-sm font-medium text-slate-400 hover:text-foreground hover:bg-slate-800 rounded-lg transition-colors"
-              >
-                View all notifications →
-              </Link>
+                      )
+                    })
+                  })}
+                </>
+              )}
             </div>
-          )}
-        </div>
-        </>,
-        document.body
-      )}
-    </div>
+
+            {/* Footer */}
+            {notifications.length > 0 && (
+              <div className="px-4 py-3 border-t border-slate-700">
+                <Link
+                  href="/dashboard/notifications"
+                  onClick={() => setIsOpen(false)}
+                  className="block w-full text-center text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  View all notifications
+                </Link>
+              </div>
+            )}
+          </div>,
+          document.body
+        )
+      }
+    </>
   )
 }
