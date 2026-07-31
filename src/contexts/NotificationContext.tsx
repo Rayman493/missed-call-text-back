@@ -42,16 +42,36 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   const fetchNotifications = async (businessId: string) => {
     try {
       setLoading(true)
-      const [notificationsData, countData] = await Promise.all([
-        notificationService.getNotifications(businessId, 10),
-        notificationService.getNotificationCount(businessId)
-      ])
+      // Use a single query to fetch all notifications, then derive count from the results
+      // This ensures consistency between count and list
+      const notificationsData = await notificationService.getNotifications(businessId, 10)
+      
+      const countData = {
+        unread: notificationsData.filter(n => !n.read).length,
+        total: notificationsData.length
+      }
+      
+      console.log('[NotificationContext] Fetched notifications:', {
+        businessId,
+        notificationsCount: notificationsData.length,
+        countData,
+        notifications: notificationsData
+      })
       
       setNotifications(notificationsData)
       setNotificationCount(countData)
       setDisplayedUnreadCount(countData.unread)
+      
+      // Consistency check: if count says unread > 0 but no notifications, log warning
+      if (countData.unread > 0 && notificationsData.length === 0) {
+        console.warn('[NotificationContext] INCONSISTENCY: unread count > 0 but no notifications fetched', {
+          unreadCount: countData.unread,
+          totalCount: countData.total,
+          notificationsData
+        })
+      }
     } catch (error) {
-      console.error('Error fetching notifications:', error)
+      console.error('[NotificationContext] Error fetching notifications:', error)
     } finally {
       setLoading(false)
     }

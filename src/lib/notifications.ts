@@ -165,6 +165,8 @@ export class NotificationService {
   }
 
   async getNotifications(businessId: string, limit = 20): Promise<Notification[]> {
+    console.log('[NotificationService] Fetching notifications:', { businessId, limit })
+    
     const { data, error } = await this.supabase
       .from('notifications')
       .select('*')
@@ -173,21 +175,28 @@ export class NotificationService {
       .limit(limit)
 
     if (error) {
-      console.error('Error fetching notifications:', error)
+      console.error('[NotificationService] Error fetching notifications:', error)
       return []
     }
+
+    console.log('[NotificationService] Fetched notifications result:', {
+      count: data?.length || 0,
+      notifications: data
+    })
 
     return data || []
   }
 
   async getNotificationCount(businessId: string): Promise<NotificationCount> {
+    console.log('[NotificationService] Fetching notification count:', { businessId })
+    
     const { data, error } = await this.supabase
       .from('notifications')
       .select('read')
       .eq('business_id', businessId)
 
     if (error) {
-      console.error('Error fetching notification count:', error)
+      console.error('[NotificationService] Error fetching notification count:', error)
       return { unread: 0, total: 0 }
     }
 
@@ -196,6 +205,13 @@ export class NotificationService {
       unread: notifications.filter((n: any) => !n.read).length,
       total: notifications.length
     }
+    
+    console.log('[NotificationService] Notification count result:', {
+      unread: count.unread,
+      total: count.total,
+      rawNotifications: notifications
+    })
+    
     return count
   }
 

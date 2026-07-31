@@ -77,6 +77,7 @@ export default function NavbarNotifications() {
     markAllAsRead,
     deleteNotification,
     initializeForBusiness,
+    refreshNotifications,
   } = useNotifications()
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -326,6 +327,20 @@ export default function NavbarNotifications() {
                   </div>
                   <p className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Everything looks good. No new notifications.</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">New activity will appear here when available.</p>
+                </div>
+              ) : displayedUnreadCount > 0 && notifications.filter(n => !n.read).length === 0 ? (
+                <div className="text-center py-8 px-4">
+                  <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <AlertTriangle className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Notification sync issue</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Showing {displayedUnreadCount} unread but list is empty. Try refreshing.</p>
+                  <button
+                    onClick={refreshNotifications}
+                    className="mt-2 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                  >
+                    Refresh
+                  </button>
                 </div>
               ) : (
                 <>
