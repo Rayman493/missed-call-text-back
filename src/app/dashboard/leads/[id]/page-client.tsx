@@ -1469,7 +1469,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       // Update local state
       setLeadData((prev: any) => ({
         ...prev,
-        lead_status: newStatus,
+        status: newStatus,
         updated_at: new Date().toISOString()
       }))
 
@@ -1954,36 +1954,45 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     console.log('[OPTIMISTIC CREATION] Creating optimistic message:', {
       temporaryId: clientMessageId,
       clientMessageId,
-      body: submittedText.substring(0, 30)
+      body: submittedText.substring(0, 30),
+      isMMS,
+      mediaCount: submittedMediaFiles?.length || 0
     })
     
-    // Only create optimistic message for text-only SMS (skip for MMS)
-    // Merge it directly into leadData.messages to prevent duplicate flash
-    if (!isMMS) {
-      const optimisticMsg = {
-        id: clientMessageId,
-        clientMessageId,
-        direction: 'outbound',
-        body: submittedText,
-        status: 'sending',
-        created_at: new Date().toISOString(),
-        isOptimistic: true
-      }
-      
-      // Atomic: merge optimistic message directly into messages array
-      // This prevents duplicate flash by having single source of truth
-      setLeadData((prev: any) => {
-        if (!prev) return prev
-        
-        const currentMessages = prev.messages || []
-        const mergedMessages = mergeMessageWithMonotonicity(currentMessages, optimisticMsg, 'optimistic-create')
-        
-        return {
-          ...prev,
-          messages: mergedMessages
-        }
-      })
+    // Create optimistic message with local preview URLs for MMS
+    const optimisticMedia = submittedMediaFiles?.map((file, index) => ({
+      id: `${clientMessageId}-media-${index}`,
+      media_url: URL.createObjectURL(file), // Local preview URL
+      mime_type: file.type || 'image/jpeg',
+      isLocalPreview: true, // Mark as local preview for recovery
+      filename: file.name
+    })) || []
+    
+    const optimisticMsg = {
+      id: clientMessageId,
+      clientMessageId,
+      direction: 'outbound',
+      body: submittedText,
+      status: 'sending',
+      created_at: new Date().toISOString(),
+      isOptimistic: true,
+      media: optimisticMedia,
+      media_count: optimisticMedia.length
     }
+    
+    // Atomic: merge optimistic message directly into messages array
+    // This prevents duplicate flash by having single source of truth
+    setLeadData((prev: any) => {
+      if (!prev) return prev
+      
+      const currentMessages = prev.messages || []
+      const mergedMessages = mergeMessageWithMonotonicity(currentMessages, optimisticMsg, 'optimistic-create')
+      
+      return {
+        ...prev,
+        messages: mergedMessages
+      }
+    })
 
     // Clear the composer immediately after creating optimistic message
     // This prevents the text from appearing in both the composer and thread
@@ -2135,15 +2144,21 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         return
       }
 
-      // Update optimistic message with real message data using clientMessageId (SMS only)
-      if (!isMMS && result.clientMessageId === clientMessageId && result.message) {
+      // Update optimistic message with real message data using clientMessageId
+      if (result.clientMessageId === clientMessageId && result.message) {
         console.log('[SEND RECONCILIATION] API returned persisted message:', {
           messageId: result.message.id,
           status: result.message.status,
           twilioSid: result.message.twilio_message_sid,
           clientMessageId: result.message.client_message_id,
-          body: result.message.body?.substring(0, 30)
+          body: result.message.body?.substring(0, 30),
+          isMMS
         })
+        
+        // For MMS: preserve local preview URLs in optimistic message until media records arrive
+        const currentMessages = leadData?.messages || []
+        const optimisticMessage = currentMessages.find((m: any) => m.id === clientMessageId)
+        const localPreviewUrls = optimisticMessage?.media?.filter((m: any) => m.isLocalPreview) || []
         
         // Add clientMessageId to the persisted message for proper reconciliation
         const persistedMessageWithClientId = {
@@ -2151,13 +2166,21 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           clientMessageId: result.message.client_message_id || clientMessageId
         }
         
+        // For MMS, merge local previews with persisted message
+        if (isMMS && localPreviewUrls.length > 0) {
+          persistedMessageWithClientId.media = [
+            ...localPreviewUrls,
+            ...(result.message.media || [])
+          ]
+        }
+        
         // Atomic update: merge persisted message AND clear optimistic in single setState
         // This prevents the duplicate flash by ensuring both happen together
         setLeadData((prev: any) => {
           if (!prev) return prev
           
-          const currentMessages = prev.messages || []
-          const mergedMessages = mergeMessageWithMonotonicity(currentMessages, persistedMessageWithClientId, 'send-response-reconcile')
+          const currentMsgs = prev.messages || []
+          const mergedMessages = mergeMessageWithMonotonicity(currentMsgs, persistedMessageWithClientId, 'send-response-reconcile')
           
           return {
             ...prev,
@@ -2165,30 +2188,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           }
         })
         
-        // Fallback: if message still shows Sending after 3 seconds, refresh
-        setTimeout(() => {
-          setLeadData((prev: any) => {
-            if (!prev) return prev
-            
-            const message = prev.messages?.find((m: any) => m.id === result.message.id)
-            if (message && (message.status === 'sending' || message.status === 'pending')) {
-              console.log('[SEND RECONCILIATION FALLBACK] Message still Sending after 3 seconds, refreshing:', result.message.id)
-              handleRefresh()
-            }
-            
-            return prev
-          })
-        }, 3000)
-      }
-
-      // For MMS, call refreshConversationData to get complete message with media
-      if (isMMS && result.message) {
-        await handleRefresh()
-        
-        // Scroll to bottom after refresh completes
-        setTimeout(() => {
-          scrollToBottom('smooth', true)
-        }, 100)
+        // For MMS, refresh conversation data after a delay to get final media records with server URLs
+        if (isMMS) {
+          setTimeout(async () => {
+            await handleRefresh()
+          }, 2000)
+        }
       }
 
       // Scroll to bottom to show the new message
@@ -2196,34 +2201,38 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         scrollToBottom('smooth')
       }, 50)
     } catch (err) {
-      // Update optimistic message to failed state (SMS only)
-      if (!isMMS) {
-        setLeadData((prev: any) => {
-          if (!prev) return prev
-          
-          const currentMessages = prev.messages || []
-          const failedMessage = {
-            id: clientMessageId,
-            clientMessageId,
-            direction: 'outbound',
-            body: submittedText,
-            status: 'failed',
-            error_message: 'Network error occurred',
-            created_at: new Date().toISOString(),
-            isOptimistic: true
-          }
-          
-          const mergedMessages = mergeMessageWithMonotonicity(currentMessages, failedMessage, 'network-error-failed')
-          
-          return {
-            ...prev,
-            messages: mergedMessages
-          }
-        })
-        
-        // Restore the submitted text to the composer only if it's still empty
-        setMessage(current => current.trim() === '' ? submittedText : current)
+      // Update optimistic message to failed state (both SMS and MMS)
+      const currentMessages = leadData?.messages || []
+      const optimisticMessage = currentMessages.find((m: any) => m.id === clientMessageId)
+      const localPreviewUrls = optimisticMessage?.media?.filter((m: any) => m.isLocalPreview) || []
+      
+      const failedMessage = {
+        id: clientMessageId,
+        clientMessageId,
+        direction: 'outbound',
+        body: submittedText,
+        status: 'failed',
+        error_message: err instanceof Error ? err.message : 'Network error occurred',
+        created_at: new Date().toISOString(),
+        isOptimistic: true,
+        media: localPreviewUrls.length > 0 ? localPreviewUrls : undefined,
+        media_count: localPreviewUrls.length
       }
+      
+      setLeadData((prev: any) => {
+        if (!prev) return prev
+        
+        const currentMsgs = prev.messages || []
+        const mergedMessages = mergeMessageWithMonotonicity(currentMsgs, failedMessage, 'network-error-failed')
+        
+        return {
+          ...prev,
+          messages: mergedMessages
+        }
+      })
+      
+      // Restore the submitted text to the composer only if it's still empty
+      setMessage(current => current.trim() === '' ? submittedText : current)
       setError('Failed to send message')
     } finally {
       setSending(false)

@@ -346,7 +346,7 @@ export default function LeadsPage() {
     // Optimistic update - update local state immediately
     setLeads(prev => prev.map(lead => 
       lead.id === leadId 
-        ? { ...lead, status: newStatus, lead_status: newStatus }
+        ? { ...lead, status: newStatus }
         : lead
     ))
 
@@ -380,7 +380,7 @@ export default function LeadsPage() {
       if (oldStatus) {
         setLeads(prev => prev.map(lead => 
           lead.id === leadId 
-            ? { ...lead, status: oldStatus, lead_status: oldStatus }
+            ? { ...lead, status: oldStatus }
             : lead
         ))
       }
@@ -395,7 +395,7 @@ export default function LeadsPage() {
     // Optimistic update - update local state immediately
     setLeads(prev => prev.map(lead => 
       lead.id === leadId 
-        ? { ...lead, status: 'ignored', lead_status: 'ignored' }
+        ? { ...lead, status: 'ignored' }
         : lead
     ))
 
@@ -429,7 +429,7 @@ export default function LeadsPage() {
       if (oldStatus) {
         setLeads(prev => prev.map(lead => 
           lead.id === leadId 
-            ? { ...lead, status: oldStatus, lead_status: oldStatus }
+            ? { ...lead, status: oldStatus }
             : lead
         ))
       }

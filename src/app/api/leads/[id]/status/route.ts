@@ -105,10 +105,9 @@ export async function PATCH(
     
     console.log('[API LEADS STATUS PATCH] Business ownership verified')
 
-    // Update lead status - update both status and lead_status to keep them in sync
+    // Update lead status - update only status column (lead_status will be added after migration)
     const updatePayload = {
-      status: status,
-      lead_status: status
+      status: status
     }
     console.log('[API LEADS STATUS PATCH] Updating lead with payload:', updatePayload)
     

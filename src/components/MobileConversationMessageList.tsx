@@ -224,6 +224,59 @@ export default function MobileConversationMessageList({
         const timeGapMinutes = prevMessageTime ? (currentMessageTime.getTime() - prevMessageTime.getTime()) / (1000 * 60) : Infinity
         const shouldShowTimestamp = !prevMessageTime || timeGapMinutes > 5 || prevItem?.type !== 'message' || prevItem.data?.direction !== msg.direction
         
+        const hasText = Boolean(msg.body?.trim())
+        const hasRenderableMedia = msg.media && msg.media.length > 0
+        const isPendingMediaMessage = msg.media_count > 0 || (msg.isOptimistic && msg.media && msg.media.length > 0)
+        
+        // Don't render empty text bubble for pending media messages
+        if (!hasText && !hasRenderableMedia && isPendingMediaMessage) {
+          // Render a pending media placeholder instead of empty bubble
+          const hasLocalPreview = msg.media?.some((m: any) => m.isLocalPreview)
+          
+          return (
+            <div
+              key={getMessageKey(msg)}
+              className={`flex items-start gap-2 mb-2 ${isInbound ? 'flex-row' : 'flex-row-reverse'}`}
+            >
+              {/* Message Content */}
+              <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} max-w-[76%] sm:max-w-[68%]`}>
+                {/* Pending Media Placeholder */}
+                <div className="rounded-lg shadow-sm overflow-hidden bg-muted/30 border border-border/30 min-w-[150px] min-h-[120px] flex items-center justify-center">
+                  {hasLocalPreview ? (
+                    <div className="relative w-full h-full">
+                      {msg.media?.map((mediaItem: any) => (
+                        <div key={mediaItem.id} className="relative">
+                          <img
+                            src={mediaItem.media_url}
+                            alt="Sending photo..."
+                            className="max-w-[250px] max-h-[250px] rounded-lg object-contain"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg">
+                            <div className="flex items-center gap-2 bg-black/50 px-2 py-1 rounded-full text-white text-[10px] font-medium">
+                              <div className="animate-spin rounded-full h-2 w-2 border-b border-white"></div>
+                              Sending…
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 p-3">
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary/30 border-t-primary"></div>
+                      <span className="text-[10px] text-muted-foreground font-medium">Sending photo…</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )
+        }
+        
+        // Don't render empty text-only bubble
+        if (!hasText && !hasRenderableMedia) {
+          return null
+        }
+        
         return (
           <div
             key={getMessageKey(msg)}

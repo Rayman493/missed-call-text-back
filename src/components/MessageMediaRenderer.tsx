@@ -24,29 +24,40 @@ function getMediaUrl(originalUrl: string): string {
   return `/api/twilio/media?url=${encodeURIComponent(originalUrl)}`
 }
 
-// Helper function to fetch authenticated media for Twilio URLs
-async function fetchAuthenticatedMedia(mediaUrl: string): Promise<string | null> {
+// Helper function to fetch authenticated media for Twilio URLs with one-time recovery
+async function fetchAuthenticatedMedia(mediaUrl: string, mediaId: string, recoveryState: 'idle' | 'refreshing' | 'recovered' | 'failed', setRecoveryState: (state: 'idle' | 'refreshing' | 'recovered' | 'failed') => void): Promise<string | null> {
   // If it's a Supabase URL, return as-is
   if (mediaUrl.includes('supabase.co') || mediaUrl.includes('/storage/v1')) {
     return mediaUrl
   }
 
-  // If it's a ReplyFlow MMS media URL, try to recover it first in case it's broken
+  // If it's a ReplyFlow MMS media URL, try to recover it once if expired
   if (mediaUrl.includes('/api/mms-media/serve')) {
-    try {
-      const recoveryResponse = await fetch(`/api/mms-media/recover-url?url=${encodeURIComponent(mediaUrl)}`)
-      if (recoveryResponse.ok) {
-        const recoveryData = await recoveryResponse.json()
-        if (recoveryData.validUrl) {
-          console.log('[MessageMediaRenderer] Recovered broken media URL:', {
-            originalPreview: mediaUrl.substring(0, 50),
-            recoveredPreview: recoveryData.validUrl.substring(0, 50)
-          })
-          mediaUrl = recoveryData.validUrl
+    // Only attempt recovery if we haven't tried yet
+    if (recoveryState === 'idle') {
+      setRecoveryState('refreshing')
+      try {
+        const recoveryResponse = await fetch(`/api/mms-media/recover-url?url=${encodeURIComponent(mediaUrl)}`)
+        if (recoveryResponse.ok) {
+          const recoveryData = await recoveryResponse.json()
+          if (recoveryData.validUrl) {
+            console.log('[MessageMediaRenderer] Recovered broken media URL:', {
+              originalPreview: mediaUrl.substring(0, 50),
+              recoveredPreview: recoveryData.validUrl.substring(0, 50)
+            })
+            setRecoveryState('recovered')
+            return recoveryData.validUrl
+          }
         }
+        setRecoveryState('failed')
+      } catch (error) {
+        console.error('[MessageMediaRenderer] URL recovery failed:', error)
+        setRecoveryState('failed')
       }
-    } catch (error) {
-      console.error('[MessageMediaRenderer] URL recovery failed, using original:', error)
+    } else if (recoveryState === 'failed') {
+      // Already failed to recover, don't try again
+      console.log('[MessageMediaRenderer] Skipping recovery for already-failed URL')
+      return null
     }
   }
 
@@ -86,6 +97,7 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
   const [failedMedia, setFailedMedia] = useState<Set<string>>(new Set())
   const [hasLoadedFirstImage, setHasLoadedFirstImage] = useState(false)
   const [authenticatedUrls, setAuthenticatedUrls] = useState<Record<string, string>>({})
+  const [mediaRecoveryState, setMediaRecoveryState] = useState<Record<string, 'idle' | 'refreshing' | 'recovered' | 'failed'>>({})
 
   // MMS UI attachments loaded
 
@@ -95,9 +107,21 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
       const urlMap: Record<string, string> = {}
       
       for (const mediaItem of media || []) {
+        // Use local preview URLs directly (no auth needed)
+        if (mediaItem.isLocalPreview) {
+          urlMap[mediaItem.id] = mediaItem.media_url
+          continue
+        }
+        
         // Only fetch authenticated URLs for Twilio URLs
         if (!mediaItem.media_url.includes('supabase.co') && !mediaItem.media_url.includes('/storage/v1')) {
-          const blobUrl = await fetchAuthenticatedMedia(mediaItem.media_url)
+          const recoveryState = mediaRecoveryState[mediaItem.id] || 'idle'
+          const blobUrl = await fetchAuthenticatedMedia(
+            mediaItem.media_url,
+            mediaItem.id,
+            recoveryState,
+            (state) => setMediaRecoveryState(prev => ({ ...prev, [mediaItem.id]: state }))
+          )
           if (blobUrl) {
             urlMap[mediaItem.id] = blobUrl
           }

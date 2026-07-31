@@ -181,6 +181,8 @@ export interface MessageMedia {
   media_url: string;
   mime_type: string;
   created_at: string;
+  isLocalPreview?: boolean;
+  filename?: string;
 }
 
 export interface CallEvent {
