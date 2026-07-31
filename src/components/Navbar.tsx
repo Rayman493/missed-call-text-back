@@ -127,7 +127,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                     <>
                       <Link
                         href="/dashboard"
-                        className="inline-flex items-center justify-center h-10 w-10 rounded-lg bg-blue-600 text-white shadow-sm transition-colors hover:bg-blue-700 sm:h-auto sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
+                        className="inline-flex items-center justify-center h-10 w-10 rounded-lg bg-blue-500/10 border border-blue-400/25 text-slate-100 shadow-none transition-colors hover:bg-blue-500/15 sm:h-auto sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
                         aria-label="Go to Dashboard"
                       >
                         <Home className="w-5 h-5 sm:hidden" />
@@ -139,7 +139,7 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                     <>
                       <Link
                         href="/dashboard"
-                        className="inline-flex items-center justify-center h-10 w-10 rounded-lg bg-blue-600 text-white shadow-sm transition-colors hover:bg-blue-700 sm:h-auto sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
+                        className="inline-flex items-center justify-center h-10 w-10 rounded-lg bg-blue-500/10 border border-blue-400/25 text-slate-100 shadow-none transition-colors hover:bg-blue-500/15 sm:h-auto sm:w-auto sm:px-4 sm:py-2 sm:text-sm"
                         aria-label="Go to Dashboard"
                       >
                         <Home className="w-5 h-5 sm:hidden" />
