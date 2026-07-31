@@ -510,7 +510,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                   <span className="text-sm font-semibold text-foreground leading-tight">
                     AI Intake
                   </span>
-                  <span className="text-[10px] text-muted-foreground font-normal leading-tight">
+                  <span className="text-[10px] text-foreground/70 font-normal leading-tight">
                     Captured from AI Voice
                   </span>
                 </div>

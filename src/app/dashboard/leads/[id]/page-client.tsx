@@ -3603,7 +3603,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         {!isMobileView && (
           <div className="grid grid-cols-[minmax(0,1fr)_minmax(360px,400px)] gap-8 items-start">
             {/* Desktop Conversation Section - Primary workspace */}
-            <section className="flex flex-col min-h-0 h-[calc(100vh-280px)] bg-background rounded-2xl border border-border/40 shadow-sm">
+            <section className="flex flex-col min-h-0 h-[calc(100vh-260px)] bg-background rounded-2xl border border-border/40 shadow-sm">
               {/* Desktop Conversation Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-border/30 bg-muted/50 rounded-t-2xl">
                 <div className="flex items-center gap-2">
@@ -3679,12 +3679,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </section>
 
             {/* Desktop Sidebar - Premium Card */}
-            <aside className="sticky top-4 h-[calc(100vh-280px)]" data-sidebar>
+            <aside className="sticky top-4 h-[calc(100vh-240px)]" data-sidebar>
               <div className="h-full bg-background rounded-2xl border border-border/50 shadow-sm p-5 overflow-y-auto custom-scrollbar">
-                <div className="space-y-5">
-                  {/* AI Intake Summary - Premium Card */}
+                {(() => {
+                  const paymentRequests = leadData?.paymentRequests || []
+                  return (
+                    <div className="space-y-4">
+                  {/* AI Intake Summary - Hero Card */}
                   {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
-                    <div className="bg-muted/40 rounded-xl border border-border/30 p-4 shadow-sm">
+                    <div className="bg-muted/50 rounded-xl border border-border/40 p-4 shadow-md">
                       <AICallDetails
                         leadId={params.id}
                         businessId={business.id}
@@ -3697,15 +3700,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     </div>
                   )}
 
-                  {/* Customer Summary - Premium Card */}
+                  {/* Customer Summary - Hero Card */}
                   {!(leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id) && (
-                    <div className="bg-muted/40 rounded-xl border border-border/30 p-4 shadow-sm">
+                    <div className="bg-muted/50 rounded-xl border border-border/40 p-4 shadow-md">
                       <VoicemailSummary leadData={leadData} />
                     </div>
                   )}
 
-                  {/* Activity Timeline - Premium Card */}
-                  <div className="bg-muted/40 rounded-xl border border-border/30 p-4 shadow-sm">
+                  {/* Activity Timeline - Secondary Card */}
+                  <div className="bg-muted/30 rounded-xl border border-border/25 p-4 shadow-sm">
                     <button
                       onClick={() => setCollapsedSections((prev: any) => ({ ...prev, activityTimeline: !prev.activityTimeline }))}
                       className="flex items-center justify-between w-full mb-3 group"
@@ -3719,10 +3722,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     )}
                   </div>
 
-                  {/* Customer Status - Premium Card */}
-                  <div className="bg-muted/40 rounded-xl border border-border/30 p-4 shadow-sm">
+                  {/* Customer Status - Secondary Card */}
+                  <div className="bg-muted/30 rounded-xl border border-border/25 p-4 shadow-sm">
                     <h3 className="text-xs font-semibold text-muted-foreground/80 mb-3 uppercase tracking-wide">Status</h3>
-                    <div className="space-y-2">
+                    <div className="space-y-2.5">
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-muted-foreground">AI Intake</span>
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${getAIIntakeStatusColor(getAIIntakeStatus(leadData || lead))}`}>
@@ -3776,9 +3779,147 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     </div>
                   </div>
 
-                  {/* Photos Received - Premium Card */}
+                  {/* Jobs - Secondary Card */}
+                  <div className="bg-muted/30 rounded-xl border border-border/25 p-4 shadow-sm">
+                    <button
+                      onClick={() => setCollapsedSections((prev: any) => ({ ...prev, jobs: !prev.jobs }))}
+                      className="flex items-center justify-between w-full mb-3 group"
+                    >
+                      <h3 className="text-sm font-semibold text-foreground group-hover:text-foreground transition-colors">Jobs</h3>
+                      <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.jobs ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    {!collapsedSections.jobs && (
+                      <div className="transition-all duration-200">
+                        {leadJobs.length === 0 ? (
+                          <div className="text-center py-6">
+                            <p className="text-sm text-muted-foreground mb-3">No jobs yet</p>
+                            <button
+                              onClick={handleCreateJobClick}
+                              className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                              </svg>
+                              <span>Create Job</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {leadJobs.slice(0, 3).map((job: any) => (
+                              <div key={job.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors">
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-medium text-foreground truncate">{job.title || 'Job'}</p>
+                                  <p className="text-xs text-muted-foreground/80">
+                                    {job.scheduled_date ? new Date(job.scheduled_date).toLocaleDateString() : 'No date'}
+                                    {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
+                                  </p>
+                                </div>
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-muted/80 text-muted-foreground/90 capitalize whitespace-nowrap ml-2 border border-border/40">
+                                  {job.status}
+                                </span>
+                              </div>
+                            ))}
+                            {leadJobs.length > 3 && (
+                              <button
+                                onClick={handleAppointmentClick}
+                                className="w-full text-center text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                              >
+                                View all {leadJobs.length} jobs
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Payments - Secondary Card */}
+                  <div className="bg-muted/30 rounded-xl border border-border/25 p-4 shadow-sm">
+                    <button
+                      onClick={() => setCollapsedSections((prev: any) => ({ ...prev, payments: !prev.payments }))}
+                      className="flex items-center justify-between w-full mb-3 group"
+                    >
+                      <h3 className="text-sm font-semibold text-foreground group-hover:text-foreground transition-colors">Payments</h3>
+                      <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.payments ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    {!collapsedSections.payments && (
+                      <div className="transition-all duration-200">
+                        {paymentRequests.length === 0 ? (
+                          <div className="text-center py-6">
+                            <p className="text-sm text-muted-foreground mb-3">No payment requests</p>
+                            <button
+                              onClick={() => setShowPaymentModal(true)}
+                              disabled={!business || getAvailableProviders(business).length === 0}
+                              className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                              </svg>
+                              <span>Request Payment</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {paymentRequests.map((pr: any) => (
+                              <div key={pr.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors">
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-semibold text-foreground">{formatCurrency(pr.amount_cents / 100)}</p>
+                                  <p className="text-xs text-muted-foreground/80">{pr.created_at ? new Date(pr.created_at).toLocaleDateString() : ''}</p>
+                                </div>
+                                <span className={`text-xs px-2 py-0.5 rounded-full capitalize whitespace-nowrap ml-2 border ${
+                                  pr.status === 'paid'
+                                    ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20'
+                                    : pr.status === 'pending'
+                                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                                    : 'bg-muted/80 text-muted-foreground/90 border-border/40'
+                                }`}>
+                                  {pr.status === 'paid' ? 'Paid' : pr.status === 'pending' ? 'Awaiting Payment' : pr.status}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Internal Notes - Secondary Card */}
+                  <div className="bg-muted/30 rounded-xl border border-border/25 p-4 shadow-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-sm font-semibold text-foreground">Internal Notes</h3>
+                          <div className="text-[10px] text-muted-foreground/70">Private to your business</div>
+                        </div>
+                        {Boolean((leadData?.notes || '').trim()) ? (
+                          <div className="mt-2 text-xs text-muted-foreground line-clamp-3 break-words">
+                            {(leadData?.notes || '').trim()}
+                          </div>
+                        ) : (
+                          <div className="mt-2 text-xs text-muted-foreground/70">
+                            No notes yet
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => { setShowCustomerInfoModal(true); setAutoFocusNotes(true) }}
+                          className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors"
+                        >
+                          {Boolean((leadData?.notes || '').trim()) ? 'Edit' : 'Add Note'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Photos Received - Secondary Card */}
                   {Object.keys(messageMedia).length > 0 && (
-                    <div className="bg-muted/40 rounded-xl border border-border/30 p-4 shadow-sm">
+                    <div className="bg-muted/30 rounded-xl border border-border/25 p-4 shadow-sm">
                       <h3 className="text-xs font-semibold text-muted-foreground/80 mb-3 uppercase tracking-wide">Photos</h3>
                       <div className="grid grid-cols-2 gap-2">
                         {Object.entries(messageMedia).slice(0, showAllPhotos ? undefined : 4).map(([messageId, media]: [string, any]) => (
@@ -3811,14 +3952,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       )}
                     </div>
                   )}
-                </div>
+                  </div>
+                  )
+                })()}
               </div>
             </aside>
-
-            {/* Workspace Section - Below conversation for desktop */}
-            <div className="col-span-2 mt-8">
-              {renderWorkspaceSection()}
-            </div>
           </div>
         )}
 
