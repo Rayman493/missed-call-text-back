@@ -51,16 +51,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         total: notificationsData.length
       }
       
-      console.log('[NotificationContext] Fetched notifications:', {
-        businessId,
-        notificationsCount: notificationsData.length,
-        countData,
-        notificationIds: notificationsData.map(n => n.id),
-        notificationTypes: notificationsData.map(n => n.type),
-        readValues: notificationsData.map(n => n.read),
-        created_at: notificationsData.map(n => n.created_at)
-      })
-      
       setNotifications(notificationsData)
       setNotificationCount(countData)
       setDisplayedUnreadCount(countData.unread)
@@ -70,16 +60,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         console.warn('[NotificationContext] INCONSISTENCY: unread count > 0 but no notifications fetched', {
           unreadCount: countData.unread,
           totalCount: countData.total,
-          notificationsData
-        })
-      }
-      
-      // Also log if we have notifications but they're all read while displayedUnreadCount > 0
-      if (countData.unread === 0 && notificationsData.length > 0 && displayedUnreadCount > 0) {
-        console.warn('[NotificationContext] INCONSISTENCY: displayedUnreadCount > 0 but all notifications are read', {
-          displayedUnreadCount,
-          actualUnreadCount: countData.unread,
-          notificationsCount: notificationsData.length,
           notificationsData
         })
       }
@@ -108,13 +88,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
           filter: `business_id=eq.${businessId}`
         },
         async (payload: any) => {
-          console.log('[NOTIFICATION REALTIME INSERT]', {
-            id: payload.new.id,
-            businessId: payload.new.business_id,
-            type: payload.new.type,
-            read: payload.new.read,
-            created_at: payload.new.created_at
-          })
           // Optimistically add new notification to state
           setNotifications(prev => [payload.new, ...prev].slice(0, 10))
           setNotificationCount(prev => ({ 

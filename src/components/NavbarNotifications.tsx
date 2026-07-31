@@ -120,25 +120,6 @@ export default function NavbarNotifications() {
     initializeForBusiness(business.id)
   }, [business, initializeForBusiness])
 
-  // Log notification state when dropdown opens
-  useEffect(() => {
-    if (isOpen) {
-      console.log('[NOTIFICATION PREVIEW STATE]', {
-        businessId: business?.id,
-        notificationsLength: notifications.length,
-        notificationIds: notifications.map(n => n.id),
-        notificationTypes: notifications.map(n => n.type),
-        readValues: notifications.map(n => n.read),
-        created_at: notifications.map(n => n.created_at),
-        unreadCount: notificationCount.unread,
-        displayedUnreadCount,
-        loading,
-        filteredUnreadCount: notifications.filter(n => !n.read).length,
-        hasSyncIssue: displayedUnreadCount > 0 && notifications.filter(n => !n.read).length === 0
-      })
-    }
-  }, [isOpen, notifications, notificationCount, displayedUnreadCount, loading, business?.id])
-
   const handleMarkAsRead = async (notificationId: string) => {
     await markAsRead(notificationId)
   }
@@ -167,22 +148,40 @@ export default function NavbarNotifications() {
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'sms':
-        return <MessageCircle className="w-4 h-4" />
-      case 'call':
-        return <PhoneMissed className="w-4 h-4" />
-      case 'payment':
-        return <CreditCard className="w-4 h-4" />
-      case 'appointment':
-        return <Calendar className="w-4 h-4" />
-      case 'info':
-        return <Info className="w-4 h-4" />
-      case 'success':
-        return <CheckCircle className="w-4 h-4" />
-      case 'warning':
-        return <AlertTriangle className="w-4 h-4" />
-      case 'user':
+      case 'new_lead':
         return <User className="w-4 h-4" />
+      case 'customer_reply':
+        return <MessageSquare className="w-4 h-4" />
+      case 'followup_completed':
+        return <CheckCircle className="w-4 h-4" />
+      case 'forwarding_disconnected':
+        return <PhoneMissed className="w-4 h-4" />
+      case 'sms_failed':
+        return <MessageCircle className="w-4 h-4" />
+      case 'trial_ending':
+        return <Clock className="w-4 h-4" />
+      case 'subscription_issue':
+        return <AlertTriangle className="w-4 h-4" />
+      case 'voicemail_received':
+        return <PhoneMissed className="w-4 h-4" />
+      case 'ai_intake_completed':
+        return <User className="w-4 h-4" />
+      case 'payment_requested':
+        return <CreditCard className="w-4 h-4" />
+      case 'payment_created':
+        return <CreditCard className="w-4 h-4" />
+      case 'payment_completed':
+        return <CreditCard className="w-4 h-4" />
+      case 'calendar_connected':
+        return <Calendar className="w-4 h-4" />
+      case 'calendar_disconnected':
+        return <Calendar className="w-4 h-4" />
+      case 'appointment_created':
+        return <Calendar className="w-4 h-4" />
+      case 'appointment_deleted':
+        return <Calendar className="w-4 h-4" />
+      case 'personal_voicemail':
+        return <PhoneMissed className="w-4 h-4" />
       default:
         return <Bell className="w-4 h-4" />
     }
@@ -190,22 +189,40 @@ export default function NavbarNotifications() {
 
   const getNotificationColor = (type: string) => {
     switch (type) {
-      case 'sms':
+      case 'new_lead':
         return 'bg-blue-500/20 text-blue-400'
-      case 'call':
-        return 'bg-red-500/20 text-red-400'
-      case 'payment':
+      case 'customer_reply':
         return 'bg-green-500/20 text-green-400'
-      case 'appointment':
-        return 'bg-purple-500/20 text-purple-400'
-      case 'info':
-        return 'bg-slate-500/20 text-slate-400'
-      case 'success':
+      case 'followup_completed':
         return 'bg-emerald-500/20 text-emerald-400'
-      case 'warning':
+      case 'forwarding_disconnected':
+        return 'bg-red-500/20 text-red-400'
+      case 'sms_failed':
+        return 'bg-red-500/20 text-red-400'
+      case 'trial_ending':
         return 'bg-amber-500/20 text-amber-400'
-      case 'user':
+      case 'subscription_issue':
+        return 'bg-amber-500/20 text-amber-400'
+      case 'voicemail_received':
+        return 'bg-purple-500/20 text-purple-400'
+      case 'ai_intake_completed':
         return 'bg-cyan-500/20 text-cyan-400'
+      case 'payment_requested':
+        return 'bg-green-500/20 text-green-400'
+      case 'payment_created':
+        return 'bg-green-500/20 text-green-400'
+      case 'payment_completed':
+        return 'bg-emerald-500/20 text-emerald-400'
+      case 'calendar_connected':
+        return 'bg-purple-500/20 text-purple-400'
+      case 'calendar_disconnected':
+        return 'bg-red-500/20 text-red-400'
+      case 'appointment_created':
+        return 'bg-purple-500/20 text-purple-400'
+      case 'appointment_deleted':
+        return 'bg-slate-500/20 text-slate-400'
+      case 'personal_voicemail':
+        return 'bg-purple-500/20 text-purple-400'
       default:
         return 'bg-slate-500/20 text-slate-400'
     }
@@ -213,22 +230,40 @@ export default function NavbarNotifications() {
 
   const getNotificationDotColor = (type: string) => {
     switch (type) {
-      case 'sms':
+      case 'new_lead':
         return 'bg-blue-400'
-      case 'call':
-        return 'bg-red-400'
-      case 'payment':
+      case 'customer_reply':
         return 'bg-green-400'
-      case 'appointment':
-        return 'bg-purple-400'
-      case 'info':
-        return 'bg-slate-400'
-      case 'success':
+      case 'followup_completed':
         return 'bg-emerald-400'
-      case 'warning':
+      case 'forwarding_disconnected':
+        return 'bg-red-400'
+      case 'sms_failed':
+        return 'bg-red-400'
+      case 'trial_ending':
         return 'bg-amber-400'
-      case 'user':
+      case 'subscription_issue':
+        return 'bg-amber-400'
+      case 'voicemail_received':
+        return 'bg-purple-400'
+      case 'ai_intake_completed':
         return 'bg-cyan-400'
+      case 'payment_requested':
+        return 'bg-green-400'
+      case 'payment_created':
+        return 'bg-green-400'
+      case 'payment_completed':
+        return 'bg-emerald-400'
+      case 'calendar_connected':
+        return 'bg-purple-400'
+      case 'calendar_disconnected':
+        return 'bg-red-400'
+      case 'appointment_created':
+        return 'bg-purple-400'
+      case 'appointment_deleted':
+        return 'bg-slate-400'
+      case 'personal_voicemail':
+        return 'bg-purple-400'
       default:
         return 'bg-slate-400'
     }
@@ -360,14 +395,6 @@ export default function NavbarNotifications() {
                   >
                     Refresh
                   </button>
-                </div>
-              ) : notifications.length === 0 ? (
-                <div className="text-center py-12 px-4">
-                  <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <Bell className="w-8 h-8 text-slate-400" />
-                  </div>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Everything looks good. No new notifications.</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">New activity will appear here when available.</p>
                 </div>
               ) : (
                 <>
