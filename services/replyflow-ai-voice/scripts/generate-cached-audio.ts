@@ -35,8 +35,9 @@ const TTS_VOICE = "alloy";
 const CACHED_AUDIO_GENERATION_VERSION = "voice-alloy";
 
 const prompts = {
+  ask_name: "Hi, thanks for calling. I'm the virtual assistant for the business. I'll gather a few quick details so the business owner can follow up with you. First, may I have your name?",
+  ask_request: "Thank you. What can we help you with today? Feel free to include any details that would help the business owner.",
   ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
-  ask_details: "Got it. Can you share any important details the business should know?",
   ask_location: "Thanks. Just a couple more questions. Where will this take place?",
   ask_completion_time: "When are you hoping this will be done?",
   ask_callback_time: "Perfect. Last question—what's the best time for the business to call you back?",

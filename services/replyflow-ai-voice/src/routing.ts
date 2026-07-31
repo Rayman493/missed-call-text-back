@@ -9,11 +9,13 @@ export function normalizeServiceLocationType(value: any): ServiceLocationType {
 export function getNextIntakeStage(currentStage: string, mode: ServiceLocationType): string {
   switch (currentStage) {
     case 'ask_name':
-      return 'ask_reason'
+      return 'ask_request'
+    case 'ask_request':
+      return mode === 'onsite' ? 'ask_location' : 'ask_completion_time'
     case 'ask_reason':
-      return 'ask_details'
+      return mode === 'onsite' ? 'ask_location' : 'ask_completion_time'
     case 'ask_name_reason':
-      return 'ask_details'
+      return mode === 'onsite' ? 'ask_location' : 'ask_completion_time'
     case 'ask_details':
       return mode === 'onsite' ? 'ask_location' : 'ask_completion_time'
     case 'ask_location':

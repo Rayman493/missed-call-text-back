@@ -8,6 +8,8 @@ import * as crypto from 'crypto';
 
 // Required prompt keys for Simple Mode
 const requiredPromptKeys = [
+  'ask_name',
+  'ask_reason',
   'ask_name_reason',
   'ask_name_reason_service_only',
   'ask_name_reason_name_only',
@@ -189,9 +191,11 @@ if (textMappingCorrect) {
   passed++;
 }
 
-// Test 7: Canonical registry contains all 8 legitimate prompt keys
-console.log('\nTest 7: Canonical registry contains all 8 legitimate prompt keys');
+// Test 7: Canonical registry contains all legitimate prompt keys
+console.log('\nTest 7: Canonical registry contains all legitimate prompt keys');
 const canonicalPromptKeys = [
+  'ask_name',
+  'ask_reason',
   'ask_name_reason',
   'ask_name_reason_service_only',
   'ask_name_reason_name_only',
@@ -274,6 +278,8 @@ if (wouldBeMissing) {
 // Test 12: Verify runtime validator canonical registry matches production expectations
 console.log('\nTest 12: Verify runtime validator canonical registry matches production expectations');
 const expectedCanonicalKeys = [
+  'ask_name',
+  'ask_reason',
   'ask_name_reason',
   'ask_name_reason_service_only',
   'ask_name_reason_name_only',
@@ -305,7 +311,7 @@ if (canonicalPromptKeys.length !== expectedCanonicalKeys.length) {
   }
 }
 if (canonicalMatchesProduction) {
-  console.log('✓ PASS: Canonical registry matches production expectations (8 keys)');
+  console.log('✓ PASS: Canonical registry matches production expectations (10 keys)');
   passed++;
 }
 

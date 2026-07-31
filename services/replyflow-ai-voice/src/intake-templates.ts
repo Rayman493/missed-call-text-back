@@ -25,8 +25,7 @@ export type IntakeTemplate = typeof INTAKE_TEMPLATES[number]
  */
 export const SIMPLE_MODE_PROMPT_KEYS = [
   "ask_name",
-  "ask_reason",
-  "ask_details",
+  "ask_request",
   "ask_location",
   "ask_completion_time",
   "ask_callback_time",
@@ -40,13 +39,12 @@ export type SimpleModePromptKey = typeof SIMPLE_MODE_PROMPT_KEYS[number];
  * These are used only for retrieving prompt text from templates.
  * The runtime uses SIMPLE_MODE_PROMPT_KEYS for all cached audio lookups.
  */
-export type IntakeStage = 
+export type IntakeStage =
   | 'ask_name'
-  | 'ask_reason'
+  | 'ask_request'
   | 'ask_name_reason'
   | 'ask_name_reason_service_only'
   | 'ask_name_reason_name_only'
-  | 'ask_details'
   | 'ask_location_or_context'
   | 'ask_timing'
   | 'ask_callback_time'
@@ -60,11 +58,10 @@ export type IntakeStage =
 export const AI_INTAKE_TEMPLATES: Record<IntakeTemplate, Record<IntakeStage, string>> = {
   on_site: {
     ask_name: "Hi, thanks for calling. I'm the virtual assistant for the business. I'll gather a few quick details so the business owner can follow up with you. First, may I have your name?",
-    ask_reason: "Thank you. What can I help you with today?",
+    ask_request: "Thank you. What can we help you with today? Feel free to include any details that would help the business owner.",
     ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
     ask_name_reason_service_only: "And what do you need help with?",
     ask_name_reason_name_only: "And what's your name?",
-    ask_details: "Okay. Can you share any important details the business should know?",
     ask_location_or_context: "All right. Just a couple more questions. Where will this take place?",
     ask_timing: "When are you hoping this will be done?",
     ask_callback_time: "Okay. Last question—what would be the best time for the business to call you back?",
@@ -72,11 +69,10 @@ export const AI_INTAKE_TEMPLATES: Record<IntakeTemplate, Record<IntakeStage, str
   },
   appointment: {
     ask_name: "Hi, thanks for calling. I'm the virtual assistant for the business. I'll gather a few quick details so the business owner can follow up with you. First, may I have your name?",
-    ask_reason: "Thank you. What can I help you with today?",
+    ask_request: "Thank you. What can we help you with today? Feel free to include any details that would help the business owner.",
     ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
     ask_name_reason_service_only: "And what do you need help with?",
     ask_name_reason_name_only: "And what's your name?",
-    ask_details: "Okay. Can you share any important details the business should know?",
     ask_location_or_context: "All right. Just a couple more questions. Where will this take place?",
     ask_timing: "When are you hoping this will be done?",
     ask_callback_time: "Okay. Last question—what would be the best time for the business to call you back?",
@@ -84,11 +80,10 @@ export const AI_INTAKE_TEMPLATES: Record<IntakeTemplate, Record<IntakeStage, str
   },
   lessons: {
     ask_name: "Hi, thanks for calling. I'm the virtual assistant for the business. I'll gather a few quick details so the business owner can follow up with you. First, may I have your name?",
-    ask_reason: "Thank you. What can I help you with today?",
+    ask_request: "Thank you. What can we help you with today? Feel free to include any details that would help the business owner.",
     ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
     ask_name_reason_service_only: "And what do you need help with?",
     ask_name_reason_name_only: "And what's your name?",
-    ask_details: "Okay. Can you share any important details the business should know?",
     ask_location_or_context: "All right. Just a couple more questions. Where will this take place?",
     ask_timing: "When are you hoping this will be done?",
     ask_callback_time: "Okay. Last question—what would be the best time for the business to call you back?",
@@ -96,11 +91,10 @@ export const AI_INTAKE_TEMPLATES: Record<IntakeTemplate, Record<IntakeStage, str
   },
   professional: {
     ask_name: "Hi, thanks for calling. I'm the virtual assistant for the business. I'll gather a few quick details so the business owner can follow up with you. First, may I have your name?",
-    ask_reason: "Thank you. What can I help you with today?",
+    ask_request: "Thank you. What can we help you with today? Feel free to include any details that would help the business owner.",
     ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
     ask_name_reason_service_only: "And what do you need help with?",
     ask_name_reason_name_only: "And what's your name?",
-    ask_details: "Okay. Can you share any important details the business should know?",
     ask_location_or_context: "All right. Just a couple more questions. Where will this take place?",
     ask_timing: "When are you hoping this will be done?",
     ask_callback_time: "Okay. Last question—what would be the best time for the business to call you back?",
@@ -124,11 +118,10 @@ export function getIntakeStageText(template: IntakeTemplate, stage: IntakeStage)
  */
 const LEGACY_FALLBACK_PROMPTS: Record<IntakeStage, string> = {
   ask_name: "Hi, thanks for calling. I'm the virtual assistant for the business. I'll gather a few quick details so the business owner can follow up with you. First, may I have your name?",
-  ask_reason: "Thank you. What can I help you with today?",
+  ask_request: "Thank you. What can we help you with today? Feel free to include any details that would help the business owner.",
   ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
   ask_name_reason_service_only: "And what do you need help with?",
   ask_name_reason_name_only: "And what's your name?",
-  ask_details: "Okay. Can you share any important details the business should know?",
   ask_location_or_context: "All right. Just a couple more questions. Where will this take place?",
   ask_timing: "When are you hoping this will be done?",
   ask_callback_time: "Okay. Last question—what would be the best time for the business to call you back?",

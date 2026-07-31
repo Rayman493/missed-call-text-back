@@ -235,26 +235,52 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           </div>
         ) : null}
 
-        {/* Reason for Calling */}
-        {isEditMode || extractedInfo?.reasonForCalling ? (
+        {/* Request - Combined field */}
+        {isEditMode || extractedInfo?.reasonForCalling || extractedInfo?.importantDetails || correctedFields?.details ? (
           <div>
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-medium text-muted-foreground/70 uppercase tracking-wider">Reason for Calling</span>
-              {manualFields.has('reasonForCalling') && !isEditMode && (
+              <span className="text-[10px] font-medium text-muted-foreground/70 uppercase tracking-wider">Request</span>
+              {(manualFields.has('reasonForCalling') || manualFields.has('importantDetails')) && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
+              )}
+              {!isEditMode && ((correctedFields?.details?.length > 200 || (extractedInfo?.reasonForCalling?.length || 0) > 200 || (extractedInfo?.importantDetails?.length || 0) > 200)) && (
+                <button
+                  onClick={() => setDetailsExpanded(!detailsExpanded)}
+                  className="text-[10px] text-primary hover:text-primary/80 font-medium"
+                >
+                  {detailsExpanded ? 'Show Less' : 'Show More'}
+                </button>
               )}
             </div>
             {isEditMode ? (
               <textarea
-                value={editValues.reasonForCalling}
-                onChange={(e) => setEditValues({ ...editValues, reasonForCalling: e.target.value })}
-                className="w-full min-h-[48px] px-2 py-1.5 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
-                rows={2}
-                placeholder="Service requested"
+                value={editValues.reasonForCalling || editValues.importantDetails ? `${editValues.reasonForCalling || ''}${editValues.reasonForCalling && editValues.importantDetails ? '\n\n' : ''}${editValues.importantDetails || ''}` : ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Try to split back into reason and details for editing
+                  const parts = value.split(/\n\n+/);
+                  setEditValues({
+                    ...editValues,
+                    reasonForCalling: parts[0] || '',
+                    importantDetails: parts.slice(1).join('\n\n') || ''
+                  });
+                }}
+                className="w-full min-h-[120px] px-2 py-1.5 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
+                rows={5}
+                placeholder="What can we help you with? Feel free to include any details."
               />
             ) : (
               <p className="text-sm text-foreground leading-relaxed">
-                {extractedInfo?.reasonForCalling ? sentenceCase(extractedInfo.reasonForCalling) : 'Not Provided'}
+                {(() => {
+                  const reason = correctedFields?.serviceRequested ? sentenceCase(correctedFields.serviceRequested) : (extractedInfo?.reasonForCalling ? sentenceCase(extractedInfo.reasonForCalling) : '');
+                  const details = correctedFields?.details ? sentenceCase(correctedFields.details) : (extractedInfo?.importantDetails ? sentenceCase(extractedInfo.importantDetails) : '');
+                  const combined = reason && details ? `${reason}\n\n${details}` : (reason || details || 'Not Provided');
+                  
+                  if (!detailsExpanded && combined.length > 200) {
+                    return combined.substring(0, 200) + '...';
+                  }
+                  return combined;
+                })()}
               </p>
             )}
           </div>
@@ -330,42 +356,6 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
             ) : (
               <p className="text-sm text-foreground leading-relaxed">
                 {sentenceCase(extractedInfo.preferredCallbackTime)}
-              </p>
-            )}
-          </div>
-        ) : null}
-
-        {/* Additional Details */}
-        {isEditMode || extractedInfo?.importantDetails || correctedFields?.details ? (
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-medium text-muted-foreground/70 uppercase tracking-wider">Additional Details</span>
-              {manualFields.has('importantDetails') && !isEditMode && (
-                <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
-              )}
-              {!isEditMode && ((correctedFields?.details?.length > 200 || (extractedInfo?.importantDetails?.length || 0) > 200)) && (
-                <button
-                  onClick={() => setDetailsExpanded(!detailsExpanded)}
-                  className="text-[10px] text-primary hover:text-primary/80 font-medium"
-                >
-                  {detailsExpanded ? 'Show Less' : 'Show More'}
-                </button>
-              )}
-            </div>
-            {isEditMode ? (
-              <textarea
-                value={editValues.importantDetails}
-                onChange={(e) => setEditValues({ ...editValues, importantDetails: e.target.value })}
-                className="w-full min-h-[120px] px-2 py-1.5 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
-                rows={5}
-                placeholder="Additional details"
-              />
-            ) : (
-              <p className="text-sm text-foreground leading-relaxed">
-                {detailsExpanded 
-                  ? (correctedFields?.details ? sentenceCase(correctedFields.details) : extractedInfo?.importantDetails ? sentenceCase(extractedInfo.importantDetails) : '')
-                  : (correctedFields?.details ? sentenceCase(correctedFields.details.substring(0, 200) + (correctedFields.details.length > 200 ? '...' : '')) : extractedInfo?.importantDetails ? sentenceCase(extractedInfo.importantDetails.substring(0, 200) + ((extractedInfo.importantDetails.length || 0) > 200 ? '...' : '')) : '')
-                }
               </p>
             )}
           </div>

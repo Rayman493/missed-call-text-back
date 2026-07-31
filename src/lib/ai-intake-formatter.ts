@@ -494,9 +494,6 @@ export const formatAiIntakeSummary = (
   const customerName = normalizeCustomerName(
     intakeData?.customerName ?? intakeData?.callerName
   );
-  const serviceRequested = normalizeServiceReason(
-    intakeData?.serviceRequested ?? intakeData?.reasonForCalling
-  );
   const serviceAddress = normalizeAddress(
     intakeData?.serviceAddress ?? intakeData?.addressOrLocation
   );
@@ -506,9 +503,25 @@ export const formatAiIntakeSummary = (
   const callbackTime = normalizeTiming(
     intakeData?.callbackTime ?? intakeData?.preferredCallbackTime
   );
+
+  // Combine serviceRequested and issueDescription into single Request field
+  const serviceRequested = normalizeServiceReason(
+    intakeData?.serviceRequested ?? intakeData?.reasonForCalling
+  );
   const issueDescription = normalizeAdditionalDetails(
     intakeData?.issueDescription ?? intakeData?.importantDetails
   );
+  
+  // Build combined Request field
+  let request = serviceRequested;
+  if (issueDescription && issueDescription !== 'Not collected' && issueDescription !== serviceRequested) {
+    request = serviceRequested === 'Not collected' 
+      ? issueDescription 
+      : `${serviceRequested}\n\n${issueDescription}`;
+  }
+  
+  // Use the new request field if available, otherwise fall back to combined
+  const finalRequest = intakeData?.request ? normalizeServiceReason(intakeData.request) : request;
 
   const displayName = businessName || 'us';
   const prefix = prefixNotice ? `${prefixNotice}\n\n` : '';
@@ -523,8 +536,8 @@ ${customerName}
 📞 Phone
 ${callerPhone}
 
-🛠️ Service Requested
-${serviceRequested}
+🛠️ Request
+${finalRequest}
 
 📍 Service Address
 ${serviceAddress}
@@ -534,9 +547,6 @@ ${desiredCompletionTime}
 
 ☎️ Best Callback Time
 ${callbackTime}
-
-📝 Additional Details
-${issueDescription}
 
 Reply to this message if you'd like to update or add any information.`;
 };

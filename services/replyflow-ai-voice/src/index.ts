@@ -71,11 +71,10 @@ import { logModelConfiguration } from './model-config';
 // Canonical Simple Mode prompt keys - single source of truth for all prompt validation
 const REQUIRED_PROMPTS = [
   'ask_name',
-  'ask_reason',
+  'ask_request',
   'ask_name_reason',
   'ask_name_reason_service_only',
   'ask_name_reason_name_only',
-  'ask_details',
   'ask_location',
   'ask_completion_time',
   'ask_callback_time',
@@ -105,6 +104,355 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: str
   });
 
   return Promise.race([promise, timeoutPromise]) as Promise<T>;
+}
+
+// Minimal shared authorization guard for settle-window callbacks (production + tests)
+// Returns true if the callback is authorized to finalize, otherwise logs a single
+// stale/mismatch event and returns false. No side effects beyond logging.
+export function isSettleCallbackAuthorized(
+  state: any,
+  originatingStage: string,
+  originatingTurnId: number,
+  capturedGeneration: number,
+): { authorized: boolean; reason?: string } {
+  // Generation guard: prevent stale callbacks from finalizing
+  if (capturedGeneration !== state.settleGeneration) {
+    console.log('[LOGICAL TURN LIFECYCLE] =========================================');
+    console.log('[LOGICAL TURN LIFECYCLE] event: stale_settle_callback_blocked');
+    console.log('[LOGICAL TURN LIFECYCLE] callSid:', state.callSid);
+    console.log('[LOGICAL TURN LIFECYCLE] capturedGeneration:', capturedGeneration);
+    console.log('[LOGICAL TURN LIFECYCLE] currentGeneration:', state.settleGeneration);
+    console.log('[LOGICAL TURN LIFECYCLE] reason: generation_mismatch');
+    console.log('[LOGICAL TURN LIFECYCLE] timestamp:', new Date().toISOString());
+    console.log('[LOGICAL TURN LIFECYCLE] =========================================');
+    return { authorized: false, reason: 'generation_mismatch' };
+  }
+  // Stage/turn guard: prevent finalization if stage has already changed
+  if (state.pendingAnswerStage !== originatingStage || state.pendingAnswerTurnId !== originatingTurnId) {
+    console.log('[LOGICAL TURN LIFECYCLE] =========================================');
+    console.log('[LOGICAL TURN LIFECYCLE] event: finalization_blocked_stage_mismatch');
+    console.log('[LOGICAL TURN LIFECYCLE] callSid:', state.callSid);
+    console.log('[LOGICAL TURN LIFECYCLE] expectedStage:', originatingStage);
+    console.log('[LOGICAL TURN LIFECYCLE] expectedTurnId:', originatingTurnId);
+    console.log('[LOGICAL TURN LIFECYCLE] currentPendingStage:', state.pendingAnswerStage);
+    console.log('[LOGICAL TURN LIFECYCLE] currentPendingTurnId:', state.pendingAnswerTurnId);
+    console.log('[LOGICAL TURN LIFECYCLE] reason: stage_or_turn_changed');
+    console.log('[LOGICAL TURN LIFECYCLE] timestamp:', new Date().toISOString());
+    console.log('[LOGICAL TURN LIFECYCLE] =========================================');
+    return { authorized: false, reason: 'stage_or_turn_changed' };
+  }
+  return { authorized: true };
+}
+
+// Minimal shared immediate-advance helper for multi-field capture in Simple Mode
+// When the caller says both their name and their reason during ask_name, skip ask_reason
+// and advance directly to ask_details. Returns true if it advanced and dispatched a prompt.
+export function handleImmediateAdvanceIfMultiFieldCaptured(
+  state: any,
+  originatingStage: string,
+  deps: {
+    sendPrompt: (stage: string) => void;
+    getNextIntakeStage: (stage: string) => string;
+    clearPendingAnswerState: (state: any, reason: string) => void;
+  }
+): boolean {
+  const hasValidCustomerName = !!state.intakeData.customerName && state.intakeData.customerName.trim() !== '';
+  const hasValidRequest = !!state.intakeData.request && state.intakeData.request.trim() !== '';
+  if (originatingStage === 'ask_name' && hasValidCustomerName && hasValidRequest) {
+    const previousStage = state.currentStage;
+    // Skip ask_request and go straight to next stage
+    const nextStage = deps.getNextIntakeStage('ask_request');
+    deps.clearPendingAnswerState(state, 'ask_name_multi_field_advance');
+    state.currentStage = nextStage;
+
+    console.log('[STAGE TRANSITION] =========================================');
+    console.log('[STAGE TRANSITION] event: stage_advanced');
+    console.log('[STAGE TRANSITION] trigger: accepted_transcript_multi_field_skip');
+    console.log('[STAGE TRANSITION] originatingStage:', originatingStage);
+    console.log('[STAGE TRANSITION] previousStage:', previousStage);
+    console.log('[STAGE TRANSITION] nextStage:', nextStage);
+    console.log('[STAGE TRANSITION] transitionCommitted:', true);
+    console.log('[STAGE TRANSITION] outboundPromptDispatched:', true);
+    console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
+    console.log('[STAGE TRANSITION] =========================================');
+
+    deps.sendPrompt(state.currentStage);
+    return true;
+  }
+  return false;
+}
+
+// Minimal shared wrapper for Simple Mode websocket-close incomplete finalization
+// Executes the same persistence call used in production, with provided dependencies.
+export async function finalizeIncompleteOnWebsocketCloseSimple(
+  state: any,
+  deps: {
+    supabase: any;
+    finalizeIncompleteIntake: (
+      transcript: Array<{ role: string; text: string }>,
+      intakeData: any,
+      businessId: string,
+      callerPhone: string,
+      callSid: string,
+      businessName: string,
+      forwardedFrom: string,
+      supabase: any
+    ) => Promise<void>;
+  }
+): Promise<void> {
+  if (!state.completionPersistenceStarted && (state.stageCaptures.length > 0 || Object.keys(state.intakeData).some((k: string) => state.intakeData[k]))) {
+    console.log('[PARTIAL FIELDS AT DISCONNECT] =========================================');
+    console.log('[PARTIAL FIELDS AT DISCONNECT] customerName:', state.intakeData.customerName);
+    console.log('[PARTIAL FIELDS AT DISCONNECT] serviceRequested:', state.intakeData.serviceRequested);
+    console.log('[PARTIAL FIELDS AT DISCONNECT] issueDescription:', state.intakeData.issueDescription);
+    console.log('[PARTIAL FIELDS AT DISCONNECT] serviceAddress:', state.intakeData.serviceAddress);
+    console.log('[PARTIAL FIELDS AT DISCONNECT] desiredCompletionTime:', state.intakeData.desiredCompletionTime);
+    console.log('[PARTIAL FIELDS AT DISCONNECT] callbackTime:', state.intakeData.callbackTime);
+    console.log('[PARTIAL FIELDS AT DISCONNECT] Timestamp:', new Date().toISOString());
+    console.log('[PARTIAL FIELDS AT DISCONNECT] =========================================');
+
+    console.log('[INCOMPLETE FINALIZE] =========================================');
+    console.log('[INCOMPLETE FINALIZE] callSid:', state.callSid);
+    console.log('[INCOMPLETE FINALIZE] reason: websocket_closed');
+    console.log('[INCOMPLETE FINALIZE] stageCaptures:', state.stageCaptures.length);
+    console.log('[INCOMPLETE FINALIZE] intakeDataKeys:', Object.keys(state.intakeData).filter((k: string) => state.intakeData[k]));
+
+    const transcriptToPersist = state.stageCaptures.length > 0
+      ? state.stageCaptures.map((c: any) => ({ role: 'user', text: c.rawTranscript }))
+      : (state.transcript ? [{ role: 'user', text: state.transcript }] : []);
+
+    try {
+      if (state.callSid && state.businessId && state.callerPhone) {
+        await deps.finalizeIncompleteIntake(
+          transcriptToPersist,
+          state.intakeData,
+          state.businessId,
+          state.callerPhone,
+          state.callSid,
+          state.businessName,
+          state.forwardedFrom,
+          deps.supabase
+        );
+        console.log('[CALL RECORD PERSISTED] =========================================');
+        console.log('[CALL RECORD PERSISTED] success: true');
+        console.log('[CALL RECORD PERSISTED] callSid:', state.callSid);
+        console.log('[CALL RECORD PERSISTED] Timestamp:', new Date().toISOString());
+        console.log('[CALL RECORD PERSISTED] =========================================');
+
+        console.log('[LEAD UPDATED] =========================================');
+        console.log('[LEAD UPDATED] success: true');
+        console.log('[LEAD UPDATED] businessId:', state.businessId);
+        console.log('[LEAD UPDATED] callerPhone:', state.callerPhone);
+        console.log('[LEAD UPDATED] Timestamp:', new Date().toISOString());
+        console.log('[LEAD UPDATED] =========================================');
+
+        console.log('[FINALIZATION] =========================================');
+        console.log('[FINALIZATION] disconnectSource: websocket_close');
+        console.log('[FINALIZATION] incomplete: true');
+        console.log('[FINALIZATION] persistenceAttempted: true');
+        console.log('[FINALIZATION] persistenceSucceeded: true');
+        console.log('[FINALIZATION] smsEligible: true');
+        console.log('[FINALIZATION] smsEligibilityReason: partial_intake_persisted');
+        console.log('[FINALIZATION] smsDispatchAttempted: false');
+        console.log('[FINALIZATION] smsDispatchSucceeded: false');
+        console.log('[FINALIZATION] smsMessageSid: null');
+        console.log('[FINALIZATION] smsDispatchError: null');
+        console.log('[FINALIZATION] finalizationCompleted: true');
+        console.log('[FINALIZATION] Note: SMS dispatch owned by voice-status webhook');
+        console.log('[FINALIZATION] Timestamp:', new Date().toISOString());
+        console.log('[FINALIZATION] =========================================');
+
+        console.log('[INCOMPLETE FINALIZE] persistedBeforeVoiceStatus: true');
+      } else {
+        console.log('[INCOMPLETE FINALIZE] persistedBeforeVoiceStatus: false');
+        console.log('[INCOMPLETE FINALIZE] reason: missing_required_context');
+        console.log('[FINALIZATION] =========================================');
+        console.log('[FINALIZATION] disconnectSource: websocket_close');
+        console.log('[FINALIZATION] incomplete: true');
+        console.log('[FINALIZATION] persistenceAttempted: false');
+        console.log('[FINALIZATION] persistenceSucceeded: false');
+        console.log('[FINALIZATION] smsEligible: false');
+        console.log('[FINALIZATION] smsEligibilityReason: missing_required_context');
+        console.log('[FINALIZATION] smsDispatchAttempted: false');
+        console.log('[FINALIZATION] smsDispatchSucceeded: false');
+        console.log('[FINALIZATION] smsMessageSid: null');
+        console.log('[FINALIZATION] smsDispatchError: null');
+        console.log('[FINALIZATION] finalizationCompleted: true');
+        console.log('[FINALIZATION] Timestamp:', new Date().toISOString());
+        console.log('[FINALIZATION] =========================================');
+      }
+    } catch (error) {
+      console.log('[INCOMPLETE FINALIZE] persistedBeforeVoiceStatus: false');
+      console.log('[INCOMPLETE FINALIZE] reason: exception');
+      console.log('[INCOMPLETE FINALIZE] error:', error);
+      console.log('[FINALIZATION] =========================================');
+      console.log('[FINALIZATION] disconnectSource: websocket_close');
+      console.log('[FINALIZATION] incomplete: true');
+      console.log('[FINALIZATION] persistenceAttempted: true');
+      console.log('[FINALIZATION] persistenceSucceeded: false');
+      console.log('[FINALIZATION] smsEligible: false');
+      console.log('[FINALIZATION] smsEligibilityReason: exception');
+      console.log('[FINALIZATION] smsDispatchAttempted: false');
+      console.log('[FINALIZATION] smsDispatchSucceeded: false');
+      console.log('[FINALIZATION] smsMessageSid: null');
+      console.log('[FINALIZATION] smsDispatchError:', error);
+      console.log('[FINALIZATION] finalizationCompleted: true');
+      console.log('[FINALIZATION] Timestamp:', new Date().toISOString());
+      console.log('[FINALIZATION] =========================================');
+    }
+  } else {
+    console.log('[FINALIZATION SKIPPED] =========================================');
+    console.log('[FINALIZATION SKIPPED] reason: completion_already_processed_or_no_data');
+    console.log('[FINALIZATION SKIPPED] completionPersistenceStarted:', state.completionPersistenceStarted);
+    console.log('[FINALIZATION SKIPPED] hasStageCaptures:', state.stageCaptures.length > 0);
+    console.log('[FINALIZATION SKIPPED] hasIntakeData:', Object.keys(state.intakeData).some((k: string) => state.intakeData[k]));
+    console.log('[FINALIZATION SKIPPED] Timestamp:', new Date().toISOString());
+    console.log('[FINALIZATION SKIPPED] =========================================');
+    console.log('[FINALIZATION] =========================================');
+    console.log('[FINALIZATION] disconnectSource: websocket_close');
+    console.log('[FINALIZATION] incomplete: false');
+    console.log('[FINALIZATION] persistenceAttempted: false');
+    console.log('[FINALIZATION] persistenceSucceeded: false');
+    console.log('[FINALIZATION] smsEligible: false');
+    console.log('[FINALIZATION] smsEligibilityReason: completion_already_processed_or_no_data');
+    console.log('[FINALIZATION] smsDispatchAttempted: false');
+    console.log('[FINALIZATION] smsDispatchSucceeded: false');
+    console.log('[FINALIZATION] smsMessageSid: null');
+    console.log('[FINALIZATION] smsDispatchError: null');
+    console.log('[FINALIZATION] finalizationCompleted: true');
+    console.log('[FINALIZATION] Timestamp:', new Date().toISOString());
+    console.log('[FINALIZATION] =========================================');
+  }
+}
+
+// Shared Simple Mode settle-finalization stage advancement (production + tests)
+// This function encapsulates the exact post-authorization finalize-and-advance logic
+// used after the settle window completes. It performs:
+// - timeout cleanup and turn increment
+// - pending-answer cleanup + durable acceptance flag reset
+// - optional details timing instrumentation
+// - next-stage resolution via getNextIntakeStage with service-location resolution
+// - transition logging and prompt dispatch
+export function finalizeSimpleModeSettledAnswer(
+  state: any,
+  finalStage: string,
+  fieldName: string | null,
+  trigger: string,
+  deps: {
+    sendPrompt: (stage: string) => void;
+    clearSilentTimeout: (reason?: string) => void;
+    clearStageTimeout: () => void;
+    getNextIntakeStage: (stage: string) => string;
+    loadServiceLocationTypeForBusiness: (businessId: string) => Promise<any>;
+  },
+): void {
+  deps.clearSilentTimeout('settle_window_finalization');
+  deps.clearStageTimeout();
+  state.currentTurnId++;
+
+  // Clear pending answer state (AFTER using it for stage advancement) and reset durable acceptance flag
+  clearPendingAnswerState(state, 'settle_window_finalization');
+  state.answerAcceptedForStage = null;
+  state.answerAcceptedTurnId = 0;
+
+  // Instrument Additional Details timing at finalization
+  if (finalStage === 'ask_details') {
+    state.detailsTiming.nextPromptSent = Date.now();
+    const totalLatencyMs = state.detailsTiming.nextPromptSent - state.detailsTiming.callerStoppedAt;
+    console.log('[DETAILS TIMING] =========================================');
+    console.log('[DETAILS TIMING] callSid:', state.callSid);
+    console.log('[DETAILS TIMING] callerStoppedAt:', state.detailsTiming.callerStoppedAt);
+    console.log('[DETAILS TIMING] vadDetectedAt:', state.detailsTiming.callerStoppedAt);
+    console.log('[DETAILS TIMING] finalTranscriptAt:', state.detailsTiming.finalTranscriptAt);
+    console.log('[DETAILS TIMING] settleWindowStart:', state.detailsTiming.settleWindowStart);
+    console.log('[DETAILS TIMING] settleWindowEnd:', state.detailsTiming.settleWindowEnd);
+    console.log('[DETAILS TIMING] nextPromptSent:', state.detailsTiming.nextPromptSent);
+    console.log('[DETAILS TIMING] totalLatencyMs:', totalLatencyMs);
+    console.log('[DETAILS TIMING] vadToTranscriptMs:', state.detailsTiming.finalTranscriptAt - state.detailsTiming.callerStoppedAt);
+    console.log('[DETAILS TIMING] settleWindowMs:', state.detailsTiming.settleWindowEnd - state.detailsTiming.settleWindowStart);
+    console.log('[DETAILS TIMING] finalizationToPromptMs:', state.detailsTiming.nextPromptSent - state.detailsTiming.settleWindowEnd);
+    console.log('[DETAILS TIMING] =========================================');
+  }
+
+  // Centralized routing after settle finalization, with race-safe mode resolution
+  const needsResolution = finalStage === 'ask_details' && (!state.serviceLocationType || state.serviceLocationType.length === 0);
+  const resolution = needsResolution && state.businessId
+    ? deps.loadServiceLocationTypeForBusiness(state.businessId)
+    : Promise.resolve();
+  resolution.then(() => {
+    const nextStage = deps.getNextIntakeStage(finalStage);
+    if (nextStage && nextStage !== finalStage) {
+      const previousStage = state.currentStage;
+      const turnIdBefore = state.currentTurnId;
+      const pendingAnswerStageBefore = state.pendingAnswerStage;
+
+      state.currentStage = nextStage;
+      const turnIdAfter = state.currentTurnId;
+      const pendingAnswerStageAfter = state.pendingAnswerStage;
+
+      console.log('[STAGE TRANSITION] =========================================');
+      console.log('[STAGE TRANSITION] callSid:', state.callSid);
+      console.log('[STAGE TRANSITION] fromStage:', previousStage);
+      console.log('[STAGE TRANSITION] toStage:', nextStage);
+      console.log('[STAGE TRANSITION] trigger:', trigger);
+      console.log('[STAGE TRANSITION] extractedFields:', fieldName);
+      console.log('[STAGE TRANSITION] promptKey:', nextStage);
+      console.log('[STAGE TRANSITION] transitionCommitted:', true);
+      console.log('[STAGE TRANSITION] pendingAnswerStageBefore:', pendingAnswerStageBefore);
+      console.log('[STAGE TRANSITION] pendingAnswerStageAfter:', pendingAnswerStageAfter);
+      console.log('[STAGE TRANSITION] turnIdBefore:', turnIdBefore);
+      console.log('[STAGE TRANSITION] turnIdAfter:', turnIdAfter);
+      console.log('[STAGE TRANSITION] outboundPromptDispatched:', true);
+      console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
+      console.log('[STAGE TRANSITION] =========================================');
+
+      console.log('[ANSWER FINALIZATION] stageAdvanced:', true);
+      console.log('[ANSWER FINALIZATION] nextStage:', nextStage);
+
+      console.log('[ANSWER ACCEPTANCE DURABLE] =========================================');
+      console.log('[ANSWER ACCEPTANCE DURABLE] event: answer_accepted_flag_cleared');
+      console.log('[ANSWER ACCEPTANCE DURABLE] callSid:', state.callSid);
+      console.log('[ANSWER ACCEPTANCE DURABLE] finalStage:', finalStage);
+      console.log('[ANSWER ACCEPTANCE DURABLE] nextStage:', nextStage);
+      console.log('[ANSWER ACCEPTANCE DURABLE] reason: stage_advanced');
+      console.log('[ANSWER ACCEPTANCE DURABLE] timestamp:', new Date().toISOString());
+      console.log('[ANSWER ACCEPTANCE DURABLE] =========================================');
+
+      deps.sendPrompt(state.currentStage);
+    }
+  }).catch(() => {
+    // On resolution error, proceed with current state value (fallback onsite)
+    const nextStage = deps.getNextIntakeStage(finalStage);
+    if (nextStage && nextStage !== finalStage) {
+      const previousStage = state.currentStage;
+      const turnIdBefore = state.currentTurnId;
+      const pendingAnswerStageBefore = state.pendingAnswerStage;
+
+      state.currentStage = nextStage;
+      const turnIdAfter = state.currentTurnId;
+      const pendingAnswerStageAfter = state.pendingAnswerStage;
+
+      console.log('[STAGE TRANSITION] =========================================');
+      console.log('[STAGE TRANSITION] callSid:', state.callSid);
+      console.log('[STAGE TRANSITION] fromStage:', previousStage);
+      console.log('[STAGE TRANSITION] toStage:', nextStage);
+      console.log('[STAGE TRANSITION] trigger:', trigger + '_error_fallback');
+      console.log('[STAGE TRANSITION] extractedFields:', fieldName);
+      console.log('[STAGE TRANSITION] promptKey:', nextStage);
+      console.log('[STAGE TRANSITION] transitionCommitted:', true);
+      console.log('[STAGE TRANSITION] pendingAnswerStageBefore:', pendingAnswerStageBefore);
+      console.log('[STAGE TRANSITION] pendingAnswerStageAfter:', pendingAnswerStageAfter);
+      console.log('[STAGE TRANSITION] turnIdBefore:', turnIdBefore);
+      console.log('[STAGE TRANSITION] turnIdAfter:', turnIdAfter);
+      console.log('[STAGE TRANSITION] outboundPromptDispatched:', true);
+      console.log('[STAGE TRANSITION] Timestamp:', new Date().toISOString());
+      console.log('[STAGE TRANSITION] =========================================');
+
+      console.log('[ANSWER FINALIZATION] stageAdvanced:', true);
+      console.log('[ANSWER FINALIZATION] nextStage:', nextStage);
+      deps.sendPrompt(state.currentStage);
+    }
+  });
 }
 
 // Version log - guaranteed to appear on startup
@@ -655,7 +1003,7 @@ interface CallContext {
 }
 
 // Intake state machine types
-type IntakeStage = 'ask_name' | 'ask_reason' | 'ask_name_reason' | 'ask_name_reason_service_only' | 'ask_name_reason_name_only' | 'ask_details' | 'ask_location_or_context' | 'ask_timing' | 'ask_callback_time' | 'complete';
+type IntakeStage = 'ask_name' | 'ask_request' | 'ask_name_reason' | 'ask_name_reason_service_only' | 'ask_name_reason_name_only' | 'ask_location_or_context' | 'ask_timing' | 'ask_callback_time' | 'complete';
 
 /**
  * AI Intake Flow Documentation
@@ -718,6 +1066,7 @@ interface IntakeData {
   customerName?: string;
   serviceRequested?: string;
   issueDescription?: string;
+  request?: string;
   serviceAddress?: string;
   locationType?: 'service_address' | 'business_location' | 'caller_location' | 'online';
   callbackTime?: string;
@@ -1594,11 +1943,11 @@ function sendApprovedPrompt(stage: string, openAiWs: any, ws?: any): boolean {
   const intakeTemplate = ws?.intakeTemplate as IntakeTemplate || 'on_site';
   
   // Map internal stage to template stage
-  const stageMapping: Record<string, 'ask_name_reason' | 'ask_details' | 'ask_location_or_context' | 'ask_timing' | 'ask_callback_time' | 'complete'> = {
+  const stageMapping: Record<string, IntakeStage> = {
     'ask_name_reason': 'ask_name_reason',
     'ask_name_reason_service_only': 'ask_name_reason',
     'ask_name_reason_name_only': 'ask_name_reason',
-    'ask_details': 'ask_details',
+    'ask_request': 'ask_request',
     'ask_location_or_context': 'ask_location_or_context',
     'ask_timing': 'ask_timing',
     'ask_callback_time': 'ask_callback_time',
@@ -2220,11 +2569,10 @@ function sendStagePrompt(
  */
 const STAGE_PROMPTS: Record<IntakeStage, string> = {
   ask_name: "Hi, thanks for calling. I'm the virtual assistant for the business. I'll gather a few quick details so the business owner can follow up with you. First, may I have your name?",
-  ask_reason: "Thank you. What can I help you with today?",
+  ask_request: "Thank you. What can we help you with today? Feel free to include any details that would help the business owner.",
   ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
   ask_name_reason_service_only: "And what do you need help with?",
   ask_name_reason_name_only: "And what's your name?",
-  ask_details: "Got it. Can you share any important details the business should know?",
   ask_location_or_context: "Thanks. Just a couple more questions. Where will this take place?",
   ask_timing: "When are you hoping this will be done?",
   ask_callback_time: "Perfect. Last question—what would be the best time for the business to call you back?",
@@ -2245,13 +2593,11 @@ function getNextStage(currentStage: IntakeStage, serviceLocationType: string, sk
   console.log('[SCRIPTED FLOW] skipNext:', skipNext);
 
   const stageSequence: Record<IntakeStage, IntakeStage> = {
-    ask_name: 'ask_reason',
-    ask_reason: 'ask_details',
-    ask_name_reason: 'ask_details',
-    ask_name_reason_service_only: 'ask_details',
-    ask_name_reason_name_only: 'ask_details',
-    // Conditional routing based on service_location_type
-    ask_details: serviceLocationType === 'onsite' ? 'ask_location_or_context' : 'ask_timing',
+    ask_name: 'ask_request',
+    ask_request: serviceLocationType === 'onsite' ? 'ask_location_or_context' : 'ask_timing',
+    ask_name_reason: 'ask_request',
+    ask_name_reason_service_only: 'ask_request',
+    ask_name_reason_name_only: 'ask_request',
     ask_location_or_context: 'ask_timing',
     ask_timing: 'ask_callback_time',
     ask_callback_time: 'complete',
@@ -2260,10 +2606,10 @@ function getNextStage(currentStage: IntakeStage, serviceLocationType: string, sk
 
   let nextStage = stageSequence[currentStage] || currentStage;
 
-  // If skipNext is true and we're transitioning from ask_name to ask_reason, skip to ask_details
-  if (skipNext && currentStage === 'ask_name' && nextStage === 'ask_reason') {
-    console.log('[SCRIPTED FLOW] skipping ask_reason stage (both fields captured)');
-    nextStage = stageSequence['ask_reason'] || 'ask_details';
+  // If skipNext is true and we're transitioning from ask_name to ask_request, skip to next stage
+  if (skipNext && currentStage === 'ask_name' && nextStage === 'ask_request') {
+    console.log('[SCRIPTED FLOW] skipping ask_request stage (both fields captured)');
+    nextStage = stageSequence['ask_request'] || 'ask_location_or_context';
   }
 
   console.log('[SCRIPTED FLOW] toStage:', nextStage);
@@ -2316,20 +2662,20 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
           console.log('[FIELD LOCK PROTECTION] =========================================');
         }
         break;
-      case 'ask_reason':
+      case 'ask_request':
         // Only set if field is not already captured - prevent overwriting valid answers
-        if (!intake.serviceRequested) {
-          intake.serviceRequested = transcript.trim();
+        if (!intake.request) {
+          intake.request = transcript.trim();
           console.log('[SCRIPTED FLOW] =========================================');
           console.log('[SCRIPTED FLOW] field saved');
-          console.log('[SCRIPTED FLOW] field: serviceRequested');
+          console.log('[SCRIPTED FLOW] field: request');
           console.log('[SCRIPTED FLOW] value:', transcript.trim());
           console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
           console.log('[SCRIPTED FLOW] =========================================');
         } else {
           console.log('[FIELD LOCK PROTECTION] =========================================');
-          console.log('[FIELD LOCK PROTECTION] field: serviceRequested');
-          console.log('[FIELD LOCK PROTECTION] current value:', intake.serviceRequested);
+          console.log('[FIELD LOCK PROTECTION] field: request');
+          console.log('[FIELD LOCK PROTECTION] current value:', intake.request);
           console.log('[FIELD LOCK PROTECTION] attempted overwrite:', transcript.trim());
           console.log('[FIELD LOCK PROTECTION] reason: field already captured, overwrite prevented');
           console.log('[FIELD LOCK PROTECTION] Timestamp:', new Date().toISOString());
@@ -2407,26 +2753,6 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
           console.log('[SCRIPTED FLOW] serviceRequested:', intake.serviceRequested);
           console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
           console.log('[SCRIPTED FLOW] =========================================');
-        }
-        break;
-      case 'ask_details':
-        // Only set if field is not already captured - prevent overwriting valid answers
-        if (!intake.issueDescription) {
-          intake.issueDescription = transcript.trim();
-          console.log('[SCRIPTED FLOW] =========================================');
-          console.log('[SCRIPTED FLOW] field saved');
-          console.log('[SCRIPTED FLOW] field: issueDescription');
-          console.log('[SCRIPTED FLOW] value:', transcript.trim());
-          console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
-          console.log('[SCRIPTED FLOW] =========================================');
-        } else {
-          console.log('[FIELD LOCK PROTECTION] =========================================');
-          console.log('[FIELD LOCK PROTECTION] field: issueDescription');
-          console.log('[FIELD LOCK PROTECTION] current value:', intake.issueDescription);
-          console.log('[FIELD LOCK PROTECTION] attempted overwrite:', transcript.trim());
-          console.log('[FIELD LOCK PROTECTION] reason: field already captured, overwrite prevented');
-          console.log('[FIELD LOCK PROTECTION] Timestamp:', new Date().toISOString());
-          console.log('[FIELD LOCK PROTECTION] =========================================');
         }
         break;
       case 'ask_location_or_context':
@@ -2580,22 +2906,22 @@ function getIntakeResponse(intake: IntakeData, transcript?: string, stagePromptA
       repromptType = 'name_only';
       console.log('[TARGETED REPROMPT SELECTED] =========================================');
       console.log('[TARGETED REPROMPT SELECTED] type: name_only');
-      console.log('[TARGETED REPROMPT SELECTED] reason: service valid, name missing');
-      console.log('[TARGETED REPROMPT SELECTED] preservedService:', intake.serviceRequested);
+      console.log('[TARGETED REPROMPT SELECTED] reason: request valid, name missing');
+      console.log('[TARGETED REPROMPT SELECTED] preservedRequest:', intake.request);
       console.log('[TARGETED REPROMPT SELECTED] prompt:', promptToSend);
       console.log('[TARGETED REPROMPT SELECTED] nextStage:', nextStage);
       console.log('[TARGETED REPROMPT SELECTED] Timestamp:', new Date().toISOString());
       console.log('[TARGETED REPROMPT SELECTED] =========================================');
     } else {
-      // Both fields valid: advance to ask_details
-      nextStage = 'ask_details';
-      promptToSend = APPROVED_PROMPTS.ask_details;
+      // Both fields valid: advance to next stage
+      nextStage = getNextStage('ask_request', serviceLocationType || 'onsite', false);
+      promptToSend = STAGE_PROMPTS[nextStage];
       repromptType = 'advance';
       console.log('[TARGETED REPROMPT SELECTED] =========================================');
       console.log('[TARGETED REPROMPT SELECTED] type: advance');
       console.log('[TARGETED REPROMPT SELECTED] reason: both fields valid');
       console.log('[TARGETED REPROMPT SELECTED] customerName:', intake.customerName);
-      console.log('[TARGETED REPROMPT SELECTED] serviceRequested:', intake.serviceRequested);
+      console.log('[TARGETED REPROMPT SELECTED] request:', intake.request);
       console.log('[TARGETED REPROMPT SELECTED] prompt:', promptToSend);
       console.log('[TARGETED REPROMPT SELECTED] nextStage:', nextStage);
       console.log('[TARGETED REPROMPT SELECTED] Timestamp:', new Date().toISOString());
@@ -3078,89 +3404,6 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
       console.log('[FIELD EXTRACTION SKIPPED] =========================================');
       console.log('[FIELD EXTRACTION SKIPPED] field: callbackTime');
       console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_name_reason stage');
-      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
-      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      break;
-
-    case 'ask_details':
-      // Allowed: issueDescription
-      // Forbidden: customerName, serviceRequested, serviceAddress, desiredCompletionTime, callbackTime
-
-      console.log('[AI DETAILS STAGE ANSWER RECEIVED] =========================================');
-      console.log('[AI DETAILS STAGE ANSWER RECEIVED] transcript:', transcript);
-      console.log('[AI DETAILS STAGE ANSWER RECEIVED] currentStage:', intake.stage);
-      console.log('[AI DETAILS STAGE ANSWER RECEIVED] extractedDetails:', intake.issueDescription);
-      console.log('[AI DETAILS STAGE ANSWER RECEIVED] Timestamp:', new Date().toISOString());
-      console.log('[AI DETAILS STAGE ANSWER RECEIVED] =========================================');
-
-      // Extract issue description - accept verbatim answer
-      if (!intake.issueDescription) {
-        const oldDescription = intake.issueDescription;
-        const trimmedTranscript = transcript.trim();
-
-        // Reject only truly unusable answers
-        const unusableAnswers = [
-          '', 'uh', 'um', 'hmm', 'i don\'t know', 'not sure', 'i dont know', 'idk', 'no idea',
-          'yes', 'no', 'okay', 'ok', 'thanks', 'thank you', 'that\'s it', 'nothing else', 'no details', 'none'
-        ];
-        const isUnusable = unusableAnswers.includes(lowerTranscript) || trimmedTranscript.length < 2;
-
-        if (!isUnusable) {
-          // Accept the exact transcript as the answer
-          intake.issueDescription = trimmedTranscript;
-          console.log('[FIELD ASSIGNMENT] =========================================');
-          console.log('[FIELD ASSIGNMENT] field: issueDescription');
-          console.log('[FIELD ASSIGNMENT] oldValue:', oldDescription);
-          console.log('[FIELD ASSIGNMENT] newValue:', intake.issueDescription);
-          console.log('[FIELD ASSIGNMENT] currentStage:', intake.stage);
-          console.log('[FIELD ASSIGNMENT] sourceFunction: extractMultipleAnswers (verbatim capture)');
-          console.log('[FIELD ASSIGNMENT] transcript:', transcript);
-          console.log('[FIELD ASSIGNMENT] Timestamp:', new Date().toISOString());
-          console.log('[FIELD ASSIGNMENT] =========================================');
-          console.log('[LIVE EXTRACTION MAPPED] issueDescription:', intake.issueDescription);
-        } else {
-          console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-          console.log('[FIELD EXTRACTION SKIPPED] field: issueDescription');
-          console.log('[FIELD EXTRACTION SKIPPED] reason: Unusable answer (too short or filler)');
-          console.log('[FIELD EXTRACTION SKIPPED] transcript:', transcript);
-          console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-          console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-        }
-      }
-
-      // Log skipped extractions
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      console.log('[FIELD EXTRACTION SKIPPED] field: customerName');
-      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_details stage');
-      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
-      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      console.log('[FIELD EXTRACTION SKIPPED] field: serviceRequested');
-      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_details stage');
-      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
-      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      console.log('[FIELD EXTRACTION SKIPPED] field: serviceAddress');
-      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_details stage');
-      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
-      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      console.log('[FIELD EXTRACTION SKIPPED] field: desiredCompletionTime');
-      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_details stage');
-      console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
-      console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-
-      console.log('[FIELD EXTRACTION SKIPPED] =========================================');
-      console.log('[FIELD EXTRACTION SKIPPED] field: callbackTime');
-      console.log('[FIELD EXTRACTION SKIPPED] reason: Not allowed in ask_details stage');
       console.log('[FIELD EXTRACTION SKIPPED] currentStage:', intake.stage);
       console.log('[FIELD EXTRACTION SKIPPED] Timestamp:', new Date().toISOString());
       console.log('[FIELD EXTRACTION SKIPPED] =========================================');
@@ -3651,8 +3894,7 @@ function buildCanonicalExtractedInfo(
 ): {
   customerName: string
   customerPhone: string
-  serviceRequested: string
-  additionalDetails: string
+  request: string
   serviceAddress: string
   desiredCompletion: string
   callbackTime: string
@@ -3661,8 +3903,7 @@ function buildCanonicalExtractedInfo(
     return {
       customerName: '',
       customerPhone: callerPhone || '',
-      serviceRequested: '',
-      additionalDetails: '',
+      request: '',
       serviceAddress: '',
       desiredCompletion: '',
       callbackTime: '',
@@ -3704,17 +3945,26 @@ function buildCanonicalExtractedInfo(
     console.log('[CANONICAL INFO REPAIR] error (non-fatal):', e instanceof Error ? e.message : e);
   }
 
+  // Combine serviceRequested and additionalDetails into request
+  const serviceRequested = sanitizeEnglishIntakeField('serviceRequested', fields.serviceRequested || '');
+  const additionalDetails = sanitizeEnglishIntakeField(
+    'additionalDetails',
+    fields.additionalDetails ||
+    fields.issueDescription ||
+    fields.importantDetails ||
+    ''
+  );
+
+  // Combine into request field, avoiding duplication
+  let request = serviceRequested;
+  if (additionalDetails && additionalDetails !== serviceRequested) {
+    request = serviceRequested ? `${serviceRequested}. ${additionalDetails}` : additionalDetails;
+  }
+
   return {
     customerName: sanitizeEnglishIntakeField('customerName', fields.customerName || ''),
     customerPhone: (callerPhone || fields.customerPhone || '').trim(),
-    serviceRequested: sanitizeEnglishIntakeField('serviceRequested', fields.serviceRequested || ''),
-    additionalDetails: sanitizeEnglishIntakeField(
-      'additionalDetails',
-      fields.additionalDetails ||
-      fields.issueDescription ||
-      fields.importantDetails ||
-      ''
-    ),
+    request: request,
     serviceAddress: sanitizeEnglishIntakeField('serviceAddress', fields.serviceAddress || fields.addressOrLocation || ''),
     desiredCompletion: sanitizeEnglishIntakeField(
       'desiredCompletion',
@@ -3729,25 +3979,23 @@ function buildCanonicalExtractedInfo(
 // Helper function to check if all required AI intake fields are present
 function isAIIntakeComplete(extractedFields: any): boolean {
   if (!extractedFields) return false;
-  
+
   console.log('[AI INTAKE COMPLETENESS CHECK] =========================================');
   console.log('[AI INTAKE COMPLETENESS CHECK] Input keys:', Object.keys(extractedFields));
   console.log('[AI INTAKE COMPLETENESS CHECK] Input values:', JSON.stringify(extractedFields, null, 2));
-  
-  // Require ALL 6 fields individually (no OR logic)
+
+  // Require ALL 5 fields individually (no OR logic)
   const hasName = !!extractedFields.customerName;
-  const hasServiceRequested = !!extractedFields.serviceRequested;
-  const hasIssueDescription = !!extractedFields.issueDescription;
+  const hasRequest = !!extractedFields.request || !!extractedFields.serviceRequested;
   const hasLocation = !!extractedFields.serviceAddress;
-  const hasDesiredCompletionTime = !!extractedFields.desiredCompletionTime;
+  const hasDesiredCompletionTime = !!extractedFields.desiredCompletionTime || !!extractedFields.desiredCompletion;
   const hasCallbackTime = !!extractedFields.callbackTime;
-  
-  const isComplete = hasName && hasServiceRequested && hasIssueDescription && hasLocation && hasDesiredCompletionTime && hasCallbackTime;
-  
+
+  const isComplete = hasName && hasRequest && hasLocation && hasDesiredCompletionTime && hasCallbackTime;
+
   console.log('[AI INTAKE COMPLETENESS CHECK] Field checks:', {
     hasName,
-    hasServiceRequested,
-    hasIssueDescription,
+    hasRequest,
     hasLocation,
     hasDesiredCompletionTime,
     hasCallbackTime,
@@ -3921,7 +4169,7 @@ async function finalizeIncompleteIntake(
   // STAGE 7: Canonical Mapping Values
   console.log('[EXTRACTION TRACE STAGE 7] =========================================');
   console.log('[EXTRACTION TRACE STAGE 7] canonicalInfo.customerName:', canonicalInfo.customerName);
-  console.log('[EXTRACTION TRACE STAGE 7] canonicalInfo.serviceRequested:', canonicalInfo.serviceRequested);
+  console.log('[EXTRACTION TRACE STAGE 7] canonicalInfo.request:', canonicalInfo.request);
   console.log('[EXTRACTION TRACE STAGE 7] Timestamp:', new Date().toISOString());
   console.log('[EXTRACTION TRACE STAGE 7] =========================================');
   
@@ -4135,7 +4383,7 @@ async function finalizeIncompleteIntake(
   // STAGE 8: Final Persisted Values
   console.log('[EXTRACTION TRACE STAGE 8] =========================================');
   console.log('[EXTRACTION TRACE STAGE 8] persistedExtractedInfo.customerName:', canonicalInfo.customerName);
-  console.log('[EXTRACTION TRACE STAGE 8] persistedExtractedInfo.serviceRequested:', canonicalInfo.serviceRequested);
+  console.log('[EXTRACTION TRACE STAGE 8] persistedExtractedInfo.request:', canonicalInfo.request);
   console.log('[EXTRACTION TRACE STAGE 8] callSid:', callSid);
   console.log('[EXTRACTION TRACE STAGE 8] Timestamp:', new Date().toISOString());
   console.log('[EXTRACTION TRACE STAGE 8] =========================================');
@@ -4307,15 +4555,10 @@ function getResponseForMissingField(missingField: string, intake: IntakeData): {
       };
     case 'service requested':
     case 'serviceRequested':
+    case 'request':
       return {
         response: 'Thank you. What can I help you with today?',
-        nextStage: 'ask_reason'
-      };
-    case 'issue description':
-    case 'issueDescription':
-      return {
-        response: 'Can you tell me a little more about what you need?',
-        nextStage: 'ask_details'
+        nextStage: 'ask_request'
       };
     case 'service address':
     case 'serviceAddress':
@@ -5867,9 +6110,11 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
   // Centralized stage routing helper for Simple Mode
   const getNextIntakeStage = (currentStage: string): string => {
     switch (currentStage) {
+      case 'ask_name':
+        return 'ask_request';
       case 'ask_name_reason':
-        return 'ask_details';
-      case 'ask_details':
+        return 'ask_request';
+      case 'ask_request':
         return state.serviceLocationType === 'onsite' ? 'ask_location' : 'ask_completion_time';
       case 'ask_location':
         return 'ask_completion_time';
@@ -5906,9 +6151,8 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
   const storeStageCapture = (stage: string, rawTranscript: string, source: string): string | null => {
     const stageToFieldMap: Record<string, string> = {
       ask_name: 'customerName',
-      ask_reason: 'serviceRequested',
+      ask_request: 'request',
       ask_name_reason: 'customerName',
-      ask_details: 'issueDescription',
       ask_location: 'serviceAddress',
       ask_completion_time: 'desiredCompletionTime',
       ask_callback_time: 'callbackTime'
@@ -6233,12 +6477,12 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       // Edge case 1: Caller answers both name and reason
       if (parsedNameValid && parsedServiceValid) {
         console.log('[ASK_NAME EDGE CASE: BOTH PROVIDED] =========================================');
-        console.log('[ASK_NAME EDGE CASE: BOTH PROVIDED] action: capture_both_and_skip_reason_stage');
+        console.log('[ASK_NAME EDGE CASE: BOTH PROVIDED] action: capture_both_and_skip_request_stage');
         console.log('[ASK_NAME EDGE CASE: BOTH PROVIDED] Timestamp:', new Date().toISOString());
         console.log('[ASK_NAME EDGE CASE: BOTH PROVIDED] =========================================');
         state.intakeData.customerName = parseResult.customerName;
-        state.intakeData.serviceRequested = parseResult.serviceRequested;
-        state.skipNextStage = true; // Skip ask_reason stage
+        state.intakeData.request = parseResult.serviceRequested;
+        state.skipNextStage = true; // Skip ask_request stage
         capturedAnswer = parseResult.customerName;
         extractedField = 'customerName';
       }
@@ -6248,10 +6492,10 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         console.log('[ASK_NAME EDGE CASE: REASON ONLY] action: capture_service_and_stay_in_name_stage');
         console.log('[ASK_NAME EDGE CASE: REASON ONLY] Timestamp:', new Date().toISOString());
         console.log('[ASK_NAME EDGE CASE: REASON ONLY] =========================================');
-        state.intakeData.serviceRequested = parseResult.serviceRequested;
+        state.intakeData.request = parseResult.serviceRequested;
         state.needsNameReprompt = true; // Flag to trigger targeted name-only reprompt
         capturedAnswer = parseResult.serviceRequested;
-        extractedField = 'serviceRequested';
+        extractedField = 'request';
       }
       // Normal case: Caller gives name only
       else if (parsedNameValid) {
@@ -7119,7 +7363,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         caller_phone: state.callerPhone,
         transcript: state.transcript,
         extracted_info: canonicalExtractedInfo,
-        summary: canonicalExtractedInfo.additionalDetails || '',
+        summary: canonicalExtractedInfo.request || '',
         outcome: 'incomplete',
       };
 
@@ -8331,7 +8575,7 @@ Reply to this message if you'd like to update or add any information.
         caller_phone: state.callerPhone,
         transcript: state.transcript,
         extracted_info: canonicalExtractedInfo,
-        summary: canonicalExtractedInfo.additionalDetails || '',
+        summary: canonicalExtractedInfo.request || '',
         outcome: 'completed',
       };
       console.log('[SIMPLE MODE] ai_call_record insert payload:', {
@@ -8444,7 +8688,7 @@ Reply to this message if you'd like to update or add any information.
                   type:             'ai_intake_completed',
                   customerName:     canonicalExtractedInfo.customerName  || '',
                   customerPhone:    state.callerPhone              || '',
-                  serviceRequested: canonicalExtractedInfo.serviceRequested || '',
+                  request:          canonicalExtractedInfo.request || '',
                 }),
               });
               if (notifRes.ok) {
@@ -11006,34 +11250,9 @@ Reply to this message if you'd like to update or add any information.
                       state.detailsTiming.settleWindowEnd = settleCallbackAt;
                     }
                     
-                    // Generation guard: prevent stale callbacks from finalizing
-                    if (capturedGeneration !== state.settleGeneration) {
-                      console.log('[LOGICAL TURN LIFECYCLE] =========================================');
-                      console.log('[LOGICAL TURN LIFECYCLE] event: stale_settle_callback_blocked');
-                      console.log('[LOGICAL TURN LIFECYCLE] callSid:', state.callSid);
-                      console.log('[LOGICAL TURN LIFECYCLE] capturedGeneration:', capturedGeneration);
-                      console.log('[LOGICAL TURN LIFECYCLE] currentGeneration:', state.settleGeneration);
-                      console.log('[LOGICAL TURN LIFECYCLE] reason: generation_mismatch');
-                      console.log('[LOGICAL TURN LIFECYCLE] timestamp:', new Date().toISOString());
-                      console.log('[LOGICAL TURN LIFECYCLE] =========================================');
-                      return;
-                    }
-                    
-                    // Stage guard: prevent finalization if stage has already changed
-                    if (state.pendingAnswerStage !== originatingStage || 
-                        state.pendingAnswerTurnId !== originatingTurnId) {
-                      console.log('[LOGICAL TURN LIFECYCLE] =========================================');
-                      console.log('[LOGICAL TURN LIFECYCLE] event: finalization_blocked_stage_mismatch');
-                      console.log('[LOGICAL TURN LIFECYCLE] callSid:', state.callSid);
-                      console.log('[LOGICAL TURN LIFECYCLE] expectedStage:', originatingStage);
-                      console.log('[LOGICAL TURN LIFECYCLE] expectedTurnId:', originatingTurnId);
-                      console.log('[LOGICAL TURN LIFECYCLE] currentPendingStage:', state.pendingAnswerStage);
-                      console.log('[LOGICAL TURN LIFECYCLE] currentPendingTurnId:', state.pendingAnswerTurnId);
-                      console.log('[LOGICAL TURN LIFECYCLE] reason: stage_or_turn_changed');
-                      console.log('[LOGICAL TURN LIFECYCLE] timestamp:', new Date().toISOString());
-                      console.log('[LOGICAL TURN LIFECYCLE] =========================================');
-                      return;
-                    }
+                    // Authorization guard: prevent stale or mismatched callbacks from finalizing
+                    const auth = isSettleCallbackAuthorized(state, originatingStage, originatingTurnId, capturedGeneration);
+                    if (!auth.authorized) return;
 
                     // FINALIZATION GATE: ensure logical turn is genuinely idle before finalizing
                     // Evidence of continuation should block finalization and allow continuation to proceed
@@ -11173,70 +11392,19 @@ Reply to this message if you'd like to update or add any information.
                           console.log('[ANSWER FINALIZATION] timestamp:', new Date().toISOString());
                           console.log('[ANSWER FINALIZATION] =========================================');
 
-                          clearSilentTimeout('settle_window_finalization');
-                          clearStageTimeout();
-                          state.currentTurnId++;
-
-                          const finalStage = state.pendingAnswerStage!;
-                          clearPendingAnswerState(state, 'settle_window_finalization');
-                          state.answerAcceptedForStage = null;
-                          state.answerAcceptedTurnId = 0;
-
-                          // Instrument Additional Details timing at finalization
-                          if (finalStage === 'ask_details') {
-                            state.detailsTiming.nextPromptSent = Date.now();
-                            
-                            // Log complete timing breakdown
-                            const totalLatencyMs = state.detailsTiming.nextPromptSent - state.detailsTiming.callerStoppedAt;
-                            console.log('[DETAILS TIMING] =========================================');
-                            console.log('[DETAILS TIMING] callSid:', state.callSid);
-                            console.log('[DETAILS TIMING] callerStoppedAt:', state.detailsTiming.callerStoppedAt);
-                            console.log('[DETAILS TIMING] vadDetectedAt:', state.detailsTiming.callerStoppedAt); // VAD detection coincides with speech stop
-                            console.log('[DETAILS TIMING] finalTranscriptAt:', state.detailsTiming.finalTranscriptAt);
-                            console.log('[DETAILS TIMING] settleWindowStart:', state.detailsTiming.settleWindowStart);
-                            console.log('[DETAILS TIMING] settleWindowEnd:', state.detailsTiming.settleWindowEnd);
-                            console.log('[DETAILS TIMING] nextPromptSent:', state.detailsTiming.nextPromptSent);
-                            console.log('[DETAILS TIMING] totalLatencyMs:', totalLatencyMs);
-                            console.log('[DETAILS TIMING] vadToTranscriptMs:', state.detailsTiming.finalTranscriptAt - state.detailsTiming.callerStoppedAt);
-                            console.log('[DETAILS TIMING] settleWindowMs:', state.detailsTiming.settleWindowEnd - state.detailsTiming.settleWindowStart);
-                            console.log('[DETAILS TIMING] finalizationToPromptMs:', state.detailsTiming.nextPromptSent - state.detailsTiming.settleWindowEnd);
-                            console.log('[DETAILS TIMING] =========================================');
-                          }
-
-                          // Centralized routing after settle finalization, with race-safe mode resolution
-                          const needsResolution = finalStage === 'ask_details' && (!state.serviceLocationType || state.serviceLocationType.length === 0);
-                          const resolution = needsResolution && state.businessId
-                            ? loadServiceLocationTypeForBusiness(state.businessId)
-                            : Promise.resolve();
-                          resolution.then(() => {
-                            const nextStage = getNextIntakeStage(finalStage);
-                            // Removed temporary SERVICE LOCATION ROUTING diagnostics
-                            if (nextStage && nextStage !== finalStage) {
-                              state.currentStage = nextStage;
-                              console.log('[ANSWER FINALIZATION] stageAdvanced:', true);
-                              console.log('[ANSWER FINALIZATION] nextStage:', nextStage);
-
-                              console.log('[ANSWER ACCEPTANCE DURABLE] =========================================');
-                              console.log('[ANSWER ACCEPTANCE DURABLE] event: answer_accepted_flag_cleared');
-                              console.log('[ANSWER ACCEPTANCE DURABLE] callSid:', state.callSid);
-                              console.log('[ANSWER ACCEPTANCE DURABLE] finalStage:', finalStage);
-                              console.log('[ANSWER ACCEPTANCE DURABLE] nextStage:', nextStage);
-                              console.log('[ANSWER ACCEPTANCE DURABLE] reason: stage_advanced');
-                              console.log('[ANSWER ACCEPTANCE DURABLE] timestamp:', new Date().toISOString());
-                              console.log('[ANSWER ACCEPTANCE DURABLE] =========================================');
-
-                              sendPrompt(state.currentStage);
-                            }
-                          }).catch(() => {
-                            // On resolution error, fall back to current state value (which defaults to onsite) and proceed
-                            const nextStage = getNextIntakeStage(finalStage);
-                            if (nextStage && nextStage !== finalStage) {
-                              state.currentStage = nextStage;
-                              console.log('[ANSWER FINALIZATION] stageAdvanced:', true);
-                              console.log('[ANSWER FINALIZATION] nextStage:', nextStage);
-                              sendPrompt(state.currentStage);
-                            }
-                          });
+                          finalizeSimpleModeSettledAnswer(
+                            state,
+                            state.pendingAnswerStage!,
+                            fieldName,
+                            'settle_window_finalization',
+                            {
+                              sendPrompt,
+                              clearSilentTimeout,
+                              clearStageTimeout,
+                              getNextIntakeStage: (s: string) => getNextIntakeStage(s),
+                              loadServiceLocationTypeForBusiness: (bid: string) => loadServiceLocationTypeForBusiness(bid),
+                            },
+                          );
 
                           console.log('[LOGICAL TURN LIFECYCLE] =========================================');
                           console.log('[LOGICAL TURN LIFECYCLE] event: logical_turn_finalized');
@@ -11293,57 +11461,20 @@ Reply to this message if you'd like to update or add any information.
                     console.log('[ANSWER FINALIZATION] timestamp:', new Date().toISOString());
                     console.log('[ANSWER FINALIZATION] =========================================');
                     
-                    // Clear timeouts and increment turn
-                    clearSilentTimeout('settle_window_finalization');
-                    clearStageTimeout();
-                    state.currentTurnId++;
-                    
-                    // Clear pending answer state (AFTER using it for stage advancement)
                     const finalStage = state.pendingAnswerStage;
-                    state.pendingAnswerStage = null;
-                    state.pendingAnswerSegments = [];
-                    state.pendingAnswerTurnId = 0;
-                    state.settleWindowTimeout = null;
-                    // Clear durable answer acceptance flag when stage advances
-                    state.answerAcceptedForStage = null;
-                    state.answerAcceptedTurnId = 0;
-                    
-                    // Advance to next applicable stage using centralized routing, race-safe
-                    {
-                      const needsResolution = finalStage === 'ask_details' && (!state.serviceLocationType || state.serviceLocationType.length === 0);
-                      const resolution = needsResolution && state.businessId
-                        ? loadServiceLocationTypeForBusiness(state.businessId)
-                        : Promise.resolve();
-                      resolution.then(() => {
-                        const nextStage = getNextIntakeStage(finalStage);
-                        // Removed temporary SERVICE LOCATION ROUTING diagnostics
-                        if (nextStage && nextStage !== finalStage) {
-                          state.currentStage = nextStage;
-                          console.log('[ANSWER FINALIZATION] stageAdvanced:', true);
-                          console.log('[ANSWER FINALIZATION] nextStage:', nextStage);
-                          
-                          console.log('[ANSWER ACCEPTANCE DURABLE] =========================================');
-                          console.log('[ANSWER ACCEPTANCE DURABLE] event: answer_accepted_flag_cleared');
-                          console.log('[ANSWER ACCEPTANCE DURABLE] callSid:', state.callSid);
-                          console.log('[ANSWER ACCEPTANCE DURABLE] finalStage:', finalStage);
-                          console.log('[ANSWER ACCEPTANCE DURABLE] nextStage:', nextStage);
-                          console.log('[ANSWER ACCEPTANCE DURABLE] reason: stage_advanced');
-                          console.log('[ANSWER ACCEPTANCE DURABLE] timestamp:', new Date().toISOString());
-                          console.log('[ANSWER ACCEPTANCE DURABLE] =========================================');
-                          
-                          sendPrompt(state.currentStage);
-                        }
-                      }).catch(() => {
-                        // On resolution error, proceed with current state value (fallback onsite)
-                        const nextStage = getNextIntakeStage(finalStage);
-                        if (nextStage && nextStage !== finalStage) {
-                          state.currentStage = nextStage;
-                          console.log('[ANSWER FINALIZATION] stageAdvanced:', true);
-                          console.log('[ANSWER FINALIZATION] nextStage:', nextStage);
-                          sendPrompt(state.currentStage);
-                        }
-                      });
-                    }
+                    finalizeSimpleModeSettledAnswer(
+                      state,
+                      finalStage,
+                      fieldName,
+                      'settle_window_finalization_immediate',
+                      {
+                        sendPrompt,
+                        clearSilentTimeout,
+                        clearStageTimeout,
+                        getNextIntakeStage: (s: string) => getNextIntakeStage(s),
+                        loadServiceLocationTypeForBusiness: (bid: string) => loadServiceLocationTypeForBusiness(bid),
+                      },
+                    );
                     
                     console.log('[LOGICAL TURN LIFECYCLE] =========================================');
                     console.log('[LOGICAL TURN LIFECYCLE] event: logical_turn_finalized');
@@ -11992,85 +12123,11 @@ Reply to this message if you'd like to update or add any information.
 
     if (state.openAiWs) state.openAiWs.close();
 
-    // INCOMPLETE FINALIZE: If completion hasn't been processed, persist latest in-memory data
-    // This ensures partial intake data is available for voice-status webhook
-    if (!state.completionPersistenceStarted && (state.stageCaptures.length > 0 || Object.keys(state.intakeData).some(k => state.intakeData[k as keyof typeof state.intakeData]))) {
-      console.log('[PARTIAL FIELDS AT DISCONNECT] =========================================');
-      console.log('[PARTIAL FIELDS AT DISCONNECT] customerName:', state.intakeData.customerName);
-      console.log('[PARTIAL FIELDS AT DISCONNECT] serviceRequested:', state.intakeData.serviceRequested);
-      console.log('[PARTIAL FIELDS AT DISCONNECT] issueDescription:', state.intakeData.issueDescription);
-      console.log('[PARTIAL FIELDS AT DISCONNECT] serviceAddress:', state.intakeData.serviceAddress);
-      console.log('[PARTIAL FIELDS AT DISCONNECT] desiredCompletionTime:', state.intakeData.desiredCompletionTime);
-      console.log('[PARTIAL FIELDS AT DISCONNECT] callbackTime:', state.intakeData.callbackTime);
-      console.log('[PARTIAL FIELDS AT DISCONNECT] Timestamp:', new Date().toISOString());
-      console.log('[PARTIAL FIELDS AT DISCONNECT] =========================================');
-
-      console.log('[INCOMPLETE FINALIZE] =========================================');
-      console.log('[INCOMPLETE FINALIZE] callSid:', state.callSid);
-      console.log('[INCOMPLETE FINALIZE] reason: websocket_closed');
-      console.log('[INCOMPLETE FINALIZE] stageCaptures:', state.stageCaptures.length);
-      console.log('[INCOMPLETE FINALIZE] intakeDataKeys:', Object.keys(state.intakeData).filter(k => state.intakeData[k as keyof typeof state.intakeData]));
-
-      const canonicalExtractedInfo = buildCanonicalExtractedInfo(state.intakeData, state.callerPhone || '');
-      const extractedInfoKeys = Object.keys(canonicalExtractedInfo).filter(k => canonicalExtractedInfo[k as keyof typeof canonicalExtractedInfo]);
-
-      console.log('[INCOMPLETE FINALIZE] finalExtractedInfoKeys:', extractedInfoKeys);
-
-      try {
-        if (state.callSid && state.businessId && state.callerPhone) {
-          await persistPartialIntake('websocket_close', 'finalize');
-          console.log('[CALL RECORD PERSISTED] =========================================');
-          console.log('[CALL RECORD PERSISTED] success: true');
-          console.log('[CALL RECORD PERSISTED] callSid:', state.callSid);
-          console.log('[CALL RECORD PERSISTED] Timestamp:', new Date().toISOString());
-          console.log('[CALL RECORD PERSISTED] =========================================');
-
-          console.log('[LEAD UPDATED] =========================================');
-          console.log('[LEAD UPDATED] success: true');
-          console.log('[LEAD UPDATED] businessId:', state.businessId);
-          console.log('[LEAD UPDATED] callerPhone:', state.callerPhone);
-          console.log('[LEAD UPDATED] Timestamp:', new Date().toISOString());
-          console.log('[LEAD UPDATED] =========================================');
-
-          console.log('[SMS ELIGIBLE] =========================================');
-          console.log('[SMS ELIGIBLE] eligible: true');
-          console.log('[SMS ELIGIBLE] reason: partial_intake_persisted');
-          console.log('[SMS ELIGIBLE] Note: SMS dispatch owned by voice-status webhook');
-          console.log('[SMS ELIGIBLE] Timestamp:', new Date().toISOString());
-          console.log('[SMS ELIGIBLE] =========================================');
-
-          console.log('[INCOMPLETE FINALIZE] persistedBeforeVoiceStatus: true');
-        } else {
-          console.log('[INCOMPLETE FINALIZE] persistedBeforeVoiceStatus: false');
-          console.log('[INCOMPLETE FINALIZE] reason: missing_required_context');
-          console.log('[SMS ELIGIBLE] =========================================');
-          console.log('[SMS ELIGIBLE] eligible: false');
-          console.log('[SMS ELIGIBLE] reason: missing_required_context');
-          console.log('[SMS ELIGIBLE] Timestamp:', new Date().toISOString());
-          console.log('[SMS ELIGIBLE] =========================================');
-        }
-      } catch (error) {
-        console.log('[INCOMPLETE FINALIZE] persistedBeforeVoiceStatus: false');
-        console.log('[INCOMPLETE FINALIZE] reason: exception');
-        console.log('[INCOMPLETE FINALIZE] error:', error);
-        console.log('[SMS ELIGIBLE] =========================================');
-        console.log('[SMS ELIGIBLE] eligible: false');
-        console.log('[SMS ELIGIBLE] reason: exception');
-        console.log('[SMS ELIGIBLE] error:', error);
-        console.log('[SMS ELIGIBLE] Timestamp:', new Date().toISOString());
-        console.log('[SMS ELIGIBLE] =========================================');
-      }
-
-      console.log('[INCOMPLETE FINALIZE] =========================================');
-    } else {
-      console.log('[FINALIZATION SKIPPED] =========================================');
-      console.log('[FINALIZATION SKIPPED] reason: completion_already_processed_or_no_data');
-      console.log('[FINALIZATION SKIPPED] completionPersistenceStarted:', state.completionPersistenceStarted);
-      console.log('[FINALIZATION SKIPPED] hasStageCaptures:', state.stageCaptures.length > 0);
-      console.log('[FINALIZATION SKIPPED] hasIntakeData:', Object.keys(state.intakeData).some(k => state.intakeData[k as keyof typeof state.intakeData]));
-      console.log('[FINALIZATION SKIPPED] Timestamp:', new Date().toISOString());
-      console.log('[FINALIZATION SKIPPED] =========================================');
-    }
+    // Minimal shared close-finalization wrapper to persist partial intake for voice-status webhook
+    await finalizeIncompleteOnWebsocketCloseSimple(state, {
+      supabase,
+      finalizeIncompleteIntake,
+    });
 
     console.log('[FINALIZATION COMPLETED] =========================================');
     console.log('[FINALIZATION COMPLETED] event: finalization_complete');
@@ -15322,8 +15379,8 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                     let nextMissingStage: IntakeStage | null = null;
                     if (!intakeData!.customerName || !intakeData!.serviceRequested) {
                       nextMissingStage = 'ask_name_reason';
-                    } else if (!intakeData!.issueDescription) {
-                      nextMissingStage = 'ask_details';
+                    } else if (!intakeData!.request) {
+                      nextMissingStage = 'ask_request';
                     } else if (requiresServiceAddress && !intakeData!.serviceAddress) {
                       nextMissingStage = 'ask_location_or_context';
                     } else if (!intakeData!.desiredCompletionTime) {
