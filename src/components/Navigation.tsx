@@ -45,10 +45,10 @@ export default function Navigation() {
           <Link
             key={item.href}
             href={item.href}
-            className={`px-3 md:px-4 py-1.5 text-sm font-medium rounded-md motion-safe:transition-all motion-safe:duration-200 motion-reduce:transition-none text-center relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 whitespace-nowrap ${
+            className={`px-3 md:px-4 py-1.5 text-sm font-medium rounded-md motion-safe:transition-all motion-safe:duration-300 motion-reduce:transition-none text-center relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 whitespace-nowrap ${
               isActive
-                ? 'text-white bg-white/10 border border-white/15 shadow-sm font-semibold'
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                ? 'text-white bg-blue-500/10 border border-blue-400/20 shadow-xs font-medium'
+                : 'text-slate-300 hover:text-white hover:bg-white/5'
             }`}
           >
             {item.label}
