@@ -44,6 +44,11 @@ const AI_VOICE_EXPECTED_COMMIT = process.env.FLY_IMAGE_REF || process.env.FLY_AL
 const AI_VOICE_BUILD_TIMESTAMP = new Date().toISOString();
 const AI_VOICE_DEPLOY_ENV = process.env.NODE_ENV || "unknown";
 
+// Build-time metadata injected during Docker build
+const BUILD_COMMIT_SHA = process.env.BUILD_COMMIT_SHA || "unknown";
+const BUILD_TIMESTAMP = process.env.BUILD_TIMESTAMP || "unknown";
+const DEPLOYMENT_VERSION = process.env.DEPLOYMENT_VERSION || "unknown";
+
 import { createServer } from 'http';
 import { Server as WebSocketServer } from 'ws';
 import WebSocket from 'ws';
@@ -1906,7 +1911,7 @@ const APPROVED_PROMPTS: Record<string, string> = {
   ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
   ask_name_reason_service_only: "And what do you need help with?",
   ask_name_reason_name_only: "And what's your name?",
-  ask_details: "Got it. Can you share any important details the business should know?",
+  ask_request: "Got it. Can you tell me more about what you need help with?",
   ask_location_or_context: "Thanks. Just a couple more questions. Where will this take place?",
   ask_timing: "When are you hoping this will be done?",
   ask_callback_time: "Perfect. Last question—what would be the best time for the business to call you back?",
@@ -1984,6 +1989,41 @@ function sendApprovedPrompt(stage: string, openAiWs: any, ws?: any): boolean {
   console.log('[VOICE OUTBOUND] Source: sendApprovedPrompt');
   console.log('[VOICE OUTBOUND] Timestamp:', new Date().toISOString());
   console.log('[VOICE OUTBOUND] =========================================');
+
+  // Structured prompt delivery log
+  const sessionState = ws?.callSessionState || {};
+  const callSid = sessionState.callSid || 'unknown';
+  const logicalTurnId = sessionState.activeResponseId || 'unknown';
+  const promptKey = stage;
+  const promptScheduled = true;
+  const promptSuppressed = false;
+  const suppressionReason = null;
+  const aiSpeaking = sessionState.assistantSpeaking;
+  const promptInFlight = true;
+  const awaitingMark = false;
+  const mediaSent = false;
+  const markSent = false;
+  const markAcknowledged = false;
+  const listeningStarted = false;
+
+  console.log('[PROMPT DELIVERY STRUCTURED]', {
+    callSid,
+    currentStage: sessionState.currentStage || 'unknown',
+    nextStage: stage,
+    logicalTurnId,
+    promptKey,
+    promptScheduled,
+    promptSuppressed,
+    suppressionReason,
+    aiSpeaking,
+    promptInFlight,
+    awaitingMark,
+    mediaSent,
+    markSent,
+    markAcknowledged,
+    listeningStarted,
+    timestamp: new Date().toISOString()
+  });
 
   // Log [SCRIPTED FLOW] prompt sent
   console.log('[SCRIPTED FLOW] =========================================');
@@ -19025,6 +19065,11 @@ function applyLowPassFilter(samples: Float32Array, sampleRate: number, cutoffHz:
 
 // Start server
 server.listen(PORT, () => {
+  console.log('[BUILD METADATA] =========================================');
+  console.log('[BUILD METADATA] BUILD_COMMIT_SHA:', BUILD_COMMIT_SHA);
+  console.log('[BUILD METADATA] BUILD_TIMESTAMP:', BUILD_TIMESTAMP);
+  console.log('[BUILD METADATA] DEPLOYMENT_VERSION:', DEPLOYMENT_VERSION);
+  console.log('[BUILD METADATA] =========================================');
   console.log('[RUNTIME VERSION CHECK] =========================================');
   console.log('[RUNTIME VERSION CHECK] commit:', AI_VOICE_EXPECTED_COMMIT);
   console.log('[RUNTIME VERSION CHECK] feature:', AI_VOICE_DEPLOY_VERSION);

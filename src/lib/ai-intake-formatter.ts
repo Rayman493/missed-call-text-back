@@ -526,29 +526,47 @@ export const formatAiIntakeSummary = (
   const displayName = businessName || 'us';
   const prefix = prefixNotice ? `${prefixNotice}\n\n` : '';
 
-  return `Thanks for calling ${displayName}!
+  // Check which fields have actual values (not "Not collected" or empty)
+  const hasName = customerName && customerName !== 'Not collected' && customerName.trim() !== '';
+  const hasRequest = finalRequest && finalRequest !== 'Not collected' && finalRequest.trim() !== '';
+  const hasAddress = serviceAddress && serviceAddress !== 'Not collected' && serviceAddress.trim() !== '';
+  const hasCompletionTime = desiredCompletionTime && desiredCompletionTime !== 'Not collected' && desiredCompletionTime.trim() !== '';
+  const hasCallbackTime = callbackTime && callbackTime !== 'Not collected' && callbackTime.trim() !== '';
 
-${prefix}📋 NEW CUSTOMER REQUEST
+  // If no fields captured, return generic acknowledgment
+  if (!hasName && !hasRequest && !hasAddress && !hasCompletionTime && !hasCallbackTime) {
+    return `Thanks for calling ${displayName}. We received your call and shared it with the business. They'll follow up as soon as possible.`;
+  }
 
-👤 Customer
-${customerName}
-
-📞 Phone
-${callerPhone}
-
-🛠️ Request
-${finalRequest}
-
-📍 Service Address
-${serviceAddress}
-
-📅 Desired Completion
-${desiredCompletionTime}
-
-☎️ Best Callback Time
-${callbackTime}
-
-Reply to this message if you'd like to update or add any information.`;
+  // Build partial summary with only available fields
+  let body = `Thanks for calling ${displayName}!\n\n`;
+  if (prefix) {
+    body += prefix;
+  }
+  
+  if (hasName) {
+    body += `Customer: ${customerName}\n`;
+  }
+  
+  if (hasRequest) {
+    body += `Request: ${finalRequest}\n`;
+  }
+  
+  if (hasAddress) {
+    body += `Location: ${serviceAddress}\n`;
+  }
+  
+  if (hasCompletionTime) {
+    body += `Desired Completion: ${desiredCompletionTime}\n`;
+  }
+  
+  if (hasCallbackTime) {
+    body += `Best Callback Time: ${callbackTime}\n`;
+  }
+  
+  body += `\nWe captured your request and shared it with the business. They'll follow up as soon as possible.`;
+  
+  return body;
 };
 
 // Wrapper that applies service-location omission logic for Location block

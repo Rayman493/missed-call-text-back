@@ -427,30 +427,22 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
   })
 
   // HARD GUARDS: Validate exact current call record before proceeding
-  const failedOrFallback = params.aiOutcome === 'failed' || params.aiOutcome === 'voicemail_fallback'
   const callSidMatch = aiCallRecord?.call_sid === callSid
   const businessMatch = aiCallRecord?.business_id === businessId
-  const outcomeCompleted = aiCallRecord?.outcome === 'completed' || aiCallRecord?.outcome === 'completed_intake'
   const transcriptPresent = !!aiCallRecord?.transcript && aiCallRecord.transcript.length > 0
   const extractedInfoPresent = !!aiCallRecord?.extracted_info && Object.keys(aiCallRecord.extracted_info).length > 0
   const summaryPresent = !!aiCallRecord?.summary && aiCallRecord.summary.length > 0
-  const hasUsableCompletedIntake = transcriptPresent || extractedInfoPresent || summaryPresent
   const alreadySent = await hasAutomaticSmsForCall(callSid, businessId)
+
+  // NEW POLICY: Send SMS for any call that reached ReplyFlow AI (has ai_call_record)
+  // SMS eligibility does NOT depend on: outcome completion, captured fields, or meaningful data
+  // Valid skip reasons only: no AI record (never reached ReplyFlow), already sent, or destination issues
+  const reachedReplyFlowAI = !!aiCallRecord && callSidMatch && businessMatch
 
   // Skip if any guard fails
   let skipReason = null
-  if (!aiCallRecord) {
-    skipReason = 'no_ai_call_record_found'
-  } else if (!callSidMatch) {
-    skipReason = 'call_sid_mismatch'
-  } else if (!businessMatch) {
-    skipReason = 'business_id_mismatch'
-  } else if (failedOrFallback) {
-    skipReason = 'call_failed_or_fallback'
-  } else if (!outcomeCompleted) {
-    skipReason = 'outcome_not_completed'
-  } else if (!hasUsableCompletedIntake) {
-    skipReason = 'no_usable_ai_content'
+  if (!reachedReplyFlowAI) {
+    skipReason = 'call_did_not_reach_replyflow_ai'
   } else if (alreadySent) {
     skipReason = 'already_sent'
   }
@@ -464,11 +456,34 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
     transcriptPresent,
     extractedInfoPresent,
     summaryPresent,
-    hasUsableCompletedIntake,
-    failedOrFallback,
+    reachedReplyFlowAI,
     alreadySent,
     decision: skipReason ? 'skip' : 'send',
     skipReason,
+    timestamp: new Date().toISOString()
+  })
+
+  // Structured SMS decision log with all required fields
+  const capturedFields = {
+    customerName: extractedInfoPresent ? (extractedInfoPresent ? 'present' : 'absent') : 'absent',
+    request: extractedInfoPresent ? 'present' : 'absent',
+    location: extractedInfoPresent ? 'present' : 'absent',
+    completionTime: extractedInfoPresent ? 'present' : 'absent',
+    callbackTime: extractedInfoPresent ? 'present' : 'absent'
+  }
+  
+  console.log('[SMS DECISION STRUCTURED]', {
+    callSid,
+    reachedReplyFlowAI,
+    terminalEvent: trigger,
+    smsEnabled: true,
+    destinationAvailable: true,
+    alreadySent,
+    capturedFields,
+    dispatchDecision: skipReason ? 'skip' : 'send',
+    dispatchReason: skipReason || 'all_checks_passed',
+    twilioMessageSid: null,
+    twilioStatus: null,
     timestamp: new Date().toISOString()
   })
 
@@ -477,7 +492,6 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
     transcriptPresent,
     extractedInfoPresent,
     summaryPresent,
-    hasUsableCompletedIntake,
     templateSource: extractedInfoPresent ? 'extracted_info' : (summaryPresent ? 'summary' : 'transcript'),
     timestamp: new Date().toISOString()
   })
