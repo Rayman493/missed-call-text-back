@@ -109,7 +109,7 @@ describe('AI message insert contract', () => {
     ).to.throw();
   });
 
-  it('includes call_sid in structured_data when provided', () => {
+  it('has exactly the expected number of fields - no structured_data', () => {
     const payload = buildAiMessagePayload({
       conversation_id: 'conv-1',
       lead_id: 'lead-1',
@@ -118,39 +118,25 @@ describe('AI message insert contract', () => {
       body: 'summary',
       direction: 'outbound',
       message_type: 'summary',
-      call_sid: 'CA123',
-      structured_data: { customerName: 'Ryan' },
     });
 
-    expect(payload.structured_data).to.deep.equal({ customerName: 'Ryan', call_sid: 'CA123' });
-  });
-
-  it('includes structured_data with call_sid when only call_sid provided', () => {
-    const payload = buildAiMessagePayload({
-      conversation_id: 'conv-1',
-      lead_id: 'lead-1',
-      from_phone: '+15551234567',
-      to_phone: '+15559876543',
-      body: 'transcript',
-      direction: 'inbound',
-      message_type: 'transcript',
-      call_sid: 'CA123',
-    });
-
-    expect(payload.structured_data).to.deep.equal({ call_sid: 'CA123' });
-  });
-
-  it('omits structured_data when neither call_sid nor structured_data provided', () => {
-    const payload = buildAiMessagePayload({
-      conversation_id: 'conv-1',
-      lead_id: 'lead-1',
-      from_phone: '+15551234567',
-      to_phone: '+15559876543',
-      body: 'transcript',
-      direction: 'inbound',
-      message_type: 'transcript',
-    });
-
+    // Expected fields: lead_id, conversation_id, body, direction, message_type,
+    // from_phone, to_phone, twilio_message_sid, status, media_count, created_at
+    expect(payload).to.have.property('lead_id');
+    expect(payload).to.have.property('conversation_id');
+    expect(payload).to.have.property('body');
+    expect(payload).to.have.property('direction');
+    expect(payload).to.have.property('message_type');
+    expect(payload).to.have.property('from_phone');
+    expect(payload).to.have.property('to_phone');
+    expect(payload).to.have.property('twilio_message_sid');
+    expect(payload).to.have.property('status');
+    expect(payload).to.have.property('media_count');
+    expect(payload).to.have.property('created_at');
     expect(payload).to.not.have.property('structured_data');
+    expect(payload).to.not.have.property('call_sid');
+    expect(payload).to.not.have.property('sender');
+    expect(payload).to.not.have.property('content');
+    expect(payload).to.not.have.property('business_id');
   });
 });
