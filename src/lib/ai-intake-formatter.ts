@@ -590,6 +590,8 @@ export const formatAiIntakeSummaryWithMode = (
   // For non-onsite modes, remove Location from Still Needed section if not provided
   if ((normalizedMode === 'customer_comes_to_business' || normalizedMode === 'remote') && !locationProvided) {
     body = body.replace(/○ Location\n/, '');
+    // Also remove empty "Still Needed:" section if Location was the only missing field
+    body = body.replace(/Still Needed:\n\n/, '');
   }
   
   return body;
