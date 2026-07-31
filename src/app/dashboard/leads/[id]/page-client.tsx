@@ -3687,7 +3687,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <div className="space-y-4">
                   {/* AI Intake Summary - Hero Card */}
                   {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
-                    <div className="bg-muted/60 rounded-xl border border-border/50 shadow-lg relative overflow-hidden">
+                    <div className="bg-muted/70 rounded-xl border border-border/60 shadow-xl relative overflow-hidden">
                       <AICallDetails
                         leadId={params.id}
                         businessId={business.id}
@@ -3702,7 +3702,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
                   {/* Customer Summary - Hero Card */}
                   {!(leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id) && (
-                    <div className="bg-muted/60 rounded-xl border border-border/50 shadow-lg relative overflow-hidden">
+                    <div className="bg-muted/70 rounded-xl border border-border/60 shadow-xl relative overflow-hidden">
                       <VoicemailSummary leadData={leadData} />
                     </div>
                   )}
@@ -3971,33 +3971,35 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
         {/* Mobile Layout - Only render when mobile view */}
         {isMobileView && (
-          <div className="space-y-1.5 pb-[calc(6rem+env(safe-area-inset-bottom))]">
-          {/* Conversation Header - Establishes the messaging workspace */}
-          <div className="px-3 py-1.5">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xs font-medium text-muted-foreground">Conversation</h2>
-              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/60">
-                {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && (
-                  <span>AI answered</span>
-                )}
-                {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && leadData?.messages?.some((m: any) => m.direction === 'inbound') && (
-                  <span>•</span>
-                )}
-                {leadData?.messages?.some((m: any) => m.direction === 'inbound') && (
-                  <span>Customer replied</span>
-                )}
-                {(leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 || leadData?.messages?.some((m: any) => m.direction === 'inbound')) && (followUpJobs && followUpJobs.length > 0 || followUpSettings?.enabled) && (
-                  <span>•</span>
-                )}
-                {(followUpJobs && followUpJobs.length > 0 || followUpSettings?.enabled) && (
-                  <span>Follow-ups available</span>
-                )}
+          <div className="space-y-3 pb-[calc(6rem+env(safe-area-inset-bottom))]">
+          {/* Conversation Workspace Card - Dedicated workspace */}
+          <div className="bg-background rounded-2xl border border-border/40 shadow-sm overflow-hidden">
+            {/* Conversation Header - Distinct header */}
+            <div className="px-4 py-3 border-b border-border/30 bg-muted/50">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs font-semibold text-foreground">Conversation</h2>
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/60">
+                  {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && (
+                    <span>AI answered</span>
+                  )}
+                  {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && leadData?.messages?.some((m: any) => m.direction === 'inbound') && (
+                    <span>•</span>
+                  )}
+                  {leadData?.messages?.some((m: any) => m.direction === 'inbound') && (
+                    <span>Customer replied</span>
+                  )}
+                  {(leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 || leadData?.messages?.some((m: any) => m.direction === 'inbound')) && (followUpJobs && followUpJobs.length > 0 || followUpSettings?.enabled) && (
+                    <span>•</span>
+                  )}
+                  {(followUpJobs && followUpJobs.length > 0 || followUpSettings?.enabled) && (
+                    <span>Follow-ups available</span>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Conversation Section - Primary content, conversation-first */}
-          <div className="flex flex-col overflow-hidden">
+            {/* Message Area - Inset appearance */}
+            <div className="bg-muted/20 min-h-[300px]">
             {/* Mobile Message Thread - Scrollable viewport */}
             <div ref={mobileConversationContainerRef} className="flex-1 min-h-0 overflow-y-auto scroll-smooth overscroll-contain" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', scrollPaddingBottom: '5rem' }}>
               {/* Inner content wrapper for justify-end */}
@@ -4032,10 +4034,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 )}
               </div>
             </div>
-            {/* Divider - Softer for natural integration */}
-            <div className="border-t border-border/20 flex-shrink-0"></div>
-            {/* Composer - Integrated at bottom with proper spacing */}
-            <div className="px-3 py-2 flex-shrink-0" style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom))' }}>
+            </div>
+            {/* Divider above composer */}
+            <div className="border-t border-border/30 flex-shrink-0"></div>
+            {/* Composer - Attached to workspace */}
+            <div className="px-4 py-3 bg-muted/40 flex-shrink-0" style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' }}>
               {(() => {
                 const effectiveSource = (sendingSource === 'business' && supportsBusiness) ? 'business' : 'replyflow'
 
@@ -4150,18 +4153,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Collapsible Sections - Below conversation */}
           {/* AI Intake - Collapsible */}
           {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
-            <div className="bg-muted/20 border border-border/20 rounded-lg p-2">
+            <div className="bg-muted/30 border border-border/30 rounded-xl p-3 shadow-sm">
               <button
                 onClick={() => setCollapsedSections((prev: any) => ({ ...prev, aiIntake: !prev.aiIntake }))}
-                className="flex items-center justify-between w-full py-1"
+                className="flex items-center justify-between w-full py-2"
               >
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 flex items-center justify-center">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-6 h-6 flex items-center justify-center">
                     <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
                   </div>
-                  <span className="text-xs font-medium text-foreground">AI Intake</span>
+                  <span className="text-sm font-semibold text-foreground">AI Intake</span>
                 </div>
                 <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.aiIntake ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />

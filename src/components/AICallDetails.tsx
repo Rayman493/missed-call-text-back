@@ -494,10 +494,10 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
     <div className="space-y-4">
       {/* AI Summary Card - Compact and Collapsible - Current Request */}
       {collapsible ? (
-        <div className="bg-muted/60 rounded-xl border border-border/50 shadow-lg overflow-hidden relative">
-          {/* Left Accent */}
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-l-xl"></div>
-          <div className="px-5 py-5 flex items-center justify-between border-b border-border/40 pl-6">
+        <div className="bg-muted/70 rounded-xl border border-border/60 shadow-xl overflow-hidden relative">
+          {/* Left Accent - Inset to align with content */}
+          <div className="absolute left-4 top-5 bottom-5 w-1 bg-blue-500 rounded-l-xl"></div>
+          <div className="px-5 py-5 flex items-center justify-between border-b border-border/50 pl-7">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setSummaryExpanded(!summaryExpanded)}
@@ -518,7 +518,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 </div>
               </button>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 self-center">
               {isEditMode ? (
                 <div className="flex items-center gap-2">
                   <button
@@ -579,10 +579,10 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
       ) : (
         <div className="space-y-4">
           {/* Card Header */}
-          <div className="flex items-center justify-between border-b border-border/40 pb-4 relative">
-            {/* Left Accent */}
-            <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-t-xl"></div>
-            <div className="flex items-center gap-3 pl-6">
+          <div className="flex items-center justify-between border-b border-border/50 pb-5 relative">
+            {/* Left Accent - Inset to align with content */}
+            <div className="absolute left-4 top-0 bottom-0 w-1 bg-blue-500 rounded-t-xl"></div>
+            <div className="flex items-center gap-3 pl-7">
               <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shadow-sm">
                 <svg className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -598,7 +598,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               </div>
             </div>
             {/* Edit Controls */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 self-center">
               {isEditMode ? (
                 <div className="flex items-center gap-2">
                   <button
@@ -642,13 +642,15 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
           {/* Save error */}
           {saveError && (
-            <div className="mb-3 px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-xs text-red-600 dark:text-red-400">
+            <div className="mb-3 px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-xs text-red-600 dark:text-red-400 pl-7">
               {saveError}
             </div>
           )}
 
           {/* Unified Intake Fields */}
-          {renderIntakeFields()}
+          <div className="pl-7">
+            {renderIntakeFields()}
+          </div>
         </div>
       )}
 
