@@ -337,4 +337,14 @@ export class NotificationService {
   }
 }
 
+// Server-side notification service using service role key for trusted backend operations
+export const notificationServerService = (() => {
+  const { createClient } = require('@supabase/supabase-js')
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  )
+  return new NotificationService(supabase)
+})()
+
 export const notificationService = new NotificationService()

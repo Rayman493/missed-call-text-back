@@ -241,7 +241,10 @@ export async function POST(request: Request) {
           
           const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
             .from('mms-media')
-            .upload(filePath, file)
+            .upload(filePath, file, {
+              contentType: file.type,
+              upsert: false
+            })
           
           if (uploadError) {
             console.error('[MMS API] Upload error:', {
@@ -262,17 +265,16 @@ export async function POST(request: Request) {
             fullPath: uploadData?.fullPath
           })
           
-          // Get public URL
-          const { data: publicUrlData } = supabaseAdmin.storage
-            .from('mms-media')
-            .getPublicUrl(filePath)
+          // Generate signed media serving URL with correct Content-Type
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://missed-call-text-back-9821-54zufp22w-rayman493s-projects.vercel.app'
+          const mediaServeUrl = `${baseUrl}/api/mms-media/serve?path=${encodeURIComponent(filePath)}&token=${process.env.MMS_MEDIA_SECRET}`
           
-          console.log('[MMS API] Generated public URL:', {
-            publicUrl: publicUrlData.publicUrl,
-            filePath
+          console.log('[MMS API] Generated media serve URL:', {
+            mediaServeUrl: mediaServeUrl.substring(0, 100),
+            filePath: filePath.substring(0, 100)
           })
           
-          mediaUrls.push(publicUrlData.publicUrl)
+          mediaUrls.push(mediaServeUrl)
         }
         
         console.log('[MMS API] Media uploaded successfully:', {

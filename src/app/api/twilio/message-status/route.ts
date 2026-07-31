@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { notificationService } from '@/lib/notifications'
+import { notificationServerService } from '@/lib/notifications'
 import { requireTwilioAuth } from '@/lib/twilio/webhook'
 
 // Helper function to validate environment variables
@@ -190,15 +190,23 @@ export async function POST(req: NextRequest) {
             .single()
 
           if (lead && lead.businesses) {
-            await notificationService.notifySmsFailed(
+            await notificationServerService.notifySmsFailed(
               lead.businesses.id,
               lead.caller_phone || 'Unknown',
               lead.id
             )
-            console.log('[twilio] Notification created for SMS failure')
+            console.log('[twilio] Notification created for SMS failure', {
+              messageId: message.id,
+              leadId: lead.id,
+              businessId: lead.businesses.id
+            })
           }
         } catch (error) {
-          console.error('[twilio] Error creating SMS failure notification:', error)
+          console.error('[twilio] Error creating SMS failure notification:', {
+            messageId: message.id,
+            leadId: message.lead_id,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          })
         }
       }
     }
