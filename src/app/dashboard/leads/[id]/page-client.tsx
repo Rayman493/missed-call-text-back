@@ -735,7 +735,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       leadData.aiCallRecords.forEach((aiCall: any) => {
         const outcome = aiCall.outcome
         const intakeStatus = getAIIntakeStatus({ aiCallRecords: [aiCall] })
-        const serviceRequested = aiCall.extracted_info?.reasonForCalling || aiCall.extracted_info?.serviceRequested || 'Unknown request'
+        const serviceRequested = aiCall.extracted_info?.reasonForCalling || aiCall.extracted_info?.serviceRequested || aiCall.extracted_info?.request || 'Unknown request'
         
         // Determine message based on actual outcome
         let intakeMessage = ''

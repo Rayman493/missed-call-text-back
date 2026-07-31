@@ -34,7 +34,7 @@ export function normalizeAICallRecord(record: any): NormalizedIntake {
     receivedAt: record.created_at,
     outcome: record.outcome,
     customerName: extracted.callerName || extracted.customerName || extracted.name || null,
-    serviceRequested: extracted.reasonForCalling || extracted.serviceRequested || extracted.service || extracted.reason || extracted.issueDescription || null,
+    serviceRequested: extracted.reasonForCalling || extracted.serviceRequested || extracted.service || extracted.reason || extracted.request || extracted.issueDescription || null,
     additionalDetails: extracted.importantDetails || extracted.additionalDetails || extracted.issueDescription || extracted.details || null,
     serviceAddress: extracted.addressOrLocation || extracted.serviceAddress || extracted.location || null,
     desiredCompletion: extracted.desiredCompletionTime || extracted.desiredCompletion || extracted.completionTime || null,
