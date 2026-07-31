@@ -69,6 +69,7 @@ import {
 import { testFallbacks, warnIfTestFallbacksActive } from './test-fallbacks';
 import { OPENAI_REALTIME_MODEL, createOpenAIRealtimeUrl } from './realtime-model';
 import { logModelConfiguration } from './model-config';
+import { buildAiMessagePayload } from './lib/ai-message-builder';
 
 // @ts-nocheck
 // TypeScript checking disabled to allow deployment with improved Supabase logging
@@ -4923,13 +4924,14 @@ async function createFallbackLead(
     // Create system message about the fallback
     const { error: messageError } = await supabase
       .from('messages')
-      .insert({
+      .insert(buildAiMessagePayload({
         conversation_id: conversation.id,
         lead_id: lead.id,
         business_id: businessId,
-        content: `AI system failed (${failureReason}). Caller was redirected to voicemail. Please follow up with this customer.`,
+        body: `AI system failed (${failureReason}). Caller was redirected to voicemail. Please follow up with this customer.`,
+        direction: 'outbound',
         message_type: 'system',
-      });
+      }));
 
     if (messageError) {
       console.log('[LEAD CREATED FROM FALLBACK] Message creation error:', messageError);
@@ -13756,13 +13758,15 @@ Return only JSON, no other text.`;
 
           const { error: messageError } = await supabase
             .from('messages')
-            .insert({
+            .insert(buildAiMessagePayload({
               conversation_id: fallbackConversationId,
               lead_id: fallbackLead.id,
-              content: partialSummary,
+              business_id: businessId,
+              body: partialSummary,
+              direction: 'outbound',
               message_type: 'summary',
               structured_data: intakeData || null,
-            });
+            }));
 
           if (messageError) {
             console.log('[INCOMPLETE MESSAGE INSERT FAILED] =========================================');
@@ -17760,14 +17764,15 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
 
                 const { error: messageError } = await supabase
                   .from('messages')
-                  .insert({
+                  .insert(buildAiMessagePayload({
                     conversation_id: conversation.id,
                     lead_id: lead.id,
                     business_id: sessionBusinessId,
-                    content: summaryMessage,
+                    body: summaryMessage,
+                    direction: 'outbound',
                     message_type: 'summary',
                     structured_data: extractedFields,
-                  });
+                  }));
 
                 if (messageError) {
                   console.log('[AI INGEST] message save error', messageError);
@@ -17810,13 +17815,14 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
 
                 const { error: transcriptError } = await supabase
                   .from('messages')
-                  .insert({
+                  .insert(buildAiMessagePayload({
                     conversation_id: conversation.id,
                     lead_id: lead.id,
                     business_id: sessionBusinessId,
-                    content: fullTranscript,
+                    body: fullTranscript,
+                    direction: 'inbound',
                     message_type: 'transcript',
-                  });
+                  }));
 
                 if (transcriptError) {
                   console.log('[AI INGEST] transcript save error', transcriptError);
@@ -18290,13 +18296,14 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
                   // Save transcript as message
                   const { error: fallbackMessageError } = await supabase
                     .from('messages')
-                    .insert({
+                    .insert(buildAiMessagePayload({
                       conversation_id: fallbackConversation.id,
                       lead_id: fallbackLead.id,
                       business_id: sessionBusinessId,
-                      content: `AI call transcript (extraction failed):\n${fullTranscript}`,
+                      body: `AI call transcript (extraction failed):\n${fullTranscript}`,
+                      direction: 'inbound',
                       message_type: 'transcript',
-                    });
+                    }));
 
                   if (fallbackMessageError) {
                     console.log('[AI INGEST] fallback message creation error', fallbackMessageError);

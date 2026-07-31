@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
+import { normalizeMessagesForDisplay } from '@/lib/legacy-message-mapper'
 
 export const dynamic = 'force-dynamic';
 
@@ -222,8 +223,12 @@ export async function GET(request: NextRequest) {
       }))
     })
 
+    // Backfill legacy AI message rows to the current body/direction contract
+    // so the Conversation panel can render them immediately.
+    const normalizedMessages = normalizeMessagesForDisplay(messages || [])
+
     // Attach media to messages
-    const messagesWithMedia = (messages || []).map(message => ({
+    const messagesWithMedia = normalizedMessages.map(message => ({
       ...message,
       media: messageMediaMap[message.id] || []
     }))
