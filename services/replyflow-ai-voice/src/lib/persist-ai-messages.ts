@@ -5,7 +5,8 @@ export interface PersistAiCallConversationMessagesInput {
   callSid: string
   conversationId: string
   leadId: string
-  businessId: string
+  fromPhone: string
+  toPhone: string
   summary: string
   transcript: string
   extractedFields?: Record<string, any> | null
@@ -32,13 +33,14 @@ export interface PersistAiCallConversationMessagesResult {
 export async function persistAiCallConversationMessages(
   input: PersistAiCallConversationMessagesInput
 ): Promise<PersistAiCallConversationMessagesResult> {
-  const { supabase, callSid, conversationId, leadId, businessId, summary, transcript, extractedFields } = input
+  const { supabase, callSid, conversationId, leadId, fromPhone, toPhone, summary, transcript, extractedFields } = input
 
   const baseLog = {
     callSid,
     conversationId,
     leadId,
-    businessId,
+    fromPhone,
+    toPhone,
   }
 
   const result: PersistAiCallConversationMessagesResult = {
@@ -53,15 +55,16 @@ export async function persistAiCallConversationMessages(
     return result
   }
 
-  if (!conversationId || !leadId || !businessId) {
+  if (!conversationId || !leadId || !fromPhone || !toPhone) {
     console.log('[AI MESSAGE PERSIST] status=failed reason=missing-ids', {
       ...baseLog,
       hasConversationId: !!conversationId,
       hasLeadId: !!leadId,
-      hasBusinessId: !!businessId,
+      hasFromPhone: !!fromPhone,
+      hasToPhone: !!toPhone,
     })
-    result.summary = { status: 'failed', error: 'missing conversation, lead, or business id' }
-    result.transcript = { status: 'failed', error: 'missing conversation, lead, or business id' }
+    result.summary = { status: 'failed', error: 'missing conversation, lead, from_phone, or to_phone' }
+    result.transcript = { status: 'failed', error: 'missing conversation, lead, from_phone, or to_phone' }
     return result
   }
 
@@ -109,10 +112,12 @@ export async function persistAiCallConversationMessages(
       const payload = buildAiMessagePayload({
         conversation_id: conversationId,
         lead_id: leadId,
-        business_id: businessId,
+        from_phone: fromPhone,
+        to_phone: toPhone,
         body,
         direction: type === 'transcript' ? 'inbound' : 'outbound',
         message_type: type,
+        call_sid: callSid,
         structured_data: structuredData,
       })
 
@@ -147,11 +152,10 @@ export async function persistAiCallConversationMessages(
 
   const summaryStructuredData = {
     ...(extractedFields || {}),
-    call_sid: callSid,
   }
 
   result.summary = await persistOne('summary', summary, summaryStructuredData)
-  result.transcript = await persistOne('transcript', transcript, { call_sid: callSid })
+  result.transcript = await persistOne('transcript', transcript, null)
 
   return result
 }

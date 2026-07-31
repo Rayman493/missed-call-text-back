@@ -4753,6 +4753,7 @@ async function triggerVoicemailFallback(
   callSid: string, 
   businessId: string, 
   callerPhone: string, 
+  businessPhone: string,
   businessName: string,
   forwardedFrom: string
 ): Promise<void> {
@@ -4805,7 +4806,7 @@ async function triggerVoicemailFallback(
     
     if (!twilioAccountSid || !twilioAuthToken) {
       console.log('[VOICEMAIL FALLBACK] Missing Twilio credentials, using fallback');
-      await createFallbackLead(callSid, businessId, callerPhone, businessName, forwardedFrom, failureReason);
+      await createFallbackLead(callSid, businessId, callerPhone, businessPhone, businessName, forwardedFrom, failureReason);
       ws.close(1008, 'Voicemail fallback activated');
       return;
     }
@@ -4834,7 +4835,7 @@ async function triggerVoicemailFallback(
     console.log('[VOICEMAIL FALLBACK ERROR] Failed to redirect call:', error);
     
     // Fallback: create lead directly and close connection
-    await createFallbackLead(callSid, businessId, callerPhone, businessName, forwardedFrom, failureReason);
+    await createFallbackLead(callSid, businessId, callerPhone, businessPhone, businessName, forwardedFrom, failureReason);
     
     if (ws.readyState === WebSocket.OPEN) {
       ws.close(1008, 'Voicemail fallback activated');
@@ -4847,6 +4848,7 @@ async function createFallbackLead(
   callSid: string,
   businessId: string,
   callerPhone: string,
+  businessPhone: string,
   businessName: string,
   forwardedFrom: string,
   failureReason: string
@@ -4933,7 +4935,8 @@ async function createFallbackLead(
       .insert(buildAiMessagePayload({
         conversation_id: conversation.id,
         lead_id: lead.id,
-        business_id: businessId,
+        from_phone: callerPhone,
+        to_phone: businessPhone,
         body: `AI system failed (${failureReason}). Caller was redirected to voicemail. Please follow up with this customer.`,
         direction: 'outbound',
         message_type: 'system',
@@ -5974,6 +5977,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     businessId: '',
     callSid: '',
     callerPhone: '',
+    businessPhone: '',
     businessName: '',
     forwardedFrom: '',
     streamSid: '',
@@ -9545,6 +9549,7 @@ Reply to this message if you'd like to update or add any information.
             state.callSid,
             state.businessId,
             state.callerPhone,
+            state.businessPhone,
             state.businessName,
             state.forwardedFrom
           );
@@ -9887,6 +9892,7 @@ Reply to this message if you'd like to update or add any information.
           state.callSid,
           state.businessId,
           state.callerPhone,
+          state.businessPhone,
           state.businessName,
           state.forwardedFrom
         );
@@ -9921,6 +9927,7 @@ Reply to this message if you'd like to update or add any information.
         state.callSid,
         state.businessId,
         state.callerPhone,
+        state.businessPhone,
         state.businessName,
         state.forwardedFrom
       );
@@ -10091,6 +10098,7 @@ Reply to this message if you'd like to update or add any information.
               state.callSid,
               state.businessId,
               state.callerPhone,
+              state.businessPhone,
               state.businessName,
               state.forwardedFrom
             );
@@ -10117,6 +10125,7 @@ Reply to this message if you'd like to update or add any information.
             state.callSid,
             state.businessId,
             state.callerPhone,
+            state.businessPhone,
             state.businessName,
             state.forwardedFrom
           );
@@ -10213,6 +10222,7 @@ Reply to this message if you'd like to update or add any information.
                 state.callSid,
                 state.businessId,
                 state.callerPhone,
+                state.businessPhone,
                 state.businessName,
                 state.forwardedFrom
               );
@@ -10284,6 +10294,7 @@ Reply to this message if you'd like to update or add any information.
               state.callSid,
               state.businessId,
               state.callerPhone,
+              state.businessPhone,
               state.businessName,
               state.forwardedFrom
             );
@@ -10598,6 +10609,7 @@ Reply to this message if you'd like to update or add any information.
                 state.callSid,
                 state.businessId,
                 state.callerPhone,
+                state.businessPhone,
                 state.businessName,
                 state.forwardedFrom
               );
@@ -12388,6 +12400,7 @@ wss.on('connection', (ws, req) => {
     let sessionId: string = '';
     let businessId: string = '';
     let callSid: string = '';
+    let businessPhone: string = '';
     let forwardedFrom: string = '';
     let callOutcome: 'completed' | 'caller_hung_up' | 'ai_failed' | 'voicemail_fallback' = 'completed';
     let businessName: string = 'ReplyFlow';
@@ -12669,6 +12682,7 @@ wss.on('connection', (ws, req) => {
           callSid || '', 
           businessId || '', 
           callerPhone || '', 
+          businessPhone || '',
           businessName || '', 
           forwardedFrom || ''
         );
@@ -12888,7 +12902,8 @@ Return only JSON, no other text.`;
             callSid: sessionCallSid,
             conversationId: existingRecord.conversation_id,
             leadId: existingRecord.lead_id,
-            businessId: sessionBusinessId,
+            fromPhone: callerPhone,
+            toPhone: businessPhone,
             summary: existingSummary,
             transcript: fullTranscript,
             extractedFields,
@@ -12921,7 +12936,8 @@ Return only JSON, no other text.`;
             callSid: sessionCallSid,
             conversationId: existingRecord.conversation_id,
             leadId: existingRecord.lead_id,
-            businessId: sessionBusinessId,
+            fromPhone: callerPhone,
+            toPhone: businessPhone,
             summary: '',
             transcript: fullTranscript,
             extractedFields: null,
@@ -13625,7 +13641,8 @@ Return only JSON, no other text.`;
           callSid: sessionCallSid,
           conversationId: conversation.id,
           leadId: lead.id,
-          businessId: sessionBusinessId,
+          fromPhone: callerPhone,
+          toPhone: businessPhone,
           summary: summaryMessage,
           transcript: fullTranscript,
           extractedFields,
@@ -13843,7 +13860,8 @@ Return only JSON, no other text.`;
             callSid: sessionCallSid,
             conversationId: fallbackConversationId,
             leadId: fallbackLead.id,
-            businessId: sessionBusinessId,
+            fromPhone: callerPhone,
+            toPhone: businessPhone,
             summary: partialSummary,
             transcript: fallbackTranscript,
             extractedFields: intakeData || null,
@@ -14082,6 +14100,11 @@ Return only JSON, no other text.`;
 
           console.log('[CALL CONTEXT NORMALIZED]', callContext);
 
+          // Update local variables for backward compatibility
+          callerPhone = callContext.callerPhone;
+          businessPhone = callContext.businessPhone;
+          forwardedFrom = callContext.forwardedFrom;
+
           // Hard fail if required parameters are missing
           if (!callContext.businessId) {
             console.error('[CALL CONTEXT REQUIRED FAILED] businessId is missing');
@@ -14165,6 +14188,7 @@ Return only JSON, no other text.`;
           businessId = callContext.businessId;
           callSid = callContext.callSid;
           callerPhone = callContext.callerPhone;
+          businessPhone = callContext.businessPhone;
           forwardedFrom = callContext.forwardedFrom;
 
           // Log active code check to verify latest deployment
@@ -14324,6 +14348,7 @@ Return only JSON, no other text.`;
               callSid || '',
               businessId || '',
               callerPhone || '',
+              businessPhone || '',
               businessName || '',
               forwardedFrom || ''
             );
@@ -14354,6 +14379,7 @@ Return only JSON, no other text.`;
               callSid || '',
               businessId || '',
               callerPhone || '',
+              businessPhone || '',
               businessName || '',
               forwardedFrom || ''
             );
@@ -14389,6 +14415,7 @@ Return only JSON, no other text.`;
               callSid || '',
               businessId || '',
               callerPhone || '',
+              businessPhone || '',
               businessName || '',
               forwardedFrom || ''
             );
@@ -14483,6 +14510,7 @@ Return only JSON, no other text.`;
                     callSid || '', 
                     businessId || '', 
                     callerPhone || '', 
+                    businessPhone || '',
                     businessName || '', 
                     forwardedFrom || ''
                   );
@@ -14498,6 +14526,7 @@ Return only JSON, no other text.`;
                   callSid || '', 
                   businessId || '', 
                   callerPhone || '', 
+                  businessPhone || '',
                   businessName || '', 
                   forwardedFrom || ''
                 );
@@ -14530,6 +14559,7 @@ Return only JSON, no other text.`;
                   callSid || '', 
                   businessId || '', 
                   callerPhone || '', 
+                  businessPhone || '',
                   businessName || '', 
                   forwardedFrom || ''
                 );
@@ -14556,6 +14586,7 @@ Return only JSON, no other text.`;
                   callSid || '', 
                   businessId || '', 
                   callerPhone || '', 
+                  businessPhone || '',
                   businessName || '', 
                   forwardedFrom || ''
                 );
@@ -17286,6 +17317,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
                 callSid || '', 
                 businessId || '', 
                 callerPhone || '', 
+                businessPhone || '',
                 businessName || '', 
                 forwardedFrom || ''
               );
@@ -17453,7 +17485,8 @@ Return only JSON, no other text.`;
                     callSid: sessionCallSid,
                     conversationId: existingRecord.conversation_id,
                     leadId: existingRecord.lead_id,
-                    businessId: sessionBusinessId,
+                    fromPhone: callerPhone,
+                    toPhone: businessPhone,
                     summary: existingSummary,
                     transcript: fullTranscript,
                     extractedFields,
@@ -17482,7 +17515,8 @@ Return only JSON, no other text.`;
                     callSid: sessionCallSid,
                     conversationId: existingRecord.conversation_id,
                     leadId: existingRecord.lead_id,
-                    businessId: sessionBusinessId,
+                    fromPhone: callerPhone,
+                    toPhone: businessPhone,
                     summary: '',
                     transcript: fullTranscript,
                     extractedFields: null,
@@ -17840,7 +17874,8 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
                   callSid: sessionCallSid,
                   conversationId: conversation.id,
                   leadId: lead.id,
-                  businessId: sessionBusinessId,
+                  fromPhone: callerPhone,
+                  toPhone: businessPhone,
                   summary: summaryMessage,
                   transcript: fullTranscript,
                   extractedFields,
@@ -18309,7 +18344,8 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
                     callSid: sessionCallSid,
                     conversationId: fallbackConversation.id,
                     leadId: fallbackLead.id,
-                    businessId: sessionBusinessId,
+                    fromPhone: callerPhone,
+                    toPhone: businessPhone,
                     summary: '',
                     transcript: fullTranscript,
                     extractedFields: null,
@@ -18508,6 +18544,7 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
               callSid || '', 
               businessId || '', 
               callerPhone || '', 
+              businessPhone || '',
               businessName || '', 
               forwardedFrom || ''
             );
