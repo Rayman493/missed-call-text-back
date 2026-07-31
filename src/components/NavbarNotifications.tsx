@@ -120,6 +120,25 @@ export default function NavbarNotifications() {
     initializeForBusiness(business.id)
   }, [business, initializeForBusiness])
 
+  // Log notification state when dropdown opens
+  useEffect(() => {
+    if (isOpen) {
+      console.log('[NOTIFICATION PREVIEW STATE]', {
+        businessId: business?.id,
+        notificationsLength: notifications.length,
+        notificationIds: notifications.map(n => n.id),
+        notificationTypes: notifications.map(n => n.type),
+        readValues: notifications.map(n => n.read),
+        created_at: notifications.map(n => n.created_at),
+        unreadCount: notificationCount.unread,
+        displayedUnreadCount,
+        loading,
+        filteredUnreadCount: notifications.filter(n => !n.read).length,
+        hasSyncIssue: displayedUnreadCount > 0 && notifications.filter(n => !n.read).length === 0
+      })
+    }
+  }, [isOpen, notifications, notificationCount, displayedUnreadCount, loading, business?.id])
+
   const handleMarkAsRead = async (notificationId: string) => {
     await markAsRead(notificationId)
   }
@@ -341,6 +360,14 @@ export default function NavbarNotifications() {
                   >
                     Refresh
                   </button>
+                </div>
+              ) : notifications.length === 0 ? (
+                <div className="text-center py-12 px-4">
+                  <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <Bell className="w-8 h-8 text-slate-400" />
+                  </div>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Everything looks good. No new notifications.</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">New activity will appear here when available.</p>
                 </div>
               ) : (
                 <>
