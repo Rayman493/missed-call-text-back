@@ -74,9 +74,10 @@ export function isCompleteAIIntake(
     extractedInfo.addressOrLocation
   )
 
-  // Check desired completion time
+  // Check desired completion time (multiple field name variations)
   const hasDesiredCompletionTime = Boolean(
-    extractedInfo.desiredCompletionTime
+    extractedInfo.desiredCompletionTime ||
+    extractedInfo.desiredCompletion
   )
 
   // Check callback time (multiple field name variations)
@@ -131,7 +132,7 @@ export function getCompletedFieldCount(extractedInfo: ExtractedInfo | null | und
   if (extractedInfo.serviceRequested || extractedInfo.reasonForCalling || extractedInfo.request) count++
   if (extractedInfo.issueDescription || extractedInfo.importantDetails) count++
   if (extractedInfo.serviceAddress || extractedInfo.addressOrLocation) count++
-  if (extractedInfo.desiredCompletionTime) count++
+  if (extractedInfo.desiredCompletionTime || extractedInfo.desiredCompletion) count++
   if (extractedInfo.callbackTime || extractedInfo.preferredCallbackTime) count++
 
   return count
