@@ -285,12 +285,12 @@ export default function NavbarNotifications() {
         createPortal(
           <div
             ref={dropdownRef}
-            className="fixed z-50 w-[calc(100vw-2rem)] sm:w-96 max-h-[80vh] bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden"
+            className="fixed z-50 w-[calc(100vw-2rem)] sm:w-96 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden"
             style={{
-              top: isMobile ? 'auto' : `${buttonPosition?.top || 0}px`,
-              bottom: isMobile ? '0' : 'auto',
-              right: isMobile ? '1rem' : `${buttonPosition?.right || 0}px`,
-              maxHeight: isMobile ? '80vh' : '600px'
+              top: `${buttonPosition?.top || 0}px`,
+              right: `${buttonPosition?.right || 0}px`,
+              maxHeight: isMobile ? 'calc(100vh - 100px)' : '600px',
+              maxWidth: isMobile ? '400px' : 'auto'
             }}
           >
             {/* Header */}
