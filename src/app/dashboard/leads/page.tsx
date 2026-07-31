@@ -202,7 +202,6 @@ export default function LeadsPage() {
   const { user, signOut } = useAuth()
   const [leads, setLeads] = useState<any[]>([])
   const [missedCallCount, setMissedCallCount] = useState(0)
-  const [ignoredContactsCount, setIgnoredContactsCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isOpeningPortal, setIsOpeningPortal] = useState(false)
@@ -324,14 +323,6 @@ export default function LeadsPage() {
         .eq('business_id', business.id)
 
       setMissedCallCount(count || 0)
-
-      // Fetch ignored contacts count
-      const { count: ignoredCount } = await supabase
-        .from('ignored_contacts')
-        .select('*', { count: 'exact', head: true })
-        .eq('business_id', business.id)
-
-      setIgnoredContactsCount(ignoredCount || 0)
     } catch (error) {
       console.error('Error fetching leads:', error)
       setError('Failed to load customers. Please try again.')
@@ -934,11 +925,11 @@ export default function LeadsPage() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-2 sm:mb-6">
               <StatCard
                 value={leadStatusCounts.new}
-                label="New"
+                label="Needs Reply"
                 description={
                   leadStatusCounts.new === 0
-                    ? 'Awaiting Contact'
-                    : 'Waiting For Reply'
+                    ? 'Awaiting your response'
+                    : 'Needs your response'
                 }
                 icon="👥"
                 iconColor="blue"
@@ -969,12 +960,12 @@ export default function LeadsPage() {
                 isInteractive={false}
               />
               <StatCard
-                value={ignoredContactsCount}
+                value={leadStatusCounts.ignored}
                 label="Ignored"
                 description={
-                  ignoredContactsCount === 0
-                    ? 'No Blocked Contacts'
-                    : 'Blocked From Automation'
+                  leadStatusCounts.ignored === 0
+                    ? 'No ignored customers'
+                    : 'Hidden from main list'
                 }
                 icon="🚫"
                 iconColor="orange"
@@ -1287,7 +1278,7 @@ export default function LeadsPage() {
             )}
 
             {/* Empty State */}
-            {!loading && !error && leads.length === 0 && (
+            {!loading && !error && filteredLeads.length === 0 && (
               <div className="bg-muted/30 rounded-2xl border border-border/50 p-8 sm:p-12 text-center animate-fadeIn">
                 <div className="max-w-md mx-auto">
                   <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center mx-auto mb-6">
@@ -1296,20 +1287,30 @@ export default function LeadsPage() {
                     </svg>
                   </div>
                   <h3 className="text-xl font-semibold text-foreground mb-3">
-                    No customers yet
+                    {quickFilter === 'new' && 'No customers need a reply'}
+                    {quickFilter === 'active' && 'No active customers'}
+                    {quickFilter === 'completed' && 'No completed customers yet'}
+                    {quickFilter === 'ignored' && 'No ignored customers'}
+                    {quickFilter === 'all' && 'No customers yet'}
                   </h3>
                   <p className="text-muted-foreground text-sm mb-6 max-w-md mx-auto">
-                    Missed callers and conversations will automatically appear here when your business number is active.
+                    {quickFilter === 'new' && 'All customers have been responded to or are in other stages.'}
+                    {quickFilter === 'active' && 'No conversations are currently in progress.'}
+                    {quickFilter === 'completed' && 'Completed customers will appear here when jobs are finished.'}
+                    {quickFilter === 'ignored' && 'No customers are currently blocked from automation.'}
+                    {quickFilter === 'all' && 'Missed callers and conversations will automatically appear here when your business number is active.'}
                   </p>
-                  <button
-                    onClick={() => setShowAddCustomerModal(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium rounded-lg transition-colors shadow-sm"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    Add Customer
-                  </button>
+                  {quickFilter === 'all' && (
+                    <button
+                      onClick={() => setShowAddCustomerModal(true)}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium rounded-lg transition-colors shadow-sm"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Add Customer
+                    </button>
+                  )}
                 </div>
               </div>
             )}
