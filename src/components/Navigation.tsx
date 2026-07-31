@@ -45,9 +45,9 @@ export default function Navigation() {
           <Link
             key={item.href}
             href={item.href}
-            className={`px-3 md:px-4 py-1.5 text-sm font-medium rounded-md motion-safe:transition-all motion-safe:duration-300 motion-reduce:transition-none text-center relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 whitespace-nowrap ${
+            className={`px-2.5 md:px-3.5 py-1.5 text-sm font-medium rounded-md motion-safe:transition-all motion-safe:duration-300 motion-reduce:transition-none text-center relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 whitespace-nowrap ${
               isActive
-                ? 'text-white bg-blue-500/10 border border-blue-400/20 shadow-xs font-medium'
+                ? 'text-white bg-blue-500/6 border border-blue-400/20 ring-1 ring-white/5 inset font-medium hover:bg-blue-500/8 hover:border-blue-400/25'
                 : 'text-slate-300 hover:text-white hover:bg-white/5'
             }`}
           >
