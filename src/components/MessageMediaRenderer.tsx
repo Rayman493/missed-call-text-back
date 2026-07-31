@@ -134,7 +134,7 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
       const urlMap: Record<string, string> = {}
       
       for (const mediaItem of media || []) {
-        // Use local preview URLs directly (no auth needed)
+        // Use local preview URLs directly (no auth needed) - keep them until server URL is confirmed loaded
         if (mediaItem.isLocalPreview) {
           urlMap[mediaItem.id] = mediaItem.media_url
           continue
@@ -152,6 +152,9 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
           if (blobUrl) {
             urlMap[mediaItem.id] = blobUrl
           }
+        } else {
+          // Direct URLs (Supabase) can be used immediately
+          urlMap[mediaItem.id] = mediaItem.media_url
         }
       }
       

@@ -2179,12 +2179,64 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           clientMessageId: result.message.client_message_id || clientMessageId
         }
         
-        // For MMS, merge local previews with persisted message
+        // For MMS with local previews: keep only local previews initially
+        // The fetchMessageMedia effect will fetch persisted media records from database
+        // This prevents the image from swapping before the server URL is ready
         if (isMMS && localPreviewUrls.length > 0) {
-          persistedMessageWithClientId.media = [
-            ...localPreviewUrls,
-            ...(result.message.media || [])
-          ]
+          persistedMessageWithClientId.media = localPreviewUrls
+          persistedMessageWithClientId.hasLocalPreview = true // Flag to indicate we're waiting for server media
+          
+          // Fetch persisted media for this specific message after a short delay
+          // This avoids full conversation refresh while still getting server URLs
+          setTimeout(async () => {
+            try {
+              console.log('[MMS] Fetching persisted media for message:', result.message.id)
+              const { data: { session } } = await supabase.auth.getSession()
+              const headers: HeadersInit = { 'Content-Type': 'application/json' }
+              if (session?.access_token) {
+                headers['Authorization'] = `Bearer ${session.access_token}`
+              }
+              
+              const response = await fetch(`/api/message-media?messageId=${result.message.id}`, { headers })
+              if (response.ok) {
+                const mediaData = await response.json()
+                console.log('[MMS] Fetched persisted media records:', mediaData.length)
+                
+                // Update the message with server media, preserving local preview until loaded
+                setLeadData((prev: any) => {
+                  if (!prev) return prev
+                  
+                  const updatedMessages = prev.messages.map((msg: any) => {
+                    if (msg.id === result.message.id || msg.clientMessageId === result.message.client_message_id) {
+                      // Replace local previews with server media
+                      return {
+                        ...msg,
+                        media: mediaData.map((m: any) => ({
+                          id: m.id,
+                          media_url: m.media_url,
+                          mime_type: m.mime_type,
+                          created_at: m.created_at
+                        })),
+                        hasLocalPreview: false // Local preview replaced with server media
+                      }
+                    }
+                    return msg
+                  })
+                  
+                  return {
+                    ...prev,
+                    messages: updatedMessages
+                  }
+                })
+              }
+            } catch (error) {
+              console.error('[MMS] Error fetching persisted media:', error)
+              // Keep local preview visible on error
+            }
+          }, 1500) // Short delay to allow database persistence to complete
+        } else if (result.message.media && result.message.media.length > 0) {
+          // For SMS or MMS without local previews, use the persisted media from API response
+          persistedMessageWithClientId.media = result.message.media
         }
         
         // Atomic update: merge persisted message AND clear optimistic in single setState
@@ -2201,12 +2253,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           }
         })
         
-        // For MMS, refresh conversation data after a delay to get final media records with server URLs
-        if (isMMS) {
-          setTimeout(async () => {
-            await handleRefresh()
-          }, 2000)
-        }
+        // Note: We no longer perform a delayed refresh for MMS media.
+        // The fetchMessageMedia effect will automatically fetch persisted media records
+        // once the message is no longer optimistic (isOptimistic becomes false).
+        // This prevents scroll position jumps caused by full conversation refetches.
       }
 
       // Scroll to bottom to show the new message
