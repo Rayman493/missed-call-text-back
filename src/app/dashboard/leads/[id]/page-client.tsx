@@ -4125,7 +4125,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           spellCheck={true}
                           autoComplete="on"
                           enterKeyHint="send"
-                          className="composer-textarea-no-scrollbar w-full min-h-[44px] max-h-[120px] px-1.5 py-2.5 bg-transparent text-foreground resize-none focus:outline-none text-base leading-relaxed h-11 placeholder:text-muted-foreground/50"
+                          className="composer-textarea-no-scrollbar w-full min-h-[44px] max-h-[120px] px-1.5 py-2.5 bg-transparent text-foreground resize-none focus:outline-none text-base leading-normal h-11 placeholder:text-muted-foreground/50"
                           rows={1}
                           disabled={sending}
                         />

@@ -239,7 +239,7 @@ export default function ConversationComposer({
               autoCapitalize="sentences"
               autoComplete="on"
               spellCheck={true}
-              className={`flex-1 px-3 py-2.5 bg-transparent text-foreground resize-none focus:outline-none text-base leading-relaxed h-11 placeholder:text-muted-foreground/40 ${
+              className={`flex-1 px-3 py-2.5 bg-transparent text-foreground resize-none focus:outline-none text-base leading-normal h-11 placeholder:text-muted-foreground/40 ${
                 isAtMaxHeight ? 'overflow-y-auto' : 'overflow-y-hidden'
               }`}
               rows={1}

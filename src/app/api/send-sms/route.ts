@@ -6,6 +6,7 @@ import { sanitizeMessageContent } from '@/lib/security';
 import { checkManualSmsRateLimit } from '@/lib/rate-limit';
 import { promoteLeadToActiveIfNew } from '@/lib/lead-lifecycle';
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard';
+import { generateMmsMediaToken } from '@/lib/mms-media-token';
 
 export const dynamic = 'force-dynamic';
 
@@ -265,13 +266,24 @@ export async function POST(request: Request) {
             fullPath: uploadData?.fullPath
           })
           
-          // Generate signed media serving URL with correct Content-Type
+          // Generate signed media serving URL with JWT token
           const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://missed-call-text-back-9821-54zufp22w-rayman493s-projects.vercel.app'
-          const mediaServeUrl = `${baseUrl}/api/mms-media/serve?path=${encodeURIComponent(filePath)}&token=${process.env.MMS_MEDIA_SECRET}`
+          const mediaToken = await generateMmsMediaToken(filePath)
+          
+          if (!mediaToken) {
+            console.error('[MMS API] Failed to generate media token')
+            return NextResponse.json({ 
+              error: 'Failed to generate media access token',
+              details: 'Token generation failed'
+            }, { status: 500 })
+          }
+          
+          const mediaServeUrl = `${baseUrl}/api/mms-media/serve?path=${encodeURIComponent(filePath)}&token=${mediaToken}`
           
           console.log('[MMS API] Generated media serve URL:', {
             mediaServeUrl: mediaServeUrl.substring(0, 100),
-            filePath: filePath.substring(0, 100)
+            filePath: filePath.substring(0, 100),
+            tokenGenerated: true
           })
           
           mediaUrls.push(mediaServeUrl)

@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { verifyMmsMediaToken } from '@/lib/mms-media-token'
 
 export const dynamic = 'force-dynamic'
-
-// Twilio authentication via Basic Auth or shared secret
-const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN
-const MMS_MEDIA_SECRET = process.env.MMS_MEDIA_SECRET
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,10 +17,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Authenticate request - accept either Twilio auth token or MMS media secret
-    const providedToken = authToken || request.headers.get('authorization')?.replace('Bearer ', '') || request.headers.get('x-mms-media-token')
-    
-    if (!providedToken) {
+    if (!authToken) {
       console.error('[MMS Media Serve] No authentication token provided')
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -31,15 +25,21 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const isValidToken = providedToken === TWILIO_AUTH_TOKEN || providedToken === MMS_MEDIA_SECRET
+    // Verify JWT token and check path matches
+    const tokenPayload = await verifyMmsMediaToken(authToken, filePath)
     
-    if (!isValidToken) {
-      console.error('[MMS Media Serve] Invalid authentication token')
+    if (!tokenPayload) {
+      console.error('[MMS Media Serve] Invalid or expired token')
       return NextResponse.json(
-        { error: 'Invalid authentication token' },
+        { error: 'Invalid or expired authentication token' },
         { status: 401 }
       )
     }
+
+    console.log('[MMS Media Serve] Token verified successfully:', {
+      filePath: filePath.substring(0, 100),
+      exp: tokenPayload.exp
+    })
 
     console.log('[MMS Media Serve] Fetching file:', {
       filePath: filePath.substring(0, 100) // Log first 100 chars to avoid logging full paths

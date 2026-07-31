@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { verifyMmsMediaToken } from '@/lib/mms-media-token'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,16 +28,67 @@ export async function GET(request: NextRequest) {
     }
 
     const allowedTwilioHosts = new Set(['api.twilio.com', 'mcs.us1.twilio.com'])
+    const allowedReplyFlowHosts = new Set(['replyflowhq.com', 'www.replyflowhq.com'])
     const isAllowedTwilioHost = parsedMediaUrl.protocol === 'https:' && (
       allowedTwilioHosts.has(parsedMediaUrl.hostname) || parsedMediaUrl.hostname.endsWith('.twilio.com')
     )
+    const isAllowedReplyFlowHost = parsedMediaUrl.protocol === 'https:' && (
+      allowedReplyFlowHosts.has(parsedMediaUrl.hostname) || 
+      parsedMediaUrl.hostname.endsWith('.replyflowhq.com')
+    )
 
-    if (!isAllowedTwilioHost) {
+    if (!isAllowedTwilioHost && !isAllowedReplyFlowHost) {
       console.error('[Twilio Media Proxy] Invalid URL domain:', parsedMediaUrl.hostname)
       return NextResponse.json(
         { error: 'Invalid media URL' },
         { status: 400 }
       )
+    }
+
+    // ReplyFlow URLs with JWT tokens don't require user auth
+    if (isAllowedReplyFlowHost) {
+      const token = parsedMediaUrl.searchParams.get('token')
+      const path = parsedMediaUrl.searchParams.get('path')
+      
+      if (!token || !path) {
+        console.error('[Twilio Media Proxy] ReplyFlow URL missing token or path')
+        return NextResponse.json(
+          { error: 'Invalid media URL' },
+          { status: 400 }
+        )
+      }
+      
+      const tokenPayload = await verifyMmsMediaToken(token, path)
+      
+      if (!tokenPayload) {
+        console.error('[Twilio Media Proxy] Invalid or expired JWT token for ReplyFlow URL')
+        return NextResponse.json(
+          { error: 'Invalid media URL' },
+          { status: 401 }
+        )
+      }
+      
+      // Fetch media directly from ReplyFlow URL
+      const response = await fetch(mediaUrl.toString())
+      
+      if (!response.ok) {
+        console.error('[Twilio Media Proxy] Failed to fetch media from ReplyFlow:', response.status)
+        return NextResponse.json(
+          { error: 'Failed to fetch media' },
+          { status: response.status }
+        )
+      }
+      
+      const contentType = response.headers.get('content-type') || 'image/jpeg'
+      const mediaBuffer = await response.arrayBuffer()
+      
+      return new NextResponse(mediaBuffer, {
+        status: 200,
+        headers: {
+          'Content-Type': contentType,
+          'Cache-Control': 'private, max-age=3600',
+        },
+      })
     }
 
     // Authenticate user
