@@ -333,19 +333,22 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
     return null
   }
 
-  // FIELD SELECTION TRACE - Log which field is selected in fallback chain
+  // FIELD SELECTION TRACE - Log which field is selected in fallback chain (disabled for production)
   const traceFieldSelection = (fieldName: string, candidates: (string | null | undefined)[], pickerFn: typeof pick = pick): string | null => {
     const selected = pickerFn(...candidates);
     const selectedIndex = candidates.findIndex(c => c && typeof c === 'string' && c.trim() === selected);
     
-    console.log('[FIELD SELECTION TRACE] =========================================');
-    console.log('[FIELD SELECTION TRACE] field:', fieldName);
-    console.log('[FIELD SELECTION TRACE] selectedValue:', selected);
-    console.log('[FIELD SELECTION TRACE] selectedIndex:', selectedIndex);
-    console.log('[FIELD SELECTION TRACE] candidates:', candidates);
-    console.log('[FIELD SELECTION TRACE] leadId:', lead?.id);
-    console.log('[FIELD SELECTION TRACE] Timestamp:', new Date().toISOString());
-    console.log('[FIELD SELECTION TRACE] =========================================');
+    // Debug logging disabled - uncomment for development debugging
+    // if (process.env.ENABLE_FIELD_TRACE === 'true') {
+    //   console.log('[FIELD SELECTION TRACE] =========================================');
+    //   console.log('[FIELD SELECTION TRACE] field:', fieldName);
+    //   console.log('[FIELD SELECTION TRACE] selectedValue:', selected);
+    //   console.log('[FIELD SELECTION TRACE] selectedIndex:', selectedIndex);
+    //   console.log('[FIELD SELECTION TRACE] candidates:', candidates);
+    //   console.log('[FIELD SELECTION TRACE] leadId:', lead?.id);
+    //   console.log('[FIELD SELECTION TRACE] Timestamp:', new Date().toISOString());
+    //   console.log('[FIELD SELECTION TRACE] =========================================');
+    // }
     
     return selected;
   };
