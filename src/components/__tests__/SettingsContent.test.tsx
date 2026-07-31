@@ -31,18 +31,18 @@ describe('Settings Content Scroll Navigation', () => {
 
   it('dynamic scroll offset calculation is correct', () => {
     const navHeight = 64 // approximate nav height
-    const BREATHING_ROOM_GAP = 10
+    const BREATHING_ROOM_GAP = 24
     const expectedOffset = navHeight + BREATHING_ROOM_GAP
     
-    expect(expectedOffset).toBe(74)
+    expect(expectedOffset).toBe(88)
   })
 
-  it('breathing room gap is within acceptable range', () => {
-    const BREATHING_ROOM_GAP = 10
+  it('breathing room gap is sufficient for title visibility', () => {
+    const BREATHING_ROOM_GAP = 24
     
-    // Should be 8-12px for readability
-    expect(BREATHING_ROOM_GAP).toBeGreaterThanOrEqual(8)
-    expect(BREATHING_ROOM_GAP).toBeLessThanOrEqual(12)
+    // Should be large enough to ensure section title is fully visible below sticky nav
+    expect(BREATHING_ROOM_GAP).toBeGreaterThanOrEqual(20)
+    expect(BREATHING_ROOM_GAP).toBeLessThanOrEqual(32)
   })
 
   it('top threshold is reasonable for detecting first section', () => {
