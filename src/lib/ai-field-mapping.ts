@@ -5,6 +5,7 @@
  */
 
 import { normalizeCustomerName, normalizeServiceReason, normalizeAddress, normalizeTiming, normalizeAdditionalDetails, safeTrimAndCapitalize } from './ai-intake-formatter'
+import { isCompleteAIIntake } from './ai-intake-completion'
 
 // Helper function to detect if a string looks like a phone number
 function looksLikePhoneNumber(text: string): boolean {
@@ -189,8 +190,11 @@ export type AIIntakeStatus = 'not_started' | 'partial' | 'complete' | 'failed'
 /**
  * Get canonical AI intake status from ai_call_records outcome
  * This is the single source of truth for AI intake status across the application
+ * 
+ * Recalculates status from extracted fields if outcome is partial but all required fields are present.
+ * This handles cases where the AI voice service had a bug when the call was made.
  */
-export function getAIIntakeStatus(lead: any): AIIntakeStatus {
+export function getAIIntakeStatus(lead: any, serviceLocationType?: 'onsite' | 'customer_comes_to_business' | 'remote' | string | null): AIIntakeStatus {
   const aiCallRecord = lead?.aiCallRecords?.[0] || lead?.ai_call_records?.[0]
   
   if (!aiCallRecord) {
@@ -198,6 +202,22 @@ export function getAIIntakeStatus(lead: any): AIIntakeStatus {
   }
 
   const outcome = aiCallRecord.outcome?.toLowerCase()
+  const extractedInfo = aiCallRecord.extracted_info || {}
+
+  // If outcome is partial but all required fields are present, override to complete
+  // This handles cases where the AI voice service had a completion check bug
+  if (outcome === 'partial_intake' || outcome === 'incomplete') {
+    // Default to onsite if serviceLocationType is not available
+    const effectiveServiceLocationType = serviceLocationType || 'onsite'
+    if (isCompleteAIIntake(extractedInfo, effectiveServiceLocationType)) {
+      console.log('[AI INTAKE STATUS] Override partial outcome to complete - all required fields present', {
+        originalOutcome: outcome,
+        serviceLocationType: effectiveServiceLocationType,
+        extractedInfoKeys: Object.keys(extractedInfo)
+      })
+      return 'complete'
+    }
+  }
 
   switch (outcome) {
     case 'completed_intake':
