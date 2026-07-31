@@ -255,7 +255,6 @@ export default function LeadsPage() {
           business_id,
           caller_phone,
           status,
-          lead_status,
           created_at,
           first_contact_at,
           last_message_at,
@@ -324,8 +323,14 @@ export default function LeadsPage() {
         .eq('business_id', business.id)
 
       setMissedCallCount(count || 0)
-    } catch (error) {
-      console.error('Error fetching leads:', error)
+    } catch (error: any) {
+      console.error('[fetchLeads] Error fetching leads:', {
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
+        fullError: error
+      })
       setError('Failed to load customers. Please try again.')
     } finally {
       setLoading(false)
