@@ -258,11 +258,11 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                   href={item.href}
                   className={`relative flex h-12 w-full flex-col items-center justify-center rounded-2xl transition-all duration-200 ${
                     isActive(item.href)
-                      ? 'text-white bg-white/10 scale-[1.02] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_24px_rgba(37,99,235,0.12)]'
+                      ? 'text-white bg-white/10 border border-white/10'
                       : 'text-slate-300 hover:text-white hover:bg-white/[0.06] active:scale-95'
                   }`}
                 >
-                                    <Icon className="w-[22px] h-[22px] sm:w-[22px] sm:h-[22px] mb-1 transition-transform duration-200" />
+                  <Icon className="w-[22px] h-[22px] sm:w-[22px] sm:h-[22px] mb-1 transition-transform duration-200" />
                   <span className={`text-[10px] sm:text-[10px] font-normal transition-colors duration-200 ${
                     isActive(item.href) ? 'font-semibold' : ''
                   }`}>{item.label}</span>
@@ -276,11 +276,11 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
               onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
               className={`relative flex h-12 w-full flex-col items-center justify-center rounded-2xl transition-all duration-200 ${
                 isMoreMenuOpen
-                  ? 'text-white bg-white/10 scale-[1.02] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_24px_rgba(37,99,235,0.12)]'
+                  ? 'text-white bg-white/10 border border-white/10'
                   : 'text-slate-300 hover:text-white hover:bg-white/[0.06] active:scale-95'
               }`}
             >
-                            <Settings className="w-[22px] h-[22px] sm:w-[22px] sm:h-[22px] mb-1 transition-transform duration-200" />
+                <Settings className="w-[22px] h-[22px] sm:w-[22px] sm:h-[22px] mb-1 transition-transform duration-200" />
               <span className={`text-[10px] sm:text-[10px] font-normal transition-colors duration-200 ${
                 isMoreMenuOpen ? 'font-semibold' : ''
               }`}>More</span>
