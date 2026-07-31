@@ -31,11 +31,12 @@ export interface ExtractedInfo {
  * 
  * Required fields (with alternative names):
  * - customerName or callerName
- * - serviceRequested or reasonForCalling or request (canonical resolution)
- * - issueDescription or importantDetails
- * - serviceAddress or addressOrLocation
- * - desiredCompletionTime
+ * - serviceRequested or reasonForCalling or request (canonical resolution, includes issueDescription)
+ * - serviceAddress or addressOrLocation (onsite only)
+ * - desiredCompletionTime or desiredCompletion
  * - callbackTime or preferredCallbackTime
+ * 
+ * Note: issueDescription is canonically resolved into serviceRequested and is not a separate requirement
  */
 export function isCompleteAIIntake(
   extractedInfo: ExtractedInfo | null | undefined,
@@ -58,14 +59,6 @@ export function isCompleteAIIntake(
     extractedInfo.reasonForCalling ||
     extractedInfo.request ||
     extractedInfo.issueDescription
-  )
-
-  // Check issue description (multiple field name variations)
-  // Note: issueDescription is now also part of the canonical request resolution
-  // importantDetails is kept for backward compatibility with legacy records
-  const hasIssueDescription = Boolean(
-    extractedInfo.issueDescription || 
-    extractedInfo.importantDetails
   )
 
   // Check service address (multiple field name variations)
@@ -91,11 +84,10 @@ export function isCompleteAIIntake(
   const normalizedMode = (rawMode === 'onsite' || rawMode === 'customer_comes_to_business' || rawMode === 'remote') ? rawMode : 'onsite'
   const locationSatisfied = normalizedMode === 'onsite' ? hasServiceAddress : true
 
-  // All required fields must be present
+  // All required fields must be present (issueDescription is canonically merged into serviceRequested)
   const isComplete = 
     hasCustomerName &&
     hasServiceRequested &&
-    hasIssueDescription &&
     locationSatisfied &&
     hasDesiredCompletionTime &&
     hasCallbackTime
@@ -104,7 +96,6 @@ export function isCompleteAIIntake(
   console.log('[AI INTAKE COMPLETION CHECK]', {
     hasCustomerName,
     hasServiceRequested,
-    hasIssueDescription,
     hasServiceAddress,
     locationSatisfied,
     serviceLocationType: normalizedMode,
@@ -120,6 +111,8 @@ export function isCompleteAIIntake(
 /**
  * Get the number of completed fields for AI intake
  * This can be used for partial intake detection
+ * 
+ * Note: issueDescription is canonically resolved into serviceRequested and not counted separately
  */
 export function getCompletedFieldCount(extractedInfo: ExtractedInfo | null | undefined): number {
   if (!extractedInfo || typeof extractedInfo !== 'object') {
@@ -129,8 +122,7 @@ export function getCompletedFieldCount(extractedInfo: ExtractedInfo | null | und
   let count = 0
 
   if (extractedInfo.customerName || extractedInfo.callerName) count++
-  if (extractedInfo.serviceRequested || extractedInfo.reasonForCalling || extractedInfo.request) count++
-  if (extractedInfo.issueDescription || extractedInfo.importantDetails) count++
+  if (extractedInfo.serviceRequested || extractedInfo.reasonForCalling || extractedInfo.request || extractedInfo.issueDescription) count++
   if (extractedInfo.serviceAddress || extractedInfo.addressOrLocation) count++
   if (extractedInfo.desiredCompletionTime || extractedInfo.desiredCompletion) count++
   if (extractedInfo.callbackTime || extractedInfo.preferredCallbackTime) count++
@@ -155,7 +147,7 @@ export function determineAIOutcomeFromExtractedInfo(
 
   // If we have some fields but not all, it's partial intake
   const fieldCount = getCompletedFieldCount(extractedInfo)
-  if (fieldCount > 0 && fieldCount < 6) {
+  if (fieldCount > 0 && fieldCount < 5) {
     console.log('[AI OUTCOME DETERMINATION] Partial intake - some fields present', { fieldCount })
     return 'partial_intake'
   }

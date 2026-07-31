@@ -461,11 +461,28 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
       } else {
         console.log('[AI OUTCOME SYNC] =========================================');
         console.log('[AI OUTCOME SYNC] outcome remains incomplete');
-        const missingFields = Object.keys(normalizedExtractedInfo).filter(k => {
-          const value = (normalizedExtractedInfo as any)[k];
-          return !value || value === 'Not collected';
-        });
+        // Calculate missing fields based on canonical requirements (matching isCompleteAIIntake)
+        const missingFields: string[] = [];
+        const hasCustomerName = Boolean(normalizedExtractedInfo.callerName);
+        const hasServiceRequested = Boolean(normalizedExtractedInfo.reasonForCalling);
+        const hasServiceAddress = Boolean(normalizedExtractedInfo.addressOrLocation);
+        const hasDesiredCompletionTime = Boolean(normalizedExtractedInfo.desiredCompletionTime);
+        const hasCallbackTime = Boolean(normalizedExtractedInfo.preferredCallbackTime);
+        
+        // Location is required only for onsite businesses
+        const serviceLocationType = 'onsite'; // Default to onsite if not available in context
+        const locationSatisfied = serviceLocationType === 'onsite' ? hasServiceAddress : true;
+        
+        if (!hasCustomerName) missingFields.push('customerName');
+        if (!hasServiceRequested) missingFields.push('serviceRequested');
+        if (!locationSatisfied) missingFields.push('serviceAddress');
+        if (!hasDesiredCompletionTime) missingFields.push('desiredCompletionTime');
+        if (!hasCallbackTime) missingFields.push('callbackTime');
+        
+        // Invariant: if missingFields is empty, isComplete should be true
+        const isComplete = missingFields.length === 0;
         console.log('[AI OUTCOME SYNC] missingFields:', missingFields);
+        console.log('[AI OUTCOME SYNC] isComplete:', isComplete);
         console.log('[AI OUTCOME SYNC] =========================================');
       }
     }

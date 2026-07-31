@@ -274,7 +274,10 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 {(() => {
                   const reason = correctedFields?.serviceRequested ? sentenceCase(correctedFields.serviceRequested) : (extractedInfo?.reasonForCalling ? sentenceCase(extractedInfo.reasonForCalling) : '');
                   const details = correctedFields?.details ? sentenceCase(correctedFields.details) : (extractedInfo?.importantDetails ? sentenceCase(extractedInfo.importantDetails) : '');
-                  const combined = reason && details ? `${reason}\n\n${details}` : (reason || details || 'Not Provided');
+                  
+                  // Only concatenate details if it contains a real value (not a placeholder)
+                  const isPlaceholder = (text: string) => !text || text === 'Not collected' || text === 'Not Provided' || text === 'Unknown' || text === 'N/A';
+                  const combined = reason && !isPlaceholder(details) ? `${reason}\n\n${details}` : (reason || (!isPlaceholder(details) ? details : 'Not Provided'));
                   
                   if (!detailsExpanded && combined.length > 200) {
                     return combined.substring(0, 200) + '...';
