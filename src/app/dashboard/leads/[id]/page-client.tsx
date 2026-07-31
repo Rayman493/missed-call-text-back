@@ -474,6 +474,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const mobileConversationContainerRef = useRef<HTMLDivElement>(null)
   const bottomSentinelRef = useRef<HTMLDivElement>(null)
   const isInitialAutoScrollingRef = useRef(false)
+  const initialScrollDoneRef = useRef<string | null>(null)
 
   // Native call capability — when customerPhone is valid
   const customerPhoneRaw = (getLeadAIIntake(leadData || {}).customerPhone || (leadData as any)?.caller_phone || '') as string
@@ -605,7 +606,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   const handleImageLoad = () => {
     // Scroll to bottom after image load to ensure full image is visible
-    scrollToBottom('auto', true)
+    // Only scroll if user is near bottom (don't force scroll if user is reading older messages)
+    const isDesktop = window.innerWidth >= 1024
+    const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
+    
+    if (container) {
+      const scrollThreshold = 200
+      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= scrollThreshold
+      
+      if (isNearBottom) {
+        scrollToBottom('auto', false)
+      }
+    }
   }
 
   const validateImageFile = (file: File): { valid: boolean; error?: string } => {
@@ -1635,6 +1647,45 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       setLeadData(null)
       setLoading(false)
     })
+  }, [params.id])
+
+  // Initial scroll to bottom when conversation loads
+  useEffect(() => {
+    // Only scroll if:
+    // 1. Lead data is loaded and not loading
+    // 2. This is a new conversation (different from previous)
+    // 3. We haven't already scrolled this conversation
+    if (!loading && leadData && leadData.id && initialScrollDoneRef.current !== leadData.id) {
+      console.log('[Mobile Initial Scroll] Scrolling to bottom for conversation:', leadData.id)
+      
+      // Mark this conversation as scrolled
+      initialScrollDoneRef.current = leadData.id
+      
+      // Use requestAnimationFrame to ensure DOM is updated
+      requestAnimationFrame(() => {
+        // Use a second frame to account for image/media loading
+        requestAnimationFrame(() => {
+          const isDesktop = window.innerWidth >= 1024
+          const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
+          
+          if (container) {
+            console.log('[Mobile Initial Scroll] Container found, scrolling to bottom')
+            // Use 'auto' behavior for instant scroll (no animation)
+            container.scrollTop = container.scrollHeight
+          } else {
+            console.log('[Mobile Initial Scroll] Container not found yet')
+          }
+        })
+      })
+    }
+  }, [loading, leadData])
+
+  // Reset initial scroll tracking when navigating to a different conversation
+  useEffect(() => {
+    return () => {
+      // When the component unmounts (navigation away), reset the scroll tracking
+      initialScrollDoneRef.current = null
+    }
   }, [params.id])
 
   // Fetch business follow-up settings
