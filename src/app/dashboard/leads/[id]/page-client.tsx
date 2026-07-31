@@ -3597,7 +3597,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Conversation Thread - Conditional Rendering to Prevent Duplicate Audio Elements */}
-      <div className="flex-1 max-w-7xl mx-auto w-full px-6 lg:px-8 py-2">
+      <div className="flex-1 max-w-7xl mx-auto w-full px-6 lg:px-8 py-4">
 
         {/* Desktop Layout - Only render when not mobile view */}
         {!isMobileView && (
@@ -3605,7 +3605,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             {/* Desktop Conversation Section - Primary workspace */}
             <section className="flex flex-col min-h-0 h-[calc(100vh-280px)] bg-background rounded-2xl border border-border/40 shadow-sm">
               {/* Desktop Conversation Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-border/20 bg-muted/30 rounded-t-2xl">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-border/30 bg-muted/50 rounded-t-2xl">
                 <div className="flex items-center gap-2">
                   <h2 className="text-sm font-semibold text-foreground">Conversation</h2>
                 </div>
@@ -3680,11 +3680,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
             {/* Desktop Sidebar - Premium Card */}
             <aside className="sticky top-4 h-[calc(100vh-280px)]" data-sidebar>
-              <div className="h-full bg-background rounded-2xl border border-border/40 shadow-sm p-5 overflow-y-auto custom-scrollbar">
+              <div className="h-full bg-background rounded-2xl border border-border/50 shadow-sm p-5 overflow-y-auto custom-scrollbar">
                 <div className="space-y-5">
                   {/* AI Intake Summary - Premium Card */}
                   {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
-                    <div className="bg-muted/30 rounded-xl border border-border/20 p-4">
+                    <div className="bg-muted/40 rounded-xl border border-border/30 p-4 shadow-sm">
                       <AICallDetails
                         leadId={params.id}
                         businessId={business.id}
@@ -3699,13 +3699,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
                   {/* Customer Summary - Premium Card */}
                   {!(leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id) && (
-                    <div className="bg-muted/30 rounded-xl border border-border/20 p-4">
+                    <div className="bg-muted/40 rounded-xl border border-border/30 p-4 shadow-sm">
                       <VoicemailSummary leadData={leadData} />
                     </div>
                   )}
 
                   {/* Activity Timeline - Premium Card */}
-                  <div className="bg-muted/30 rounded-xl border border-border/20 p-4">
+                  <div className="bg-muted/40 rounded-xl border border-border/30 p-4 shadow-sm">
                     <button
                       onClick={() => setCollapsedSections((prev: any) => ({ ...prev, activityTimeline: !prev.activityTimeline }))}
                       className="flex items-center justify-between w-full mb-3 group"
@@ -3720,47 +3720,47 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </div>
 
                   {/* Customer Status - Premium Card */}
-                  <div className="bg-muted/30 rounded-xl border border-border/20 p-4">
+                  <div className="bg-muted/40 rounded-xl border border-border/30 p-4 shadow-sm">
                     <h3 className="text-xs font-semibold text-muted-foreground/80 mb-3 uppercase tracking-wide">Status</h3>
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between py-1 border-b border-border/10">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
                         <span className="text-xs text-muted-foreground">AI Intake</span>
-                        <span className={`text-xs font-medium ${getAIIntakeStatusColor(getAIIntakeStatus(leadData || lead)).replace('bg-', 'text-').replace('dark:bg-', 'dark:text-').replace('/30', '').replace('/20', '')}`}>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${getAIIntakeStatusColor(getAIIntakeStatus(leadData || lead))}`}>
                           {getAIIntakeStatusLabel(getAIIntakeStatus(leadData || lead))}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between py-1 border-b border-border/10">
+                      <div className="flex items-center justify-between">
                         <span className="text-xs text-muted-foreground">Customer Replied</span>
-                        <span className={`text-xs font-medium ${
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
                           leadData?.raw_metadata?.customer_replied || leadData?.raw_metadata?.replied_after_ai_call || leadData?.raw_metadata?.last_customer_reply_at || followUpJobs.some((j: any) => j.cancelled_reason === 'customer_replied')
-                            ? 'text-green-600 dark:text-green-400'
-                            : 'text-muted-foreground/70'
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                            : 'bg-muted text-muted-foreground'
                         }`}>
                           {leadData?.raw_metadata?.customer_replied || leadData?.raw_metadata?.replied_after_ai_call || leadData?.raw_metadata?.last_customer_reply_at || followUpJobs.some((j: any) => j.cancelled_reason === 'customer_replied') ? 'Yes' : 'No'}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between py-1 border-b border-border/10">
+                      <div className="flex items-center justify-between">
                         <span className="text-xs text-muted-foreground">Corrections</span>
-                        <span className={`text-xs font-medium ${
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
                           (leadData?.raw_metadata?.corrected_fields && Object.keys(leadData.raw_metadata.corrected_fields).length > 0)
-                            ? 'text-amber-600 dark:text-amber-400'
-                            : 'text-muted-foreground/70'
+                            ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                            : 'bg-muted text-muted-foreground'
                         }`}>
                           {leadData?.raw_metadata?.corrected_fields ? Object.keys(leadData.raw_metadata.corrected_fields).length : 0}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between py-1">
+                      <div className="flex items-center justify-between">
                         <span className="text-xs text-muted-foreground">Follow-Ups</span>
-                        <span className={`text-xs font-medium ${
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
                           !followUpSettings || !followUpSettings.followUps || followUpSettings.followUps.length === 0
-                            ? 'text-muted-foreground/70'
+                            ? 'bg-muted text-muted-foreground'
                             : !followUpSettings.enabled
-                            ? 'text-muted-foreground/70'
+                            ? 'bg-muted text-muted-foreground'
                             : followUpJobs.some((j: any) => j.status === 'pending')
-                            ? 'text-amber-600 dark:text-amber-400'
+                            ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
                             : followUpJobs.some((j: any) => j.status === 'sent')
-                            ? 'text-green-600 dark:text-green-400'
-                            : 'text-blue-600 dark:text-blue-400'
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                            : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
                         }`}>
                           {!followUpSettings || !followUpSettings.followUps || followUpSettings.followUps.length === 0
                             ? 'Not Configured'
@@ -3778,7 +3778,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
                   {/* Photos Received - Premium Card */}
                   {Object.keys(messageMedia).length > 0 && (
-                    <div className="bg-muted/30 rounded-xl border border-border/20 p-4">
+                    <div className="bg-muted/40 rounded-xl border border-border/30 p-4 shadow-sm">
                       <h3 className="text-xs font-semibold text-muted-foreground/80 mb-3 uppercase tracking-wide">Photos</h3>
                       <div className="grid grid-cols-2 gap-2">
                         {Object.entries(messageMedia).slice(0, showAllPhotos ? undefined : 4).map(([messageId, media]: [string, any]) => (

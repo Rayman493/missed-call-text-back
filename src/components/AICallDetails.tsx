@@ -213,8 +213,8 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
         {/* Name */}
         {isEditMode || extractedInfo?.callerName ? (
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-medium text-muted-foreground/70 uppercase tracking-wider">Name</span>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] font-semibold text-muted-foreground/90 uppercase tracking-wider">Name</span>
               {manualFields.has('callerName') && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
               )}
@@ -238,8 +238,8 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
         {/* Request - Combined field */}
         {isEditMode || extractedInfo?.reasonForCalling || extractedInfo?.importantDetails || correctedFields?.details ? (
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-medium text-muted-foreground/70 uppercase tracking-wider">Request</span>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] font-semibold text-muted-foreground/90 uppercase tracking-wider">Request</span>
               {(manualFields.has('reasonForCalling') || manualFields.has('importantDetails')) && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
               )}
@@ -292,8 +292,8 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
         {/* Address - only show for onsite mode or if address is provided */}
         {isEditMode || (requiresServiceAddress && (extractedInfo?.addressOrLocation || correctedFields?.address)) ? (
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-medium text-muted-foreground/70 uppercase tracking-wider">Address</span>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] font-semibold text-muted-foreground/90 uppercase tracking-wider">Address</span>
               {manualFields.has('addressOrLocation') && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
               )}
@@ -317,8 +317,8 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
         {/* Completion Time */}
         {isEditMode || extractedInfo?.desiredCompletionTime ? (
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-medium text-muted-foreground/70 uppercase tracking-wider">Completion Time</span>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] font-semibold text-muted-foreground/90 uppercase tracking-wider">Completion Time</span>
               {manualFields.has('desiredCompletionTime') && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
               )}
@@ -342,8 +342,8 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
         {/* Callback Time */}
         {isEditMode || extractedInfo?.preferredCallbackTime ? (
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-medium text-muted-foreground/70 uppercase tracking-wider">Callback Time</span>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] font-semibold text-muted-foreground/90 uppercase tracking-wider">Callback Time</span>
               {manualFields.has('preferredCallbackTime') && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
               )}
@@ -495,20 +495,27 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
       {/* AI Summary Card - Compact and Collapsible - Current Request */}
       {collapsible ? (
         <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
-          <div className="px-4 py-3.5 flex items-center justify-between">
-            <button
-              onClick={() => setSummaryExpanded(!summaryExpanded)}
-              className="flex items-center gap-2.5 hover:bg-muted/50 transition-colors duration-200"
-            >
-              <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <span className="text-sm font-semibold text-foreground">
-                Request Summary
-              </span>
-            </button>
+          <div className="px-5 py-4 flex items-center justify-between border-b border-border/50">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setSummaryExpanded(!summaryExpanded)}
+                className="flex items-center gap-2.5 hover:bg-muted/50 transition-colors duration-200"
+              >
+                <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-foreground leading-tight">
+                    AI Intake
+                  </span>
+                  <span className="text-[10px] text-muted-foreground font-normal leading-tight">
+                    Captured from AI Voice
+                  </span>
+                </div>
+              </button>
+            </div>
             <div className="flex items-center gap-2">
               {isEditMode ? (
                 <div className="flex items-center gap-2">
@@ -554,7 +561,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           </div>
           
           {summaryExpanded && (
-            <div className="px-4 pb-4 pt-2">
+            <div className="px-5 pb-5 pt-3">
               {/* Save error */}
               {saveError && (
                 <div className="mb-3 px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-xs text-red-600 dark:text-red-400">
@@ -569,46 +576,64 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
       </div>
       ) : (
         <div className="space-y-4">
-          {/* Edit Controls */}
-          <div className="flex items-center justify-end">
-            {isEditMode ? (
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleCancel}
-                  disabled={isSaving}
-                  className="text-xs text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-medium disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium disabled:opacity-50 flex items-center gap-1"
-                >
-                  {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                  Save
-                </button>
+          {/* Card Header */}
+          <div className="flex items-center justify-between border-b border-border/50 pb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
               </div>
-            ) : (
-              <button
-                onClick={() => {
-                  setIsEditMode(true)
-                  setEditValues({
-                    callerName: extractedInfo?.callerName || '',
-                    reasonForCalling: extractedInfo?.reasonForCalling || '',
-                    importantDetails: extractedInfo?.importantDetails || '',
-                    addressOrLocation: extractedInfo?.addressOrLocation || '',
-                    preferredCallbackTime: extractedInfo?.preferredCallbackTime || '',
-                    desiredCompletionTime: extractedInfo?.desiredCompletionTime || ''
-                  })
-                }}
-                className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
-                title="Edit customer information"
-                aria-label="Edit customer information"
-              >
-                <Pencil className="w-3.5 h-3.5" />
-              </button>
-            )}
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold text-foreground leading-tight">
+                  AI Intake
+                </span>
+                <span className="text-[10px] text-muted-foreground font-normal leading-tight">
+                  Captured from AI Voice
+                </span>
+              </div>
+            </div>
+            {/* Edit Controls */}
+            <div className="flex items-center gap-2">
+              {isEditMode ? (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleCancel}
+                    disabled={isSaving}
+                    className="text-xs text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-medium disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium disabled:opacity-50 flex items-center gap-1"
+                  >
+                    {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                    Save
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    setIsEditMode(true)
+                    setEditValues({
+                      callerName: extractedInfo?.callerName || '',
+                      reasonForCalling: extractedInfo?.reasonForCalling || '',
+                      importantDetails: extractedInfo?.importantDetails || '',
+                      addressOrLocation: extractedInfo?.addressOrLocation || '',
+                      preferredCallbackTime: extractedInfo?.preferredCallbackTime || '',
+                      desiredCompletionTime: extractedInfo?.desiredCompletionTime || ''
+                    })
+                  }}
+                  className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
+                  title="Edit customer information"
+                  aria-label="Edit customer information"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Save error */}
