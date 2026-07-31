@@ -11,7 +11,18 @@ interface MessageMediaRendererProps {
 }
 
 // Helper function to get media URL - use direct URL for Supabase, proxy for Twilio
-function getMediaUrl(originalUrl: string): string {
+function getMediaUrl(originalUrl: string): string | null {
+  // Guard against empty or invalid URLs
+  if (!originalUrl || typeof originalUrl !== 'string' || originalUrl.trim() === '') {
+    console.error('[MessageMediaRenderer] getMediaUrl called with empty URL')
+    return null
+  }
+
+  // If it's a blob: URL (local preview), return as-is - no proxy needed
+  if (originalUrl.startsWith('blob:')) {
+    return originalUrl
+  }
+
   // If it's already a Supabase URL, return as-is (no proxy needed)
   if (originalUrl.includes('supabase.co') || originalUrl.includes('/storage/v1')) {
     return originalUrl
@@ -84,6 +95,11 @@ async function fetchAuthenticatedMedia(mediaUrl: string, mediaId: string, recove
     }
 
     const proxyUrl = getMediaUrl(mediaUrl)
+    if (!proxyUrl) {
+      console.error('[MessageMediaRenderer] getMediaUrl returned null for:', mediaUrl)
+      return null
+    }
+
     const response = await fetch(proxyUrl, {
       headers: {
         'Authorization': `Bearer ${session.access_token}`
@@ -209,6 +225,15 @@ export default function MessageMediaRenderer({ media, isInbound = false, onImage
           const mediaUrl = authenticatedUrls[mediaItem.id] || getMediaUrl(mediaItem.media_url)
           const isLoaded = loadedMedia.has(mediaItem.id)
           const isFailed = failedMedia.has(mediaItem.id)
+
+          // Skip rendering if URL is invalid
+          if (!mediaUrl) {
+            console.error('[MessageMediaRenderer] Invalid media URL for item:', {
+              mediaId: mediaItem.id,
+              mediaUrl: mediaItem.media_url
+            })
+            return null
+          }
           
           if (isImage(mediaItem.mime_type)) {
             return (

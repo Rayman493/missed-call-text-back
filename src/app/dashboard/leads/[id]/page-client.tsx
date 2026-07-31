@@ -685,6 +685,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       const mediaMap: Record<string, { urls: string[]; types: string[] }> = {}
 
       for (const message of messagesWithMedia) {
+        // Skip fetching media for optimistic messages - they don't exist in the database yet
+        if (message.isOptimistic) {
+          console.log('[fetchMessageMedia] Skipping optimistic message:', {
+            messageId: message.id,
+            clientMessageId: message.clientMessageId || message.client_message_id
+          })
+          continue
+        }
+
         try {
           const { data: { session } } = await supabase.auth.getSession()
           const headers: HeadersInit = { 'Content-Type': 'application/json' }
