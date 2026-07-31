@@ -1944,13 +1944,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     if (!message.trim() && !mediaFiles) return
     if (sending) return
 
+    // Capture the message text immediately before clearing
+    const submittedText = message.trim()
+    const submittedMediaFiles = mediaFiles
+
     // Create stable client message ID for correlation
     const clientMessageId = crypto.randomUUID()
     
     console.log('[OPTIMISTIC CREATION] Creating optimistic message:', {
       temporaryId: clientMessageId,
       clientMessageId,
-      body: message.trim().substring(0, 30)
+      body: submittedText.substring(0, 30)
     })
     
     // Only create optimistic message for text-only SMS (skip for MMS)
@@ -1960,7 +1964,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         id: clientMessageId,
         clientMessageId,
         direction: 'outbound',
-        body: message.trim(),
+        body: submittedText,
         status: 'sending',
         created_at: new Date().toISOString(),
         isOptimistic: true
@@ -1979,6 +1983,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           messages: mergedMessages
         }
       })
+    }
+
+    // Clear the composer immediately after creating optimistic message
+    // This prevents the text from appearing in both the composer and thread
+    setMessage('')
+    
+    // Clear attachment previews immediately for MMS
+    if (isMMS) {
+      setMobileImages([])
+      if (clearComposerImagesRef.current) {
+        clearComposerImagesRef.current()
+      }
     }
     
     setSending(true)
@@ -1999,20 +2015,21 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       if (mediaFiles && mediaFiles.length > 0) {
         console.log('[MMS] Preparing FormData for MMS:', {
           leadId: params.id,
-          messageLength: message.trim().length,
-          mediaCount: mediaFiles.length,
-          mediaFileNames: mediaFiles.map(f => f.name),
-          mediaFileSizes: mediaFiles.map(f => f.size),
-          mediaFileTypes: mediaFiles.map(f => f.type)
+          messageLength: submittedText.length,
+          mediaCount: submittedMediaFiles?.length || 0,
+          mediaFileNames: submittedMediaFiles?.map(f => f.name) || [],
+          mediaFileSizes: submittedMediaFiles?.map(f => f.size) || [],
+          mediaFileTypes: submittedMediaFiles?.map(f => f.type) || []
         })
         
         // Use FormData for MMS
         const formData = new FormData()
         formData.append('leadId', params.id)
-        formData.append('message', message.trim())
+        formData.append('message', submittedText)
         formData.append('clientMessageId', clientMessageId)
         
-        mediaFiles.forEach((file, index) => {
+        if (submittedMediaFiles) {
+        submittedMediaFiles.forEach((file, index) => {
           console.log('[MMS] Appending file to FormData:', {
             index,
             fileName: file.name,
@@ -2021,6 +2038,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           })
           formData.append(`media_${index}`, file)
         })
+      }
 
         const headers: HeadersInit = {}
         if (session?.access_token) {
@@ -2046,7 +2064,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           headers,
           body: JSON.stringify({ 
             leadId: params.id, 
-            message: message.trim(),
+            message: submittedText,
             clientMessageId
           })
         })
@@ -2060,7 +2078,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       console.log('[API REQUEST] Sent message with clientMessageId:', {
         clientMessageId,
-        body: message.trim().substring(0, 30)
+        body: submittedText.substring(0, 30)
       })
 
       const result = await response.json()
@@ -2082,7 +2100,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               id: clientMessageId,
               clientMessageId,
               direction: 'outbound',
-              body: message.trim(),
+              body: submittedText,
               status: 'failed',
               error_message: result.error || 'We couldn\'t send this message',
               created_at: new Date().toISOString(),
@@ -2096,6 +2114,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               messages: mergedMessages
             }
           })
+          
+          // Restore the submitted text to the composer only if it's still empty
+          // This allows the user to retry without retyping, but doesn't overwrite new input
+          setMessage(current => current.trim() === '' ? submittedText : current)
         }
         
         // Show appropriate error message based on response
@@ -2163,23 +2185,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       if (isMMS && result.message) {
         await handleRefresh()
         
-        // Clear mobile images after successful MMS send
-        setMobileImages([])
-        
-        // Clear desktop composer images after successful MMS send
-        if (clearComposerImagesRef.current) {
-          clearComposerImagesRef.current()
-        }
-        
         // Scroll to bottom after refresh completes
         setTimeout(() => {
           scrollToBottom('smooth', true)
         }, 100)
       }
 
-      // Clear input - no success banner, bubble status is the confirmation
-      setMessage('')
-      
       // Scroll to bottom to show the new message
       setTimeout(() => {
         scrollToBottom('smooth')
@@ -2195,7 +2206,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             id: clientMessageId,
             clientMessageId,
             direction: 'outbound',
-            body: message.trim(),
+            body: submittedText,
             status: 'failed',
             error_message: 'Network error occurred',
             created_at: new Date().toISOString(),
@@ -2209,6 +2220,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             messages: mergedMessages
           }
         })
+        
+        // Restore the submitted text to the composer only if it's still empty
+        setMessage(current => current.trim() === '' ? submittedText : current)
       }
       setError('Failed to send message')
     } finally {
