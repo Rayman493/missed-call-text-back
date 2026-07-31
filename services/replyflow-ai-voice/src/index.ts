@@ -12650,6 +12650,7 @@ wss.on('connection', (ws, req) => {
       console.log('[INGEST CALL DATA ENTER] =========================================');
       
       console.log('[CALL END DETECTED] WebSocket closed, starting post-call persistence');
+      console.log('[INGEST FUNCTION ENTRY] path=main-ws-close');
       console.log('[INGEST CALL DATA START] Function called');
       
       const sessionSessionId = (ws as any).sessionId || '';
@@ -12839,6 +12840,7 @@ Return only JSON, no other text.`;
           }
           
           console.log('[AI INGEST INSERT SUCCESS] existing record updated successfully');
+          console.log('[AI INGEST] existingRecord path in main-ws-close returns; message inserts not in this branch');
           console.log('[INGEST CALL DATA EXIT] =========================================');
           console.log('[INGEST CALL DATA EXIT] Function exit');
           console.log('[INGEST CALL DATA EXIT] Timestamp:', new Date().toISOString());
@@ -13548,6 +13550,7 @@ Return only JSON, no other text.`;
 
         console.log('[AI INGEST INSERT SUCCESS] AI record linking completed successfully');
         console.log('[AI INGEST INSERT SUCCESS] ingestion completed successfully');
+        console.log('[AI PERSISTENCE GAP] main success path does not insert messages into messages table');
 
         // SMS DISPATCH REMOVED: AI voice service must NEVER send customer SMS.
         // Automatic customer summary SMS is owned exclusively by the voice-status webhook.
@@ -17233,6 +17236,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
               const sessionConversationId = (ws as any).conversationId || null;
               
               console.log('[AI INGEST START] call ended');
+              console.log('[INGEST FUNCTION ENTRY] path=openai-ws-close');
               console.log('[AI INGEST] transcript captured', { transcriptLength: transcript.length });
               console.log('[AI TRANSCRIPT STATE]', {
                 transcriptLength: transcript.length,
@@ -17374,6 +17378,7 @@ Return only JSON, no other text.`;
                   }
                   
                   console.log('[AI INGEST] existing record updated successfully');
+                  console.log('[AI INGEST] skipping message inserts because existingRecord path returns early');
                   return;
                 } catch (error) {
                   console.log('[AI INGEST FAILED] extraction failed during update, updating with transcript only', error);
