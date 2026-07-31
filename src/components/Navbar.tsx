@@ -127,11 +127,10 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                     <>
                       <Link
                         href="/dashboard"
-                        className="inline-flex items-center justify-center h-10 w-10 rounded-lg bg-blue-500/6 border border-blue-400/20 ring-1 ring-white/5 inset text-slate-100 shadow-none transition-colors hover:bg-blue-500/8 hover:border-blue-400/25 sm:h-auto sm:w-auto sm:px-3.5 sm:py-2 sm:text-sm"
+                        className="inline-flex items-center justify-center h-10 w-10 text-slate-300 hover:text-white transition-colors"
                         aria-label="Go to Dashboard"
                       >
-                        <Home className="w-5 h-5 sm:hidden" />
-                        <span className="hidden sm:inline">Dashboard</span>
+                        <Home className="w-5 h-5" />
                       </Link>
                     </>
                   ) : (
@@ -139,11 +138,10 @@ export default function Navbar({ forceDark = false }: NavbarProps) {
                     <>
                       <Link
                         href="/dashboard"
-                        className="inline-flex items-center justify-center h-10 w-10 rounded-lg bg-blue-500/6 border border-blue-400/20 ring-1 ring-white/5 inset text-slate-100 shadow-none transition-colors hover:bg-blue-500/8 hover:border-blue-400/25 sm:h-auto sm:w-auto sm:px-3.5 sm:py-2 sm:text-sm"
+                        className="inline-flex items-center justify-center h-10 w-10 text-slate-300 hover:text-white transition-colors"
                         aria-label="Go to Dashboard"
                       >
-                        <Home className="w-5 h-5 sm:hidden" />
-                        <span className="hidden sm:inline">Dashboard</span>
+                        <Home className="w-5 h-5" />
                       </Link>
                       {/* Only show Home and Demo on non-homepage, non-content pages */}
                       {!isHomepage && !isContentPage && (
