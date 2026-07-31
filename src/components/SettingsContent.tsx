@@ -299,14 +299,14 @@ export default function SettingsContent() {
     onBusinessUpdated: (updatedBusiness) => {
       setBusiness(updatedBusiness)
       setSaveSuccess(true)
-      showToast('✓ Settings saved', 'success')
+      showToast('Settings saved', 'success')
     }
   })
 
   // Toast functions
   const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
     // Use stable ID for settings success toast to prevent duplicates
-    const stableId = message === '✓ Settings saved' && type === 'success' 
+    const stableId = message === 'Settings saved' && type === 'success' 
       ? 'settings-saved-success' 
       : Date.now().toString()
     
@@ -2900,7 +2900,7 @@ export default function SettingsContent() {
             isOpen={showFollowUpSettings}
             onClose={() => setShowFollowUpSettings(false)}
             onSave={() => {
-              showToast('✓ Settings saved', 'success')
+              showToast('Settings saved', 'success')
             }}
           />
 
