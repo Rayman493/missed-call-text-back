@@ -51,6 +51,14 @@ export type IntakeStage =
   | 'complete'
 
 /**
+ * STATIC ASSERTION: Obsolete stage names must not be present in IntakeStage
+ * This will cause a TypeScript compile error if ask_reason or ask_details are reintroduced.
+ */
+type ObsoleteStageNames = 'ask_reason' | 'ask_details';
+type AssertObsoleteNotPresent = ObsoleteStageNames extends IntakeStage ? never : true;
+const _staticAssertionCheck: AssertObsoleteNotPresent = true;
+
+/**
  * AI Intake Template Config
  * Deterministic scripted text for each stage of the AI intake flow
  * The AI must remain scripted - no dynamic question generation allowed

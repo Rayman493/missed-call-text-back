@@ -150,8 +150,8 @@ export function isSettleCallbackAuthorized(
 }
 
 // Minimal shared immediate-advance helper for multi-field capture in Simple Mode
-// When the caller says both their name and their reason during ask_name, skip ask_reason
-// and advance directly to ask_details. Returns true if it advanced and dispatched a prompt.
+// When the caller says both their name and their reason during ask_name, skip ask_request
+// and advance directly to next stage. Returns true if it advanced and dispatched a prompt.
 export function handleImmediateAdvanceIfMultiFieldCaptured(
   state: any,
   originatingStage: string,
@@ -360,27 +360,8 @@ export function finalizeSimpleModeSettledAnswer(
   state.answerAcceptedForStage = null;
   state.answerAcceptedTurnId = 0;
 
-  // Instrument Additional Details timing at finalization
-  if (finalStage === 'ask_details') {
-    state.detailsTiming.nextPromptSent = Date.now();
-    const totalLatencyMs = state.detailsTiming.nextPromptSent - state.detailsTiming.callerStoppedAt;
-    console.log('[DETAILS TIMING] =========================================');
-    console.log('[DETAILS TIMING] callSid:', state.callSid);
-    console.log('[DETAILS TIMING] callerStoppedAt:', state.detailsTiming.callerStoppedAt);
-    console.log('[DETAILS TIMING] vadDetectedAt:', state.detailsTiming.callerStoppedAt);
-    console.log('[DETAILS TIMING] finalTranscriptAt:', state.detailsTiming.finalTranscriptAt);
-    console.log('[DETAILS TIMING] settleWindowStart:', state.detailsTiming.settleWindowStart);
-    console.log('[DETAILS TIMING] settleWindowEnd:', state.detailsTiming.settleWindowEnd);
-    console.log('[DETAILS TIMING] nextPromptSent:', state.detailsTiming.nextPromptSent);
-    console.log('[DETAILS TIMING] totalLatencyMs:', totalLatencyMs);
-    console.log('[DETAILS TIMING] vadToTranscriptMs:', state.detailsTiming.finalTranscriptAt - state.detailsTiming.callerStoppedAt);
-    console.log('[DETAILS TIMING] settleWindowMs:', state.detailsTiming.settleWindowEnd - state.detailsTiming.settleWindowStart);
-    console.log('[DETAILS TIMING] finalizationToPromptMs:', state.detailsTiming.nextPromptSent - state.detailsTiming.settleWindowEnd);
-    console.log('[DETAILS TIMING] =========================================');
-  }
-
   // Centralized routing after settle finalization, with race-safe mode resolution
-  const needsResolution = finalStage === 'ask_details' && (!state.serviceLocationType || state.serviceLocationType.length === 0);
+  const needsResolution = finalStage === 'ask_request' && (!state.serviceLocationType || state.serviceLocationType.length === 0);
   const resolution = needsResolution && state.businessId
     ? deps.loadServiceLocationTypeForBusiness(state.businessId)
     : Promise.resolve();
@@ -1025,11 +1006,10 @@ type IntakeStage = 'ask_name' | 'ask_request' | 'ask_name_reason' | 'ask_name_re
  * - callbackTime: Best time for the business to call back
  *
  * Flow:
- * ask_name_reason → ask_details → ask_location → ask_completion_time → complete
+ * ask_name_reason → ask_location → ask_completion_time → complete
  *
  * Stage Prompts:
  * - ask_name_reason: "Hi, I'm the assistant for the business. Can you please let me know your name and your reason for calling?"
- * - ask_details: "Got it. Can you share any important details the business should know?"
  * - ask_location: "Thanks. Where will the service take place?"
  * - ask_completion_time: "Got it. When would you like this work completed?"
  * - complete: Final sentence: "Perfect. Thank you for calling. I'll pass this information along to the business and they will get back to you soon. Have a great day."
@@ -2622,8 +2602,8 @@ const STAGE_PROMPTS: Record<IntakeStage, string> = {
 /**
  * Simple scripted stage progression - deterministic, no GPT decisions
  * The app follows a conditional sequence based on service_location_type:
- * - onsite: ask_name → ask_reason → ask_details → ask_location_or_context → ask_timing → ask_callback_time → complete
- * - customer_comes_to_business/remote: ask_name → ask_reason → ask_details → ask_timing → ask_callback_time → complete
+ * - onsite: ask_name → ask_request → ask_location_or_context → ask_timing → ask_callback_time → complete
+ * - customer_comes_to_business/remote: ask_name → ask_request → ask_timing → ask_callback_time → complete
  */
 function getNextStage(currentStage: IntakeStage, serviceLocationType: string, skipNext: boolean = false): IntakeStage {
   console.log('[SCRIPTED FLOW] =========================================');
@@ -3172,7 +3152,7 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
       console.log('[SCRIPTED FLOW] Timestamp:', new Date().toISOString());
       console.log('[SCRIPTED FLOW] deterministic name/reason parse =========================================');
 
-      // If both parsed, set both fields and advance to ask_details
+      // If both parsed, set both fields and advance to ask_request
       if (parsedName && parsedReason) {
         if (!intake.customerName) {
           intake.customerName = parsedName;
@@ -3207,7 +3187,7 @@ function extractMultipleAnswers(intake: IntakeData, transcript: string): void {
         return;
       }
 
-      // If only name parsed, set name and let flow continue to ask_reason_recovery
+      // If only name parsed, set name and let flow continue to ask_request
       if (parsedName && !parsedReason) {
         if (!intake.customerName) {
           intake.customerName = parsedName;
@@ -5566,7 +5546,7 @@ const server = createServer(async (req, res) => {
     
     const prompts = {
       ask_name_reason: "Hello! This is ReplyFlow AI. Who am I speaking with and how can I help you today?",
-      ask_details: "Got it. Can you share any important details the business should know?",
+      ask_request: "Got it. Can you share any important details the business should know?",
       ask_location: "What is your location or address?",
       ask_completion_time: "When would you like this work completed?",
       ask_callback_time: "What is the best time for the business to call you back?",
@@ -5969,7 +5949,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
 
   console.log('[SIMPLE MODE] =========================================');
   console.log('[SIMPLE MODE] event: connection_start');
-  console.log('[SIMPLE MODE] intakeFlowVersion:', 'separated_ask_name_ask_reason');
+  console.log('[SIMPLE MODE] intakeFlowVersion:', 'consolidated_ask_request');
   console.log('[SIMPLE MODE] initialStage:', 'ask_name');
   console.log('[SIMPLE MODE] initialPromptKey:', 'ask_name');
   console.log('[SIMPLE MODE] simpleModeSelected:', true);
@@ -6050,7 +6030,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     // Continuation tracking: when waiting for caller to complete answer
     waitingForContinuation: false as boolean,
     continuationTimeout: null as NodeJS.Timeout | null,
-    // Settle window for long natural answers (ask_details, ask_name_reason)
+    // Settle window for long natural answers (ask_request, ask_name_reason)
     pendingAnswerStage: null as string | null,
     pendingAnswerSegments: [] as string[],
     pendingAnswerTurnId: 0 as number,
@@ -6082,7 +6062,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       settleWindowEnd: 0,
       nextPromptSent: 0
     } as Record<string, number>,
-    // One-time VAD grace for settle finalization (ask_details only)
+    // One-time VAD grace for settle finalization (ask_request only)
     settleGraceTimeout: null as NodeJS.Timeout | null,
     settleGraceGeneration: 0,
     settleGraceUsedForGeneration: 0,
@@ -6151,9 +6131,9 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
     switch (currentStage) {
       case 'ask_name':
         return 'ask_request';
-      case 'ask_name_reason':
-        return 'ask_request';
       case 'ask_request':
+        return state.serviceLocationType === 'onsite' ? 'ask_location' : 'ask_completion_time';
+      case 'ask_name_reason':
         return state.serviceLocationType === 'onsite' ? 'ask_location' : 'ask_completion_time';
       case 'ask_location':
         return 'ask_completion_time';
@@ -9009,7 +8989,7 @@ Reply to this message if you'd like to update or add any information.
         }
         return { accepted: false, rejectionReason: 'no_name_content' };
 
-      case 'ask_reason':
+      case 'ask_request':
         // Reject filler-only responses
         if (isFillerOnly(trimmed)) {
           return { accepted: false, rejectionReason: 'filler_only' };
@@ -9078,16 +9058,6 @@ Reply to this message if you'd like to update or add any information.
         
         return { accepted: true };
         
-      case 'ask_details':
-        // Reject filler-only or very short non-responses
-        if (isFillerOnly(trimmed)) {
-          return { accepted: false, rejectionReason: 'filler_only' };
-        }
-        if (trimmed.length < 3) {
-          return { accepted: false, rejectionReason: 'too_short' };
-        }
-        return { accepted: true };
-        
       case 'ask_location':
         // Reject filler-only responses
         if (isFillerOnly(trimmed)) {
@@ -9143,16 +9113,16 @@ Reply to this message if you'd like to update or add any information.
   // Helper to map intake stages to silence duration
   // SHORT_RESPONSE (900ms): For quick answers like Name and Reason for Calling
   // LONG_RESPONSE (1800ms): For multi-word answers like Address, Phone, Email, Appointment, Timeline
-  // DETAILS_RESPONSE (1400ms): Optimized for Additional Details stage for better responsiveness
+  // REQUEST_RESPONSE (1400ms): Optimized for Request stage for better responsiveness
   const getSilenceDurationForStage = (stage: string): number => {
     const shortResponseStages = ['ask_name_reason', 'ask_name_reason_service_only', 'ask_name_reason_name_only'];
     const isShortResponse = shortResponseStages.includes(stage);
-    const isDetailsStage = stage === 'ask_details';
+    const isRequestStage = stage === 'ask_request';
     
     if (isShortResponse) {
       return 900;
-    } else if (isDetailsStage) {
-      return 1400; // Stage-specific optimization for ask_details
+    } else if (isRequestStage) {
+      return 1400; // Stage-specific optimization for ask_request
     } else {
       return 1800; // Default LONG_RESPONSE for all other stages
     }
@@ -9391,7 +9361,7 @@ Reply to this message if you'd like to update or add any information.
 
     console.log('[SIMPLE MODE] =========================================');
     console.log('[SIMPLE MODE] event: stage_prompt_mapping');
-    console.log('[SIMPLE MODE] intakeFlowVersion:', 'separated_ask_name_ask_reason');
+    console.log('[SIMPLE MODE] intakeFlowVersion:', 'consolidated_ask_request');
     console.log('[SIMPLE MODE] simpleModeSelected:', true);
     console.log('[SIMPLE MODE] legacyCombinedPromptSelected:', promptKey === 'ask_name_reason');
     console.log('[SIMPLE MODE] sourceOfPrompt:', 'simple_mode_intake_templates');
@@ -10333,7 +10303,7 @@ Reply to this message if you'd like to update or add any information.
               console.log('[CONTINUATION DETECTION TIMING] callerAudioResumedAt:', state.lastInboundAudioAt);
               console.log('[CONTINUATION DETECTION TIMING] speechStartedEventAt:', speechStartedAt);
               console.log('[CONTINUATION DETECTION TIMING] delayBetweenAudioAndSpeechStarted:', delayBetweenAudioAndSpeechStarted);
-              console.log('[CONTINUATION DETECTION TIMING] settleDeadlineAt:', (state.settleWindowTimeout as any)._idleStart ? (state.settleWindowTimeout as any)._idleStart + (state.pendingAnswerStage === 'ask_details' ? 1500 : 1500) : 'unknown');
+              console.log('[CONTINUATION DETECTION TIMING] settleDeadlineAt:', (state.settleWindowTimeout as any)._idleStart ? (state.settleWindowTimeout as any)._idleStart + (state.pendingAnswerStage === 'ask_request' ? 1500 : 1500) : 'unknown');
               console.log('[CONTINUATION DETECTION TIMING] wouldHaveMissedDeadline:', delayBetweenAudioAndSpeechStarted > 0 ? 'audio_before_speech_started' : 'speech_started_first');
               console.log('[CONTINUATION DETECTION TIMING] action:', 'continuation_speech_detected');
               console.log('[CONTINUATION DETECTION TIMING] =========================================');
@@ -10730,7 +10700,7 @@ Reply to this message if you'd like to update or add any information.
                 return;
               }
 
-              const stages = ['ask_name', 'ask_reason', 'ask_name_reason', 'ask_details', 'ask_location', 'ask_completion_time', 'ask_callback_time'];
+              const stages = ['ask_name', 'ask_request', 'ask_name_reason', 'ask_location', 'ask_completion_time', 'ask_callback_time'];
               const currentIndex = stages.indexOf(state.currentStage);
               const isValidStage = currentIndex !== -1;
               const isFinalStage = currentIndex === stages.length - 1;
@@ -10989,7 +10959,7 @@ Reply to this message if you'd like to update or add any information.
             }
 
             // Log transcription decision using originating stage
-            const stages = ['ask_name', 'ask_reason', 'ask_name_reason', 'ask_details', 'ask_location', 'ask_completion_time', 'ask_callback_time'];
+            const stages = ['ask_name', 'ask_request', 'ask_name_reason', 'ask_location', 'ask_completion_time', 'ask_callback_time'];
             const currentIndex = stages.indexOf(originatingStage);
             const isValidStage = currentIndex !== -1;
             const isFinalStage = currentIndex === stages.length - 1;
@@ -11098,7 +11068,7 @@ Reply to this message if you'd like to update or add any information.
                 const newerSpeechExists = state.speechGeneration > transcriptionGeneration;
                 
                 // Determine if this stage requires a settle window (either intrinsic or due to continuation)
-                const stagesWithIntrinsicSettleWindow = ['ask_name', 'ask_reason', 'ask_details', 'ask_name_reason'];
+                const stagesWithIntrinsicSettleWindow = ['ask_name', 'ask_request', 'ask_name_reason'];
                 const hasIntrinsicSettleWindow = stagesWithIntrinsicSettleWindow.includes(originatingStage);
                 const hasContinuation = sameTurnSpeechActive || newerSpeechExists || speechOngoingNoStop;
                 const requiresSettleWindow = hasIntrinsicSettleWindow || (hasContinuation && originatingStage === state.currentStage);
@@ -11119,7 +11089,7 @@ Reply to this message if you'd like to update or add any information.
                   console.log('[CONTINUATION SPEECH DETECTED] =========================================');
                 }
                 
-                // Settle window for long natural answers (ask_details, ask_name_reason) OR continuation speech
+                // Settle window for long natural answers (ask_request, ask_name_reason) OR continuation speech
                 // Uses the generalized requiresSettleWindow variable computed above
                 if (requiresSettleWindow && originatingStage === state.currentStage) {
                   // Defensive reset: if pending state belongs to a different stage/turn, clear it first
@@ -11203,23 +11173,16 @@ Reply to this message if you'd like to update or add any information.
                   const segmentCount = state.pendingAnswerSegments.length;
                   
                   // Determine settle window duration based on whether this is intrinsic or continuation
-                  // Intrinsic: ask_details: 1500ms (reduced from 2500ms for better responsiveness), ask_name_reason: 1500ms
+                  // Intrinsic: ask_request: 1500ms (reduced from 2500ms for better responsiveness), ask_name_reason: 1500ms
                   // Continuation: 1500ms for all stages
                   let settleWindowMs: number;
                   if (hasIntrinsicSettleWindow) {
-                    settleWindowMs = 1500; // Unified 1500ms for both ask_details and ask_name_reason
+                    settleWindowMs = 1500; // Unified 1500ms for both ask_request and ask_name_reason
                   } else {
                     settleWindowMs = 1500; // Continuation settle window for non-intrinsic stages
                   }
                   const settleStartedAt = Date.now();
                   const settleDeadlineAt = settleStartedAt + settleWindowMs;
-                  
-                  // Instrument Additional Details timing
-                  if (originatingStage === 'ask_details') {
-                    state.detailsTiming.finalTranscriptAt = state.lastTranscriptionCompletedAt;
-                    state.detailsTiming.settleWindowStart = settleStartedAt;
-                    state.detailsTiming.callerStoppedAt = state.lastSpeechStoppedAt;
-                  }
                   
                   console.log('[LOGICAL TURN LIFECYCLE] =========================================');
                   console.log('[LOGICAL TURN LIFECYCLE] event: pending_answer_started');
@@ -11285,7 +11248,7 @@ Reply to this message if you'd like to update or add any information.
                     console.log('[ANSWER SETTLE TIMING] =========================================');
                     
                     // Instrument Additional Details timing at settle window end
-                    if (originatingStage === 'ask_details') {
+                    if (originatingStage === 'ask_request') {
                       state.detailsTiming.settleWindowEnd = settleCallbackAt;
                     }
                     
@@ -11346,8 +11309,8 @@ Reply to this message if you'd like to update or add any information.
                       return;
                     }
 
-                    // No continuation signals: for ask_details only, enter a one-time short VAD grace before finalizing
-                    if (originatingStage === 'ask_details') {
+                    // No continuation signals: for ask_request only, enter a one-time short VAD grace before finalizing
+                    if (originatingStage === 'ask_request') {
                       // Only create grace once per settleGeneration
                       if (!state.settleGraceTimeout && state.settleGraceUsedForGeneration !== state.settleGeneration) {
                         const graceCapturedSettleGen = state.settleGeneration;

@@ -12,11 +12,7 @@ export function getNextIntakeStage(currentStage: string, mode: ServiceLocationTy
       return 'ask_request'
     case 'ask_request':
       return mode === 'onsite' ? 'ask_location' : 'ask_completion_time'
-    case 'ask_reason':
-      return mode === 'onsite' ? 'ask_location' : 'ask_completion_time'
     case 'ask_name_reason':
-      return mode === 'onsite' ? 'ask_location' : 'ask_completion_time'
-    case 'ask_details':
       return mode === 'onsite' ? 'ask_location' : 'ask_completion_time'
     case 'ask_location':
       return 'ask_completion_time'
