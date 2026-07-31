@@ -6098,11 +6098,10 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
   // These are the exact keys used for cached audio lookups
   const prompts: Record<string, string> = {
     ask_name: "Hi, thanks for calling. I'm the virtual assistant for the business. I'll gather a few quick details so the business owner can follow up with you. First, may I have your name?",
-    ask_reason: "Thank you. What can I help you with today?",
+    ask_request: "Thank you. What can I help you with today?",
     ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
     ask_name_reason_service_only: "And what do you need help with?",
     ask_name_reason_name_only: "And what's your name?",
-    ask_details: "Got it. Can you share any important details the business should know?",
     ask_location: "And what location or address should the business have for this?",
     ask_completion_time: "When are you hoping this will be done?",
     ask_callback_time: "Perfect. Last question—what would be the best time for the business to call you back?",

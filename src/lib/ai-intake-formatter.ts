@@ -538,33 +538,37 @@ export const formatAiIntakeSummary = (
     return `Thanks for calling ${displayName}. We received your call and shared it with the business. They'll follow up as soon as possible.`;
   }
 
-  // Build partial summary with only available fields
+  // Build partial summary with Captured/Still Needed sections
   let body = `Thanks for calling ${displayName}!\n\n`;
   if (prefix) {
     body += prefix;
   }
   
-  if (hasName) {
-    body += `Customer: ${customerName}\n`;
+  // Captured section
+  const capturedFields = [];
+  if (hasName) capturedFields.push(`✓ Customer: ${customerName}`);
+  if (hasRequest) capturedFields.push(`✓ Request: ${finalRequest}`);
+  if (hasAddress) capturedFields.push(`✓ Location: ${serviceAddress}`);
+  if (hasCompletionTime) capturedFields.push(`✓ Desired Completion: ${desiredCompletionTime}`);
+  if (hasCallbackTime) capturedFields.push(`✓ Best Callback Time: ${callbackTime}`);
+  
+  if (capturedFields.length > 0) {
+    body += `Captured:\n${capturedFields.join('\n')}\n\n`;
   }
   
-  if (hasRequest) {
-    body += `Request: ${finalRequest}\n`;
+  // Still Needed section
+  const stillNeededFields = [];
+  if (!hasName) stillNeededFields.push('○ Customer');
+  if (!hasRequest) stillNeededFields.push('○ Request');
+  if (!hasAddress) stillNeededFields.push('○ Location');
+  if (!hasCompletionTime) stillNeededFields.push('○ Desired Completion');
+  if (!hasCallbackTime) stillNeededFields.push('○ Best Callback Time');
+  
+  if (stillNeededFields.length > 0) {
+    body += `Still Needed:\n${stillNeededFields.join('\n')}\n\n`;
   }
   
-  if (hasAddress) {
-    body += `Location: ${serviceAddress}\n`;
-  }
-  
-  if (hasCompletionTime) {
-    body += `Desired Completion: ${desiredCompletionTime}\n`;
-  }
-  
-  if (hasCallbackTime) {
-    body += `Best Callback Time: ${callbackTime}\n`;
-  }
-  
-  body += `\nWe captured your request and shared it with the business. They'll follow up as soon as possible.`;
+  body += `We'll share this with the business. They'll follow up as soon as possible.`;
   
   return body;
 };
