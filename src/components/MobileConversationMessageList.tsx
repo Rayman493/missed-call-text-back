@@ -226,7 +226,8 @@ export default function MobileConversationMessageList({
         
         const hasText = Boolean(msg.body?.trim())
         const hasRenderableMedia = msg.media && msg.media.length > 0
-        const isPendingMediaMessage = msg.media_count > 0 || (msg.isOptimistic && msg.media && msg.media.length > 0)
+        const hasMediaCount = msg.media_count && msg.media_count > 0
+        const isPendingMediaMessage = hasMediaCount || (msg.isOptimistic && hasRenderableMedia)
         
         // Don't render empty text bubble for pending media messages
         if (!hasText && !hasRenderableMedia && isPendingMediaMessage) {

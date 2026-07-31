@@ -329,35 +329,37 @@ export default function DesktopConversationMessageList({
           >
             {/* Message Content */}
             <div className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'} ${isOutbound ? 'max-w-[65%]' : 'max-w-[70%]'}`}>
-              {/* Message Bubble - Desktop styling */}
-              <div
-                className={`rounded-lg shadow-sm transition-colors duration-200 overflow-hidden ${
-                  isInbound
-                    ? 'bg-white dark:bg-slate-800/90 text-slate-900 dark:text-slate-100 rounded-bl-sm border border-slate-200/50 dark:border-slate-700/50'
-                    : isOptimistic && isSending
-                    ? 'bg-blue-600 text-white rounded-br-sm opacity-90 border border-blue-700/50'
-                    : 'bg-blue-600 text-white rounded-br-sm hover:bg-blue-700 border border-blue-700/50'
-                }`}
-              >
-                <div className={`${msg.media && msg.media.length > 0 ? 'p-2' : 'px-3.5 py-2'}`}>
-                  {msg.body && (
-                    <p 
-                      className={`${isOutbound ? 'text-[14px]' : 'text-[15px]'} leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap min-w-0 max-w-full`}
-                      style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
-                    >
-                      {msg.body}
-                    </p>
-                  )}
-                  {/* Render media attachments */}
-                  {msg.media && msg.media.length > 0 && (
-                    <MessageMediaRenderer 
-                      media={msg.media} 
-                      isInbound={isInbound}
-                      onImageLoad={index === conversationTimeline.length - 1 ? onImageLoad : undefined}
-                    />
-                  )}
+              {/* Only render bubble if there's body or media */}
+              {(msg.body || (msg.media && msg.media.length > 0)) && (
+                <div
+                  className={`rounded-lg shadow-sm transition-colors duration-200 overflow-hidden ${
+                    isInbound
+                      ? 'bg-white dark:bg-slate-800/90 text-slate-900 dark:text-slate-100 rounded-bl-sm border border-slate-200/50 dark:border-slate-700/50'
+                      : isOptimistic && isSending
+                      ? 'bg-blue-600 text-white rounded-br-sm opacity-90 border border-blue-700/50'
+                      : 'bg-blue-600 text-white rounded-br-sm hover:bg-blue-700 border border-blue-700/50'
+                  }`}
+                >
+                  <div className={`${msg.media && msg.media.length > 0 ? 'p-2' : 'px-3.5 py-2'}`}>
+                    {msg.body && (
+                      <p 
+                        className={`${isOutbound ? 'text-[14px]' : 'text-[15px]'} leading-relaxed break-words overflow-wrap-anywhere whitespace-pre-wrap min-w-0 max-w-full`}
+                        style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
+                      >
+                        {msg.body}
+                      </p>
+                    )}
+                    {/* Render media attachments */}
+                    {msg.media && msg.media.length > 0 && (
+                      <MessageMediaRenderer 
+                        media={msg.media} 
+                        isInbound={isInbound}
+                        onImageLoad={index === conversationTimeline.length - 1 ? onImageLoad : undefined}
+                      />
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
               
               {/* Message Status/Timestamp - Beneath bubble, aligned with bubble */}
               <div className={`mt-0.5 flex items-center gap-1 ${isOutbound ? 'justify-end' : 'justify-start'}`}>

@@ -1649,14 +1649,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     })
   }, [params.id])
 
-  // Initial scroll to bottom when conversation loads
+  // Initial scroll to bottom when conversation loads (works for both desktop and mobile)
   useEffect(() => {
     // Only scroll if:
     // 1. Lead data is loaded and not loading
     // 2. This is a new conversation (different from previous)
     // 3. We haven't already scrolled this conversation
     if (!loading && leadData && leadData.id && initialScrollDoneRef.current !== leadData.id) {
-      console.log('[Mobile Initial Scroll] Scrolling to bottom for conversation:', leadData.id)
+      console.log('[Initial Scroll] Scrolling to bottom for conversation:', leadData.id)
       
       // Mark this conversation as scrolled
       initialScrollDoneRef.current = leadData.id
@@ -1669,11 +1669,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           const container = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
           
           if (container) {
-            console.log('[Mobile Initial Scroll] Container found, scrolling to bottom')
+            console.log('[Initial Scroll] Container found, scrolling to bottom', {
+              isDesktop,
+              scrollHeight: container.scrollHeight,
+              clientHeight: container.clientHeight
+            })
             // Use 'auto' behavior for instant scroll (no animation)
             container.scrollTop = container.scrollHeight
           } else {
-            console.log('[Mobile Initial Scroll] Container not found yet')
+            console.log('[Initial Scroll] Container not found yet')
           }
         })
       })
@@ -1779,6 +1783,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               clientMessageId: newMessage.client_message_id,
               twilioSid: newMessage.twilio_message_sid,
               status: newMessage.status,
+              mediaCount: newMessage.media_count,
               body: newMessage.body?.substring(0, 30),
               created_at: newMessage.created_at
             })
@@ -1810,6 +1815,41 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 last_message_at: newMessage.created_at
               }
             })
+            
+            // Immediately fetch media for new MMS messages
+            if (newMessage.media_count && newMessage.media_count > 0) {
+              console.log('[REALTIME INSERT] Fetching media immediately for new MMS message:', {
+                messageId: newMessage.id,
+                mediaCount: newMessage.media_count
+              })
+              
+              supabase.auth.getSession().then(({ data }: any) => {
+                const session = data?.session
+                fetch(`/api/message-media?messageId=${newMessage.id}`, {
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                  }
+                })
+                .then(response => response.json())
+                .then(mediaData => {
+                  console.log('[REALTIME INSERT] Media fetched successfully:', {
+                    messageId: newMessage.id,
+                    mediaCount: mediaData.length
+                  })
+                  setMessageMedia((prev: any) => ({
+                    ...prev,
+                    [newMessage.id]: {
+                      urls: mediaData.map((m: any) => m.media_url),
+                      types: mediaData.map((m: any) => m.mime_type)
+                    }
+                  }))
+                })
+                .catch(error => {
+                  console.error('[REALTIME INSERT] Failed to fetch media:', error)
+                })
+              })
+            }
           } else if (payload.eventType === 'UPDATE') {
             const updatedMessage = payload.new
             setLeadData((prev: any) => {
