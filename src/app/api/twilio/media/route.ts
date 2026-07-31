@@ -49,8 +49,10 @@ export async function GET(request: NextRequest) {
     if (isAllowedReplyFlowHost) {
       const token = parsedMediaUrl.searchParams.get('token')
       const path = parsedMediaUrl.searchParams.get('path')
+      const referer = request.headers.get('referer')
+      const userAgent = request.headers.get('user-agent')
       
-      console.log('[Twilio Media Proxy] ReplyFlow URL params:', {
+      console.log('[Twilio Media Proxy] ReplyFlow URL request:', {
         tokenPresent: !!token,
         tokenLength: token?.length,
         tokenDotCount: token ? token.split('.').length - 1 : 0,
@@ -58,7 +60,13 @@ export async function GET(request: NextRequest) {
         tokenSuffix: token ? token.slice(-6) : undefined,
         pathPresent: !!path,
         pathLength: path?.length,
-        pathPreview: path ? path.substring(0, 50) : undefined
+        pathPreview: path ? path.substring(0, 50) : undefined,
+        referer: referer ? referer.substring(0, 100) : undefined,
+        userAgent: userAgent ? userAgent.substring(0, 100) : undefined,
+        isTwilio: userAgent?.includes('TwilioProxy') || false,
+        isBrowser: userAgent?.includes('Mozilla') || false,
+        hostname: parsedMediaUrl.hostname,
+        pathname: parsedMediaUrl.pathname
       })
       
       if (!token || !path) {

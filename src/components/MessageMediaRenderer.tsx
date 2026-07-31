@@ -31,6 +31,25 @@ async function fetchAuthenticatedMedia(mediaUrl: string): Promise<string | null>
     return mediaUrl
   }
 
+  // If it's a ReplyFlow MMS media URL, try to recover it first in case it's broken
+  if (mediaUrl.includes('/api/mms-media/serve')) {
+    try {
+      const recoveryResponse = await fetch(`/api/mms-media/recover-url?url=${encodeURIComponent(mediaUrl)}`)
+      if (recoveryResponse.ok) {
+        const recoveryData = await recoveryResponse.json()
+        if (recoveryData.validUrl) {
+          console.log('[MessageMediaRenderer] Recovered broken media URL:', {
+            originalPreview: mediaUrl.substring(0, 50),
+            recoveredPreview: recoveryData.validUrl.substring(0, 50)
+          })
+          mediaUrl = recoveryData.validUrl
+        }
+      }
+    } catch (error) {
+      console.error('[MessageMediaRenderer] URL recovery failed, using original:', error)
+    }
+  }
+
   const supabase = createBrowserClient()
   if (!supabase) {
     return null

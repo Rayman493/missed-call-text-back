@@ -8,6 +8,7 @@ import { promoteLeadToActiveIfNew } from '@/lib/lead-lifecycle';
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard';
 import { generateMmsMediaToken } from '@/lib/mms-media-token';
 import { assertValidOutboundMmsMediaUrls } from '@/lib/mms-url-validator';
+import { createMmsMediaAccessUrl } from '@/lib/mms-media-url-helper';
 
 export const dynamic = 'force-dynamic';
 
@@ -201,6 +202,7 @@ export async function POST(request: Request) {
 
     let messageSid: string | null = null
     let mediaUrls: string[] = []
+    let mediaStoragePaths: string[] = [] // Track storage paths separately
 
     // Upload media files to Supabase Storage if present
     if (mediaFiles.length > 0) {
@@ -267,34 +269,14 @@ export async function POST(request: Request) {
             fullPath: uploadData?.fullPath
           })
           
-          // Generate signed media serving URL with JWT token
-          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://missed-call-text-back-9821-54zufp22w-rayman493s-projects.vercel.app'
-          const mediaToken = await generateMmsMediaToken(filePath)
-          
-          // Defensive check: ensure token is not undefined
-          if (!mediaToken || mediaToken === 'undefined' || mediaToken === 'null') {
-            console.error('[MMS API] Generated token is invalid:', {
-              tokenValue: String(mediaToken),
-              tokenType: typeof mediaToken,
-              tokenLength: mediaToken?.length
-            })
-            return NextResponse.json({ 
-              error: 'Failed to generate media access token',
-              details: 'Token generation returned invalid value'
-            }, { status: 500 })
-          }
-          
-          // Use URL object to avoid encoding issues
-          const serveUrl = new URL('/api/mms-media/serve', baseUrl)
-          serveUrl.searchParams.set('path', filePath)
-          serveUrl.searchParams.set('token', mediaToken)
-          const mediaServeUrl = serveUrl.toString()
+          // Generate signed media serving URL with JWT token using canonical helper
+          const mediaServeUrl = await createMmsMediaAccessUrl(filePath)
+          mediaStoragePaths.push(filePath) // Track storage path separately
           
           console.log('[MMS API] Generated media serve URL:', {
             mediaServeUrl: mediaServeUrl.substring(0, 100),
             filePath: filePath.substring(0, 100),
-            tokenGenerated: true,
-            tokenLength: mediaToken.length
+            tokenGenerated: true
           })
           
           mediaUrls.push(mediaServeUrl)
@@ -419,20 +401,29 @@ export async function POST(request: Request) {
           mediaCount: mediaUrls.length
         })
 
-        for (const mediaUrl of mediaUrls) {
+        for (const [index, mediaUrl] of mediaUrls.entries()) {
+          const storagePath = mediaStoragePaths[index]
           console.log('[MMS API] Inserting media record:', {
             messageId,
-            mediaUrl: mediaUrl.substring(0, 50) + '...'
+            mediaUrl: mediaUrl.substring(0, 50) + '...',
+            storagePath: storagePath?.substring(0, 50) + '...'
           })
+
+          const insertData: any = {
+            message_id: messageId,
+            media_url: mediaUrl,
+            mime_type: 'image/jpeg',
+            created_at: new Date().toISOString(),
+          }
+
+          // Include storage_path if available (for new schema)
+          if (storagePath) {
+            insertData.storage_path = storagePath
+          }
 
           const { error: mediaError } = await supabaseAdmin
             .from('message_media')
-            .insert({
-              message_id: messageId,
-              media_url: mediaUrl,
-              mime_type: 'image/jpeg', // Simplified - could detect from file
-              created_at: new Date().toISOString(),
-            })
+            .insert(insertData)
 
           if (mediaError) {
             console.error('[MMS API] Error storing media in database:', mediaError)
