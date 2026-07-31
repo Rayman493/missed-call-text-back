@@ -48,6 +48,11 @@ export async function generateMmsMediaToken(filePath: string): Promise<string> {
     throw new Error('Generated MMS media token is not a valid compact JWT')
   }
 
+  // Defensive check: ensure token is not undefined or empty string
+  if (!token || token === 'undefined' || token === 'null' || token.length === 0) {
+    throw new Error('Generated MMS media token is invalid')
+  }
+
   console.log('[MMS Media Token] Token generated successfully:', {
     tokenLength: token.length,
     tokenDotCount: segments.length,

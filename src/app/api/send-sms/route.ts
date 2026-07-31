@@ -270,11 +270,16 @@ export async function POST(request: Request) {
           const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://missed-call-text-back-9821-54zufp22w-rayman493s-projects.vercel.app'
           const mediaToken = await generateMmsMediaToken(filePath)
           
-          if (!mediaToken) {
-            console.error('[MMS API] Failed to generate media token')
+          // Defensive check: ensure token is not undefined
+          if (!mediaToken || mediaToken === 'undefined' || mediaToken === 'null') {
+            console.error('[MMS API] Generated token is invalid:', {
+              tokenValue: String(mediaToken),
+              tokenType: typeof mediaToken,
+              tokenLength: mediaToken?.length
+            })
             return NextResponse.json({ 
               error: 'Failed to generate media access token',
-              details: 'Token generation failed'
+              details: 'Token generation returned invalid value'
             }, { status: 500 })
           }
           
