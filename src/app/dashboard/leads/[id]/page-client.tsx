@@ -3496,117 +3496,120 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
           {/* Desktop Layout: Premium Profile Header */}
           <div className="hidden md:block">
-            {/* Customer Header Surface */}
-            <div className="bg-slate-900/55 border border-slate-700/40 shadow-sm rounded-2xl">
-              {/* Back to Customers */}
-              <div className="px-5 pt-4">
-                <AppBackButton fallbackHref="/dashboard/leads" label="Back to Customers" />
-              </div>
-
-              {/* Premium Two-Column Header */}
-              <div className="flex items-start gap-7 px-5 pb-5 pt-3">
-              {/* LEFT: Avatar and Customer Info */}
-              <div className="flex items-start gap-6 min-w-0 flex-1">
-                {/* Customer Avatar */}
-                <div className="flex-shrink-0">
-                  {lead?.photo_url ? (
-                    <img
-                      src={lead.photo_url}
-                      alt={getLeadDisplayName(leadData || lead)}
-                      className="w-20 h-20 rounded-full object-cover border-2 border-border/10"
-                    />
-                  ) : (
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center border-2 border-border/10">
-                      <span className="text-white font-semibold text-xl">
-                        {getLeadDisplayName(leadData || lead)
-                          .split(' ')
-                          .map(n => n[0])
-                          .join('')
-                          .toUpperCase()
-                          .slice(0, 2)}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Customer Info */}
-                <div className="min-w-0 flex-1 pt-3">
-                  <h1 className="text-2xl font-semibold text-foreground tracking-tight mb-3 leading-tight">
-                    {getLeadDisplayName(leadData || lead)}
-                  </h1>
-                  <p className="text-sm text-muted-foreground mb-5 font-normal">
-                    {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
-                  </p>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground/60">
-                    <span>Customer since {formatRelativeTime(lead?.created_at)}</span>
-                    <span className="text-border/30">•</span>
-                    <span>{messagesArray.length} message{messagesArray.length !== 1 ? 's' : ''}</span>
+            {/* Workspace Header Surface */}
+            <div className="bg-slate-900/40 border-y border-slate-800/50">
+              <div className="max-w-6xl mx-auto px-6 lg:px-8 py-4">
+                <div className="flex items-center gap-6">
+                  {/* Back to Customers */}
+                  <div className="flex-shrink-0">
+                    <AppBackButton fallbackHref="/dashboard/leads" label="Back to Customers" />
                   </div>
-                </div>
-              </div>
 
-              {/* RIGHT: Status and Actions */}
-              <div className="flex flex-col items-end gap-4 flex-shrink-0 pt-3">
-                {/* Status Pill */}
-                <div className="flex-shrink-0">
-                  <LeadStatusDropdown
-                    currentStatus={getLeadLifecycleStatus(leadData || lead)}
-                    onStatusChange={handleStatusUpdate}
-                    size="sm"
-                  />
-                </div>
+                  {/* Customer Identity - Horizontal */}
+                  <div className="flex items-center gap-6 min-w-0 flex-1">
+              {/* Customer Identity - Horizontal */}
+                  <div className="flex items-center gap-6 min-w-0 flex-1">
+                    {/* Avatar */}
+                    <div className="flex-shrink-0">
+                      {lead?.photo_url ? (
+                        <img
+                          src={lead.photo_url}
+                          alt={getLeadDisplayName(leadData || lead)}
+                          className="w-16 h-16 rounded-full object-cover border-2 border-border/10"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center border-2 border-border/10">
+                          <span className="text-white font-semibold text-lg">
+                            {getLeadDisplayName(leadData || lead)
+                              .split(' ')
+                              .map(n => n[0])
+                              .join('')
+                              .toUpperCase()
+                              .slice(0, 2)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
 
-                {/* Primary Actions */}
-                <div className="flex items-center gap-2">
-                  {supportsBusiness && (
+                    {/* Name and Phone */}
+                    <div className="min-w-0 flex-1">
+                      <h1 className="text-xl font-semibold text-foreground tracking-tight leading-tight">
+                        {getLeadDisplayName(leadData || lead)}
+                      </h1>
+                      <p className="text-sm text-slate-300 mt-0.5 leading-tight">
+                        {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
+                      </p>
+                    </div>
+
+                    {/* Metadata */}
+                    <div className="flex items-center gap-3 text-xs text-slate-400 flex-shrink-0">
+                      <span>Customer since {formatRelativeTime(lead?.created_at)}</span>
+                      <span className="text-slate-600">•</span>
+                      <span>{messagesArray.length} message{messagesArray.length !== 1 ? 's' : ''}</span>
+                    </div>
+                  </div>
+
+              {/* Actions - Horizontal Toolbar */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {/* Status */}
+                    <div className="flex-shrink-0">
+                      <LeadStatusDropdown
+                        currentStatus={getLeadLifecycleStatus(leadData || lead)}
+                        onStatusChange={handleStatusUpdate}
+                        size="sm"
+                      />
+                    </div>
+
+                    {/* Action Buttons */}
+                    {supportsBusiness && (
+                      <button
+                        onClick={handleTextCustomer}
+                        className="inline-flex h-9 items-center gap-2 px-3 rounded-lg text-foreground hover:bg-slate-800 transition-colors text-sm font-medium border border-transparent hover:border-slate-700"
+                        title="Text customer"
+                      >
+                        <MessageSquare className="w-4 h-4 stroke-[1.8]" />
+                        <span className="leading-none">Text</span>
+                      </button>
+                    )}
                     <button
-                      onClick={handleTextCustomer}
-                      className="inline-flex h-10 items-center gap-2 px-4 rounded-lg text-foreground hover:bg-muted/80 transition-colors text-sm font-medium border border-transparent hover:border-border/50"
-                      title="Text customer"
+                      onClick={handleCreateJobClick}
+                      className="inline-flex h-9 items-center gap-2 px-3 rounded-md text-foreground hover:bg-slate-800 transition-colors text-sm font-medium"
+                      title="Create job"
                     >
-                      <MessageSquare className="w-4 h-4 stroke-[1.8]" />
-                      <span className="leading-none">Text Customer</span>
+                      <ClipboardPlus className="w-4 h-4 stroke-[1.8]" />
+                      <span className="leading-none">Job</span>
                     </button>
-                  )}
-                  <button
-                    onClick={handleCreateJobClick}
-                    className="inline-flex h-9 items-center gap-2 px-3.5 rounded-md text-foreground hover:bg-muted/50 transition-colors text-sm font-medium"
-                    title="Create job"
-                  >
-                    <ClipboardPlus className="w-4 h-4 stroke-[1.8]" />
-                    <span className="leading-none">Create Job</span>
-                  </button>
-                  <button
-                    onClick={handleAppointmentClick}
-                    className="inline-flex h-9 items-center gap-2 px-3.5 rounded-md text-foreground hover:bg-muted/50 transition-colors text-sm font-medium"
-                    title="Schedule appointment"
+                    <button
+                      onClick={handleAppointmentClick}
+                      className="inline-flex h-9 items-center gap-2 px-3 rounded-md text-foreground hover:bg-slate-800 transition-colors text-sm font-medium"
+                      title="Schedule appointment"
                     >
                       <CalendarDays className="w-4 h-4 stroke-[1.8]" />
                       <span className="leading-none">Schedule</span>
-                  </button>
-                  <button
-                    onClick={() => setShowPaymentModal(true)}
-                    disabled={!business || getAvailableProviders(business).length === 0}
-                    className="inline-flex h-9 items-center gap-2 px-3.5 rounded-md text-foreground hover:bg-muted/50 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                    title={!business || getAvailableProviders(business).length === 0 ? 'Configure a payment method in Settings to request payments' : 'Request payment'}
-                  >
-                    <CreditCard className="w-4 h-4 stroke-[1.8]" />
-                    <span className="leading-none">Request Payment</span>
-                  </button>
+                    </button>
+                    <button
+                      onClick={() => setShowPaymentModal(true)}
+                      disabled={!business || getAvailableProviders(business).length === 0}
+                      className="inline-flex h-9 items-center gap-2 px-3 rounded-md text-foreground hover:bg-slate-800 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={!business || getAvailableProviders(business).length === 0 ? 'Configure a payment method in Settings to request payments' : 'Request payment'}
+                    >
+                      <CreditCard className="w-4 h-4 stroke-[1.8]" />
+                      <span className="leading-none">Pay</span>
+                    </button>
 
-                  {/* Desktop Overflow Button */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        type="button"
-                        className="h-9 w-9 inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
-                        aria-label="Conversation actions"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                        </svg>
-                      </button>
-                    </DropdownMenuTrigger>
+                  {/* Overflow */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          type="button"
+                          className="h-9 w-9 inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-slate-800 rounded-md transition-colors"
+                          aria-label="Conversation actions"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                          </svg>
+                        </button>
+                      </DropdownMenuTrigger>
                     <DropdownMenuPortal>
                       <DropdownMenuContent
                         align="end"
@@ -3753,10 +3756,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       </DropdownMenuContent>
                     </DropdownMenuPortal>
                   </DropdownMenu>
+                  </div>
                 </div>
               </div>
             </div>
-            </div>
+          </div>
 
             {successMessage && (
               <SuccessBanner
