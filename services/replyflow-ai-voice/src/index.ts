@@ -3973,7 +3973,16 @@ function buildCanonicalExtractedInfo(
   }
 
   // Combine serviceRequested and additionalDetails into request
-  const serviceRequested = sanitizeEnglishIntakeField('serviceRequested', fields.serviceRequested || '');
+  // Simple Mode captures to 'request' field, Regular Mode uses 'serviceRequested'
+  console.log('[CANONICAL REQUEST DIAGNOSTIC] =========================================');
+  console.log('[CANONICAL REQUEST DIAGNOSTIC] event: simple_mode_request_captured');
+  console.log('[CANONICAL REQUEST DIAGNOSTIC] serviceRequested present:', !!fields.serviceRequested);
+  console.log('[CANONICAL REQUEST DIAGNOSTIC] request present:', !!fields.request);
+  console.log('[CANONICAL REQUEST DIAGNOSTIC] serviceRequested length:', fields.serviceRequested?.length || 0);
+  console.log('[CANONICAL REQUEST DIAGNOSTIC] request length:', fields.request?.length || 0);
+  console.log('[CANONICAL REQUEST DIAGNOSTIC] =========================================');
+
+  const serviceRequested = sanitizeEnglishIntakeField('serviceRequested', fields.serviceRequested || fields.request || '');
   const additionalDetails = sanitizeEnglishIntakeField(
     'additionalDetails',
     fields.additionalDetails ||
@@ -3982,11 +3991,26 @@ function buildCanonicalExtractedInfo(
     ''
   );
 
+  console.log('[CANONICAL REQUEST DIAGNOSTIC] =========================================');
+  console.log('[CANONICAL REQUEST DIAGNOSTIC] event: simple_mode_request_normalized');
+  console.log('[CANONICAL REQUEST DIAGNOSTIC] serviceRequested after normalization length:', serviceRequested.length);
+  console.log('[CANONICAL REQUEST DIAGNOSTIC] additionalDetails length:', additionalDetails.length);
+  console.log('[CANONICAL REQUEST DIAGNOSTIC] =========================================');
+
   // Combine into request field, avoiding duplication
   let request = serviceRequested;
   if (additionalDetails && additionalDetails !== serviceRequested) {
     request = serviceRequested ? `${serviceRequested}. ${additionalDetails}` : additionalDetails;
   }
+
+  console.log('[CANONICAL REQUEST DIAGNOSTIC] =========================================');
+  console.log('[CANONICAL REQUEST DIAGNOSTIC] event: simple_mode_request_persisted');
+  console.log('[CANONICAL REQUEST DIAGNOSTIC] final request length:', request.length);
+  console.log('[CANONICAL REQUEST DIAGNOSTIC] request present:', !!request);
+  if (!request || request.length === 0) {
+    console.log('[CANONICAL REQUEST DIAGNOSTIC] event: simple_mode_request_missing');
+  }
+  console.log('[CANONICAL REQUEST DIAGNOSTIC] =========================================');
 
   return {
     customerName: sanitizeEnglishIntakeField('customerName', fields.customerName || ''),
@@ -8493,6 +8517,7 @@ Reply to this message if you'd like to update or add any information.
       console.log('[FINAL CANONICAL FIELDS] =========================================');
       console.log('[FINAL CANONICAL FIELDS] finalCanonicalCustomerName:', state.intakeData.customerName);
       console.log('[FINAL CANONICAL FIELDS] finalCanonicalServiceRequested:', state.intakeData.serviceRequested);
+      console.log('[FINAL CANONICAL FIELDS] finalCanonicalRequest:', state.intakeData.request);
       console.log('[FINAL CANONICAL FIELDS] Timestamp:', new Date().toISOString());
       console.log('[FINAL CANONICAL FIELDS] =========================================');
       state.intakeData.issueDescription    = normalizeCrmField(state.intakeData.issueDescription,     'details', 'issueDescription');
@@ -8501,6 +8526,7 @@ Reply to this message if you'd like to update or add any information.
       console.log('[CRM NORMALIZATION OUTPUT]', {
         customerName:        state.intakeData.customerName,
         serviceRequested:    state.intakeData.serviceRequested,
+        request:             state.intakeData.request,
         serviceAddress:      state.intakeData.serviceAddress,
         desiredCompletionTime: state.intakeData.desiredCompletionTime,
         callbackTime:        state.intakeData.callbackTime,
