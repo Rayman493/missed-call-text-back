@@ -71,6 +71,11 @@ import { OPENAI_REALTIME_MODEL, createOpenAIRealtimeUrl } from './realtime-model
 import { logModelConfiguration } from './model-config';
 import { buildAiMessagePayload } from './lib/ai-message-builder';
 import { persistAiCallConversationMessages } from './lib/persist-ai-messages';
+import {
+  getStageSilenceMs,
+  getSettleWindowMs,
+  requiresSettleWindow,
+} from './lib/timing-policy';
 
 // @ts-nocheck
 // TypeScript checking disabled to allow deployment with improved Supabase logging
@@ -6065,6 +6070,18 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       settleWindowEnd: 0,
       nextPromptSent: 0
     } as Record<string, number>,
+    // Per-turn timing for end-to-end latency measurement
+    turnTiming: {
+      speechStartedAt: 0,
+      speechEndedAt: 0,
+      transcriptFinalAt: 0,
+      responseAcceptedAt: 0,
+      stageAdvancedAt: 0,
+      promptScheduledAt: 0,
+      firstAudioChunkAt: 0,
+      fromStage: null as string | null,
+      toStage: null as string | null,
+    } as any,
     // One-time VAD grace for settle finalization (ask_request only)
     settleGraceTimeout: null as NodeJS.Timeout | null,
     settleGraceGeneration: 0,
@@ -9113,34 +9130,49 @@ Reply to this message if you'd like to update or add any information.
     }
   };
 
-  // Helper to map intake stages to silence duration
-  // SHORT_RESPONSE (900ms): For quick answers like Name and Reason for Calling
-  // LONG_RESPONSE (1800ms): For multi-word answers like Address, Phone, Email, Appointment, Timeline
-  // REQUEST_RESPONSE (1400ms): Optimized for Request stage for better responsiveness
-  const getSilenceDurationForStage = (stage: string): number => {
-    const shortResponseStages = ['ask_name_reason', 'ask_name_reason_service_only', 'ask_name_reason_name_only'];
-    const isShortResponse = shortResponseStages.includes(stage);
-    const isRequestStage = stage === 'ask_request';
-    
-    if (isShortResponse) {
-      return 900;
-    } else if (isRequestStage) {
-      return 1400; // Stage-specific optimization for ask_request
-    } else {
-      return 1800; // Default LONG_RESPONSE for all other stages
-    }
+  // Log end-to-end latency for one intake turn
+  const logTurnTiming = (toStage: string) => {
+    const t = state.turnTiming;
+    if (!t || !t.fromStage || !t.speechEndedAt || !t.firstAudioChunkAt) return;
+
+    const speechToTranscriptMs = t.transcriptFinalAt ? t.transcriptFinalAt - t.speechEndedAt : null;
+    const transcriptToAcceptedMs = t.responseAcceptedAt && t.transcriptFinalAt ? t.responseAcceptedAt - t.transcriptFinalAt : null;
+    const acceptedToAdvanceMs = t.stageAdvancedAt && t.responseAcceptedAt ? t.stageAdvancedAt - t.responseAcceptedAt : null;
+    const advanceToPromptMs = t.promptScheduledAt && t.stageAdvancedAt ? t.promptScheduledAt - t.stageAdvancedAt : null;
+    const promptToFirstAudioMs = t.firstAudioChunkAt && t.promptScheduledAt ? t.firstAudioChunkAt - t.promptScheduledAt : null;
+    const totalMs = t.firstAudioChunkAt - t.speechEndedAt;
+
+    console.log('[TURN TIMING] =========================================');
+    console.log('[TURN TIMING] callSid:', state.callSid);
+    console.log('[TURN TIMING] fromStage:', t.fromStage);
+    console.log('[TURN TIMING] toStage:', toStage);
+    console.log('[TURN TIMING] speechEndedAt:', t.speechEndedAt);
+    console.log('[TURN TIMING] transcriptFinalAt:', t.transcriptFinalAt);
+    console.log('[TURN TIMING] responseAcceptedAt:', t.responseAcceptedAt);
+    console.log('[TURN TIMING] stageAdvancedAt:', t.stageAdvancedAt);
+    console.log('[TURN TIMING] promptScheduledAt:', t.promptScheduledAt);
+    console.log('[TURN TIMING] firstAudioChunkAt:', t.firstAudioChunkAt);
+    console.log('[TURN TIMING] speechToTranscriptMs:', speechToTranscriptMs);
+    console.log('[TURN TIMING] transcriptToAcceptedMs:', transcriptToAcceptedMs);
+    console.log('[TURN TIMING] acceptedToAdvanceMs:', acceptedToAdvanceMs);
+    console.log('[TURN TIMING] advanceToPromptMs:', advanceToPromptMs);
+    console.log('[TURN TIMING] promptToFirstAudioMs:', promptToFirstAudioMs);
+    console.log('[TURN TIMING] totalMs:', totalMs);
+    console.log('[TURN TIMING] timestamp:', new Date().toISOString());
+    console.log('[TURN TIMING] =========================================');
   };
 
   // Helper to send prompt using cached PCMU audio or Realtime response.create
   const sendPrompt = async (stage: string, promptKeyOverride?: string, source?: string, turnId?: number, deliveryAttempt?: number) => {
     const authorizedAt = Date.now();
+    state.turnTiming.promptScheduledAt = authorizedAt;
     
     // Update silence duration based on stage before sending prompt
-    const silenceDurationMs = getSilenceDurationForStage(stage);
+    const silenceDurationMs = getStageSilenceMs(stage);
     console.log('[STAGE-SPECIFIC TIMING] =========================================');
     console.log('[STAGE-SPECIFIC TIMING] stage:', stage);
     console.log('[STAGE-SPECIFIC TIMING] silenceDurationMs:', silenceDurationMs);
-    console.log('[STAGE-SPECIFIC TIMING] timingType:', silenceDurationMs === 900 ? 'SHORT_RESPONSE' : 'LONG_RESPONSE');
+    console.log('[STAGE-SPECIFIC TIMING] timingType:', stage === 'ask_name' ? 'NAME_RESPONSE' : stage === 'ask_request' ? 'REQUEST_RESPONSE' : 'LONG_RESPONSE');
     console.log('[STAGE-SPECIFIC TIMING] Timestamp:', new Date().toISOString());
     console.log('[STAGE-SPECIFIC TIMING] =========================================');
     
@@ -9531,6 +9563,7 @@ Reply to this message if you'd like to update or add any information.
           // Prompt audio lifecycle logging - track first chunk send
           if (i === 0) {
             const firstChunkAt = Date.now();
+            state.turnTiming.firstAudioChunkAt = firstChunkAt;
             authorizationDelayMs = firstChunkAt - authorizedAt;
             
             console.log('[PROMPT AUDIO LIFECYCLE] =========================================');
@@ -9547,6 +9580,8 @@ Reply to this message if you'd like to update or add any information.
             console.log('[PROMPT AUDIO LIFECYCLE] answerAcceptedForStage:', state.answerAcceptedForStage);
             console.log('[PROMPT AUDIO LIFECYCLE] timestamp:', new Date().toISOString());
             console.log('[PROMPT AUDIO LIFECYCLE] =========================================');
+
+            logTurnTiming(stage);
           }
           
           // Pre-media-send validation: check if stage has changed since authorization
@@ -9644,6 +9679,8 @@ Reply to this message if you'd like to update or add any information.
             console.log('[PROMPT AUDIO LIFECYCLE] answerAcceptedForStage:', state.answerAcceptedForStage);
             console.log('[PROMPT AUDIO LIFECYCLE] timestamp:', new Date().toISOString());
             console.log('[PROMPT AUDIO LIFECYCLE] =========================================');
+
+            logTurnTiming(stage);
           }
           
           // Send at real-time rate (20ms chunks)
@@ -10372,6 +10409,7 @@ Reply to this message if you'd like to update or add any information.
             console.log('[AUDIO PIPELINE] =========================================');
             state.inSpeechSegment = true;
             state.audioAppendBlockedLogged = false;
+            state.turnTiming = { speechStartedAt: speechStartedAt };
             
             // TRANSCRIPTION WATCHDOG: Start watchdog when speech begins
             // This detects if OpenAI never returns a transcription after speech
@@ -10464,6 +10502,7 @@ Reply to this message if you'd like to update or add any information.
             console.log('[AUDIO PIPELINE] =========================================');
             state.inSpeechSegment = false;
             state.lastSpeechStoppedAt = speechStoppedAt;
+            state.turnTiming.speechEndedAt = speechStoppedAt;
           } else if (message.type === 'input_audio_buffer.committed') {
             console.log('[AUDIO PIPELINE] =========================================');
             console.log('[AUDIO PIPELINE] event: input_audio_buffer.committed');
@@ -10890,6 +10929,7 @@ Reply to this message if you'd like to update or add any information.
           if (message.type === 'conversation.item.input_audio_transcription.completed') {
             // User transcription completed
             const transcriptionCompletedAt = Date.now();
+            state.turnTiming.transcriptFinalAt = transcriptionCompletedAt;
             const transcript = message.transcript || '';
             const transcriptionGeneration = state.speechStartedTurnId === state.currentTurnId ? state.speechGeneration : state.pendingTranscriptionGeneration;
             
@@ -11044,6 +11084,8 @@ Reply to this message if you'd like to update or add any information.
                 console.log('[ANSWER VALIDATION] Timestamp:', new Date().toISOString());
                 console.log('[ANSWER VALIDATION] =========================================');
                 
+                state.turnTiming.responseAcceptedAt = Date.now();
+                
                 // Clear continuation tracking since we got a valid answer
                 if (state.waitingForContinuation) {
                   state.waitingForContinuation = false;
@@ -11071,13 +11113,12 @@ Reply to this message if you'd like to update or add any information.
                 const newerSpeechExists = state.speechGeneration > transcriptionGeneration;
                 
                 // Determine if this stage requires a settle window (either intrinsic or due to continuation)
-                const stagesWithIntrinsicSettleWindow = ['ask_name', 'ask_request', 'ask_name_reason'];
-                const hasIntrinsicSettleWindow = stagesWithIntrinsicSettleWindow.includes(originatingStage);
+                const needsSettleWindow = requiresSettleWindow(originatingStage);
                 const hasContinuation = sameTurnSpeechActive || newerSpeechExists || speechOngoingNoStop;
-                const requiresSettleWindow = hasIntrinsicSettleWindow || (hasContinuation && originatingStage === state.currentStage);
+                const stageNeedsSettle = needsSettleWindow || (hasContinuation && originatingStage === state.currentStage);
                 
                 // Log continuation detection
-                if (hasContinuation && !hasIntrinsicSettleWindow) {
+                if (hasContinuation && !needsSettleWindow) {
                   console.log('[CONTINUATION SPEECH DETECTED] =========================================');
                   console.log('[CONTINUATION SPEECH DETECTED] callSid:', state.callSid);
                   console.log('[CONTINUATION SPEECH DETECTED] originatingStage:', originatingStage);
@@ -11093,8 +11134,8 @@ Reply to this message if you'd like to update or add any information.
                 }
                 
                 // Settle window for long natural answers (ask_request, ask_name_reason) OR continuation speech
-                // Uses the generalized requiresSettleWindow variable computed above
-                if (requiresSettleWindow && originatingStage === state.currentStage) {
+                // Uses the generalized stageNeedsSettle variable computed above
+                if (stageNeedsSettle && originatingStage === state.currentStage) {
                   // Defensive reset: if pending state belongs to a different stage/turn, clear it first
                   if (state.pendingAnswerStage && 
                       (state.pendingAnswerStage !== originatingStage || state.pendingAnswerTurnId !== originatingTurnId)) {
@@ -11175,15 +11216,8 @@ Reply to this message if you'd like to update or add any information.
                   const accumulatedAnswer = state.pendingAnswerSegments.join(' ');
                   const segmentCount = state.pendingAnswerSegments.length;
                   
-                  // Determine settle window duration based on whether this is intrinsic or continuation
-                  // Intrinsic: ask_request: 1500ms (reduced from 2500ms for better responsiveness), ask_name_reason: 1500ms
-                  // Continuation: 1500ms for all stages
-                  let settleWindowMs: number;
-                  if (hasIntrinsicSettleWindow) {
-                    settleWindowMs = 1500; // Unified 1500ms for both ask_request and ask_name_reason
-                  } else {
-                    settleWindowMs = 1500; // Continuation settle window for non-intrinsic stages
-                  }
+                  // Determine settle window duration from the stage-specific timing policy
+                  const settleWindowMs = getSettleWindowMs(originatingStage);
                   const settleStartedAt = Date.now();
                   const settleDeadlineAt = settleStartedAt + settleWindowMs;
                   
@@ -11788,6 +11822,9 @@ Reply to this message if you'd like to update or add any information.
                 }
                 
                 state.currentStage = nextStage;
+                state.turnTiming.stageAdvancedAt = Date.now();
+                state.turnTiming.fromStage = previousStage;
+                state.turnTiming.toStage = nextStage;
                 
                 console.log('[STAGE TRANSITION] =========================================');
                 console.log('[STAGE TRANSITION] event: stage_advanced');
