@@ -3325,9 +3325,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Premium Two-Column Header */}
-            <div className="flex items-start gap-6">
+            <div className="flex items-start gap-7">
               {/* LEFT: Avatar and Customer Info */}
-              <div className="flex items-start gap-5 min-w-0 flex-1">
+              <div className="flex items-start gap-6 min-w-0 flex-1">
                 {/* Customer Avatar */}
                 <div className="flex-shrink-0">
                   {lead?.photo_url ? (
@@ -3351,14 +3351,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </div>
 
                 {/* Customer Info */}
-                <div className="min-w-0 flex-1 pt-2">
-                  <h1 className="text-2xl font-semibold text-foreground tracking-tight mb-2.5 leading-tight">
+                <div className="min-w-0 flex-1 pt-3">
+                  <h1 className="text-2xl font-semibold text-foreground tracking-tight mb-3 leading-tight">
                     {getLeadDisplayName(leadData || lead)}
                   </h1>
-                  <p className="text-sm text-muted-foreground mb-4 font-normal">
+                  <p className="text-sm text-muted-foreground mb-5 font-normal">
                     {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
                   </p>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground/60">
                     <span>Customer since {formatRelativeTime(lead?.created_at)}</span>
                     <span className="text-border/30">•</span>
                     <span>{messagesArray.length} message{messagesArray.length !== 1 ? 's' : ''}</span>
@@ -3367,7 +3367,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
 
               {/* RIGHT: Status and Actions */}
-              <div className="flex flex-col items-end gap-4 flex-shrink-0 pt-2">
+              <div className="flex flex-col items-end gap-4 flex-shrink-0 pt-3">
                 {/* Status Pill */}
                 <div className="flex-shrink-0">
                   <LeadStatusDropdown
@@ -3603,16 +3603,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         {!isMobileView && (
           <div className="grid grid-cols-[minmax(0,1fr)_minmax(360px,400px)] gap-8 items-start">
             {/* Desktop Conversation Section - Primary workspace */}
-            <section className="flex flex-col min-h-0 h-[calc(100vh-260px)] bg-background rounded-2xl border border-border/40 shadow-sm">
+            <section className="flex flex-col min-h-0 h-[calc(100vh-260px)] bg-background rounded-2xl border border-border/40 shadow-sm overflow-hidden">
               {/* Desktop Conversation Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-border/30 bg-muted/50 rounded-t-2xl">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-border/30 bg-muted/50">
                 <div className="flex items-center gap-2">
                   <h2 className="text-sm font-semibold text-foreground">Conversation</h2>
                 </div>
               </div>
               
               {/* Desktop Message Thread - Scrollable */}
-              <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-6 py-5 min-h-0" style={{ minHeight: '200px' }}>
+              <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-6 py-5 min-h-0 bg-muted/20" style={{ minHeight: '200px' }}>
                 {loading ? (
                   <div className="flex items-center justify-center py-12">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
@@ -3687,7 +3687,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <div className="space-y-4">
                   {/* AI Intake Summary - Hero Card */}
                   {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
-                    <div className="bg-muted/50 rounded-xl border border-border/40 p-4 shadow-md">
+                    <div className="bg-muted/60 rounded-xl border border-border/50 shadow-lg relative overflow-hidden">
                       <AICallDetails
                         leadId={params.id}
                         businessId={business.id}
@@ -3702,13 +3702,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
                   {/* Customer Summary - Hero Card */}
                   {!(leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id) && (
-                    <div className="bg-muted/50 rounded-xl border border-border/40 p-4 shadow-md">
+                    <div className="bg-muted/60 rounded-xl border border-border/50 shadow-lg relative overflow-hidden">
                       <VoicemailSummary leadData={leadData} />
                     </div>
                   )}
 
                   {/* Activity Timeline - Secondary Card */}
-                  <div className="bg-muted/30 rounded-xl border border-border/25 p-4 shadow-sm">
+                  <div className="bg-muted/25 rounded-xl border border-border/20 p-4 shadow-sm">
                     <button
                       onClick={() => setCollapsedSections((prev: any) => ({ ...prev, activityTimeline: !prev.activityTimeline }))}
                       className="flex items-center justify-between w-full mb-3 group"
@@ -3723,7 +3723,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </div>
 
                   {/* Customer Status - Secondary Card */}
-                  <div className="bg-muted/30 rounded-xl border border-border/25 p-4 shadow-sm">
+                  <div className="bg-muted/25 rounded-xl border border-border/20 p-4 shadow-sm">
                     <h3 className="text-xs font-semibold text-muted-foreground/80 mb-3 uppercase tracking-wide">Status</h3>
                     <div className="space-y-2.5">
                       <div className="flex items-center justify-between">
@@ -3780,7 +3780,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </div>
 
                   {/* Jobs - Secondary Card */}
-                  <div className="bg-muted/30 rounded-xl border border-border/25 p-4 shadow-sm">
+                  <div className="bg-muted/25 rounded-xl border border-border/20 p-4 shadow-sm">
                     <button
                       onClick={() => setCollapsedSections((prev: any) => ({ ...prev, jobs: !prev.jobs }))}
                       className="flex items-center justify-between w-full mb-3 group"
@@ -3794,7 +3794,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <div className="transition-all duration-200">
                         {leadJobs.length === 0 ? (
                           <div className="text-center py-6">
-                            <p className="text-sm text-muted-foreground mb-3">No jobs yet</p>
+                            <p className="text-sm text-muted-foreground mb-3">No jobs have been created yet.</p>
+                            <div className="text-xs text-muted-foreground/70 mb-4 space-y-1">
+                              <p>Create a job to:</p>
+                              <p>• schedule work</p>
+                              <p>• track progress</p>
+                              <p>• request payment</p>
+                            </div>
                             <button
                               onClick={handleCreateJobClick}
                               className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors"
@@ -3836,7 +3842,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </div>
 
                   {/* Payments - Secondary Card */}
-                  <div className="bg-muted/30 rounded-xl border border-border/25 p-4 shadow-sm">
+                  <div className="bg-muted/25 rounded-xl border border-border/20 p-4 shadow-sm">
                     <button
                       onClick={() => setCollapsedSections((prev: any) => ({ ...prev, payments: !prev.payments }))}
                       className="flex items-center justify-between w-full mb-3 group"
@@ -3850,7 +3856,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <div className="transition-all duration-200">
                         {paymentRequests.length === 0 ? (
                           <div className="text-center py-6">
-                            <p className="text-sm text-muted-foreground mb-3">No payment requests</p>
+                            <p className="text-sm text-muted-foreground mb-3">No payment requests yet.</p>
+                            <div className="text-xs text-muted-foreground/70 mb-4">
+                              <p>Once work is scheduled you can request payment here.</p>
+                            </div>
                             <button
                               onClick={() => setShowPaymentModal(true)}
                               disabled={!business || getAvailableProviders(business).length === 0}
@@ -3888,7 +3897,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </div>
 
                   {/* Internal Notes - Secondary Card */}
-                  <div className="bg-muted/30 rounded-xl border border-border/25 p-4 shadow-sm">
+                  <div className="bg-muted/25 rounded-xl border border-border/20 p-4 shadow-sm">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-1">
@@ -3901,7 +3910,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           </div>
                         ) : (
                           <div className="mt-2 text-xs text-muted-foreground/70">
-                            No notes yet
+                            Private notes only visible to your business.
                           </div>
                         )}
                       </div>
@@ -3919,7 +3928,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
                   {/* Photos Received - Secondary Card */}
                   {Object.keys(messageMedia).length > 0 && (
-                    <div className="bg-muted/30 rounded-xl border border-border/25 p-4 shadow-sm">
+                    <div className="bg-muted/25 rounded-xl border border-border/20 p-4 shadow-sm">
                       <h3 className="text-xs font-semibold text-muted-foreground/80 mb-3 uppercase tracking-wide">Photos</h3>
                       <div className="grid grid-cols-2 gap-2">
                         {Object.entries(messageMedia).slice(0, showAllPhotos ? undefined : 4).map(([messageId, media]: [string, any]) => (

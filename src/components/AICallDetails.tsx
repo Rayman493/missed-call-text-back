@@ -494,23 +494,25 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
     <div className="space-y-4">
       {/* AI Summary Card - Compact and Collapsible - Current Request */}
       {collapsible ? (
-        <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
-          <div className="px-5 py-4 flex items-center justify-between border-b border-border/50">
+        <div className="bg-muted/60 rounded-xl border border-border/50 shadow-lg overflow-hidden relative">
+          {/* Left Accent */}
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-l-xl"></div>
+          <div className="px-5 py-5 flex items-center justify-between border-b border-border/40 pl-6">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setSummaryExpanded(!summaryExpanded)}
                 className="flex items-center gap-2.5 hover:bg-muted/50 transition-colors duration-200"
               >
-                <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                  <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shadow-sm">
+                  <svg className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-sm font-semibold text-foreground leading-tight">
+                  <span className="text-base font-semibold text-foreground leading-tight">
                     AI Intake
                   </span>
-                  <span className="text-[10px] text-foreground/70 font-normal leading-tight">
+                  <span className="text-[11px] text-foreground/80 font-normal leading-tight">
                     Captured from AI Voice
                   </span>
                 </div>
@@ -561,7 +563,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           </div>
           
           {summaryExpanded && (
-            <div className="px-5 pb-5 pt-3">
+            <div className="px-6 pb-6 pt-4 pl-7">
               {/* Save error */}
               {saveError && (
                 <div className="mb-3 px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-xs text-red-600 dark:text-red-400">
@@ -577,18 +579,20 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
       ) : (
         <div className="space-y-4">
           {/* Card Header */}
-          <div className="flex items-center justify-between border-b border-border/50 pb-3">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-center justify-between border-b border-border/40 pb-4 relative">
+            {/* Left Accent */}
+            <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-t-xl"></div>
+            <div className="flex items-center gap-3 pl-6">
+              <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shadow-sm">
+                <svg className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-semibold text-foreground leading-tight">
+                <span className="text-base font-semibold text-foreground leading-tight">
                   AI Intake
                 </span>
-                <span className="text-[10px] text-muted-foreground font-normal leading-tight">
+                <span className="text-[11px] text-foreground/80 font-normal leading-tight">
                   Captured from AI Voice
                 </span>
               </div>
