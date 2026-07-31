@@ -179,8 +179,8 @@ export default function SettingsContent() {
   // Dynamic scroll offset based on actual sticky navigation height
   const [scrollOffset, setScrollOffset] = useState(64)
   
-  // Breathing room gap between sticky nav and section divider (ensures title is fully visible)
-  const BREATHING_ROOM_GAP = 24
+  // Breathing room gap between sticky nav and section divider (ensures title is fully visible with comfortable separation)
+  const BREATHING_ROOM_GAP = 32
   
   // Measure actual sticky navigation height for accurate scroll offset
   useEffect(() => {
