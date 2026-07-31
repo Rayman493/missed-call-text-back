@@ -3,4 +3,5 @@ dist
 .env
 .env.local
 *.log
+fly-logs.txt
 .DS_Store
