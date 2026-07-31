@@ -209,12 +209,12 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
   // Unified intake field rendering for both desktop and mobile
   const renderIntakeFields = () => {
     return (
-      <div className="space-y-4">
+      <div className="space-y-5">
         {/* Name */}
         {isEditMode || extractedInfo?.callerName ? (
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-semibold text-muted-foreground/90 uppercase tracking-wider">Name</span>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Name</span>
               {manualFields.has('callerName') && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
               )}
@@ -224,7 +224,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 type="text"
                 value={editValues.callerName}
                 onChange={(e) => setEditValues({ ...editValues, callerName: e.target.value })}
-                className="w-full px-2 py-1.5 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full px-2.5 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
                 placeholder="Customer name"
               />
             ) : (
@@ -238,8 +238,8 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
         {/* Request - Combined field */}
         {isEditMode || extractedInfo?.reasonForCalling || extractedInfo?.importantDetails || correctedFields?.details ? (
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-semibold text-muted-foreground/90 uppercase tracking-wider">Request</span>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Request</span>
               {(manualFields.has('reasonForCalling') || manualFields.has('importantDetails')) && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
               )}
@@ -265,7 +265,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                     importantDetails: parts.slice(1).join('\n\n') || ''
                   });
                 }}
-                className="w-full min-h-[120px] px-2 py-1.5 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
+                className="w-full min-h-[120px] px-2.5 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
                 rows={5}
                 placeholder="What can we help you with? Feel free to include any details."
               />
@@ -292,8 +292,8 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
         {/* Address - only show for onsite mode or if address is provided */}
         {isEditMode || (requiresServiceAddress && (extractedInfo?.addressOrLocation || correctedFields?.address)) ? (
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-semibold text-muted-foreground/90 uppercase tracking-wider">Address</span>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Address</span>
               {manualFields.has('addressOrLocation') && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
               )}
@@ -302,7 +302,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               <textarea
                 value={editValues.addressOrLocation}
                 onChange={(e) => setEditValues({ ...editValues, addressOrLocation: e.target.value })}
-                className="w-full min-h-[48px] px-2 py-1.5 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
+                className="w-full min-h-[48px] px-2.5 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
                 rows={2}
                 placeholder="Service address"
               />
@@ -317,8 +317,8 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
         {/* Completion Time */}
         {isEditMode || extractedInfo?.desiredCompletionTime ? (
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-semibold text-muted-foreground/90 uppercase tracking-wider">Completion Time</span>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Completion Time</span>
               {manualFields.has('desiredCompletionTime') && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
               )}
@@ -327,7 +327,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               <textarea
                 value={editValues.desiredCompletionTime}
                 onChange={(e) => setEditValues({ ...editValues, desiredCompletionTime: e.target.value })}
-                className="w-full min-h-[48px] px-2 py-1.5 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
+                className="w-full min-h-[48px] px-2.5 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
                 rows={2}
                 placeholder="Desired completion"
               />
@@ -342,8 +342,8 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
         {/* Callback Time */}
         {isEditMode || extractedInfo?.preferredCallbackTime ? (
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-semibold text-muted-foreground/90 uppercase tracking-wider">Callback Time</span>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">Callback Time</span>
               {manualFields.has('preferredCallbackTime') && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
               )}
@@ -352,7 +352,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               <textarea
                 value={editValues.preferredCallbackTime}
                 onChange={(e) => setEditValues({ ...editValues, preferredCallbackTime: e.target.value })}
-                className="w-full min-h-[48px] px-2 py-1.5 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
+                className="w-full min-h-[48px] px-2.5 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
                 rows={2}
                 placeholder="Best time to call"
               />
@@ -497,22 +497,22 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
         <div className="bg-muted/70 rounded-xl border border-border/60 shadow-xl overflow-hidden relative">
           {/* Left Accent - Inset to align with content */}
           <div className="absolute left-4 top-5 bottom-5 w-1 bg-blue-500 rounded-l-xl"></div>
-          <div className="px-5 py-5 flex items-center justify-between border-b border-border/50 pl-7">
-            <div className="flex items-center gap-3">
+          <div className="px-6 py-5 flex items-center justify-between border-b border-border/40 pl-8">
+            <div className="flex items-center gap-4">
               <button
                 onClick={() => setSummaryExpanded(!summaryExpanded)}
-                className="flex items-center gap-2.5 hover:bg-muted/50 transition-colors duration-200"
+                className="flex items-center gap-3 hover:bg-muted/50 transition-colors duration-200"
               >
-                <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shadow-sm">
-                  <svg className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shadow-sm">
+                  <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <div className="flex flex-col">
+                <div className="flex flex-col gap-0.5">
                   <span className="text-base font-semibold text-foreground leading-tight">
                     AI Intake
                   </span>
-                  <span className="text-[11px] text-foreground/80 font-normal leading-tight">
+                  <span className="text-[11px] text-muted-foreground font-normal leading-tight">
                     Captured from AI Voice
                   </span>
                 </div>
@@ -563,7 +563,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           </div>
           
           {summaryExpanded && (
-            <div className="px-6 pb-6 pt-4 pl-7">
+            <div className="px-7 pb-6 pt-5 pr-7">
               {/* Save error */}
               {saveError && (
                 <div className="mb-3 px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-xs text-red-600 dark:text-red-400">
@@ -579,20 +579,20 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
       ) : (
         <div className="space-y-4">
           {/* Card Header */}
-          <div className="flex items-center justify-between border-b border-border/50 pb-5 relative">
+          <div className="flex items-center justify-between border-b border-border/40 pb-5 relative">
             {/* Left Accent - Inset to align with content */}
             <div className="absolute left-4 top-0 bottom-0 w-1 bg-blue-500 rounded-t-xl"></div>
-            <div className="flex items-center gap-3 pl-7">
-              <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shadow-sm">
-                <svg className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="flex items-center gap-4 pl-8">
+              <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shadow-sm">
+                <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <div className="flex flex-col">
+              <div className="flex flex-col gap-0.5">
                 <span className="text-base font-semibold text-foreground leading-tight">
                   AI Intake
                 </span>
-                <span className="text-[11px] text-foreground/80 font-normal leading-tight">
+                <span className="text-[11px] text-muted-foreground font-normal leading-tight">
                   Captured from AI Voice
                 </span>
               </div>
@@ -656,13 +656,13 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
       {/* Full AI Conversation Transcript - Collapsible */}
       {selectedRecord?.transcript && selectedRecord.transcript.length > 0 && (
-        <div className="bg-card border border-border/50 rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-card/50 border border-border/30 rounded-xl shadow-sm overflow-hidden">
           <button
             onClick={() => setFullTranscriptExpanded(!fullTranscriptExpanded)}
-            className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
+            className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-muted/40 transition-colors"
           >
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800/50 flex items-center justify-center">
                 <MessageCircle className="w-4 h-4 text-slate-600 dark:text-slate-400" />
               </div>
               <span className="text-sm font-semibold text-foreground">
@@ -718,12 +718,12 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
       )}
 
       {/* AI Summary - Collapsible */}
-      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-card/50 border border-border/30 rounded-xl shadow-sm overflow-hidden">
         <button
           onClick={() => setAiSummaryExpanded(!aiSummaryExpanded)}
-          className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
+          className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-muted/40 transition-colors"
         >
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
               <Sparkles className="w-4 h-4 text-white" />
             </div>

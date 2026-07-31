@@ -3773,7 +3773,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <div className="space-y-4">
                   {/* AI Intake Summary - Hero Card */}
                   {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
-                    <div className="bg-muted/70 rounded-xl border border-border/60 shadow-xl relative overflow-hidden">
+                    <div className="bg-muted/60 rounded-xl border border-border/50 shadow-lg relative overflow-hidden pr-1">
                       <AICallDetails
                         leadId={params.id}
                         businessId={business.id}
