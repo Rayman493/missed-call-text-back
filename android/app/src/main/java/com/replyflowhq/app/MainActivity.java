@@ -66,6 +66,10 @@ public class MainActivity extends BridgeActivity {
         // Get the Capacitor WebView (used for offline overlay parent)
         webView = getBridge().getWebView();
 
+        // Start hidden so the default WebView error page is never visible.
+        // We decide below whether to show the WebView or the offline overlay.
+        webView.setVisibility(View.GONE);
+
         // Attach a BridgeWebViewClient to observe page lifecycle and mark successful initialization
         webView.setWebViewClient(new BridgeWebViewClient(getBridge()) {
             @Override
@@ -84,6 +88,12 @@ public class MainActivity extends BridgeActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
+                if (isWaitingForNetwork) {
+                    // Waiting for real connectivity; onPageFinished for about:blank or a
+                    // failed load must not clear the offline overlay.
+                    Log.d(TAG, "onPageFinished: waiting for network, not marking loaded");
+                    return;
+                }
                 boolean wasLoaded = hasLoadedSuccessfully;
                 hasLoadedSuccessfully = true;
                 try {
@@ -101,6 +111,17 @@ public class MainActivity extends BridgeActivity {
             public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
                 super.onReceivedError(view, errorCode, description, failingUrl);
                 Log.d(TAG, "onReceivedError(legacy): code=" + errorCode + ", mainFrame=unknown");
+
+                // Suppress the default Android WebView error page by blanking the view
+                // and showing the existing ReplyFlow offline overlay.
+                isWaitingForNetwork = true;
+                showOfflineScreen("web_view_error");
+                if (offlineView != null && offlineView.getVisibility() == View.VISIBLE) {
+                    view.stopLoading();
+                    view.loadUrl("about:blank");
+                } else {
+                    isWaitingForNetwork = false;
+                }
             }
 
             @Override
@@ -109,6 +130,19 @@ public class MainActivity extends BridgeActivity {
                 boolean isMainFrame = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && request != null && request.isForMainFrame();
                 int code = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && error != null ? error.getErrorCode() : -1;
                 Log.d(TAG, "onReceivedError: code=" + code + ", mainFrame=" + isMainFrame);
+
+                if (isMainFrame) {
+                    // Suppress the default Android WebView error page by blanking the view
+                    // and showing the existing ReplyFlow offline overlay.
+                    isWaitingForNetwork = true;
+                    showOfflineScreen("web_view_error");
+                    if (offlineView != null && offlineView.getVisibility() == View.VISIBLE) {
+                        view.stopLoading();
+                        view.loadUrl("about:blank");
+                    } else {
+                        isWaitingForNetwork = false;
+                    }
+                }
             }
         });
 
@@ -123,6 +157,14 @@ public class MainActivity extends BridgeActivity {
             showOfflineScreen("cold_start_no_network");
             isWaitingForNetwork = true;
             launchedInOfflineState = true;
+
+            // Stop the initial failed load and blank the WebView so the
+            // default Android error page is never rendered.
+            webView.stopLoading();
+            webView.loadUrl("about:blank");
+        } else {
+            // Network is available; make the WebView visible and let it load normally.
+            webView.setVisibility(View.VISIBLE);
         }
 
         // Set up network callback to detect connectivity changes
