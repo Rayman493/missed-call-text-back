@@ -4039,6 +4039,7 @@ function isAIIntakeComplete(extractedFields: any): boolean {
 
   // Require ALL 5 fields individually (no OR logic)
   // Use canonical resolution for request: serviceRequested || request || issueDescription
+  // Note: issueDescription is canonically resolved into serviceRequested by buildCanonicalExtractedInfo
   const hasName = !!extractedFields.customerName;
   const hasRequest = !!extractedFields.serviceRequested || !!extractedFields.request || !!extractedFields.issueDescription;
   const hasLocation = !!extractedFields.serviceAddress;
@@ -13415,12 +13416,12 @@ Return only JSON, no other text.`;
 
         const hasCustomerName = Boolean(normalizedFields.customerName || normalizedFields.callerName);
         const hasServiceRequested = Boolean(normalizedFields.serviceRequested || normalizedFields.reasonForCalling);
-        const hasIssueDescription = Boolean(normalizedFields.issueDescription || normalizedFields.importantDetails);
         const hasServiceAddress = Boolean(normalizedFields.serviceAddress || normalizedFields.addressOrLocation);
         const hasDesiredCompletionTime = Boolean(normalizedFields.desiredCompletionTime);
         const hasCallbackTime = Boolean(normalizedFields.callbackTime || normalizedFields.preferredCallbackTime);
         const locationSatisfied = serviceLocationMode === 'onsite' ? hasServiceAddress : true;
-        const intakeComplete = hasCustomerName && hasServiceRequested && hasIssueDescription && locationSatisfied && hasDesiredCompletionTime && hasCallbackTime;
+        // Note: issueDescription is canonically resolved into serviceRequested by buildCanonicalExtractedInfo
+        const intakeComplete = hasCustomerName && hasServiceRequested && locationSatisfied && hasDesiredCompletionTime && hasCallbackTime;
         
         const hasUserSpeech = transcript.some((entry: any) => entry.role === 'user' && entry.text && entry.text.trim().length > 0);
         const hasUsefulFields = !!(
