@@ -4144,6 +4144,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </div>
           </div>
 
+          {/* Customer Summary - Hero Card for non-AI-intake customers */}
+          {!(leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id) && (
+            <VoicemailSummary leadData={leadData} />
+          )}
+
           {/* Collapsible Sections - Below conversation */}
           {/* AI Intake - Collapsible */}
           {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
