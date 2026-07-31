@@ -10,6 +10,17 @@ export async function GET(request: NextRequest) {
     const filePath = searchParams.get('path')
     const authToken = searchParams.get('token')
 
+    console.log('[MMS Media Serve] Request received:', {
+      pathPresent: !!filePath,
+      pathLength: filePath?.length,
+      pathPreview: filePath ? filePath.substring(0, 50) : undefined,
+      tokenPresent: !!authToken,
+      tokenLength: authToken?.length,
+      tokenDotCount: authToken ? authToken.split('.').length - 1 : 0,
+      tokenPrefix: authToken ? authToken.substring(0, 6) : undefined,
+      tokenSuffix: authToken ? authToken.slice(-6) : undefined
+    })
+
     if (!filePath) {
       return NextResponse.json(
         { error: 'File path is required' },

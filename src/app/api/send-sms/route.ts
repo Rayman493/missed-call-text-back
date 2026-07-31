@@ -278,12 +278,17 @@ export async function POST(request: Request) {
             }, { status: 500 })
           }
           
-          const mediaServeUrl = `${baseUrl}/api/mms-media/serve?path=${encodeURIComponent(filePath)}&token=${mediaToken}`
+          // Use URL object to avoid encoding issues
+          const serveUrl = new URL('/api/mms-media/serve', baseUrl)
+          serveUrl.searchParams.set('path', filePath)
+          serveUrl.searchParams.set('token', mediaToken)
+          const mediaServeUrl = serveUrl.toString()
           
           console.log('[MMS API] Generated media serve URL:', {
             mediaServeUrl: mediaServeUrl.substring(0, 100),
             filePath: filePath.substring(0, 100),
-            tokenGenerated: true
+            tokenGenerated: true,
+            tokenLength: mediaToken.length
           })
           
           mediaUrls.push(mediaServeUrl)

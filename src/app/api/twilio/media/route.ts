@@ -50,6 +50,17 @@ export async function GET(request: NextRequest) {
       const token = parsedMediaUrl.searchParams.get('token')
       const path = parsedMediaUrl.searchParams.get('path')
       
+      console.log('[Twilio Media Proxy] ReplyFlow URL params:', {
+        tokenPresent: !!token,
+        tokenLength: token?.length,
+        tokenDotCount: token ? token.split('.').length - 1 : 0,
+        tokenPrefix: token ? token.substring(0, 6) : undefined,
+        tokenSuffix: token ? token.slice(-6) : undefined,
+        pathPresent: !!path,
+        pathLength: path?.length,
+        pathPreview: path ? path.substring(0, 50) : undefined
+      })
+      
       if (!token || !path) {
         console.error('[Twilio Media Proxy] ReplyFlow URL missing token or path')
         return NextResponse.json(
