@@ -8,12 +8,12 @@
 describe('Production Regression Tests', () => {
   describe('ISSUE 1: Prompt Delivery Identity and Idempotency', () => {
     // Test A: Original prompt duplicate
-    it('Test A - original prompt duplicate: Two overlapping initial ask_details sends for the same logical turn', () => {
+    it('Test A - original prompt duplicate: Two overlapping initial ask_request sends for the same logical turn', () => {
       // Simulate state
       const sentPrompts = new Set<string>();
       const callSid = 'CA123';
       const turnId = 2;
-      const promptKey = 'ask_details';
+      const promptKey = 'ask_request';
       
       // First delivery
       const deliveryIdentity1 = `${callSid}:${turnId}:${promptKey}:initial`;
@@ -31,11 +31,11 @@ describe('Production Regression Tests', () => {
     });
     
     // Test B: Legitimate reprompt
-    it('Test B - legitimate reprompt: Initial ask_details delivered, timeout fires, reprompt attempt 1 triggered', () => {
+    it('Test B - legitimate reprompt: Initial ask_request delivered, timeout fires, reprompt attempt 1 triggered', () => {
       const sentPrompts = new Set<string>();
       const callSid = 'CA123';
       const turnId = 2;
-      const promptKey = 'ask_details';
+      const promptKey = 'ask_request';
       
       // Initial delivery
       const initialIdentity = `${callSid}:${turnId}:${promptKey}:initial`;
@@ -58,7 +58,7 @@ describe('Production Regression Tests', () => {
       const sentPrompts = new Set<string>();
       const callSid = 'CA123';
       const turnId = 2;
-      const promptKey = 'ask_details';
+      const promptKey = 'ask_request';
       
       // First reprompt attempt
       const repromptIdentity = `${callSid}:${turnId}:${promptKey}:reprompt-1`;
@@ -229,7 +229,7 @@ describe('Production Regression Tests', () => {
       // Turn 3: Silence timeout, reprompt
       const callSid = 'CA123';
       const turnId = 2;
-      const stage = 'ask_details';
+      const stage = 'ask_request';
       
       const initialIdentity = `${callSid}:${turnId}:${stage}:initial`;
       const repromptIdentity = `${callSid}:${turnId}:${stage}:reprompt-1`;
@@ -240,11 +240,11 @@ describe('Production Regression Tests', () => {
   });
   
   describe('ISSUE 3: Timeout Reprompt Argument Flow', () => {
-    // Test 1: Initial ask_details delivery identity
-    it('Test 1 - Initial ask_details delivery identity', () => {
+    // Test 1: Initial ask_request delivery identity
+    it('Test 1 - Initial ask_request delivery identity', () => {
       const callSid = 'CA123';
       const turnId = 2;
-      const stage = 'ask_details';
+      const stage = 'ask_request';
       
       // Initial delivery should use :initial suffix
       const initialIdentity = `${callSid}:${turnId}:${stage}:initial`;
@@ -255,7 +255,7 @@ describe('Production Regression Tests', () => {
     // Test 2: Timeout handler increments retry count
     it('Test 2 - Timeout handler increments retry count', () => {
       const silenceRetryCountByStage: { [key: string]: number } = {};
-      const stage = 'ask_details';
+      const stage = 'ask_request';
       
       // First timeout
       silenceRetryCountByStage[stage] = 1;
@@ -268,30 +268,30 @@ describe('Production Regression Tests', () => {
     
     // Test 3: Timeout handler invokes sendPrompt with correct arguments
     it('Test 3 - Timeout handler invokes sendPrompt with correct arguments', () => {
-      const stage = 'ask_details';
+      const stage = 'ask_request';
       const promptKeyOverride = undefined;
       const source = 'stage_timeout_handler';
       const currentTurnId = 2;
-      const silenceRetryCountByStage = { 'ask_details': 1 };
+      const silenceRetryCountByStage = { 'ask_request': 1 };
       
       // Verify arguments match sendPrompt signature:
       // (stage, promptKeyOverride, source, turnId, deliveryAttempt)
-      expect(stage).toBe('ask_details');
+      expect(stage).toBe('ask_request');
       expect(promptKeyOverride).toBeUndefined();
       expect(source).toBe('stage_timeout_handler');
       expect(currentTurnId).toBe(2);
-      expect(silenceRetryCountByStage['ask_details']).toBe(1);
+      expect(silenceRetryCountByStage['ask_request']).toBe(1);
     });
     
     // Test 4: Identity generated with reprompt-1
     it('Test 4 - Identity generated with reprompt-1', () => {
       const callSid = 'CA123';
       const turnId = 2;
-      const stage = 'ask_details';
+      const stage = 'ask_request';
       const deliveryAttempt = 1;
       
       const deliveryIdentity = `${callSid}:${turnId}:${stage}:reprompt-${deliveryAttempt}`;
-      expect(deliveryIdentity).toBe('CA123:2:ask_details:reprompt-1');
+      expect(deliveryIdentity).toBe('CA123:2:ask_request:reprompt-1');
     });
     
     // Test 5: reprompt-1 is allowed (different from initial)
@@ -299,7 +299,7 @@ describe('Production Regression Tests', () => {
       const sentPrompts = new Set<string>();
       const callSid = 'CA123';
       const turnId = 2;
-      const stage = 'ask_details';
+      const stage = 'ask_request';
       
       // Initial delivery
       const initialIdentity = `${callSid}:${turnId}:${stage}:initial`;
@@ -315,7 +315,7 @@ describe('Production Regression Tests', () => {
       const sentPrompts = new Set<string>();
       const callSid = 'CA123';
       const turnId = 2;
-      const stage = 'ask_details';
+      const stage = 'ask_request';
       
       // First reprompt-1
       const repromptIdentity = `${callSid}:${turnId}:${stage}:reprompt-1`;
@@ -330,7 +330,7 @@ describe('Production Regression Tests', () => {
       const sentPrompts = new Set<string>();
       const callSid = 'CA123';
       const turnId = 2;
-      const stage = 'ask_details';
+      const stage = 'ask_request';
       
       // First initial delivery
       const initialIdentity = `${callSid}:${turnId}:${stage}:initial`;
@@ -353,7 +353,7 @@ describe('Production Regression Tests', () => {
   describe('ISSUE 4: Multi-Segment Answer Settle Window', () => {
     // Test A: Long answer with brief pause
     it('Test A - long answer with brief pause', () => {
-      const stage = 'ask_details';
+      const stage = 'ask_request';
       const segment1 = 'The door goes halfway down and comes back up.';
       const segment2 = 'I cleaned the sensors but that didn\'t fix it.';
       
@@ -366,7 +366,7 @@ describe('Production Regression Tests', () => {
     
     // Test B: Long answer with volunteered address
     it('Test B - long answer with volunteered address', () => {
-      const stage = 'ask_details';
+      const stage = 'ask_request';
       const segment1 = 'The door goes halfway down and comes back up.';
       const segment2 = 'Also, I\'m at 742 Highland Avenue in Carnegie, Pennsylvania, 15106.';
       
@@ -381,7 +381,7 @@ describe('Production Regression Tests', () => {
     
     // Test C: Short normal answer
     it('Test C - short normal answer', () => {
-      const stage = 'ask_details';
+      const stage = 'ask_request';
       const transcript = 'It started yesterday.';
       
       // Short answer should be accepted normally without settle window delay
@@ -391,7 +391,7 @@ describe('Production Regression Tests', () => {
     
     // Test D: Caller truly stops after one valid details answer
     it('Test D - caller truly stops after one valid details answer', () => {
-      const stage = 'ask_details';
+      const stage = 'ask_request';
       const segment1 = 'The door won\'t close properly.';
       const settleWindowMs = 1500;
       
@@ -404,7 +404,7 @@ describe('Production Regression Tests', () => {
     
     // Test E: New speech begins during settle window
     it('Test E - new speech begins during settle window', () => {
-      const stage = 'ask_details';
+      const stage = 'ask_request';
       const segment1 = 'The door goes halfway down.';
       const segment2 = 'It comes back up after a few seconds.';
       
@@ -424,10 +424,10 @@ describe('Production Regression Tests', () => {
     
     // Test F: Silence reprompt still works
     it('Test F - silence reprompt still works', () => {
-      const stage = 'ask_details';
+      const stage = 'ask_request';
       const silenceRetryCountByStage: { [key: string]: number } = {};
       
-      // Caller says nothing at all after ask_details prompt
+      // Caller says nothing at all after ask_request prompt
       // First timeout should trigger reprompt
       silenceRetryCountByStage[stage] = 1;
       
@@ -440,7 +440,7 @@ describe('Production Regression Tests', () => {
     
     // Test G: Settle window prevents stage timeout
     it('Test G - settle window prevents stage timeout', () => {
-      const stage = 'ask_details';
+      const stage = 'ask_request';
       const settleWindowTimeout = true;
       const pendingAnswerStage = stage;
       
@@ -452,7 +452,7 @@ describe('Production Regression Tests', () => {
     // Test H: Transcription watchdog prevented during settle window
     it('Test H - transcription watchdog prevented during settle window', () => {
       const settleWindowTimeout = true;
-      const pendingAnswerStage = 'ask_details';
+      const pendingAnswerStage = 'ask_request';
       
       // Watchdog should be prevented if settle window is active
       const watchdogPrevented = settleWindowTimeout && pendingAnswerStage;
@@ -487,7 +487,7 @@ describe('Production Regression Tests', () => {
     // Test C: Legacy timer blocked during settle window
     it('Test C - legacy timer blocked during settle window', () => {
       const settleWindowTimeout = true;
-      const pendingAnswerStage = 'ask_details';
+      const pendingAnswerStage = 'ask_request';
       
       // Legacy timer should be blocked if settle window is active
       const timerBlocked = settleWindowTimeout && pendingAnswerStage;
@@ -517,7 +517,7 @@ describe('Production Regression Tests', () => {
     // Test F: Settle window prevents all reprompt paths
     it('Test F - settle window prevents all reprompt paths', () => {
       const settleWindowTimeout = true;
-      const pendingAnswerStage = 'ask_details';
+      const pendingAnswerStage = 'ask_request';
       
       // Stage timeout prevented
       const stageTimeoutPrevented = settleWindowTimeout && pendingAnswerStage;
@@ -533,7 +533,7 @@ describe('Production Regression Tests', () => {
     
     // Test G: True silence still produces one current-voice reprompt
     it('Test G - true silence still produces one current-voice reprompt', () => {
-      const stage = 'ask_details';
+      const stage = 'ask_request';
       const retryCount = 0;
       const settleWindowTimeout = null;
       const pendingAnswerStage = null;
@@ -559,7 +559,7 @@ describe('Production Regression Tests', () => {
 describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
   test('TEST A — Exact Melissa continuation', async () => {
     const state = createMockState();
-    state.currentStage = 'ask_details';
+    state.currentStage = 'ask_request';
     state.currentTurnId = 2;
     state.settleWindowMs = 1500;
     state.settleGeneration = 0;
@@ -567,11 +567,11 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
 
     // First segment arrives
     const firstSegment = "The door goes down about halfway and then comes back up. I cleaned the sensors, but that didn't fix it.";
-    const result1 = validateStageAnswer('ask_details', firstSegment, state.intakeData);
+    const result1 = validateStageAnswer('ask_request', firstSegment, state.intakeData);
     expect(result1.accepted).toBe(true);
 
     // Simulate first segment starting settle window
-    state.pendingAnswerStage = 'ask_details';
+    state.pendingAnswerStage = 'ask_request';
     state.pendingAnswerTurnId = 2;
     state.pendingAnswerSegments = [firstSegment];
     state.settleGeneration = 1;
@@ -579,7 +579,7 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
     // Continuation speech starts before settle finalization
     setTimeout(() => {
       // speech_started event arrives
-      state.speechStartedStage = 'ask_details';
+      state.speechStartedStage = 'ask_request';
       state.speechStartedTurnId = 2;
       state.transcriptionPending = true;
       
@@ -591,26 +591,26 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
     // Second segment arrives
     const secondSegment = "The door itself doesn't look damaged. Also, I'm at 742 Highland Avenue...";
     state.transcriptionPending = false;
-    const result2 = validateStageAnswer('ask_details', secondSegment, state.intakeData);
+    const result2 = validateStageAnswer('ask_request', secondSegment, state.intakeData);
     expect(result2.accepted).toBe(true);
 
     // Both segments should be merged
     state.pendingAnswerSegments.push(secondSegment);
     expect(state.pendingAnswerSegments.length).toBe(2);
-    expect(state.pendingAnswerStage).toBe('ask_details');
+    expect(state.pendingAnswerStage).toBe('ask_request');
     expect(state.pendingAnswerTurnId).toBe(2);
 
-    // Stage should remain ask_details while continuation is active
-    expect(state.currentStage).toBe('ask_details');
+    // Stage should remain ask_request while continuation is active
+    expect(state.currentStage).toBe('ask_request');
   });
 
   test('TEST B — Speech starts just before settle deadline', async () => {
     const state = createMockState();
-    state.currentStage = 'ask_details';
+    state.currentStage = 'ask_request';
     state.currentTurnId = 2;
     state.settleWindowMs = 1500;
     state.settleGeneration = 0;
-    state.pendingAnswerStage = 'ask_details';
+    state.pendingAnswerStage = 'ask_request';
     state.pendingAnswerTurnId = 2;
     state.pendingAnswerSegments = ["First segment"];
     state.settleGeneration = 1;
@@ -619,7 +619,7 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
     const capturedGeneration = state.settleGeneration;
     setTimeout(() => {
       // speech_started arrives
-      state.speechStartedStage = 'ask_details';
+      state.speechStartedStage = 'ask_request';
       state.speechStartedTurnId = 2;
       state.settleGeneration = 2; // Increment to invalidate stale callback
       state.settleWindowTimeout = null;
@@ -631,26 +631,26 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
       expect(state.settleGeneration).toBe(2);
       expect(capturedGeneration).toBe(1);
       // Stale callback should not advance stage
-      expect(state.currentStage).toBe('ask_details');
+      expect(state.currentStage).toBe('ask_request');
     }, 1600);
   });
 
   test('TEST C — Speech starts before deadline, transcription completes after deadline', async () => {
     const state = createMockState();
-    state.currentStage = 'ask_details';
+    state.currentStage = 'ask_request';
     state.currentTurnId = 2;
     state.settleWindowMs = 1500;
     state.settleGeneration = 0;
     state.transcriptionPending = false;
 
     // First segment
-    state.pendingAnswerStage = 'ask_details';
+    state.pendingAnswerStage = 'ask_request';
     state.pendingAnswerTurnId = 2;
     state.pendingAnswerSegments = ["First segment"];
     state.settleGeneration = 1;
 
     // Speech starts before deadline
-    state.speechStartedStage = 'ask_details';
+    state.speechStartedStage = 'ask_request';
     state.speechStartedTurnId = 2;
     state.transcriptionPending = true;
     state.settleGeneration = 2; // Cancel settle
@@ -659,22 +659,22 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
     setTimeout(() => {
       state.transcriptionPending = false;
       const secondSegment = "Continuation segment";
-      const result = validateStageAnswer('ask_details', secondSegment, state.intakeData);
+      const result = validateStageAnswer('ask_request', secondSegment, state.intakeData);
       expect(result.accepted).toBe(true);
       state.pendingAnswerSegments.push(secondSegment);
       expect(state.pendingAnswerSegments.length).toBe(2);
       // Stage should not have advanced
-      expect(state.currentStage).toBe('ask_details');
+      expect(state.currentStage).toBe('ask_request');
     }, 2000);
   });
 
   test('TEST D — Stale settle callback executes after restart', async () => {
     const state = createMockState();
-    state.currentStage = 'ask_details';
+    state.currentStage = 'ask_request';
     state.currentTurnId = 2;
     state.settleWindowMs = 1500;
     state.settleGeneration = 0;
-    state.pendingAnswerStage = 'ask_details';
+    state.pendingAnswerStage = 'ask_request';
     state.pendingAnswerTurnId = 2;
     state.pendingAnswerSegments = ["First segment"];
 
@@ -683,7 +683,7 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
     const capturedGeneration1 = state.settleGeneration;
 
     // Continuation speech starts, increments generation
-    state.speechStartedStage = 'ask_details';
+    state.speechStartedStage = 'ask_request';
     state.speechStartedTurnId = 2;
     state.settleGeneration = 2;
 
@@ -701,7 +701,7 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
 
   test('TEST E — No continuation', async () => {
     const state = createMockState();
-    state.currentStage = 'ask_details';
+    state.currentStage = 'ask_request';
     state.currentTurnId = 2;
     state.settleWindowMs = 1500;
     state.settleGeneration = 0;
@@ -709,7 +709,7 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
 
     // Single complete answer
     const transcript = "The door goes down about halfway and then comes back up.";
-    state.pendingAnswerStage = 'ask_details';
+    state.pendingAnswerStage = 'ask_request';
     state.pendingAnswerTurnId = 2;
     state.pendingAnswerSegments = [transcript];
     state.settleGeneration = 1;
@@ -717,7 +717,7 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
     // No further speech, settle expires normally
     setTimeout(() => {
       expect(state.pendingAnswerSegments.length).toBe(1);
-      expect(state.pendingAnswerStage).toBe('ask_details');
+      expect(state.pendingAnswerStage).toBe('ask_request');
       // Should finalize and advance
       expect(state.currentStage).toBe('ask_location');
     }, 1600);
@@ -731,9 +731,9 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
     state.transcriptionPending = false;
     state.pendingAnswerStage = null; // No pending answer
 
-    // Old transcription from ask_details arrives
+    // Old transcription from ask_request arrives
     const oldTranscript = "The door doesn't look damaged";
-    const result = validateStageAnswer('ask_details', oldTranscript, state.intakeData);
+    const result = validateStageAnswer('ask_request', oldTranscript, state.intakeData);
     
     // Since pendingAnswerStage is null and currentStage is ask_location,
     // this should be handled as stale and not persist
@@ -747,8 +747,8 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
     state.currentTurnId = 3;
     state.pendingAnswerStage = null;
 
-    // Simulate an ask_details transcription arriving late
-    const originatingStage = 'ask_details';
+    // Simulate an ask_request transcription arriving late
+    const originatingStage = 'ask_request';
     const previousStage = state.currentStage; // ask_location
     const nextStage = 'ask_location'; // Would be same as current
 
@@ -761,7 +761,7 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
 
   test('TEST H — Existing true-silence reprompt', async () => {
     const state = createMockState();
-    state.currentStage = 'ask_details';
+    state.currentStage = 'ask_request';
     state.currentTurnId = 2;
     state.settleWindowMs = 1500;
     state.stageTimeout = null;
@@ -772,7 +772,7 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
     const STAGE_TIMEOUT_MS = 15000;
     state.stageTimeout = setTimeout(() => {
       // Handle stage timeout
-      expect(state.currentStage).toBe('ask_details');
+      expect(state.currentStage).toBe('ask_request');
       expect(state.pendingAnswerStage).toBe(null);
       // Should send reprompt
       expect(state.stageTimeout).not.toBeNull();
@@ -783,62 +783,62 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
   });
 
   // Test A — 1-second pause - Expected: no cutoff
-  test('ask_details with 1-second natural pause should not cutoff', () => {
+  test('ask_request with 1-second natural pause should not cutoff', () => {
     const state = createMockState();
-    state.currentStage = 'ask_details';
+    state.currentStage = 'ask_request';
     state.currentTurnId = 1;
-    state.speechStartedStage = 'ask_details';
+    state.speechStartedStage = 'ask_request';
     state.speechStartedTurnId = 1;
     state.settleGeneration = 0;
     state.pendingAnswerStage = null;
     
     // First transcription segment
     const transcript1 = "The door doesn't close properly";
-    processTranscription(state, transcript1, 'ask_details', 1);
+    processTranscription(state, transcript1, 'ask_request', 1);
     
-    expect(state.pendingAnswerStage).toBe('ask_details');
+    expect(state.pendingAnswerStage).toBe('ask_request');
     expect(state.pendingAnswerSegments).toEqual([transcript1]);
     expect(state.settleWindowTimeout).not.toBeNull();
     
-    // Simulate 1-second pause (less than 2500ms settle window for ask_details)
+    // Simulate 1-second pause (less than 2500ms settle window for ask_request)
     jest.advanceTimersByTime(1000);
     
     // No new speech started, but pause is within settle window
     expect(state.settleWindowTimeout).not.toBeNull();
-    expect(state.pendingAnswerStage).toBe('ask_details');
+    expect(state.pendingAnswerStage).toBe('ask_request');
   });
 
   // Test B — 1.8-second natural pause - Expected: no cutoff if within chosen policy
-  test('ask_details with 1.8-second natural pause should not cutoff', () => {
+  test('ask_request with 1.8-second natural pause should not cutoff', () => {
     const state = createMockState();
-    state.currentStage = 'ask_details';
+    state.currentStage = 'ask_request';
     state.currentTurnId = 1;
-    state.speechStartedStage = 'ask_details';
+    state.speechStartedStage = 'ask_request';
     state.speechStartedTurnId = 1;
     state.settleGeneration = 0;
     state.pendingAnswerStage = null;
     
     // First transcription segment
     const transcript1 = "The door doesn't close properly";
-    processTranscription(state, transcript1, 'ask_details', 1);
+    processTranscription(state, transcript1, 'ask_request', 1);
     
-    expect(state.pendingAnswerStage).toBe('ask_details');
+    expect(state.pendingAnswerStage).toBe('ask_request');
     expect(state.settleWindowTimeout).not.toBeNull();
     
-    // Simulate 1.8-second pause (less than 2500ms settle window for ask_details)
+    // Simulate 1.8-second pause (less than 2500ms settle window for ask_request)
     jest.advanceTimersByTime(1800);
     
     // No new speech started, but pause is within settle window
     expect(state.settleWindowTimeout).not.toBeNull();
-    expect(state.pendingAnswerStage).toBe('ask_details');
+    expect(state.pendingAnswerStage).toBe('ask_request');
   });
 
   // Test C — short complete answer - Expected: next stage still feels responsive
-  test('ask_details with short complete answer should advance stage promptly', () => {
+  test('ask_request with short complete answer should advance stage promptly', () => {
     const state = createMockState();
-    state.currentStage = 'ask_details';
+    state.currentStage = 'ask_request';
     state.currentTurnId = 1;
-    state.speechStartedStage = 'ask_details';
+    state.speechStartedStage = 'ask_request';
     state.speechStartedTurnId = 1;
     state.settleGeneration = 0;
     state.pendingAnswerStage = null;
@@ -846,12 +846,12 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
     
     // Single short transcription
     const transcript = "It's broken";
-    processTranscription(state, transcript, 'ask_details', 1);
+    processTranscription(state, transcript, 'ask_request', 1);
     
-    expect(state.pendingAnswerStage).toBe('ask_details');
+    expect(state.pendingAnswerStage).toBe('ask_request');
     expect(state.settleWindowTimeout).not.toBeNull();
     
-    // Advance past settle + grace (3400ms for ask_details)
+    // Advance past settle + grace (3400ms for ask_request)
     jest.advanceTimersByTime(3400);
     
     // Should finalize and advance to next stage
@@ -860,11 +860,11 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
   });
 
   // Test D — true completion - Caller stops speaking entirely - Expected: answer finalizes after settle + grace
-  test('ask_details with true completion should finalize after settle + grace', () => {
+  test('ask_request with true completion should finalize after settle + grace', () => {
     const state = createMockState();
-    state.currentStage = 'ask_details';
+    state.currentStage = 'ask_request';
     state.currentTurnId = 1;
-    state.speechStartedStage = 'ask_details';
+    state.speechStartedStage = 'ask_request';
     state.speechStartedTurnId = 1;
     state.settleGeneration = 0;
     state.pendingAnswerStage = null;
@@ -872,9 +872,9 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
     
     // Complete answer
     const transcript = "The door doesn't close properly and needs a new hinge";
-    processTranscription(state, transcript, 'ask_details', 1);
+    processTranscription(state, transcript, 'ask_request', 1);
     
-    expect(state.pendingAnswerStage).toBe('ask_details');
+    expect(state.pendingAnswerStage).toBe('ask_request');
     
     // Caller stops speaking entirely - advance past settle + grace
     jest.advanceTimersByTime(3400);
@@ -885,11 +885,11 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
   });
 
   // Test E — resumed audio before VAD speech_started - Expected: finalization does not occur prematurely
-  test('ask_details with resumed audio before speech_started should extend', () => {
+  test('ask_request with resumed audio before speech_started should extend', () => {
     const state = createMockState();
-    state.currentStage = 'ask_details';
+    state.currentStage = 'ask_request';
     state.currentTurnId = 1;
-    state.speechStartedStage = 'ask_details';
+    state.speechStartedStage = 'ask_request';
     state.speechStartedTurnId = 1;
     state.settleGeneration = 0;
     state.pendingAnswerStage = null;
@@ -897,9 +897,9 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
     
     // First transcription segment
     const transcript1 = "The door doesn't close properly";
-    processTranscription(state, transcript1, 'ask_details', 1);
+    processTranscription(state, transcript1, 'ask_request', 1);
     
-    expect(state.pendingAnswerStage).toBe('ask_details');
+    expect(state.pendingAnswerStage).toBe('ask_request');
     const originalSettleGeneration = state.settleGeneration;
     
     // Simulate resumed audio (caller starts speaking again)
@@ -907,7 +907,7 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
     
     // Simulate speech_started event (VAD detects continuation)
     const speechStartedAt = Date.now();
-    state.speechStartedStage = 'ask_details';
+    state.speechStartedStage = 'ask_request';
     state.speechStartedTurnId = 1;
     state.lastDetectedSpeechAt = speechStartedAt;
     state.transcriptionPending = true;
@@ -918,11 +918,11 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
   });
 
   // Test F — true silence - Expected: settle finalizes normally
-  test('ask_details with true silence should finalize normally', () => {
+  test('ask_request with true silence should finalize normally', () => {
     const state = createMockState();
-    state.currentStage = 'ask_details';
+    state.currentStage = 'ask_request';
     state.currentTurnId = 1;
-    state.speechStartedStage = 'ask_details';
+    state.speechStartedStage = 'ask_request';
     state.speechStartedTurnId = 1;
     state.settleGeneration = 0;
     state.pendingAnswerStage = null;
@@ -931,9 +931,9 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
     
     // Complete answer
     const transcript = "The door doesn't close properly";
-    processTranscription(state, transcript, 'ask_details', 1);
+    processTranscription(state, transcript, 'ask_request', 1);
     
-    expect(state.pendingAnswerStage).toBe('ask_details');
+    expect(state.pendingAnswerStage).toBe('ask_request');
     
     // True silence - no audio resume, advance past settle + grace
     jest.advanceTimersByTime(3400);
@@ -943,7 +943,7 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
     expect(state.pendingAnswerStage).toBeNull();
   });
 
-  // Test: ask_name_reason uses 1500ms settle window (shorter than ask_details)
+  // Test: ask_name_reason uses 1500ms settle window (shorter than ask_request)
   test('ask_name_reason should use 1500ms settle window', () => {
     const state = createMockState();
     state.currentStage = 'ask_name_reason';
@@ -964,23 +964,23 @@ describe('ISSUE 6: Multi-Segment Answer Continuation Safety', () => {
     jest.advanceTimersByTime(1500);
     
     // Should finalize
-    expect(state.currentStage).toBe('ask_details');
+    expect(state.currentStage).toBe('ask_request');
     expect(state.pendingAnswerStage).toBeNull();
   });
 });
 
 describe('Production Regression Tests - Settle Timer, Transcription, and Prompt Fixes', () => {
   describe('ISSUE 3: Settle Timer Accuracy', () => {
-    // Test A: Verify ask_details uses 2500ms settle window
-    it('Test A - ask_details settle window uses correct 2500ms duration', () => {
-      const stage = 'ask_details';
-      const stagesRequiringSettleWindow = ['ask_details', 'ask_name_reason'];
+    // Test A: Verify ask_request uses 2500ms settle window
+    it('Test A - ask_request settle window uses correct 2500ms duration', () => {
+      const stage = 'ask_request';
+      const stagesRequiringSettleWindow = ['ask_request', 'ask_name_reason'];
 
       // Simulate the settle window duration calculation
-      const settleWindowMs = stage === 'ask_details' ? 2500 : 1500;
+      const settleWindowMs = stage === 'ask_request' ? 2500 : 1500;
 
       expect(stagesRequiringSettleWindow.includes(stage)).toBe(true);
-      expect(settleWindowMs).toBe(2500); // ask_details should use 2500ms
+      expect(settleWindowMs).toBe(2500); // ask_request should use 2500ms
     });
 
     // Test B: Verify ask_name_reason uses 1500ms settle window
@@ -988,7 +988,7 @@ describe('Production Regression Tests - Settle Timer, Transcription, and Prompt 
       const stage = 'ask_name_reason';
       
       // Simulate the settle window duration calculation
-      const settleWindowMs = stage === 'ask_details' ? 2500 : 1500;
+      const settleWindowMs = stage === 'ask_request' ? 2500 : 1500;
 
       expect(settleWindowMs).toBe(1500); // ask_name_reason should use 1500ms
     });
@@ -1071,12 +1071,12 @@ describe('Production Regression Tests - Settle Timer, Transcription, and Prompt 
     // Test E: Block same-stage prompt when answer is pending finalization
     it('Test E - block same-stage prompt when answer is pending finalization', () => {
       const state = {
-        currentStage: 'ask_details',
-        pendingAnswerStage: 'ask_details',
+        currentStage: 'ask_request',
+        pendingAnswerStage: 'ask_request',
         settleWindowTimeout: { _idleStart: Date.now() }, // Simulate active timeout
       };
 
-      const requestedStage = 'ask_details';
+      const requestedStage = 'ask_request';
       
       // Check if prompt should be blocked
       const shouldBlock = requestedStage === state.pendingAnswerStage && 
@@ -1090,7 +1090,7 @@ describe('Production Regression Tests - Settle Timer, Transcription, and Prompt 
     it('Test F - allow different stage prompt even when answer is pending', () => {
       const state = {
         currentStage: 'ask_name_reason',
-        pendingAnswerStage: 'ask_details',
+        pendingAnswerStage: 'ask_request',
         settleWindowTimeout: { _idleStart: Date.now() },
       };
 
@@ -1106,7 +1106,7 @@ describe('Production Regression Tests - Settle Timer, Transcription, and Prompt 
 
     // Test G: Pre-media-send validation blocks stale delivery
     it('Test G - pre-media-send validation blocks stale delivery when stage changes', () => {
-      const authorizedStage = 'ask_details';
+      const authorizedStage = 'ask_request';
       const currentStage = 'ask_name_reason';
       const authorizedTurnId = 2;
       const currentTurnId = 3;
@@ -1122,8 +1122,8 @@ describe('Production Regression Tests - Settle Timer, Transcription, and Prompt 
 
     // Test H: Pre-media-send validation allows valid delivery
     it('Test H - pre-media-send validation allows valid delivery when stage unchanged', () => {
-      const authorizedStage = 'ask_details';
-      const currentStage = 'ask_details';
+      const authorizedStage = 'ask_request';
+      const currentStage = 'ask_request';
       const authorizedTurnId = 2;
       const currentTurnId = 2;
 
@@ -1145,7 +1145,7 @@ describe('Production Regression Tests - Settle Timer, Transcription, and Prompt 
 test('REGRESSION A: Durable answer acceptance flag prevents duplicate prompts after finalization', () => {
   const state = {
     callSid: 'test-call-a',
-    currentStage: 'ask_details',
+    currentStage: 'ask_request',
     currentTurnId: 1,
     answerAcceptedForStage: null,
     answerAcceptedTurnId: 0,
@@ -1159,9 +1159,9 @@ test('REGRESSION A: Durable answer acceptance flag prevents duplicate prompts af
 
   // Simulate first valid answer acceptance
   const firstAnswer = 'This is a long detailed answer that should be accepted';
-  state.answerAcceptedForStage = 'ask_details';
+  state.answerAcceptedForStage = 'ask_request';
   state.answerAcceptedTurnId = 1;
-  state.pendingAnswerStage = 'ask_details';
+  state.pendingAnswerStage = 'ask_request';
   state.pendingAnswerSegments = [firstAnswer];
 
   // Simulate finalization clearing transient state
@@ -1172,15 +1172,15 @@ test('REGRESSION A: Durable answer acceptance flag prevents duplicate prompts af
   const canSendPrompt = state.answerAcceptedForStage !== state.currentStage;
   
   expect(canSendPrompt).toBe(false);
-  expect(state.answerAcceptedForStage).toBe('ask_details');
-  expect(state.currentStage).toBe('ask_details');
+  expect(state.answerAcceptedForStage).toBe('ask_request');
+  expect(state.currentStage).toBe('ask_request');
 });
 
 // Test B: Stage Timeout and Watchdog Cancelled on Answer Acceptance
 test('REGRESSION B: Stage timeout and watchdog cancelled on answer acceptance', () => {
   const state = {
     callSid: 'test-call-b',
-    currentStage: 'ask_details',
+    currentStage: 'ask_request',
     currentTurnId: 1,
     answerAcceptedForStage: null,
     stageTimeout: { id: 'timeout-123' },
@@ -1188,7 +1188,7 @@ test('REGRESSION B: Stage timeout and watchdog cancelled on answer acceptance', 
   };
 
   // Simulate answer acceptance - should clear both timeouts
-  state.answerAcceptedForStage = 'ask_details';
+  state.answerAcceptedForStage = 'ask_request';
   state.answerAcceptedTurnId = 1;
   
   // Clear timeouts (simulating the fix)
@@ -1197,7 +1197,7 @@ test('REGRESSION B: Stage timeout and watchdog cancelled on answer acceptance', 
 
   expect(state.stageTimeout).toBeNull();
   expect(state.transcriptionWatchdogTimeout).toBeNull();
-  expect(state.answerAcceptedForStage).toBe('ask_details');
+  expect(state.answerAcceptedForStage).toBe('ask_request');
 });
 
 // Test C: Field Write Invariant Protects Finalized Fields from Overwrite
@@ -1205,11 +1205,11 @@ test('REGRESSION C: Field write invariant protects finalized fields from overwri
   const state = {
     callSid: 'test-call-c',
     currentStage: 'ask_location',
-    answerAcceptedForStage: 'ask_details',
+    answerAcceptedForStage: 'ask_request',
     intakeData: { issueDescription: 'original valid answer' }
   };
 
-  const stage = 'ask_details';
+  const stage = 'ask_request';
   const extractedField = 'issueDescription';
   const incomingValue = 'late duplicate transcription';
 
@@ -1229,8 +1229,8 @@ test('REGRESSION C: Field write invariant protects finalized fields from overwri
 test('REGRESSION D: Answer accepted flag cleared on stage advance', () => {
   const state = {
     callSid: 'test-call-d',
-    currentStage: 'ask_details',
-    answerAcceptedForStage: 'ask_details',
+    currentStage: 'ask_request',
+    answerAcceptedForStage: 'ask_request',
     answerAcceptedTurnId: 1
   };
 
@@ -1239,7 +1239,7 @@ test('REGRESSION D: Answer accepted flag cleared on stage advance', () => {
   state.answerAcceptedForStage = null;
   state.answerAcceptedTurnId = 0;
 
-  // Now prompts for ask_details should be allowed again (if we go back)
+  // Now prompts for ask_request should be allowed again (if we go back)
   expect(state.answerAcceptedForStage).toBeNull();
   expect(state.answerAcceptedTurnId).toBe(0);
   expect(state.currentStage).toBe('ask_location');
@@ -1265,16 +1265,16 @@ test('REGRESSION E: Per-speech transcription ownership prevents stale clears', (
   expect(state.speechGeneration).toBe(2);
 });
 
-// Test F: Settle Window Uses Correct Duration (2500ms for ask_details)
-test('REGRESSION F: Settle window uses correct duration (2500ms for ask_details)', () => {
-  const stage = 'ask_details';
+// Test F: Settle Window Uses Correct Duration (2500ms for ask_request)
+test('REGRESSION F: Settle window uses correct duration (2500ms for ask_request)', () => {
+  const stage = 'ask_request';
   const stateSettleWindowMs = 1500; // Wrong value from state
 
   // The fix uses a calculated variable instead of state.settleWindowMs
-  const settleWindowMs = stage === 'ask_details' ? 2500 : stateSettleWindowMs;
+  const settleWindowMs = stage === 'ask_request' ? 2500 : stateSettleWindowMs;
 
   expect(settleWindowMs).toBe(2500);
-  expect(stage).toBe('ask_details');
+  expect(stage).toBe('ask_request');
 });
 
 // Test G: Prompt Audio Lifecycle Tracks Authorization to Delivery Delay
@@ -1296,15 +1296,15 @@ test('REGRESSION G: Prompt audio lifecycle tracks authorization to delivery dela
 test('REGRESSION H: Stale prompt guard uses durable flag instead of transient state', () => {
   const state = {
     callSid: 'test-call-h',
-    currentStage: 'ask_details',
+    currentStage: 'ask_request',
     currentTurnId: 1,
-    answerAcceptedForStage: 'ask_details',
+    answerAcceptedForStage: 'ask_request',
     answerAcceptedTurnId: 1,
     pendingAnswerStage: null, // Transient state cleared
     settleWindowTimeout: null // Transient state cleared
   };
 
-  const promptStage = 'ask_details';
+  const promptStage = 'ask_request';
   const promptTurnId = 1;
 
   // Old guard using transient state (would fail)
@@ -1322,7 +1322,7 @@ test('REGRESSION H: Stale prompt guard uses durable flag instead of transient st
 test('REGRESSION I: Stage timeout starts after prompt audio completes', () => {
   const state = {
     callSid: 'test-call-i',
-    currentStage: 'ask_details',
+    currentStage: 'ask_request',
     currentTurnId: 1,
     stageTimeout: null,
     stageTimeoutGeneration: 0,
@@ -1345,7 +1345,7 @@ test('REGRESSION I: Stage timeout starts after prompt audio completes', () => {
 test('REGRESSION J: Stage timeout cancelled on speech started for current turn', () => {
   const state = {
     callSid: 'test-call-j',
-    currentStage: 'ask_details',
+    currentStage: 'ask_request',
     currentTurnId: 1,
     stageTimeout: {} as NodeJS.Timeout, // Simulating active timeout
     stageTimeoutGeneration: 1,
@@ -1362,7 +1362,7 @@ test('REGRESSION J: Stage timeout cancelled on speech started for current turn',
     state.stageTimeout = null;
   }
 
-  expect(state.speechStartedStage).toBe('ask_details');
+  expect(state.speechStartedStage).toBe('ask_request');
   expect(state.speechStartedTurnId).toBe(1);
   expect(state.stageTimeout).toBeNull();
 });
@@ -1371,7 +1371,7 @@ test('REGRESSION J: Stage timeout cancelled on speech started for current turn',
 test('REGRESSION K: Stage timeout defensive guard blocks stale callbacks', () => {
   const state = {
     callSid: 'test-call-k',
-    currentStage: 'ask_details',
+    currentStage: 'ask_request',
     currentTurnId: 2,
     stageTimeoutGeneration: 2, // Current generation
     speechStartedStage: null,
@@ -1394,10 +1394,10 @@ test('REGRESSION K: Stage timeout defensive guard blocks stale callbacks', () =>
 test('REGRESSION L: Stage timeout defensive guard blocks when speech started', () => {
   const state = {
     callSid: 'test-call-l',
-    currentStage: 'ask_details',
+    currentStage: 'ask_request',
     currentTurnId: 1,
     stageTimeoutGeneration: 1,
-    speechStartedStage: 'ask_details',
+    speechStartedStage: 'ask_request',
     speechStartedTurnId: 1,
     transcriptionPending: false,
     pendingAnswerStage: null,
@@ -1418,7 +1418,7 @@ test('REGRESSION L: Stage timeout defensive guard blocks when speech started', (
 test('REGRESSION M: Stage timeout defensive guard blocks when transcription pending', () => {
   const state = {
     callSid: 'test-call-m',
-    currentStage: 'ask_details',
+    currentStage: 'ask_request',
     currentTurnId: 1,
     stageTimeoutGeneration: 1,
     speechStartedStage: null,
@@ -1441,13 +1441,13 @@ test('REGRESSION M: Stage timeout defensive guard blocks when transcription pend
 test('REGRESSION N: Stage timeout defensive guard blocks when pending answer exists', () => {
   const state = {
     callSid: 'test-call-n',
-    currentStage: 'ask_details',
+    currentStage: 'ask_request',
     currentTurnId: 1,
     stageTimeoutGeneration: 1,
     speechStartedStage: null,
     speechStartedTurnId: 0,
     transcriptionPending: false,
-    pendingAnswerStage: 'ask_details', // Pending answer exists
+    pendingAnswerStage: 'ask_request', // Pending answer exists
     settleWindowTimeout: null,
     answerAcceptedForStage: null
   };
@@ -1464,7 +1464,7 @@ test('REGRESSION N: Stage timeout defensive guard blocks when pending answer exi
 test('REGRESSION O: Stage timeout defensive guard blocks when settle window active', () => {
   const state = {
     callSid: 'test-call-o',
-    currentStage: 'ask_details',
+    currentStage: 'ask_request',
     currentTurnId: 1,
     stageTimeoutGeneration: 1,
     speechStartedStage: null,
@@ -1487,7 +1487,7 @@ test('REGRESSION O: Stage timeout defensive guard blocks when settle window acti
 test('REGRESSION P: Stage timeout defensive guard blocks when answer already accepted', () => {
   const state = {
     callSid: 'test-call-p',
-    currentStage: 'ask_details',
+    currentStage: 'ask_request',
     currentTurnId: 1,
     stageTimeoutGeneration: 1,
     speechStartedStage: null,
@@ -1495,7 +1495,7 @@ test('REGRESSION P: Stage timeout defensive guard blocks when answer already acc
     transcriptionPending: false,
     pendingAnswerStage: null,
     settleWindowTimeout: null,
-    answerAcceptedForStage: 'ask_details', // Answer already accepted
+    answerAcceptedForStage: 'ask_request', // Answer already accepted
     answerAcceptedTurnId: 1
   };
 
@@ -1507,12 +1507,12 @@ test('REGRESSION P: Stage timeout defensive guard blocks when answer already acc
   expect(answerAccepted).toBe(true); // Should block reprompt
 });
 
-// Test Q: ask_details settle window duration is 2500ms
-test('REGRESSION Q: ask_details settle window duration is 2500ms', () => {
-  const stage = 'ask_details';
+// Test Q: ask_request settle window duration is 2500ms
+test('REGRESSION Q: ask_request settle window duration is 2500ms', () => {
+  const stage = 'ask_request';
   const stateSettleWindowMs = 1500;
 
-  const settleWindowMs = stage === 'ask_details' ? 2500 : stateSettleWindowMs;
+  const settleWindowMs = stage === 'ask_request' ? 2500 : stateSettleWindowMs;
 
   expect(settleWindowMs).toBe(2500);
 });
@@ -1522,13 +1522,13 @@ test('REGRESSION R: ask_name_reason settle window duration is 1500ms', () => {
   const stage = 'ask_name_reason';
   const stateSettleWindowMs = 1500;
 
-  const settleWindowMs = stage === 'ask_details' ? 2500 : stateSettleWindowMs;
+  const settleWindowMs = stage === 'ask_request' ? 2500 : stateSettleWindowMs;
 
   expect(settleWindowMs).toBe(1500);
 });
 
-// Test S: 2.2-second natural pause during ask_details does not finalize
-test('REGRESSION S: 2.2-second natural pause during ask_details does not finalize', () => {
+// Test S: 2.2-second natural pause during ask_request does not finalize
+test('REGRESSION S: 2.2-second natural pause during ask_request does not finalize', () => {
   const pauseDurationMs = 2200;
   const askDetailsSettleMs = 2500;
 
@@ -1537,8 +1537,8 @@ test('REGRESSION S: 2.2-second natural pause during ask_details does not finaliz
   expect(shouldFinalize).toBe(false); // 2.2s < 2.5s, should not finalize
 });
 
-// Test T: 2.8-second natural pause during ask_details does not finalize
-test('REGRESSION T: 2.8-second natural pause during ask_details does not finalize', () => {
+// Test T: 2.8-second natural pause during ask_request does not finalize
+test('REGRESSION T: 2.8-second natural pause during ask_request does not finalize', () => {
   const pauseDurationMs = 2800;
   const askDetailsSettleMs = 2500;
 
