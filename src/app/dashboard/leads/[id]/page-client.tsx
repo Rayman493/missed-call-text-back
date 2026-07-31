@@ -3249,8 +3249,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       <AppHeader />
 
       {/* Customer Identity Header - Distinct from global navigation */}
-      <div className="border-b border-border/20">
-        <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-2">
+      <div className="border-y border-slate-700/35 bg-slate-900/60">
+        <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-4">
           {/* Mobile Layout: Compact Information Header */}
           <div className="md:hidden">
             <div className="flex items-center gap-2">
@@ -3496,13 +3496,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
           {/* Desktop Layout: Premium Profile Header */}
           <div className="hidden md:block">
-            {/* Back to Leads */}
-            <div className="mb-4">
-              <AppBackButton fallbackHref="/dashboard/leads" label="Back to Customers" />
-            </div>
+            {/* Customer Header Surface */}
+            <div className="bg-slate-900/55 border border-slate-700/40 shadow-sm rounded-2xl">
+              {/* Back to Customers */}
+              <div className="px-5 pt-4">
+                <AppBackButton fallbackHref="/dashboard/leads" label="Back to Customers" />
+              </div>
 
-            {/* Premium Two-Column Header */}
-            <div className="flex items-start gap-7">
+              {/* Premium Two-Column Header */}
+              <div className="flex items-start gap-7 px-5 pb-5 pt-3">
               {/* LEFT: Avatar and Customer Info */}
               <div className="flex items-start gap-6 min-w-0 flex-1">
                 {/* Customer Avatar */}
@@ -3754,6 +3756,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </div>
               </div>
             </div>
+            </div>
 
             {successMessage && (
               <SuccessBanner
@@ -3774,7 +3777,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Conversation Thread - Conditional Rendering to Prevent Duplicate Audio Elements */}
-      <div className="flex-1 max-w-7xl mx-auto w-full px-6 lg:px-8 py-4">
+      <div className="flex-1 max-w-7xl mx-auto w-full px-6 lg:px-8 pt-6 pb-4">
 
         {/* Desktop Layout - Only render when not mobile view */}
         {!isMobileView && (
