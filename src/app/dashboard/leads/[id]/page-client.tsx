@@ -3986,10 +3986,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         {/* Mobile Layout - Only render when mobile view */}
         {isMobileView && (
           <div className="space-y-3 pb-[calc(6rem+env(safe-area-inset-bottom))]">
-          {/* Conversation Workspace Card - Dedicated workspace */}
-          <div className="bg-background rounded-2xl border border-border/40 shadow-sm overflow-hidden">
+          {/* Conversation Workspace Card - Dedicated workspace with fixed height */}
+          <div className="bg-background rounded-2xl border border-border/40 shadow-sm overflow-hidden flex flex-col h-[calc(100vh-280px)]">
             {/* Conversation Header - Distinct header */}
-            <div className="px-4 py-3 border-b border-border/30 bg-muted/50">
+            <div className="px-4 py-3 border-b border-border/30 bg-muted/50 flex-shrink-0">
               <div className="flex items-center justify-between">
                 <h2 className="text-xs font-semibold text-foreground">Conversation</h2>
                 <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/60">
@@ -4012,46 +4012,43 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
             </div>
 
-            {/* Message Area - Inset appearance */}
-            <div className="bg-muted/20 min-h-[300px]">
-            {/* Mobile Message Thread - Scrollable viewport */}
-            <div ref={mobileConversationContainerRef} className="flex-1 min-h-0 overflow-y-auto scroll-smooth overscroll-contain" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', scrollPaddingBottom: '5rem' }}>
-              {/* Inner content wrapper for justify-end */}
-              <div className="min-h-full px-3 py-2 flex flex-col justify-end">
-                {loading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                  </div>
-                ) : messagesArray.length === 0 ? (
-                  <div className="flex items-center justify-center h-full py-12 animate-fadeIn">
-                    <div className="text-center max-w-sm px-6">
-                      <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-blue-500/20">
-                        <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
-                      </div>
-                      <h3 className="text-base font-semibold text-foreground mb-2">Start the conversation</h3>
-                      <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
-                        Send a message to {getLeadDisplayName(leadData || lead).split(' ')[0]} to begin the conversation.
-                      </p>
+            {/* Message Area - Scrollable viewport with flex-1 */}
+            <div className="flex-1 overflow-y-auto scroll-smooth overscroll-contain bg-muted/20 min-h-0" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', scrollPaddingBottom: '5rem' }}>
+            {/* Mobile Message Thread */}
+            <div ref={mobileConversationContainerRef} className="min-h-full px-3 py-2 flex flex-col justify-end">
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                </div>
+              ) : messagesArray.length === 0 ? (
+                <div className="flex items-center justify-center h-full py-12 animate-fadeIn">
+                  <div className="text-center max-w-sm px-6">
+                    <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-blue-500/20">
+                      <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
                     </div>
+                    <h3 className="text-base font-semibold text-foreground mb-2">Start the conversation</h3>
+                    <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
+                      Send a message to {getLeadDisplayName(leadData || lead).split(' ')[0]} to begin the conversation.
+                    </p>
                   </div>
-                ) : (
-                  <MobileConversationMessageList
-                    messagesArray={messagesArray}
-                    conversationTimeline={conversationTimeline}
-                    sending={sending}
-                    handleRetry={handleRetry}
-                    getErrorMessage={getErrorMessage}
-                    highlightedItemId={highlightedTimelineItemId}
-                  />
-                )}
-              </div>
+                </div>
+              ) : (
+                <MobileConversationMessageList
+                  messagesArray={messagesArray}
+                  conversationTimeline={conversationTimeline}
+                  sending={sending}
+                  handleRetry={handleRetry}
+                  getErrorMessage={getErrorMessage}
+                  highlightedItemId={highlightedTimelineItemId}
+                />
+              )}
             </div>
             </div>
             {/* Divider above composer */}
             <div className="border-t border-border/30 flex-shrink-0"></div>
-            {/* Composer - Attached to workspace */}
+            {/* Composer - Attached to workspace, fixed at bottom */}
             <div className="px-4 py-3 bg-muted/40 flex-shrink-0" style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' }}>
               {(() => {
                 const effectiveSource = (sendingSource === 'business' && supportsBusiness) ? 'business' : 'replyflow'
