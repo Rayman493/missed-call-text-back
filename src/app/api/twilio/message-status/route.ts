@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { notificationServerService } from '@/lib/notifications'
+import { notificationServiceServer } from '@/lib/notifications-server'
 import { requireTwilioAuth } from '@/lib/twilio/webhook'
 
 // Helper function to validate environment variables
@@ -190,7 +190,7 @@ export async function POST(req: NextRequest) {
             .single()
 
           if (lead && lead.businesses) {
-            await notificationServerService.notifySmsFailed(
+            await notificationServiceServer.notifySmsFailed(
               lead.businesses.id,
               lead.caller_phone || 'Unknown',
               lead.id

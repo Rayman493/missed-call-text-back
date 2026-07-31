@@ -443,6 +443,15 @@ export class NotificationServiceServer {
     )
   }
 
+  async notifySmsFailed(businessId: string, leadName: string, leadId: string): Promise<boolean> {
+    return await this.createNotification(
+      businessId,
+      'sms_failed',
+      '',
+      { leadName, leadId }
+    )
+  }
+
   async notifyAiIntakeCompleted(businessId: string, leadName: string, leadPhone: string, leadId: string, serviceRequested?: string, aiCallRecordId?: string): Promise<boolean> {
     return await this.createNotification(
       businessId,
