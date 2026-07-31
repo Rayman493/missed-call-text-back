@@ -488,7 +488,7 @@ export default function NavbarNotifications() {
       <button
         ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
-        className="relative h-10 w-10 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/70 transition-colors"
+        className="relative h-10 w-10 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/70 active:bg-slate-800/90 active:scale-[0.98] motion-safe:transition-all motion-safe:duration-200 motion-reduce:transition-none motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
         aria-label="Notifications"
       >
         <Bell className="w-5 h-5" />

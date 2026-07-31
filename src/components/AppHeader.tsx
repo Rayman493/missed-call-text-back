@@ -37,7 +37,7 @@ export default function AppHeader({
             {/* Left side - Logo and navigation */}
             <div className="flex items-center gap-2 md:gap-4 lg:gap-8">
               {/* Logo */}
-              <Link href={isPublicPage ? '/' : '/dashboard'} className="group flex items-center gap-1.5 md:gap-2 rounded-full px-1.5 py-1 hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 transition-all duration-150 flex-shrink-0">
+              <Link href={isPublicPage ? '/' : '/dashboard'} className="group flex items-center gap-1.5 md:gap-2 rounded-full px-1.5 py-1 hover:bg-white/[0.05] active:bg-white/[0.08] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 motion-safe:transition-all motion-safe:duration-200 motion-reduce:transition-none motion-reduce:transform-none flex-shrink-0">
                 <BrandIcon size={56} />
                 <span className="text-[15px] md:text-lg lg:text-xl font-semibold tracking-tight hidden sm:inline">
                   <span className="text-white">ReplyFlow</span>
