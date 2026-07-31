@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // In-memory store to simulate DB durability across callbacks
 const store = {
-  messages: [] as Array<{ id: string; call_sid: string; business_id: string; twilio_message_sid: string; status: string; is_manual: boolean }>,
+  messages: [] as Array<{ id: string; conversation_id: string; business_id: string; twilio_message_sid: string; status: string; is_manual: boolean }>,
   ai_call_records: new Map<string, any>(),
   businesses: new Map<string, any>(),
   leads: new Map<string, any>(),
@@ -33,7 +33,7 @@ vi.mock('@supabase/supabase-js', () => {
         trace.supabaseInsertCalls.push({ table, payload })
         const rec = {
           id: `msg_${store.messages.length + 1}`,
-          call_sid: payload.call_sid || 'UNKNOWN',
+          conversation_id: payload.conversation_id || 'UNKNOWN',
           business_id: payload.business_id || 'biz_1',
           twilio_message_sid: payload.twilio_message_sid || null,
           status: payload.status || 'sent',
@@ -75,10 +75,10 @@ vi.mock('@supabase/supabase-js', () => {
           return { data: biz, error: null }
         }
         case 'messages': {
-          // Durable idempotency check: return an existing non-sim Twilio message for this CallSid if present
-          const callSidFilter = api._filters.find((f: any) => f.col === 'call_sid')
+          // Durable idempotency check: return an existing non-sim Twilio message for this conversation if present
+          const conversationIdFilter = api._filters.find((f: any) => f.col === 'conversation_id')
           const bizFilter = api._filters.find((f: any) => f.col === 'business_id')
-          const existing = store.messages.find(m => m.call_sid === callSidFilter?.val && m.business_id === bizFilter?.val && m.twilio_message_sid && !m.twilio_message_sid.startsWith('SIM_'))
+          const existing = store.messages.find(m => m.conversation_id === conversationIdFilter?.val && m.business_id === bizFilter?.val && m.twilio_message_sid && !m.twilio_message_sid.startsWith('SIM_'))
           return { data: existing || null, error: null }
         }
         default:
@@ -128,9 +128,9 @@ vi.mock('@/lib/supabase/admin', () => ({
           return { data: lead ? { raw_metadata: lead.raw_metadata ?? {} } : null, error: null }
         }
         if (table === 'messages') {
-          const fSid = api._filters.find((f: any) => f.col === 'call_sid')
+          const fConv = api._filters.find((f: any) => f.col === 'conversation_id')
           const fBiz = api._filters.find((f: any) => f.col === 'business_id')
-          const existing = store.messages.find(m => m.call_sid === fSid?.val && m.business_id === fBiz?.val && m.twilio_message_sid && !m.twilio_message_sid.startsWith('SIM_'))
+          const existing = store.messages.find(m => m.conversation_id === fConv?.val && m.business_id === fBiz?.val && m.twilio_message_sid && !m.twilio_message_sid.startsWith('SIM_'))
           return { data: existing || null, error: null }
         }
         return { data: null, error: null }
@@ -285,7 +285,7 @@ describe('voice-status webhook processing', () => {
     // Prove persisted row exists with correct data
     const recorded = store.messages.find(m => m.twilio_message_sid === 'SM_test_live')
     expect(!!recorded).toBe(true)
-    expect(recorded?.call_sid).toBe('CA_TERM')
+    expect(recorded?.conversation_id).toBe('conv_1')
     expect(recorded?.business_id).toBe('biz_1')
   }, 15000)
 
@@ -366,7 +366,7 @@ describe('voice-status webhook processing', () => {
     // Prove persisted row exists with correct data
     const persisted1 = store.messages.find(m => m.twilio_message_sid === 'SM_test_live')
     expect(!!persisted1).toBe(true)
-    expect(persisted1?.call_sid).toBe('CA_INC')
+    expect(persisted1?.conversation_id).toBe('conv_1')
     expect(persisted1?.business_id).toBe('biz_1')
 
     // Duplicate terminal callback should be durably suppressed

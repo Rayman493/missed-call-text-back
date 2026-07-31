@@ -687,7 +687,6 @@ export async function sendSms(
         from_phone: business.twilio_phone_number,
         to_phone: to,
         twilio_message_sid: messageResult.sid,
-        call_sid: options?.callSid || null,
         status: actualStatus,
         sent_at: new Date().toISOString(),
         status_updated_at: new Date().toISOString(),
@@ -697,6 +696,9 @@ export async function sendSms(
         is_manual: options?.isManual || false,
         client_message_id: options?.clientMessageId || null,
       };
+
+      console.log('[SMS PERSISTENCE] message_insert_payload_keys:', Object.keys(insertPayload));
+      console.log('[SMS PERSISTENCE] message_insert_returning_columns:', ['id', 'client_message_id']);
 
       console.log('[SMS PERSISTENCE] Insert payload (sanitized):', {
         lead_id: insertPayload.lead_id,

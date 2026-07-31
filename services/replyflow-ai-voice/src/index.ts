@@ -3921,7 +3921,7 @@ function buildCanonicalExtractedInfo(
 ): {
   customerName: string
   customerPhone: string
-  request: string
+  serviceRequested: string
   serviceAddress: string
   desiredCompletion: string
   callbackTime: string
@@ -3930,7 +3930,7 @@ function buildCanonicalExtractedInfo(
     return {
       customerName: '',
       customerPhone: callerPhone || '',
-      request: '',
+      serviceRequested: '',
       serviceAddress: '',
       desiredCompletion: '',
       callbackTime: '',
@@ -3972,21 +3972,23 @@ function buildCanonicalExtractedInfo(
     console.log('[CANONICAL INFO REPAIR] error (non-fatal):', e instanceof Error ? e.message : e);
   }
 
-  // Combine serviceRequested and additionalDetails into request
+  // Combine serviceRequested and additionalDetails into serviceRequested
   // Simple Mode captures to 'request' field, Regular Mode uses 'serviceRequested'
+  // Canonical resolution: serviceRequested || request || issueDescription
   console.log('[CANONICAL REQUEST DIAGNOSTIC] =========================================');
   console.log('[CANONICAL REQUEST DIAGNOSTIC] event: simple_mode_request_captured');
   console.log('[CANONICAL REQUEST DIAGNOSTIC] serviceRequested present:', !!fields.serviceRequested);
   console.log('[CANONICAL REQUEST DIAGNOSTIC] request present:', !!fields.request);
+  console.log('[CANONICAL REQUEST DIAGNOSTIC] issueDescription present:', !!fields.issueDescription);
   console.log('[CANONICAL REQUEST DIAGNOSTIC] serviceRequested length:', fields.serviceRequested?.length || 0);
   console.log('[CANONICAL REQUEST DIAGNOSTIC] request length:', fields.request?.length || 0);
+  console.log('[CANONICAL REQUEST DIAGNOSTIC] issueDescription length:', fields.issueDescription?.length || 0);
   console.log('[CANONICAL REQUEST DIAGNOSTIC] =========================================');
 
-  const serviceRequested = sanitizeEnglishIntakeField('serviceRequested', fields.serviceRequested || fields.request || '');
+  const serviceRequested = sanitizeEnglishIntakeField('serviceRequested', fields.serviceRequested || fields.request || fields.issueDescription || '');
   const additionalDetails = sanitizeEnglishIntakeField(
     'additionalDetails',
     fields.additionalDetails ||
-    fields.issueDescription ||
     fields.importantDetails ||
     ''
   );
@@ -3997,17 +3999,17 @@ function buildCanonicalExtractedInfo(
   console.log('[CANONICAL REQUEST DIAGNOSTIC] additionalDetails length:', additionalDetails.length);
   console.log('[CANONICAL REQUEST DIAGNOSTIC] =========================================');
 
-  // Combine into request field, avoiding duplication
-  let request = serviceRequested;
+  // Combine into serviceRequested field, avoiding duplication
+  let finalServiceRequested = serviceRequested;
   if (additionalDetails && additionalDetails !== serviceRequested) {
-    request = serviceRequested ? `${serviceRequested}. ${additionalDetails}` : additionalDetails;
+    finalServiceRequested = serviceRequested ? `${serviceRequested}. ${additionalDetails}` : additionalDetails;
   }
 
   console.log('[CANONICAL REQUEST DIAGNOSTIC] =========================================');
   console.log('[CANONICAL REQUEST DIAGNOSTIC] event: simple_mode_request_persisted');
-  console.log('[CANONICAL REQUEST DIAGNOSTIC] final request length:', request.length);
-  console.log('[CANONICAL REQUEST DIAGNOSTIC] request present:', !!request);
-  if (!request || request.length === 0) {
+  console.log('[CANONICAL REQUEST DIAGNOSTIC] final serviceRequested length:', finalServiceRequested.length);
+  console.log('[CANONICAL REQUEST DIAGNOSTIC] serviceRequested present:', !!finalServiceRequested);
+  if (!finalServiceRequested || finalServiceRequested.length === 0) {
     console.log('[CANONICAL REQUEST DIAGNOSTIC] event: simple_mode_request_missing');
   }
   console.log('[CANONICAL REQUEST DIAGNOSTIC] =========================================');
@@ -4015,7 +4017,7 @@ function buildCanonicalExtractedInfo(
   return {
     customerName: sanitizeEnglishIntakeField('customerName', fields.customerName || ''),
     customerPhone: (callerPhone || fields.customerPhone || '').trim(),
-    request: request,
+    serviceRequested: finalServiceRequested,
     serviceAddress: sanitizeEnglishIntakeField('serviceAddress', fields.serviceAddress || fields.addressOrLocation || ''),
     desiredCompletion: sanitizeEnglishIntakeField(
       'desiredCompletion',
@@ -4036,8 +4038,9 @@ function isAIIntakeComplete(extractedFields: any): boolean {
   console.log('[AI INTAKE COMPLETENESS CHECK] Input values:', JSON.stringify(extractedFields, null, 2));
 
   // Require ALL 5 fields individually (no OR logic)
+  // Use canonical resolution for request: serviceRequested || request || issueDescription
   const hasName = !!extractedFields.customerName;
-  const hasRequest = !!extractedFields.request || !!extractedFields.serviceRequested;
+  const hasRequest = !!extractedFields.serviceRequested || !!extractedFields.request || !!extractedFields.issueDescription;
   const hasLocation = !!extractedFields.serviceAddress;
   const hasDesiredCompletionTime = !!extractedFields.desiredCompletionTime || !!extractedFields.desiredCompletion;
   const hasCallbackTime = !!extractedFields.callbackTime;
@@ -4054,7 +4057,7 @@ function isAIIntakeComplete(extractedFields: any): boolean {
   });
   console.log('[AI INTAKE COMPLETENESS CHECK] Timestamp:', new Date().toISOString());
   console.log('[AI INTAKE COMPLETENESS CHECK] =========================================');
-  
+
   return isComplete;
 }
 
@@ -4220,7 +4223,7 @@ async function finalizeIncompleteIntake(
   // STAGE 7: Canonical Mapping Values
   console.log('[EXTRACTION TRACE STAGE 7] =========================================');
   console.log('[EXTRACTION TRACE STAGE 7] canonicalInfo.customerName:', canonicalInfo.customerName);
-  console.log('[EXTRACTION TRACE STAGE 7] canonicalInfo.request:', canonicalInfo.request);
+  console.log('[EXTRACTION TRACE STAGE 7] canonicalInfo.serviceRequested:', canonicalInfo.serviceRequested);
   console.log('[EXTRACTION TRACE STAGE 7] Timestamp:', new Date().toISOString());
   console.log('[EXTRACTION TRACE STAGE 7] =========================================');
   
@@ -4434,7 +4437,7 @@ async function finalizeIncompleteIntake(
   // STAGE 8: Final Persisted Values
   console.log('[EXTRACTION TRACE STAGE 8] =========================================');
   console.log('[EXTRACTION TRACE STAGE 8] persistedExtractedInfo.customerName:', canonicalInfo.customerName);
-  console.log('[EXTRACTION TRACE STAGE 8] persistedExtractedInfo.request:', canonicalInfo.request);
+  console.log('[EXTRACTION TRACE STAGE 8] persistedExtractedInfo.serviceRequested:', canonicalInfo.serviceRequested);
   console.log('[EXTRACTION TRACE STAGE 8] callSid:', callSid);
   console.log('[EXTRACTION TRACE STAGE 8] Timestamp:', new Date().toISOString());
   console.log('[EXTRACTION TRACE STAGE 8] =========================================');
@@ -7430,7 +7433,7 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
         caller_phone: state.callerPhone,
         transcript: state.transcript,
         extracted_info: canonicalExtractedInfo,
-        summary: canonicalExtractedInfo.request || '',
+        summary: canonicalExtractedInfo.serviceRequested || '',
         outcome: 'incomplete',
       };
 
@@ -8644,7 +8647,7 @@ Reply to this message if you'd like to update or add any information.
         caller_phone: state.callerPhone,
         transcript: state.transcript,
         extracted_info: canonicalExtractedInfo,
-        summary: canonicalExtractedInfo.request || '',
+        summary: canonicalExtractedInfo.serviceRequested || '',
         outcome: 'completed',
       };
       console.log('[SIMPLE MODE] ai_call_record insert payload:', {
@@ -8857,7 +8860,7 @@ Reply to this message if you'd like to update or add any information.
                   type:             'ai_intake_completed',
                   customerName:     canonicalExtractedInfo.customerName  || '',
                   customerPhone:    state.callerPhone              || '',
-                  request:          canonicalExtractedInfo.request || '',
+                  serviceRequested: canonicalExtractedInfo.serviceRequested || '',
                 }),
               });
               if (notifRes.ok) {

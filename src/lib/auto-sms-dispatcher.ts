@@ -116,29 +116,39 @@ function mergeExtractedInfo(params: any, aiCallRecord: any, leadMetadata: any): 
   return merged;
 }
 
-async function hasAutomaticSmsForCall(callSid: string, businessId: string): Promise<boolean> {
-  // CRITICAL: This is CallSid-scoped to ensure exactly one automatic SMS per call
+async function hasAutomaticSmsForCall(conversationId: string | undefined, businessId: string, callSid: string): Promise<boolean> {
+  // CRITICAL: This is conversation-scoped to ensure exactly one automatic SMS per call
   // Previous calls should NOT suppress future calls' automatic SMS
+  // NOTE: call_sid is NOT in production messages schema, used only for logging
   console.log('[AUTO SMS IDEMPOTENCY CHECK] =========================================');
   console.log('[AUTO SMS IDEMPOTENCY CHECK] Checking for existing automatic SMS');
   console.log('[AUTO SMS IDEMPOTENCY CHECK] callSid:', callSid);
+  console.log('[AUTO SMS IDEMPOTENCY CHECK] conversationId:', conversationId);
   console.log('[AUTO SMS IDEMPOTENCY CHECK] businessId:', businessId);
-  console.log('[AUTO SMS IDEMPOTENCY CHECK] scoping: Business + CallSid + Automatic SMS Type');
+  console.log('[AUTO SMS IDEMPOTENCY CHECK] scoping: Conversation + Message Type + Time Window');
   console.log('[AUTO SMS IDEMPOTENCY CHECK] Timestamp:', new Date().toISOString());
   console.log('[AUTO SMS IDEMPOTENCY CHECK] =========================================');
 
-  // Verify a message with a valid Twilio SID exists for this specific call
+  // Verify a message with a valid Twilio SID exists for this specific conversation
   // This prevents false positives from failed attempts that set metadata flags
+  // Deduplication strategy: conversation_id + message_type + time window (1 hour)
+  if (!conversationId) {
+    console.log('[AUTO SMS IDEMPOTENCY CHECK] No conversationId provided, skipping check');
+    return false;
+  }
+
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
   const { data: existingMessage } = await supabaseAdmin
     .from('messages')
-    .select('id, call_sid, business_id, twilio_message_sid, status, error_code, is_manual')
-    .eq('call_sid', callSid)
+    .select('id, conversation_id, business_id, twilio_message_sid, status, error_code, is_manual')
+    .eq('conversation_id', conversationId)
     .eq('business_id', businessId)
     .eq('direction', 'outbound')
     .eq('is_manual', false)
     .not('twilio_message_sid', 'is', null)
     .not('twilio_message_sid', 'eq', 'NOT_CALLED')
     .not('twilio_message_sid', 'like', 'SIM_%')
+    .gte('created_at', oneHourAgo)
     .maybeSingle()
 
   if (existingMessage) {
@@ -307,7 +317,7 @@ function isTransientSmsError(error: any): boolean {
 }
 
 export async function dispatchAutomaticCustomerSms(params: DispatchParams): Promise<DispatchResult> {
-  const { trigger, callSid, businessId, leadId, callerPhone } = params
+  const { trigger, callSid, businessId, leadId, conversationId, callerPhone } = params
 
   const { data: business, error: businessError } = await supabaseAdmin
     .from('businesses')
@@ -339,7 +349,7 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
   }
 
   // Idempotency check (webhook/call level, separate from user-configured repeat suppression)
-  if (await hasAutomaticSmsForCall(callSid, businessId)) {
+  if (await hasAutomaticSmsForCall(conversationId, businessId, callSid)) {
     return { success: true, skipped: true, reason: 'automatic_sms_already_dispatched_for_call' }
   }
 
@@ -432,7 +442,7 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
   const transcriptPresent = !!aiCallRecord?.transcript && aiCallRecord.transcript.length > 0
   const extractedInfoPresent = !!aiCallRecord?.extracted_info && Object.keys(aiCallRecord.extracted_info).length > 0
   const summaryPresent = !!aiCallRecord?.summary && aiCallRecord.summary.length > 0
-  const alreadySent = await hasAutomaticSmsForCall(callSid, businessId)
+  const alreadySent = await hasAutomaticSmsForCall(conversationId, businessId, callSid)
 
   // NEW POLICY: Send SMS for any call that reached ReplyFlow AI (has ai_call_record)
   // SMS eligibility does NOT depend on: outcome completion, captured fields, or meaningful data
@@ -529,12 +539,12 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
   // Out of Office notice is handled centrally by sendSms via appendBusinessAvailabilityNote
   // Do not append here to avoid duplication
 
-  const conversationId = await getConversationId(leadId, businessId, params.conversationId)
+  const resolvedConversationId = await getConversationId(leadId, businessId, params.conversationId)
 
   console.log('[AUTO SMS DISPATCH]', {
     callSid,
     leadId,
-    conversationId,
+    conversationId: resolvedConversationId,
     trigger,
     Outcome: outcome,
     SelectedTemplate: template,
@@ -571,7 +581,7 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
     
     const sendResult = await sendSms(business, callerPhone, messageBody, {
       lead_id: leadId,
-      conversation_id: conversationId,
+      conversation_id: resolvedConversationId,
       source: 'ai_summary',
       reason,
       skipBusinessAvailabilityAppend: !shouldAppendAvailability
@@ -611,7 +621,7 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
     await new Promise(resolve => setTimeout(resolve, retryDelays[attempt]))
 
     // Re-check idempotency after delay (SMS may have been sent by another process)
-    if (await hasAutomaticSmsForCall(callSid, businessId)) {
+    if (await hasAutomaticSmsForCall(resolvedConversationId, businessId, callSid)) {
       console.log('[IDEMPOTENCY]', {
         existingSmsFound: true,
         callSid,
