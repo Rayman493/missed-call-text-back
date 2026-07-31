@@ -255,6 +255,7 @@ export default function LeadsPage() {
           business_id,
           caller_phone,
           status,
+          lead_status,
           created_at,
           first_contact_at,
           last_message_at,

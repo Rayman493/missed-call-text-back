@@ -105,9 +105,10 @@ export async function PATCH(
     
     console.log('[API LEADS STATUS PATCH] Business ownership verified')
 
-    // Update lead status
+    // Update lead status - update both status and lead_status to keep them in sync
     const updatePayload = {
-      status: status
+      status: status,
+      lead_status: status
     }
     console.log('[API LEADS STATUS PATCH] Updating lead with payload:', updatePayload)
     

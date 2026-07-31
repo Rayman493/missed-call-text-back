@@ -247,6 +247,11 @@ export function getCardAccentClasses(status: string): string {
  * Returns a subtle status-colored gradient for the card background
  */
 export function getCardGradientClasses(status: string): string {
+  console.log('[getCardGradientClasses] DEBUG:', {
+    status,
+    statusType: typeof status
+  })
   const config = getStatusColorConfig(status)
+  console.log('[getCardGradientClasses] Config gradient:', config.gradient)
   return `bg-gradient-to-br ${config.gradient} to-transparent`
 }
