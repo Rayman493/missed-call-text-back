@@ -258,7 +258,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                   href={item.href}
                   className={`relative flex h-12 w-full flex-col items-center justify-center rounded-2xl transition-all duration-200 ${
                     isActive(item.href)
-                      ? 'text-white bg-white/10 border border-white/10'
+                      ? 'text-white bg-white/10'
                       : 'text-slate-300 hover:text-white hover:bg-white/[0.06] active:scale-95'
                   }`}
                 >
@@ -276,7 +276,7 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
               onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
               className={`relative flex h-12 w-full flex-col items-center justify-center rounded-2xl transition-all duration-200 ${
                 isMoreMenuOpen
-                  ? 'text-white bg-white/10 border border-white/10'
+                  ? 'text-white bg-white/10'
                   : 'text-slate-300 hover:text-white hover:bg-white/[0.06] active:scale-95'
               }`}
             >
