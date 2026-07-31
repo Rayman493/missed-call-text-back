@@ -4,6 +4,7 @@ import { validateTwilioForSms, logTwilioEnvStatus } from './twilio/env';
 import { isNumberReadyForUse } from './twilio-provisioning-service';
 import { markForwardingVerified } from './forwarding-verification';
 import { appendBusinessAvailabilityNote } from './business-availability-sms';
+import { assertValidOutboundMmsMediaUrls } from './mms-url-validator';
 
 // Log Twilio environment status on module import
 logTwilioEnvStatus();
@@ -1012,6 +1013,16 @@ export async function sendMms(
     
     console.log('[MMS DEBUG] FINAL TWILIO BODY:', message);
     console.log('[MMS DEBUG] FINAL TWILIO BODY contains availability note:', message.includes('Out of Office') || message.includes('business hours'));
+
+    // Validate all media URLs before sending to Twilio
+    try {
+      assertValidOutboundMmsMediaUrls(mediaUrls)
+      console.log('[MMS TWILIO] All media URLs validated successfully')
+    } catch (error) {
+      console.error('[MMS TWILIO] Media URL validation failed:', error)
+      await logFailedMessage(business, to, message || '[MMS]', options, (error as Error).message, 'INVALID_MEDIA_URL', false);
+      return { sid: null, messageId: null };
+    }
 
     // CRITICAL FIX: Twilio expects 'mediaUrl' for single URL or 'mediaUrls' for array
     // Since we're passing an array, use 'mediaUrls' (plural)

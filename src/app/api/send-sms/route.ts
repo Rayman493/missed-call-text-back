@@ -7,6 +7,7 @@ import { checkManualSmsRateLimit } from '@/lib/rate-limit';
 import { promoteLeadToActiveIfNew } from '@/lib/lead-lifecycle';
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard';
 import { generateMmsMediaToken } from '@/lib/mms-media-token';
+import { assertValidOutboundMmsMediaUrls } from '@/lib/mms-url-validator';
 
 export const dynamic = 'force-dynamic';
 
@@ -332,6 +333,18 @@ export async function POST(request: Request) {
     // Send SMS or MMS
     let messageId: string | null = null
     if (mediaUrls.length > 0) {
+      // Validate all media URLs before sending to Twilio
+      try {
+        assertValidOutboundMmsMediaUrls(mediaUrls)
+        console.log('[MMS API] All media URLs validated successfully')
+      } catch (error) {
+        console.error('[MMS API] Media URL validation failed:', error)
+        return NextResponse.json({
+          error: 'Invalid media URL',
+          details: (error as Error).message
+        }, { status: 500 })
+      }
+
       // Send MMS
       const result = await sendMms(business, lead.caller_phone, sanitizedMessage || '', mediaUrls, {
         lead_id: lead.id,
