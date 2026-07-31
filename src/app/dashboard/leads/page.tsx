@@ -933,7 +933,10 @@ export default function LeadsPage() {
                 }
                 icon="👥"
                 iconColor="blue"
-                isInteractive={false}
+                isInteractive={true}
+                isSelected={quickFilter === 'new'}
+                onClick={() => setQuickFilter('new')}
+                ariaLabel="Filter customers needing a reply"
               />
               <StatCard
                 value={leadStatusCounts.active}
@@ -945,7 +948,10 @@ export default function LeadsPage() {
                 }
                 icon="💬"
                 iconColor="green"
-                isInteractive={false}
+                isInteractive={true}
+                isSelected={quickFilter === 'active'}
+                onClick={() => setQuickFilter('active')}
+                ariaLabel="Filter active customers"
               />
               <StatCard
                 value={leadStatusCounts.completed}
@@ -957,7 +963,10 @@ export default function LeadsPage() {
                 }
                 icon="📅"
                 iconColor="slate"
-                isInteractive={false}
+                isInteractive={true}
+                isSelected={quickFilter === 'completed'}
+                onClick={() => setQuickFilter('completed')}
+                ariaLabel="Filter completed customers"
               />
               <StatCard
                 value={leadStatusCounts.ignored}
@@ -969,7 +978,10 @@ export default function LeadsPage() {
                 }
                 icon="🚫"
                 iconColor="orange"
-                isInteractive={false}
+                isInteractive={true}
+                isSelected={quickFilter === 'ignored'}
+                onClick={() => setQuickFilter('ignored')}
+                ariaLabel="Filter ignored customers"
               />
             </div>
 

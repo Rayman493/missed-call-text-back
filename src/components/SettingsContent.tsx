@@ -175,6 +175,43 @@ export default function SettingsContent() {
   const outOfOfficeEndRef = useRef<HTMLInputElement>(null)
   const settingsTabsNavRef = useRef<HTMLElement>(null)
   const sectionTabRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  
+  // Dynamic scroll offset based on actual sticky navigation height
+  const [scrollOffset, setScrollOffset] = useState(64)
+  
+  // Breathing room gap between sticky nav and section divider (8-12px for readability)
+  const BREATHING_ROOM_GAP = 10
+  
+  // Measure actual sticky navigation height for accurate scroll offset
+  useEffect(() => {
+    const measureNavHeight = () => {
+      if (settingsTabsNavRef.current) {
+        const navHeight = settingsTabsNavRef.current.offsetHeight
+        setScrollOffset(navHeight + BREATHING_ROOM_GAP)
+      }
+    }
+    
+    // Use requestAnimationFrame for initial measurement (runs after layout)
+    const rafId = requestAnimationFrame(measureNavHeight)
+    
+    // Use ResizeObserver to detect size changes (more robust than timeout)
+    let resizeObserver: ResizeObserver | null = null
+    if (settingsTabsNavRef.current) {
+      resizeObserver = new ResizeObserver(measureNavHeight)
+      resizeObserver.observe(settingsTabsNavRef.current)
+    }
+    
+    // Fallback: also measure on window resize for viewport changes
+    window.addEventListener('resize', measureNavHeight)
+    
+    return () => {
+      cancelAnimationFrame(rafId)
+      if (resizeObserver) {
+        resizeObserver.disconnect()
+      }
+      window.removeEventListener('resize', measureNavHeight)
+    }
+  }, [])
 
   // Form state management
   const {
@@ -922,72 +959,62 @@ export default function SettingsContent() {
     })
   }, [activeSection])
 
-  // Scroll-aware active section detection using explicit scroll positions
+  // Scroll-aware active section detection using canonical sections
   useEffect(() => {
-    const sections = settingsSections.map(s => s.id)
     let timeoutId: NodeJS.Timeout | null = null
     
     const updateActiveSection = () => {
-      // Get section offsets - target divider elements for consistency with scroll-to
-      const generalDivider = document.getElementById('general-divider')
-      const communicationDivider = document.getElementById('communication-divider')
-      const automationDivider = document.getElementById('automation-divider')
-      const integrationsDivider = document.getElementById('integrations-divider')
-      const paymentsDivider = document.getElementById('payments-divider')
-      const contactsDivider = document.getElementById('contacts-divider')
-      const accountDivider = document.getElementById('account-divider')
-
-      if (!generalDivider || !communicationDivider || !automationDivider || !integrationsDivider || !paymentsDivider || !contactsDivider || !accountDivider) {
-        return
+      // Get section offsets from canonical sections only
+      // This ensures web and native both work correctly
+      const sectionOffsets: { [key: string]: number | null } = {}
+      let hasAnySection = false
+      
+      for (const section of settingsSections) {
+        const divider = document.getElementById(`${section.id}-divider`)
+        if (divider) {
+          sectionOffsets[section.id] = divider.offsetTop
+          hasAnySection = true
+        } else {
+          sectionOffsets[section.id] = null
+        }
       }
+      
+      // If no sections are available, skip update (may be loading)
+      if (!hasAnySection) return
       
       // Get scroll position and viewport dimensions
       const scrollY = window.scrollY
       const viewportHeight = window.innerHeight
       const documentHeight = document.documentElement.scrollHeight
       
-      // TOP_THRESHOLD: Force General tab when at or near the top of the page
+      // TOP_THRESHOLD: Force first section when at or near the top of the page
       const TOP_THRESHOLD = 120
       if (scrollY <= TOP_THRESHOLD) {
-        setActiveSection('general')
+        setActiveSection(settingsSections[0].id)
         return
       }
       
-      // BOTTOM_THRESHOLD: Force Account tab when at or near the bottom of the page
+      // BOTTOM_THRESHOLD: Force last section when at or near the bottom of the page
       const BOTTOM_THRESHOLD = 120
       if (scrollY + viewportHeight >= documentHeight - BOTTOM_THRESHOLD) {
-        setActiveSection('account')
+        setActiveSection(settingsSections[settingsSections.length - 1].id)
         return
       }
-
-      const generalTop = generalDivider.offsetTop
-      const communicationTop = communicationDivider.offsetTop
-      const automationTop = automationDivider.offsetTop
-      const integrationsTop = integrationsDivider.offsetTop
-      const paymentsTop = paymentsDivider.offsetTop
-      const contactsTop = contactsDivider.offsetTop
-      const accountTop = accountDivider.offsetTop
       
       // Calculate offset for header and tabs using shared helper
       const offset = getScrollOffset()
       
-      // Calculate which section should be active
-      let computedActiveSection = 'general'
+      // Determine active section by comparing scroll position to section offsets
+      let computedActiveSection = settingsSections[0].id
       
-      if (scrollY < communicationTop - offset) {
-        computedActiveSection = 'general'
-      } else if (scrollY < automationTop - offset) {
-        computedActiveSection = 'communication'
-      } else if (scrollY < integrationsTop - offset) {
-        computedActiveSection = 'automation'
-      } else if (scrollY < paymentsTop - offset) {
-        computedActiveSection = 'integrations'
-      } else if (scrollY < contactsTop - offset) {
-        computedActiveSection = 'payments'
-      } else if (scrollY < accountTop - offset) {
-        computedActiveSection = 'contacts'
-      } else {
-        computedActiveSection = 'account'
+      for (let i = settingsSections.length - 1; i >= 0; i--) {
+        const sectionId = settingsSections[i].id
+        const sectionTop = sectionOffsets[sectionId]
+        
+        if (sectionTop !== null && scrollY >= sectionTop - offset) {
+          computedActiveSection = sectionId
+          break
+        }
       }
       
       // Only update if the section actually changed
@@ -1009,7 +1036,8 @@ export default function SettingsContent() {
     // Handle URL hash for initial navigation only
     const handleHashChange = () => {
       const hash = window.location.hash.slice(1)
-      if (sections.includes(hash)) {
+      const sectionIds = settingsSections.map(s => s.id)
+      if (sectionIds.includes(hash)) {
         // Target the divider element for proper scroll offset
         const dividerId = `${hash}-divider`
         const element = document.getElementById(dividerId)
@@ -1050,8 +1078,8 @@ export default function SettingsContent() {
   // Shared helper to calculate scroll offset based on actual header height
   const getScrollOffset = () => {
     // AppHeader scrolls away, only tab bar remains sticky
-    // Tab bar (~44px) + gap (20px) = 64px
-    return 64
+    // Use dynamically measured nav height + breathing room gap
+    return scrollOffset
   }
 
   // Shared scroll-to-section helper
@@ -1062,9 +1090,13 @@ export default function SettingsContent() {
     if (element) {
       const offset = getScrollOffset()
       const elementPosition = element.getBoundingClientRect().top + window.scrollY - offset
+      
+      // Respect user's reduced-motion preference
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      
       window.scrollTo({
         top: elementPosition,
-        behavior: 'smooth'
+        behavior: prefersReducedMotion ? 'auto' : 'smooth'
       })
     }
   }
@@ -1136,10 +1168,11 @@ export default function SettingsContent() {
                     key={section.id}
                     ref={(element) => { sectionTabRefs.current[section.id] = element }}
                     onClick={() => handleSectionClick(section.id)}
-                    className={`px-5 py-3 text-sm font-medium rounded-lg transition-colors duration-150 whitespace-nowrap flex-shrink-0 ${
+                    aria-current={activeSection === section.id ? 'location' : undefined}
+                    className={`px-5 py-3 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
                       activeSection === section.id
-                        ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-transparent'
                     }`}
                   >
                     {section.label}
@@ -1148,7 +1181,7 @@ export default function SettingsContent() {
               </nav>
             </div>
             {/* Spacer to maintain consistent spacing */}
-            <div className="mb-6"></div>
+            <div className="mb-4"></div>
 
             {/* Settings Sections */}
             <div className="space-y-6 pb-32">

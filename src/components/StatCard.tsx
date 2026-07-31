@@ -12,6 +12,9 @@ interface StatCardProps {
   iconColor?: 'amber' | 'blue' | 'green' | 'purple' | 'slate' | 'orange'
   href?: string
   isInteractive?: boolean
+  onClick?: () => void
+  isSelected?: boolean
+  ariaLabel?: string
   className?: string
 }
 
@@ -24,6 +27,9 @@ export default function StatCard({
   iconColor = 'blue',
   href,
   isInteractive = false,
+  onClick,
+  isSelected = false,
+  ariaLabel,
   className = ''
 }: StatCardProps) {
   // Unified card foundation
@@ -48,6 +54,13 @@ export default function StatCard({
     ${href ? 'group' : ''}
   ` : ''
 
+  // Selected state
+  const selectedClasses = isSelected ? `
+    ring-2 ring-primary/50 ring-offset-2 ring-offset-background
+    border-primary/50
+    bg-primary/5
+  ` : ''
+
   // Icon color gradients
   const iconGradients = {
     amber: 'from-amber-500 to-amber-600/30 dark:from-amber-500/30 dark:to-amber-600/30 border-amber-200/50 dark:border-amber-800/50',
@@ -69,7 +82,14 @@ export default function StatCard({
   }
 
   const cardContent = (
-    <div className={`${baseClasses} ${interactiveClasses} ${className}`}>
+    <div 
+      className={`${baseClasses} ${interactiveClasses} ${selectedClasses} ${className}`}
+      onClick={isInteractive && onClick ? onClick : undefined}
+      role={isInteractive && onClick ? 'button' : undefined}
+      tabIndex={isInteractive && onClick ? 0 : undefined}
+      aria-pressed={isInteractive && onClick ? isSelected : undefined}
+      aria-label={ariaLabel}
+    >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
       <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-blue-500/12 blur-2xl" />
       <div className="pointer-events-none absolute -left-10 bottom-0 h-20 w-20 rounded-full bg-cyan-500/5 blur-2xl" />
