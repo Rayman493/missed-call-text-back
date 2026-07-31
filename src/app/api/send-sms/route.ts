@@ -9,6 +9,7 @@ import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-g
 import { generateMmsMediaToken } from '@/lib/mms-media-token';
 import { assertValidOutboundMmsMediaUrls } from '@/lib/mms-url-validator';
 import { createMmsMediaAccessUrl } from '@/lib/mms-media-url-helper';
+import { detectMimeType, isSupportedMimeType } from '@/lib/mime-detection';
 
 export const dynamic = 'force-dynamic';
 
@@ -203,50 +204,86 @@ export async function POST(request: Request) {
     let messageSid: string | null = null
     let mediaUrls: string[] = []
     let mediaStoragePaths: string[] = [] // Track storage paths separately
+    let mediaMimeTypes: string[] = [] // Track detected MIME types separately
 
     // Upload media files to Supabase Storage if present
     if (mediaFiles.length > 0) {
-      console.log('[MMS API] Starting media upload process')
-      // Validate file types - Twilio MMS only supports JPEG, PNG, GIF
-      const supportedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
-      const unsupportedFile = mediaFiles.find(f => !supportedTypes.includes(f.type))
+      console.log('[MMS API] Starting media upload process with MIME detection')
       
-      if (unsupportedFile) {
-        console.error('[MMS API] Unsupported file type:', {
-          fileName: unsupportedFile.name,
-          fileType: unsupportedFile.type
+      // Validate and detect MIME types for each file
+      const mediaFileAnalyses = []
+      for (const file of mediaFiles) {
+        const detection = await detectMimeType(file)
+        
+        console.log('[MMS API] File analysis:', {
+          filename: file.name,
+          reportedType: file.type,
+          reportedSize: file.size,
+          detectedType: detection.detectedMimeType,
+          canonicalExtension: detection.canonicalExtension,
+          signatureValid: detection.byteSignatureValid,
+          signature: detection.signature
         })
-        return NextResponse.json({ 
-          error: 'WEBP images are not supported for MMS. Please upload a JPG or PNG.',
-          details: `Unsupported file type: ${unsupportedFile.type}`
-        }, { status: 400 })
+        
+        // Check if detected type is supported
+        if (!isSupportedMimeType(detection.detectedMimeType)) {
+          console.error('[MMS API] Unsupported detected MIME type:', {
+            filename: file.name,
+            reportedType: file.type,
+            detectedType: detection.detectedMimeType,
+            signature: detection.signature
+          })
+          return NextResponse.json({ 
+            error: `Unsupported image format: ${detection.detectedMimeType}. Please use JPG, PNG, or GIF.`,
+            details: `File "${file.name}" was detected as ${detection.detectedMimeType} but reported as ${file.type}`
+          }, { status: 400 })
+        }
+        
+        // Warn if reported type doesn't match detected type
+        if (file.type && detection.byteSignatureValid && file.type.toLowerCase() !== detection.detectedMimeType.toLowerCase()) {
+          console.warn('[MMS API] MIME type mismatch - will use detected type:', {
+            filename: file.name,
+            reported: file.type,
+            detected: detection.detectedMimeType
+          })
+        }
+        
+        mediaFileAnalyses.push({
+          file,
+          detection
+        })
       }
       
       try {
         console.log('[MMS API] Uploading media files to storage:', {
-          mediaCount: mediaFiles.length,
-          fileNames: mediaFiles.map(f => f.name),
-          fileSizes: mediaFiles.map(f => f.size),
+          mediaCount: mediaFileAnalyses.length,
+          fileNames: mediaFileAnalyses.map(a => a.file.name),
+          detectedTypes: mediaFileAnalyses.map(a => a.detection.detectedMimeType),
           bucketName: 'mms-media',
           businessId: business.id,
           leadId: lead.id
         })
         
-        for (const file of mediaFiles) {
-          const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${file.name}`
+        for (const { file, detection } of mediaFileAnalyses) {
+          // Use canonical extension from detection to ensure filename matches content
+          const canonicalFileName = file.name.replace(/\.[^.]+$/, `.${detection.canonicalExtension}`)
+          const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${canonicalFileName}`
           const filePath = `${business.id}/${lead.id}/${fileName}`
           
           console.log('[MMS API] Uploading file:', {
-            fileName,
+            originalFileName: file.name,
+            canonicalFileName,
             filePath,
             fileSize: file.size,
-            fileType: file.type
+            reportedType: file.type,
+            detectedType: detection.detectedMimeType,
+            willUseContentType: detection.detectedMimeType
           })
           
           const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
             .from('mms-media')
             .upload(filePath, file, {
-              contentType: file.type,
+              contentType: detection.detectedMimeType, // Use detected MIME, not reported
               upsert: false
             })
           
@@ -280,11 +317,13 @@ export async function POST(request: Request) {
           })
           
           mediaUrls.push(mediaServeUrl)
+          mediaMimeTypes.push(detection.detectedMimeType) // Store detected MIME type
         }
         
         console.log('[MMS API] Media uploaded successfully:', {
           mediaCount: mediaUrls.length,
-          urls: mediaUrls
+          urls: mediaUrls,
+          mimeTypes: mediaMimeTypes
         })
       } catch (error: any) {
         console.error('[MMS API] Error uploading media:', {
@@ -406,16 +445,19 @@ export async function POST(request: Request) {
 
         for (const [index, mediaUrl] of mediaUrls.entries()) {
           const storagePath = mediaStoragePaths[index]
+          const detectedMimeType = mediaMimeTypes[index] || 'image/jpeg' // Fallback to JPEG if not set
+          
           console.log('[MMS API] Inserting media record:', {
             messageId,
             mediaUrl: mediaUrl.substring(0, 50) + '...',
-            storagePath: storagePath?.substring(0, 50) + '...'
+            storagePath: storagePath?.substring(0, 50) + '...',
+            mimeType: detectedMimeType
           })
 
           const insertData: any = {
             message_id: messageId,
             media_url: mediaUrl,
-            mime_type: 'image/jpeg',
+            mime_type: detectedMimeType, // Use detected MIME type
             created_at: new Date().toISOString(),
           }
 
@@ -431,12 +473,13 @@ export async function POST(request: Request) {
           } else {
             console.log('[MMS API] Media stored successfully:', {
               messageId,
-              mediaUrl: mediaUrl.substring(0, 50) + '...'
+              mediaUrl: mediaUrl.substring(0, 50) + '...',
+              mimeType: detectedMimeType
             })
             mediaPersisted = true
             mediaItems.push({
               media_url: mediaUrl,
-              mime_type: 'image/jpeg'
+              mime_type: detectedMimeType // Use detected MIME type
             })
           }
         }

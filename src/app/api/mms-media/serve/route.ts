@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { verifyMmsMediaToken } from '@/lib/mms-media-token'
+import { detectMimeType } from '@/lib/mime-detection'
 
 export const dynamic = 'force-dynamic'
 
@@ -82,16 +83,51 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Extract file extension to determine MIME type
-    const extension = filePath.split('.').pop()?.toLowerCase() || ''
-    const mimeTypes: Record<string, string> = {
-      'jpg': 'image/jpeg',
-      'jpeg': 'image/jpeg',
-      'png': 'image/png',
-      'gif': 'image/gif'
+    // Detect MIME type from file bytes (more reliable than extension)
+    let contentType = 'image/jpeg' // Default fallback
+    
+    try {
+      // Create a File object from the blob for MIME detection
+      const fileName = filePath.split('/').pop() || 'image.jpg'
+      const file = new File([fileData], fileName, { type: 'image/jpeg' })
+      const detection = await detectMimeType(file)
+      
+      console.log('[MMS Media Serve] MIME detection:', {
+        fileName,
+        detectedType: detection.detectedMimeType,
+        signatureValid: detection.byteSignatureValid,
+        signature: detection.signature
+      })
+      
+      if (detection.byteSignatureValid) {
+        contentType = detection.detectedMimeType
+      } else {
+        // Fallback to extension-based detection if signature is invalid
+        const extension = filePath.split('.').pop()?.toLowerCase() || ''
+        const mimeTypes: Record<string, string> = {
+          'jpg': 'image/jpeg',
+          'jpeg': 'image/jpeg',
+          'png': 'image/png',
+          'gif': 'image/gif'
+        }
+        contentType = mimeTypes[extension] || 'image/jpeg'
+        console.warn('[MMS Media Serve] Using extension-based MIME as fallback:', {
+          extension,
+          contentType
+        })
+      }
+    } catch (error) {
+      console.error('[MMS Media Serve] Error detecting MIME from bytes:', error)
+      // Fallback to extension-based detection
+      const extension = filePath.split('.').pop()?.toLowerCase() || ''
+      const mimeTypes: Record<string, string> = {
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif'
+      }
+      contentType = mimeTypes[extension] || 'image/jpeg'
     }
-
-    const contentType = mimeTypes[extension] || 'image/jpeg'
 
     console.log('[MMS Media Serve] Serving file:', {
       filePath: filePath.substring(0, 100),
