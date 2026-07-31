@@ -30,19 +30,19 @@ describe('Settings Content Scroll Navigation', () => {
   })
 
   it('dynamic scroll offset calculation is correct', () => {
-    const navHeight = 64 // approximate nav height
-    const BREATHING_ROOM_GAP = 32
-    const expectedOffset = navHeight + BREATHING_ROOM_GAP
+    const navContainerHeight = 57 // actual sticky container height (py-4 + border + content)
+    const BREATHING_ROOM_GAP = 16
+    const expectedOffset = navContainerHeight + BREATHING_ROOM_GAP
     
-    expect(expectedOffset).toBe(96)
+    expect(expectedOffset).toBe(73)
   })
 
-  it('breathing room gap is sufficient for title visibility', () => {
-    const BREATHING_ROOM_GAP = 32
+  it('breathing room gap is sufficient for comfortable separation', () => {
+    const BREATHING_ROOM_GAP = 16
     
-    // Should be large enough to ensure section title is fully visible below sticky nav with comfortable separation
-    expect(BREATHING_ROOM_GAP).toBeGreaterThanOrEqual(28)
-    expect(BREATHING_ROOM_GAP).toBeLessThanOrEqual(40)
+    // Should provide 16-20px clear space between sticky nav and section divider
+    expect(BREATHING_ROOM_GAP).toBeGreaterThanOrEqual(14)
+    expect(BREATHING_ROOM_GAP).toBeLessThanOrEqual(24)
   })
 
   it('top threshold is reasonable for detecting first section', () => {

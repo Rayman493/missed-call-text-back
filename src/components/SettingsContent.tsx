@@ -174,19 +174,21 @@ export default function SettingsContent() {
   const outOfOfficeStartRef = useRef<HTMLInputElement>(null)
   const outOfOfficeEndRef = useRef<HTMLInputElement>(null)
   const settingsTabsNavRef = useRef<HTMLElement>(null)
+  const settingsTabsContainerRef = useRef<HTMLDivElement>(null)
   const sectionTabRefs = useRef<Record<string, HTMLButtonElement | null>>({})
   
   // Dynamic scroll offset based on actual sticky navigation height
   const [scrollOffset, setScrollOffset] = useState(64)
   
-  // Breathing room gap between sticky nav and section divider (ensures title is fully visible with comfortable separation)
-  const BREATHING_ROOM_GAP = 32
+  // Breathing room gap between sticky nav and section divider (ensures comfortable 16-20px separation)
+  const BREATHING_ROOM_GAP = 16
   
   // Measure actual sticky navigation height for accurate scroll offset
   useEffect(() => {
     const measureNavHeight = () => {
-      if (settingsTabsNavRef.current) {
-        const navHeight = settingsTabsNavRef.current.offsetHeight
+      // Measure the container div (has sticky positioning and padding) not the nav element
+      if (settingsTabsContainerRef.current) {
+        const navHeight = settingsTabsContainerRef.current.offsetHeight
         setScrollOffset(navHeight + BREATHING_ROOM_GAP)
       }
     }
@@ -196,9 +198,9 @@ export default function SettingsContent() {
     
     // Use ResizeObserver to detect size changes (more robust than timeout)
     let resizeObserver: ResizeObserver | null = null
-    if (settingsTabsNavRef.current) {
+    if (settingsTabsContainerRef.current) {
       resizeObserver = new ResizeObserver(measureNavHeight)
-      resizeObserver.observe(settingsTabsNavRef.current)
+      resizeObserver.observe(settingsTabsContainerRef.current)
     }
     
     // Fallback: also measure on window resize for viewport changes
@@ -1161,7 +1163,7 @@ export default function SettingsContent() {
             </div>
 
             {/* Settings Navigation Tabs - sticky only */}
-            <div className="sticky z-40 border-b border-border/50 bg-background py-4 top-0 backdrop-blur-sm" style={{ backgroundColor: 'var(--background)' }}>
+            <div ref={settingsTabsContainerRef} className="sticky z-40 border-b border-border/50 bg-background py-4 top-0 backdrop-blur-sm" style={{ backgroundColor: 'var(--background)' }}>
               <nav ref={settingsTabsNavRef} className="flex items-center gap-2 overflow-x-auto custom-scrollbar-horizontal">
                 {settingsSections.map((section) => (
                   <button
