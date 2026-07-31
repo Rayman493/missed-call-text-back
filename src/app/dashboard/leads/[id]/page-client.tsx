@@ -3320,24 +3320,24 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Desktop Layout: Premium Profile Header */}
           <div className="hidden md:block">
             {/* Back to Leads */}
-            <div className="mb-3">
+            <div className="mb-4">
               <AppBackButton fallbackHref="/dashboard/leads" label="Back to Customers" />
             </div>
 
             {/* Premium Two-Column Header */}
             <div className="flex items-start gap-6">
               {/* LEFT: Avatar and Customer Info */}
-              <div className="flex items-start gap-4 min-w-0 flex-1">
+              <div className="flex items-start gap-5 min-w-0 flex-1">
                 {/* Customer Avatar */}
                 <div className="flex-shrink-0">
                   {lead?.photo_url ? (
                     <img
                       src={lead.photo_url}
                       alt={getLeadDisplayName(leadData || lead)}
-                      className="w-16 h-16 rounded-full object-cover"
+                      className="w-20 h-20 rounded-full object-cover border-2 border-border/10"
                     />
                   ) : (
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center border-2 border-border/10">
                       <span className="text-white font-semibold text-xl">
                         {getLeadDisplayName(leadData || lead)
                           .split(' ')
@@ -3351,11 +3351,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </div>
 
                 {/* Customer Info */}
-                <div className="min-w-0 flex-1 pt-1">
-                  <h1 className="text-2xl font-semibold text-foreground tracking-tight mb-2 leading-tight">
+                <div className="min-w-0 flex-1 pt-2">
+                  <h1 className="text-2xl font-semibold text-foreground tracking-tight mb-2.5 leading-tight">
                     {getLeadDisplayName(leadData || lead)}
                   </h1>
-                  <p className="text-sm text-muted-foreground mb-3 font-normal">
+                  <p className="text-sm text-muted-foreground mb-4 font-normal">
                     {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
                   </p>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -3367,7 +3367,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
 
               {/* RIGHT: Status and Actions */}
-              <div className="flex flex-col items-end gap-3 flex-shrink-0">
+              <div className="flex flex-col items-end gap-4 flex-shrink-0 pt-2">
                 {/* Status Pill */}
                 <div className="flex-shrink-0">
                   <LeadStatusDropdown
@@ -3601,18 +3601,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
         {/* Desktop Layout - Only render when not mobile view */}
         {!isMobileView && (
-          <div className="grid grid-cols-[minmax(0,1fr)_minmax(360px,400px)] gap-12 items-start">
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(360px,400px)] gap-8 items-start">
             {/* Desktop Conversation Section - Primary workspace */}
-            <section className="flex flex-col min-h-0 h-[calc(100vh-280px)] bg-card/50 rounded-xl border border-border/30 shadow-sm">
+            <section className="flex flex-col min-h-0 h-[calc(100vh-280px)] bg-background rounded-2xl border border-border/40 shadow-sm">
               {/* Desktop Conversation Header */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-border/20">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-border/20 bg-muted/30 rounded-t-2xl">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-sm font-medium text-foreground">Conversation</h2>
+                  <h2 className="text-sm font-semibold text-foreground">Conversation</h2>
                 </div>
               </div>
               
               {/* Desktop Message Thread - Scrollable */}
-              <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-4 py-4 min-h-0" style={{ minHeight: '200px' }}>
+              <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-6 py-5 min-h-0" style={{ minHeight: '200px' }}>
                 {loading ? (
                   <div className="flex items-center justify-center py-12">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
@@ -3645,7 +3645,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
 
               {/* Desktop Message Composer - Fixed to Bottom */}
-              <div className="shrink-0 pt-4">
+              <div className="shrink-0 border-t border-border/20 bg-muted/30 px-6 py-4 rounded-b-2xl">
                 {(() => {
                   const effectiveSource = (sendingSource === 'business' && supportsBusiness) ? 'business' : 'replyflow'
 
@@ -3678,14 +3678,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
             </section>
 
-            {/* Desktop Sidebar - Simplified */}
-            <aside className="sticky top-4 overflow-y-auto max-h-[calc(100vh-280px)]" data-sidebar>
-              <div className="space-y-6">
-                {/* Consolidated Information Panel - Simplified */}
-                <div className="space-y-4">
-                  {/* AI Intake Summary */}
+            {/* Desktop Sidebar - Premium Card */}
+            <aside className="sticky top-4 h-[calc(100vh-280px)]" data-sidebar>
+              <div className="h-full bg-background rounded-2xl border border-border/40 shadow-sm p-5 overflow-y-auto custom-scrollbar">
+                <div className="space-y-5">
+                  {/* AI Intake Summary - Premium Card */}
                   {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
-                    <div>
+                    <div className="bg-muted/30 rounded-xl border border-border/20 p-4">
                       <AICallDetails
                         leadId={params.id}
                         businessId={business.id}
@@ -3698,18 +3697,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     </div>
                   )}
 
-                  {/* Customer Summary - Show only for manual customers (no AI intake) */}
+                  {/* Customer Summary - Premium Card */}
                   {!(leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id) && (
-                    <VoicemailSummary leadData={leadData} />
+                    <div className="bg-muted/30 rounded-xl border border-border/20 p-4">
+                      <VoicemailSummary leadData={leadData} />
+                    </div>
                   )}
 
-                  {/* Activity Timeline - Collapsible */}
-                  <div>
+                  {/* Activity Timeline - Premium Card */}
+                  <div className="bg-muted/30 rounded-xl border border-border/20 p-4">
                     <button
                       onClick={() => setCollapsedSections((prev: any) => ({ ...prev, activityTimeline: !prev.activityTimeline }))}
-                      className="flex items-center justify-between w-full mb-2 group"
+                      className="flex items-center justify-between w-full mb-3 group"
                     >
-                      <h3 className="text-sm font-medium text-foreground group-hover:text-foreground transition-colors">Timeline</h3>
+                      <h3 className="text-sm font-semibold text-foreground group-hover:text-foreground transition-colors">Timeline</h3>
                     </button>
                     {!collapsedSections.activityTimeline && (
                       <div className="transition-all duration-200">
@@ -3718,9 +3719,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     )}
                   </div>
 
-                  {/* Customer Status - Compact summary */}
-                  <div>
-                    <h3 className="text-xs font-medium text-muted-foreground mb-2">Status</h3>
+                  {/* Customer Status - Premium Card */}
+                  <div className="bg-muted/30 rounded-xl border border-border/20 p-4">
+                    <h3 className="text-xs font-semibold text-muted-foreground/80 mb-3 uppercase tracking-wide">Status</h3>
                     <div className="space-y-1">
                       <div className="flex items-center justify-between py-1 border-b border-border/10">
                         <span className="text-xs text-muted-foreground">AI Intake</span>
@@ -3775,10 +3776,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     </div>
                   </div>
 
-                  {/* Photos Received - Simplified */}
+                  {/* Photos Received - Premium Card */}
                   {Object.keys(messageMedia).length > 0 && (
-                    <div>
-                      <h3 className="text-xs font-medium text-muted-foreground mb-2">Photos</h3>
+                    <div className="bg-muted/30 rounded-xl border border-border/20 p-4">
+                      <h3 className="text-xs font-semibold text-muted-foreground/80 mb-3 uppercase tracking-wide">Photos</h3>
                       <div className="grid grid-cols-2 gap-2">
                         {Object.entries(messageMedia).slice(0, showAllPhotos ? undefined : 4).map(([messageId, media]: [string, any]) => (
                           media.urls.slice(0, 1).map((url: string, idx: number) => (
@@ -3814,11 +3815,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
             </aside>
 
-          {/* Workspace Section - Below conversation for desktop */}
-          <div className="col-span-2 mt-8">
-            {renderWorkspaceSection()}
+            {/* Workspace Section - Below conversation for desktop */}
+            <div className="col-span-2 mt-8">
+              {renderWorkspaceSection()}
+            </div>
           </div>
-        </div>
         )}
 
         {/* Mobile Layout - Only render when mobile view */}
