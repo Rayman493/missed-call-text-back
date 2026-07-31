@@ -50,4 +50,29 @@ const base = {
   assert(outcome === 'completed_intake', 'determine outcome should return completed_intake when complete')
 }
 
+// Simple Mode: request field should satisfy serviceRequested requirement
+{
+  const info = {
+    customerName: 'Ryan',
+    request: 'Grass cutting',
+    issueDescription: 'Quarter acre, hilly yard',
+    serviceAddress: '123 Main St',
+    desiredCompletionTime: 'This weekend',
+    callbackTime: 'Tomorrow afternoon',
+  }
+  assert(isCompleteAIIntake(info, 'onsite') === true, 'Simple Mode request field should satisfy serviceRequested requirement')
+}
+
+// Simple Mode: request + issueDescription should satisfy serviceRequested requirement (canonical resolution)
+{
+  const info = {
+    customerName: 'Ryan',
+    issueDescription: 'Grass cutting for quarter acre hilly yard',
+    serviceAddress: '123 Main St',
+    desiredCompletionTime: 'This weekend',
+    callbackTime: 'Tomorrow afternoon',
+  }
+  assert(isCompleteAIIntake(info, 'onsite') === true, 'issueDescription should satisfy serviceRequested requirement via canonical resolution')
+}
+
 console.log('[AI INTAKE COMPLETION TESTS] All checks passed')

@@ -70,6 +70,7 @@ const FIELD_ALIASES: Record<string, keyof typeof CANONICAL_FIELDS> = {
   'reason for calling': 'reasonForCalling',
   'serviceRequested': 'reasonForCalling',
   'service_requested': 'reasonForCalling',
+  'request': 'reasonForCalling',
 
   'details': 'importantDetails',
   'importantDetails': 'importantDetails',

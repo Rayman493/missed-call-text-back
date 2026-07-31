@@ -31,7 +31,7 @@ export interface ExtractedInfo {
  * 
  * Required fields (with alternative names):
  * - customerName or callerName
- * - serviceRequested or reasonForCalling
+ * - serviceRequested or reasonForCalling or request (canonical resolution)
  * - issueDescription or importantDetails
  * - serviceAddress or addressOrLocation
  * - desiredCompletionTime
@@ -52,12 +52,17 @@ export function isCompleteAIIntake(
   )
 
   // Check service requested (multiple field name variations)
+  // Canonical resolution: serviceRequested || request || issueDescription
   const hasServiceRequested = Boolean(
     extractedInfo.serviceRequested || 
-    extractedInfo.reasonForCalling
+    extractedInfo.reasonForCalling ||
+    extractedInfo.request ||
+    extractedInfo.issueDescription
   )
 
   // Check issue description (multiple field name variations)
+  // Note: issueDescription is now also part of the canonical request resolution
+  // importantDetails is kept for backward compatibility with legacy records
   const hasIssueDescription = Boolean(
     extractedInfo.issueDescription || 
     extractedInfo.importantDetails
@@ -123,7 +128,7 @@ export function getCompletedFieldCount(extractedInfo: ExtractedInfo | null | und
   let count = 0
 
   if (extractedInfo.customerName || extractedInfo.callerName) count++
-  if (extractedInfo.serviceRequested || extractedInfo.reasonForCalling) count++
+  if (extractedInfo.serviceRequested || extractedInfo.reasonForCalling || extractedInfo.request) count++
   if (extractedInfo.issueDescription || extractedInfo.importantDetails) count++
   if (extractedInfo.serviceAddress || extractedInfo.addressOrLocation) count++
   if (extractedInfo.desiredCompletionTime) count++
