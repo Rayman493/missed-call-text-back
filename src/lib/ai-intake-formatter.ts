@@ -581,11 +581,16 @@ export const formatAiIntakeSummaryWithMode = (
   prefixNotice?: string,
   serviceLocationType?: 'onsite' | 'customer_comes_to_business' | 'remote' | string | null
 ): string => {
-  const body = formatAiIntakeSummary(intakeData, callerPhone, businessName, prefixNotice)
-  const mode = typeof serviceLocationType === 'string' ? serviceLocationType.trim().toLowerCase() : 'onsite'
-  const locationProvided = Boolean(intakeData?.serviceAddress || intakeData?.addressOrLocation)
-  if ((mode === 'customer_comes_to_business' || mode === 'remote') && !locationProvided) {
-    return body.replace(/\n\n📍 Service Address[\s\S]*?\n\n/, '\n\n')
+  const mode = typeof serviceLocationType === 'string' ? serviceLocationType.trim().toLowerCase() : 'onsite';
+  const normalizedMode = (mode === 'onsite' || mode === 'customer_comes_to_business' || mode === 'remote') ? mode : 'onsite';
+  const locationProvided = Boolean(intakeData?.serviceAddress || intakeData?.addressOrLocation);
+  
+  let body = formatAiIntakeSummary(intakeData, callerPhone, businessName, prefixNotice);
+  
+  // For non-onsite modes, remove Location from Still Needed section if not provided
+  if ((normalizedMode === 'customer_comes_to_business' || normalizedMode === 'remote') && !locationProvided) {
+    body = body.replace(/○ Location\n/, '');
   }
-  return body
+  
+  return body;
 }

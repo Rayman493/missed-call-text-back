@@ -19,6 +19,7 @@ export interface NormalizedIntake {
   serviceAddress: string | null
   desiredCompletion: string | null
   callbackTime: string | null
+  serviceLocationType?: string | null
   transcript: Array<{ role: 'user' | 'assistant'; text: string; timestamp: string }> | null
 }
 
@@ -39,6 +40,7 @@ export function normalizeAICallRecord(record: any): NormalizedIntake {
     serviceAddress: extracted.addressOrLocation || extracted.serviceAddress || extracted.location || null,
     desiredCompletion: extracted.desiredCompletionTime || extracted.desiredCompletion || extracted.completionTime || null,
     callbackTime: extracted.preferredCallbackTime || extracted.callbackTime || extracted.bestCallbackTime || null,
+    serviceLocationType: extracted.serviceLocationType || null,
     transcript: record.transcript || null,
   }
 }

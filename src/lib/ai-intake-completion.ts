@@ -23,6 +23,7 @@ export interface ExtractedInfo {
   desiredCompletionTime?: string
   callbackTime?: string
   preferredCallbackTime?: string
+  serviceLocationType?: string
   [key: string]: any
 }
 
@@ -80,7 +81,9 @@ export function isCompleteAIIntake(
   )
 
   // Location is required only for onsite businesses (default to onsite if unknown)
-  const rawMode = typeof serviceLocationType === 'string' ? serviceLocationType.trim().toLowerCase() : 'onsite'
+  // Use persisted serviceLocationType from extractedInfo if available, otherwise fall back to parameter
+  const effectiveServiceLocationType = extractedInfo.serviceLocationType || serviceLocationType
+  const rawMode = typeof effectiveServiceLocationType === 'string' ? effectiveServiceLocationType.trim().toLowerCase() : 'onsite'
   const normalizedMode = (rawMode === 'onsite' || rawMode === 'customer_comes_to_business' || rawMode === 'remote') ? rawMode : 'onsite'
   const locationSatisfied = normalizedMode === 'onsite' ? hasServiceAddress : true
 

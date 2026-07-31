@@ -51,7 +51,8 @@ export const CANONICAL_FIELDS = {
   desiredCompletionTime: 'desiredCompletionTime',
   addressOrLocation: 'addressOrLocation',
   preferredCallbackTime: 'preferredCallbackTime',
-  summary: 'summary'
+  summary: 'summary',
+  serviceLocationType: 'serviceLocationType'
 } as const
 
 /**
@@ -100,7 +101,10 @@ const FIELD_ALIASES: Record<string, keyof typeof CANONICAL_FIELDS> = {
   'preferred callback time': 'preferredCallbackTime',
   'callback_time': 'preferredCallbackTime',
   'issueDescription': 'importantDetails',
-  'issue_description': 'importantDetails'
+  'issue_description': 'importantDetails',
+  
+  'serviceLocationType': 'serviceLocationType',
+  'service_location_type': 'serviceLocationType',
 }
 
 /**
@@ -116,6 +120,7 @@ export function normalizeExtractedInfo(extractedInfo: any): {
   addressOrLocation?: string
   preferredCallbackTime?: string
   summary?: string
+  serviceLocationType?: string
 } {
   const normalized: any = {}
 

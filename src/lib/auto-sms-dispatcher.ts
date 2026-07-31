@@ -533,7 +533,12 @@ export async function dispatchAutomaticCustomerSms(params: DispatchParams): Prom
     callerPhone,
     businessName,
     '',
-    { serviceLocationType: (business as any)?.service_location_type || 'onsite' }
+    { 
+      serviceLocationType: 
+        (extracted as any)?.serviceLocationType || 
+        (business as any)?.service_location_type || 
+        'onsite' 
+    }
   )
 
   // Out of Office notice is handled centrally by sendSms via appendBusinessAvailabilityNote

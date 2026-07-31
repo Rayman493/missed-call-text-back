@@ -289,8 +289,8 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           </div>
         ) : null}
 
-        {/* Address */}
-        {isEditMode || extractedInfo?.addressOrLocation || correctedFields?.address ? (
+        {/* Address - only show for onsite mode or if address is provided */}
+        {isEditMode || (requiresServiceAddress && (extractedInfo?.addressOrLocation || correctedFields?.address)) ? (
           <div>
             <div className="flex items-center justify-between mb-1">
               <span className="text-[10px] font-medium text-muted-foreground/70 uppercase tracking-wider">Address</span>
@@ -308,7 +308,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               />
             ) : (
               <p className="text-sm text-foreground leading-relaxed">
-                {correctedFields?.address || extractedInfo?.addressOrLocation}
+                {correctedFields?.address || extractedInfo?.addressOrLocation || 'Not provided'}
               </p>
             )}
           </div>
@@ -479,6 +479,16 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
   const correctedFields = leadData?.raw_metadata?.corrected_fields
   const effectiveOutcome = selectedRecord?.outcome || aiCallRecord?.outcome || ''
   const intakeBadgeLabel = selectedRecord ? getIntakeBadgeLabel(selectedRecord, isLatest) : 'Request'
+  
+  // Determine service location type with fallback chain
+  const serviceLocationType = 
+    selectedRecord?.serviceLocationType ||
+    leadData?.raw_metadata?.extracted_info?.serviceLocationType ||
+    business?.service_location_type ||
+    'onsite'
+  const rawMode = typeof serviceLocationType === 'string' ? serviceLocationType.trim().toLowerCase() : 'onsite'
+  const normalizedMode = (rawMode === 'onsite' || rawMode === 'customer_comes_to_business' || rawMode === 'remote') ? rawMode : 'onsite'
+  const requiresServiceAddress = normalizedMode === 'onsite'
 
   return (
     <div className="space-y-4">
