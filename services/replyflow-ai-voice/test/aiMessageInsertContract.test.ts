@@ -15,6 +15,7 @@ describe('AI message insert contract', () => {
     expect(payload.body).to.equal('NEW CUSTOMER REQUEST\nService: plumbing');
     expect(payload.direction).to.equal('outbound');
     expect(payload.message_type).to.equal('summary');
+    expect(payload.sender).to.equal('ai');
     expect(payload).to.not.have.property('content');
     expect(payload.conversation_id).to.equal('conv-1');
     expect(payload.lead_id).to.equal('lead-1');
@@ -34,6 +35,7 @@ describe('AI message insert contract', () => {
     expect(payload.body).to.equal('Assistant: hello\nCaller: hi');
     expect(payload.direction).to.equal('inbound');
     expect(payload.message_type).to.equal('transcript');
+    expect(payload.sender).to.equal('caller');
     expect(payload).to.not.have.property('content');
   });
 

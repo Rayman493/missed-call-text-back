@@ -48,6 +48,12 @@ export function buildAiMessagePayload(payload: AiMessagePayload): Record<string,
     throw new Error('[AI MESSAGE PAYLOAD] message_type is required and must be a non-empty string')
   }
 
+  const senderMap: Record<string, string> = {
+    summary: 'ai',
+    transcript: 'caller',
+    system: 'system',
+  }
+
   const result: Record<string, any> = {
     conversation_id: payload.conversation_id,
     lead_id: payload.lead_id,
@@ -55,6 +61,7 @@ export function buildAiMessagePayload(payload: AiMessagePayload): Record<string,
     body: payload.body,
     direction: payload.direction,
     message_type: payload.message_type,
+    sender: senderMap[payload.message_type] || 'ai',
   }
 
   if (payload.structured_data !== undefined) {

@@ -70,6 +70,7 @@ import { testFallbacks, warnIfTestFallbacksActive } from './test-fallbacks';
 import { OPENAI_REALTIME_MODEL, createOpenAIRealtimeUrl } from './realtime-model';
 import { logModelConfiguration } from './model-config';
 import { buildAiMessagePayload } from './lib/ai-message-builder';
+import { persistAiCallConversationMessages } from './lib/persist-ai-messages';
 
 // @ts-nocheck
 // TypeScript checking disabled to allow deployment with improved Supabase logging
@@ -12741,7 +12742,7 @@ wss.on('connection', (ws, req) => {
       console.log('[AI INGEST INSERT START] checking for existing record');
       const { data: existingRecord, error: existingError } = await supabase
         .from('ai_call_records')
-        .select('id, created_at')
+        .select('id, created_at, lead_id, conversation_id')
         .eq('call_sid', sessionCallSid)
         .single();
       
@@ -12840,7 +12841,22 @@ Return only JSON, no other text.`;
           }
           
           console.log('[AI INGEST INSERT SUCCESS] existing record updated successfully');
-          console.log('[AI INGEST] existingRecord path in main-ws-close returns; message inserts not in this branch');
+
+          const existingSummary = (extractedFields && typeof extractedFields.summary === 'string' && extractedFields.summary.length > 0)
+            ? extractedFields.summary
+            : fullTranscript;
+
+          await persistAiCallConversationMessages({
+            supabase,
+            callSid: sessionCallSid,
+            conversationId: existingRecord.conversation_id,
+            leadId: existingRecord.lead_id,
+            businessId: sessionBusinessId,
+            summary: existingSummary,
+            transcript: fullTranscript,
+            extractedFields,
+          });
+
           console.log('[INGEST CALL DATA EXIT] =========================================');
           console.log('[INGEST CALL DATA EXIT] Function exit');
           console.log('[INGEST CALL DATA EXIT] Timestamp:', new Date().toISOString());
@@ -12862,6 +12878,18 @@ Return only JSON, no other text.`;
           } else {
             console.log('[AI INGEST INSERT SUCCESS] fallback update successful');
           }
+
+          await persistAiCallConversationMessages({
+            supabase,
+            callSid: sessionCallSid,
+            conversationId: existingRecord.conversation_id,
+            leadId: existingRecord.lead_id,
+            businessId: sessionBusinessId,
+            summary: '',
+            transcript: fullTranscript,
+            extractedFields: null,
+          });
+
           console.log('[INGEST CALL DATA EXIT] =========================================');
           console.log('[INGEST CALL DATA EXIT] Function exit');
           console.log('[INGEST CALL DATA EXIT] Timestamp:', new Date().toISOString());
@@ -13549,8 +13577,24 @@ Return only JSON, no other text.`;
         });
 
         console.log('[AI INGEST INSERT SUCCESS] AI record linking completed successfully');
+
+        // Persist AI summary and transcript messages to the conversation
+        const summaryMessage = (extractedFields && typeof extractedFields.summary === 'string' && extractedFields.summary.length > 0)
+          ? extractedFields.summary
+          : fullTranscript;
+
+        await persistAiCallConversationMessages({
+          supabase,
+          callSid: sessionCallSid,
+          conversationId: conversation.id,
+          leadId: lead.id,
+          businessId: sessionBusinessId,
+          summary: summaryMessage,
+          transcript: fullTranscript,
+          extractedFields,
+        });
+
         console.log('[AI INGEST INSERT SUCCESS] ingestion completed successfully');
-        console.log('[AI PERSISTENCE GAP] main success path does not insert messages into messages table');
 
         // SMS DISPATCH REMOVED: AI voice service must NEVER send customer SMS.
         // Automatic customer summary SMS is owned exclusively by the voice-status webhook.
@@ -13742,14 +13786,8 @@ Return only JSON, no other text.`;
 
           // Continue with partial message, SMS, and followups even if record insert failed
 
-          // Insert partial AI intake message
-          console.log('[INCOMPLETE MESSAGE INSERT START] =========================================');
-          console.log('[INCOMPLETE MESSAGE INSERT START] conversationId:', fallbackConversationId);
-          console.log('[INCOMPLETE MESSAGE INSERT START] leadId:', fallbackLead.id);
-          console.log('[INCOMPLETE MESSAGE INSERT START] Timestamp:', new Date().toISOString());
-          console.log('[INCOMPLETE MESSAGE INSERT START] =========================================');
-
-          let partialSummary = intakeData ?
+          // Persist partial AI intake summary and transcript messages
+          const partialSummary = intakeData ?
             `Partial AI intake information:\n` +
             `Name: ${intakeData.customerName || 'Not provided'}\n` +
             `Reason: ${intakeData.serviceRequested || 'Not provided'}\n` +
@@ -13759,29 +13797,20 @@ Return only JSON, no other text.`;
             `Best Callback Time: ${intakeData.callbackTime || 'Not provided'}` :
             'AI call transcript available but extraction failed';
 
-          const { error: messageError } = await supabase
-            .from('messages')
-            .insert(buildAiMessagePayload({
-              conversation_id: fallbackConversationId,
-              lead_id: fallbackLead.id,
-              business_id: businessId,
-              body: partialSummary,
-              direction: 'outbound',
-              message_type: 'summary',
-              structured_data: intakeData || null,
-            }));
+          const fallbackTranscript = transcript && transcript.length > 0
+            ? transcript.map((entry: any) => `${entry.role}: ${entry.text}`).join('\n')
+            : '';
 
-          if (messageError) {
-            console.log('[INCOMPLETE MESSAGE INSERT FAILED] =========================================');
-            console.log('[INCOMPLETE MESSAGE INSERT FAILED] error:', messageError.message);
-            console.log('[INCOMPLETE MESSAGE INSERT FAILED] Timestamp:', new Date().toISOString());
-            console.log('[INCOMPLETE MESSAGE INSERT FAILED] =========================================');
-          } else {
-            console.log('[INCOMPLETE MESSAGE INSERT SUCCESS] =========================================');
-            console.log('[INCOMPLETE MESSAGE INSERT SUCCESS] messageId: success');
-            console.log('[INCOMPLETE MESSAGE INSERT SUCCESS] Timestamp:', new Date().toISOString());
-            console.log('[INCOMPLETE MESSAGE INSERT SUCCESS] =========================================');
-          }
+          await persistAiCallConversationMessages({
+            supabase,
+            callSid: sessionCallSid,
+            conversationId: fallbackConversationId,
+            leadId: fallbackLead.id,
+            businessId: sessionBusinessId,
+            summary: partialSummary,
+            transcript: fallbackTranscript,
+            extractedFields: intakeData || null,
+          });
 
           // SMS DISPATCH REMOVED: AI voice service must NEVER send customer SMS.
           // Automatic customer summary SMS is owned exclusively by the voice-status webhook.
@@ -17270,7 +17299,7 @@ SPEAK ONLY the exact text provided by the app via response.create instructions.`
               
               const { data: existingRecord, error: existingError } = await supabase
                 .from('ai_call_records')
-                .select('id, created_at')
+                .select('id, created_at, lead_id, conversation_id')
                 .eq('call_sid', sessionCallSid)
                 .single();
               
@@ -17378,7 +17407,21 @@ Return only JSON, no other text.`;
                   }
                   
                   console.log('[AI INGEST] existing record updated successfully');
-                  console.log('[AI INGEST] skipping message inserts because existingRecord path returns early');
+                  const existingSummary = (extractedFields && typeof extractedFields.summary === 'string' && extractedFields.summary.length > 0)
+                    ? extractedFields.summary
+                    : fullTranscript;
+
+                  await persistAiCallConversationMessages({
+                    supabase,
+                    callSid: sessionCallSid,
+                    conversationId: existingRecord.conversation_id,
+                    leadId: existingRecord.lead_id,
+                    businessId: sessionBusinessId,
+                    summary: existingSummary,
+                    transcript: fullTranscript,
+                    extractedFields,
+                  });
+
                   return;
                 } catch (error) {
                   console.log('[AI INGEST FAILED] extraction failed during update, updating with transcript only', error);
@@ -17396,6 +17439,18 @@ Return only JSON, no other text.`;
                   } else {
                     console.log('[AI INGEST] fallback update successful');
                   }
+
+                  await persistAiCallConversationMessages({
+                    supabase,
+                    callSid: sessionCallSid,
+                    conversationId: existingRecord.conversation_id,
+                    leadId: existingRecord.lead_id,
+                    businessId: sessionBusinessId,
+                    summary: '',
+                    transcript: fullTranscript,
+                    extractedFields: null,
+                  });
+
                   return;
                 }
               }
@@ -17732,9 +17787,10 @@ Return only JSON, no other text.`;
                   });
                 }
 
-                // Save summary message
-                console.log('[AI INGEST] summary saving...');
-                const summaryMessage = extractedFields.summary || `AI call summary:
+                // Persist AI summary and transcript messages
+                const summaryMessage = (extractedFields && typeof extractedFields.summary === 'string' && extractedFields.summary.length > 0)
+                  ? extractedFields.summary
+                  : `AI call summary:
 Name: ${extractedFields.customerName || 'Not provided'}
 Service: ${extractedFields.serviceRequested || 'Not provided'}
 Details: ${extractedFields.issueDescription || 'Not provided'}
@@ -17742,104 +17798,16 @@ Location: ${extractedFields.serviceAddress || 'Not provided'}
 Completion time: ${extractedFields.desiredCompletionTime || 'Not provided'}
 Callback: ${extractedFields.callbackTime || 'Not provided'}`;
 
-                // Check for existing summary message to prevent duplicates
-                console.log('[MESSAGE INSERT ATTEMPT] Checking for duplicate AI summary message', {
-                  conversation_id: conversation.id,
-                  lead_id: lead.id,
-                  message_type: 'summary'
+                await persistAiCallConversationMessages({
+                  supabase,
+                  callSid: sessionCallSid,
+                  conversationId: conversation.id,
+                  leadId: lead.id,
+                  businessId: sessionBusinessId,
+                  summary: summaryMessage,
+                  transcript: fullTranscript,
+                  extractedFields,
                 });
-                
-                const { data: existingSummary, error: summaryCheckError } = await supabase
-                  .from('messages')
-                  .select('id')
-                  .eq('conversation_id', conversation.id)
-                  .eq('message_type', 'summary')
-                  .limit(1)
-                  .single();
-                
-                if (existingSummary) {
-                  console.log('[MESSAGE DUPLICATE BLOCKED] AI summary message already exists for conversation', {
-                    existing_summary_id: existingSummary.id,
-                    conversation_id: conversation.id,
-                    lead_id: lead.id
-                  });
-                } else if (summaryCheckError && summaryCheckError.code !== 'PGRST116') {
-                  console.error('[MESSAGE DUPLICATE CHECK] Error checking for AI summary duplicate:', summaryCheckError);
-                }
-
-                const { error: messageError } = await supabase
-                  .from('messages')
-                  .insert(buildAiMessagePayload({
-                    conversation_id: conversation.id,
-                    lead_id: lead.id,
-                    business_id: sessionBusinessId,
-                    body: summaryMessage,
-                    direction: 'outbound',
-                    message_type: 'summary',
-                    structured_data: extractedFields,
-                  }));
-
-                if (messageError) {
-                  console.log('[AI INGEST] message save error', messageError);
-                  throw messageError;
-                }
-                console.log('[MESSAGE INSERTED] AI summary message saved successfully', {
-                  conversation_id: conversation.id,
-                  lead_id: lead.id,
-                  business_id: sessionBusinessId,
-                  message_type: 'summary'
-                });
-
-                // Save transcript message
-                console.log('[AI INGEST] transcript saving...');
-                
-                // Check for existing transcript message to prevent duplicates
-                console.log('[MESSAGE INSERT ATTEMPT] Checking for duplicate AI transcript message', {
-                  conversation_id: conversation.id,
-                  lead_id: lead.id,
-                  message_type: 'transcript'
-                });
-                
-                const { data: existingTranscript, error: transcriptCheckError } = await supabase
-                  .from('messages')
-                  .select('id')
-                  .eq('conversation_id', conversation.id)
-                  .eq('message_type', 'transcript')
-                  .limit(1)
-                  .single();
-                
-                if (existingTranscript) {
-                  console.log('[MESSAGE DUPLICATE BLOCKED] AI transcript message already exists for conversation', {
-                    existing_transcript_id: existingTranscript.id,
-                    conversation_id: conversation.id,
-                    lead_id: lead.id
-                  });
-                } else if (transcriptCheckError && transcriptCheckError.code !== 'PGRST116') {
-                  console.error('[MESSAGE DUPLICATE CHECK] Error checking for AI transcript duplicate:', transcriptCheckError);
-                }
-
-                const { error: transcriptError } = await supabase
-                  .from('messages')
-                  .insert(buildAiMessagePayload({
-                    conversation_id: conversation.id,
-                    lead_id: lead.id,
-                    business_id: sessionBusinessId,
-                    body: fullTranscript,
-                    direction: 'inbound',
-                    message_type: 'transcript',
-                  }));
-
-                if (transcriptError) {
-                  console.log('[AI INGEST] transcript save error', transcriptError);
-                  throw transcriptError;
-                }
-                console.log('[MESSAGE INSERTED] AI transcript message saved successfully', {
-                  conversation_id: conversation.id,
-                  lead_id: lead.id,
-                  business_id: sessionBusinessId,
-                  message_type: 'transcript'
-                });
-                console.log('[AI INGEST] transcript saved');
                 
                 // Create AI call record
                 console.log('[AI INGEST] creating AI call record...');
@@ -18298,23 +18266,17 @@ Callback: ${extractedFields.callbackTime || 'Not provided'}`;
 
                   console.log('[AI LINK SUCCESS]', { aiCallRecordId: fallbackRecord.id, leadId: fallbackLead.id, conversationId: fallbackConversation.id });
 
-                  // Save transcript as message
-                  const { error: fallbackMessageError } = await supabase
-                    .from('messages')
-                    .insert(buildAiMessagePayload({
-                      conversation_id: fallbackConversation.id,
-                      lead_id: fallbackLead.id,
-                      business_id: sessionBusinessId,
-                      body: `AI call transcript (extraction failed):\n${fullTranscript}`,
-                      direction: 'inbound',
-                      message_type: 'transcript',
-                    }));
-
-                  if (fallbackMessageError) {
-                    console.log('[AI INGEST] fallback message creation error', fallbackMessageError);
-                  } else {
-                    console.log('[AI INGEST] fallback transcript saved successfully');
-                  }
+                  // Persist fallback transcript message
+                  await persistAiCallConversationMessages({
+                    supabase,
+                    callSid: sessionCallSid,
+                    conversationId: fallbackConversation.id,
+                    leadId: fallbackLead.id,
+                    businessId: sessionBusinessId,
+                    summary: '',
+                    transcript: fullTranscript,
+                    extractedFields: null,
+                  });
 
                   console.log('[AI INGEST] fallback processing complete');
                   return;
