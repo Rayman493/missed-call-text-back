@@ -3686,23 +3686,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   {/* AI Intake Summary */}
                   {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
                     <div>
-                      <h3 className="text-sm font-medium text-foreground mb-2">Request</h3>
-                      {(() => {
-                        const intake = getLeadAIIntake(leadData || lead)
-                        const hasIntake = intake.serviceRequested || leadData?.aiCallRecords?.length > 0
-                        if (hasIntake && (intake.serviceRequested || intake.desiredCompletion || intake.callbackTime)) {
-                          return (
-                            <div className="mb-3 p-3 bg-muted/30 rounded-lg">
-                              <p className="text-sm font-medium text-foreground mb-1.5 leading-snug">{intake.serviceRequested || 'Service request'}</p>
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                {intake.desiredCompletion && <span>{intake.desiredCompletion}</span>}
-                                {intake.callbackTime && <span className="text-border/30">•</span>}
-                                {intake.callbackTime && <span>{intake.callbackTime}</span>}
-                              </div>
-                            </div>
-                          )
-                        }
-                      })()}
                       <AICallDetails
                         leadId={params.id}
                         businessId={business.id}
