@@ -17,7 +17,7 @@ console.log('[OPENAI] import statement:', 'import WebSocket from "ws"');
 // Approved assistant utterances per stage - strict allowlist
 const APPROVED_UTTERANCES: Record<string, string> = {
   ask_name: "Hi, thanks for calling. I'm the virtual assistant for the business. I'll gather a few quick details so the business owner can follow up with you. First, may I have your name?",
-  ask_request: "Thank you. What can I help you with today?",
+  ask_request: "Thank you. Can you let me know what you need help with today and any details that would be helpful?",
   ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
   ask_location_or_context: "All right. Just a couple more questions. Where will this take place?",
   ask_timing: "When are you hoping this will be done?",

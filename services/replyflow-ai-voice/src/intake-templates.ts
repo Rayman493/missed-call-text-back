@@ -66,7 +66,7 @@ const _staticAssertionCheck: AssertObsoleteNotPresent = true;
 export const AI_INTAKE_TEMPLATES: Record<IntakeTemplate, Record<IntakeStage, string>> = {
   on_site: {
     ask_name: "Hi, thanks for calling. I'm the virtual assistant for the business. I'll gather a few quick details so the business owner can follow up with you. First, may I have your name?",
-    ask_request: "Thank you. What can we help you with today? Feel free to include any details that would help the business owner.",
+    ask_request: "Thank you. Can you let me know what you need help with today and any details that would be helpful?",
     ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
     ask_name_reason_service_only: "And what do you need help with?",
     ask_name_reason_name_only: "And what's your name?",
@@ -77,7 +77,7 @@ export const AI_INTAKE_TEMPLATES: Record<IntakeTemplate, Record<IntakeStage, str
   },
   appointment: {
     ask_name: "Hi, thanks for calling. I'm the virtual assistant for the business. I'll gather a few quick details so the business owner can follow up with you. First, may I have your name?",
-    ask_request: "Thank you. What can we help you with today? Feel free to include any details that would help the business owner.",
+    ask_request: "Thank you. Can you let me know what you need help with today and any details that would be helpful?",
     ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
     ask_name_reason_service_only: "And what do you need help with?",
     ask_name_reason_name_only: "And what's your name?",
@@ -88,7 +88,7 @@ export const AI_INTAKE_TEMPLATES: Record<IntakeTemplate, Record<IntakeStage, str
   },
   lessons: {
     ask_name: "Hi, thanks for calling. I'm the virtual assistant for the business. I'll gather a few quick details so the business owner can follow up with you. First, may I have your name?",
-    ask_request: "Thank you. What can we help you with today? Feel free to include any details that would help the business owner.",
+    ask_request: "Thank you. Can you let me know what you need help with today and any details that would be helpful?",
     ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
     ask_name_reason_service_only: "And what do you need help with?",
     ask_name_reason_name_only: "And what's your name?",
@@ -99,7 +99,7 @@ export const AI_INTAKE_TEMPLATES: Record<IntakeTemplate, Record<IntakeStage, str
   },
   professional: {
     ask_name: "Hi, thanks for calling. I'm the virtual assistant for the business. I'll gather a few quick details so the business owner can follow up with you. First, may I have your name?",
-    ask_request: "Thank you. What can we help you with today? Feel free to include any details that would help the business owner.",
+    ask_request: "Thank you. Can you let me know what you need help with today and any details that would be helpful?",
     ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
     ask_name_reason_service_only: "And what do you need help with?",
     ask_name_reason_name_only: "And what's your name?",
@@ -126,7 +126,7 @@ export function getIntakeStageText(template: IntakeTemplate, stage: IntakeStage)
  */
 const LEGACY_FALLBACK_PROMPTS: Record<IntakeStage, string> = {
   ask_name: "Hi, thanks for calling. I'm the virtual assistant for the business. I'll gather a few quick details so the business owner can follow up with you. First, may I have your name?",
-  ask_request: "Thank you. What can we help you with today? Feel free to include any details that would help the business owner.",
+  ask_request: "Thank you. Can you let me know what you need help with today and any details that would be helpful?",
   ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
   ask_name_reason_service_only: "And what do you need help with?",
   ask_name_reason_name_only: "And what's your name?",
