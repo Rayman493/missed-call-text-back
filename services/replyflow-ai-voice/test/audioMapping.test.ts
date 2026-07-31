@@ -9,11 +9,10 @@ import * as crypto from 'crypto';
 // Required prompt keys for Simple Mode
 const requiredPromptKeys = [
   'ask_name',
-  'ask_reason',
+  'ask_request',
   'ask_name_reason',
   'ask_name_reason_service_only',
   'ask_name_reason_name_only',
-  'ask_details',
   'ask_location',
   'ask_completion_time',
   'ask_callback_time',
@@ -21,14 +20,15 @@ const requiredPromptKeys = [
 ];
 
 const prompts = {
+  ask_name: "Hi, thanks for calling. I'm the virtual assistant for the business. I'll gather a few quick details so the business owner can follow up with you. First, may I have your name?",
+  ask_request: "Thank you. What can we help you with today? Feel free to include any details that would help the business owner.",
   ask_name_reason: "Hi, I'm the assistant for the business. I just have a few quick questions so I can pass everything along. First, can you please let me know your name and your reason for calling?",
   ask_name_reason_service_only: "And what do you need help with?",
   ask_name_reason_name_only: "And what's your name?",
-  ask_details: "Got it. Can you share any important details the business should know?",
   ask_location: "And what location or address should the business have for this?",
   ask_completion_time: "When are you hoping this will be done?",
-  ask_callback_time: "Perfect. Last question—what's the best time for the business to call you back?",
-  complete: "Perfect. Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a great day."
+  ask_callback_time: "Okay. Last question—what would be the best time for the business to call you back?",
+  complete: "Thank you for calling. I'll pass this information along to the business, and they will get back to you soon. Have a good day."
 };
 
 console.log('=== AUDIO MAPPING VALIDATION TESTS ===\n');
@@ -195,11 +195,10 @@ if (textMappingCorrect) {
 console.log('\nTest 7: Canonical registry contains all legitimate prompt keys');
 const canonicalPromptKeys = [
   'ask_name',
-  'ask_reason',
+  'ask_request',
   'ask_name_reason',
   'ask_name_reason_service_only',
   'ask_name_reason_name_only',
-  'ask_details',
   'ask_location',
   'ask_completion_time',
   'ask_callback_time',
@@ -279,11 +278,10 @@ if (wouldBeMissing) {
 console.log('\nTest 12: Verify runtime validator canonical registry matches production expectations');
 const expectedCanonicalKeys = [
   'ask_name',
-  'ask_reason',
+  'ask_request',
   'ask_name_reason',
   'ask_name_reason_service_only',
   'ask_name_reason_name_only',
-  'ask_details',
   'ask_location',
   'ask_completion_time',
   'ask_callback_time',
