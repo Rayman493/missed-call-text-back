@@ -86,7 +86,9 @@ export default function TapToPayModal({
       
       const supported = isNativeCapacitor()
       setIsNativeSupported(supported)
-      if (!supported) {
+      // Only set error message in web - never in native app
+      // The user is already in the app, so this message is redundant
+      if (!supported && detectedPlatform === 'web') {
         setError('Tap to Pay is only available on the mobile app')
       }
 
@@ -372,7 +374,11 @@ export default function TapToPayModal({
 
     if (!isNativeSupported) {
       console.log('[TTP UI] Native support check failed')
-      setError('Tap to Pay is only available on the mobile app')
+      // Only show error message in web - never in native app
+      // The user is already in the app, so this message is redundant
+      if (platform === 'web') {
+        setError('Tap to Pay is only available on the mobile app')
+      }
       return
     }
 

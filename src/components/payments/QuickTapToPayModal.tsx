@@ -13,6 +13,7 @@ import { TerminalBridgeService } from '@/lib/terminal/service'
 import TapToPayDiagnosticsPanel from '@/components/TapToPayDiagnosticsPanel'
 import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
 import { SHOW_TAP_TO_PAY_DIAGNOSTICS } from './tapToPayUiConfig'
+import { Capacitor } from '@capacitor/core'
 
 interface QuickTapToPayModalProps {
   isOpen: boolean
@@ -488,7 +489,9 @@ export default function QuickTapToPayModal({
                 <p className="text-sm text-red-500 text-center">Please enter a valid amount</p>
               )}
 
-              {!isNativeSupported && (
+              {/* Only show app-only message in web - never in native app */}
+              {/* The user is already in the app, so this message is redundant */}
+              {!isNativeSupported && Capacitor.getPlatform() === 'web' && (
                 <p className="text-sm text-amber-600 dark:text-amber-400 text-center">
                   Tap to Pay is only available on the mobile app
                 </p>
