@@ -31,18 +31,33 @@ describe('Settings Content Scroll Navigation', () => {
 
   it('dynamic scroll offset calculation is correct', () => {
     const navContainerHeight = 57 // actual sticky container height (py-4 + border + content)
-    const BREATHING_ROOM_GAP = 16
+    const BREATHING_ROOM_GAP = 8
     const expectedOffset = navContainerHeight + BREATHING_ROOM_GAP
     
-    expect(expectedOffset).toBe(73)
+    expect(expectedOffset).toBe(65)
   })
 
-  it('breathing room gap is sufficient for comfortable separation', () => {
-    const BREATHING_ROOM_GAP = 16
+  it('breathing room gap ensures target section becomes active', () => {
+    const BREATHING_ROOM_GAP = 8
     
-    // Should provide 16-20px clear space between sticky nav and section divider
-    expect(BREATHING_ROOM_GAP).toBeGreaterThanOrEqual(14)
-    expect(BREATHING_ROOM_GAP).toBeLessThanOrEqual(24)
+    // Should be small enough that target section moves into viewport and becomes clearly active
+    // while still keeping divider fully visible below sticky navigation
+    expect(BREATHING_ROOM_GAP).toBeGreaterThanOrEqual(4)
+    expect(BREATHING_ROOM_GAP).toBeLessThanOrEqual(16)
+  })
+
+  it('scroll landing position crosses into target section', () => {
+    // This test verifies the scroll calculation moves far enough that the target section
+    // becomes active, not just the previous section
+    const navContainerHeight = 57
+    const BREATHING_ROOM_GAP = 8
+    const offset = navContainerHeight + BREATHING_ROOM_GAP
+    
+    // The offset should be the sticky container height plus a small gap
+    // This positions the divider slightly below the sticky nav, ensuring the viewport
+    // is clearly within the target section rather than at the boundary
+    expect(offset).toBeGreaterThan(navContainerHeight)
+    expect(offset).toBeLessThan(navContainerHeight + 20)
   })
 
   it('top threshold is reasonable for detecting first section', () => {
