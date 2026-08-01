@@ -75,6 +75,20 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
   const [aiSummaryExpanded, setAiSummaryExpanded] = useState(false)
   const supabase = createBrowserClient()
 
+  // Extract key points from AI summary for scanability
+  const extractKeyPoints = (summary: string): string[] => {
+    if (!summary || typeof summary !== 'string') return []
+    
+    // Split by sentences and filter for meaningful points
+    const sentences = summary
+      .split(/[.!?]+/)
+      .map(s => s.trim())
+      .filter(s => s.length > 0 && s.length < 100) // Filter out very short or very long sentences
+    
+    // Return up to 5 key points
+    return sentences.slice(0, 5)
+  }
+
   const handleSave = async () => {
     try {
       setIsSaving(true)
@@ -682,7 +696,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           </button>
 
           {fullTranscriptExpanded && (
-            <div className="px-3.5 pb-3 pt-2 border-t border-border/30">
+            <div className="px-3 pb-3 pt-2 border-t border-border/30">
               <div className="space-y-2.5 max-h-96 overflow-y-auto">
                 {(() => {
                   const messages = normalizeAITranscript(selectedRecord.transcript);
@@ -704,7 +718,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                         </div>
                       )}
                       <div
-                        className={`max-w-[85%] rounded-lg px-3 py-2 ${
+                        className={`max-w-[92%] rounded-lg px-3 py-2 ${
                           message.role === 'assistant'
                             ? 'bg-muted/30 dark:bg-muted/20 text-foreground border border-border/20'
                             : 'bg-muted/50 dark:bg-muted/30 text-foreground border border-border/30'
@@ -770,6 +784,25 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               </div>
             ) : aiSummary ? (
               <div className="space-y-3">
+                {/* Key Points */}
+                {(() => {
+                  const keyPoints = extractKeyPoints(aiSummary);
+                  return keyPoints.length > 0 ? (
+                    <div>
+                      <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Key Points</h4>
+                      <ul className="space-y-1.5">
+                        {keyPoints.map((point, index) => (
+                          <li key={index} className="text-xs text-foreground flex items-start gap-2">
+                            <span className="text-muted-foreground mt-0.5">•</span>
+                            <span>{point}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null;
+                })()}
+                
+                {/* Summary Paragraph */}
                 <p className="text-sm text-foreground leading-relaxed">
                   {aiSummary}
                 </p>

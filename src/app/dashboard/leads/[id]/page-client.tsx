@@ -3250,7 +3250,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
       {/* Customer Identity Header - Distinct from global navigation */}
       <div className="border-y border-slate-700/35 bg-slate-900/60">
-        <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-3">
           {/* Mobile Layout: Compact Information Header */}
           <div className="md:hidden">
             <div className="flex items-center gap-2">
@@ -3480,17 +3480,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </DropdownMenuPortal>
                 </DropdownMenu>
               </div>
-            </div>
-            
-            {/* Compact metadata row - only show essential info */}
-            <div className="flex items-center gap-2 mt-2 text-[10px] text-muted-foreground">
-              <span>{messagesArray.length} msg</span>
-              {lead?.last_message_at && (
-                <>
-                  <span>•</span>
-                  <span>{formatRelativeTime(lead.last_message_at)}</span>
-                </>
-              )}
             </div>
           </div>
 
@@ -4443,19 +4432,55 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 {conversationTimeline.slice(-10).reverse().slice(0, 5).map((item: any, index: number) => (
                   <div key={item.id} className="flex items-start gap-2 py-1 border-b border-border/10 last:border-0">
                     <div className="flex-shrink-0 pt-0.5">
-                      {item.type === 'message' ? (
-                        <svg className="w-3 h-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
-                      ) : item.type === 'voicemail' ? (
-                        <svg className="w-3 h-3 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                        </svg>
-                      ) : (
-                        <svg className="w-3 h-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      )}
+                      {(() => {
+                        // Determine color based on event type and data
+                        if (item.type === 'payment_requested') {
+                          const isPaid = item.data?.status === 'paid'
+                          return isPaid ? (
+                            <svg className="w-3 h-3 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          ) : (
+                            <svg className="w-3 h-3 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2-1.343-2-3-2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          )
+                        } else if (item.type === 'voicemail') {
+                          return (
+                            <svg className="w-3 h-3 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                            </svg>
+                          )
+                        } else if (item.type === 'message') {
+                          return (
+                            <svg className="w-3 h-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                          )
+                        } else if (item.type === 'system_event') {
+                          // Check if it's an AI Intake event
+                          const isAIIntake = item.id?.startsWith('ai-intake-')
+                          if (isAIIntake) {
+                            return (
+                              <svg className="w-3 h-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            )
+                          }
+                          // Default system event
+                          return (
+                            <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          )
+                        }
+                        // Default fallback
+                        return (
+                          <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        )
+                      })()}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[9px] text-muted-foreground truncate">{item.type === 'message' ? (item.data?.direction === 'inbound' ? 'Customer message' : 'Your message') : item.type === 'voicemail' ? 'Voicemail' : 'System event'}</p>
