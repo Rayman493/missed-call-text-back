@@ -111,6 +111,16 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
       }
     } catch (err: any) {
       setError(err.message || 'Failed to add customer')
+      // Reset form on error so user can try again with clean slate
+      setFormData({
+        customerName: '',
+        phoneNumber: '',
+        serviceRequested: '',
+        address: '',
+        desiredCompletion: '',
+        callbackTime: '',
+        notes: ''
+      })
     } finally {
       setIsSubmitting(false)
     }

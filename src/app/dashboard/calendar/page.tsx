@@ -761,7 +761,7 @@ export default function SchedulePage() {
     setEditingJob(null)
     setJobPrefill(undefined)
     setNewJobDefaultDate(undefined)
-    showToast(editingJob ? 'Job updated' : 'Job created', 'success')
+    // Toast is now shown by JobComposer via onShowToast
   }
 
   const handleJobStatusChange = (job: Job, status: JobStatus) => {
@@ -1711,6 +1711,7 @@ export default function SchedulePage() {
                     editJob={editingJob || undefined}
                     prefill={jobPrefill}
                     defaultDate={newJobDefaultDate}
+                    onShowToast={showToast}
                   />
 
                   {/* Add Customer Modal */}

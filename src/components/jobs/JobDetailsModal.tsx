@@ -224,6 +224,15 @@ export default function JobDetailsModal({
   const copyPaymentLink = async (url: string) => {
     try {
       await navigator.clipboard.writeText(url)
+      // Show toast feedback
+      const toast = document.createElement('div')
+      toast.className = 'fixed bottom-4 right-4 bg-slate-900 text-white px-4 py-2 rounded-lg shadow-lg text-sm z-50 animate-in fade-in slide-in-from-bottom-2 duration-300'
+      toast.textContent = 'Payment link copied to clipboard'
+      document.body.appendChild(toast)
+      setTimeout(() => {
+        toast.classList.add('animate-out', 'fade-out', 'slide-out-to-bottom-2')
+        setTimeout(() => toast.remove(), 300)
+      }, 2000)
     } catch (err) {
       console.error('Failed to copy link:', err)
     }

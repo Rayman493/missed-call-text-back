@@ -48,6 +48,7 @@ interface JobComposerProps {
   prefill?: JobPrefill
   editJob?: Job
   defaultDate?: Date | null
+  onShowToast?: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void
 }
 
 const STATUS_OPTIONS: { value: JobStatus; label: string }[] = [
@@ -64,6 +65,7 @@ export default function JobComposer({
   prefill,
   editJob,
   defaultDate,
+  onShowToast,
 }: JobComposerProps) {
   const [title, setTitle] = useState('')
   const [customerName, setCustomerName] = useState('')
@@ -150,6 +152,7 @@ export default function JobComposer({
 
       const data = await response.json()
       onSave(data.job)
+      onShowToast?.(editJob ? 'Job updated successfully' : 'Job created successfully', 'success')
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save job')

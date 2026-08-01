@@ -168,7 +168,12 @@ export default function RequestPaymentModal({
 
   const handleCreatePayment = async () => {
     if (!paymentAmount || parseFloat(paymentAmount) <= 0) {
-      setError('Please enter a valid amount')
+      setError('Please enter a valid amount greater than 0')
+      return
+    }
+
+    if (parseFloat(paymentAmount) < 0.01) {
+      setError('Amount must be at least $0.01')
       return
     }
 
@@ -428,14 +433,24 @@ export default function RequestPaymentModal({
               <input
                 type="number"
                 value={paymentAmount}
-                onChange={(e) => setPaymentAmount(e.target.value)}
+                onChange={(e) => {
+                  setPaymentAmount(e.target.value)
+                  if (error && error.includes('amount')) {
+                    setError('')
+                  }
+                }}
                 placeholder="0.00"
                 step="0.01"
                 min="0.01"
                 disabled={isCreatingPayment}
-                className="w-full pl-8 pr-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white disabled:opacity-60 disabled:cursor-not-allowed"
+                className={`w-full pl-8 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 bg-[#0f172a] text-white disabled:opacity-60 disabled:cursor-not-allowed ${
+                  error && error.includes('amount') ? 'border-red-500 focus:border-red-500' : 'border-slate-600 focus:border-blue-500'
+                }`}
               />
             </div>
+            {error && error.includes('amount') && (
+              <p className="mt-1.5 text-xs text-red-400">{error}</p>
+            )}
           </div>
 
           <div>

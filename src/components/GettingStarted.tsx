@@ -62,6 +62,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null)
   const [isMobile, setIsMobile] = useState(false)
   const [realCallDataExists, setRealCallDataExists] = useState(false)
+  const [isTestCallLoading, setIsTestCallLoading] = useState(false)
   const cardRefs = useRef<{ [key: string]: HTMLLIElement | null }>({})
 
   // Mobile detection
@@ -546,30 +547,36 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
           : step3Complete
             ? (realCallDataExists ? 'ReplyFlow is live and monitoring your business line.' : 'ReplyFlow is now monitoring your missed calls.')
             : (step2Complete ? '🕒 Usually takes about 1 minute' : 'Available once forwarding is enabled'),
-        buttonText: step2Complete && !step3Complete ? 'Run Test Call' : undefined,
+        buttonText: step2Complete && !step3Complete ? (isTestCallLoading ? 'Loading...' : 'Run Test Call') : undefined,
         buttonOnClick: step2Complete && !step3Complete ? () => {
+          setIsTestCallLoading(true)
           // Scroll to test call section in Setup Gate
           const setupGate = document.getElementById('setup-gate')
           if (setupGate) {
             setupGate.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            setTimeout(() => setIsTestCallLoading(false), 500)
           } else {
             // Fallback: scroll to top of page and show alert
             console.warn('[GettingStarted] Setup gate element not found, scrolling to top')
             window.scrollTo({ top: 0, behavior: 'smooth' })
             alert('Setup instructions are displayed at the top of the dashboard')
+            setIsTestCallLoading(false)
           }
         } : undefined,
-        secondaryButtonText: step3Complete ? 'Run Another Test Call' : undefined,
+        secondaryButtonText: step3Complete ? (isTestCallLoading ? 'Loading...' : 'Run Another Test Call') : undefined,
         secondaryButtonOnClick: step3Complete ? () => {
+          setIsTestCallLoading(true)
           // Scroll to test call section in Setup Gate
           const setupGate = document.getElementById('setup-gate')
           if (setupGate) {
             setupGate.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            setTimeout(() => setIsTestCallLoading(false), 500)
           } else {
             // Fallback: scroll to top of page and show alert
             console.warn('[GettingStarted] Setup gate element not found, scrolling to top')
             window.scrollTo({ top: 0, behavior: 'smooth' })
             alert('Setup instructions are displayed at the top of the dashboard')
+            setIsTestCallLoading(false)
           }
         } : undefined,
       },
