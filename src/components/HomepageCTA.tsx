@@ -37,14 +37,14 @@ export default function HomepageCTA({
         {isLoggedIn ? (
           <Link
             href="/dashboard"
-            className="inline-flex items-center justify-center h-14 sm:h-16 px-8 sm:px-10 w-[85%] mx-auto sm:w-auto sm:min-w-[280px] bg-blue-600 text-white font-bold text-base sm:text-lg rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            className="inline-flex items-center justify-center h-16 sm:h-18 px-8 sm:px-10 w-[85%] mx-auto sm:w-auto sm:min-w-[280px] bg-blue-600 text-white font-bold text-base sm:text-lg rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             Go to Dashboard
           </Link>
         ) : (
           <Link
             href="/auth?mode=signup"
-            className="inline-flex items-center justify-center h-14 sm:h-16 px-8 sm:px-10 w-full sm:w-auto sm:min-w-[280px] bg-blue-600 text-white font-bold text-base sm:text-lg rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            className="inline-flex items-center justify-center h-16 sm:h-18 px-8 sm:px-10 w-full sm:w-auto sm:min-w-[280px] bg-blue-600 text-white font-bold text-base sm:text-lg rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             Start Your 14-Day Free Trial
           </Link>

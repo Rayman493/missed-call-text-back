@@ -24,7 +24,7 @@ const InteractiveDemoWalkthrough = dynamic(
 export default function HomepageInteractiveDemo() {
   return (
     <section id="interactive-demo" className="bg-white dark:bg-background py-12 sm:py-16 md:py-20 border-t border-slate-100 dark:border-slate-800">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
