@@ -3498,9 +3498,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           <div className="hidden md:block">
             {/* Workspace Header Surface */}
             <div className="border-y border-slate-800/20 bg-slate-900/20">
-              <div className="max-w-6xl mx-auto px-8 lg:px-10 py-3">
+              <div className="max-w-7xl mx-auto px-6 lg:px-8 py-3">
                 {/* Back Link Row */}
-                <div className="mb-2">
+                <div className="mb-1">
                   <AppBackButton fallbackHref="/dashboard/leads" label="Back to Customers" />
                 </div>
 
