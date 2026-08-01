@@ -3499,7 +3499,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             {/* Workspace Header Surface */}
             <div className="border-y border-slate-800/20 bg-slate-900/20">
               <div className="max-w-6xl mx-auto px-8 lg:px-10 py-4">
-                <div className="flex items-center gap-8">
+                <div className="flex items-center gap-4">
                   {/* Back to Customers */}
                   <div className="flex-shrink-0">
                     <AppBackButton fallbackHref="/dashboard/leads" label="Back to Customers" />
@@ -3550,7 +3550,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     </div>
 
                   {/* Actions - Quick Actions */}
-                  <div className="flex items-center gap-2 flex-shrink-0 pl-8">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     {/* Job */}
                     <button
                       onClick={handleCreateJobClick}
