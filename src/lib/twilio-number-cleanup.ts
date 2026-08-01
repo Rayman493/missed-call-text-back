@@ -13,6 +13,7 @@
 
 import { supabaseAdmin } from './supabase/admin'
 import Twilio from 'twilio'
+import * as Sentry from '@sentry/nextjs'
 
 // Configuration from environment
 const CLEANUP_ENABLED = process.env.TWILIO_RETIRED_CLEANUP_ENABLED === 'true'
@@ -28,6 +29,9 @@ const PROTECTED_NUMBERS = (process.env.PROTECTED_TWILIO_NUMBERS || '').split(','
 
 // Canonical warm-pool configuration (use WARM_INVENTORY_TARGET as single source of truth)
 const MIN_AVAILABLE_WARM_NUMBERS = parseInt(process.env.WARM_INVENTORY_TARGET || '3', 10)
+
+// Stale claim recovery configuration
+const STALE_CLAIM_MINUTES = parseInt(process.env.TWILIO_RETIRED_STALE_CLAIM_MINUTES || '60', 10)
 
 export interface CleanupRunResult {
   runId: string
@@ -195,23 +199,50 @@ function getActivityCutoff(): Date {
 
 /**
  * Check if a phone number has recent activity
- * Checks conversations for messages within lookback period
+ * Checks both conversations and messages tables for comprehensive activity detection
+ * A conversation is created when a lead receives an SMS or sends a message
+ * Messages can be added to existing conversations, so we check both
  */
 async function checkRecentActivity(phoneNumber: string, cutoff: Date): Promise<boolean> {
   try {
-    const { count, error } = await supabaseAdmin
+    // Check conversations table
+    const { count: conversationCount, error: conversationError } = await supabaseAdmin
       .from('conversations')
       .select('*', { count: 'exact', head: true })
       .eq('phone_number', phoneNumber)
       .gte('created_at', cutoff.toISOString())
 
-    if (error) {
-      console.error('[TWILIO CLEANUP] Failed to check recent activity:', error)
+    if (conversationError) {
+      console.error('[TWILIO CLEANUP] Failed to check recent conversation activity:', conversationError)
       // Fail safe: assume activity to be conservative
       return true
     }
 
-    return (count || 0) > 0
+    // Check messages table as well (conversations might exist long ago but receive recent messages)
+    const { count: messageCount, error: messageError } = await supabaseAdmin
+      .from('messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('phone_number', phoneNumber)
+      .gte('created_at', cutoff.toISOString())
+
+    if (messageError) {
+      console.error('[TWILIO CLEANUP] Failed to check recent message activity:', messageError)
+      // Fail safe: assume activity to be conservative
+      return true
+    }
+
+    // Consider activity if either conversations or messages exist within lookback
+    const hasActivity = ((conversationCount || 0) > 0) || ((messageCount || 0) > 0)
+    
+    if (hasActivity) {
+      console.log('[TWILIO CLEANUP] Recent activity detected', {
+        maskedPhone: maskPhoneNumber(phoneNumber),
+        conversationCount,
+        messageCount
+      })
+    }
+
+    return hasActivity
   } catch (error) {
     console.error('[TWILIO CLEANUP] Exception checking recent activity:', error)
     // Fail safe: assume activity to be conservative
@@ -238,12 +269,13 @@ export async function getRetiredCount(): Promise<number> {
 
 /**
  * Claim a number for release by transitioning to release_pending
- * Uses row-level locking to prevent concurrent claims
+ * Uses atomic database update to prevent concurrent claims
+ * Only allows claiming from 'retired' status, not 'release_pending'
  */
 export async function claimNumberForRelease(numberId: string, runId: string): Promise<boolean> {
   const { data: existing, error: fetchError } = await supabaseAdmin
     .from('twilio_numbers')
-    .select('id, status, business_id, release_attempt_count, phone_number, reserved_expires_at')
+    .select('id, status, business_id, release_attempt_count, phone_number, reserved_expires_at, last_release_attempt_at, cleanup_run_id')
     .eq('id', numberId)
     .single()
 
@@ -264,14 +296,29 @@ export async function claimNumberForRelease(numberId: string, runId: string): Pr
     return false
   }
 
-  if (existing.status !== 'retired' && existing.status !== 'release_pending') {
-    console.warn('[TWILIO CLEANUP] Number status changed, skipping claim:', existing.status)
+  // Only allow claiming from 'retired' status
+  if (existing.status !== 'retired') {
+    console.warn('[TWILIO CLEANUP] Number status is not retired (cannot claim from release_pending):', existing.status)
     return false
   }
 
-  // Attempt to claim with optimistic locking and claim timestamp
+  // Check for stale claim - if already in release_pending with old timestamp, recover first
+  if (existing.cleanup_run_id && existing.last_release_attempt_at) {
+    const staleThreshold = new Date(Date.now() - STALE_CLAIM_MINUTES * 60 * 1000)
+    if (new Date(existing.last_release_attempt_at) < staleThreshold) {
+      console.log('[TWILIO CLEANUP] Recovering stale claim:', numberId)
+      const recovered = await recoverStaleClaim(numberId)
+      if (!recovered) {
+        return false
+      }
+    }
+  }
+
+  // Atomic claim: require exact status, no business_id, and expected attempt count
   const claimTimestamp = new Date().toISOString()
-  const { error: updateError } = await supabaseAdmin
+  const expectedAttemptCount = existing.release_attempt_count || 0
+  
+  const { error: updateError, count } = await supabaseAdmin
     .from('twilio_numbers')
     .update({
       status: 'release_pending',
@@ -279,11 +326,18 @@ export async function claimNumberForRelease(numberId: string, runId: string): Pr
       last_release_attempt_at: claimTimestamp
     })
     .eq('id', numberId)
-    .in('status', ['retired', 'release_pending'])
+    .eq('status', 'retired')
     .is('business_id', null)
+    .eq('release_attempt_count', expectedAttemptCount)
 
   if (updateError) {
     console.error('[TWILIO CLEANUP] Failed to claim number:', updateError)
+    return false
+  }
+
+  // Verify exactly one row was updated (atomic claim)
+  if (count !== 1) {
+    console.warn('[TWILIO CLEANUP] Claim did not affect exactly one row:', { count, numberId })
     return false
   }
 
@@ -291,9 +345,34 @@ export async function claimNumberForRelease(numberId: string, runId: string): Pr
     numberId,
     maskedPhone: maskPhoneNumber(existing.phone_number || ''),
     runId,
-    claimTimestamp
+    claimTimestamp,
+    attemptCount: expectedAttemptCount
   })
 
+  return true
+}
+
+/**
+ * Recover a stale claim by returning number to retired status
+ * Used when a previous cleanup run left a number in release_pending
+ */
+async function recoverStaleClaim(numberId: string): Promise<boolean> {
+  const { error } = await supabaseAdmin
+    .from('twilio_numbers')
+    .update({
+      status: 'retired',
+      cleanup_run_id: null
+    })
+    .eq('id', numberId)
+    .eq('status', 'release_pending')
+    .is('business_id', null)
+
+  if (error) {
+    console.error('[TWILIO CLEANUP] Failed to recover stale claim:', error)
+    return false
+  }
+
+  console.log('[TWILIO CLEANUP] Stale claim recovered:', numberId)
   return true
 }
 
@@ -408,8 +487,6 @@ export async function releaseTwilioNumber(
         // Try to remove from Messaging Service sender pool
         const messagingService = (client as any).messagingServices(messagingServiceSid)
         
-        // Try to remove the phone number from the sender pool
-        // This may fail if the number is not in the service, which is fine
         try {
           await messagingService.phoneNumbers(candidate.twilioSid).remove()
           console.log('[TWILIO CLEANUP] Removed from Messaging Service sender pool', {
@@ -417,24 +494,51 @@ export async function releaseTwilioNumber(
             messagingServiceSid: messagingServiceSid.slice(-8)
           })
         } catch (senderErr: any) {
-          // If number is not in the service (404), that's idempotent success
+          // Classify the error type
+          const isRetryable = isRetryableError(senderErr)
+          
           if (senderErr.status === 404) {
+            // Number not in service - idempotent success, continue
             console.log('[TWILIO CLEANUP] Number not in Messaging Service sender pool (already detached)', {
               maskedPhone: maskPhoneNumber(candidate.phoneNumber)
             })
-          } else {
-            // Log but don't fail on sender pool detachment errors
-            console.warn('[TWILIO CLEANUP] Failed to remove from Messaging Service sender pool, continuing:', {
+          } else if (isRetryable) {
+            // Retryable error (timeout, 429, 5xx, network) - stop and retry
+            console.error('[TWILIO CLEANUP] Messaging Service detachment failed with retryable error, stopping release:', {
               maskedPhone: maskPhoneNumber(candidate.phoneNumber),
               error: senderErr.message,
-              code: senderErr.code
+              code: senderErr.code,
+              status: senderErr.status
             })
+            result.error = `Messaging Service detachment failed: ${senderErr.message}`
+            await handleReleaseFailure(candidate.id, runId, senderErr.message, senderErr.code, true)
+            return result
+          } else {
+            // Permanent error (auth, config) - manual review
+            console.error('[TWILIO CLEANUP] Messaging Service detachment failed with permanent error, manual review required:', {
+              maskedPhone: maskPhoneNumber(candidate.phoneNumber),
+              error: senderErr.message,
+              code: senderErr.code,
+              status: senderErr.status
+            })
+            result.error = `Messaging Service detachment failed: ${senderErr.message}`
+            sendOperationalAlert('permanent_failure', {
+              numberId: candidate.id,
+              phoneNumber: candidate.phoneNumber,
+              twilioSid: candidate.twilioSid,
+              runId,
+              error: senderErr.message,
+              errorCode: senderErr.code
+            })
+            await handleReleaseFailure(candidate.id, runId, senderErr.message, senderErr.code, false)
+            return result
           }
         }
       } catch (msErr: any) {
-        console.warn('[TWILIO CLEANUP] Messaging Service detachment error (continuing):', msErr.message)
-        // Don't fail the entire release on Messaging Service errors
-        // The number will still be released from the account
+        console.error('[TWILIO CLEANUP] Messaging Service detachment exception:', msErr.message)
+        result.error = `Messaging Service detachment exception: ${msErr.message}`
+        await handleReleaseFailure(candidate.id, runId, msErr.message, undefined, true)
+        return result
       }
     }
 
@@ -603,10 +707,10 @@ function isRetryableError(error: any): boolean {
 
 /**
  * Send operational alert for critical failures
- * This uses console.error for now - should be integrated with Sentry or existing alerting
+ * Uses Sentry for production alerting
  */
 function sendOperationalAlert(
-  type: 'permanent_failure' | 'max_attempts_exceeded' | 'sid_mismatch' | 'auth_failure' | 'run_failure',
+  type: 'permanent_failure' | 'max_attempts_exceeded' | 'sid_mismatch' | 'auth_failure' | 'run_failure' | 'sender_detach_failure',
   details: {
     numberId?: string
     phoneNumber?: string
@@ -624,10 +728,21 @@ function sendOperationalAlert(
     twilioSidSuffix: details.twilioSid ? getTwilioSidSuffix(details.twilioSid) : undefined
   }
 
+  // Always log to console
   console.error('[TWILIO CLEANUP ALERT]', JSON.stringify(alertMessage))
 
-  // TODO: Integrate with Sentry or existing alerting mechanism
-  // Example: Sentry.captureMessage('Twilio cleanup alert', { level: 'error', extra: alertMessage })
+  // Send to Sentry in production
+  if (process.env.NODE_ENV === 'production') {
+    Sentry.captureMessage(`Twilio Cleanup Alert: ${type}`, {
+      level: 'error',
+      extra: alertMessage,
+      tags: {
+        cleanup_run_id: details.runId,
+        alert_type: type,
+        number_id: details.numberId
+      }
+    })
+  }
 }
 
 /**
