@@ -3498,8 +3498,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           <div className="hidden md:block">
             {/* Workspace Header Surface */}
             <div className="bg-slate-900/40 border-y border-slate-800/50">
-              <div className="max-w-6xl mx-auto px-6 lg:px-8 py-4">
-                <div className="flex items-center gap-6">
+              <div className="max-w-6xl mx-auto px-8 lg:px-10 py-6">
+                <div className="flex items-center gap-8">
                   {/* Back to Customers */}
                   <div className="flex-shrink-0">
                     <AppBackButton fallbackHref="/dashboard/leads" label="Back to Customers" />
@@ -3519,7 +3519,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         />
                       ) : (
                         <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center border-2 border-border/10">
-                          <span className="text-white font-semibold text-lg">
+                          <span className="text-white font-semibold text-xl">
                             {getLeadDisplayName(leadData || lead)
                               .split(' ')
                               .map(n => n[0])
@@ -3533,24 +3533,22 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
                     {/* Name and Phone */}
                     <div className="min-w-0 flex-1">
-                      <h1 className="text-xl font-semibold text-foreground tracking-tight leading-tight">
+                      <h1 className="text-2xl font-semibold text-foreground tracking-tight leading-tight mb-1">
                         {getLeadDisplayName(leadData || lead)}
                       </h1>
-                      <p className="text-sm text-slate-300 mt-0.5 leading-tight">
+                      <p className="text-sm text-slate-300 leading-tight">
                         {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
                       </p>
-                    </div>
-
-                    {/* Metadata */}
-                    <div className="flex items-center gap-3 text-xs text-slate-400 flex-shrink-0">
-                      <span>Customer since {formatRelativeTime(lead?.created_at)}</span>
-                      <span className="text-slate-600">•</span>
-                      <span>{messagesArray.length} message{messagesArray.length !== 1 ? 's' : ''}</span>
+                      <div className="flex items-center gap-3 text-xs text-slate-400 mt-2">
+                        <span>Customer since {formatRelativeTime(lead?.created_at)}</span>
+                        <span className="text-slate-600">•</span>
+                        <span>{messagesArray.length} message{messagesArray.length !== 1 ? 's' : ''}</span>
+                      </div>
                     </div>
                   </div>
 
               {/* Actions - Horizontal Toolbar */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center gap-3 flex-shrink-0 pl-6">
                     {/* Status */}
                     <div className="flex-shrink-0">
                       <LeadStatusDropdown
@@ -3564,24 +3562,24 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     {supportsBusiness && (
                       <button
                         onClick={handleTextCustomer}
-                        className="inline-flex h-9 items-center gap-2 px-3 rounded-lg text-foreground hover:bg-slate-800 transition-colors text-sm font-medium border border-transparent hover:border-slate-700"
+                        className="inline-flex h-10 items-center gap-2 px-4 rounded-lg text-foreground hover:bg-slate-800 transition-colors text-sm font-medium border border-transparent hover:border-slate-700"
                         title="Text customer"
                       >
                         <MessageSquare className="w-4 h-4 stroke-[1.8]" />
-                        <span className="leading-none">Text</span>
+                        <span className="leading-none">Text Customer</span>
                       </button>
                     )}
                     <button
                       onClick={handleCreateJobClick}
-                      className="inline-flex h-9 items-center gap-2 px-3 rounded-md text-foreground hover:bg-slate-800 transition-colors text-sm font-medium"
+                      className="inline-flex h-10 items-center gap-2 px-4 rounded-md text-foreground hover:bg-slate-800 transition-colors text-sm font-medium"
                       title="Create job"
                     >
                       <ClipboardPlus className="w-4 h-4 stroke-[1.8]" />
-                      <span className="leading-none">Job</span>
+                      <span className="leading-none">Create Job</span>
                     </button>
                     <button
                       onClick={handleAppointmentClick}
-                      className="inline-flex h-9 items-center gap-2 px-3 rounded-md text-foreground hover:bg-slate-800 transition-colors text-sm font-medium"
+                      className="inline-flex h-10 items-center gap-2 px-4 rounded-md text-foreground hover:bg-slate-800 transition-colors text-sm font-medium"
                       title="Schedule appointment"
                     >
                       <CalendarDays className="w-4 h-4 stroke-[1.8]" />
@@ -3590,11 +3588,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <button
                       onClick={() => setShowPaymentModal(true)}
                       disabled={!business || getAvailableProviders(business).length === 0}
-                      className="inline-flex h-9 items-center gap-2 px-3 rounded-md text-foreground hover:bg-slate-800 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="inline-flex h-10 items-center gap-2 px-4 rounded-md text-foreground hover:bg-slate-800 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                       title={!business || getAvailableProviders(business).length === 0 ? 'Configure a payment method in Settings to request payments' : 'Request payment'}
                     >
                       <CreditCard className="w-4 h-4 stroke-[1.8]" />
-                      <span className="leading-none">Pay</span>
+                      <span className="leading-none">Request Payment</span>
                     </button>
 
                   {/* Overflow */}
