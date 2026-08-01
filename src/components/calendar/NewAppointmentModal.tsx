@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { X, Calendar, Clock, MapPin, FileText, AlertTriangle, Plus, Video, Users } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
@@ -25,6 +26,7 @@ interface NewAppointmentModalProps {
 }
 
 export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaultDate, context = 'calendar', preselectedLeadId = null, preselectedLeadDisplay = null, allowAddCustomer, requireCustomer, lockCustomer }: NewAppointmentModalProps) {
+  const router = useRouter()
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
@@ -512,9 +514,21 @@ export default function NewAppointmentModal({ isOpen, onClose, onRefresh, defaul
         {/* Footer */}
         <div className="px-4 py-3 sm:px-4 sm:py-3 border-t border-border/30 bg-card shrink-0" style={{ paddingBottom: 'max(12px, calc(12px + env(safe-area-inset-bottom)))' }}>
           {error && (
-            <div className="mb-3 p-2.5 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-red-400">{error}</p>
+            <div className="mb-3">
+              <div className="p-2.5 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-xs text-red-400">{error}</p>
+                  {error.includes('Google Calendar not connected') && (
+                    <button
+                      onClick={() => router.push('/dashboard/settings?tab=integrations')}
+                      className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                    >
+                      Connect Google Calendar
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           )}
           

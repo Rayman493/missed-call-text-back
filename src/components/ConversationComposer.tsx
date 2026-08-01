@@ -46,6 +46,7 @@ export default function ConversationComposer({
   }, [onClearImages])
 
   const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
+  const MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5MB
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -58,12 +59,19 @@ export default function ConversationComposer({
 
     const newImages: ImagePreview[] = []
     let unsupportedFile = ''
+    let oversizedFile = ''
 
     Array.from(files).forEach(file => {
       if (!file.type.startsWith('image/')) return
 
       if (!SUPPORTED_IMAGE_TYPES.includes(file.type)) {
         unsupportedFile = file.name
+        return
+      }
+
+      // Validate file size
+      if (file.size > MAX_IMAGE_SIZE) {
+        oversizedFile = file.name
         return
       }
 
@@ -77,6 +85,9 @@ export default function ConversationComposer({
 
     if (unsupportedFile) {
       setError('WEBP images are not supported for MMS. Please upload a JPG or PNG.')
+      setTimeout(() => setError(null), 3000)
+    } else if (oversizedFile) {
+      setError('Images must be under 5 MB.')
       setTimeout(() => setError(null), 3000)
     }
 
@@ -111,12 +122,19 @@ export default function ConversationComposer({
 
     const newImages: ImagePreview[] = []
     let unsupportedFile = ''
+    let oversizedFile = ''
 
     Array.from(files).forEach(file => {
       if (!file.type.startsWith('image/')) return
 
       if (!SUPPORTED_IMAGE_TYPES.includes(file.type)) {
         unsupportedFile = file.name
+        return
+      }
+
+      // Validate file size
+      if (file.size > MAX_IMAGE_SIZE) {
+        oversizedFile = file.name
         return
       }
 
@@ -130,6 +148,9 @@ export default function ConversationComposer({
 
     if (unsupportedFile) {
       setError('WEBP images are not supported for MMS. Please upload a JPG or PNG.')
+      setTimeout(() => setError(null), 3000)
+    } else if (oversizedFile) {
+      setError('Images must be under 5 MB.')
       setTimeout(() => setError(null), 3000)
     }
 

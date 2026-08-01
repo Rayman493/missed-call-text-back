@@ -87,19 +87,15 @@ export async function POST(request: NextRequest) {
       .select('*')
       .eq('business_id', business.id)
       .eq('provider', 'google')
-      .single()
+      .maybeSingle()
 
     if (integrationError) {
       console.error('[Calendar Create] Integration lookup error:', integrationError)
-      if (integrationError.code === 'PGRST116') {
-        console.log('[Calendar Create] No integration found')
-        return NextResponse.json({ error: 'Google Calendar not connected' }, { status: 403 })
-      }
       return NextResponse.json({ error: 'Calendar not connected' }, { status: 404 })
     }
 
     if (!integration) {
-      console.log('[Calendar Create] Integration data is null')
+      console.log('[Calendar Create] No Google Calendar integration found')
       return NextResponse.json({ error: 'Google Calendar not connected' }, { status: 403 })
     }
 

@@ -138,7 +138,7 @@ export default function PaymentHandoff({
         {provider === 'venmo' && (
           <div className="bg-gray-100 border border-gray-200 rounded-lg p-3 text-sm text-gray-700 mb-4">
             <p className="text-gray-600">
-              Venmo may not open directly to the business profile. Use the payment details above to complete your payment.
+              If Venmo doesn't open your business profile automatically, customers can manually search your username shown above.
             </p>
           </div>
         )}
