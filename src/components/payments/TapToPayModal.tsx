@@ -62,12 +62,8 @@ export default function TapToPayModal({
   // Emit WAITING_FOR_CONFIRMATION exactly once per attempt when native indicates confirm stage
   const waitingForConfirmationEmitted = useRef<string | null>(null) // attemptId
 
-  // Auto-expand diagnostics on error states
-  useEffect(() => {
-    if (paymentState === 'failure' || paymentState === 'ambiguous' || error) {
-      setShowDiagnostics(true)
-    }
-  }, [paymentState, error])
+  // Do NOT auto-expand diagnostics in production - keep technical details hidden from users
+  // Diagnostics can be manually expanded via "Show diagnostics" button if needed
 
   // Check native support when modal opens
   useEffect(() => {
