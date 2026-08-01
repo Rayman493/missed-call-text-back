@@ -264,8 +264,8 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
                 >
                   {isActive(item.href) && (
                     <>
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 bg-blue-500/[0.50] blur-sm rounded-full -z-10" />
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 bg-blue-500/[0.12] blur-lg rounded-full -z-10" />
+                      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-8 bg-blue-500/[0.55] blur-[8px] rounded-full -z-10" />
+                      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-12 bg-blue-500/[0.08] blur-[20px] rounded-full -z-10" />
                     </>
                   )}
                   <Icon className="w-[22px] h-[22px] sm:w-[22px] sm:h-[22px] mb-1 transition-transform duration-200" />
@@ -288,8 +288,8 @@ export default function BottomNavigation({ onLogout }: BottomNavigationProps) {
             >
               {isMoreMenuOpen && (
                 <>
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 bg-blue-500/[0.50] blur-sm rounded-full -z-10" />
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 bg-blue-500/[0.12] blur-lg rounded-full -z-10" />
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-8 bg-blue-500/[0.55] blur-[8px] rounded-full -z-10" />
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-12 bg-blue-500/[0.08] blur-[20px] rounded-full -z-10" />
                 </>
               )}
                 <Settings className="w-[22px] h-[22px] sm:w-[22px] sm:h-[22px] mb-1 transition-transform duration-200" />
