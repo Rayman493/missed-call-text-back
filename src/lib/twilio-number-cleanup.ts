@@ -202,10 +202,12 @@ function getActivityCutoff(): Date {
  * Checks both conversations and messages tables for comprehensive activity detection
  * A conversation is created when a lead receives an SMS or sends a message
  * Messages can be added to existing conversations, so we check both
+ * 
+ * Note: messages table does not have phone_number field, so we join through leads
  */
 async function checkRecentActivity(phoneNumber: string, cutoff: Date): Promise<boolean> {
   try {
-    // Check conversations table
+    // Check conversations table directly (has phone_number field)
     const { count: conversationCount, error: conversationError } = await supabaseAdmin
       .from('conversations')
       .select('*', { count: 'exact', head: true })
@@ -218,12 +220,33 @@ async function checkRecentActivity(phoneNumber: string, cutoff: Date): Promise<b
       return true
     }
 
-    // Check messages table as well (conversations might exist long ago but receive recent messages)
+    // Check messages table by joining through leads
+    // First get lead IDs for this phone number
+    const { data: leads, error: leadsError } = await supabaseAdmin
+      .from('leads')
+      .select('id')
+      .eq('phone', phoneNumber)
+
+    if (leadsError) {
+      console.error('[TWILIO CLEANUP] Failed to fetch leads for activity check:', leadsError)
+      // Fail safe: assume activity to be conservative
+      return true
+    }
+
+    // If no leads found, no message activity possible
+    if (!leads || leads.length === 0) {
+      return (conversationCount || 0) > 0
+    }
+
+    // Get lead IDs
+    const leadIds = leads.map(l => l.id)
+
+    // Check messages for these leads
     const { count: messageCount, error: messageError } = await supabaseAdmin
       .from('messages')
       .select('*', { count: 'exact', head: true })
-      .eq('phone_number', phoneNumber)
       .gte('created_at', cutoff.toISOString())
+      .in('lead_id', leadIds)
 
     if (messageError) {
       console.error('[TWILIO CLEANUP] Failed to check recent message activity:', messageError)
@@ -296,29 +319,48 @@ export async function claimNumberForRelease(numberId: string, runId: string): Pr
     return false
   }
 
-  // Only allow claiming from 'retired' status
-  if (existing.status !== 'retired') {
-    console.warn('[TWILIO CLEANUP] Number status is not retired (cannot claim from release_pending):', existing.status)
-    return false
-  }
-
-  // Check for stale claim - if already in release_pending with old timestamp, recover first
-  if (existing.cleanup_run_id && existing.last_release_attempt_at) {
+  // Handle stale claim recovery for numbers in release_pending
+  if (existing.status === 'release_pending' && existing.cleanup_run_id && existing.last_release_attempt_at) {
     const staleThreshold = new Date(Date.now() - STALE_CLAIM_MINUTES * 60 * 1000)
     if (new Date(existing.last_release_attempt_at) < staleThreshold) {
-      console.log('[TWILIO CLEANUP] Recovering stale claim:', numberId)
-      const recovered = await recoverStaleClaim(numberId)
+      console.log('[TWILIO CLEANUP] Attempting to recover stale claim:', numberId)
+      const recovered = await recoverStaleClaim(numberId, runId)
       if (!recovered) {
+        console.log('[TWILIO CLEANUP] Stale claim recovery failed, skipping number:', numberId)
         return false
       }
+      // After recovery, refetch the number to get updated state
+      const { data: refetched, error: refetchError } = await supabaseAdmin
+        .from('twilio_numbers')
+        .select('id, status, business_id, release_attempt_count, phone_number, reserved_expires_at')
+        .eq('id', numberId)
+        .single()
+      
+      if (refetchError || !refetched) {
+        console.error('[TWILIO CLEANUP] Failed to refetch after recovery:', refetchError)
+        return false
+      }
+      
+      // Update existing with refetched data
+      Object.assign(existing, refetched)
+    } else {
+      // Not stale yet, skip
+      console.log('[TWILIO CLEANUP] Number in release_pending but not stale yet:', numberId)
+      return false
     }
+  }
+
+  // Only allow claiming from 'retired' status
+  if (existing.status !== 'retired') {
+    console.warn('[TWILIO CLEANUP] Number status is not retired:', existing.status)
+    return false
   }
 
   // Atomic claim: require exact status, no business_id, and expected attempt count
   const claimTimestamp = new Date().toISOString()
   const expectedAttemptCount = existing.release_attempt_count || 0
   
-  const { error: updateError, count } = await supabaseAdmin
+  const { data: updatedRow, error: updateError } = await supabaseAdmin
     .from('twilio_numbers')
     .update({
       status: 'release_pending',
@@ -329,15 +371,22 @@ export async function claimNumberForRelease(numberId: string, runId: string): Pr
     .eq('status', 'retired')
     .is('business_id', null)
     .eq('release_attempt_count', expectedAttemptCount)
+    .select('id, status, cleanup_run_id')
+    .maybeSingle()
 
   if (updateError) {
     console.error('[TWILIO CLEANUP] Failed to claim number:', updateError)
     return false
   }
 
-  // Verify exactly one row was updated (atomic claim)
-  if (count !== 1) {
-    console.warn('[TWILIO CLEANUP] Claim did not affect exactly one row:', { count, numberId })
+  // Verify exactly one row was updated and has the correct run ID
+  if (!updatedRow || updatedRow.cleanup_run_id !== runId) {
+    console.warn('[TWILIO CLEANUP] Claim did not update exactly one row or run ID mismatch:', { 
+      hasRow: !!updatedRow, 
+      numberId, 
+      runId,
+      returnedRunId: updatedRow?.cleanup_run_id 
+    })
     return false
   }
 
@@ -355,24 +404,72 @@ export async function claimNumberForRelease(numberId: string, runId: string): Pr
 /**
  * Recover a stale claim by returning number to retired status
  * Used when a previous cleanup run left a number in release_pending
+ * Verifies the referenced cleanup run is finished/failed/missing before recovering
  */
-async function recoverStaleClaim(numberId: string): Promise<boolean> {
-  const { error } = await supabaseAdmin
+async function recoverStaleClaim(numberId: string, currentRunId: string): Promise<boolean> {
+  // Fetch the current state to check cleanup_run_id
+  const { data: current, error: fetchError } = await supabaseAdmin
+    .from('twilio_numbers')
+    .select('id, status, cleanup_run_id, last_release_attempt_at')
+    .eq('id', numberId)
+    .single()
+
+  if (fetchError || !current) {
+    console.error('[TWILIO CLEANUP] Failed to fetch number for stale claim recovery:', fetchError)
+    return false
+  }
+
+  // If no cleanup_run_id, already recovered or never claimed
+  if (!current.cleanup_run_id) {
+    console.log('[TWILIO CLEANUP] Number has no cleanup_run_id, cannot recover:', numberId)
+    return false
+  }
+
+  // Check if the referenced cleanup run is still active
+  const { data: cleanupRun, error: runError } = await supabaseAdmin
+    .from('twilio_number_cleanup_runs')
+    .select('id, finished_at, error')
+    .eq('id', current.cleanup_run_id)
+    .maybeSingle()
+
+  if (runError) {
+    console.error('[TWILIO CLEANUP] Failed to check cleanup run status:', runError)
+    return false
+  }
+
+  // If cleanup run exists and is not finished, don't recover (still active)
+  if (cleanupRun && !cleanupRun.finished_at) {
+    console.log('[TWILIO CLEANUP] Cleanup run is still active, cannot recover:', {
+      numberId,
+      cleanupRunId: current.cleanup_run_id
+    })
+    return false
+  }
+
+  // Safe to recover: run is finished, failed, or missing
+  const { error: updateError } = await supabaseAdmin
     .from('twilio_numbers')
     .update({
       status: 'retired',
-      cleanup_run_id: null
+      cleanup_run_id: currentRunId // Set to current run to track this recovery
     })
     .eq('id', numberId)
     .eq('status', 'release_pending')
     .is('business_id', null)
 
-  if (error) {
-    console.error('[TWILIO CLEANUP] Failed to recover stale claim:', error)
+  if (updateError) {
+    console.error('[TWILIO CLEANUP] Failed to recover stale claim:', updateError)
     return false
   }
 
-  console.log('[TWILIO CLEANUP] Stale claim recovered:', numberId)
+  console.log('[TWILIO CLEANUP] Stale claim recovered:', {
+    numberId,
+    previousRunId: current.cleanup_run_id,
+    newRunId: currentRunId,
+    runFinished: !!cleanupRun?.finished_at,
+    runHadError: !!cleanupRun?.error
+  })
+
   return true
 }
 
