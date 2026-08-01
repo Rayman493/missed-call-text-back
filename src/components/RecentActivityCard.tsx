@@ -138,7 +138,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-xl p-3 sm:p-4 shadow-sm">
+      <div className="bg-white dark:bg-slate-800/80 border border-border/50 rounded-xl p-4 sm:p-5 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-base font-semibold text-slate-900 dark:text-foreground">Activity Timeline</h3>
           <div className="text-xs text-slate-500 dark:text-slate-400">Loading...</div>
@@ -159,7 +159,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
   }
 
   return (
-    <div className="bg-white dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.05)_inset] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset] hover:shadow-[0_2px_4px_rgba(0,0,0,0.05),0_8px_16px_rgba(0,0,0,0.04),0_0_0_1px_rgba(255,255,255,0.08)_inset] dark:hover:shadow-[0_2px_4px_rgba(0,0,0,0.35),0_8px_16px_rgba(0,0,0,0.25),0_0_0_1px_rgba(255,255,255,0.08)_inset] hover:-translate-y-0.5 transition-all duration-200 p-3 sm:p-4">
+    <div className="bg-white dark:bg-slate-800/80 border border-border/50 rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
       <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-2.5 leading-tight">Activity Timeline</h3>
 
       {activities.length === 0 ? (

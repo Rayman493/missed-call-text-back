@@ -2,15 +2,42 @@ import React from 'react'
 
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   interactive?: boolean
+  variant?: 'standard' | 'hero'
+  padding?: 'none' | 'sm' | 'md' | 'lg'
 }
 
-export default function Card({ interactive = false, className = '', children, ...props }: CardProps) {
+export default function Card({ 
+  interactive = false, 
+  variant = 'standard',
+  padding = 'md',
+  className = '', 
+  children, 
+  ...props 
+}: CardProps) {
+  // Base card styling
+  const baseClasses = 'relative overflow-hidden bg-white dark:bg-slate-800/80 border border-border/50 shadow-sm transition-all duration-200'
+  
+  // Border radius variants
+  const radiusClasses = variant === 'hero' ? 'rounded-2xl' : 'rounded-xl'
+  
+  // Padding variants
+  const paddingClasses = {
+    none: '',
+    sm: 'p-3 sm:p-4',
+    md: 'p-4 sm:p-5',
+    lg: 'p-5 sm:p-6'
+  }[padding]
+  
+  // Interactive hover states
+  const interactiveClasses = interactive 
+    ? 'hover:shadow-md hover:-translate-y-0.5 cursor-pointer' 
+    : ''
+  
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/60 shadow-[0_1px_0_rgba(255,255,255,0.05),0_20px_60px_rgba(2,6,23,0.28)] backdrop-blur-xl ${interactive ? 'transition-all duration-300 hover:-translate-y-[2px] hover:border-blue-400/30 hover:bg-slate-900/75' : ''} ${className}`}
+      className={`${baseClasses} ${radiusClasses} ${paddingClasses} ${interactiveClasses} ${className}`}
       {...props}
     >
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
       {children}
     </div>
   )

@@ -1022,7 +1022,7 @@ export default function DashboardContent() {
 
             {/* Main Content - Improved mobile spacing with safe-area */}
             <div className="flex-1 pt-2.5 sm:pt-3.5 lg:pt-7 px-3 sm:px-4 lg:px-6 pb-20 sm:pb-8 relative" style={{ paddingBottom: 'max(80px, calc(80px + env(safe-area-inset-bottom)))' }}>
-              <div className="max-w-[1400px] mx-auto space-y-4">
+              <div className="max-w-[1400px] mx-auto space-y-5">
 
                 {/* Single Collapsible Setup/Status Card - Consolidates all onboarding/health/status banners */}
                 <SectionErrorBoundary sectionName="SetupStatusCard">
@@ -1036,7 +1036,7 @@ export default function DashboardContent() {
                 {/* Out of Office Mode Banner - Simplified with mobile padding */}
                 {business && isBusinessOutOfOffice(business) && (
                   <SectionErrorBoundary sectionName="OutOfOfficeBanner">
-                    <div className="bg-blue-900/20 border border-blue-800/40 rounded-lg p-3 sm:p-4">
+                    <div className="bg-blue-900/20 border border-blue-800/40 rounded-xl p-4 sm:p-5">
                       <div className="flex items-start gap-2 sm:gap-3">
                         <CalendarOff className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400 flex-shrink-0 mt-0.5" />
                         <div className="flex-1">
@@ -1134,7 +1134,7 @@ export default function DashboardContent() {
 
                     {/* Beta Feedback Card - Simplified with mobile padding */}
                     <SectionErrorBoundary sectionName="BetaFeedbackCard">
-                      <div className="bg-slate-50/70 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 rounded-xl p-3 sm:p-3.5 shadow-sm">
+                      <div className="bg-white dark:bg-slate-800/80 border border-border/50 rounded-xl p-4 sm:p-5 shadow-sm">
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3.5">
                           <div className="flex-1">
                             <h3 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 sm:gap-2 leading-tight">

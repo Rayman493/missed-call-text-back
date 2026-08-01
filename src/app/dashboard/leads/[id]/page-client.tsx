@@ -2560,7 +2560,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     return (
       <div className="space-y-3 sm:space-y-5">
         {/* Jobs & Appointments - Collapsible - Compact on mobile */}
-        <div className="bg-card rounded-xl border border-border/50 p-3 sm:p-4">
+        <div className="bg-white dark:bg-slate-800/80 rounded-xl border border-border/50 p-4 sm:p-5 shadow-sm">
           <button
             onClick={() => setCollapsedSections((prev: any) => ({ ...prev, jobs: !prev.jobs }))}
             className="flex items-center justify-between w-full mb-2 sm:mb-3 group"
@@ -2617,7 +2617,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
 
         {/* Payment Requests - Collapsible - Compact on mobile */}
-        <div className="bg-card rounded-xl border border-border/50 p-3 sm:p-4">
+        <div className="bg-white dark:bg-slate-800/80 rounded-xl border border-border/50 p-4 sm:p-5 shadow-sm">
           <button
             onClick={() => setCollapsedSections((prev: any) => ({ ...prev, payments: !prev.payments }))}
             className="flex items-center justify-between w-full mb-2 sm:mb-3 group"
@@ -2670,7 +2670,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
 
         {/* Internal Notes - Standalone Section */}
-        <div className="bg-card rounded-xl border border-border/50 p-3 sm:p-4">
+        <div className="bg-white dark:bg-slate-800/80 rounded-xl border border-border/50 p-4 sm:p-5 shadow-sm">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 mb-1">
@@ -3182,7 +3182,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       <main className="h-screen bg-background p-4 sm:p-8">
         <div className="max-w-4xl mx-auto">
           {/* Skeleton Header */}
-          <div className="bg-card rounded-xl shadow-sm border border-border p-4 sm:p-6 mb-6">
+          <div className="bg-white dark:bg-slate-800/80 rounded-xl shadow-sm border border-border/50 p-4 sm:p-5 mb-6">
             <div className="animate-pulse">
               <div className="h-6 bg-muted rounded w-1/3 mb-2"></div>
               <div className="h-4 bg-muted rounded w-1/2"></div>
@@ -3190,7 +3190,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
           
           {/* Skeleton Messages */}
-          <div className="bg-card rounded-xl shadow-sm border border-border p-4 sm:p-6">
+          <div className="bg-white dark:bg-slate-800/80 rounded-xl shadow-sm border border-border/50 p-4 sm:p-5">
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="animate-pulse">
@@ -3218,7 +3218,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               ← Back to Customers
             </Link>
           </div>
-          <div className="bg-card rounded-lg shadow border border-border p-8 text-center">
+          <div className="bg-white dark:bg-slate-800/80 rounded-xl shadow-sm border border-border/50 p-8 text-center">
             <h1 className="text-2xl font-bold text-foreground mb-2">Customer not found</h1>
             <p className="text-muted-foreground mb-6">
               {error || 'The customer you\'re looking for doesn\'t exist or you don\'t have permission to view it.'}
@@ -4609,7 +4609,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       {/* Desktop Modal for Lead Details */}
       {showLeadInfo && (
         <div className="hidden md:block fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={() => setShowLeadInfo(false)}>
-          <div className="bg-card rounded-xl shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white dark:bg-slate-800/80 rounded-xl shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
               <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -4717,7 +4717,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       {/* Ignore Contact Modal */}
       {showIgnoreModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-card rounded-xl shadow-xl max-w-md w-full p-6">
+          <div className="bg-white dark:bg-slate-800/80 rounded-xl shadow-xl max-w-md w-full p-6">
             <h2 className="text-lg font-semibold text-foreground mb-4">
               Ignore this contact?
             </h2>
@@ -4753,7 +4753,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       {/* Remove Customer Modal */}
       {showRemoveModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-card rounded-xl shadow-xl max-w-md w-full p-6">
+          <div className="bg-white dark:bg-slate-800/80 rounded-xl shadow-xl max-w-md w-full p-6">
             <h2 className="text-lg font-semibold text-foreground mb-4">
               Remove this customer?
             </h2>
@@ -4789,7 +4789,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       {/* Edit Customer Info Modal */}
       {showCustomerInfoModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-card rounded-xl shadow-xl max-w-md w-full p-6">
+          <div className="bg-white dark:bg-slate-800/80 rounded-xl shadow-xl max-w-md w-full p-6">
             <h2 className="text-lg font-semibold text-foreground mb-4">
               Edit Customer Information
             </h2>

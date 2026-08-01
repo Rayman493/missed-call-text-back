@@ -51,6 +51,7 @@ import { handleBillingAction } from '@/lib/billing'
 import StatusBadge from '@/components/StatusBadge'
 import Navigation from '@/components/Navigation'
 import UserDropdown from '@/components/UserDropdown'
+import Input from '@/components/ui/Input'
 import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import { useRealtimeLeads } from '@/hooks/useRealtimeLeads'
@@ -1016,7 +1017,7 @@ export default function LeadsPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search customers..."
-                  className="w-full pl-11 pr-4 py-2 bg-background border border-border/50 rounded-lg text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
+                  className="w-full pl-11 pr-4 py-2.5 bg-background border border-border/50 rounded-lg text-sm text-foreground placeholder:text-muted-foreground/60 focus:ring-2 focus:ring-blue-500/40 focus:border-transparent focus:outline-none transition-all"
                 />
               </div>
             </div>
@@ -1203,7 +1204,7 @@ export default function LeadsPage() {
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      className="w-full h-9 px-3 bg-background border border-border/50 rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all cursor-pointer flex items-center justify-between hover:bg-muted/50"
+                      className="w-full h-10 px-3 py-2 bg-background border border-border/50 rounded-lg text-sm text-foreground focus:ring-2 focus:ring-blue-500/40 focus:border-transparent focus:outline-none transition-all cursor-pointer flex items-center justify-between hover:bg-muted/50"
                     >
                       <div className="flex items-center gap-2">
                         {statusFilter === 'all' ? (
@@ -1415,7 +1416,7 @@ export default function LeadsPage() {
                       {/* Removed inline count here to avoid duplication and lift the card on mobile */}
                       <div
                         key={lead.id}
-                        className={`w-full max-w-2xl h-full flex flex-col rounded-2xl border relative overflow-hidden transition-all duration-200 cursor-pointer bg-card ${getCardGradientClasses(getLeadLifecycleStatus(lead))} ${getCardBorderClasses(getLeadLifecycleStatus(lead))} ${getCardAccentClasses(getLeadLifecycleStatus(lead))} shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:border-border hover:bg-muted/20 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] active:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2`}
+                        className={`w-full max-w-2xl h-full flex flex-col rounded-xl border border-border/50 relative overflow-hidden transition-all duration-200 cursor-pointer bg-white dark:bg-slate-800/80 shadow-sm hover:shadow-md hover:-translate-y-0.5 ${getCardGradientClasses(getLeadLifecycleStatus(lead))} ${getCardBorderClasses(getLeadLifecycleStatus(lead))} ${getCardAccentClasses(getLeadLifecycleStatus(lead))} active:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2`}
                         onClick={() => handleConversationClick(lead.id)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
@@ -1622,7 +1623,7 @@ export default function LeadsPage() {
                         return (
                           <div
                             key={lead.id}
-                            className={`rounded-xl border relative overflow-hidden transition-all duration-200 cursor-pointer bg-card ${getCardGradientClasses(getLeadLifecycleStatus(lead))} ${getCardBorderClasses(getLeadLifecycleStatus(lead))} ${getCardAccentClasses(getLeadLifecycleStatus(lead))} shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] hover:border-border hover:bg-muted/20 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] active:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2`}
+                            className={`rounded-xl border border-border/50 relative overflow-hidden transition-all duration-200 cursor-pointer bg-white dark:bg-slate-800/80 shadow-sm hover:shadow-md hover:-translate-y-0.5 ${getCardGradientClasses(getLeadLifecycleStatus(lead))} ${getCardBorderClasses(getLeadLifecycleStatus(lead))} ${getCardAccentClasses(getLeadLifecycleStatus(lead))} active:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2`}
                             onClick={() => handleConversationClick(lead.id)}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' || e.key === ' ') {
