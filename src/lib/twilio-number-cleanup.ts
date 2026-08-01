@@ -21,9 +21,13 @@ const CLEANUP_THRESHOLD = parseInt(process.env.TWILIO_RETIRED_CLEANUP_THRESHOLD 
 const BATCH_SIZE = parseInt(process.env.TWILIO_RETIRED_CLEANUP_BATCH_SIZE || '10', 10)
 const MAX_ATTEMPTS = parseInt(process.env.TWILIO_RETIRED_CLEANUP_MAX_ATTEMPTS || '5', 10)
 const DRY_RUN = process.env.TWILIO_RETIRED_CLEANUP_DRY_RUN === 'true'
+const ACTIVITY_LOOKBACK_DAYS = parseInt(process.env.TWILIO_RETIRED_ACTIVITY_LOOKBACK_DAYS || '30', 10)
 
 // Protected numbers that should never be released
 const PROTECTED_NUMBERS = (process.env.PROTECTED_TWILIO_NUMBERS || '').split(',').filter(n => n.trim())
+
+// Canonical warm-pool configuration (use WARM_INVENTORY_TARGET as single source of truth)
+const MIN_AVAILABLE_WARM_NUMBERS = parseInt(process.env.WARM_INVENTORY_TARGET || '3', 10)
 
 export interface CleanupRunResult {
   runId: string
@@ -107,20 +111,26 @@ function isProtectedNumber(phoneNumber: string): boolean {
  * Eligibility criteria:
  * - status is 'retired' or 'release_pending'
  * - no business_id
+ * - retired_at is not null (manual review required if null)
+ * - no active reservation (reserved_expires_at is null or in the past)
  * - retirement age exceeds quarantine period
  * - release attempt count < max attempts
  * - next retry time has arrived (or not set)
  * - Twilio SID exists
  * - not on protected list
+ * - no recent activity (checked separately)
  */
 export async function getEligibleNumbers(): Promise<CleanupCandidate[]> {
   const quarantineCutoff = getQuarantineCutoff()
+  const activityCutoff = getActivityCutoff()
 
   const { data: numbers, error } = await supabaseAdmin
     .from('twilio_numbers')
-    .select('id, phone_number, twilio_sid, retired_at, release_attempt_count, next_release_retry_at')
+    .select('id, phone_number, twilio_sid, retired_at, release_attempt_count, next_release_retry_at, reserved_expires_at')
     .in('status', ['retired', 'release_pending'])
     .is('business_id', null)
+    .not('retired_at', 'is', null) // Exclude numbers without retirement timestamp (manual review)
+    .or('reserved_expires_at.is.null,reserved_expires_at.lte.' + new Date().toISOString()) // No active reservation
     .lte('retired_at', quarantineCutoff.toISOString())
     .lt('release_attempt_count', MAX_ATTEMPTS)
     .or('next_release_retry_at.is.null,next_release_retry_at.lte.' + new Date().toISOString())
@@ -135,30 +145,78 @@ export async function getEligibleNumbers(): Promise<CleanupCandidate[]> {
     throw new Error('Database query failed')
   }
 
-  // Filter out protected numbers and calculate retirement age
-  const eligible = (numbers || [])
+  // Filter out protected numbers and check for recent activity
+  const candidates = (numbers || [])
     .filter(n => !isProtectedNumber(n.phone_number))
-    .map(n => {
-      const retiredAt = new Date(n.retired_at || n.id)
-      const ageDays = Math.floor((Date.now() - retiredAt.getTime()) / (24 * 60 * 60 * 1000))
-      return {
-        id: n.id,
-        phoneNumber: n.phone_number,
-        twilioSid: n.twilio_sid,
-        retiredAt: retiredAt.toISOString(),
-        retirementAgeDays: ageDays,
-        releaseAttemptCount: n.release_attempt_count || 0
-      }
+
+  // Check recent activity for each candidate
+  const eligible: CleanupCandidate[] = []
+  for (const candidate of candidates) {
+    const hasRecentActivity = await checkRecentActivity(candidate.phone_number, activityCutoff)
+    if (hasRecentActivity) {
+      console.log('[TWILIO CLEANUP] Skipping number with recent activity', {
+        maskedPhone: maskPhoneNumber(candidate.phone_number)
+      })
+      continue
+    }
+
+    const retiredAt = new Date(candidate.retired_at)
+    const ageDays = Math.floor((Date.now() - retiredAt.getTime()) / (24 * 60 * 60 * 1000))
+    eligible.push({
+      id: candidate.id,
+      phoneNumber: candidate.phone_number,
+      twilioSid: candidate.twilio_sid,
+      retiredAt: retiredAt.toISOString(),
+      retirementAgeDays: ageDays,
+      releaseAttemptCount: candidate.release_attempt_count || 0
     })
+  }
 
   console.log('[TWILIO CLEANUP] Eligibility query complete', {
     eligibleCount: eligible.length,
+    filteredForActivity: candidates.length - eligible.length,
     quarantineDays: QUARANTINE_DAYS,
+    activityLookbackDays: ACTIVITY_LOOKBACK_DAYS,
     batchSize: BATCH_SIZE,
     maxAttempts: MAX_ATTEMPTS
   })
 
   return eligible
+}
+
+/**
+ * Calculate activity cutoff date
+ */
+function getActivityCutoff(): Date {
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - ACTIVITY_LOOKBACK_DAYS)
+  return cutoff
+}
+
+/**
+ * Check if a phone number has recent activity
+ * Checks conversations for messages within lookback period
+ */
+async function checkRecentActivity(phoneNumber: string, cutoff: Date): Promise<boolean> {
+  try {
+    const { count, error } = await supabaseAdmin
+      .from('conversations')
+      .select('*', { count: 'exact', head: true })
+      .eq('phone_number', phoneNumber)
+      .gte('created_at', cutoff.toISOString())
+
+    if (error) {
+      console.error('[TWILIO CLEANUP] Failed to check recent activity:', error)
+      // Fail safe: assume activity to be conservative
+      return true
+    }
+
+    return (count || 0) > 0
+  } catch (error) {
+    console.error('[TWILIO CLEANUP] Exception checking recent activity:', error)
+    // Fail safe: assume activity to be conservative
+    return true
+  }
 }
 
 /**
@@ -185,7 +243,7 @@ export async function getRetiredCount(): Promise<number> {
 export async function claimNumberForRelease(numberId: string, runId: string): Promise<boolean> {
   const { data: existing, error: fetchError } = await supabaseAdmin
     .from('twilio_numbers')
-    .select('id, status, business_id, release_attempt_count, phone_number')
+    .select('id, status, business_id, release_attempt_count, phone_number, reserved_expires_at')
     .eq('id', numberId)
     .single()
 
@@ -200,18 +258,25 @@ export async function claimNumberForRelease(numberId: string, runId: string): Pr
     return false
   }
 
+  // Check for active reservation
+  if (existing.reserved_expires_at && new Date(existing.reserved_expires_at) > new Date()) {
+    console.warn('[TWILIO CLEANUP] Number has active reservation, skipping claim:', numberId)
+    return false
+  }
+
   if (existing.status !== 'retired' && existing.status !== 'release_pending') {
     console.warn('[TWILIO CLEANUP] Number status changed, skipping claim:', existing.status)
     return false
   }
 
-  // Attempt to claim with optimistic locking
+  // Attempt to claim with optimistic locking and claim timestamp
+  const claimTimestamp = new Date().toISOString()
   const { error: updateError } = await supabaseAdmin
     .from('twilio_numbers')
     .update({
       status: 'release_pending',
       cleanup_run_id: runId,
-      last_release_attempt_at: new Date().toISOString()
+      last_release_attempt_at: claimTimestamp
     })
     .eq('id', numberId)
     .in('status', ['retired', 'release_pending'])
@@ -225,7 +290,8 @@ export async function claimNumberForRelease(numberId: string, runId: string): Pr
   console.log('[TWILIO CLEANUP] Number claimed for release', {
     numberId,
     maskedPhone: maskPhoneNumber(existing.phone_number || ''),
-    runId
+    runId,
+    claimTimestamp
   })
 
   return true
@@ -298,6 +364,12 @@ export async function releaseTwilioNumber(
     if (current.twilio_sid !== candidate.twilioSid) {
       console.error('[TWILIO CLEANUP] Twilio SID mismatch in database')
       result.error = 'Twilio SID mismatch'
+      sendOperationalAlert('sid_mismatch', {
+        numberId: candidate.id,
+        phoneNumber: candidate.phoneNumber,
+        twilioSid: candidate.twilioSid,
+        runId
+      })
       return result
     }
 
@@ -329,7 +401,44 @@ export async function releaseTwilioNumber(
       return result
     }
 
-    // Remove from Messaging Service if configured
+    // Remove from Messaging Service sender pool if configured
+    const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID
+    if (messagingServiceSid) {
+      try {
+        // Try to remove from Messaging Service sender pool
+        const messagingService = (client as any).messagingServices(messagingServiceSid)
+        
+        // Try to remove the phone number from the sender pool
+        // This may fail if the number is not in the service, which is fine
+        try {
+          await messagingService.phoneNumbers(candidate.twilioSid).remove()
+          console.log('[TWILIO CLEANUP] Removed from Messaging Service sender pool', {
+            maskedPhone: maskPhoneNumber(candidate.phoneNumber),
+            messagingServiceSid: messagingServiceSid.slice(-8)
+          })
+        } catch (senderErr: any) {
+          // If number is not in the service (404), that's idempotent success
+          if (senderErr.status === 404) {
+            console.log('[TWILIO CLEANUP] Number not in Messaging Service sender pool (already detached)', {
+              maskedPhone: maskPhoneNumber(candidate.phoneNumber)
+            })
+          } else {
+            // Log but don't fail on sender pool detachment errors
+            console.warn('[TWILIO CLEANUP] Failed to remove from Messaging Service sender pool, continuing:', {
+              maskedPhone: maskPhoneNumber(candidate.phoneNumber),
+              error: senderErr.message,
+              code: senderErr.code
+            })
+          }
+        }
+      } catch (msErr: any) {
+        console.warn('[TWILIO CLEANUP] Messaging Service detachment error (continuing):', msErr.message)
+        // Don't fail the entire release on Messaging Service errors
+        // The number will still be released from the account
+      }
+    }
+
+    // Clear application webhooks as a final safety measure
     if (twilioNumber.smsApplicationSid || twilioNumber.voiceApplicationSid) {
       try {
         await client.incomingPhoneNumbers(candidate.twilioSid).update({
@@ -434,6 +543,21 @@ async function handleReleaseFailure(
       attemptCount: newAttemptCount,
       isRetryable
     })
+
+    // Send alert for permanent failures or max attempts
+    if (!isRetryable) {
+      sendOperationalAlert('permanent_failure', {
+        numberId,
+        error: errorMessage,
+        errorCode
+      })
+    } else if (newAttemptCount >= MAX_ATTEMPTS) {
+      sendOperationalAlert('max_attempts_exceeded', {
+        numberId,
+        error: errorMessage,
+        errorCode
+      })
+    }
   } else {
     // Retryable failure - schedule retry
     const nextRetry = calculateNextRetry(newAttemptCount)
@@ -475,6 +599,35 @@ function isRetryableError(error: any): boolean {
 
   // Default to retryable for unknown errors
   return true
+}
+
+/**
+ * Send operational alert for critical failures
+ * This uses console.error for now - should be integrated with Sentry or existing alerting
+ */
+function sendOperationalAlert(
+  type: 'permanent_failure' | 'max_attempts_exceeded' | 'sid_mismatch' | 'auth_failure' | 'run_failure',
+  details: {
+    numberId?: string
+    phoneNumber?: string
+    twilioSid?: string
+    runId?: string
+    error?: string
+    errorCode?: string
+  }
+): void {
+  const alertMessage = {
+    type,
+    timestamp: new Date().toISOString(),
+    ...details,
+    maskedPhone: details.phoneNumber ? maskPhoneNumber(details.phoneNumber) : undefined,
+    twilioSidSuffix: details.twilioSid ? getTwilioSidSuffix(details.twilioSid) : undefined
+  }
+
+  console.error('[TWILIO CLEANUP ALERT]', JSON.stringify(alertMessage))
+
+  // TODO: Integrate with Sentry or existing alerting mechanism
+  // Example: Sentry.captureMessage('Twilio cleanup alert', { level: 'error', extra: alertMessage })
 }
 
 /**
@@ -615,6 +768,10 @@ export async function runCleanup(mode: 'dry_run' | 'live' = 'live'): Promise<Cle
     console.error('[TWILIO CLEANUP] Fatal error:', error)
     result.error = error.message
     result.summary = `Cleanup failed: ${error.message}`
+    sendOperationalAlert('run_failure', {
+      runId,
+      error: error.message
+    })
   }
 
   await updateCleanupRun(runId, result)
