@@ -39,10 +39,14 @@ const steps = [
 ]
 
 const stepTransition = {
-  initial: { opacity: 0, y: 16 },
+  initial: { opacity: 0, y: 8 },
   animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -16 },
-  transition: { duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }
+  exit: { opacity: 0, y: -6 },
+  transition: { 
+    duration: 0.3, 
+    ease: [0.4, 0, 0.2, 1],
+    times: [0, 1]
+  }
 }
 
 const containerVariants = {
@@ -69,10 +73,10 @@ const itemVariants = {
 function RingPulse() {
   return (
     <div className="relative flex items-center justify-center">
-      <span className="absolute inline-flex h-24 w-24 rounded-full bg-blue-400/20 animate-ping" />
-      <span className="absolute inline-flex h-16 w-16 rounded-full bg-blue-400/30 animate-ping" style={{ animationDelay: '0.2s' }} />
+      <span className="absolute inline-flex h-20 w-20 rounded-full bg-blue-400/15 animate-ping motion-reduce:animate-none" />
+      <span className="absolute inline-flex h-14 w-14 rounded-full bg-blue-400/20 animate-ping motion-reduce:animate-none" style={{ animationDelay: '0.15s' }} />
       <div className="relative z-10 w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center shadow-lg">
-        <Phone className="w-7 h-7 text-white animate-pulse" />
+        <Phone className="w-7 h-7 text-white animate-pulse motion-reduce:animate-none" />
       </div>
     </div>
   )
@@ -106,9 +110,9 @@ function StepIncomingCall() {
     <div className="flex flex-col items-center justify-center py-10 sm:py-14">
       <RingPulse />
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
+        transition={{ delay: 0.25, duration: 0.3 }}
         className="mt-8 text-center"
       >
         <Card className="px-6 py-5 inline-block">
@@ -134,7 +138,7 @@ function StepMissedCall() {
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.4 }}
+        transition={{ duration: 0.25 }}
         className="relative"
       >
         <div className="w-16 h-16 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
@@ -142,9 +146,9 @@ function StepMissedCall() {
         </div>
       </motion.div>
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
+        transition={{ delay: 0.2, duration: 0.25 }}
         className="mt-6 text-center"
       >
         <Card className="px-6 py-5 inline-block">
@@ -158,8 +162,15 @@ function StepMissedCall() {
             </div>
           </div>
         </Card>
-        <p className="mt-5 text-sm font-medium text-slate-600 dark:text-slate-400">Call forwarded to ReplyFlow AI</p>
       </motion.div>
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.4, duration: 0.25 }}
+        className="mt-5 text-sm font-medium text-slate-600 dark:text-slate-400"
+      >
+        Call forwarded to ReplyFlow AI
+      </motion.p>
     </div>
   )
 }
@@ -177,7 +188,12 @@ const aiMessages = [
 function StepAIConversation() {
   return (
     <div className="py-2">
-      <div className="flex items-center justify-center gap-6 mb-6">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.25 }}
+        className="flex items-center justify-center gap-6 mb-6"
+      >
         <div className="flex flex-col items-center gap-2">
           <div className="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center">
             <User className="w-6 h-6 text-slate-600 dark:text-slate-300" />
@@ -186,7 +202,7 @@ function StepAIConversation() {
         </div>
         <div className="flex items-center gap-1">
           <div className="w-8 h-0.5 bg-slate-200 dark:bg-slate-700" />
-          <div className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
+          <div className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600 motion-reduce:hidden" />
           <div className="w-8 h-0.5 bg-slate-200 dark:bg-slate-700" />
         </div>
         <div className="flex flex-col items-center gap-2">
@@ -195,15 +211,15 @@ function StepAIConversation() {
           </div>
           <span className="text-xs font-medium text-slate-600 dark:text-slate-400">ReplyFlow AI</span>
         </div>
-      </div>
+      </motion.div>
 
       <div className="space-y-3 max-w-lg mx-auto">
         {aiMessages.map((msg, index) => (
           <motion.div
             key={index}
-            initial={{ opacity: 0, x: msg.sender === 'ai' ? -20 : 20, y: 10 }}
+            initial={{ opacity: 0, x: msg.sender === 'ai' ? -16 : 16, y: 6 }}
             animate={{ opacity: 1, x: 0, y: 0 }}
-            transition={{ delay: index * 0.35, duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+            transition={{ delay: index * 0.15, duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
             className={`flex ${msg.sender === 'ai' ? 'justify-start' : 'justify-end'}`}
           >
             <div
@@ -234,7 +250,12 @@ const intakeFields = [
 function StepAISummary() {
   return (
     <div className="py-2">
-      <div className="max-w-md mx-auto">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.25 }}
+        className="max-w-md mx-auto"
+      >
         <Card className="p-5 bg-gradient-to-br from-purple-50/50 to-pink-50/50 dark:from-purple-900/10 dark:to-pink-900/10 border-purple-100 dark:border-purple-800">
           <div className="flex items-center gap-3 mb-5">
             <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
@@ -250,9 +271,9 @@ function StepAISummary() {
             {intakeFields.map((field, index) => (
               <motion.div
                 key={field.label}
-                initial={{ opacity: 0, x: -12 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.15, duration: 0.35 }}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1, duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
                 className="bg-white dark:bg-slate-800/80 rounded-lg p-3 border border-purple-100/50 dark:border-purple-800/50"
               >
                 <div className="flex items-center gap-2 mb-1">
@@ -266,7 +287,7 @@ function StepAISummary() {
             ))}
           </div>
         </Card>
-      </div>
+      </motion.div>
     </div>
   )
 }
@@ -275,9 +296,9 @@ function StepLeadCreated() {
   return (
     <div className="flex flex-col items-center justify-center py-2">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
+        initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.4 }}
+        transition={{ duration: 0.3 }}
         className="w-full max-w-sm"
       >
         <Card className="p-4 sm:p-5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
@@ -292,12 +313,17 @@ function StepLeadCreated() {
                 <p className="text-xs text-slate-500 dark:text-slate-400">(555) 123-4567</p>
               </div>
             </div>
-            <div className="flex items-center gap-1.5">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2, duration: 0.25 }}
+              className="flex items-center gap-1.5"
+            >
               <div className="w-2 h-2 bg-blue-500 rounded-full" />
               <span className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-full">
                 New Lead
               </span>
-            </div>
+            </motion.div>
           </div>
 
           {/* Lead details */}
@@ -337,12 +363,17 @@ function StepLeadCreated() {
           </div>
 
           {/* Source indicator */}
-          <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.35, duration: 0.25 }}
+            className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700"
+          >
             <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
               <Bot className="w-3.5 h-3.5" />
               <span>Captured by AI Voice</span>
             </div>
-          </div>
+          </motion.div>
         </Card>
       </motion.div>
     </div>
@@ -358,7 +389,12 @@ const smsMessages = [
 function StepSMSConversation() {
   return (
     <div className="py-2 max-w-md mx-auto">
-      <div className="flex items-center gap-3 mb-5 px-1">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.25 }}
+        className="flex items-center gap-3 mb-5 px-1"
+      >
         <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
           <MessageCircle className="w-5 h-5 text-white" />
         </div>
@@ -366,15 +402,15 @@ function StepSMSConversation() {
           <h3 className="font-semibold text-slate-900 dark:text-white">Arctic Air HVAC</h3>
           <p className="text-xs text-slate-500 dark:text-slate-400">Texting John Smith</p>
         </div>
-      </div>
+      </motion.div>
 
       <div className="space-y-3">
         {smsMessages.map((msg, index) => (
           <motion.div
             key={index}
-            initial={{ opacity: 0, y: 12, scale: 0.98 }}
+            initial={{ opacity: 0, y: 8, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ delay: index * 0.5, duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+            transition={{ delay: index * 0.25, duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
             className={`flex ${msg.sender === 'business' ? 'justify-start' : 'justify-end'}`}
           >
             <div
@@ -391,9 +427,9 @@ function StepSMSConversation() {
       </div>
 
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.8 }}
+        transition={{ delay: 1.0, duration: 0.25 }}
         className="mt-5 flex items-center gap-2 text-xs text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/20 rounded-lg px-3 py-2 border border-green-200 dark:border-green-800"
       >
         <div className="w-2 h-2 bg-green-600 rounded-full" />
@@ -407,9 +443,9 @@ function StepSchedule() {
   return (
     <div className="flex flex-col items-center justify-center py-2">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
+        initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.4 }}
+        transition={{ duration: 0.3 }}
         className="w-full max-w-sm"
       >
         <Card className="p-5">
@@ -424,8 +460,13 @@ function StepSchedule() {
           </div>
 
           <div className="space-y-3">
-            <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
-              <div className="w-12 h-12 bg-blue-600 rounded-lg flex flex-col items-center justify-center text-white">
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15, duration: 0.25 }}
+              className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg"
+            >
+              <div className="w-12 h-12 bg-blue-600 rounded-lg flex flex-col items-center justify-center text-white shadow-sm">
                 <span className="text-[10px] font-bold uppercase">Sat</span>
                 <span className="text-lg font-bold leading-none">15</span>
               </div>
@@ -433,11 +474,16 @@ function StepSchedule() {
                 <p className="text-sm font-semibold text-slate-900 dark:text-white">Saturday, 2:00 PM</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400">AC repair at 1234 Oak Street</p>
               </div>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 rounded-lg px-3 py-2 border border-blue-200 dark:border-blue-800">
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.25 }}
+              className="flex items-center gap-2 text-xs text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 rounded-lg px-3 py-2 border border-blue-200 dark:border-blue-800"
+            >
               <Check className="w-3.5 h-3.5" />
               Confirmation text sent to John Smith
-            </div>
+            </motion.div>
           </div>
         </Card>
       </motion.div>
@@ -449,9 +495,9 @@ function StepPayment() {
   return (
     <div className="flex flex-col items-center justify-center py-2">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
+        initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.4 }}
+        transition={{ duration: 0.3 }}
         className="w-full max-w-sm"
       >
         <Card className="p-5">
@@ -466,22 +512,42 @@ function StepPayment() {
           </div>
 
           <div className="space-y-3">
-            <div className="flex justify-between items-center text-sm py-2 border-b border-slate-100 dark:border-slate-700">
+            <motion.div
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1, duration: 0.25 }}
+              className="flex justify-between items-center text-sm py-2 border-b border-slate-100 dark:border-slate-700"
+            >
               <span className="text-slate-500 dark:text-slate-400">Customer</span>
               <span className="font-medium text-slate-900 dark:text-slate-100">John Smith</span>
-            </div>
-            <div className="flex justify-between items-center text-sm py-2 border-b border-slate-100 dark:border-slate-700">
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.18, duration: 0.25 }}
+              className="flex justify-between items-center text-sm py-2 border-b border-slate-100 dark:border-slate-700"
+            >
               <span className="text-slate-500 dark:text-slate-400">Service</span>
               <span className="font-medium text-slate-900 dark:text-slate-100">AC Repair</span>
-            </div>
-            <div className="flex justify-between items-center text-sm py-2">
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.26, duration: 0.25 }}
+              className="flex justify-between items-center text-sm py-2"
+            >
               <span className="text-slate-500 dark:text-slate-400">Deposit</span>
               <span className="font-bold text-slate-900 dark:text-slate-100">$150.00</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/20 rounded-lg px-3 py-2 border border-purple-200 dark:border-purple-800">
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35, duration: 0.25 }}
+              className="flex items-center gap-2 text-xs text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/20 rounded-lg px-3 py-2 border border-purple-200 dark:border-purple-800"
+            >
               <Send className="w-3.5 h-3.5" />
               Payment Request link sent to customer
-            </div>
+            </motion.div>
           </div>
         </Card>
       </motion.div>
@@ -490,28 +556,55 @@ function StepPayment() {
 }
 
 function StepSuccess() {
+  const outcomes = [
+    { text: 'Lead captured', delay: 0.25 },
+    { text: 'Customer organized', delay: 0.35 },
+    { text: 'Appointment booked', delay: 0.45 },
+    { text: 'Payment requested', delay: 0.55 },
+  ]
+
   return (
     <div className="flex flex-col items-center justify-center py-10 sm:py-14 text-center">
       <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
+        initial={{ scale: 0.85, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.5, type: 'spring', stiffness: 200 }}
+        transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
         className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-6"
       >
         <CheckCircle2 className="w-10 h-10 text-green-600 dark:text-green-400" />
       </motion.div>
 
       <motion.div
-        initial={{ opacity: 0, y: 12 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3, duration: 0.4 }}
+        transition={{ delay: 0.2, duration: 0.3 }}
       >
         <h3 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-3">
           Never lose another missed call.
         </h3>
-        <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto">
+        <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto mb-6">
           ReplyFlow automatically captures leads, keeps conversations organized, helps schedule jobs, and sends payment requests—all from one dashboard.
         </p>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.15, duration: 0.25 }}
+        className="flex flex-col items-center gap-2 mb-6"
+      >
+        {outcomes.map((outcome, index) => (
+          <motion.div
+            key={index}
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: outcome.delay, duration: 0.2 }}
+            className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300"
+          >
+            <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
+            {outcome.text}
+          </motion.div>
+        ))}
       </motion.div>
     </div>
   )
@@ -541,11 +634,26 @@ export default function InteractiveDemoWalkthrough({ compact = false, showHeader
   const [step, setStep] = useState(0)
   const [autoPlay, setAutoPlay] = useState(false)
   const [direction, setDirection] = useState(1)
+  const [timerId, setTimerId] = useState<NodeJS.Timeout | null>(null)
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
+
+  // Check for reduced motion preference
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+    setPrefersReducedMotion(mediaQuery.matches)
+    const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches)
+    mediaQuery.addEventListener('change', handler)
+    return () => mediaQuery.removeEventListener('change', handler)
+  }, [])
 
   const goToStep = useCallback((newStep: number) => {
     setDirection(newStep > step ? 1 : -1)
     setStep(newStep)
-  }, [step])
+    // Pause auto-play on manual interaction
+    if (autoPlay) {
+      setAutoPlay(false)
+    }
+  }, [step, autoPlay])
 
   const next = useCallback(() => {
     if (step < steps.length - 1) {
@@ -564,19 +672,37 @@ export default function InteractiveDemoWalkthrough({ compact = false, showHeader
   const restart = useCallback(() => {
     setDirection(-1)
     setStep(0)
-  }, [])
+    // Pause auto-play on manual interaction
+    if (autoPlay) {
+      setAutoPlay(false)
+    }
+  }, [autoPlay])
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (timerId) {
+        clearTimeout(timerId)
+      }
+    }
+  }, [timerId])
 
   useEffect(() => {
-    if (!autoPlay) return
+    if (!autoPlay || prefersReducedMotion) return
     if (step === steps.length - 1) {
       setAutoPlay(false)
       return
     }
-    const timer = setTimeout(() => {
+    // Prevent multiple timers
+    if (timerId) {
+      clearTimeout(timerId)
+    }
+    const newTimer = setTimeout(() => {
       next()
     }, compact ? 5500 : 6500)
-    return () => clearTimeout(timer)
-  }, [autoPlay, step, next, compact])
+    setTimerId(newTimer)
+    return () => clearTimeout(newTimer)
+  }, [autoPlay, step, next, compact, timerId, prefersReducedMotion])
 
   const isFirst = step === 0
   const isLast = step === steps.length - 1
@@ -584,37 +710,43 @@ export default function InteractiveDemoWalkthrough({ compact = false, showHeader
   return (
     <div className="w-full">
       {/* Progress bar */}
-      <div className={`${compact ? 'mb-4' : 'mb-6 sm:mb-8'}`}>
+      <div className={`${compact ? 'mb-4' : 'mb-6 sm:mb-8'}`} aria-live="polite" aria-atomic="true">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
             Step {step + 1} of {steps.length}
           </span>
           <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
             {steps[step].label}
           </span>
         </div>
-        <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+        <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden relative" role="progressbar" aria-valuenow={step + 1} aria-valuemin={1} aria-valuemax={steps.length} aria-label={`Progress: step ${step + 1} of ${steps.length}`}>
           <motion.div
-            className="h-full bg-blue-600 rounded-full"
+            className="h-full bg-blue-600 rounded-full motion-reduce:transition-none"
             initial={{ width: 0 }}
             animate={{ width: `${((step + 1) / steps.length) * 100}%` }}
-            transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+          />
+          <motion.div
+            className="absolute right-0 top-0 bottom-0 w-1 bg-white/30 rounded-r motion-reduce:hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2 }}
           />
         </div>
       </div>
 
       {/* Step content */}
-      <div className={`relative ${compact ? 'min-h-[300px] sm:min-h-[320px]' : 'min-h-[360px] sm:min-h-[400px]'}`}>
+      <div className={`relative ${compact ? 'min-h-[350px] sm:min-h-[380px]' : 'min-h-[400px] sm:min-h-[450px] md:min-h-[500px]'}`}>
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={step}
-            initial={{ opacity: 0, x: direction * 24 }}
+            initial={{ opacity: 0, x: direction * 20 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: direction * -24 }}
-            transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
-            className="w-full"
+            exit={{ opacity: 0, x: direction * -20 }}
+            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+            className="w-full motion-reduce:transition-none motion-reduce:transform-none"
           >
-            <Card className={`${compact ? 'p-4 sm:p-5 min-h-[300px] sm:min-h-[320px]' : 'p-5 sm:p-8 min-h-[360px] sm:min-h-[400px]'} flex flex-col`}>
+            <Card className={`${compact ? 'p-4 sm:p-5 min-h-[350px] sm:min-h-[380px]' : 'p-5 sm:p-8 min-h-[400px] sm:min-h-[450px] md:min-h-[500px]'} flex flex-col`}>
               {showHeader && (
                 <div className={`flex flex-col gap-1.5 ${compact ? 'mb-3' : 'mb-5 sm:mb-6'}`}>
                   <div className="flex items-center gap-3">
@@ -642,7 +774,7 @@ export default function InteractiveDemoWalkthrough({ compact = false, showHeader
           <button
             onClick={previous}
             disabled={isFirst}
-            className={`inline-flex items-center gap-1.5 rounded-lg font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors ${compact ? 'px-3 py-2 text-xs' : 'px-4 py-2.5 text-sm'}`}
+            className={`inline-flex items-center justify-center gap-1.5 h-10 rounded-lg font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 ${compact ? 'px-3 text-xs' : 'px-4 text-sm'}`}
             aria-label="Previous step"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -650,7 +782,7 @@ export default function InteractiveDemoWalkthrough({ compact = false, showHeader
           </button>
           <button
             onClick={restart}
-            className={`inline-flex items-center gap-1.5 rounded-lg font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors ${compact ? 'px-3 py-2 text-xs' : 'px-4 py-2.5 text-sm'}`}
+            className={`inline-flex items-center justify-center gap-1.5 h-10 rounded-lg font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-[0.97] transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 ${compact ? 'px-3 text-xs' : 'px-4 text-sm'}`}
             aria-label="Restart demo"
           >
             <RefreshCcw className="w-4 h-4" />
@@ -660,13 +792,14 @@ export default function InteractiveDemoWalkthrough({ compact = false, showHeader
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setAutoPlay(!autoPlay)}
-            className={`inline-flex items-center gap-1.5 rounded-lg font-medium transition-colors border ${
+            onClick={() => !prefersReducedMotion && setAutoPlay(!autoPlay)}
+            disabled={prefersReducedMotion}
+            className={`inline-flex items-center justify-center gap-1.5 h-10 rounded-lg font-medium transition-all border active:scale-[0.97] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 ${
               autoPlay
                 ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800 dark:hover:bg-amber-900/30'
                 : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
-            } ${compact ? 'px-3 py-2 text-xs' : 'px-4 py-2.5 text-sm'}`}
-            aria-label={autoPlay ? 'Pause autoplay' : 'Start autoplay'}
+            } ${compact ? 'px-3 text-xs' : 'px-4 text-sm'}`}
+            aria-label={prefersReducedMotion ? 'Auto-play disabled due to motion preference' : (autoPlay ? 'Pause autoplay' : 'Start autoplay')}
           >
             {autoPlay ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
             {autoPlay ? 'Pause' : 'Play Demo'}
@@ -674,7 +807,7 @@ export default function InteractiveDemoWalkthrough({ compact = false, showHeader
           <button
             onClick={next}
             disabled={isLast}
-            className={`inline-flex items-center gap-1.5 rounded-lg font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm ${compact ? 'px-4 py-2 text-xs' : 'px-5 py-2.5 text-sm'}`}
+            className={`inline-flex items-center justify-center gap-1.5 h-10 rounded-lg font-medium text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 shadow-sm ${compact ? 'px-4 text-xs' : 'px-5 text-sm'}`}
             aria-label="Next step"
           >
             {isLast ? 'Done' : 'Next'}

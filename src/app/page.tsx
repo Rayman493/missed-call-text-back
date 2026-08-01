@@ -196,7 +196,7 @@ export default async function Home() {
                   <div className="p-4 sm:p-6 md:p-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
                       {/* Step 1: Missed Call */}
-                      <div className="bg-slate-900/55 dark:bg-slate-900/55 rounded-xl p-5 sm:p-7 border border-slate-700/35 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200">
+                      <div className="bg-slate-900/55 dark:bg-slate-900/55 rounded-xl p-5 sm:p-7 border border-slate-700/35 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 motion-reduce:transition-none motion-reduce:hover:translate-y-0">
                         <div className="flex items-center gap-2 mb-3">
                           <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
                             <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -214,7 +214,7 @@ export default async function Home() {
                       </div>
 
                       {/* Step 2: AI Answers */}
-                      <div className="bg-slate-900/55 dark:bg-slate-900/55 rounded-xl p-5 sm:p-7 border border-slate-700/35 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200">
+                      <div className="bg-slate-900/55 dark:bg-slate-900/55 rounded-xl p-5 sm:p-7 border border-slate-700/35 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 motion-reduce:transition-none motion-reduce:hover:translate-y-0">
                         <div className="flex items-center gap-2 mb-3">
                           <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
                             <svg className="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -227,14 +227,14 @@ export default async function Home() {
                         <div className="text-xs text-slate-600 dark:text-slate-400">"Hi, thanks for calling. How can I help you today?"</div>
                         <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
                           <div className="flex items-center gap-1.5">
-                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse motion-reduce:animate-none" />
                             <div className="text-xs text-slate-500 dark:text-slate-500">Recording...</div>
                           </div>
                         </div>
                       </div>
 
                       {/* Step 3: Lead Captured */}
-                      <div className="bg-slate-900/55 dark:bg-slate-900/55 rounded-xl p-5 sm:p-7 border border-slate-700/35 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200">
+                      <div className="bg-slate-900/55 dark:bg-slate-900/55 rounded-xl p-5 sm:p-7 border border-slate-700/35 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 motion-reduce:transition-none motion-reduce:hover:translate-y-0">
                         <div className="flex items-center gap-2 mb-3">
                           <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
                             <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -252,7 +252,7 @@ export default async function Home() {
                       </div>
 
                       {/* Step 4: Job Scheduled */}
-                      <div className="bg-slate-900/55 dark:bg-slate-900/55 rounded-xl p-5 sm:p-7 border border-slate-700/35 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200">
+                      <div className="bg-slate-900/55 dark:bg-slate-900/55 rounded-xl p-5 sm:p-7 border border-slate-700/35 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 motion-reduce:transition-none motion-reduce:hover:translate-y-0">
                         <div className="flex items-center gap-2 mb-3">
                           <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
                             <svg className="w-4 h-4 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -270,7 +270,7 @@ export default async function Home() {
                       </div>
 
                       {/* Step 5: Get Paid */}
-                      <div className="bg-slate-900/55 dark:bg-slate-900/55 rounded-xl p-5 sm:p-7 border border-slate-700/35 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200">
+                      <div className="bg-slate-900/55 dark:bg-slate-900/55 rounded-xl p-5 sm:p-7 border border-slate-700/35 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 motion-reduce:transition-none motion-reduce:hover:translate-y-0">
                         <div className="flex items-center gap-2 mb-3">
                           <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
                             <svg className="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -313,7 +313,7 @@ export default async function Home() {
             <div className="hidden lg:flex items-center justify-between gap-3 max-w-5xl mx-auto">
               {/* Customer Calls */}
               <div className="flex flex-col items-center text-center group min-h-[160px]">
-                <div className="w-13 h-13 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mb-2.5 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105" style={{width: '52px', height: '52px'}}>
+                <div className="w-13 h-13 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mb-2.5 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100" style={{width: '52px', height: '52px'}}>
                   <svg className="w-6.5 h-6.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                   </svg>
@@ -331,7 +331,7 @@ export default async function Home() {
               
               {/* Call Goes Unanswered */}
               <div className="flex flex-col items-center text-center group min-h-[160px]">
-                <div className="w-13 h-13 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mb-2.5 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105" style={{width: '52px', height: '52px'}}>
+                <div className="w-13 h-13 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mb-2.5 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100" style={{width: '52px', height: '52px'}}>
                   <svg className="w-6.5 h-6.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
@@ -349,7 +349,7 @@ export default async function Home() {
               
               {/* ReplyFlow Captures Information */}
               <div className="flex flex-col items-center text-center group min-h-[160px]">
-                <div className="w-13 h-13 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center mb-2.5 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105" style={{width: '52px', height: '52px'}}>
+                <div className="w-13 h-13 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center mb-2.5 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100" style={{width: '52px', height: '52px'}}>
                   <svg className="w-6.5 h-6.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                   </svg>
@@ -367,7 +367,7 @@ export default async function Home() {
               
               {/* Customer Receives Response */}
               <div className="flex flex-col items-center text-center group min-h-[160px]">
-                <div className="w-13 h-13 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center mb-2.5 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105" style={{width: '52px', height: '52px'}}>
+                <div className="w-13 h-13 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center mb-2.5 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100" style={{width: '52px', height: '52px'}}>
                   <svg className="w-6.5 h-6.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
@@ -385,7 +385,7 @@ export default async function Home() {
               
               {/* Lead Appears In Dashboard */}
               <div className="flex flex-col items-center text-center group min-h-[160px]">
-                <div className="w-13 h-13 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center mb-2.5 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105" style={{width: '52px', height: '52px'}}>
+                <div className="w-13 h-13 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center mb-2.5 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100" style={{width: '52px', height: '52px'}}>
                   <svg className="w-6.5 h-6.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
@@ -515,7 +515,7 @@ export default async function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 md:gap-6">
               
               {/* Keep Your Existing Number */}
-              <div className="bg-slate-900/55 dark:bg-slate-900/55 border border-slate-700/35 rounded-xl p-3 sm:p-4 md:p-5 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 flex flex-col items-center text-center h-full">
+              <div className="bg-slate-900/55 dark:bg-slate-900/55 border border-slate-700/35 rounded-xl p-3 sm:p-4 md:p-5 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 flex flex-col items-center text-center h-full motion-reduce:transition-none motion-reduce:hover:translate-y-0">
                 <div className="w-11 h-11 sm:w-12 sm:h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mb-2 sm:mb-2.5">
                   <svg className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
@@ -528,7 +528,7 @@ export default async function Home() {
               </div>
 
               {/* AI Voice */}
-              <div className="bg-slate-900/55 dark:bg-slate-900/55 border border-slate-700/35 rounded-xl p-3 sm:p-4 md:p-5 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 flex flex-col items-center text-center h-full">
+              <div className="bg-slate-900/55 dark:bg-slate-900/55 border border-slate-700/35 rounded-xl p-3 sm:p-4 md:p-5 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 flex flex-col items-center text-center h-full motion-reduce:transition-none motion-reduce:hover:translate-y-0">
                 <div className="w-11 h-11 sm:w-12 sm:h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center mb-2 sm:mb-2.5">
                   <svg className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
@@ -541,7 +541,7 @@ export default async function Home() {
               </div>
 
               {/* Get Paid Anywhere */}
-              <div className="bg-slate-900/55 dark:bg-slate-900/55 border border-slate-700/35 rounded-xl p-3 sm:p-4 md:p-5 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 flex flex-col items-center text-center h-full">
+              <div className="bg-slate-900/55 dark:bg-slate-900/55 border border-slate-700/35 rounded-xl p-3 sm:p-4 md:p-5 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 flex flex-col items-center text-center h-full motion-reduce:transition-none motion-reduce:hover:translate-y-0">
                 <div className="w-11 h-11 sm:w-12 sm:h-12 bg-rose-100 dark:bg-rose-900/30 rounded-lg flex items-center justify-center mb-2 sm:mb-2.5">
                   <svg className="w-5 h-5 sm:w-6 sm:h-6 text-rose-600 dark:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -554,7 +554,7 @@ export default async function Home() {
               </div>
 
               {/* Appointments & Payments */}
-              <div className="bg-slate-900/55 dark:bg-slate-900/55 border border-slate-700/35 rounded-xl p-3 sm:p-4 md:p-5 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 flex flex-col items-center text-center h-full">
+              <div className="bg-slate-900/55 dark:bg-slate-900/55 border border-slate-700/35 rounded-xl p-3 sm:p-4 md:p-5 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 flex flex-col items-center text-center h-full motion-reduce:transition-none motion-reduce:hover:translate-y-0">
                 <div className="w-11 h-11 sm:w-12 sm:h-12 bg-violet-100 dark:bg-violet-900/30 rounded-lg flex items-center justify-center mb-2 sm:mb-2.5">
                   <svg className="w-5 h-5 sm:w-6 sm:h-6 text-violet-600 dark:text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -589,7 +589,7 @@ export default async function Home() {
             {/* Desktop 3x2 Grid Layout */}
             <div className="hidden lg:grid lg:grid-cols-3 lg:gap-6">
               {/* Built for Local Businesses */}
-              <div className="bg-slate-900/55 dark:bg-slate-900/55 border border-slate-700/35 rounded-2xl p-6 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 flex flex-col items-center text-center h-full">
+              <div className="bg-slate-900/55 dark:bg-slate-900/55 border border-slate-700/35 rounded-2xl p-6 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 flex flex-col items-center text-center h-full motion-reduce:transition-none motion-reduce:hover:translate-y-0">
                 <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center flex-shrink-0 mb-3">
                   <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
@@ -600,7 +600,7 @@ export default async function Home() {
               </div>
 
               {/* Desktop & Mobile Apps */}
-              <div className="bg-slate-900/55 dark:bg-slate-900/55 border border-slate-700/35 rounded-2xl p-6 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 flex flex-col items-center text-center h-full">
+              <div className="bg-slate-900/55 dark:bg-slate-900/55 border border-slate-700/35 rounded-2xl p-6 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 flex flex-col items-center text-center h-full motion-reduce:transition-none motion-reduce:hover:translate-y-0">
                 <div className="w-12 h-12 bg-purple-50 dark:bg-purple-900/20 rounded-xl flex items-center justify-center flex-shrink-0 mb-3">
                   <svg className="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -611,7 +611,7 @@ export default async function Home() {
               </div>
 
               {/* Setup in under 5 minutes */}
-              <div className="bg-slate-900/55 dark:bg-slate-900/55 border border-slate-700/35 rounded-2xl p-6 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 flex flex-col items-center text-center h-full">
+              <div className="bg-slate-900/55 dark:bg-slate-900/55 border border-slate-700/35 rounded-2xl p-6 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 flex flex-col items-center text-center h-full motion-reduce:transition-none motion-reduce:hover:translate-y-0">
                 <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/20 rounded-xl flex items-center justify-center flex-shrink-0 mb-3">
                   <svg className="w-6 h-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -622,7 +622,7 @@ export default async function Home() {
               </div>
 
               {/* 14-day free trial */}
-              <div className="bg-slate-900/55 dark:bg-slate-900/55 border border-slate-700/35 rounded-2xl p-6 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 flex flex-col items-center text-center h-full">
+              <div className="bg-slate-900/55 dark:bg-slate-900/55 border border-slate-700/35 rounded-2xl p-6 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 flex flex-col items-center text-center h-full motion-reduce:transition-none motion-reduce:hover:translate-y-0">
                 <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl flex items-center justify-center flex-shrink-0 mb-3">
                   <svg className="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -633,7 +633,7 @@ export default async function Home() {
               </div>
 
               {/* AI That Captures Every Lead */}
-              <div className="bg-slate-900/55 dark:bg-slate-900/55 border border-slate-700/35 rounded-2xl p-6 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 flex flex-col items-center text-center h-full">
+              <div className="bg-slate-900/55 dark:bg-slate-900/55 border border-slate-700/35 rounded-2xl p-6 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 flex flex-col items-center text-center h-full motion-reduce:transition-none motion-reduce:hover:translate-y-0">
                 <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl flex items-center justify-center flex-shrink-0 mb-3">
                   <svg className="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
@@ -644,7 +644,7 @@ export default async function Home() {
               </div>
 
               {/* Tap to Pay & Payment Requests */}
-              <div className="bg-slate-900/55 dark:bg-slate-900/55 border border-slate-700/35 rounded-2xl p-6 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 flex flex-col items-center text-center h-full">
+              <div className="bg-slate-900/55 dark:bg-slate-900/55 border border-slate-700/35 rounded-2xl p-6 shadow-[0_12px_30px_rgba(0,0,0,0.16)] hover:translate-y-[2px] hover:border-slate-600/50 transition-all duration-200 flex flex-col items-center text-center h-full motion-reduce:transition-none motion-reduce:hover:translate-y-0">
                 <div className="w-12 h-12 bg-rose-50 dark:bg-rose-900/20 rounded-xl flex items-center justify-center flex-shrink-0 mb-3">
                   <svg className="w-6 h-6 text-rose-600 dark:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
