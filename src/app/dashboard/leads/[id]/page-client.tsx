@@ -3498,13 +3498,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           <div className="hidden md:block">
             {/* Workspace Header Surface */}
             <div className="border-y border-slate-800/20 bg-slate-900/20">
-              <div className="max-w-6xl mx-auto px-8 lg:px-10 py-4">
-                <div className="flex items-center gap-4">
-                  {/* Back to Customers */}
-                  <div className="flex-shrink-0">
-                    <AppBackButton fallbackHref="/dashboard/leads" label="Back to Customers" />
-                  </div>
+              <div className="max-w-6xl mx-auto px-8 lg:px-10 py-3">
+                {/* Back Link Row */}
+                <div className="mb-2">
+                  <AppBackButton fallbackHref="/dashboard/leads" label="Back to Customers" />
+                </div>
 
+                {/* Main Row */}
+                <div className="flex items-center justify-between gap-6">
                   {/* Customer Identity - Horizontal */}
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     {/* Avatar */}
