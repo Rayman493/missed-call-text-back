@@ -19,10 +19,16 @@ export const dynamic = 'force-dynamic'
  * - TWILIO_RETIRED_CLEANUP_DRY_RUN: Run in dry-run mode without releasing (default: false)
  *
  * Usage:
+ * GET /api/cron/twilio-number-cleanup
  * POST /api/cron/twilio-number-cleanup
+ * GET /api/cron/twilio-number-cleanup?dryRun=true
  * POST /api/cron/twilio-number-cleanup?dryRun=true
  */
-export async function POST(request: NextRequest) {
+
+/**
+ * Shared cleanup handler - used by both GET and POST
+ */
+async function handleCleanup(request: NextRequest): Promise<NextResponse> {
   // Verify cron secret using shared helper
   const authResult = verifyCronRequest(request)
   if (!authResult.authorized) {
@@ -52,4 +58,12 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+export async function GET(request: NextRequest) {
+  return handleCleanup(request)
+}
+
+export async function POST(request: NextRequest) {
+  return handleCleanup(request)
 }
