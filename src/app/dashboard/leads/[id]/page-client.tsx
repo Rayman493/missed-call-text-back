@@ -3606,57 +3606,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         {/* Section Label */}
                         <div className="px-3 py-2">
                           <div className="px-0.5 py-1 text-[9px] font-medium text-muted-foreground/60 uppercase tracking-[0.12em]">
-                            Conversation Actions
+                            Conversation
                           </div>
                         </div>
 
-                        {/* Primary Actions Group */}
-                        <div className="px-1.5 py-1 space-y-0.5">
-                          <DropdownMenuItem
-                            onSelect={() => handleCreateJobClick()}
-                            className="w-full px-2 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer min-h-[44px] group"
-                          >
-                            <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded bg-accent/30 group-hover:bg-accent/40 transition-colors">
-                              <ClipboardPlus className="w-3.5 h-3.5 stroke-[2]" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-medium">Create Job</div>
-                              <div className="text-[10px] text-muted-foreground/70 font-normal leading-tight">Create a new job for this customer</div>
-                            </div>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onSelect={() => handleAppointmentClick()}
-                            className="w-full px-2 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer min-h-[44px] group"
-                          >
-                            <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded bg-accent/30 group-hover:bg-accent/40 transition-colors">
-                              <CalendarDays className="w-3.5 h-3.5 stroke-[2]" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-medium">Schedule</div>
-                              <div className="text-[10px] text-muted-foreground/70 font-normal leading-tight">Book an appointment</div>
-                            </div>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onSelect={() => setShowPaymentModal(true)}
-                            disabled={!business || getAvailableProviders(business).length === 0}
-                            className="w-full px-2 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer min-h-[36px] group"
-                          >
-                            <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded bg-accent/30 group-hover:bg-accent/40 transition-colors">
-                              <CreditCard className="w-3.5 h-3.5 stroke-[2]" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-medium">Request Payment</div>
-                              <div className="text-[10px] text-muted-foreground/70 font-normal leading-tight">Send a payment request</div>
-                            </div>
-                          </DropdownMenuItem>
-                        </div>
-
-                        {/* Subtle Divider */}
-                        <div className="px-3 py-1">
-                          <div className="h-px bg-border/20"></div>
-                        </div>
-
-                        {/* Secondary Actions Group */}
+                        {/* Internal Notes */}
                         <div className="px-1.5 py-1 space-y-0.5">
                           <DropdownMenuItem
                             onSelect={() => {
@@ -3675,6 +3629,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               <div className="text-[10px] text-muted-foreground/70 font-normal leading-tight">View or edit notes</div>
                             </div>
                           </DropdownMenuItem>
+                        </div>
+
+                        {/* Subtle Divider */}
+                        <div className="px-3 py-1">
+                          <div className="h-px bg-border/20"></div>
+                        </div>
+
+                        {/* Refresh */}
+                        <div className="px-1.5 py-1 space-y-0.5">
                           <DropdownMenuItem
                             onSelect={() => handleRefresh()}
                             disabled={refreshing}
