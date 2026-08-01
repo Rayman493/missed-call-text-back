@@ -2591,7 +2591,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               ) : (
                 <div className="space-y-2">
                   {leadJobs.slice(0, 3).map((job: any) => (
-                    <div key={job.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-all duration-200">
+                    <div key={job.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors duration-200">
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-foreground truncate">{job.title || 'Job'}</p>
                         <p className="text-xs text-muted-foreground/80">
@@ -2649,7 +2649,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               ) : (
                 <div className="space-y-2">
                   {paymentRequests.map((pr: any) => (
-                    <div key={pr.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-all duration-200">
+                    <div key={pr.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors duration-200">
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold text-foreground">{formatCurrency(pr.amount_cents / 100)}</p>
                         <p className="text-xs text-muted-foreground/80">{pr.created_at ? new Date(pr.created_at).toLocaleDateString() : ''}</p>
@@ -3298,7 +3298,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 {/* Info Button */}
                 <button
                   onClick={() => setShowLeadInfo(!showLeadInfo)}
-                  className="h-10 w-10 inline-flex items-center justify-center text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 rounded-lg transition-all duration-200"
+                  className="h-10 w-10 inline-flex items-center justify-center text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors duration-200"
                   title="Customer information"
                   aria-label="Customer information"
                 >
@@ -3312,7 +3312,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      className="h-10 w-10 inline-flex items-center justify-center text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 rounded-lg transition-all duration-200"
+                      className="h-10 w-10 inline-flex items-center justify-center text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors duration-200"
                       title="More actions"
                       aria-label="Conversation actions"
                     >

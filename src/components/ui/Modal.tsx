@@ -87,7 +87,7 @@ export default function Modal({
 
   const modalContent = (
     <div
-      className={`fixed inset-0 z-[60] flex ${alignTopOnMobile ? 'items-start md:items-center' : 'items-center'} justify-center p-0 md:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200`}
+      className={`fixed inset-0 z-[60] flex ${alignTopOnMobile ? 'items-start md:items-center' : 'items-center'} justify-center p-0 md:p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 motion-reduce:animate-none motion-reduce:transition-none`}
       style={alignTopOnMobile ? {
         paddingTop: `calc(env(safe-area-inset-top) + ${mobileTopOffsetPx}px)`,
       } : undefined}
@@ -104,7 +104,7 @@ export default function Modal({
             rounded-xl border border-border/50
             bg-card
             shadow-sm
-            flex flex-col min-h-0 animate-in zoom-in-95 duration-200
+            flex flex-col min-h-0 animate-in zoom-in-95 duration-200 motion-reduce:animate-none motion-reduce:transition-none
             ${className}
           `}
           onClick={(e) => e.stopPropagation()}

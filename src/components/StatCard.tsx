@@ -41,15 +41,15 @@ export default function StatCard({
     rounded-xl
     p-4 sm:p-5
     h-full
-    transition-all duration-200
-    hover:-translate-y-0.5
-    hover:shadow-md
-    hover:border-blue-400/40 dark:hover:border-blue-400/30
   `
 
   // Interactive hover states
   const interactiveClasses = isInteractive ? `
     cursor-pointer
+    transition-all duration-200
+    hover:-translate-y-0.5
+    hover:shadow-md
+    hover:border-blue-400/40 dark:hover:border-blue-400/30
     ${href ? 'group' : ''}
   ` : ''
 

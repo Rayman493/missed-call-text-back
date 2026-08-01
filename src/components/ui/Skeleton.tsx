@@ -25,8 +25,8 @@ export default function Skeleton({
   }
   
   const animationClasses = {
-    pulse: 'animate-pulse',
-    wave: 'animate-shimmer',
+    pulse: 'animate-pulse motion-reduce:animate-none',
+    wave: 'animate-shimmer motion-reduce:animate-none',
     none: ''
   }
   
