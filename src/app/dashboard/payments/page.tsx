@@ -17,6 +17,8 @@ import QuickTapToPayModal from '@/components/payments/QuickTapToPayModal'
 import TapToPaySetupModal from '@/components/payments/TapToPaySetupModal'
 import { isNativeCapacitor } from '@/lib/terminal'
 import type { JobPrefill } from '@/components/jobs/JobComposer'
+import EmptyState from '@/components/ui/EmptyState'
+import { CardSkeleton } from '@/components/ui/Skeleton'
 
 interface PaymentRequest {
   id: string
@@ -51,17 +53,17 @@ interface PaymentStats {
 function getStatusColor(status: string): string {
   switch (status) {
     case 'pending':
-      return 'bg-yellow-900 text-yellow-200'
+      return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800/50'
     case 'paid':
-      return 'bg-green-900 text-green-200'
+      return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800/50'
     case 'cancelled':
-      return 'bg-gray-900 text-gray-200'
+      return 'bg-gray-100 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700/50'
     case 'expired':
-      return 'bg-red-900 text-red-200'
+      return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800/50'
     case 'failed':
-      return 'bg-red-900 text-red-200'
+      return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800/50'
     default:
-      return 'bg-gray-900 text-gray-200'
+      return 'bg-gray-100 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700/50'
   }
 }
 
@@ -654,17 +656,18 @@ export default function PaymentsPage() {
               {/* Mobile card view */}
               <div className="md:hidden space-y-2.5 p-3">
                 {paymentRequests.length === 0 ? (
-                  <div className="text-center py-8 px-4 text-gray-400">
-                    <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-slate-800/80 border border-slate-700">
-                      <CreditCard className="h-5 w-5 text-blue-400" />
-                    </div>
-                    <h3 className="text-sm font-semibold text-white mb-1">No payment requests yet.</h3>
-                    <p className="text-xs text-gray-400 max-w-xs mx-auto mb-4">Payment requests you send will appear here.</p>
-                    <Button onClick={handleStartPaymentRequest} size="sm">
-                      <CreditCard className="h-4 w-4" />
-                      New Payment Request
-                    </Button>
-                  </div>
+                  <EmptyState
+                    icon={<CreditCard className="w-6 h-6" strokeWidth={1.5} />}
+                    title="No payment requests yet"
+                    description="Payment requests you send will appear here"
+                    primaryAction={
+                      <Button onClick={handleStartPaymentRequest} size="sm">
+                        <CreditCard className="h-4 w-4" />
+                        New Payment Request
+                      </Button>
+                    }
+                    variant="payments"
+                  />
                 ) : (
                   <>
                     {visiblePayments.map((payment) => (
@@ -682,7 +685,7 @@ export default function PaymentsPage() {
                                 Terminal
                               </span>
                             )}
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${getStatusColor(payment.status)}`}>
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(payment.status)}`}>
                               {getStatusLabel(payment.status)}
                             </span>
                           </div>
@@ -808,7 +811,7 @@ export default function PaymentsPage() {
                                         Terminal
                                       </span>
                                     )}
-                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${getStatusColor(payment.status)}`}>
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(payment.status)}`}>
                                       {getStatusLabel(payment.status)}
                                     </span>
                                   </div>
@@ -939,20 +942,19 @@ export default function PaymentsPage() {
                   <tbody className="divide-y divide-slate-700">
                     {paymentRequests.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="px-4 py-12 text-center text-gray-400">
-                          <div className="flex flex-col items-center gap-3">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-800/80 border border-slate-700">
-                              <CreditCard className="h-5 w-5 text-blue-400" />
-                            </div>
-                            <div>
-                              <h3 className="text-sm font-semibold text-white mb-1">No payment requests yet.</h3>
-                              <p className="text-xs text-gray-400">Send your first payment request to start tracking customer payments.</p>
-                            </div>
-                            <Button onClick={() => setShowPaymentModal(true)} size="sm">
-                              <CreditCard className="h-4 w-4" />
-                              New Payment Request
-                            </Button>
-                          </div>
+                        <td colSpan={8} className="px-4 py-12">
+                          <EmptyState
+                            icon={<CreditCard className="w-6 h-6" strokeWidth={1.5} />}
+                            title="No payment requests yet"
+                            description="Send your first payment request to start tracking customer payments"
+                            primaryAction={
+                              <Button onClick={() => setShowPaymentModal(true)} size="sm">
+                                <CreditCard className="h-4 w-4" />
+                                New Payment Request
+                              </Button>
+                            }
+                            variant="payments"
+                          />
                         </td>
                       </tr>
                     ) : (
@@ -982,7 +984,7 @@ export default function PaymentsPage() {
                               {payment.description}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap">
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${getStatusColor(payment.status)}`}>
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(payment.status)}`}>
                                 {getStatusLabel(payment.status)}
                               </span>
                             </td>
@@ -1098,7 +1100,7 @@ export default function PaymentsPage() {
                                   {payment.description}
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap">
-                                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${getStatusColor(payment.status)}`}>
+                                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(payment.status)}`}>
                                     {getStatusLabel(payment.status)}
                                   </span>
                                 </td>

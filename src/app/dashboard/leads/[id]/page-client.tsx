@@ -41,6 +41,8 @@ import CustomerActivityTimeline from '@/components/CustomerActivityTimeline'
 import { ImageMessage } from '@/components/ImageMessage'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import PhotoModal from '@/components/PhotoModal'
+import Skeleton, { CardSkeleton, ListItemSkeleton } from '@/components/ui/Skeleton'
+import EmptyState from '@/components/ui/EmptyState'
 import Modal from '@/components/ui/Modal'
 import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
 import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smartphone } from 'lucide-react'
@@ -2558,7 +2560,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const paymentRequests = leadData?.paymentRequests || []
 
     return (
-      <div className="space-y-3 sm:space-y-5">
+      <div className="space-y-4">
         {/* Jobs & Appointments - Collapsible - Compact on mobile */}
         <div className="bg-white dark:bg-slate-800/80 rounded-xl border border-border/50 p-4 sm:p-5 shadow-sm">
           <button
@@ -2577,7 +2579,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">No jobs scheduled for this customer yet.</p>
                   <button
                     onClick={handleCreateJobClick}
-                    className="inline-flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-colors"
+                    className="inline-flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
                   >
                     <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -2589,7 +2591,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               ) : (
                 <div className="space-y-2">
                   {leadJobs.slice(0, 3).map((job: any) => (
-                    <div key={job.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors">
+                    <div key={job.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-all duration-200">
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-foreground truncate">{job.title || 'Job'}</p>
                         <p className="text-xs text-muted-foreground/80">
@@ -2635,7 +2637,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <button
                     onClick={() => setShowPaymentModal(true)}
                     disabled={!business || getAvailableProviders(business).length === 0}
-                    className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-1.5 sm:px-3 sm:py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-1.5 sm:px-3 sm:py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] sm:text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -2647,7 +2649,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               ) : (
                 <div className="space-y-2">
                   {paymentRequests.map((pr: any) => (
-                    <div key={pr.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors">
+                    <div key={pr.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-all duration-200">
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold text-foreground">{formatCurrency(pr.amount_cents / 100)}</p>
                         <p className="text-xs text-muted-foreground/80">{pr.created_at ? new Date(pr.created_at).toLocaleDateString() : ''}</p>
@@ -2691,7 +2693,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               <button
                 type="button"
                 onClick={() => { setShowCustomerInfoModal(true); setAutoFocusNotes(true) }}
-                className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors"
+                className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
               >
                 {Boolean((leadData?.notes || '').trim()) ? 'Edit' : 'Add note'}
               </button>
@@ -3934,7 +3936,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         ) : (
                           <div className="space-y-2">
                             {leadJobs.slice(0, 3).map((job: any) => (
-                              <div key={job.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors">
+                              <div key={job.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-all duration-200">
                                 <div className="min-w-0 flex-1">
                                   <p className="text-sm font-medium text-foreground truncate">{job.title || 'Job'}</p>
                                   <p className="text-xs text-muted-foreground/80">
@@ -3994,7 +3996,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         ) : (
                           <div className="space-y-2">
                             {paymentRequests.map((pr: any) => (
-                              <div key={pr.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors">
+                              <div key={pr.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-all duration-200">
                                 <div className="min-w-0 flex-1">
                                   <p className="text-sm font-semibold text-foreground">{formatCurrency(pr.amount_cents / 100)}</p>
                                   <p className="text-xs text-muted-foreground/80">{pr.created_at ? new Date(pr.created_at).toLocaleDateString() : ''}</p>
@@ -4038,7 +4040,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         <button
                           type="button"
                           onClick={() => { setShowCustomerInfoModal(true); setAutoFocusNotes(true) }}
-                          className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors"
+                          className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
                         >
                           {Boolean((leadData?.notes || '').trim()) ? 'Edit' : 'Add Note'}
                         </button>
@@ -4091,7 +4093,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
         {/* Mobile Layout - Only render when mobile view */}
         {isMobileView && (
-          <div className="space-y-3 pb-[calc(6rem+env(safe-area-inset-bottom))]">
+          <div className="space-y-4 pb-[calc(6rem+env(safe-area-inset-bottom))]">
           {/* Conversation Workspace Card - Dedicated workspace with fixed height */}
           <div className="bg-background rounded-2xl border border-border/40 shadow-sm overflow-hidden flex flex-col h-[calc(100vh-280px)]">
             {/* Conversation Header - Distinct header */}

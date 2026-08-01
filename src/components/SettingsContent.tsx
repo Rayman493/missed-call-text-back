@@ -42,6 +42,9 @@ import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useSendingSource, SendingSource } from '@/hooks/useSendingSource'
 import { CreditCard, Mail, MessageSquare, Trash2, AlertTriangle, FileText, Clock, CheckCircle, Smartphone } from 'lucide-react'
 import ConfirmModal from '@/components/ui/ConfirmModal'
+import Skeleton, { CardSkeleton, ListItemSkeleton } from '@/components/ui/Skeleton'
+import EmptyState from '@/components/ui/EmptyState'
+import Input from '@/components/ui/Input'
 
 // Check if running in native mobile app
 const isNativeMobile = () => {
@@ -1209,7 +1212,7 @@ export default function SettingsContent() {
                       type="text"
                       value={formBusiness.name || ''}
                       onChange={(e) => updateBusiness({ name: e.target.value })}
-                      className="w-full px-3 py-2.5 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 bg-white dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-150 text-sm"
+                      className="w-full px-3 py-2.5 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/50 bg-white dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-200 text-sm"
                     />
                   </div>
                   <div>
@@ -1224,7 +1227,7 @@ export default function SettingsContent() {
                           onChange={(e) => updateBusiness({ business_phone_number: e.target.value })}
                           placeholder="(555) 123-4567"
                           disabled={phoneCooldown?.inCooldown}
-                          className="flex-1 px-3 py-2.5 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 bg-white dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-150 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="flex-1 px-3 py-2.5 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/50 bg-white dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                       </div>
                       
@@ -1717,7 +1720,7 @@ export default function SettingsContent() {
                             value={formBusiness.after_hours_message || ''}
                             onChange={(e) => updateBusiness({ after_hours_message: e.target.value })}
                             rows={2}
-                            className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all duration-150 text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50 resize-none"
+                            className="w-full px-3 py-2 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-200 text-xs sm:text-sm hover:border-border/80 dark:hover:border-border/60 resize-none"
                           />
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
                             {`{{business_name}}`} inserts your business name.
@@ -1810,7 +1813,7 @@ export default function SettingsContent() {
                             value={formBusiness.out_of_office_message || ''}
                             onChange={(e) => updateBusiness({ out_of_office_message: e.target.value })}
                             rows={2}
-                            className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all duration-150 text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50 resize-none"
+                            className="w-full px-3 py-2 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-200 text-xs sm:text-sm hover:border-border/80 dark:hover:border-border/60 resize-none"
                           />
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
                             Use <code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{"{{business_name}}"}</code> and <code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{"{{return_date}}"}</code> placeholders.
@@ -1836,7 +1839,7 @@ export default function SettingsContent() {
                       </div>
                       <button
                         onClick={() => setShowFollowUpSettings(true)}
-                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors duration-150"
+                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
                       >
                         Configure
                         <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2198,7 +2201,7 @@ export default function SettingsContent() {
                   <div className="flex items-center gap-2">
                   <button
                     onClick={() => setShowAddModal(true)}
-                    className="h-11 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 text-sm inline-flex items-center justify-center"
+                    className="h-11 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98] text-sm inline-flex items-center justify-center"
                   >
                     Add
                   </button>
@@ -2475,7 +2478,7 @@ export default function SettingsContent() {
                     <button
                       onClick={() => handleBillingActionClick('upgrade')}
                       disabled={isStartingCheckout}
-                      className="w-full h-11 px-4 text-sm font-medium rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                      className="w-full h-11 px-4 text-sm font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
                     >
                       {isStartingCheckout ? (
                         <>
@@ -2787,7 +2790,7 @@ export default function SettingsContent() {
                   <button
                     onClick={handleAddIgnoredContact}
                     disabled={isAdding || !phoneNumber.trim()}
-                    className="h-11 px-4 text-sm font-medium rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 text-white"
+                    className="h-11 px-4 text-sm font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
                   >
                     {isAdding ? (
                       <>
@@ -2872,7 +2875,7 @@ export default function SettingsContent() {
                   <button
                     onClick={handleChangePassword}
                     disabled={isChangingPassword || !newPassword.trim() || !confirmNewPassword.trim()}
-                    className="h-11 px-4 text-sm font-medium rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 text-white"
+                    className="h-11 px-4 text-sm font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
                   >
                     {isChangingPassword ? (
                       <>

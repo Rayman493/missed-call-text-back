@@ -75,6 +75,8 @@ import { isBusinessOutOfOffice, getOutOfOfficeStatus } from '@/lib/out-of-office
 import { logRouteFlashDebug } from '@/lib/route-flash-debug'
 import { isStripeReturnUrl } from '@/lib/stripe-return'
 import StripeReturnLoadingScreen from '@/components/StripeReturnLoadingScreen'
+import Skeleton, { CardSkeleton } from '@/components/ui/Skeleton'
+import EmptyState from '@/components/ui/EmptyState'
 
 const DEBUG = process.env.NODE_ENV === 'development'
 const dlog = (...args: any[]) => { if (DEBUG) console.log(...args) }
@@ -1022,7 +1024,7 @@ export default function DashboardContent() {
 
             {/* Main Content - Improved mobile spacing with safe-area */}
             <div className="flex-1 pt-2.5 sm:pt-3.5 lg:pt-7 px-3 sm:px-4 lg:px-6 pb-20 sm:pb-8 relative" style={{ paddingBottom: 'max(80px, calc(80px + env(safe-area-inset-bottom)))' }}>
-              <div className="max-w-[1400px] mx-auto space-y-5">
+              <div className="max-w-[1400px] mx-auto space-y-4">
 
                 {/* Single Collapsible Setup/Status Card - Consolidates all onboarding/health/status banners */}
                 <SectionErrorBoundary sectionName="SetupStatusCard">
@@ -1036,14 +1038,14 @@ export default function DashboardContent() {
                 {/* Out of Office Mode Banner - Simplified with mobile padding */}
                 {business && isBusinessOutOfOffice(business) && (
                   <SectionErrorBoundary sectionName="OutOfOfficeBanner">
-                    <div className="bg-blue-900/20 border border-blue-800/40 rounded-xl p-4 sm:p-5">
-                      <div className="flex items-start gap-2 sm:gap-3">
-                        <CalendarOff className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                    <div className="rounded-xl border border-blue-800/40 bg-blue-900/20 p-4 sm:p-5 shadow-sm transition-all duration-200">
+                      <div className="flex items-start gap-3">
+                        <CalendarOff className="w-5 h-5 stroke-[1.5] text-blue-400 flex-shrink-0 mt-0.5" />
                         <div className="flex-1">
-                          <h3 className="text-xs sm:text-sm font-semibold text-blue-100 mb-0.5 sm:mb-1">
+                          <h3 className="text-sm font-semibold text-blue-100 mb-1">
                             Out of Office Mode is active
                           </h3>
-                          <p className="text-[10px] sm:text-xs text-blue-300">
+                          <p className="text-xs text-blue-300">
                             Customers are being informed that responses may be delayed.
                           </p>
                           {(() => {
@@ -1051,7 +1053,7 @@ export default function DashboardContent() {
                             if (status.status === 'active' && status.endDate) {
                               const daysRemaining = status.daysRemaining
                               return (
-                                <p className="text-[10px] sm:text-[10px] text-blue-400 mt-0.5 sm:mt-1">
+                                <p className="text-xs text-blue-400 mt-1">
                                   Returning {status.endDate.toLocaleDateString()}{daysRemaining !== undefined ? ` (${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} remaining)` : ''}
                                 </p>
                               )
@@ -1061,7 +1063,7 @@ export default function DashboardContent() {
                         </div>
                         <Link
                           href="/dashboard/settings#out-of-office"
-                          className="text-[10px] sm:text-xs text-blue-400 hover:text-blue-300 font-medium flex-shrink-0"
+                          className="text-xs text-blue-400 hover:text-blue-300 font-medium flex-shrink-0 transition-colors duration-200"
                         >
                           Settings
                         </Link>
@@ -1134,20 +1136,20 @@ export default function DashboardContent() {
 
                     {/* Beta Feedback Card - Simplified with mobile padding */}
                     <SectionErrorBoundary sectionName="BetaFeedbackCard">
-                      <div className="bg-white dark:bg-slate-800/80 border border-border/50 rounded-xl p-4 sm:p-5 shadow-sm">
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3.5">
+                      <div className="rounded-xl border border-border/50 bg-card p-4 sm:p-5 shadow-sm transition-all duration-200 hover:shadow-md">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                           <div className="flex-1">
-                            <h3 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 sm:gap-2 leading-tight">
-                              <MessageSquare className="w-4 h-4" aria-hidden="true" />
+                            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 leading-tight">
+                              <MessageSquare className="w-5 h-5 stroke-[1.5]" aria-hidden="true" />
                               <span>Feedback</span>
                             </h3>
-                            <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mt-0.5 leading-snug">
+                            <p className="text-xs text-muted-foreground mt-1 leading-snug">
                               Found a bug or have an idea? We'd love to hear your feedback.
                             </p>
                           </div>
                           <button
                             onClick={() => setShowBetaFeedbackModal(true)}
-                            className="inline-flex items-center justify-center h-9 px-3 sm:px-4 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-900 dark:text-slate-100 text-xs font-medium rounded-lg transition-colors border border-slate-200 dark:border-slate-600"
+                            className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98] bg-primary text-primary-foreground hover:bg-primary/90"
                           >
                             Share Feedback
                           </button>

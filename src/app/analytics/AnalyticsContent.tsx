@@ -22,6 +22,9 @@ import {
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
 import AppBackButton from '@/components/AppBackButton'
+import EmptyState from '@/components/ui/EmptyState'
+import { CardSkeleton } from '@/components/ui/Skeleton'
+import Skeleton from '@/components/ui/Skeleton'
 
 interface AnalyticsMetrics {
   missedCallsCaptured: number
@@ -365,18 +368,13 @@ export default function AnalyticsContent() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     {[1, 2, 3, 4].map((i) => (
-                      <div key={i} className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-6">
-                        <div className="animate-pulse">
-                          <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/2 mb-2"></div>
-                          <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div>
-                        </div>
-                      </div>
+                      <CardSkeleton key={i} />
                     ))}
                   </div>
-                  <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-6">
-                    <div className="animate-pulse">
-                      <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded w-1/3 mb-4"></div>
-                      <div className="h-48 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                  <div className="rounded-xl border border-border/50 bg-card shadow-sm p-6">
+                    <div className="space-y-4">
+                      <Skeleton variant="text" width="33%" />
+                      <Skeleton variant="rectangular" height={192} />
                     </div>
                   </div>
                 </div>
@@ -384,15 +382,12 @@ export default function AnalyticsContent() {
 
               {!loading && !hasData ? (
                 /* Empty State */
-                <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-8 sm:p-12 text-center">
-                  <BarChart3 className="w-16 h-16 text-slate-400 dark:text-slate-600 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">
-                    No analytics data yet
-                  </h3>
-                  <p className="text-sm text-slate-600 dark:text-muted-foreground max-w-md mx-auto">
-                    As ReplyFlow captures missed calls and conversations, performance insights will appear here.
-                  </p>
-                </div>
+                <EmptyState
+                  icon={<BarChart3 className="w-6 h-6" strokeWidth={1.5} />}
+                  title="No analytics data yet"
+                  description="As ReplyFlow captures missed calls and conversations, performance insights will appear here"
+                  variant="analytics"
+                />
               ) : metrics && (
                 <>
                   {/* Business Impact - Top Highlight */}

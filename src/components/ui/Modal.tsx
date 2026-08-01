@@ -17,9 +17,22 @@ interface ModalProps {
   mobileBottomOffsetPx?: number
   // Optional override for internal scroll container max-height CSS value.
   contentMaxHeight?: string
+  // Optional footer content for consistent button placement
+  footer?: React.ReactNode
 }
 
-export default function Modal({ isOpen, onClose, children, title, className = '', alignTopOnMobile = false, mobileTopOffsetPx = 16, mobileBottomOffsetPx = 80, contentMaxHeight }: ModalProps) {
+export default function Modal({ 
+  isOpen, 
+  onClose, 
+  children, 
+  title, 
+  className = '', 
+  alignTopOnMobile = false, 
+  mobileTopOffsetPx = 16, 
+  mobileBottomOffsetPx = 80, 
+  contentMaxHeight,
+  footer
+}: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null)
   const previousScrollPosition = useRef<number>(0)
 
@@ -88,33 +101,39 @@ export default function Modal({ isOpen, onClose, children, title, className = ''
             relative w-full max-w-lg
             max-h-[100dvh] md:max-h-[90vh]
             overflow-hidden
-            rounded-2xl border border-border/50
+            rounded-xl border border-border/50
             bg-card
-            shadow-2xl shadow-black/10 dark:shadow-black/30
+            shadow-sm
             flex flex-col min-h-0 animate-in zoom-in-95 duration-200
             ${className}
           `}
           onClick={(e) => e.stopPropagation()}
         >
           {title && (
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border/50 shrink-0">
+            <div className="flex items-center justify-between px-4 sm:px-5 py-4 border-b border-border/50 shrink-0">
               <h2 className="text-lg font-semibold text-foreground">{title}</h2>
               <button
                 onClick={onClose}
-                className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
                 aria-label="Close"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5 stroke-[1.5]" />
               </button>
             </div>
           )}
           
           <div
-            className="flex-1 min-h-0 overflow-y-auto overscroll-contain [touch-action:pan-y] pb-[env(safe-area-inset-bottom)]"
+            className="flex-1 min-h-0 overflow-y-auto overscroll-contain [touch-action:pan-y] px-4 sm:px-5 py-4 pb-[env(safe-area-inset-bottom)]"
             style={{ WebkitOverflowScrolling: 'touch', maxHeight: contentMaxHeight || undefined }}
           >
             {children}
           </div>
+
+          {footer && (
+            <div className="flex shrink-0 items-center justify-end gap-2 border-t border-border/50 px-4 sm:px-5 py-4">
+              {footer}
+            </div>
+          )}
         </div>
       </div>
     </div>

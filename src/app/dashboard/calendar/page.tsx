@@ -28,6 +28,8 @@ import AddCustomerModal from '@/components/AddCustomerModal'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import TodayCommandCenter from '@/components/schedule/TodayCommandCenter'
 import NewTaskModal from '@/components/schedule/NewTaskModal'
+import Skeleton, { CardSkeleton, ListItemSkeleton } from '@/components/ui/Skeleton'
+import EmptyState from '@/components/ui/EmptyState'
 import TasksTab from '@/components/schedule/TasksTab'
 import type { Job, JobStatus, JobPrefill } from '@/components/jobs/JobComposer'
 import { openOAuthFlow } from '@/capacitor/oauth'
@@ -111,7 +113,7 @@ function MeetingsTab({
           // @ts-ignore
           const rfLead = ev?.extendedProperties?.private?.replyflow_lead_id as string | undefined
           return (
-            <div key={ev.id} className="rounded-xl border border-slate-200/70 dark:border-slate-700/50 bg-white/80 dark:bg-slate-900/50 p-4 flex flex-col gap-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900 sm:flex-row sm:items-start sm:justify-between sm:gap-3 sm:p-3" onClick={() => onOpenEvent(ev)}>
+            <div key={ev.id} className="rounded-xl border border-border/50 bg-card p-4 flex flex-col gap-3 cursor-pointer hover:bg-muted/50 dark:hover:bg-slate-900 sm:flex-row sm:items-start sm:justify-between sm:gap-3 sm:p-4 shadow-sm hover:shadow-md transition-all duration-200" onClick={() => onOpenEvent(ev)}>
               <div className="min-w-0 flex-1">
                 <h3 className="min-w-0 line-clamp-2 text-base font-semibold text-slate-900 dark:text-foreground sm:text-sm sm:line-clamp-1">{ev.summary}</h3>
                 <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{formatDayTime(ev)}</div>
@@ -160,7 +162,7 @@ function MeetingsTab({
         <h2 className="text-base font-semibold text-foreground">Meetings</h2>
         <button
           onClick={onNewMeeting}
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-xs"
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-xs transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
         >
           New Meeting
         </button>
@@ -971,7 +973,7 @@ export default function SchedulePage() {
     >
               {/* Loading State */}
               {isLoading ? (
-                <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] xl:grid-cols-[340px_1fr] gap-4 xl:gap-5 items-stretch py-4">
+                <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] xl:grid-cols-[340px_1fr] gap-4 items-stretch py-4">
                   {/* Skeleton Today's Schedule */}
                   <div className="bg-card rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 animate-pulse">
                     <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/2 mb-2"></div>
@@ -1002,7 +1004,7 @@ export default function SchedulePage() {
               ) : (
                 <>
                   {/* Mobile-first: Calendar first, then Today's Schedule. Desktop: Today's Schedule sticky on left */}
-                  <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[300px_1fr] gap-3 lg:gap-5 items-stretch">
+                  <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[300px_1fr] gap-4 lg:gap-5 items-stretch">
 
                   {/* LEFT (desktop): Today's Schedule */}
                   <div className="hidden lg:block order-2 lg:order-1">

@@ -11,6 +11,8 @@ import Navigation from '@/components/Navigation'
 import BottomNavigation from '@/components/BottomNavigation'
 import LoadingSpinner from '@/components/LoadingSpinner'
 import { PersonalVoicemailPlayer } from '@/components/PersonalVoicemailPlayer'
+import EmptyState from '@/components/ui/EmptyState'
+import { ListItemSkeleton } from '@/components/ui/Skeleton'
 
 // Format duration helper - consistent with PersonalVoicemailPlayer
 function formatDuration(seconds: number): string {
@@ -126,54 +128,55 @@ export default function PersonalVoicemailPage() {
               </div>
 
               {loading ? (
-                <div className="flex items-center justify-center py-12">
-                  <LoadingSpinner />
+                <div className="space-y-4">
+                  <ListItemSkeleton />
+                  <ListItemSkeleton />
+                  <ListItemSkeleton />
                 </div>
               ) : error ? (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                  <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                <div className="rounded-xl border border-red-200/50 bg-red-50/50 dark:border-red-800/50 dark:bg-red-900/20 p-4">
+                  <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
                 </div>
               ) : voicemails.length === 0 ? (
-                <div className="bg-card rounded-lg border border-border p-8 sm:p-12 text-center">
-                  <Phone className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-foreground mb-2">No personal voicemails yet</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Voicemails from callers in Personal Contacts will appear here without entering your customer workflow
-                  </p>
-                </div>
+                <EmptyState
+                  icon={<Phone className="w-6 h-6" strokeWidth={1.5} />}
+                  title="No personal voicemails yet"
+                  description="Voicemails from callers in Personal Contacts will appear here without entering your customer workflow"
+                  variant="messages"
+                />
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {voicemails.map((voicemail) => (
                     <div
                       key={voicemail.id}
-                      className={`bg-card rounded-xl border border-border p-5 shadow-sm hover:shadow-md transition-shadow duration-200 ${
+                      className={`bg-card rounded-xl border border-border/50 p-4 shadow-sm hover:shadow-md transition-all duration-200 ${
                         !voicemail.listened_at ? 'border-l-4 border-l-blue-500' : ''
                       }`}
                     >
                       {/* Desktop Layout */}
                       <div className="hidden sm:block">
                         {/* Card Header with Overflow Menu */}
-                        <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-start justify-between mb-4">
                           {/* Caller Info */}
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                              <span className="font-medium text-foreground">
+                              <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0 stroke-[1.5]" />
+                              <span className="text-base font-medium text-foreground">
                                 {voicemail.caller_name || formatPhoneNumber(voicemail.caller_phone)}
                               </span>
                               {!voicemail.listened_at && (
-                                <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full">
+                                <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full font-medium">
                                   New
                                 </span>
                               )}
                             </div>
                             <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
+                              <span className="flex items-center gap-1.5">
+                                <Clock className="w-3.5 h-3.5 stroke-[1.5]" />
                                 {formatRelativeTime(voicemail.created_at)}
                               </span>
                               <span className="text-muted-foreground/50">•</span>
-                              <span className="flex items-center gap-1">
+                              <span className="flex items-center gap-1.5">
                                 {formatDuration(voicemail.duration_seconds)}
                               </span>
                             </div>
@@ -183,11 +186,11 @@ export default function PersonalVoicemailPage() {
                           <div className="relative">
                             <button
                               onClick={() => setOverflowMenuId(overflowMenuId === voicemail.id ? null : voicemail.id)}
-                              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+                              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
                               title="Voicemail actions"
                               aria-label="Voicemail actions"
                             >
-                              <MoreVertical className="w-4 h-4" />
+                              <MoreVertical className="w-4 h-4 stroke-[1.5]" />
                             </button>
                             {overflowMenuId === voicemail.id && (
                               <>
@@ -195,16 +198,16 @@ export default function PersonalVoicemailPage() {
                                   className="fixed inset-0 z-[9999]"
                                   onClick={() => setOverflowMenuId(null)}
                                 />
-                                <div className="absolute right-0 mt-2 w-48 bg-popover border border-border rounded-lg shadow-lg z-[10000] overflow-hidden">
+                                <div className="absolute right-0 mt-2 w-48 rounded-xl border border-border/50 bg-popover shadow-sm z-[10000] overflow-hidden">
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation()
                                       handleDelete(voicemail)
                                       setOverflowMenuId(null)
                                     }}
-                                    className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2"
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50/50 dark:hover:bg-red-900/20 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:bg-red-50/50"
                                   >
-                                    <Trash2 className="w-4 h-4" />
+                                    <Trash2 className="w-4 h-4 stroke-[1.5]" />
                                     Delete voicemail
                                   </button>
                                 </div>
@@ -228,27 +231,27 @@ export default function PersonalVoicemailPage() {
                       {/* Mobile Layout */}
                       <div className="sm:hidden">
                         {/* Card Header with Overflow Menu */}
-                        <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-start justify-between mb-4">
                           {/* Caller Info */}
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                              <span className="font-medium text-foreground">
+                              <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0 stroke-[1.5]" />
+                              <span className="text-base font-medium text-foreground">
                                 {voicemail.caller_name || formatPhoneNumber(voicemail.caller_phone)}
                               </span>
                               {!voicemail.listened_at && (
-                                <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full">
+                                <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full font-medium">
                                   New
                                 </span>
                               )}
                             </div>
                             <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
+                              <span className="flex items-center gap-1.5">
+                                <Clock className="w-3.5 h-3.5 stroke-[1.5]" />
                                 {formatRelativeTime(voicemail.created_at)}
                               </span>
                               <span className="text-muted-foreground/50">•</span>
-                              <span className="flex items-center gap-1">
+                              <span className="flex items-center gap-1.5">
                                 {formatDuration(voicemail.duration_seconds)}
                               </span>
                             </div>
@@ -258,11 +261,11 @@ export default function PersonalVoicemailPage() {
                           <div className="relative">
                             <button
                               onClick={() => setOverflowMenuId(overflowMenuId === voicemail.id ? null : voicemail.id)}
-                              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+                              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
                               title="Voicemail actions"
                               aria-label="Voicemail actions"
                             >
-                              <MoreVertical className="w-4 h-4" />
+                              <MoreVertical className="w-4 h-4 stroke-[1.5]" />
                             </button>
                             {overflowMenuId === voicemail.id && (
                               <>
@@ -270,16 +273,16 @@ export default function PersonalVoicemailPage() {
                                   className="fixed inset-0 z-[9999]"
                                   onClick={() => setOverflowMenuId(null)}
                                 />
-                                <div className="absolute right-0 mt-2 w-48 bg-popover border border-border rounded-lg shadow-lg z-[10000] overflow-hidden">
+                                <div className="absolute right-0 mt-2 w-48 rounded-xl border border-border/50 bg-popover shadow-sm z-[10000] overflow-hidden">
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation()
                                       handleDelete(voicemail)
                                       setOverflowMenuId(null)
                                     }}
-                                    className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2"
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50/50 dark:hover:bg-red-900/20 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:bg-red-50/50"
                                   >
-                                    <Trash2 className="w-4 h-4" />
+                                    <Trash2 className="w-4 h-4 stroke-[1.5]" />
                                     Delete voicemail
                                   </button>
                                 </div>

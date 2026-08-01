@@ -52,6 +52,8 @@ import StatusBadge from '@/components/StatusBadge'
 import Navigation from '@/components/Navigation'
 import UserDropdown from '@/components/UserDropdown'
 import Input from '@/components/ui/Input'
+import Skeleton, { CardSkeleton, ListItemSkeleton } from '@/components/ui/Skeleton'
+import EmptyState from '@/components/ui/EmptyState'
 import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import { useRealtimeLeads } from '@/hooks/useRealtimeLeads'
@@ -1007,7 +1009,7 @@ export default function LeadsPage() {
             </div>
 
             {/* Full-width Search */}
-            <div className="mb-3 sm:mb-4">
+            <div className="mb-4">
               <div className="relative">
                 <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -1023,7 +1025,7 @@ export default function LeadsPage() {
             </div>
 
             {/* Quick Filter Pills - strict mobile layout, horizontal scroll on desktop */}
-            <div className="flex items-center gap-2 mb-3 sm:mb-4 overflow-hidden sm:overflow-x-auto sm:scrollbar-hide">
+            <div className="flex items-center gap-2 mb-4 overflow-hidden sm:overflow-x-auto sm:scrollbar-hide">
               <button
                 onClick={() => setQuickFilter('all')}
                 className={`
@@ -1298,40 +1300,31 @@ export default function LeadsPage() {
 
             {/* Empty State */}
             {!loading && !error && filteredLeads.length === 0 && (
-              <div className="bg-muted/30 rounded-2xl border border-border/50 p-8 sm:p-12 text-center animate-fadeIn">
-                <div className="max-w-md mx-auto">
-                  <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                    <svg className="w-8 h-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-xl font-semibold text-foreground mb-3">
-                    {quickFilter === 'new' && 'No customers need a reply'}
-                    {quickFilter === 'active' && 'No active customers'}
-                    {quickFilter === 'completed' && 'No completed customers yet'}
-                    {quickFilter === 'ignored' && 'No ignored customers'}
-                    {quickFilter === 'all' && 'No customers yet'}
-                  </h3>
-                  <p className="text-muted-foreground text-sm mb-6 max-w-md mx-auto">
-                    {quickFilter === 'new' && 'All customers have been responded to or are in other stages.'}
-                    {quickFilter === 'active' && 'No conversations are currently in progress.'}
-                    {quickFilter === 'completed' && 'Completed customers will appear here when jobs are finished.'}
-                    {quickFilter === 'ignored' && 'No customers are currently blocked from automation.'}
-                    {quickFilter === 'all' && 'Missed callers and conversations will automatically appear here when your business number is active.'}
-                  </p>
-                  {quickFilter === 'all' && (
-                    <button
-                      onClick={() => setShowAddCustomerModal(true)}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium rounded-lg transition-colors shadow-sm"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                      Add Customer
-                    </button>
-                  )}
-                </div>
-              </div>
+              <EmptyState
+                variant="customers"
+                title={
+                  quickFilter === 'new' ? 'No customers need a reply' :
+                  quickFilter === 'active' ? 'No active customers' :
+                  quickFilter === 'completed' ? 'No completed customers yet' :
+                  quickFilter === 'ignored' ? 'No ignored customers' :
+                  'No customers yet'
+                }
+                description={
+                  quickFilter === 'new' ? 'All customers have been responded to or are in other stages.' :
+                  quickFilter === 'active' ? 'No conversations are currently in progress.' :
+                  quickFilter === 'completed' ? 'Completed customers will appear here when jobs are finished.' :
+                  quickFilter === 'ignored' ? 'No customers are currently blocked from automation.' :
+                  'Missed callers and conversations will automatically appear here when your business number is active.'
+                }
+                primaryAction={quickFilter === 'all' ? (
+                  <button
+                    onClick={() => setShowAddCustomerModal(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                  >
+                    Add Customer
+                  </button>
+                ) : undefined}
+              />
             )}
 
             {/* Error State */}
@@ -1378,17 +1371,11 @@ export default function LeadsPage() {
                 if (filteredLeads.length === 0) {
                   // No leads match the current filter
                   return (
-                    <div className="text-center py-20 px-4">
-                      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-muted/50 mb-4">
-                        <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                        </svg>
-                      </div>
-                      <h3 className="text-lg font-semibold text-foreground mb-2">No {statusFilter} customers</h3>
-                      <p className="text-muted-foreground text-sm mb-4">
-                        Try changing the status filter to see other customers
-                      </p>
-                    </div>
+                    <EmptyState
+                      variant="search"
+                      title={`No ${statusFilter} customers`}
+                      description="Try changing the status filter to see other customers"
+                    />
                   )
                 }
                 
@@ -1430,7 +1417,7 @@ export default function LeadsPage() {
                       >
                         <div className="p-4 pl-5 flex-1 flex flex-col">
                           {/* Header: Name, Phone, Status */}
-                          <div className="flex items-start justify-between gap-3 mb-2.5">
+                          <div className="flex items-start justify-between gap-3 mb-3">
                             <div className="flex-1 min-w-0">
                               <h3 className="text-lg font-semibold text-foreground mb-0.5 truncate tracking-tight leading-tight">
                                 <span className="text-foreground">{getLeadDisplayName(lead)}</span>
@@ -1455,10 +1442,10 @@ export default function LeadsPage() {
                           </div>
 
                           {/* Compact Preview - Simplified Hierarchy */}
-                          <div className="mb-2.5 space-y-1.5 flex-1">
+                          <div className="mb-3 space-y-2 flex-1">
                             {aiData.reason && (
                               <div>
-                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 font-medium">Latest Request</p>
+                                <p className="text-xs text-muted-foreground mb-1 font-medium">Latest Request</p>
                                 <p className="line-clamp-1 text-sm font-semibold text-foreground leading-relaxed">
                                   {sentenceCase(aiData.reason)}
                                 </p>
@@ -1481,7 +1468,7 @@ export default function LeadsPage() {
                           </div>
 
                           {/* Metadata */}
-                          <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={(e) => {
