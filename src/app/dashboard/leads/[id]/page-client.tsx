@@ -3551,7 +3551,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     </div>
 
                   {/* Actions - Quick Actions */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center gap-3 flex-shrink-0">
                     {/* Job */}
                     <button
                       onClick={handleCreateJobClick}
@@ -3765,7 +3765,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Conversation Thread - Conditional Rendering to Prevent Duplicate Audio Elements */}
-      <div className="flex-1 max-w-7xl mx-auto w-full px-6 lg:px-8 pt-6 pb-4">
+      <div className="flex-1 max-w-7xl mx-auto w-full px-6 lg:px-8 pt-8 pb-4">
 
         {/* Desktop Layout - Only render when not mobile view */}
         {!isMobileView && (
