@@ -29,7 +29,7 @@ import {
 const steps = [
   { id: 'incoming-call', label: 'Customer Calls', description: 'A customer reaches out while you\'re unavailable.' },
   { id: 'missed-call', label: 'You Miss the Call', description: 'ReplyFlow automatically detects the missed call.' },
-  { id: 'ai-conversation', label: 'AI Captures the Lead', description: 'ReplyFlow answers immediately and gathers the information your team needs.' },
+  { id: 'ai-conversation', label: 'AI Handles the Intake', description: 'ReplyFlow answers as an AI receptionist and guides callers through a structured intake.' },
   { id: 'ai-summary', label: 'Lead Details Organized', description: 'Customer information is automatically organized into a clean lead profile.' },
   { id: 'lead-created', label: 'Lead Saved Automatically', description: 'Nothing is lost—even if nobody answered the phone.' },
   { id: 'sms-conversation', label: 'Customer Replies by Text', description: 'Customers can add or update information without another phone call.' },
@@ -175,65 +175,91 @@ function StepMissedCall() {
   )
 }
 
-const aiMessages = [
-  { sender: 'ai', text: 'Hi, this is Arctic Air HVAC. How can I help you today?' },
-  { sender: 'caller', text: 'My AC is not cooling.' },
-  { sender: 'ai', text: 'What is the service address?' },
-  { sender: 'caller', text: '1234 Oak Street, Pittsburgh.' },
-  { sender: 'ai', text: 'When would you like us to come by?' },
-  { sender: 'caller', text: 'Anytime after 5 PM this week.' },
-  { sender: 'ai', text: 'Perfect. I will pass this to the team. You will hear from us shortly.' },
+const intakeQuestions = [
+  { label: 'Name', value: 'John Smith', icon: User },
+  { label: 'Reason', value: 'AC not cooling', icon: Wrench },
+  { label: 'Address', value: '1234 Oak Street', icon: MapPin },
+  { label: 'Preferred Time', value: 'Tomorrow Afternoon', icon: Clock },
+  { label: 'Callback', value: 'Anytime after 5 PM', icon: Phone },
 ]
 
 function StepAIConversation() {
   return (
-    <div className="py-2">
+    <div className="py-4">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.25 }}
-        className="flex items-center justify-center gap-6 mb-6"
+        className="max-w-md mx-auto"
       >
-        <div className="flex flex-col items-center gap-2">
-          <div className="w-12 h-12 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center">
-            <User className="w-6 h-6 text-slate-600 dark:text-slate-300" />
-          </div>
-          <span className="text-xs font-medium text-slate-600 dark:text-slate-400">John Smith</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-8 h-0.5 bg-slate-200 dark:bg-slate-700" />
-          <div className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600 motion-reduce:hidden" />
-          <div className="w-8 h-0.5 bg-slate-200 dark:bg-slate-700" />
-        </div>
-        <div className="flex flex-col items-center gap-2">
-          <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
-            <Bot className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-          </div>
-          <span className="text-xs font-medium text-slate-600 dark:text-slate-400">ReplyFlow AI</span>
-        </div>
-      </motion.div>
-
-      <div className="space-y-3 max-w-lg mx-auto">
-        {aiMessages.map((msg, index) => (
+        <Card className="bg-gradient-to-br from-emerald-50/50 to-blue-50/50 dark:from-emerald-900/10 dark:to-blue-900/10 border-emerald-100 dark:border-emerald-800">
+          {/* Header */}
           <motion.div
-            key={index}
-            initial={{ opacity: 0, x: msg.sender === 'ai' ? -16 : 16, y: 6 }}
-            animate={{ opacity: 1, x: 0, y: 0 }}
-            transition={{ delay: index * 0.15, duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-            className={`flex ${msg.sender === 'ai' ? 'justify-start' : 'justify-end'}`}
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
+            className="flex items-center gap-3 p-4 border-b border-emerald-100/50 dark:border-emerald-800/50"
           >
-            <div
-              className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
-                msg.sender === 'ai'
-                  ? 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-bl-none'
-                  : 'bg-blue-600 text-white rounded-br-none'
-              }`}
-            >
-              {msg.text}
+            <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
+              <Bot className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-slate-900 dark:text-white">ReplyFlow AI Receptionist</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Call Connected</p>
+            </div>
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.1, duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
+              className="ml-auto w-2 h-2 bg-green-500 rounded-full"
+            />
+          </motion.div>
+
+          {/* Intake Fields */}
+          <div className="p-4 space-y-2.5">
+            {intakeQuestions.map((field, index) => (
+              <motion.div
+                key={field.label}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 + index * 0.12, duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+                className="flex items-center gap-3 p-2.5 rounded-lg bg-white dark:bg-slate-800/80 border border-emerald-100/30 dark:border-emerald-800/30"
+              >
+                <field.icon className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    {field.label}
+                  </p>
+                  <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                    {field.value}
+                  </p>
+                </div>
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.25 + index * 0.12, duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
+                  className="w-5 h-5 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center flex-shrink-0"
+                >
+                  <Check className="w-3 h-3 text-green-600 dark:text-green-400" />
+                </motion.div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Footer Status */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8, duration: 0.25 }}
+            className="px-4 pb-4"
+          >
+            <div className="flex items-center justify-center gap-2 p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">Intake Complete</span>
             </div>
           </motion.div>
-        ))}
-      </div>
+        </Card>
+      </motion.div>
     </div>
   )
 }
