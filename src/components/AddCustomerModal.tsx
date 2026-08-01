@@ -101,6 +101,18 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
       if (data.leadId && onLeadCreated) {
         onLeadCreated(data.leadId, data.lead)
       } else if (data.leadId) {
+        // Success - reset form before redirect
+        setFormData({
+          customerName: '',
+          phoneNumber: '',
+          serviceRequested: '',
+          address: '',
+          desiredCompletion: '',
+          callbackTime: '',
+          notes: ''
+        })
+        setError('')
+        
         if (returnTo === 'calendar') {
           // Return to calendar page with the new lead selected for job creation
           router.push('/dashboard/calendar?createJob=true&leadId=' + data.leadId)
@@ -111,16 +123,7 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
       }
     } catch (err: any) {
       setError(err.message || 'Failed to add customer')
-      // Reset form on error so user can try again with clean slate
-      setFormData({
-        customerName: '',
-        phoneNumber: '',
-        serviceRequested: '',
-        address: '',
-        desiredCompletion: '',
-        callbackTime: '',
-        notes: ''
-      })
+      // Preserve form data on error so user can retry without retyping
     } finally {
       setIsSubmitting(false)
     }
