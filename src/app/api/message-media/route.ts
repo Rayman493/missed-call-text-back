@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { getValidMediaAccessUrl } from '@/lib/mms-media-url-helper'
 
 export async function GET(request: NextRequest) {
   try {
@@ -83,13 +84,53 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: true })
 
     if (error) {
-      console.error('Error fetching message media:', error)
+      console.error('[MESSAGE MEDIA API ERROR] Error fetching message media:', error)
       return NextResponse.json({ error: 'Failed to fetch media' }, { status: 500 })
+    }
+
+    // Generate fresh access URLs for MMS media to avoid expired JWT issues
+    if (media && media.length > 0) {
+      const mediaWithFreshUrls = await Promise.all(
+        media.map(async (mediaItem) => {
+          // Only process MMS media URLs (ReplyFlow signed URLs)
+          if (mediaItem.media_url.includes('/api/mms-media/serve')) {
+            try {
+              const freshUrl = await getValidMediaAccessUrl(mediaItem.media_url)
+              if (freshUrl) {
+                console.log('[MESSAGE MEDIA API] Generated fresh URL for media:', {
+                  mediaId: mediaItem.id,
+                  originalPreview: mediaItem.media_url.substring(0, 100),
+                  freshPreview: freshUrl.substring(0, 100)
+                })
+                return {
+                  ...mediaItem,
+                  media_url: freshUrl
+                }
+              } else {
+                console.error('[MESSAGE MEDIA API] Failed to generate fresh URL for media:', {
+                  mediaId: mediaItem.id,
+                  urlPreview: mediaItem.media_url.substring(0, 100)
+                })
+                return mediaItem // Return original if recovery fails
+              }
+            } catch (error) {
+              console.error('[MESSAGE MEDIA API] Error generating fresh URL for media:', {
+                mediaId: mediaItem.id,
+                error: (error as Error).message
+              })
+              return mediaItem // Return original on error
+            }
+          }
+          // Return non-MMS URLs as-is (Supabase direct URLs, Twilio proxy URLs, etc.)
+          return mediaItem
+        })
+      )
+      return NextResponse.json(mediaWithFreshUrls)
     }
 
     return NextResponse.json(media || [])
   } catch (error) {
-    console.error('Error in message-media API:', error)
+    console.error('[MESSAGE MEDIA API ERROR] Error in message-media API:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
