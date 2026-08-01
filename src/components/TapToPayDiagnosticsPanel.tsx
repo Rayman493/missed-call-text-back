@@ -71,8 +71,8 @@ export default function TapToPayDiagnosticsPanel({ context }: { context?: any } 
     } catch {}
     const text = await getFormattedTapToPayDiagnostics(header)
     const ok = await writeClipboard(text)
-    setCopyStatus(ok ? 'Tap to Pay diagnostics copied.' : 'Copy failed. Long-press to select and copy.')
-    setTimeout(() => setCopyStatus(''), 2000)
+    setCopyStatus(ok ? '✓ Copied to clipboard' : '✗ Copy failed. Long-press to select and copy manually.')
+    setTimeout(() => setCopyStatus(''), 3000)
   }
 
   const handleClear = async () => {
@@ -100,7 +100,7 @@ export default function TapToPayDiagnosticsPanel({ context }: { context?: any } 
         </div>
       </div>
       {/* Live state header */}
-      <div className="px-4 py-2 text-xs border-b border-border/50 grid grid-cols-1 sm:grid-cols-2 gap-2">
+      <div className="px-4 py-2 text-xs border-b border-border/50 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
         {(() => {
           try {
             const svc = TerminalBridgeService.getInstance()
@@ -108,6 +108,13 @@ export default function TapToPayDiagnosticsPanel({ context }: { context?: any } 
             const attemptId = svc?.getCurrentAttemptId?.()
             const phase = svc?.getCurrentPhase?.()
             const ui = context?.ui || {}
+            
+            // Get platform and permission state from context
+            const platform = ui.platform || 'unknown'
+            const locationPermissionGranted = ui.locationPermissionGranted ?? null
+            const locationServicesEnabled = ui.locationServicesEnabled ?? null
+            const isNativeSupported = ui.isNativeSupported ?? false
+            
             return (
               <>
                 <div className="space-y-1">
@@ -120,10 +127,17 @@ export default function TapToPayDiagnosticsPanel({ context }: { context?: any } 
                   {'selectedJobId' in ui && <div className="text-muted-foreground">Job: {ui.selectedJobId ?? '-'}</div>}
                 </div>
                 <div className="space-y-1">
-                  <div className="font-medium text-foreground">Current Stripe State</div>
+                  <div className="font-medium text-foreground">Stripe State</div>
                   <div className="text-muted-foreground">Session: {sessionId || '-'}</div>
                   <div className="text-muted-foreground">Attempt: {attemptId || '-'}</div>
                   <div className="text-muted-foreground">Phase: {phase || '-'}</div>
+                </div>
+                <div className="space-y-1">
+                  <div className="font-medium text-foreground">Platform & Permissions</div>
+                  <div className="text-muted-foreground">Platform: {platform}</div>
+                  <div className="text-muted-foreground">Loc Permission: {locationPermissionGranted === null ? 'Unknown' : locationPermissionGranted ? 'Granted' : 'Denied'}</div>
+                  <div className="text-muted-foreground">Loc Services: {locationServicesEnabled === null ? 'Unknown' : locationServicesEnabled ? 'Enabled' : 'Disabled'}</div>
+                  <div className="text-muted-foreground">Native Supported: {isNativeSupported ? 'Yes' : 'No'}</div>
                 </div>
               </>
             )
@@ -133,7 +147,7 @@ export default function TapToPayDiagnosticsPanel({ context }: { context?: any } 
         })()}
       </div>
       {copyStatus && (
-        <div className="px-4 py-2 text-xs text-emerald-600 dark:text-emerald-400">{copyStatus}</div>
+        <div className={`px-4 py-2 text-xs font-medium ${copyStatus.startsWith('✓') ? 'text-green-600 dark:text-green-400 bg-green-950/30' : 'text-red-600 dark:text-red-400 bg-red-950/30'}`}>{copyStatus}</div>
       )}
       <div className="p-4">
         {loading ? (

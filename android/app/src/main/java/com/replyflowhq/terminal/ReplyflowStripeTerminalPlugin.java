@@ -1,7 +1,19 @@
 package com.replyflowhq.terminal;
 
 import androidx.annotation.NonNull;
+import android.Manifest;
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.location.LocationManager;
+import android.net.Uri;
+import android.os.Build;
+import android.nfc.NfcAdapter;
+import android.provider.Settings;
 import android.util.Log;
+
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import java.util.UUID;
 import java.util.Iterator;
@@ -13,9 +25,6 @@ import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
-import android.content.pm.PackageManager;
-import android.os.Build;
-import android.nfc.NfcAdapter;
 
 // Stripe Terminal Android SDK (added as Gradle dependency)
 import com.stripe.stripeterminal.Terminal;
@@ -334,6 +343,82 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     ret.put("manufacturer", Build.MANUFACTURER);
     ret.put("model", Build.MODEL);
     call.resolve(ret);
+  }
+
+  @PluginMethod
+  public void checkLocationPermission(PluginCall call) {
+    Log.d(TAG, "[LOCATION] checkLocationPermission() called");
+    
+    JSObject ret = new JSObject();
+    
+    // Check if location permission is granted
+    boolean hasPermission = ContextCompat.checkSelfPermission(
+      getContext(),
+      Manifest.permission.ACCESS_FINE_LOCATION
+    ) == PackageManager.PERMISSION_GRANTED;
+    
+    ret.put("granted", hasPermission);
+    
+    // Check if location services are enabled
+    LocationManager locationManager = (LocationManager) getContext().getSystemService(Context.LOCATION_SERVICE);
+    boolean locationEnabled = locationManager != null && locationManager.isLocationEnabled();
+    
+    ret.put("locationEnabled", locationEnabled);
+    
+    Log.d(TAG, "[LOCATION] Permission check result: granted=" + hasPermission + ", locationEnabled=" + locationEnabled);
+    
+    call.resolve(ret);
+  }
+
+  @PluginMethod
+  public void requestLocationPermission(PluginCall call) {
+    Log.d(TAG, "[LOCATION] requestLocationPermission() called");
+    
+    // Check if already granted
+    boolean hasPermission = ContextCompat.checkSelfPermission(
+      getContext(),
+      Manifest.permission.ACCESS_FINE_LOCATION
+    ) == PackageManager.PERMISSION_GRANTED;
+    
+    if (hasPermission) {
+      Log.d(TAG, "[LOCATION] Permission already granted");
+      JSObject ret = new JSObject();
+      ret.put("granted", true);
+      call.resolve(ret);
+      return;
+    }
+    
+    // Request the permission
+    String[] permissions = { Manifest.permission.ACCESS_FINE_LOCATION };
+    ActivityCompat.requestPermissions(getActivity(), permissions, 1001);
+    
+    Log.d(TAG, "[LOCATION] Permission request initiated");
+    
+    // Note: The result will be handled by onRequestPermissionsResult in MainActivity
+    // For now, return pending state
+    JSObject ret = new JSObject();
+    ret.put("granted", false);
+    ret.put("pending", true);
+    call.resolve(ret);
+  }
+
+  @PluginMethod
+  public void openLocationSettings(PluginCall call) {
+    Log.d(TAG, "[LOCATION] openLocationSettings() called");
+    
+    try {
+      Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+      getActivity().startActivity(intent);
+      
+      JSObject ret = new JSObject();
+      ret.put("opened", true);
+      call.resolve(ret);
+      
+      Log.d(TAG, "[LOCATION] Location settings opened");
+    } catch (Exception e) {
+      Log.e(TAG, "[LOCATION] Failed to open location settings", e);
+      call.reject("failed-to-open-settings", e.getMessage());
+    }
   }
 
   @PluginMethod

@@ -1,6 +1,7 @@
 package com.replyflowhq.app;
 
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.ConnectivityManager;
 import android.net.Network;
@@ -399,6 +400,25 @@ public class MainActivity extends BridgeActivity {
         layout.addView(supportingText, supportingParams);
 
         return layout;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        
+        if (requestCode == 1001) {
+            // Location permission request result
+            boolean granted = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+            Log.d(TAG, "[LOCATION] Permission result: granted=" + granted);
+            
+            // Notify the web layer via a Capacitor plugin event
+            try {
+                // Use Capacitor's notifyListeners mechanism to notify JS
+                getBridge().triggerJSEvent("locationPermissionResult", "{\"granted\":" + granted + "}");
+            } catch (Exception e) {
+                Log.e(TAG, "[LOCATION] Failed to notify JS of permission result", e);
+            }
+        }
     }
 
     // (Diagnostics removed)

@@ -17,6 +17,21 @@ export class TerminalWeb extends WebPlugin implements TerminalPlugin {
     return { supported: false, platform: 'web' }
   }
 
+  async checkLocationPermission(): Promise<{ granted: boolean; locationEnabled: boolean }> {
+    // Web doesn't require location permission for Tap to Pay
+    return { granted: true, locationEnabled: true }
+  }
+
+  async requestLocationPermission(): Promise<{ granted: boolean; pending?: boolean }> {
+    // Web doesn't require location permission for Tap to Pay
+    return { granted: true }
+  }
+
+  async openLocationSettings(): Promise<{ opened: boolean }> {
+    // Web doesn't have location settings
+    return { opened: false }
+  }
+
   async requestConnectionToken(): Promise<{ secret: string }> {
     throw this.unavailable('Stripe Terminal is not supported on web')
   }

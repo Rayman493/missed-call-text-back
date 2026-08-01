@@ -82,6 +82,9 @@ export interface TerminalPlugin {
   ping(): Promise<{ available: boolean; platform: string; buildMarker?: string }>
   initialize(options?: InitializeOptions): Promise<{ status: TerminalStatus }>
   isSupported(): Promise<{ supported: boolean; platform: 'ios' | 'android' | 'web'; unsupportedReason?: string }>
+  checkLocationPermission(): Promise<{ granted: boolean; locationEnabled: boolean }>
+  requestLocationPermission(): Promise<{ granted: boolean; pending?: boolean }>
+  openLocationSettings(): Promise<{ opened: boolean }>
   // Deprecated: use connectionTokenRequested event instead
   requestConnectionToken(): Promise<ConnectionToken>
   // JS supplies the token back to native after fetching from backend, keyed by requestId
@@ -96,7 +99,7 @@ export interface TerminalPlugin {
   teardown(): Promise<{ status: TerminalStatus }>
   isTapToPayAccountLinked(options?: IsTapToPayAccountLinkedOptions): Promise<{ isLinked: boolean }>
   addListener(
-    eventName: 'statusChanged' | 'paymentSucceeded' | 'paymentFailed' | 'error' | 'connectionTokenRequested' | 'readerConnected' | 'paymentStatusChanged',
+    eventName: 'statusChanged' | 'paymentSucceeded' | 'paymentFailed' | 'error' | 'connectionTokenRequested' | 'readerConnected' | 'paymentStatusChanged' | 'locationPermissionResult',
     listenerFunc: (data: any) => void,
   ): Promise<{ remove: () => void }>
   removeAllListeners(): Promise<void>

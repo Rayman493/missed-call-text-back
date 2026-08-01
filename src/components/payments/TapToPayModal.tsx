@@ -52,6 +52,9 @@ export default function TapToPayModal({
   const [isPaymentInProgress, setIsPaymentInProgress] = useState(false)
   const [showDiagnostics, setShowDiagnostics] = useState(false)
   const [platform, setPlatform] = useState<'ios' | 'android' | 'web'>('web')
+  const [locationPermissionGranted, setLocationPermissionGranted] = useState<boolean | null>(null)
+  const [locationServicesEnabled, setLocationServicesEnabled] = useState<boolean | null>(null)
+  const [showLocationPermissionDialog, setShowLocationPermissionDialog] = useState(false)
 
   useBodyScrollLock(isOpen)
 
@@ -71,22 +74,52 @@ export default function TapToPayModal({
       try { logTapToPayEvent('MODAL_OPENED', { phase: 'startup', sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined, meta: { modal: 'TapToPay', visible: true } }) } catch {}
       setShowDiagnostics(false)
       
-      // Detect platform for platform-specific messaging
-      const detectedPlatform = Capacitor.getPlatform() as 'ios' | 'android' | 'web'
-      setPlatform(detectedPlatform)
-      
-      // Development logging for platform detection
-      if (process.env.NODE_ENV === 'development') {
-        // Development-only platform detection diagnostics
-      }
-      
-      const supported = isNativeCapacitor()
-      setIsNativeSupported(supported)
-      // Only set error message in web - never in native app
-      // The user is already in the app, so this message is redundant
-      if (!supported && detectedPlatform === 'web') {
-        setError('Tap to Pay is only available on the mobile app')
-      }
+      // Wait for Capacitor to be ready before checking platform
+      ;(async () => {
+        try {
+          // Wait a brief moment for Capacitor bridge to be ready
+          await new Promise(resolve => setTimeout(resolve, 100))
+          
+          // Detect platform for platform-specific messaging
+          const detectedPlatform = Capacitor.getPlatform() as 'ios' | 'android' | 'web'
+          setPlatform(detectedPlatform)
+          
+          // Check if Capacitor is native
+          const isNative = Capacitor.isNativePlatform()
+          
+          // Check if plugin is available
+          const pluginAvailable = Capacitor.isPluginAvailable('ReplyflowStripeTerminal')
+          
+          console.log('[TTP UI] Platform detection:', {
+            detectedPlatform,
+            isNative,
+            pluginAvailable,
+            isNativeCapacitor: isNativeCapacitor()
+          })
+          
+          // Set native support based on actual platform and plugin availability
+          const supported = isNativeCapacitor() && pluginAvailable
+          setIsNativeSupported(supported)
+          
+          // Only set error message in web - never in native app
+          // The user is already in the app, so this message is redundant
+          if (!supported && detectedPlatform === 'web') {
+            setError('Tap to Pay is only available on the mobile app')
+          } else if (!supported && (detectedPlatform === 'ios' || detectedPlatform === 'android')) {
+            // Native app but plugin not available - this is a genuine error
+            setError('Tap to Pay is not available. Please update the app to the latest version.')
+          }
+          
+          // Check location permission for Android when modal opens
+          if (detectedPlatform === 'android' && supported) {
+            await checkLocationPermission()
+          }
+        } catch (err) {
+          console.error('[TTP UI] Platform detection error:', err)
+          // Fail safe: assume not supported
+          setIsNativeSupported(false)
+        }
+      })()
 
       // Check for unresolved attempt from previous session
       const unresolvedAttemptId = terminalService.getUnresolvedAttempt()
@@ -200,6 +233,7 @@ export default function TapToPayModal({
 
     let errorListener: { remove: () => void } | undefined
     let diagListener: { remove: () => void } | undefined
+    let locationPermissionListener: { remove: () => void } | undefined
     ;(async () => {
       try {
         const Terminal = await import('@/lib/terminal')
@@ -213,6 +247,17 @@ export default function TapToPayModal({
             return
           }
           setStructuredError(data)
+        })
+
+        // Listen for location permission result
+        locationPermissionListener = await plugin.addListener('locationPermissionResult', (result: { granted: boolean }) => {
+          console.log('[TTP UI] Location permission result:', result)
+          setLocationPermissionGranted(result.granted)
+          
+          // Re-check location services after permission is granted
+          if (result.granted) {
+            checkLocationPermission()
+          }
         })
 
         // Diagnostics lifecycle tap: infer confirmation-wait once per attempt
@@ -240,6 +285,7 @@ export default function TapToPayModal({
     return () => {
       errorListener?.remove?.()
       diagListener?.remove?.()
+      locationPermissionListener?.remove?.()
     }
   }, [isOpen, isNativeSupported])
 
@@ -358,6 +404,40 @@ export default function TapToPayModal({
     }
   }
 
+  const checkLocationPermission = async () => {
+    if (platform !== 'android') {
+      setLocationPermissionGranted(true)
+      setLocationServicesEnabled(true)
+      return true
+    }
+
+    try {
+      const Terminal = await import('@/lib/terminal')
+      const plugin = Terminal.default
+      
+      if (!plugin.checkLocationPermission) {
+        // Fallback for iOS or older plugin versions
+        setLocationPermissionGranted(true)
+        setLocationServicesEnabled(true)
+        return true
+      }
+
+      const result = await plugin.checkLocationPermission()
+      setLocationPermissionGranted(result.granted)
+      setLocationServicesEnabled(result.locationEnabled)
+      
+      console.log('[TTP UI] Location permission check:', result)
+      
+      return result.granted && result.locationEnabled
+    } catch (error) {
+      console.error('[TTP UI] Failed to check location permission:', error)
+      // Fail safe: assume permission granted to avoid blocking payments
+      setLocationPermissionGranted(true)
+      setLocationServicesEnabled(true)
+      return true
+    }
+  }
+
   const handleStartPayment = async () => {
     console.log('[TTP UI] Payment started:', {
       isNativeSupported,
@@ -423,6 +503,21 @@ export default function TapToPayModal({
         throw new Error('This device does not support Tap to Pay')
       }
       setLastSuccessfulStage('device_supported')
+
+      // Check location permission for Android (required by Stripe Terminal SDK)
+      if (platform === 'android') {
+        console.log('[TTP UI] Checking location permission')
+        const locationOk = await checkLocationPermission()
+        if (!locationOk) {
+          console.log('[TTP UI] Location permission or services not available')
+          setShowLocationPermissionDialog(true)
+          setIsPaymentInProgress(false)
+          setPaymentState('ready')
+          setError('Location permission is required for Tap to Pay')
+          return
+        }
+        setLastSuccessfulStage('location_permission_ok')
+      }
 
       console.log('[TTP UI] Initializing terminal')
       // Initialize if needed
@@ -581,6 +676,53 @@ export default function TapToPayModal({
     waitingForConfirmationEmitted.current = null
     // Ensure service-layer internal state is fully reset so a brand new attempt/PI will be created
     terminalService.resetForRetry('user_retry').catch(() => {})
+    
+    // Re-check location permission on retry
+    checkLocationPermission()
+  }
+
+  const handleGrantLocationPermission = async () => {
+    try {
+      const Terminal = await import('@/lib/terminal')
+      const plugin = Terminal.default
+      
+      if (!plugin.requestLocationPermission) {
+        // Fallback: open app settings
+        await plugin.openLocationSettings()
+        return
+      }
+      
+      const result = await plugin.requestLocationPermission()
+      console.log('[TTP UI] Permission request result:', result)
+      
+      if (result.granted) {
+        setShowLocationPermissionDialog(false)
+        setError('')
+        // Permission granted, user can retry
+      } else if (result.pending) {
+        // Permission request was shown, wait for result via event listener
+      }
+    } catch (err) {
+      console.error('[TTP UI] Failed to request location permission:', err)
+      setError('Failed to request location permission')
+    }
+  }
+
+  const handleOpenLocationSettings = async () => {
+    try {
+      const Terminal = await import('@/lib/terminal')
+      const plugin = Terminal.default
+      
+      if (!plugin.openLocationSettings) {
+        setError('Unable to open settings. Please open location settings manually.')
+        return
+      }
+      
+      await plugin.openLocationSettings()
+    } catch (err) {
+      console.error('[TTP UI] Failed to open location settings:', err)
+      setError('Failed to open location settings')
+    }
   }
 
   const handleDone = () => {
@@ -625,6 +767,46 @@ export default function TapToPayModal({
               </div>
             )}
 
+            {/* Location Permission Dialog for Android */}
+            {showLocationPermissionDialog && platform === 'android' && (
+              <div className="p-4 bg-amber-900/30 border border-amber-700 rounded-lg space-y-3">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-amber-200 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <p className="text-sm font-medium text-amber-100">Location permission required</p>
+                    <p className="text-xs text-amber-200">
+                      Tap to Pay requires location permission to discover payment readers. This is required by the Stripe Terminal SDK and is only used for reader discovery - your location is not tracked.
+                    </p>
+                    {!locationPermissionGranted && (
+                      <button
+                        onClick={handleGrantLocationPermission}
+                        className="px-3 py-2 text-xs font-medium bg-amber-700 hover:bg-amber-600 text-white rounded-lg transition-colors"
+                      >
+                        Grant Permission
+                      </button>
+                    )}
+                    {!locationServicesEnabled && (
+                      <button
+                        onClick={handleOpenLocationSettings}
+                        className="px-3 py-2 text-xs font-medium bg-amber-700 hover:bg-amber-600 text-white rounded-lg transition-colors"
+                      >
+                        Open Location Settings
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setShowLocationPermissionDialog(false)
+                        setError('')
+                      }}
+                      className="px-3 py-2 text-xs font-medium bg-muted hover:bg-muted/70 text-foreground rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Collapsible Tap to Pay Diagnostics */}
             {SHOW_TAP_TO_PAY_DIAGNOSTICS && (
               <div className="space-y-2">
@@ -647,7 +829,19 @@ export default function TapToPayModal({
                 </button>
                 {showDiagnostics && (
                   <div className="min-h-[240px] animate-in slide-in-from-top-2 duration-200">
-                    <TapToPayDiagnosticsPanel />
+                    <TapToPayDiagnosticsPanel context={{
+                      ui: {
+                        modal: 'TapToPay',
+                        isOpen,
+                        amountCents,
+                        isNativeSupported,
+                        platform,
+                        locationPermissionGranted,
+                        locationServicesEnabled,
+                        selectedLeadId: leadId,
+                        selectedJobId: jobId
+                      }
+                    }} />
                   </div>
                 )}
               </div>
