@@ -1064,7 +1064,7 @@ export default function SchedulePage() {
                         <Briefcase className={`w-4 h-4 ${scheduleTab === 'jobs' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
                         Jobs
                         {jobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress').length > 0 && (
-                          <span className="ml-2.5 px-1.5 py-0.5 text-[10px] font-semibold bg-blue-600 text-white rounded-full">
+                          <span className="ml-3.5 px-1 py-0.5 text-[9px] font-semibold bg-blue-600/90 text-white rounded-full">
                             {jobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress').length}
                           </span>
                         )}
@@ -1130,7 +1130,7 @@ export default function SchedulePage() {
                         <Briefcase className={`w-3.5 h-3.5 ${scheduleTab === 'jobs' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
                         <span>Jobs</span>
                         {jobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress').length > 0 && (
-                          <span className="ml-2 px-1.5 py-0.5 text-[10px] font-semibold bg-blue-600 text-white rounded-full">
+                          <span className="ml-2.5 px-1 py-0.5 text-[9px] font-semibold bg-blue-600/90 text-white rounded-full">
                             {jobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress').length}
                           </span>
                         )}
