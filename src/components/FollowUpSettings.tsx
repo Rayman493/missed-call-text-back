@@ -54,7 +54,7 @@ export default function FollowUpSettings({ isOpen, onClose, onSave }: FollowUpSe
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [savedSettings, setSavedSettings] = useState<FollowUpSettings | null>(null)
-  const [expandedFollowUp, setExpandedFollowUp] = useState<number>(1) // First follow-up expanded by default
+  const [expandedFollowUp, setExpandedFollowUp] = useState<number | null>(1) // First follow-up expanded by default
 
   useEffect(() => {
     if (isOpen) {
