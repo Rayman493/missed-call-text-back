@@ -1470,20 +1470,20 @@ export default function SettingsContent() {
               ) : (
               <>
               {/* Automation Settings */}
-              <div id="automation" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
-                <div className="mb-5">
+              <div id="automation" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-border/20 shadow-sm p-4 scroll-mt-[64px]">
+                <div className="mb-4">
                   <div className="flex items-center justify-between mb-1">
                     <h2 className="text-base font-semibold text-foreground">Instant Response</h2>
                   </div>
                   <p className="text-sm text-muted-foreground leading-relaxed">Control automatic missed-call responses.</p>
                 </div>
                 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {/* Spam & Repeat Call Filtering */}
-                  <div className="border border-border/30 rounded-lg p-4">
-                    <div className="flex items-start justify-between mb-2">
+                  <div className="border border-border/30 rounded-lg p-3">
+                    <div className="flex items-start justify-between mb-1.5">
                       <div className="flex-1 pr-4">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-0.5">
                           <h3 className="text-sm font-semibold text-foreground">Spam & Repeat Filtering</h3>
                         </div>
                         <p className="text-sm text-muted-foreground leading-relaxed">
@@ -1508,11 +1508,11 @@ export default function SettingsContent() {
 
                     {/* Filtering Options - Only show when enabled */}
                     {spamFilteringEnabled && (
-                      <div className="space-y-3 mt-3">
+                      <div className="space-y-2.5 mt-2.5">
                         {/* Repeat Call Protection */}
                         <div className="flex items-start justify-between">
                           <div className="flex-1 pr-4">
-                            <div className="flex items-center gap-2 mb-1">
+                            <div className="flex items-center gap-2 mb-0.5">
                               <h4 className="text-sm font-semibold text-foreground">Prevent duplicate replies</h4>
                             </div>
                             <p className="text-sm text-muted-foreground leading-relaxed">
@@ -1542,7 +1542,7 @@ export default function SettingsContent() {
                         {/* Private/Blocked Numbers */}
                         <div className="flex items-start justify-between">
                           <div className="flex-1 pr-4">
-                            <div className="flex items-center gap-2 mb-1">
+                            <div className="flex items-center gap-2 mb-0.5">
                               <h4 className="text-sm font-semibold text-foreground">Skip blocked or hidden callers</h4>
                             </div>
                             <p className="text-sm text-muted-foreground">
@@ -1572,7 +1572,7 @@ export default function SettingsContent() {
                         {/* Spam Detection */}
                         <div className="flex items-start justify-between">
                           <div className="flex-1 pr-4">
-                            <div className="flex items-center gap-2 mb-1">
+                            <div className="flex items-center gap-2 mb-0.5">
                               <h4 className="text-sm font-semibold text-foreground">Skip suspected spam callers</h4>
                             </div>
                             <p className="text-sm text-muted-foreground">
@@ -1603,7 +1603,7 @@ export default function SettingsContent() {
                   </div>
 
                   {/* Business Hours */}
-                  <div className="border border-border/30 rounded-lg p-4">
+                  <div className="border border-border/30 rounded-lg p-3">
                     {!businessHoursExpanded ? (
                       // Collapsed state
                       <div className="flex items-start justify-between">
@@ -1624,8 +1624,7 @@ export default function SettingsContent() {
                           </div>
                           {formBusiness.business_hours_enabled ? (
                             <div className="text-xs text-slate-600 dark:text-slate-400 space-y-0.5">
-                              <p>Monday–Friday</p>
-                              <p>{formBusiness.business_hours_start || '9:00 AM'}–{formBusiness.business_hours_end || '6:00 PM'}</p>
+                              <p>Monday–Friday · {formBusiness.business_hours_start || '9:00 AM'}–{formBusiness.business_hours_end || '6:00 PM'}</p>
                               <p>{formBusiness.business_hours_timezone === 'America/New_York' ? 'Eastern Time' : formBusiness.business_hours_timezone === 'America/Chicago' ? 'Central Time' : formBusiness.business_hours_timezone === 'America/Denver' ? 'Mountain Time' : formBusiness.business_hours_timezone === 'America/Los_Angeles' ? 'Pacific Time' : formBusiness.business_hours_timezone}</p>
                             </div>
                           ) : (
@@ -1645,9 +1644,9 @@ export default function SettingsContent() {
                     ) : (
                       // Expanded state
                       <>
-                        <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-start justify-between mb-2">
                           <div className="flex-1 pr-4">
-                            <div className="flex items-center gap-2 mb-1">
+                            <div className="flex items-center gap-2 mb-0.5">
                               <h3 className="text-sm font-medium text-foreground">Business Hours</h3>
                               {formBusiness.business_hours_enabled && (
                                 <span className="text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-2">
@@ -1656,7 +1655,7 @@ export default function SettingsContent() {
                                 </span>
                               )}
                             </div>
-                            <p className="text-sm text-muted-foreground leading-relaxed mb-2">
+                            <p className="text-sm text-muted-foreground leading-relaxed mb-1.5">
                               Send different replies inside and outside business hours.
                             </p>
                           </div>
@@ -1767,7 +1766,7 @@ export default function SettingsContent() {
                   </div>
 
                   {/* Out of Office Mode */}
-                  <div className="p-3 sm:p-4 rounded-lg border border-border/30">
+                  <div className="p-3 rounded-lg border border-border/30">
                     {!outOfOfficeExpanded ? (
                       // Collapsed state
                       <div className="flex items-start justify-between">
@@ -1890,7 +1889,7 @@ export default function SettingsContent() {
 
                   {/* Automatic Follow-Ups */}
                   <div className="p-3 rounded-lg border border-border/30">
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start justify-between">
                       <div className="flex-1 pr-4">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="text-sm font-medium text-slate-900 dark:text-foreground">Automatic Follow-Ups</h3>
@@ -1898,7 +1897,7 @@ export default function SettingsContent() {
                             New
                           </span>
                         </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                        <p className="text-xs text-slate-600 dark:text-slate-400">
                           Schedule follow-up texts for quiet leads.
                         </p>
                       </div>
@@ -1914,43 +1913,7 @@ export default function SettingsContent() {
                     </div>
                   </div>
 
-                  {/* Automation Status Summary */}
-                  <div className="p-3 sm:p-4 rounded-lg border border-border/30">
-                    <div className="flex items-start gap-3">
-                      <svg className="w-5 h-5 text-slate-600 dark:text-slate-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                      </svg>
-                      <div className="flex-1">
-                        <h4 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">Automation Status</h4>
-                        <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 space-y-1.5">
-                          {getAutomationSettings().spamRepeatFilteringEnabled && (
-                            <div className="flex items-center gap-2">
-                              <span className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></span>
-                              <span>Protection enabled</span>
-                            </div>
-                          )}
-                          {formBusiness.business_hours_enabled && (
-                            <div className="flex items-center gap-2">
-                              <span className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></span>
-                              <span>Business hours active</span>
-                            </div>
-                          )}
-                          {formBusiness.out_of_office_enabled && (
-                            <div className="flex items-center gap-2">
-                              <span className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></span>
-                              <span>Out of office active</span>
-                            </div>
-                          )}
-                          {!getAutomationSettings().spamRepeatFilteringEnabled && !formBusiness.business_hours_enabled && !formBusiness.out_of_office_enabled && (
-                            <div className="flex items-center gap-2">
-                              <span className="w-1.5 h-1.5 bg-amber-500 rounded-full flex-shrink-0"></span>
-                              <span>Automation disabled - enable settings above</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  {/* Automation Status Summary - REMOVED */}
                 </div>
               </div>
 
