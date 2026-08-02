@@ -42,8 +42,9 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   const fetchNotifications = async (businessId: string) => {
     try {
       setLoading(true)
-      // Fetch notifications for the preview list (increased limit to ensure unread notifications are included)
-      const notificationsData = await notificationService.getNotifications(businessId, 50)
+      // Fetch notifications for the preview list with unread guarantee
+      // This merges recent notifications with all unread notifications
+      const notificationsData = await notificationService.getNotifications(businessId, 50, true)
       
       // Fetch the actual count from all notifications (no limit)
       const countData = await notificationService.getNotificationCount(businessId)
@@ -52,10 +53,9 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       setNotificationCount(countData)
       setDisplayedUnreadCount(countData.unread)
       
-      // Consistency check: if count says unread > 0 but no notifications in preview, this is expected
-      // (there may be more unread notifications beyond the first 50)
+      // Consistency check: if count says unread > 0 but no notifications in preview, this indicates a bug
       if (countData.unread > 0 && notificationsData.length === 0) {
-        console.log('[NotificationContext] Unread count > 0 but no notifications in preview (may be beyond first 50)', {
+        console.error('[NotificationContext] BUG: Unread count > 0 but no notifications in preview', {
           unreadCount: countData.unread,
           totalCount: countData.total,
           previewCount: notificationsData.length
@@ -87,7 +87,13 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         },
         async (payload: any) => {
           // Optimistically add new notification to state
-          setNotifications(prev => [payload.new, ...prev].slice(0, 50))
+          setNotifications(prev => {
+            const updated = [payload.new, ...prev]
+            // Keep unread notifications, slice to 50 limit
+            const unread = updated.filter(n => !n.read)
+            const read = updated.filter(n => n.read).slice(0, 50 - unread.length)
+            return [...unread, ...read].slice(0, 50)
+          })
           setNotificationCount(prev => ({ 
             unread: prev.unread + 1, 
             total: prev.total + 1 
@@ -105,9 +111,13 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         },
         async (payload: any) => {
           // Update existing notification in state
-          setNotifications(prev => 
-            prev.map(n => n.id === payload.new.id ? payload.new : n)
-          )
+          setNotifications(prev => {
+            const updated = prev.map(n => n.id === payload.new.id ? payload.new : n)
+            // Maintain unread priority: keep all unread, slice read to fit limit
+            const unread = updated.filter(n => !n.read)
+            const read = updated.filter(n => n.read).slice(0, 50 - unread.length)
+            return [...unread, ...read].slice(0, 50)
+          })
           if (payload.new.read && !payload.old.read) {
             setNotificationCount(prev => ({ 
               ...prev, 
@@ -128,7 +138,13 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         async (payload: any) => {
           // Remove deleted notification from state
           const deletedNotification = notifications.find(n => n.id === payload.old.id)
-          setNotifications(prev => prev.filter(n => n.id !== payload.old.id))
+          setNotifications(prev => {
+            const filtered = prev.filter(n => n.id !== payload.old.id)
+            // Maintain unread priority
+            const unread = filtered.filter(n => !n.read)
+            const read = filtered.filter(n => n.read).slice(0, 50 - unread.length)
+            return [...unread, ...read].slice(0, 50)
+          })
           setNotificationCount(prev => ({
             unread: deletedNotification && !deletedNotification.read ? Math.max(0, prev.unread - 1) : prev.unread,
             total: Math.max(0, prev.total - 1)

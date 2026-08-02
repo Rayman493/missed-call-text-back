@@ -164,27 +164,85 @@ export class NotificationService {
     }
   }
 
-  async getNotifications(businessId: string, limit = 20): Promise<Notification[]> {
-    console.log('[NotificationService] Fetching notifications:', { businessId, limit })
+  async getNotifications(businessId: string, limit = 20, includeAllUnread = false): Promise<Notification[]> {
+    console.log('[NotificationService] Fetching notifications:', { businessId, limit, includeAllUnread })
     
-    const { data, error } = await this.supabase
+    if (!includeAllUnread) {
+      // Simple query for full notifications page (no need for unread guarantee)
+      const { data, error } = await this.supabase
+        .from('notifications')
+        .select('*')
+        .eq('business_id', businessId)
+        .order('created_at', { ascending: false })
+        .limit(limit)
+
+      if (error) {
+        console.error('[NotificationService] Error fetching notifications:', error)
+        return []
+      }
+
+      console.log('[NotificationService] Fetched notifications result (simple):', {
+        count: data?.length || 0,
+        notifications: data
+      })
+
+      return data || []
+    }
+
+    // For dropdown: fetch recent + all unread, then merge and deduplicate
+    // This guarantees all unread notifications appear regardless of age
+    const recentLimit = Math.min(limit, 15) // Cap recent notifications at 15
+    
+    // Fetch recent notifications
+    const { data: recentData, error: recentError } = await this.supabase
       .from('notifications')
       .select('*')
       .eq('business_id', businessId)
       .order('created_at', { ascending: false })
-      .limit(limit)
+      .limit(recentLimit)
 
-    if (error) {
-      console.error('[NotificationService] Error fetching notifications:', error)
+    if (recentError) {
+      console.error('[NotificationService] Error fetching recent notifications:', recentError)
       return []
     }
 
-    console.log('[NotificationService] Fetched notifications result:', {
-      count: data?.length || 0,
-      notifications: data
+    const recentNotifications = recentData || []
+    const recentIds = new Set(recentNotifications.map((n: any) => n.id))
+
+    // Fetch unread notifications not already in recent set
+    const { data: unreadData, error: unreadError } = await this.supabase
+      .from('notifications')
+      .select('*')
+      .eq('business_id', businessId)
+      .eq('read', false)
+      .order('created_at', { ascending: false })
+      // No limit - we need all unread
+
+    if (unreadError) {
+      console.error('[NotificationService] Error fetching unread notifications:', unreadError)
+      return []
+    }
+
+    const unreadNotifications = (unreadData || []).filter((n: any) => !recentIds.has(n.id))
+
+    // Merge and deduplicate
+    const merged = [...recentNotifications, ...unreadNotifications]
+    
+    // Sort by created_at DESC
+    merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    
+    // Apply final limit
+    const result = merged.slice(0, limit)
+
+    console.log('[NotificationService] Fetched notifications result (merged):', {
+      recentCount: recentNotifications.length,
+      unreadCount: unreadNotifications.length,
+      mergedCount: merged.length,
+      finalCount: result.length,
+      result
     })
 
-    return data || []
+    return result
   }
 
   async getNotificationCount(businessId: string): Promise<NotificationCount> {
