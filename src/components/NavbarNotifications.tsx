@@ -86,26 +86,15 @@ export default function NavbarNotifications() {
   const [buttonPosition, setButtonPosition] = useState<{ top: number; right: number } | null>(null)
   const isMobile = useIsMobile()
 
-  // Log incoming notification records (compact, no sensitive content)
-  console.log(
-    '[NavbarNotifications] Incoming records',
-    notifications.map((notification) => ({
-      id: notification.id,
-      type: notification.type,
-      title: notification.title,
-      message: notification.message,
-      read: notification.read,
-      created_at: notification.created_at,
-      action_url: notification.action_url,
-    }))
-  )
+  // Simplified render state logging
+  const hasNotifications = notifications.length > 0
 
-  // Log unread count source
-  console.log('[NavbarNotifications] Unread count source', {
-    notificationCount,
-    displayedUnreadCount,
+  console.log('[NavbarNotifications] Render state', {
+    isOpen,
+    loading,
+    error,
     notificationsLength: notifications.length,
-    unreadFromNotifications: notifications.filter(n => !n.read).length,
+    hasNotifications,
   })
 
   // Lock body scroll when notifications panel is open
@@ -451,119 +440,16 @@ export default function NavbarNotifications() {
               )}
             </div>
 
-            {/* Notifications List - Improved mobile spacing */}
+            {/* Notifications List - Phase 1: Simplified rendering */}
             <div className="max-h-96 overflow-y-auto p-2 sm:p-3">
               {notifications.length > 0 ? (
-                <>
-                  {(() => {
-                    const groupedNotifications = groupNotificationsByRecency(notifications)
-                    const groupOrder = ['Today', 'Yesterday', 'Earlier This Week', 'Older']
-                    
-                    return groupOrder.map(groupName => {
-                      const groupNotifications = groupedNotifications[groupName]
-                      if (groupNotifications.length === 0) return null
-                      
-                      return (
-                        <div key={groupName} className="mb-4 last:mb-0">
-                          <div className="px-2 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                            {groupName}
-                          </div>
-                          <div className="space-y-1">
-                            {groupNotifications.map((notification, index) => {
-                              try {
-                                const displayName = notification.data?.leadName || notification.data?.lead_phone || null
-                                
-                                return (
-                                  <div
-                                    key={notification.id}
-                                    onClick={() => handleNotificationClick(notification)}
-                                    className="group relative flex items-start gap-3 p-3 rounded-xl hover:bg-slate-800/50 transition-colors cursor-pointer"
-                                  >
-                                    {/* Icon */}
-                                    <div className={`flex-shrink-0 w-8 h-8 rounded-lg ${getNotificationColor(notification.type)} flex items-center justify-center`}>
-                                      {getNotificationIcon(notification.type)}
-                                    </div>
-                                    
-                                    {/* Content */}
-                                    <div className="flex-1 min-w-0">
-                                      {/* Title */}
-                                      <p className="text-sm font-medium text-slate-200 mb-0.5">
-                                        {notification.title || 'Notification'}
-                                      </p>
-                                      
-                                      {/* Customer name or phone number */}
-                                      {displayName && (
-                                        <p className="text-xs sm:text-sm font-medium text-slate-300 mb-1">
-                                          {displayName}
-                                        </p>
-                                      )}
-                                      
-                                      {/* Message preview - single line truncated */}
-                                      <p className="text-xs sm:text-sm text-slate-400 truncate">
-                                        {notification.message || 'No message'}
-                                      </p>
-                                      
-                                      {/* Time */}
-                                      <p className="text-[10px] sm:text-xs text-slate-500 mt-1">
-                                        {formatNotificationTime(notification.created_at)}
-                                      </p>
-                                    </div>
-                                    
-                                    {/* Unread indicator dot */}
-                                    {!notification.read && (
-                                      <div className="flex-shrink-0 mt-1">
-                                        <div className={`w-2 h-2 rounded-full ${getNotificationDotColor(notification.type)}`}></div>
-                                      </div>
-                                    )}
-                                    
-                                    {/* Hover actions */}
-                                    <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      {!notification.read && (
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            handleMarkAsRead(notification.id)
-                                          }}
-                                          className="p-1.5 text-slate-400 hover:text-slate-300 hover:bg-slate-800 rounded-md transition-colors"
-                                          title="Mark as read"
-                                        >
-                                          <Check className="w-3.5 h-3.5" />
-                                        </button>
-                                      )}
-                                      <button
-                                        onClick={(e) => handleDeleteNotification(notification.id, e)}
-                                        className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-md transition-colors"
-                                        title="Delete notification"
-                                      >
-                                        <X className="w-3.5 h-3.5" />
-                                      </button>
-                                    </div>
-                                  </div>
-                                )
-                              } catch (error) {
-                                console.error('[NavbarNotifications] Error rendering notification:', error, notification)
-                                return (
-                                  <div
-                                    key={notification.id}
-                                    className="flex items-start gap-3 p-3 rounded-xl bg-slate-800/30 border border-slate-700/50"
-                                  >
-                                    <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-slate-500/20 text-slate-400 flex items-center justify-center">
-                                      <Bell className="w-4 h-4" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-medium text-slate-200">Notification</p>
-                                      <p className="text-xs text-slate-400">Unable to display notification details</p>
-                                    </div>
-                                  </div>
-                                )
-                              }
-                            })}
-                          </div>
-                        </div>
-                      )
-                    })
-                  })()}
-                </>
+                <div className="divide-y divide-border">
+                  {notifications.map((notification) => (
+                    <div key={notification.id} className="px-4 py-3 text-sm text-slate-200">
+                      {notification.title || 'Notification'}
+                    </div>
+                  ))}
+                </div>
               ) : loading ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-slate-600"></div>
