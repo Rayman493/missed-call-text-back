@@ -93,12 +93,30 @@ export default function NavbarNotifications() {
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect()
       setButtonPosition({
-        top: rect.bottom,
+        top: rect.bottom + 8, // 8px gap
         right: window.innerWidth - rect.right
       })
     } else {
       setButtonPosition(null)
     }
+  }, [isOpen])
+
+  // Recalculate position on resize
+  useEffect(() => {
+    if (!isOpen || !buttonRef.current) return
+
+    const handleResize = () => {
+      const rect = buttonRef.current?.getBoundingClientRect()
+      if (rect) {
+        setButtonPosition({
+          top: rect.bottom + 8,
+          right: window.innerWidth - rect.right
+        })
+      }
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
   }, [isOpen])
 
   // Close dropdown when clicking outside
@@ -183,6 +201,7 @@ export default function NavbarNotifications() {
       case 'personal_voicemail':
         return <PhoneMissed className="w-4 h-4" />
       default:
+        console.warn(`[NavbarNotifications] Unknown notification type: ${type}, using default icon`)
         return <Bell className="w-4 h-4" />
     }
   }
@@ -270,7 +289,10 @@ export default function NavbarNotifications() {
   }
 
   const formatNotificationTime = (timestamp: string) => {
+  try {
     const date = new Date(timestamp)
+    if (isNaN(date.getTime())) return 'Unknown time'
+    
     const now = new Date()
     const diffMs = now.getTime() - date.getTime()
     const diffMins = Math.floor(diffMs / 60000)
@@ -282,9 +304,14 @@ export default function NavbarNotifications() {
     if (diffHours < 24) return `${diffHours}h ago`
     if (diffDays < 7) return `${diffDays}d ago`
     return date.toLocaleDateString()
+  } catch (error) {
+    console.error('[NavbarNotifications] Error formatting notification time:', error, timestamp)
+    return 'Unknown time'
   }
+}
 
   const groupNotificationsByRecency = (notifications: Notification[]) => {
+  try {
     const groups: { [key: string]: Notification[] } = {
       'Today': [],
       'Yesterday': [],
@@ -300,21 +327,42 @@ export default function NavbarNotifications() {
     thisWeek.setDate(thisWeek.getDate() - 7)
 
     notifications.forEach(notification => {
-      const notificationDate = new Date(notification.created_at)
-      
-      if (notificationDate >= today) {
-        groups['Today'].push(notification)
-      } else if (notificationDate >= yesterday) {
-        groups['Yesterday'].push(notification)
-      } else if (notificationDate >= thisWeek) {
-        groups['Earlier This Week'].push(notification)
-      } else {
+      try {
+        const notificationDate = new Date(notification.created_at)
+        
+        if (isNaN(notificationDate.getTime())) {
+          // If date is invalid, put in 'Older' group
+          groups['Older'].push(notification)
+          return
+        }
+        
+        if (notificationDate >= today) {
+          groups['Today'].push(notification)
+        } else if (notificationDate >= yesterday) {
+          groups['Yesterday'].push(notification)
+        } else if (notificationDate >= thisWeek) {
+          groups['Earlier This Week'].push(notification)
+        } else {
+          groups['Older'].push(notification)
+        }
+      } catch (error) {
+        console.error('[NavbarNotifications] Error grouping notification:', error, notification)
         groups['Older'].push(notification)
       }
     })
 
     return groups
+  } catch (error) {
+    console.error('[NavbarNotifications] Error grouping notifications:', error)
+    // Return all notifications in 'Today' group as fallback
+    return {
+      'Today': notifications,
+      'Yesterday': [],
+      'Earlier This Week': [],
+      'Older': []
+    }
   }
+}
 
   return (
     <>
@@ -340,12 +388,11 @@ export default function NavbarNotifications() {
         createPortal(
           <div
             ref={dropdownRef}
-            className="fixed z-50 w-[calc(100vw-2rem)] sm:w-96 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden"
+            className="fixed z-50 w-[min(400px,calc(100vw-2rem))] sm:w-96 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden"
             style={{
               top: `${buttonPosition?.top || 0}px`,
               right: `${buttonPosition?.right || 0}px`,
-              maxHeight: isMobile ? 'calc(100vh - 100px)' : '600px',
-              maxWidth: isMobile ? '400px' : 'auto'
+              maxHeight: isMobile ? 'calc(100vh - 120px)' : '600px',
             }}
           >
             {/* Header */}
@@ -382,20 +429,6 @@ export default function NavbarNotifications() {
                   <p className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">You're all caught up</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">Notifications will appear here as your business becomes active.</p>
                 </div>
-              ) : displayedUnreadCount > 0 && notifications.filter(n => !n.read).length === 0 ? (
-                <div className="text-center py-8 px-4">
-                  <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <AlertTriangle className="w-8 h-8 text-amber-600 dark:text-amber-400" />
-                  </div>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Older notifications unread</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">View all notifications to see older unread items.</p>
-                  <Link
-                    href="/dashboard/notifications"
-                    className="inline-block mt-2 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
-                  >
-                    View all notifications
-                  </Link>
-                </div>
               ) : (
                 <>
                   {(() => {
@@ -413,75 +446,93 @@ export default function NavbarNotifications() {
                           </div>
                           <div className="space-y-1">
                             {groupNotifications.map((notification) => {
-                              const displayName = notification.data?.leadName || notification.data?.lead_phone || null
-                              
-                              return (
-                                <div
-                                  key={notification.id}
-                                  onClick={() => handleNotificationClick(notification)}
-                                  className="group relative flex items-start gap-3 p-3 rounded-xl hover:bg-slate-800/50 transition-colors cursor-pointer"
-                                >
-                                  {/* Icon */}
-                                  <div className={`flex-shrink-0 w-8 h-8 rounded-lg ${getNotificationColor(notification.type)} flex items-center justify-center`}>
-                                    {getNotificationIcon(notification.type)}
-                                  </div>
-                                  
-                                  {/* Content */}
-                                  <div className="flex-1 min-w-0">
-                                    {/* Title */}
-                                    <p className="text-sm font-medium text-slate-200 mb-0.5">
-                                      {notification.title}
-                                    </p>
-                                    
-                                    {/* Customer name or phone number */}
-                                    {displayName && (
-                                      <p className="text-xs sm:text-sm font-medium text-slate-300 mb-1">
-                                        {displayName}
-                                      </p>
-                                    )}
-                                    
-                                    {/* Message preview - single line truncated */}
-                                    <p className="text-xs sm:text-sm text-slate-400 truncate">
-                                      {notification.message}
-                                    </p>
-                                    
-                                    {/* Time */}
-                                    <p className="text-[10px] sm:text-xs text-slate-500 mt-1">
-                                      {formatNotificationTime(notification.created_at)}
-                                    </p>
-                                  </div>
-                                  
-                                  {/* Unread indicator dot */}
-                                  {!notification.read && (
-                                    <div className="flex-shrink-0 mt-1">
-                                      <div className={`w-2 h-2 rounded-full ${getNotificationDotColor(notification.type)}`}></div>
+                              try {
+                                const displayName = notification.data?.leadName || notification.data?.lead_phone || null
+                                
+                                return (
+                                  <div
+                                    key={notification.id}
+                                    onClick={() => handleNotificationClick(notification)}
+                                    className="group relative flex items-start gap-3 p-3 rounded-xl hover:bg-slate-800/50 transition-colors cursor-pointer"
+                                  >
+                                    {/* Icon */}
+                                    <div className={`flex-shrink-0 w-8 h-8 rounded-lg ${getNotificationColor(notification.type)} flex items-center justify-center`}>
+                                      {getNotificationIcon(notification.type)}
                                     </div>
-                                  )}
-                                  
-                                  {/* Hover actions */}
-                                  <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    
+                                    {/* Content */}
+                                    <div className="flex-1 min-w-0">
+                                      {/* Title */}
+                                      <p className="text-sm font-medium text-slate-200 mb-0.5">
+                                        {notification.title || 'Notification'}
+                                      </p>
+                                      
+                                      {/* Customer name or phone number */}
+                                      {displayName && (
+                                        <p className="text-xs sm:text-sm font-medium text-slate-300 mb-1">
+                                          {displayName}
+                                        </p>
+                                      )}
+                                      
+                                      {/* Message preview - single line truncated */}
+                                      <p className="text-xs sm:text-sm text-slate-400 truncate">
+                                        {notification.message || 'No message'}
+                                      </p>
+                                      
+                                      {/* Time */}
+                                      <p className="text-[10px] sm:text-xs text-slate-500 mt-1">
+                                        {formatNotificationTime(notification.created_at)}
+                                      </p>
+                                    </div>
+                                    
+                                    {/* Unread indicator dot */}
                                     {!notification.read && (
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          handleMarkAsRead(notification.id)
-                                        }}
-                                        className="p-1.5 text-slate-400 hover:text-slate-300 hover:bg-slate-800 rounded-md transition-colors"
-                                        title="Mark as read"
-                                      >
-                                        <Check className="w-3.5 h-3.5" />
-                                      </button>
+                                      <div className="flex-shrink-0 mt-1">
+                                        <div className={`w-2 h-2 rounded-full ${getNotificationDotColor(notification.type)}`}></div>
+                                      </div>
                                     )}
-                                    <button
-                                      onClick={(e) => handleDeleteNotification(notification.id, e)}
-                                      className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-md transition-colors"
-                                      title="Delete notification"
-                                    >
-                                      <X className="w-3.5 h-3.5" />
-                                    </button>
+                                    
+                                    {/* Hover actions */}
+                                    <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      {!notification.read && (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleMarkAsRead(notification.id)
+                                          }}
+                                          className="p-1.5 text-slate-400 hover:text-slate-300 hover:bg-slate-800 rounded-md transition-colors"
+                                          title="Mark as read"
+                                        >
+                                          <Check className="w-3.5 h-3.5" />
+                                        </button>
+                                      )}
+                                      <button
+                                        onClick={(e) => handleDeleteNotification(notification.id, e)}
+                                        className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-md transition-colors"
+                                        title="Delete notification"
+                                      >
+                                        <X className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
                                   </div>
-                                </div>
-                              )
+                                )
+                              } catch (error) {
+                                console.error('[NavbarNotifications] Error rendering notification:', error, notification)
+                                return (
+                                  <div
+                                    key={notification.id}
+                                    className="flex items-start gap-3 p-3 rounded-xl bg-slate-800/30 border border-slate-700/50"
+                                  >
+                                    <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-slate-500/20 text-slate-400 flex items-center justify-center">
+                                      <Bell className="w-4 h-4" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium text-slate-200">Notification</p>
+                                      <p className="text-xs text-slate-400">Unable to display notification details</p>
+                                    </div>
+                                  </div>
+                                )
+                              }
                             })}
                           </div>
                         </div>
