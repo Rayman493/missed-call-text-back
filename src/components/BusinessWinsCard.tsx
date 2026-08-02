@@ -37,9 +37,10 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
           // Jobs & Tasks
           jobsCompletedCountRes,
           jobsCountRes,
-          jobsScheduledCountRes,
+          // Note: Calendar-linked jobs metrics temporarily removed due to google_calendar_event_id column not existing in production
+          // jobsScheduledCountRes,
           firstJobRes,
-          firstScheduledJobRes,
+          // firstScheduledJobRes,
           tasksCompletedCountRes,
           // Messaging (outbound)
           firstOutboundRes,
@@ -70,9 +71,11 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
           // Jobs & tasks
           supabase.from('jobs').select('*', { count: 'exact', head: true }).eq('business_id', business.id).eq('status', 'completed'),
           supabase.from('jobs').select('*', { count: 'exact', head: true }).eq('business_id', business.id),
-          supabase.from('jobs').select('*', { count: 'exact', head: true }).eq('business_id', business.id).not('google_calendar_event_id', 'is', null),
+          // Note: Calendar-linked jobs metrics temporarily removed due to google_calendar_event_id column not existing in production
+          // These metrics track jobs linked to Google Calendar events and can be restored once the migration is applied
+          // supabase.from('jobs').select('*', { count: 'exact', head: true }).eq('business_id', business.id).not('google_calendar_event_id', 'is', null),
+          // supabase.from('jobs').select('created_at').eq('business_id', business.id).not('google_calendar_event_id', 'is', null).order('created_at', { ascending: true }).limit(1).maybeSingle(),
           supabase.from('jobs').select('created_at').eq('business_id', business.id).order('created_at', { ascending: true }).limit(1).maybeSingle(),
-          supabase.from('jobs').select('created_at').eq('business_id', business.id).not('google_calendar_event_id', 'is', null).order('created_at', { ascending: true }).limit(1).maybeSingle(),
           supabase.from('tasks').select('*', { count: 'exact', head: true }).eq('business_id', business.id).eq('completed', true),
           // Outbound messages
           supabase.from('messages').select('created_at').eq('from_phone', businessPhone).eq('direction', 'outbound').order('created_at', { ascending: true }).limit(1).maybeSingle(),
@@ -101,9 +104,11 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
         const followUpsRecoveredCount = (followUpsCancelledByReplyCountRes as any)?.count as number | null
         const jobsCompletedCount = (jobsCompletedCountRes as any)?.count as number | null
         const jobsTotalCount = (jobsCountRes as any)?.count as number | null
-        const jobsScheduledCount = (jobsScheduledCountRes as any)?.count as number | null
+        // Note: Calendar-linked jobs metrics temporarily removed due to google_calendar_event_id column not existing in production
+        // const jobsScheduledCount = (jobsScheduledCountRes as any)?.count as number | null
         const firstJobAt = (firstJobRes as any)?.data?.created_at as string | undefined
-        const firstScheduledJobAt = (firstScheduledJobRes as any)?.data?.created_at as string | undefined
+        // Note: Calendar-linked jobs first job temporarily removed
+        // const firstScheduledJobAt = (firstScheduledJobRes as any)?.data?.created_at as string | undefined
         const tasksCompletedCount = (tasksCompletedCountRes as any)?.count as number | null
         const firstOutboundAt = (firstOutboundRes as any)?.data?.created_at as string | undefined
         const outboundCount = (outboundCountRes as any)?.count as number | null
@@ -159,7 +164,8 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
           { id: 'jobs_completed_10', title: '10 Jobs Completed', description: 'Complete 10 jobs', icon: 'trophy', category: 'Jobs & Revenue', target: 10, metric: 'jobsCompleted' },
           { id: 'jobs_completed_25', title: '25 Jobs Completed', description: 'Complete 25 jobs', icon: 'trophy', category: 'Jobs & Revenue', target: 25, metric: 'jobsCompleted' },
           { id: 'jobs_completed_50', title: '50 Jobs Completed', description: 'Complete 50 jobs', icon: 'trophy', category: 'Jobs & Revenue', target: 50, metric: 'jobsCompleted' },
-          { id: 'first_scheduled_job', title: 'First Scheduled Job', description: 'Scheduled your first job on calendar', icon: 'star', category: 'Scheduling' },
+          // Note: first_scheduled_job achievement temporarily disabled due to google_calendar_event_id column not existing in production
+          // { id: 'first_scheduled_job', title: 'First Scheduled Job', description: 'Scheduled your first job on calendar', icon: 'star', category: 'Scheduling' },
 
           // AI & Voicemail
           { id: 'first_ai_completed', title: 'First AI Intake Completed', description: 'Completed your first AI phone intake', icon: 'star', category: 'AI Voice' },
@@ -206,7 +212,9 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
               if (def.id === 'calendar_connected') return Boolean(calendarConnectedAt)
               if (def.id === 'first_outbound') return Boolean(firstOutboundAt)
               if (def.id === 'job_created_1') return (jobsTotalCount || 0) > 0 || Boolean(firstJobAt)
-              if (def.id === 'first_scheduled_job') return Boolean(firstScheduledJobAt)
+              // Note: first_scheduled_job achievement temporarily disabled due to google_calendar_event_id column not existing in production
+              // if (def.id === 'first_scheduled_job') return Boolean(firstScheduledJobAt)
+              if (def.id === 'first_scheduled_job') return false
               if (def.id === 'first_ai_completed') return Boolean(firstAiCompletedAt)
               if (def.id === 'first_voicemail') return Boolean(firstVoicemailAt)
               if (def.id === 'first_payment_requested') return Boolean(firstPaymentRequestedAt)
@@ -224,7 +232,9 @@ export default function BusinessWinsCard({ business }: BusinessWinsCardProps) {
             if (def.id === 'calendar_connected') return calendarConnectedAt
             if (def.id === 'first_outbound') return firstOutboundAt
             if (def.id === 'job_created_1') return firstJobAt
-            if (def.id === 'first_scheduled_job') return firstScheduledJobAt
+            // Note: first_scheduled_job achievement temporarily disabled due to google_calendar_event_id column not existing in production
+            // if (def.id === 'first_scheduled_job') return firstScheduledJobAt
+            if (def.id === 'first_scheduled_job') return undefined
             if (def.id === 'first_ai_completed') return firstAiCompletedAt
             if (def.id === 'first_voicemail') return firstVoicemailAt
             if (def.id === 'first_payment_requested') return firstPaymentRequestedAt
