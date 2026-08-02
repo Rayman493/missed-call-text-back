@@ -34,7 +34,6 @@ interface AnalyticsMetrics {
   completedLeads: number
   aiIntakesCompleted: number
   aiIntakesIncomplete: number
-  voicemailsCaptured: number
   aiCompletionRate: number
   followUpsSent: number
   followUpsCancelled: number
@@ -70,10 +69,13 @@ export default function AnalyticsContent() {
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
         // Fetch leads in the last 30 days - include all fields required by calculateLeadStatusCounts
+        // Filter out deleted and ignored customers for accurate metrics
         const { data: leads, error: leadsError } = await supabase
           .from('leads')
-          .select('id, status, created_at, business_id, deleted_at, payment_status')
+          .select('id, status, created_at, business_id, deleted_at, payment_status, ignored_at')
           .eq('business_id', business.id)
+          .is('deleted_at', null)
+          .is('ignored_at', null)
           .gte('created_at', thirtyDaysAgo)
 
         if (leadsError) {
@@ -285,7 +287,6 @@ export default function AnalyticsContent() {
           completedLeads,
           aiIntakesCompleted,
           aiIntakesIncomplete,
-          voicemailsCaptured: aiCallsArray.filter((c: any) => c.outcome === 'no_speech').length || 0,
           aiCompletionRate,
           followUpsSent,
           followUpsCancelled,
@@ -407,8 +408,8 @@ export default function AnalyticsContent() {
                     </div>
                   </div>
 
-                  {/* Lead Recovery Overview */}
-                  <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-5 mb-3">
+                  {/* Customer Recovery Overview */}
+                  <div className="bg-white dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.05)_inset] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset] p-4 sm:p-5 mb-4">
                     <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
                       <Phone className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                       Customer Recovery Overview
@@ -448,12 +449,12 @@ export default function AnalyticsContent() {
                   </div>
 
                   {/* AI Performance */}
-                  <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-5 mb-3">
+                  <div className="bg-white dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.05)_inset] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset] p-4 sm:p-5 mb-4">
                     <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
                       <BarChart3 className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                       AI Performance
                     </h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                       <MetricCard
                         label="AI Intakes Completed"
                         value={metrics.aiIntakesCompleted}
@@ -464,17 +465,12 @@ export default function AnalyticsContent() {
                         value={metrics.aiIntakesIncomplete}
                         icon={Clock}
                       />
-                      <MetricCard
-                        label="Voicemails Captured"
-                        value={metrics.voicemailsCaptured}
-                        icon={MessageSquare}
-                      />
                       <PercentageCard
                         label="AI Completion Rate"
                         value={metrics.aiCompletionRate}
                       />
                     </div>
-                    {metrics.aiIntakesCompleted === 0 && metrics.aiIntakesIncomplete === 0 && metrics.voicemailsCaptured === 0 && (
+                    {metrics.aiIntakesCompleted === 0 && metrics.aiIntakesIncomplete === 0 && (
                       <p className="text-xs text-slate-400 dark:text-slate-500 mt-3 text-center">
                         No AI activity yet
                       </p>
@@ -482,7 +478,7 @@ export default function AnalyticsContent() {
                   </div>
 
                   {/* Follow-Up Performance */}
-                  <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-5 mb-3">
+                  <div className="bg-white dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.05)_inset] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset] p-4 sm:p-5 mb-4">
                     <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
                       <Send className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                       Follow-Up Performance
@@ -511,7 +507,7 @@ export default function AnalyticsContent() {
                   </div>
 
                   {/* Customer Engagement */}
-                  <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-5 mb-3">
+                  <div className="bg-white dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.05)_inset] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset] p-4 sm:p-5 mb-4">
                     <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
                       <MessageSquare className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                       Customer Engagement
@@ -542,17 +538,17 @@ export default function AnalyticsContent() {
 
                   {/* Charts */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* Lead Activity Trend */}
-                    <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-5">
+                    {/* Customer Activity Trend */}
+                    <div className="bg-white dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.05)_inset] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset] p-4 sm:p-5">
                       <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
                         <TrendingUp className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-                        Lead Activity Trend (7 Days)
+                        Customer Activity Trend (7 Days)
                       </h3>
-                      <SimpleBarChart data={leadTrend} color="blue" label="Lead Activity Trend" />
+                      <SimpleBarChart data={leadTrend} color="blue" label="Customer Activity Trend" />
                     </div>
 
                     {/* Customer Reply Trend */}
-                    <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-5">
+                    <div className="bg-white dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.05)_inset] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset] p-4 sm:p-5">
                       <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
                         <MessageSquare className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                         Customer Reply Trend (7 Days)
@@ -572,15 +568,15 @@ export default function AnalyticsContent() {
   )
 }
 
-function MetricCard({ label, value, icon: Icon }: { label: string; value: number; icon: any; isDecimal?: boolean }) {
+function MetricCard({ label, value, icon: Icon, isDecimal }: { label: string; value: number; icon: any; isDecimal?: boolean }) {
   return (
-    <div className="bg-slate-50 dark:bg-slate-800/40 rounded-lg p-3 sm:p-4 border border-slate-200/60 dark:border-slate-700/40">
+    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 sm:p-4 border border-slate-200/60 dark:border-slate-700/50">
       <div className="flex items-center gap-2 mb-2">
         <Icon className="w-4 h-4 text-slate-600 dark:text-slate-400" />
         <span className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground">{label}</span>
       </div>
       <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-foreground">
-        {value.toLocaleString()}
+        {isDecimal ? value.toFixed(1) : value.toLocaleString()}
       </p>
     </div>
   )
@@ -588,7 +584,7 @@ function MetricCard({ label, value, icon: Icon }: { label: string; value: number
 
 function PercentageCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="bg-slate-50 dark:bg-slate-800/40 rounded-lg p-3 sm:p-4 border border-slate-200/60 dark:border-slate-700/40">
+    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 sm:p-4 border border-slate-200/60 dark:border-slate-700/50">
       <div className="flex items-center gap-2 mb-2">
         <TrendingUp className="w-4 h-4 text-slate-600 dark:text-slate-400" />
         <span className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground">{label}</span>
@@ -604,13 +600,13 @@ function SimpleBarChart({ data, color, label }: { data: TrendData[]; color: 'blu
   const hasData = data.some(d => d.value > 0)
   
   if (!hasData) {
-    const emptyMessage = label === 'Lead Activity Trend'
-      ? 'No lead activity yet'
+    const emptyMessage = label === 'Customer Activity Trend'
+      ? 'No customer activity yet'
       : label === 'Customer Reply Trend'
       ? 'No customer replies yet'
       : 'No activity during the last 7 days'
-    
-    const subMessage = label === 'Lead Activity Trend'
+
+    const subMessage = label === 'Customer Activity Trend'
       ? 'Your 7-day trend will appear after ReplyFlow begins capturing customers.'
       : label === 'Customer Reply Trend'
       ? 'Inbound customer replies will appear here.'
