@@ -2527,7 +2527,7 @@ export default function SettingsContent() {
                     <h3 className="text-xs sm:text-sm font-semibold text-red-900 dark:text-red-100 mb-1.5 sm:mb-2">Delete Account</h3>
                     <button
                       onClick={() => setShowDeleteModal(true)}
-                      className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-red-600 hover:bg-red-700 text-white"
+                      className="px-3 py-1.5 text-xs font-medium rounded-lg transition-colors duration-150 bg-red-600 hover:bg-red-700 text-white"
                     >
                       Delete Account
                     </button>

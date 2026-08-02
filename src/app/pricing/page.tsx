@@ -160,7 +160,7 @@ export default function PricingPage() {
                 <div className="mt-8 space-y-3">
                   <Link
                     href="/auth?mode=signup"
-                    className="w-full flex items-center justify-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition-colors duration-200 shadow-lg hover:shadow-xl"
+                    className="w-full flex items-center justify-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-lg hover:shadow-xl"
                   >
                     Start Your 14-Day Free Trial
                   </Link>

@@ -879,7 +879,7 @@ export default async function FAQPage({ searchParams }: { searchParams?: Promise
           </p>
           <Link
             href="/auth?mode=signup"
-            className="inline-flex items-center h-12 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors shadow-sm hover:shadow-md hover:-translate-y-[1px] transition-all"
+            className="inline-flex items-center h-12 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors shadow-sm hover:shadow-md hover:-translate-y-[1px] transition-all"
           >
             Start Your 14-Day Free Trial
           </Link>
