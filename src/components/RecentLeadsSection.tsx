@@ -7,7 +7,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import DashboardErrorBoundary from './DashboardErrorBoundary'
 import Link from 'next/link'
 import LeadTimeline from '@/components/LeadTimeline'
-import { getCardAccentClasses, getStatusBadgeClasses } from '@/lib/lead-status-colors'
+import { getCardAccentClasses, getStatusBadgeClasses, getCardGradientClasses, getCardBorderClasses } from '@/lib/lead-status-colors'
 
 interface RecentLeadsSectionProps {
   businessId: string
@@ -319,17 +319,32 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
   if (loading) {
     return (
       <DashboardErrorBoundary>
-        <div className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 p-3 sm:p-4">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-muted rounded-lg flex items-center justify-center">
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
+        <div className="bg-white dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.05)_inset] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset] p-2.5 sm:p-3">
+          <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center bg-blue-500/15 ring-1 ring-inset ring-blue-600/30">
+                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <h2 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-foreground leading-tight">Recent Customers</h2>
             </div>
-            <div>
-              <h2 className="text-sm sm:text-lg font-semibold text-foreground">Loading leads...</h2>
-              <p className="text-[10px] sm:text-sm text-muted-foreground">Please wait</p>
-            </div>
+          </div>
+          <div className="space-y-1 sm:space-y-1.5">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-2 sm:p-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <div className="h-3.5 sm:h-4 w-20 sm:w-24 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
+                      <div className="h-3 sm:h-3.5 w-12 sm:w-14 bg-slate-200 dark:bg-slate-700 rounded-full animate-pulse"></div>
+                    </div>
+                    <div className="h-2.5 sm:h-3 w-16 sm:w-20 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
+                  </div>
+                  <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </DashboardErrorBoundary>
@@ -354,16 +369,14 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
 
         {leads.length === 0 ? (
           <div className="text-center py-5 sm:py-6 px-4">
-            {!isOnboardingExpanded && (
-              <div className="space-y-1.5 sm:space-y-2">
-                <p className="text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground">
-                  Waiting for your first missed call
-                </p>
-                <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400">
-                  ReplyFlow will capture missed calls automatically and display them here.
-                </p>
-              </div>
-            )}
+            <div className="space-y-1.5 sm:space-y-2">
+              <p className="text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground">
+                No customers yet
+              </p>
+              <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400">
+                New customers will appear here after your first conversation.
+              </p>
+            </div>
           </div>
         ) : (
           <>
@@ -376,7 +389,7 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
                   return (
                     <div key={lead.id} className="block">
                       <Link href={`/dashboard/leads/${lead.id}`}>
-                        <div className={`bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-2 sm:p-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-200 cursor-pointer ${getCardAccentClasses(getLeadStatus(lead))}`}>
+                        <div className={`bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl p-2 sm:p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-sm transition-all duration-200 cursor-pointer relative overflow-hidden ${getCardGradientClasses(getLeadStatus(lead))} ${getCardBorderClasses(getLeadStatus(lead))} ${getCardAccentClasses(getLeadStatus(lead))}`}>
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1.5 mb-0.5">
@@ -397,15 +410,12 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
                                 )}
                               </div>
                               <div className="flex items-center gap-2 sm:gap-3">
-                                {(() => {
-                                  const formattedPhone = formatPhoneNumber(lead.phone_number)
-                                  return formattedPhone !== 'Unknown Caller' && (
-                                    <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 font-medium leading-tight">
-                                      {formattedPhone}
-                                    </p>
-                                  )
-                                })()}
-                                <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 leading-tight">
+                                {aiData.reason && (
+                                  <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 truncate leading-tight">
+                                    {aiData.reason}
+                                  </p>
+                                )}
+                                <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-500 leading-tight flex-shrink-0">
                                   {formatRelativeTime(lead.created_at)}
                                 </span>
                               </div>
