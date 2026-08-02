@@ -432,11 +432,30 @@ export default function NavbarNotifications() {
               ) : (
                 <>
                   {(() => {
+                    console.log('[NavbarNotifications] Rendering notifications:', {
+                      notificationsCount: notifications.length,
+                      notifications: notifications.map(n => ({
+                        id: n.id,
+                        type: n.type,
+                        title: n.title,
+                        read: n.read,
+                        created_at: n.created_at,
+                        data: n.data
+                      }))
+                    })
+                    
                     const groupedNotifications = groupNotificationsByRecency(notifications)
+                    
+                    console.log('[NavbarNotifications] Grouped notifications:', groupedNotifications)
+                    
                     const groupOrder = ['Today', 'Yesterday', 'Earlier This Week', 'Older']
                     
                     return groupOrder.map(groupName => {
                       const groupNotifications = groupedNotifications[groupName]
+                      console.log('[NavbarNotifications] Rendering group:', {
+                        groupName,
+                        count: groupNotifications.length
+                      })
                       if (groupNotifications.length === 0) return null
                       
                       return (
@@ -445,7 +464,13 @@ export default function NavbarNotifications() {
                             {groupName}
                           </div>
                           <div className="space-y-1">
-                            {groupNotifications.map((notification) => {
+                            {groupNotifications.map((notification, index) => {
+                              console.log('[NavbarNotifications] Rendering notification item:', {
+                                index,
+                                id: notification.id,
+                                type: notification.type,
+                                title: notification.title
+                              })
                               try {
                                 const displayName = notification.data?.leadName || notification.data?.lead_phone || null
                                 
