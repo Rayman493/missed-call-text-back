@@ -249,7 +249,7 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-slate-800/80 border border-border/50 rounded-xl p-4 sm:p-5 shadow-sm">
+      <div className="bg-white dark:bg-slate-800/80 border border-border/50 rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-200">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-base font-semibold text-slate-900 dark:text-foreground">Needs Attention</h3>
           <div className="text-xs text-slate-500 dark:text-slate-400">Loading...</div>
@@ -281,7 +281,7 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
   }, {} as Record<string, AttentionItem[]>)
 
   return (
-    <div className="bg-white dark:bg-slate-800/80 border border-border/50 rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+    <div className="bg-white dark:bg-slate-800/80 border border-border/50 rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-200">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-base font-semibold text-slate-900 dark:text-foreground">Needs Attention</h3>
         {totalCount > 0 && (

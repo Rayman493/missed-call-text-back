@@ -3,460 +3,273 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { Phone, Users, MessageSquare, Reply, TrendingUp, Activity, PhoneMissed, HelpCircle } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Users, MessageSquareReply, CheckSquare, Calendar, DollarSign, CreditCard, Loader2 } from 'lucide-react'
 
 interface DashboardMetricsProps {
   business: Business | null
 }
 
-interface MetricsData {
-  missedCallsCaptured: number
-  leadsGenerated: number
-  messagesSent: number
-  followUpsSent: number
-  customerReplies: number
-  recoveredLeads: number
-  recoveryRate: number
-  followUpResponseRate: number
-  period: string
-}
-
-interface TodayMetricsData {
-  missedCalls: number
-  newLeads: number
-  messagesSent: number
+interface QuickLookMetric {
+  id: string
+  label: string
+  value: number
+  icon: React.ElementType
+  color: string
+  bgColor: string
+  href?: string
+  description?: string
 }
 
 export default function DashboardMetrics({ business }: DashboardMetricsProps) {
-  const [metrics, setMetrics] = useState<MetricsData>({
-    missedCallsCaptured: 0,
-    leadsGenerated: 0,
-    messagesSent: 0,
-    followUpsSent: 0,
-    customerReplies: 0,
-    recoveredLeads: 0,
-    recoveryRate: 0,
-    followUpResponseRate: 0,
-    period: '30 days'
-  })
-  const [todayMetrics, setTodayMetrics] = useState<TodayMetricsData>({
-    missedCalls: 0,
-    newLeads: 0,
-    messagesSent: 0
-  })
+  const router = useRouter()
+  const [metrics, setMetrics] = useState<QuickLookMetric[]>([])
   const [loading, setLoading] = useState(true)
-  const [isBackgroundRefresh, setIsBackgroundRefresh] = useState(false)
 
-  const fetchMetrics = useCallback(async (background = false) => {
+  const fetchMetrics = useCallback(async () => {
     if (!business) return
 
-    // Skip loading state for background refresh to prevent flicker
-    if (background) {
-      setIsBackgroundRefresh(true)
-    } else {
-      setLoading(true)
-    }
-
+    setLoading(true)
     try {
       const supabase = createBrowserClient()
       
-      // Get data from the last 30 days
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-      
-      // Get data from today
-      const todayStart = new Date()
-      todayStart.setHours(0, 0, 0, 0)
+      // Time windows - using client timezone
+      const now = new Date()
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
       const todayStartISO = todayStart.toISOString()
-      
-      // Fetch leads (missed calls captured) - 30 days
-      const { data: leads } = await supabase
-        .from('leads')
-        .select('id, created_at, caller_phone, deleted_at, status')
-        .eq('business_id', business.id)
-        .gte('created_at', thirtyDaysAgo)
-        .is('deleted_at', null)
-        .neq('status', 'ignored')
+      const todayStr = todayStart.toLocaleDateString('en-CA') // YYYY-MM-DD
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
-      // Fetch leads (missed calls captured) - today
-      const { data: leadsToday } = await supabase
+      // Metric 1: New Customers Today
+      // Definition: Leads created today, excluding manual entries
+      // Source: leads table
+      // Filter: business_id, created_at >= today_start, status != 'ignored', source not manual
+      const { data: newCustomersToday } = await supabase
         .from('leads')
-        .select('created_at, deleted_at, status')
+        .select('id, created_at, raw_metadata, status')
         .eq('business_id', business.id)
         .gte('created_at', todayStartISO)
         .is('deleted_at', null)
         .neq('status', 'ignored')
 
-      // Fetch messages sent - 30 days
-      // First get lead IDs for this business (same filtering as captured leads)
-      const { data: businessLeads } = await supabase
+      const newCustomersCount = newCustomersToday?.filter((l: any) => 
+        l.raw_metadata?.source !== 'manual_entry' && l.raw_metadata?.source !== 'manual_backfill'
+      ).length || 0
+
+      // Metric 2: Tasks Due Today
+      // Definition: Tasks with due_date = today and completed = false
+      // Source: tasks table
+      // Filter: business_id, due_date = today, completed = false
+      const { data: tasksDueToday } = await supabase
+        .from('tasks')
+        .select('id, due_date, completed')
+        .eq('business_id', business.id)
+        .eq('due_date', todayStr)
+        .eq('completed', false)
+
+      const tasksDueCount = tasksDueToday?.length || 0
+
+      // Metric 3: Jobs Today
+      // Definition: Jobs scheduled for today
+      // Source: jobs table
+      // Filter: business_id, scheduled_date = today
+      const { data: jobsToday } = await supabase
+        .from('jobs')
+        .select('id, scheduled_date')
+        .eq('business_id', business.id)
+        .eq('scheduled_date', todayStr)
+
+      const jobsTodayCount = jobsToday?.length || 0
+
+      // Metric 4: Outstanding Payments
+      // Definition: Payment requests with status = 'pending'
+      // Source: payment_requests table joined with leads
+      // Filter: business_id via leads, status = 'pending'
+      const { data: outstandingPayments } = await supabase
+        .from('payment_requests')
+        .select('id, status, amount_cents')
+        .eq('status', 'pending')
+
+      // Filter by business_id via lead relationship
+      const leadIdsForBusiness = newCustomersToday?.map((l: any) => l.id) || []
+      const { data: allBusinessLeads } = await supabase
         .from('leads')
         .select('id')
         .eq('business_id', business.id)
-        .gte('created_at', thirtyDaysAgo)
         .is('deleted_at', null)
-        .neq('status', 'ignored')
-
-      const leadIds = businessLeads?.map((l: any) => l.id) || []
-
-      // Then fetch messages for those leads - only if there are leads
-      let messages = []
-      if (leadIds.length > 0) {
-        const { data: messagesData } = await supabase
-          .from('messages')
-          .select('*')
-          .in('lead_id', leadIds)
-          .gte('created_at', thirtyDaysAgo)
-        messages = messagesData || []
-      }
-
-      // Filter outbound messages more robustly
-      const outboundMessages = messages?.filter((m: any) => {
-        const isDirectionOutbound = m.direction === 'outbound' || m.direction?.startsWith?.('outbound')
-        const isFromBusinessPhone = m.from_phone === business.twilio_phone_number
-        return isDirectionOutbound || isFromBusinessPhone
-      }) || []
-
-      // Filter inbound messages (customer replies)
-      const inboundMessages = messages?.filter((m: any) => {
-        const isDirectionInbound = m.direction === 'inbound' || m.direction?.startsWith?.('inbound')
-        const isToBusinessPhone = m.to_phone === business.twilio_phone_number
-        return isDirectionInbound || isToBusinessPhone
-      }) || []
-
-      // Fetch messages sent - today
-      const { data: businessLeadsToday } = await supabase
-        .from('leads')
-        .select('id')
-        .eq('business_id', business.id)
-        .gte('created_at', todayStartISO)
-        .is('deleted_at', null)
-        .neq('status', 'ignored')
-
-      const leadIdsToday = businessLeadsToday?.map((l: any) => l.id) || []
-
-      let messagesToday = []
-      if (leadIdsToday.length > 0) {
-        const { data: messagesTodayData } = await supabase
-          .from('messages')
-          .select('direction, created_at, from_phone')
-          .in('lead_id', leadIdsToday)
-          .gte('created_at', todayStartISO)
-        messagesToday = messagesTodayData || []
-      }
-
-      // Fetch follow-ups sent - 30 days
-      const { data: followUpJobs } = await supabase
-        .from('follow_up_jobs')
-        .select('id, status, cancelled_reason')
-        .eq('business_id', business.id)
-        .gte('created_at', thirtyDaysAgo)
-
-      const followUpsSent = followUpJobs?.filter((f: any) => f.status === 'sent').length || 0
-      const followUpsCancelled = followUpJobs?.filter((f: any) => f.status === 'cancelled' && f.cancelled_reason === 'customer_replied').length || 0
       
-      // Calculate follow-up response rate: customer replies / (sent + customer replies)
-      const followUpResponseRate = (followUpsSent + followUpsCancelled) > 0 
-        ? Math.round((followUpsCancelled / (followUpsSent + followUpsCancelled)) * 100) 
-        : 0
-
-      // Calculate metrics - 30 days
-      // Exclude manual leads from captured leads count
-      // Manual leads are identified by raw_metadata.source = 'manual_entry' or 'manual_backfill'
-      const capturedLeads = leads?.filter((l: any) => 
-        l.raw_metadata?.source !== 'manual_entry' && l.raw_metadata?.source !== 'manual_backfill'
-      ) || []
-      const missedCallsCaptured = capturedLeads.length
-      const leadsGenerated = missedCallsCaptured
-      const messagesSent = outboundMessages.length
-      const customerReplies = inboundMessages.length
+      const allLeadIds = allBusinessLeads?.map((l: any) => l.id) || []
       
-      // Recovery rate: recovered leads / captured leads
-      // A lead is recovered if it has at least one inbound customer message (customer replied)
-      const recoveredLeadsSet = new Set(inboundMessages?.map((m: any) => m.lead_id) || [])
-      const recoveredLeadsCount = recoveredLeadsSet.size
-      const recoveryRate = missedCallsCaptured > 0 ? Math.min(100, Math.max(0, Math.round((recoveredLeadsCount / missedCallsCaptured) * 100))) : 0
+      const outstandingPaymentsCount = outstandingPayments?.filter((pr: any) => 
+        allLeadIds.includes(pr.lead_id)
+      ).length || 0
 
-      // Calculate metrics - today
-      // Exclude manual leads from today's captured leads
-      const capturedLeadsToday = leadsToday?.filter((l: any) => 
-        l.raw_metadata?.source !== 'manual_entry' && l.raw_metadata?.source !== 'manual_backfill'
-      ) || []
-      const missedCallsToday = capturedLeadsToday.length
-      const newLeadsToday = missedCallsToday
-      const messagesSentToday = messagesToday?.filter((m: any) => {
-        const isDirectionOutbound = m.direction === 'outbound' || m.direction?.startsWith?.('outbound')
-        const isFromBusinessPhone = m.from_phone === business.twilio_phone_number
-        return isDirectionOutbound || isFromBusinessPhone
-      }).length || 0
+      // Metric 5: Payments This Week
+      // Definition: Payment requests with status = 'paid' in last 7 days
+      // Source: payment_requests table joined with leads
+      // Filter: business_id via leads, status = 'paid', paid_at >= 7 days ago
+      const { data: paymentsThisWeek } = await supabase
+        .from('payment_requests')
+        .select('id, status, paid_at, lead_id')
+        .eq('status', 'paid')
+        .gte('paid_at', sevenDaysAgo)
 
-      setMetrics({
-        missedCallsCaptured,
-        leadsGenerated,
-        messagesSent,
-        followUpsSent,
-        customerReplies,
-        recoveredLeads: recoveredLeadsCount,
-        recoveryRate,
-        followUpResponseRate,
-        period: '30 days'
-      })
-      
-      setTodayMetrics({
-        missedCalls: missedCallsToday,
-        newLeads: newLeadsToday,
-        messagesSent: messagesSentToday
-      })
+      const paymentsThisWeekCount = paymentsThisWeek?.filter((pr: any) => 
+        allLeadIds.includes(pr.lead_id)
+      ).length || 0
+
+      // Metric 6: Customers Waiting for Reply
+      // Definition: Customers with inbound message in last 7 days, no outbound reply after
+      // Source: messages table joined with leads
+      // Filter: business_id via leads, direction = 'inbound', created_at >= 7 days ago
+      // Simplified: Count unique leads with inbound messages in last 7 days
+      const { data: recentInboundMessages } = await supabase
+        .from('messages')
+        .select('lead_id, direction, created_at')
+        .in('lead_id', allLeadIds)
+        .eq('direction', 'inbound')
+        .gte('created_at', sevenDaysAgo)
+
+      const uniqueLeadsWithInbound = new Set(recentInboundMessages?.map((m: any) => m.lead_id) || [])
+      const waitingForReplyCount = uniqueLeadsWithInbound.size
+
+      const quickLookMetrics: QuickLookMetric[] = [
+        {
+          id: 'new-customers',
+          label: 'New Customers',
+          value: newCustomersCount,
+          icon: Users,
+          color: 'text-blue-600 dark:text-blue-400',
+          bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+          href: '/dashboard/leads',
+          description: 'Today'
+        },
+        {
+          id: 'waiting-reply',
+          label: 'Waiting for Reply',
+          value: waitingForReplyCount,
+          icon: MessageSquareReply,
+          color: 'text-amber-600 dark:text-amber-400',
+          bgColor: 'bg-amber-50 dark:bg-amber-900/20',
+          href: '/dashboard/leads',
+          description: 'Last 7 days'
+        },
+        {
+          id: 'tasks-due',
+          label: 'Tasks Due',
+          value: tasksDueCount,
+          icon: CheckSquare,
+          color: 'text-purple-600 dark:text-purple-400',
+          bgColor: 'bg-purple-50 dark:bg-purple-900/20',
+          href: '/dashboard/calendar',
+          description: 'Today'
+        },
+        {
+          id: 'jobs-today',
+          label: 'Jobs Today',
+          value: jobsTodayCount,
+          icon: Calendar,
+          color: 'text-violet-600 dark:text-violet-400',
+          bgColor: 'bg-violet-50 dark:bg-violet-900/20',
+          href: '/dashboard/calendar',
+          description: 'Scheduled'
+        },
+        {
+          id: 'outstanding-payments',
+          label: 'Outstanding',
+          value: outstandingPaymentsCount,
+          icon: DollarSign,
+          color: 'text-orange-600 dark:text-orange-400',
+          bgColor: 'bg-orange-50 dark:bg-orange-900/20',
+          href: '/dashboard/payments',
+          description: 'Pending'
+        },
+        {
+          id: 'payments-week',
+          label: 'Received',
+          value: paymentsThisWeekCount,
+          icon: CreditCard,
+          color: 'text-emerald-600 dark:text-emerald-400',
+          bgColor: 'bg-emerald-50 dark:bg-emerald-900/20',
+          href: '/dashboard/payments',
+          description: 'This week'
+        }
+      ]
+
+      setMetrics(quickLookMetrics)
     } catch (error) {
-      console.error('Error fetching dashboard metrics:', error)
+      console.error('Error fetching quick-look metrics:', error)
+      // On error, show zero metrics to avoid misleading data
+      setMetrics([])
     } finally {
       setLoading(false)
-      setIsBackgroundRefresh(false)
     }
   }, [business])
 
-  // Initial fetch
   useEffect(() => {
     fetchMetrics()
   }, [fetchMetrics])
 
-  // Realtime subscription for live metric updates
-  useEffect(() => {
-    if (!business) return
-
-    const supabase = createBrowserClient()
-    const channel = supabase
-      .channel('dashboard-metrics-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'leads',
-          filter: `business_id=eq.${business.id}`
-        },
-        () => {
-          fetchMetrics(true) // Use background refresh to prevent flicker
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'messages'
-        },
-        (payload: any) => {
-          // Only refetch if the message belongs to this business's leads
-          // We fetch metrics which includes business-scoped queries
-          fetchMetrics(true) // Use background refresh to prevent flicker
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'follow_up_jobs',
-          filter: `business_id=eq.${business.id}`
-        },
-        () => {
-          fetchMetrics(true) // Use background refresh to prevent flicker
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [business, fetchMetrics])
-
-  const getMetricIcon = (type: string) => {
-    switch (type) {
-      case 'missedCalls':
-        return <PhoneMissed className="w-4 h-4 sm:w-5 sm:h-5" />
-      case 'leads':
-        return <Users className="w-4 h-4 sm:w-5 sm:h-5" />
-      case 'messages':
-        return <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
-      case 'conversations':
-        return <Activity className="w-4 h-4 sm:w-5 sm:h-5" />
-      case 'recovery':
-        return <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
-      default:
-        return <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
-    }
-  }
-
-  const getMetricColor = (type: string) => {
-    switch (type) {
-      case 'missedCalls':
-        return 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800'
-      case 'leads':
-        return 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
-      case 'messages':
-        return 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800'
-      case 'conversations':
-        return 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800'
-      case 'recovery':
-        return 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800'
-      default:
-        return 'bg-slate-100 dark:bg-slate-900/30 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800'
-    }
-  }
-
-  const getMetricAccentColor = (type: string) => {
-    switch (type) {
-      case 'missedCalls':
-        return 'bg-blue-500'
-      case 'leads':
-        return 'bg-emerald-500'
-      case 'messages':
-        return 'bg-purple-500'
-      case 'conversations':
-        return 'bg-orange-500'
-      case 'recovery':
-        return 'bg-rose-500'
-      default:
-        return 'bg-slate-500'
-    }
-  }
-
-  const getMetricLabel = (type: string) => {
-    switch (type) {
-      case 'missedCalls':
-        return 'Captured Customers'
-      case 'leads':
-        return 'Customers'
-      case 'messages':
-        return 'Messages Sent'
-      case 'conversations':
-        return 'Active Conversations'
-      case 'recovery':
-        return 'Recovery Rate'
-      default:
-        return 'Metric'
-    }
-  }
-
-  const getEmptyStateText = (type: string) => {
-    switch (type) {
-      case 'missedCalls':
-        return 'No captured customers yet'
-      case 'leads':
-        return 'Waiting for first customer'
-      case 'messages':
-        return 'No conversations yet'
-      case 'conversations':
-        return 'No active conversations'
-      default:
-        return ''
-    }
-  }
-
-  const getMetricDescription = (type: string) => {
-    switch (type) {
-      case 'missedCalls':
-        return 'Customers captured from missed calls and customer inquiries'
-      case 'leads':
-        return 'Total customers generated from missed calls and customer inquiries'
-      case 'messages':
-        return 'Automated and manual text messages sent by ReplyFlow'
-      case 'conversations':
-        return 'Customers with ongoing conversations that have not been completed'
-      case 'recovery':
-        return 'Percentage of missed callers successfully engaged by ReplyFlow'
-      default:
-        return 'Business metric'
-    }
-  }
-
-  const getMetricTooltip = (type: string) => {
-    switch (type) {
-      case 'missedCalls':
-        return null
-      case 'leads':
-        return null
-      case 'messages':
-        return 'Automated and manual text messages sent by ReplyFlow'
-      case 'conversations':
-        return 'Customers with ongoing conversations that have not been completed'
-      case 'recovery':
-        return 'Percentage of missed callers successfully engaged by ReplyFlow'
-      default:
-        return null
-    }
+  const handleMetricClick = (href: string) => {
+    router.push(href)
   }
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="bg-slate-50 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm p-3.5 sm:p-4 min-h-[7rem] sm:min-h-[8rem]">
-          <div className="animate-pulse">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 bg-slate-200 dark:bg-slate-700 rounded-xl mb-3"></div>
-            <div className="h-8 sm:h-10 bg-slate-200 dark:bg-slate-700 rounded mb-2"></div>
-            <div className="h-4 sm:h-5 bg-slate-200 dark:bg-slate-700 rounded"></div>
-          </div>
+      <div className="bg-white dark:bg-slate-800/80 border border-border/50 rounded-xl p-4 sm:p-5 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-semibold text-slate-900 dark:text-foreground">At a Glance</h3>
         </div>
-        <div className="bg-slate-50 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm p-3.5 sm:p-4 min-h-[7rem] sm:min-h-[8rem]">
-          <div className="animate-pulse">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 bg-slate-200 dark:bg-slate-700 rounded-xl mb-3"></div>
-            <div className="h-8 sm:h-10 bg-slate-200 dark:bg-slate-700 rounded mb-2"></div>
-            <div className="h-4 sm:h-5 bg-slate-200 dark:bg-slate-700 rounded"></div>
-          </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="animate-pulse">
+              <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-lg mb-2"></div>
+              <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-16 mb-1"></div>
+              <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-12"></div>
+            </div>
+          ))}
         </div>
       </div>
     )
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      {/* Recovery Rate - Key business impact metric */}
-      <div className="bg-slate-50 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200 p-3.5 sm:p-4 min-h-[7rem] sm:min-h-[8rem] flex flex-col">
-        <div className="flex items-start justify-between mb-3">
-          <div className="w-10 h-10 sm:w-11 sm:h-11 bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50 rounded-xl flex items-center justify-center">
-            <TrendingUp className="w-5 h-5 sm:w-5.5 sm:h-5.5" />
-          </div>
-          <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
-            {metrics.period}
-          </div>
-        </div>
-        <div className="space-y-1.5 flex-1">
-          <div className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white leading-tight tracking-tight">
-            {metrics.recoveryRate}%
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="text-sm sm:text-base font-semibold text-slate-700 dark:text-slate-300">Recovery Rate</div>
-            <span className="inline-flex items-center cursor-help" title="Percentage of captured customers who replied to your messages">
-              <HelpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-400 transition-colors" />
-            </span>
-          </div>
-          {metrics.recoveryRate === 0 && (
-            <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">ReplyFlow will start tracking recovery as customers reply</div>
-          )}
-        </div>
+    <div className="bg-white dark:bg-slate-800/80 border border-border/50 rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-200">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-foreground">At a Glance</h3>
       </div>
-
-      {/* Messages Sent - Communication volume metric (distinct from Follow-Ups Sent) */}
-      <div className="bg-slate-50 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200 p-3.5 sm:p-4 min-h-[7rem] sm:min-h-[8rem] flex flex-col">
-        <div className="flex items-start justify-between mb-3">
-          <div className="w-10 h-10 sm:w-11 sm:h-11 bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800/50 rounded-xl flex items-center justify-center">
-            <MessageSquare className="w-5 h-5 sm:w-5.5 sm:h-5.5" />
-          </div>
-          <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">{metrics.period}</div>
+      
+      {metrics.length === 0 ? (
+        <div className="text-center py-6">
+          <p className="text-sm text-slate-500 dark:text-slate-400">No activity data available yet.</p>
         </div>
-        <div className="space-y-1.5 flex-1">
-          <div className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white leading-tight tracking-tight">{metrics.messagesSent}</div>
-          <div className="flex items-center gap-1.5">
-            <div className="text-sm sm:text-base font-semibold text-slate-700 dark:text-slate-300">Messages Sent</div>
-            <span className="inline-flex items-center cursor-help" title="AI and manual messages sent to customers">
-              <HelpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-400 transition-colors" />
-            </span>
-          </div>
-          {metrics.messagesSent === 0 && (
-            <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Messages will be sent automatically when customers are captured</div>
-          )}
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {metrics.map((metric) => {
+            const Icon = metric.icon
+            return (
+              <button
+                key={metric.id}
+                onClick={() => metric.href && handleMetricClick(metric.href)}
+                className={`text-left p-3 rounded-lg border border-border/30 hover:border-border/60 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-all duration-200 ${metric.href ? 'cursor-pointer' : ''}`}
+              >
+                <div className={`w-10 h-10 ${metric.bgColor} rounded-lg flex items-center justify-center mb-2`}>
+                  <Icon className={`w-5 h-5 ${metric.color}`} />
+                </div>
+                <div className="text-2xl font-bold text-slate-900 dark:text-foreground mb-0.5">
+                  {metric.value}
+                </div>
+                <div className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-0.5">
+                  {metric.label}
+                </div>
+                <div className="text-[10px] text-slate-500 dark:text-slate-500">
+                  {metric.description}
+                </div>
+              </button>
+            )
+          })}
         </div>
-      </div>
+      )}
     </div>
   )
 }

@@ -1104,7 +1104,7 @@ export default function DashboardContent() {
                       </div>
                     </SectionErrorBoundary>
 
-                    {/* Latest Lead Section - De-emphasize when forwarding is not verified */}
+                    {/* Latest Customer Section - De-emphasize when forwarding is not verified */}
                     <SectionErrorBoundary sectionName="RecentLeadsSection">
                       <div className={`transition-opacity duration-300 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
                         {business?.id && (

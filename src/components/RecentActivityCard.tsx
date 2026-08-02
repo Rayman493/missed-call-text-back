@@ -281,7 +281,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-slate-800/80 border border-border/50 rounded-xl p-4 sm:p-5 shadow-sm">
+      <div className="bg-white dark:bg-slate-800/80 border border-border/50 rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-200">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-base font-semibold text-slate-900 dark:text-foreground">Activity Timeline</h3>
           <div className="text-xs text-slate-500 dark:text-slate-400">Loading...</div>
@@ -302,7 +302,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
   }
 
   return (
-    <div className="bg-white dark:bg-slate-800/80 border border-border/50 rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+    <div className="bg-white dark:bg-slate-800/80 border border-border/50 rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-200">
       <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-2.5 leading-tight">Activity Timeline</h3>
 
       {activities.length === 0 ? (
