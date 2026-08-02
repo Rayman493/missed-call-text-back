@@ -10,8 +10,8 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'ReplyFlowHQ — Missed-Call Text Back for Local Businesses',
-  description: 'Automatically text customers back when you miss a call. ReplyFlowHQ helps local businesses capture more leads with missed-call text-back automation.',
-  keywords: ['missed call text back', 'automated SMS', 'local business', 'lead capture', 'customer communication', 'SMS automation'],
+  description: 'Automatically text customers back when you miss a call. ReplyFlowHQ helps local businesses capture more customers with missed-call text-back automation.',
+  keywords: ['missed call text back', 'automated SMS', 'local business', 'customer capture', 'customer communication', 'SMS automation'],
   authors: [{ name: 'ReplyFlowHQ' }],
   creator: 'ReplyFlowHQ',
   publisher: 'ReplyFlowHQ',

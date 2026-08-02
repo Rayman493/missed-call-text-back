@@ -8,8 +8,8 @@ import DocumentationHero from '@/components/DocumentationHero'
 import ScrollToTopOnMount from '@/components/ScrollToTopOnMount'
 
 export const metadata: Metadata = {
-  title: 'ReplyFlow FAQ | AI Voice, Lead Management, Appointments & Payments',
-  description: 'Learn how ReplyFlow provides AI Voice, missed-call recovery, lead management, appointment scheduling, and Payment Requests. Setup, pricing, and compliance questions answered.',
+  title: 'ReplyFlow FAQ | AI Voice, Customer Management, Appointments & Payments',
+  description: 'Learn how ReplyFlow provides AI Voice, missed-call recovery, customer management, appointment scheduling, and Payment Requests. Setup, pricing, and compliance questions answered.',
 }
 
 export default async function FAQPage({ searchParams }: { searchParams?: Promise<{ [key: string]: string | string[] | undefined }> }) {
@@ -24,7 +24,7 @@ export default async function FAQPage({ searchParams }: { searchParams?: Promise
       <DocumentationHero
         activePage="faq"
         title="Frequently Asked Questions"
-        subtitle="Everything you need to know about ReplyFlow's AI Voice, missed-call recovery, lead management, appointment scheduling, and Payment Requests."
+        subtitle="Everything you need to know about ReplyFlow's AI Voice, missed-call recovery, customer management, appointment scheduling, and Payment Requests."
       >
         <div className="mt-8 max-w-4xl mx-auto">
           <ReplyFlowAssistant defaultCategory="Overview" context={{ currentPage: undefined }} initialKbId={initialKbId} />

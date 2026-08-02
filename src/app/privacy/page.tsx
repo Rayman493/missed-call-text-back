@@ -211,7 +211,7 @@ export default function PrivacyPage() {
                       <li>• AI Voice call recordings</li>
                       <li>• AI-generated call summaries</li>
                       <li>• Call transcripts</li>
-                      <li>• Lead information and details</li>
+                      <li>• Customer information and details</li>
                       <li>• Customer communication history</li>
                     </ul>
                   </div>
@@ -310,7 +310,7 @@ export default function PrivacyPage() {
                     <p className="text-gray-600 dark:text-gray-400 font-medium mb-3">Data that may be retained includes:</p>
                     <ul className="mt-3 space-y-2 text-sm text-gray-600 dark:text-gray-400">
                       <li>• SMS messages and conversation history</li>
-                      <li>• Lead information and contact details</li>
+                      <li>• Customer information and contact details</li>
                       <li>• Customer conversations and interactions</li>
                       <li>• AI Voice call recordings</li>
                       <li>• Call transcripts</li>

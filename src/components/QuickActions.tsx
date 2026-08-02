@@ -7,8 +7,8 @@ import { Users, MessageSquare, Settings, Phone } from 'lucide-react'
 export default function QuickActions() {
   const actions = [
     {
-      title: 'View Leads',
-      description: 'Manage captured leads',
+      title: 'View Customers',
+      description: 'Manage captured customers',
       icon: Users,
       href: '/dashboard/leads',
       color: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 border-blue-200 dark:border-blue-800'

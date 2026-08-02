@@ -146,7 +146,7 @@ export default function OnboardingGuide({ isTrialActive = false }: OnboardingGui
               <div className="w-4 h-4 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
                 <span className="text-blue-600 dark:text-blue-400 text-[10px] font-bold">1</span>
               </div>
-              <p>Missed calls from your business number automatically become leads in your dashboard</p>
+              <p>Missed calls from your business number automatically become customers in your dashboard</p>
             </div>
             <div className="flex items-start gap-2">
               <div className="w-4 h-4 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">

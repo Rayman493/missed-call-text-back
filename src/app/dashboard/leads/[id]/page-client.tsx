@@ -894,7 +894,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       totalSystemEvents: systemEvents.length
     })
     
-    // Add Lead Marked Complete event
+    // Add Customer Marked Complete event
     if (leadData?.status === 'completed') {
       systemEvents.push({
         type: 'system_event',
@@ -1200,7 +1200,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [showIgnoreModal, setShowIgnoreModal] = useState(false)
   const [isIgnoring, setIsIgnoring] = useState(false)
 
-  // State for remove lead modal
+  // State for remove customer modal
   const [showRemoveModal, setShowRemoveModal] = useState(false)
   const [isRemoving, setIsRemoving] = useState(false)
   const [isCompleting, setIsCompleting] = useState(false)
@@ -4497,7 +4497,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         )}
       </div>
 
-      {/* Mobile Bottom Sheet for Lead Details */}
+      {/* Mobile Bottom Sheet for Customer Details */}
       {showLeadInfo && (
         <div className="md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center z-50" onClick={() => setShowLeadInfo(false)}>
           <div className="bg-white dark:bg-slate-900 rounded-t-2xl w-full max-h-[80vh] overflow-hidden animate-slide-up" onClick={(e) => e.stopPropagation()}>
@@ -4608,7 +4608,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
       )}
 
-      {/* Desktop Modal for Lead Details */}
+      {/* Desktop Modal for Customer Details */}
       {showLeadInfo && (
         <div className="hidden md:block fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={() => setShowLeadInfo(false)}>
           <div className="bg-white dark:bg-slate-800/80 rounded-xl shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>

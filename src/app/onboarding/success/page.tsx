@@ -69,8 +69,8 @@ export default function OnboardingSuccessPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                 </svg>
               </div>
-              <h3 className="text-sm font-semibold text-white mb-1">Lead Capture Ready</h3>
-              <p className="text-xs text-slate-400">Start collecting leads now</p>
+              <h3 className="text-sm font-semibold text-white mb-1">Customer Capture Ready</h3>
+              <p className="text-xs text-slate-400">Start collecting customers now</p>
             </div>
           </div>
 

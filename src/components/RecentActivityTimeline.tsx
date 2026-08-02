@@ -51,7 +51,7 @@ export default function RecentActivityTimeline({ business }: RecentActivityTimel
               id: `lead-${lead.id}`,
               type: 'missed_call',
               title: 'Missed Call Processed',
-              description: 'New lead created from missed call',
+              description: 'New customer created from missed call',
               timestamp: lead.created_at,
               phone: lead.caller_phone
             })

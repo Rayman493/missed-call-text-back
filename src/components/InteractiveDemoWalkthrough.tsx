@@ -30,8 +30,8 @@ const steps = [
   { id: 'incoming-call', label: 'Customer Calls', description: 'A customer reaches out while you\'re unavailable.' },
   { id: 'missed-call', label: 'You Miss the Call', description: 'ReplyFlow automatically detects the missed call.' },
   { id: 'ai-conversation', label: 'AI Handles the Intake', description: 'ReplyFlow answers as an AI receptionist and guides callers through a structured intake.' },
-  { id: 'ai-summary', label: 'Lead Details Organized', description: 'Customer information is automatically organized into a clean lead profile.' },
-  { id: 'lead-created', label: 'Lead Saved Automatically', description: 'Nothing is lost—even if nobody answered the phone.' },
+  { id: 'ai-summary', label: 'Customer Details Organized', description: 'Customer information is automatically organized into a clean customer profile.' },
+  { id: 'lead-created', label: 'Customer Saved Automatically', description: 'Nothing is lost—even if nobody answered the phone.' },
   { id: 'sms-conversation', label: 'Customer Replies by Text', description: 'Customers can add or update information without another phone call.' },
   { id: 'schedule', label: 'Book the Job', description: 'Schedule the appointment directly from ReplyFlow.' },
   { id: 'payment', label: 'Get Paid Your Way', description: 'Accept Tap to Pay on iPhone or Android while you\'re on-site, or send a branded SMS payment request when you\'re done.' },
@@ -347,7 +347,7 @@ function StepLeadCreated() {
             >
               <div className="w-2 h-2 bg-blue-500 rounded-full" />
               <span className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-full">
-                New Lead
+                New Customer
               </span>
             </motion.div>
           </div>

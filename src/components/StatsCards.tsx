@@ -222,7 +222,7 @@ export default function StatsCards({ businessId, isOnboardingComplete = false, p
           isInteractive={true}
         />
 
-        {/* New Leads */}
+        {/* New Customers */}
         <StatCard
           value={leadsCount}
           label="Leads"

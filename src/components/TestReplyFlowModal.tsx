@@ -310,7 +310,7 @@ export default function TestReplyFlowModal({ isOpen, onClose }: TestReplyFlowMod
                   <User className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white">New Lead Created</p>
+                  <p className="text-sm font-medium text-white">New Customer Created</p>
                   <p className="text-xs text-slate-400">Just now</p>
                 </div>
               </div>

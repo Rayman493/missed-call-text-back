@@ -478,7 +478,7 @@ export default function LeadsPage() {
     }
   }
 
-  // Handle restore deleted lead
+  // Handle restore deleted customer
   const handleRestoreLead = async (leadId: string) => {
     try {
       const token = await supabase.auth.getSession()
@@ -626,7 +626,7 @@ export default function LeadsPage() {
     const showIgnored = statusFilter === 'ignored'
     const shouldShowIgnored = showIgnored
 
-    // Hide deleted leads from default view (when filter is not 'deleted')
+    // Hide deleted customers from default view (when filter is not 'deleted')
     const shouldShowDeleted = !isDeleted
 
     // Handle quick filter

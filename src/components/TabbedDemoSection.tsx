@@ -119,19 +119,19 @@ export default function TabbedDemoSection() {
                   </div>
                 </div>
 
-                {/* Step 5: Lead Created */}
+                {/* Step 5: Customer Created */}
                 <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 border border-green-200 dark:border-green-800">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center flex-shrink-0">
                       <span className="text-white text-sm font-bold">5</span>
                     </div>
-                    <h3 className="font-semibold text-green-900 dark:text-green-100">Lead Created</h3>
+                    <h3 className="font-semibold text-green-900 dark:text-green-100">Customer Created</h3>
                   </div>
                   <div className="pl-11">
                     <div className="flex gap-6 text-sm">
                       <div>
                         <span className="text-green-700 dark:text-green-300">Status:</span>
-                        <span className="text-green-900 dark:text-green-100 font-medium ml-2">New Lead</span>
+                        <span className="text-green-900 dark:text-green-100 font-medium ml-2">New Customer</span>
                       </div>
                       <div>
                         <span className="text-green-700 dark:text-green-300">Priority:</span>

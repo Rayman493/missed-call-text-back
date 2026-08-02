@@ -5,8 +5,8 @@ import Footer from '@/components/Footer'
 import PageBackground from '@/components/PageBackground'
 
 export const metadata: Metadata = {
-  title: 'ReplyFlow Pricing | AI Voice, Lead Management & Payment Requests',
-  description: 'ReplyFlow pricing: $59/month with a 14-day free trial. AI Voice, missed-call recovery, lead management, appointment scheduling, and Payment Requests for local businesses. Cancel anytime.',
+  title: 'ReplyFlow Pricing | AI Voice, Customer Management & Payment Requests',
+  description: 'ReplyFlow pricing: $59/month with a 14-day free trial. AI Voice, missed-call recovery, customer management, appointment scheduling, and Payment Requests for local businesses. Cancel anytime.',
 }
 
 export default function PricingPage() {
@@ -42,7 +42,7 @@ export default function PricingPage() {
               Simple Pricing. Everything Included.
             </h1>
             <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-              AI Voice, lead management, appointment scheduling, and Payment Requests — one flat monthly price.
+              AI Voice, customer management, appointment scheduling, and Payment Requests — one flat monthly price.
             </p>
           </div>
         </div>
@@ -96,7 +96,7 @@ export default function PricingPage() {
                       <svg className="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
-                      <span className="text-slate-700 dark:text-slate-300">Lead dashboard with all customer details</span>
+                      <span className="text-slate-700 dark:text-slate-300">Customer dashboard with all customer details</span>
                     </div>
                     
                     <div className="flex items-start">
