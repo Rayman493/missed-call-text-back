@@ -704,11 +704,11 @@ export const formatAiIntakeSummary = (
       : `${serviceRequested}\n\n${issueDescription}`;
   }
   
-  // Use the new request field if available, otherwise fall back to combined
-  // When the request field is present, generate a concise canonical title
+  // Always generate a concise canonical title for the SMS Request line
+  // Priority: intakeData.request (canonical) → serviceRequested (canonicalized) → fallback
   const finalRequest = intakeData?.request 
     ? generateCanonicalRequestTitle(intakeData.request)
-    : request;
+    : generateCanonicalRequestTitle(serviceRequested);
 
   const displayName = businessName || 'us';
   const prefix = prefixNotice ? `${prefixNotice}\n\n` : '';
