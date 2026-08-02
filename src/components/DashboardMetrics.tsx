@@ -5,6 +5,7 @@ import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useRouter } from 'next/navigation'
 import { Users, MessageSquareReply, CheckSquare, Calendar, DollarSign, CreditCard, Loader2, AlertCircle } from 'lucide-react'
+import { useMobilePressGuard } from '@/hooks/useMobilePressGuard'
 
 interface DashboardMetricsProps {
   business: Business | null
@@ -314,11 +315,26 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {metrics.map((metric) => {
             const Icon = metric.icon
+            
+            // Use mobile press guard for metric cards with href
+            const pressGuard = useMobilePressGuard({
+              onActivate: () => {
+                if (metric.href) {
+                  handleMetricClick(metric.href)
+                }
+              },
+              threshold: 10
+            })
+            
             return (
               <button
                 key={metric.id}
-                onClick={() => metric.href && handleMetricClick(metric.href)}
-                className={`text-left p-3 rounded-lg border border-border/30 hover:border-border/60 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-all duration-200 ${metric.href ? 'cursor-pointer' : ''}`}
+                onPointerDown={pressGuard.onPointerDown}
+                onPointerMove={pressGuard.onPointerMove}
+                onPointerUp={pressGuard.onPointerUp}
+                onPointerCancel={pressGuard.onPointerCancel}
+                className={`text-left p-3 rounded-lg border border-border/30 hover:border-border/60 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-all duration-200 ${metric.href ? 'cursor-pointer' : ''} ${pressGuard.isPressed ? 'bg-slate-100 dark:bg-slate-700/50 scale-[0.98]' : ''}`}
+                style={{ touchAction: 'pan-y' }}
               >
                 <div className={`w-10 h-10 ${metric.bgColor} rounded-lg flex items-center justify-center mb-2`}>
                   <Icon className={`w-5 h-5 ${metric.color}`} />

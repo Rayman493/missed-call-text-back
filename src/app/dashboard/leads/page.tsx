@@ -7,6 +7,7 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useTrialEligibility } from '@/hooks/useTrialEligibility'
+import { useMobilePressGuard } from '@/hooks/useMobilePressGuard'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
 import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
@@ -1398,13 +1399,22 @@ export default function LeadsPage() {
                   const isNewCustomer = (Date.now() - new Date(lastActivity).getTime()) < 24 * 60 * 60 * 1000
                   const aiData = getAIData(lead)
 
+                  // Use mobile press guard for lead cards
+                  const pressGuard = useMobilePressGuard({
+                    onActivate: () => handleConversationClick(lead.id),
+                    threshold: 10
+                  })
+
                   return (
                     <div className="flex flex-col items-center">
                       {/* Removed inline count here to avoid duplication and lift the card on mobile */}
                       <div
                         key={lead.id}
-                        className={`w-full max-w-2xl h-full flex flex-col rounded-xl border border-border/50 relative overflow-hidden transition-all duration-200 cursor-pointer bg-white dark:bg-slate-800/80 shadow-sm hover:shadow-md hover:-translate-y-0.5 ${getCardGradientClasses(getLeadLifecycleStatus(lead))} ${getCardBorderClasses(getLeadLifecycleStatus(lead))} ${getCardAccentClasses(getLeadLifecycleStatus(lead))} active:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2`}
-                        onClick={() => handleConversationClick(lead.id)}
+                        onPointerDown={pressGuard.onPointerDown}
+                        onPointerMove={pressGuard.onPointerMove}
+                        onPointerUp={pressGuard.onPointerUp}
+                        onPointerCancel={pressGuard.onPointerCancel}
+                        className={`w-full max-w-2xl h-full flex flex-col rounded-xl border border-border/50 relative overflow-hidden transition-all duration-200 cursor-pointer bg-white dark:bg-slate-800/80 shadow-sm hover:shadow-md hover:-translate-y-0.5 ${getCardGradientClasses(getLeadLifecycleStatus(lead))} ${getCardBorderClasses(getLeadLifecycleStatus(lead))} ${getCardAccentClasses(getLeadLifecycleStatus(lead))} ${pressGuard.isPressed ? 'bg-muted/50 scale-[0.98]' : 'active:bg-muted/30'} focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2`}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault()
@@ -1414,6 +1424,7 @@ export default function LeadsPage() {
                         tabIndex={0}
                         role="link"
                         aria-label={`Open ${getLeadDisplayName(lead)}`}
+                        style={{ touchAction: 'pan-y' }}
                       >
                         <div className="p-4 pl-5 flex-1 flex flex-col">
                           {/* Header: Name, Phone, Status */}
