@@ -42,8 +42,8 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   const fetchNotifications = async (businessId: string) => {
     try {
       setLoading(true)
-      // Fetch notifications for the preview list (limited to 10)
-      const notificationsData = await notificationService.getNotifications(businessId, 10)
+      // Fetch notifications for the preview list (increased limit to ensure unread notifications are included)
+      const notificationsData = await notificationService.getNotifications(businessId, 50)
       
       // Fetch the actual count from all notifications (no limit)
       const countData = await notificationService.getNotificationCount(businessId)
@@ -52,10 +52,19 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       setNotificationCount(countData)
       setDisplayedUnreadCount(countData.unread)
       
+      // Diagnostics: log pipeline metrics
+      console.log('[NotificationContext] Pipeline diagnostics:', {
+        apiCount: countData.total,
+        unreadCount: countData.unread,
+        normalizedCount: notificationsData.length,
+        unreadInPreview: notificationsData.filter(n => !n.read).length,
+        businessId
+      })
+      
       // Consistency check: if count says unread > 0 but no notifications in preview, this is expected
-      // (there may be more unread notifications beyond the first 10)
+      // (there may be more unread notifications beyond the first 50)
       if (countData.unread > 0 && notificationsData.length === 0) {
-        console.log('[NotificationContext] Unread count > 0 but no notifications in preview (may be beyond first 10)', {
+        console.log('[NotificationContext] Unread count > 0 but no notifications in preview (may be beyond first 50)', {
           unreadCount: countData.unread,
           totalCount: countData.total,
           previewCount: notificationsData.length
@@ -87,7 +96,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         },
         async (payload: any) => {
           // Optimistically add new notification to state
-          setNotifications(prev => [payload.new, ...prev].slice(0, 10))
+          setNotifications(prev => [payload.new, ...prev].slice(0, 50))
           setNotificationCount(prev => ({ 
             unread: prev.unread + 1, 
             total: prev.total + 1 
