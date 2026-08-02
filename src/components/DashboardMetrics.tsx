@@ -5,7 +5,7 @@ import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useRouter } from 'next/navigation'
 import { Users, MessageSquareReply, CheckSquare, Calendar, DollarSign, CreditCard, Loader2, AlertCircle } from 'lucide-react'
-import { useMobilePressGuard } from '@/hooks/useMobilePressGuard'
+import MetricCard from '@/components/MetricCard'
 
 interface DashboardMetricsProps {
   business: Business | null
@@ -313,44 +313,24 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {metrics.map((metric) => {
-            const Icon = metric.icon
-            
-            // Use mobile press guard for metric cards with href
-            const pressGuard = useMobilePressGuard({
-              onActivate: () => {
+          {metrics.map((metric) => (
+            <MetricCard
+              key={metric.id}
+              id={metric.id}
+              label={metric.label}
+              value={metric.value}
+              icon={metric.icon}
+              color={metric.color}
+              bgColor={metric.bgColor}
+              href={metric.href}
+              description={metric.description}
+              onClick={() => {
                 if (metric.href) {
                   handleMetricClick(metric.href)
                 }
-              },
-              threshold: 10
-            })
-            
-            return (
-              <button
-                key={metric.id}
-                onPointerDown={pressGuard.onPointerDown}
-                onPointerMove={pressGuard.onPointerMove}
-                onPointerUp={pressGuard.onPointerUp}
-                onPointerCancel={pressGuard.onPointerCancel}
-                className={`text-left p-3 rounded-lg border border-border/30 hover:border-border/60 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-all duration-200 ${metric.href ? 'cursor-pointer' : ''} ${pressGuard.isPressed ? 'bg-slate-100 dark:bg-slate-700/50 scale-[0.98]' : ''}`}
-                style={{ touchAction: 'pan-y' }}
-              >
-                <div className={`w-10 h-10 ${metric.bgColor} rounded-lg flex items-center justify-center mb-2`}>
-                  <Icon className={`w-5 h-5 ${metric.color}`} />
-                </div>
-                <div className="text-2xl font-bold text-slate-900 dark:text-foreground mb-0.5">
-                  {metric.value}
-                </div>
-                <div className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-0.5">
-                  {metric.label}
-                </div>
-                <div className="text-[10px] text-slate-500 dark:text-slate-500">
-                  {metric.description}
-                </div>
-              </button>
-            )
-          })}
+              }}
+            />
+          ))}
         </div>
       )}
     </div>
