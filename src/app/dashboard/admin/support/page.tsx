@@ -813,7 +813,7 @@ export default function AdminSupportPage() {
                       <button
                         key={filter.value}
                         onClick={() => setSelectedFilter(filter.value)}
-                        className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                        className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
                           selectedFilter === filter.value
                             ? 'bg-blue-600 text-white'
                             : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600'

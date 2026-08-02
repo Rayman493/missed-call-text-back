@@ -235,7 +235,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 <FileText className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70 mb-0.5">Request</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 mb-0.5">Request</p>
                 <p className="text-sm font-semibold text-foreground leading-tight">{conciseTitle}</p>
               </div>
             </div>
@@ -248,7 +248,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4 text-muted-foreground" />
-                <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">Customer</span>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Customer</span>
               </div>
               {manualFields.has('callerName') && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
@@ -276,7 +276,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-muted-foreground" />
-                <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">Details</span>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Details</span>
               </div>
               {(manualFields.has('reasonForCalling') || manualFields.has('importantDetails')) && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
@@ -333,7 +333,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-muted-foreground" />
-                <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">Address</span>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Address</span>
               </div>
               {manualFields.has('addressOrLocation') && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
@@ -360,7 +360,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           <div className="rounded-lg border border-border/25 bg-background/25 px-4 py-3">
             <div className="flex items-center gap-2 mb-3">
               <Clock className="w-4 h-4 text-muted-foreground" />
-              <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">Timing</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Timing</span>
             </div>
             
             <div className="space-y-3">
@@ -836,7 +836,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                   const keyPoints = extractKeyPoints(aiSummary);
                   return keyPoints.length > 0 ? (
                     <div>
-                      <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Key Points</h4>
+                      <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Key Points</h4>
                       <ul className="space-y-1.5">
                         {keyPoints.map((point, index) => (
                           <li key={index} className="text-xs text-foreground flex items-start gap-2">

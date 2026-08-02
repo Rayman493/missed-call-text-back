@@ -214,7 +214,7 @@ export default function VoicemailSummary({ leadData }: VoicemailSummaryProps) {
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wide">Name</span>
+                <span className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">Name</span>
               </div>
               {manualFields.has('callerName') && !isEditMode && (
                 <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md font-medium">Manual</span>
@@ -242,7 +242,7 @@ export default function VoicemailSummary({ leadData }: VoicemailSummaryProps) {
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wide">Reason</span>
+                <span className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">Reason</span>
               </div>
               {manualFields.has('reasonForCalling') && !isEditMode && (
                 <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md font-medium">Manual</span>
@@ -273,7 +273,7 @@ export default function VoicemailSummary({ leadData }: VoicemailSummaryProps) {
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4" aria-hidden="true" />
-                <span className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wide">Details</span>
+                <span className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">Details</span>
               </div>
               {manualFields.has('importantDetails') && !isEditMode && (
                 <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md font-medium">Manual</span>

@@ -267,7 +267,7 @@ export default function JobComposer({
             {/* Customer Preference Context */}
             {(prefill?.requested_completion_label || prefill?.callback_preference_label) && (
               <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700 p-3">
-                <p className="text-[10px] font-medium text-slate-600 dark:text-slate-400 mb-2 uppercase tracking-wide">
+                <p className="text-[10px] font-medium text-slate-600 dark:text-slate-400 mb-2 uppercase tracking-wider">
                   Customer preference
                 </p>
                 {prefill?.requested_completion_label && (

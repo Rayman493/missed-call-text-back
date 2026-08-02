@@ -769,7 +769,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                           )}
                           <h3 className={`font-semibold ${isCurrent ? 'text-base sm:text-lg' : 'text-sm sm:text-base'} ${!isCurrent && !isComplete && !isActionNeeded ? 'text-muted-foreground/70' : 'text-foreground'}`}>{item.title}</h3>
                           <span
-                            className={`text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded-full flex-shrink-0 font-medium ${
+                            className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-full flex-shrink-0 font-medium ${
                               isComplete
                                 ? 'bg-green-100/50 text-green-700/60 dark:bg-green-900/20 dark:text-green-300/50'
                                 : isActionNeeded
@@ -1055,7 +1055,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                     </h3>
                     {isComplete && (
                       <span
-                        className={`text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded-full flex-shrink-0 font-medium bg-green-100/50 text-green-700/60 dark:bg-green-900/20 dark:text-green-300/50`}
+                        className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-full flex-shrink-0 font-medium bg-green-100/50 text-green-700/60 dark:bg-green-900/20 dark:text-green-300/50`}
                       >
                         Done
                       </span>
@@ -1064,7 +1064,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                   {!isComplete && (isCurrent || isActionNeeded) && (
                     <div className="mb-3">
                       <span
-                        className={`text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded-full flex-shrink-0 font-semibold ${
+                        className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-full flex-shrink-0 font-semibold ${
                           isActionNeeded
                             ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
                             : item.id === 'test' && isCurrent
@@ -1342,7 +1342,7 @@ export default function GettingStarted({ isExpanded: propExpanded, onToggle, isO
                       </h3>
                       <div className="flex items-center gap-2">
                         <span
-                          className={`text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded-full flex-shrink-0 font-medium ${
+                          className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-full flex-shrink-0 font-medium ${
                             isComplete
                               ? 'bg-green-100/50 text-green-700/60 dark:bg-green-900/20 dark:text-green-300/50'
                               : isActionNeeded

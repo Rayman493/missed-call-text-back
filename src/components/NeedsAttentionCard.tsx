@@ -305,7 +305,7 @@ export default function NeedsAttentionCard({ business }: NeedsAttentionCardProps
         <div className="space-y-3">
           {Object.entries(groupedItems).map(([groupName, groupItems]) => (
             <div key={groupName} className="space-y-1.5">
-              <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+              <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 {groupName}
               </p>
               {groupItems.map((item) => {

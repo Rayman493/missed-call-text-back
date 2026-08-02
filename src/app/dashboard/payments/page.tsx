@@ -939,7 +939,7 @@ export default function PaymentsPage() {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-700">
+                  <tbody className="divide-y divide-slate-700 [&_tr:nth-child(even)]:bg-slate-800/20">
                     {paymentRequests.length === 0 ? (
                       <tr>
                         <td colSpan={8} className="px-4 py-12">

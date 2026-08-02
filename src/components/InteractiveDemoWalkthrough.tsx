@@ -227,7 +227,7 @@ function StepAIConversation() {
               >
                 <field.icon className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widerr">
                     {field.label}
                   </p>
                   <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
@@ -304,7 +304,7 @@ function StepAISummary() {
               >
                 <div className="flex items-center gap-2 mb-1">
                   <field.icon className={`w-4 h-4 ${field.color}`} />
-                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widerr">
                     {field.label}
                   </span>
                 </div>
@@ -357,7 +357,7 @@ function StepLeadCreated() {
             <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3">
               <div className="flex items-center gap-2 mb-2">
                 <Wrench className="w-4 h-4 text-orange-600 dark:text-orange-400" />
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Service</span>
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widerr">Service</span>
               </div>
               <p className="text-sm font-medium text-slate-900 dark:text-white">AC not cooling</p>
             </div>
@@ -365,7 +365,7 @@ function StepLeadCreated() {
             <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3">
               <div className="flex items-center gap-2 mb-2">
                 <MapPin className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Address</span>
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widerr">Address</span>
               </div>
               <p className="text-sm font-medium text-slate-900 dark:text-white">1234 Oak Street, Pittsburgh</p>
             </div>
@@ -374,14 +374,14 @@ function StepLeadCreated() {
               <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3">
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <AlertCircle className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
-                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Completion</span>
+                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Completion</span>
                 </div>
                 <p className="text-xs font-medium text-slate-900 dark:text-white">As soon as possible</p>
               </div>
               <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3">
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <Clock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Callback</span>
+                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Callback</span>
                 </div>
                 <p className="text-xs font-medium text-slate-900 dark:text-white">After 5 PM</p>
               </div>

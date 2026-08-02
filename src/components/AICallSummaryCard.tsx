@@ -241,10 +241,14 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
 
         {/* Formatted Intake Summary - only show for non-no-intake outcomes */}
         {!isNoIntakeOutcome && !aiCallRecord.extraction_failed && (
-          <div className="bg-muted/30 rounded-lg p-4">
-            <pre className="text-sm whitespace-pre-wrap font-sans text-foreground leading-relaxed">
-              {formattedSummary}
-            </pre>
+          <div className="space-y-4">
+            {/* Summary Section */}
+            <div className="bg-muted/30 rounded-lg p-4">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Summary</h4>
+              <pre className="text-sm whitespace-pre-wrap font-sans text-foreground leading-relaxed">
+                {formattedSummary}
+              </pre>
+            </div>
           </div>
         )}
 

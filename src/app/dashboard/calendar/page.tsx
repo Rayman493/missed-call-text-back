@@ -167,9 +167,18 @@ function MeetingsTab({
           New Meeting
         </button>
       </div>
-      {renderGroup('Today', todays)}
-      {renderGroup('Upcoming', later)}
-      {recentlyCompleted.length > 0 && renderGroup('Recently Completed', recentlyCompleted)}
+      {todays.length === 0 && later.length === 0 && recentlyCompleted.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-sm text-muted-foreground mb-2">No meetings scheduled.</p>
+          <p className="text-xs text-muted-foreground/70">Google Meet appointments will appear here once created.</p>
+        </div>
+      ) : (
+        <>
+          {renderGroup('Today', todays)}
+          {renderGroup('Upcoming', later)}
+          {recentlyCompleted.length > 0 && renderGroup('Recently Completed', recentlyCompleted)}
+        </>
+      )}
     </div>
   )
 }
@@ -1010,12 +1019,12 @@ export default function SchedulePage() {
 
                   {/* Schedule Tab Toggle */}
                   <div className="hidden md:flex mb-3">
-                    <div className="flex bg-slate-900/40 dark:bg-slate-800/60 rounded-xl p-1 w-full border border-slate-200/50 dark:border-slate-700/50">
+                    <div className="flex bg-slate-900/40 dark:bg-slate-800/60 rounded-xl p-0.5 w-full border border-slate-200/50 dark:border-slate-700/50">
                       <button
                         onClick={() => setScheduleTab('today')}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ease-out ${
                           scheduleTab === 'today'
-                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50 text-[15px]'
+                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50 text-sm'
                             : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-sm'
                         }`}
                       >
@@ -1026,7 +1035,7 @@ export default function SchedulePage() {
                         onClick={() => setScheduleTab('calendar')}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ease-out ${
                           scheduleTab === 'calendar'
-                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50 text-[15px]'
+                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50 text-sm'
                             : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-sm'
                         }`}
                       >
@@ -1037,7 +1046,7 @@ export default function SchedulePage() {
                         onClick={() => setScheduleTab('meetings')}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ease-out ${
                           scheduleTab === 'meetings'
-                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50 text-[15px]'
+                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50 text-sm'
                             : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-sm'
                         }`}
                       >
@@ -1048,14 +1057,14 @@ export default function SchedulePage() {
                         onClick={() => setScheduleTab('jobs')}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ease-out ${
                           scheduleTab === 'jobs'
-                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50 text-[15px]'
+                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50 text-sm'
                             : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-sm'
                         }`}
                       >
                         <Briefcase className={`w-4 h-4 ${scheduleTab === 'jobs' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
                         Jobs
                         {jobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress').length > 0 && (
-                          <span className="ml-1.5 px-1.5 py-0.5 text-[10px] font-semibold bg-blue-600 text-white rounded-full">
+                          <span className="ml-2.5 px-1.5 py-0.5 text-[10px] font-semibold bg-blue-600 text-white rounded-full">
                             {jobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress').length}
                           </span>
                         )}
@@ -1064,7 +1073,7 @@ export default function SchedulePage() {
                         onClick={() => setScheduleTab('tasks')}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ease-out ${
                           scheduleTab === 'tasks'
-                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50 text-[15px]'
+                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50 text-sm'
                             : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-sm'
                         }`}
                       >
@@ -1076,7 +1085,7 @@ export default function SchedulePage() {
 
                   {/* Mobile tab toggle (responsive grid, no horizontal scrolling) */}
                   <div className="md:hidden mb-4 mt-2">
-                    <div className="bg-slate-900/40 dark:bg-slate-800/60 rounded-xl p-1 grid grid-cols-3 gap-1 border border-slate-200/50 dark:border-slate-700/50">
+                    <div className="bg-slate-900/40 dark:bg-slate-800/60 rounded-xl p-0.5 grid grid-cols-3 gap-0.5 border border-slate-200/50 dark:border-slate-700/50">
                       <button
                         onClick={() => setScheduleTab('today')}
                         className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg font-medium transition-all duration-200 ease-out ${
@@ -1121,7 +1130,7 @@ export default function SchedulePage() {
                         <Briefcase className={`w-3.5 h-3.5 ${scheduleTab === 'jobs' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
                         <span>Jobs</span>
                         {jobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress').length > 0 && (
-                          <span className="ml-1 px-1.5 py-0.5 text-[10px] font-semibold bg-blue-600 text-white rounded-full">
+                          <span className="ml-2 px-1.5 py-0.5 text-[10px] font-semibold bg-blue-600 text-white rounded-full">
                             {jobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress').length}
                           </span>
                         )}
@@ -1220,7 +1229,7 @@ export default function SchedulePage() {
                               <button
                                 onClick={handleConnectCalendar}
                                 disabled={isConnecting}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs sm:text-sm font-medium rounded-lg transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 flex-shrink-0"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs sm:text-sm font-medium rounded-lg transition-colors active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 flex-shrink-0"
                               >
                                 {isConnecting ? (
                                   <>
@@ -1265,7 +1274,7 @@ export default function SchedulePage() {
                           </div>
                           <button
                             onClick={() => handleAddEvent()}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-95 shadow-md"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-[0.98] shadow-md"
                           >
                             <Plus className="w-3.5 h-3.5" />
                             <span>New Appointment</span>
@@ -1446,7 +1455,7 @@ export default function SchedulePage() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleAddEvent()}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-95 shadow-md"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-[0.98] shadow-md"
                           >
                             <Plus className="w-3 h-3" />
                             <span>New</span>
@@ -1455,7 +1464,7 @@ export default function SchedulePage() {
                             <button
                               ref={mobileCalendarOverflowButtonRef}
                               onClick={() => setIsCalendarOverflowOpen(!isCalendarOverflowOpen)}
-                              className="inline-flex items-center justify-center p-1.5 hover:bg-slate-800 text-slate-400 hover:text-slate-300 rounded-lg transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+                              className="inline-flex items-center justify-center p-1.5 hover:bg-slate-800 text-slate-400 hover:text-slate-300 rounded-lg transition-colors active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
                             >
                               <MoreVertical className="w-4 h-4" />
                             </button>
@@ -1641,7 +1650,7 @@ export default function SchedulePage() {
                       <button
                         onClick={handleConnectCalendarWithExplanation}
                         disabled={isConnecting}
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all hover:scale-105 active:scale-95 shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all hover:scale-105 active:scale-[0.98] shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
                       >
                         {isConnecting ? (
                           <>
@@ -1987,7 +1996,7 @@ function JobsTab({
         </div>
         <button
           onClick={onNewJob}
-          className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm active:scale-95 flex-shrink-0"
+          className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm active:scale-[0.98] flex-shrink-0"
         >
           <Briefcase className="w-4 h-4" />
           New Job
@@ -2005,7 +2014,7 @@ function JobsTab({
           </p>
           <button
             onClick={onNewJob}
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm active:scale-95"
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm active:scale-[0.98]"
           >
             <Briefcase className="w-4 h-4" />
             New Job

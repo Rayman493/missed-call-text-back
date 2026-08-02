@@ -3806,7 +3806,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 {(() => {
                   const paymentRequests = leadData?.paymentRequests || []
                   return (
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                   {/* AI Intake Summary - Hero Card */}
                   {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
                     <div className="pr-2">
@@ -4331,7 +4331,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 {leadJobs.length === 0 ? (
                   <button
                     onClick={handleCreateJobClick}
-                    className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 border border-border/30 hover:bg-muted/40 text-foreground text-xs font-medium rounded-md transition-colors"
+                    className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 border border-border/30 hover:bg-muted/40 text-foreground text-xs font-medium rounded-lg transition-colors"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -4383,7 +4383,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 {(leadData?.paymentRequests || []).length === 0 ? (
                   <button
                     onClick={() => setShowPaymentModal(true)}
-                    className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 border border-border/30 hover:bg-muted/40 text-foreground text-xs font-medium rounded-md transition-colors"
+                    className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 border border-border/30 hover:bg-muted/40 text-foreground text-xs font-medium rounded-lg transition-colors"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

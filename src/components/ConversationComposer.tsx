@@ -231,7 +231,7 @@ export default function ConversationComposer({
           onDrop={handleDrop}
           className="relative"
         >
-          <div className="flex items-center gap-2 bg-muted/20 border border-border/10 rounded-lg p-2 hover:bg-muted/30 transition-all duration-200 focus-within:ring-2 focus-within:ring-primary/10 focus-within:border-primary/20 focus-within:bg-muted/40">
+          <div className="flex items-center gap-2 bg-muted/30 border border-border/20 rounded-lg p-2 hover:bg-muted/40 transition-all duration-200 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/30 focus-within:bg-muted/50 shadow-sm">
             {/* Image Upload Button */}
             <button
               type="button"
