@@ -73,6 +73,7 @@ export default function NavbarNotifications() {
     notificationCount,
     displayedUnreadCount,
     loading,
+    error,
     markAsRead,
     markAllAsRead,
     deleteNotification,
@@ -452,19 +453,27 @@ export default function NavbarNotifications() {
 
             {/* Notifications List - Improved mobile spacing */}
             <div className="max-h-96 overflow-y-auto p-2 sm:p-3">
-              {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-slate-600"></div>
-                </div>
-              ) : notifications.length === 0 ? (
-                <div className="text-center py-12 px-4">
-                  <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Bell className="w-8 h-8 text-slate-400" />
-                  </div>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">You're all caught up</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Notifications will appear here as your business becomes active.</p>
-                </div>
-              ) : (
+              {(() => {
+                const hasNotifications = notifications.length > 0
+                const showLoading = loading && !hasNotifications
+                const showError = error && !hasNotifications
+                const showEmpty = !loading && !error && !hasNotifications
+                const showList = hasNotifications
+
+                console.log('[NavbarNotifications] Body branch', {
+                  isOpen,
+                  loading,
+                  error,
+                  hasNotifications,
+                  showLoading,
+                  showError,
+                  showEmpty,
+                  showList,
+                })
+
+                return null
+              })()}
+              {notifications.length > 0 ? (
                 <>
                   {(() => {
                     console.log('[NavbarNotifications] Rendering notifications:', {
@@ -600,6 +609,32 @@ export default function NavbarNotifications() {
                     })
                   })}
                 </>
+              ) : loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-slate-600"></div>
+                </div>
+              ) : error ? (
+                <div className="text-center py-12 px-4">
+                  <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <AlertTriangle className="w-8 h-8 text-slate-400" />
+                  </div>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Failed to load notifications</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Please try again</p>
+                  <button
+                    onClick={refreshNotifications}
+                    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : (
+                <div className="text-center py-12 px-4">
+                  <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Bell className="w-8 h-8 text-slate-400" />
+                  </div>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">You're all caught up</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Notifications will appear here as your business becomes active.</p>
+                </div>
               )}
             </div>
 
