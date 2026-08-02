@@ -2521,6 +2521,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         firstOutcome: leadData?.aiCallRecords?.[0]?.outcome,
         firstCallSid: leadData?.aiCallRecords?.[0]?.call_sid,
         intake,
+        conciseRequestTitle: intake.conciseRequestTitle,
+        serviceRequested: intake.serviceRequested,
       })
     }
 
@@ -2537,7 +2539,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     )
 
     return {
-      title: leadReason || `Job for ${leadName || 'Customer'}`,
+      // Use canonical AI request title first, fall back to service requested, then fallback
+      title: intake.conciseRequestTitle || intake.serviceRequested || `Job for ${leadName || 'Customer'}`,
       customer_name: leadName || undefined,
       customer_phone: leadPhone || undefined,
       service_address: leadAddress || undefined,
@@ -2937,12 +2940,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         leadReason,
         leadLocation,
         intake,
+        conciseRequestTitle: intake.conciseRequestTitle,
       })
     }
 
-    // Generate title
-    const title = leadReason
-      ? `${leadReason} - ${leadName}`
+    // Generate title using canonical AI request title first
+    const canonicalTitle = intake.conciseRequestTitle || leadReason
+    const title = canonicalTitle
+      ? `${canonicalTitle} - ${leadName}`
       : `Appointment with ${leadName}`
 
     // Generate comprehensive description
