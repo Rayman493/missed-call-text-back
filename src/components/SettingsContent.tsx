@@ -1171,7 +1171,7 @@ export default function SettingsContent() {
 
             {/* Settings Navigation Tabs - sticky only */}
             <div ref={settingsTabsContainerRef} className="sticky z-40 border-b border-border/50 bg-background py-4 top-0 backdrop-blur-sm" style={{ backgroundColor: 'var(--background)' }}>
-              <nav ref={settingsTabsNavRef} className="flex items-center gap-2 overflow-x-auto custom-scrollbar-horizontal">
+              <nav ref={settingsTabsNavRef} className="flex items-center gap-3 overflow-x-auto custom-scrollbar-horizontal">
                 {settingsSections.map((section) => (
                   <button
                     key={section.id}
@@ -1623,8 +1623,8 @@ export default function SettingsContent() {
                             )}
                           </div>
                           {formBusiness.business_hours_enabled ? (
-                            <div className="text-xs text-slate-600 dark:text-slate-400 space-y-0.5">
-                              <p>Monday–Friday · {formBusiness.business_hours_start || '9:00 AM'}–{formBusiness.business_hours_end || '6:00 PM'}</p>
+                            <div className="text-xs text-slate-600 dark:text-slate-400 space-y-1">
+                              <p className="font-medium text-slate-700 dark:text-slate-300">Monday–Friday · {formBusiness.business_hours_start || '9:00 AM'}–{formBusiness.business_hours_end || '6:00 PM'}</p>
                               <p>{formBusiness.business_hours_timezone === 'America/New_York' ? 'Eastern Time' : formBusiness.business_hours_timezone === 'America/Chicago' ? 'Central Time' : formBusiness.business_hours_timezone === 'America/Denver' ? 'Mountain Time' : formBusiness.business_hours_timezone === 'America/Los_Angeles' ? 'Pacific Time' : formBusiness.business_hours_timezone}</p>
                             </div>
                           ) : (
@@ -1903,12 +1903,9 @@ export default function SettingsContent() {
                       </div>
                       <button
                         onClick={() => setShowFollowUpSettings(true)}
-                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                        className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
                       >
                         Configure
-                        <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
                       </button>
                     </div>
                   </div>
@@ -1933,9 +1930,9 @@ export default function SettingsContent() {
                 
                 {/* Google Calendar & Meet Card */}
                 <div className="border border-border/30 rounded-lg p-4">
-                  <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-start justify-between mb-2">
                     <div className="flex-1 pr-4">
-                      <div className="flex items-center gap-2.5 mb-2">
+                      <div className="flex items-center gap-2.5 mb-1.5">
                         <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24">
                           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                           <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -1951,10 +1948,10 @@ export default function SettingsContent() {
                         )}
                       </div>
                       <p className="text-xs text-slate-600 dark:text-slate-400">
-                        Sync your calendar, create appointments, generate Google Meet links, and access available meeting transcripts and AI summaries.
+                        Sync your calendar and create appointments.
                       </p>
                       {calendarConnected && calendarEmail && (
-                        <p className="text-xs text-slate-500 dark:text-slate-500 mt-1.5">
+                        <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
                           Connected as: {calendarEmail}
                         </p>
                       )}
@@ -1988,14 +1985,6 @@ export default function SettingsContent() {
                       </button>
                     )}
                   </div>
-                  <div className="mt-3">
-                    <div className="flex flex-wrap gap-2">
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200/70 dark:bg-slate-700/70 text-slate-700 dark:text-slate-300">Calendar Sync</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200/70 dark:bg-slate-700/70 text-slate-700 dark:text-slate-300">Appointment Creation</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200/70 dark:bg-slate-700/70 text-slate-700 dark:text-slate-300">Google Meet</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200/70 dark:bg-slate-700/70 text-slate-700 dark:text-slate-300">Meeting Transcripts</span>
-                    </div>
-                  </div>
                 </div>
               </div>
 
@@ -2016,9 +2005,9 @@ export default function SettingsContent() {
                 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                   <div className="flex flex-col h-full border border-border/30 rounded-lg p-4">
-                    <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+                    <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-4 mb-3">
                       <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <div className="flex flex-wrap items-center gap-2 mb-1.5">
                           <svg className="w-6 h-6 sm:w-7 sm:h-7 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                           </svg>
@@ -2116,7 +2105,7 @@ export default function SettingsContent() {
 
                   <div className="flex flex-col h-full p-3 sm:p-4 rounded-md border border-border/30">
                     <div className="flex-1">
-                      <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
                         <svg className="w-6 h-6 sm:w-7 sm:h-7 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                         </svg>
@@ -2137,9 +2126,6 @@ export default function SettingsContent() {
                       </p>
                     </div>
                     <div className="mt-auto">
-                      <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
-                        Venmo Username
-                      </label>
                       <input
                         type="text"
                         value={formBusiness.venmo_username || ''}
@@ -2147,15 +2133,15 @@ export default function SettingsContent() {
                         placeholder="joesplumbing"
                         className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all duration-150 text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
                       />
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
-                        With or without @.
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        With or without @
                       </p>
                     </div>
                   </div>
 
                   <div className="flex flex-col h-full p-3 sm:p-4 rounded-md border border-border/30">
                     <div className="flex-1">
-                      <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
                         <svg className="w-6 h-6 sm:w-7 sm:h-7 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                           <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106z"/>
                         </svg>
@@ -2176,9 +2162,6 @@ export default function SettingsContent() {
                       </p>
                     </div>
                     <div className="mt-auto">
-                      <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
-                        Your PayPal.Me Link
-                      </label>
                       <input
                         type="text"
                         value={formBusiness.paypal_payment_link || ''}
@@ -2186,7 +2169,7 @@ export default function SettingsContent() {
                         placeholder="https://paypal.me/yourbusiness"
                         className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all duration-150 text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
                       />
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                         Example: https://paypal.me/joesplumbing
                       </p>
                     </div>
