@@ -30,6 +30,7 @@ interface RequestPaymentModalProps {
   onPaymentCreated?: () => void
   prefillLeadId?: string
   prefillDescription?: string
+  onShowToast?: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void
 }
 
 export default function RequestPaymentModal({
@@ -39,6 +40,7 @@ export default function RequestPaymentModal({
   onPaymentCreated,
   prefillLeadId,
   prefillDescription,
+  onShowToast,
 }: RequestPaymentModalProps) {
   const [recipientType, setRecipientType] = useState<'lead' | 'manual'>('lead')
   const [selectedLeadId, setSelectedLeadId] = useState('')
@@ -317,7 +319,9 @@ export default function RequestPaymentModal({
       setPaymentAmount('')
       setPaymentDescription('')
       setPaymentProvider('stripe')
-      
+
+      onShowToast?.('Payment request sent successfully', 'success')
+
       // Notify parent that payment was created
       if (onPaymentCreated) {
         onPaymentCreated()

@@ -49,6 +49,7 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
     type: 'success',
     isVisible: false
   })
+  const [togglingTaskIds, setTogglingTaskIds] = useState<Set<string>>(new Set())
   const router = useRouter()
   const supabase = createBrowserClient()
 
@@ -92,11 +93,35 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
   }, [isLoading])
 
   const toggleTaskComplete = async (taskId: string, completed: boolean) => {
+    // Prevent duplicate toggles
+    if (togglingTaskIds.has(taskId)) return
+
+    const newCompletedState = !completed
+
+    // Optimistic UI update
+    setTasks(prev => prev.map(t =>
+      t.id === taskId
+        ? { ...t, completed: newCompletedState, completed_at: newCompletedState ? new Date().toISOString() : null }
+        : t
+    ))
+
+    // Add to loading state
+    setTogglingTaskIds(prev => new Set(prev).add(taskId))
+
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
 
-      if (!token) return
+      if (!token) {
+        // Revert on auth error
+        setTasks(prev => prev.map(t =>
+          t.id === taskId
+            ? { ...t, completed, completed_at: completed ? t.completed_at : null }
+            : t
+        ))
+        showToast('Authentication error. Please try again.', 'error')
+        return
+      }
 
       const response = await fetch(`/api/tasks/${taskId}`, {
         method: 'PATCH',
@@ -104,18 +129,37 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ completed: !completed }),
+        body: JSON.stringify({ completed: newCompletedState }),
       })
 
-      if (!response.ok) return
+      if (!response.ok) {
+        // Revert on API error
+        setTasks(prev => prev.map(t =>
+          t.id === taskId
+            ? { ...t, completed, completed_at: completed ? t.completed_at : null }
+            : t
+        ))
+        showToast('Failed to update task. Please try again.', 'error')
+        return
+      }
 
-      setTasks(prev => prev.map(t => 
-        t.id === taskId 
-          ? { ...t, completed: !completed, completed_at: !completed ? new Date().toISOString() : null }
-          : t
-      ))
+      // Success: keep the optimistic state
     } catch (error) {
       console.error('[TasksTab] Failed to toggle task:', error)
+      // Revert on network error
+      setTasks(prev => prev.map(t =>
+        t.id === taskId
+          ? { ...t, completed, completed_at: completed ? t.completed_at : null }
+          : t
+      ))
+      showToast('Failed to update task. Please try again.', 'error')
+    } finally {
+      // Remove from loading state
+      setTogglingTaskIds(prev => {
+        const next = new Set(prev)
+        next.delete(taskId)
+        return next
+      })
     }
   }
 
@@ -335,7 +379,8 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
               <div className="flex items-start gap-3">
                 <button
                   onClick={() => toggleTaskComplete(task.id, task.completed)}
-                  className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded border-2 transition-colors flex items-center justify-center ${
+                  disabled={togglingTaskIds.has(task.id)}
+                  className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded border-2 transition-all flex items-center justify-center ${
                     task.completed
                       ? 'border-green-500 bg-green-500'
                       : isOverdue(task.due_date)
@@ -343,6 +388,8 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
                         : isFuture(task.due_date)
                           ? 'border-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/30'
                           : 'border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-blue-400'
+                  } ${togglingTaskIds.has(task.id) ? 'opacity-50 cursor-not-allowed' : ''} ${
+                    togglingTaskIds.has(task.id) ? 'scale-95' : 'hover:scale-105'
                   }`}
                 >
                   {task.completed && (
@@ -417,10 +464,8 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
         onTaskCreated={(isNew) => {
           fetchTasks()
           setIsNewTaskModalOpen(false)
-          if (isNew) {
-            showToast('Task created')
-          }
         }}
+        onShowToast={showToast}
       />
 
       {/* Edit Task Modal */}
@@ -431,11 +476,9 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
           onTaskCreated={(isNew) => {
             fetchTasks()
             setEditingTask(null)
-            if (!isNew) {
-              showToast('Task updated')
-            }
           }}
           taskToEdit={editingTask}
+          onShowToast={showToast}
         />
       )}
 

@@ -1765,10 +1765,11 @@ export default function SchedulePage() {
                   <NewTaskModal
                     isOpen={isNewTaskModalOpen}
                     onClose={() => setIsNewTaskModalOpen(false)}
-                    onTaskCreated={() => {
+                    onTaskCreated={(isNew) => {
                       // Refresh tasks in TodayCommandCenter
                       // This will be handled by the component's internal fetch
                     }}
+                    onShowToast={showToast}
                   />
 
                   {/* New Appointment Modal */}

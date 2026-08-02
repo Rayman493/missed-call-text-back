@@ -5,6 +5,7 @@ import { X, Calendar, Briefcase, User } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import DatePicker from '@/components/ui/DatePicker'
 import TimePicker from '@/components/ui/TimePicker'
+import SelectPicker from '@/components/ui/SelectPicker'
 import { getLeadDisplayName } from '@/lib/utils'
 
 interface Task {
@@ -24,6 +25,7 @@ interface NewTaskModalProps {
   onClose: () => void
   onTaskCreated: (isNew?: boolean) => void
   taskToEdit?: Task | null
+  onShowToast?: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void
 }
 
 interface Lead {
@@ -38,7 +40,7 @@ interface Job {
   customer_name: string | null
 }
 
-export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdit }: NewTaskModalProps) {
+export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdit, onShowToast }: NewTaskModalProps) {
   const [title, setTitle] = useState('')
   const [notes, setNotes] = useState('')
   const [dueDate, setDueDate] = useState('')
@@ -128,7 +130,10 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
 
-      if (!token) return
+      if (!token) {
+        onShowToast?.('Authentication error. Please try again.', 'error')
+        return
+      }
 
       const url = taskToEdit ? `/api/tasks/${taskToEdit.id}` : '/api/tasks'
       const method = taskToEdit ? 'PATCH' : 'POST'
@@ -154,10 +159,12 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
         throw new Error(error.error || 'Failed to save task')
       }
 
+      onShowToast?.(taskToEdit ? 'Task updated successfully' : 'Task created successfully', 'success')
       onTaskCreated(!taskToEdit)
       handleClose()
     } catch (error) {
       console.error('[NewTaskModal] Failed to save task:', error)
+      onShowToast?.('Failed to save task. Please try again.', 'error')
     } finally {
       setIsSaving(false)
     }
@@ -276,41 +283,34 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
-              Customer (Optional)
-            </label>
-            <select
-              value={selectedLeadId || ''}
-              onChange={(e) => setSelectedLeadId(e.target.value || null)}
-              className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white dark:bg-slate-800 text-slate-900 dark:text-foreground"
-            >
-              <option value="">No customer</option>
-              {leads.map(lead => (
-                <option key={lead.id} value={lead.id}>
-                  {getLeadName(lead)}
-                </option>
-              ))}
-            </select>
-          </div>
+          <SelectPicker
+            value={selectedLeadId}
+            onChange={setSelectedLeadId}
+            options={[
+              { value: '', label: 'No customer' },
+              ...leads.map(lead => ({ value: lead.id, label: getLeadName(lead) }))
+            ]}
+            placeholder="No customer"
+            label="Customer (Optional)"
+            searchable={leads.length > 10}
+            emptyMessage="No customers available"
+          />
 
-          <div>
-            <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
-              Job (Optional)
-            </label>
-            <select
-              value={selectedJobId || ''}
-              onChange={(e) => setSelectedJobId(e.target.value || null)}
-              className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white dark:bg-slate-800 text-slate-900 dark:text-foreground"
-            >
-              <option value="">No job</option>
-              {jobs.map(job => (
-                <option key={job.id} value={job.id}>
-                  {job.title} {job.customer_name ? `- ${job.customer_name}` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
+          <SelectPicker
+            value={selectedJobId}
+            onChange={setSelectedJobId}
+            options={[
+              { value: '', label: 'No job' },
+              ...jobs.map(job => ({
+                value: job.id,
+                label: job.title + (job.customer_name ? ` - ${job.customer_name}` : '')
+              }))
+            ]}
+            placeholder="No job"
+            label="Job (Optional)"
+            searchable={jobs.length > 10}
+            emptyMessage="No jobs available"
+          />
 
           {/* Completion Toggle - Only in Edit Mode */}
           {taskToEdit && (
