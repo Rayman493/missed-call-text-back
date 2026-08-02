@@ -169,53 +169,187 @@ export const normalizeServiceReason = (text: string | null | undefined): string 
 };
 
 /**
- * Generate a concise service title from the full request text
- * This creates a 2-5 word title case title that describes the service being requested
- * Removes conversational filler, pronouns, and transforms into a headline-style title
+ * Generate a natural work-order style title from the full request text
+ * Extracts the core service/issue and creates a concise, human-readable title
+ * Reads like a subject line of a work order, not a truncated sentence
+ * 
+ * Strategy: Identify the primary service or issue, normalize into a concise title
+ * Prioritizes clarity and natural reading over arbitrary word limits
  * 
  * Examples:
  * - "I would like piano lessons. I would just like to learn the basics." → "Piano Lessons"
  * - "My kitchen sink has been leaking underneath the cabinet." → "Kitchen Sink Leak"
  * - "I need someone to mow my lawn every other week." → "Recurring Lawn Mowing"
+ * - "The air conditioner stopped blowing cold air yesterday." → "Air Conditioner Repair"
+ * - "I need my water heater replaced." → "Water Heater Replacement"
  */
 export const generateCanonicalRequestTitle = (text: string | null | undefined): string => {
   if (!text || text.trim() === '') return 'Not collected';
 
-  const original = text.trim();
-  let title = original;
+  const original = text.trim().toLowerCase();
+  let processed = original;
 
-  // Remove conversational filler and prefixes
-  const fillerPatterns = [
-    /^(?:I would like |I'd like |I want |I need |I'm |I am |Can you |Need help with |Help with )\s*/i,
-    /^(?:And |So |Well |Um |Uh |Yeah )\s*/i,
-    /^(?:I'm calling |I am calling |I'm here for |I'm looking for )\s*(?:for |to |because )/i,
-    /^(?:The reason I'?m calling is )/i,
+  // Remove all conversational prefixes and filler
+  const conversationalPrefixes = [
+    /^i would like /i,
+    /^i'd like /i,
+    /^i want /i,
+    /^i need /i,
+    /^i'm /i,
+    /^i am /i,
+    /^can you /i,
+    /^could you /i,
+    /^can someone /i,
+    /^could someone /i,
+    /^looking for /i,
+    /^hoping to /i,
+    /^wondering if /i,
+    /^i was calling because /i,
+    /^i'?m calling because /i,
+    /^we were hoping /i,
+    /^we'd like /i,
+    /^we want /i,
+    /^we need /i,
+    /^my wife and i /i,
+    /^my husband and i /i,
+    /^someone to /i,
+    /^need help with /i,
+    /^help with /i,
+    /^and /i,
+    /^so /i,
+    /^well /i,
+    /^um /i,
+    /^uh /i,
+    /^yeah /i,
+    /^the reason i'?m calling is /i,
   ];
-  
-  for (const pattern of fillerPatterns) {
-    title = title.replace(pattern, '');
+
+  for (const pattern of conversationalPrefixes) {
+    processed = processed.replace(pattern, '');
   }
 
-  // Remove pronouns and personal references at the start
-  title = title.replace(/^(?:my |our |someone to )\s*/i, '');
+  // Remove pronouns and personal references
+  processed = processed.replace(/^my /i, '');
+  processed = processed.replace(/^our /i, '');
+  processed = processed.replace(/^someone to /i, '');
+  processed = processed.replace(/^somebody to /i, '');
+  processed = processed.replace(/ my /gi, ' ');
+  processed = processed.replace(/ our /gi, ' ');
+  processed = processed.replace(/ me /gi, ' ');
+  processed = processed.replace(/ us /gi, ' ');
 
   // Remove trailing conversational filler
-  title = title.replace(/\s*(?:\.|!|\?|,?\s*(?:please|thanks|thank you))?$/i, '');
+  processed = processed.replace(/[.!?,]*\s*(please|thanks|thank you|asap|as soon as possible|when possible|at your earliest convenience)?\s*$/i, '');
 
-  // Split into words
-  const words = title.split(/\s+/).filter(w => w.length > 0);
+  // Remove common filler words within the sentence
+  const fillerWords = ['a', 'an', 'the', 'to', 'for', 'with', 'by', 'at', 'on', 'in', 'of', 'just', 'really', 'actually', 'basically', 'basically', 'literally'];
+  const words = processed.split(/\s+/).filter(w => w.length > 0 && !fillerWords.includes(w));
 
   if (words.length === 0) return 'Service Request';
 
-  // Take first 2-5 words for the title
-  const titleWords = words.slice(0, Math.min(5, words.length));
+  // Extract core service/action and object
+  // Look for common service patterns
+  const servicePatterns = {
+    repair: /\b(repair|fix|fixed|fixing|broken|not working|stopped working|won't work|doesn't work|leaking|overflowing|clogged|blocked)\b/i,
+    replacement: /\b(replace|replacement|replacing|new|install|installation|installed)\b/i,
+    cleaning: /\b(clean|cleaning|washed|wash|scrubbed|scrub)\b/i,
+    maintenance: /\b(maintain|maintenance|mow|mowing|trim|trimming|cut|cutting|service|servicing)\b/i,
+    installation: /\b(install|installation|installed|set up|setup|mount|mounted)\b/i,
+    inspection: /\b(check|inspect|inspection|look at|examine|diagnose|diagnosis)\b/i,
+    removal: /\b(remove|removal|removed|take out|haul away|dispose)\b/i,
+    lessons: /\b(lesson|lessons|learn|teaching|taught|training|class|classes)\b/i,
+    remodel: /\b(remodel|remodeling|renovate|renovation|upgrade|upgrading)\b/i,
+  };
 
-  // Convert to title case
-  const titleCased = titleWords.map(word => 
+  let serviceType: string | null = null;
+  for (const [type, pattern] of Object.entries(servicePatterns)) {
+    if (pattern.test(processed)) {
+      serviceType = type;
+      break;
+    }
+  }
+
+  // Extract key nouns and verbs for the title
+  const keyWords: string[] = [];
+  const usedIndices = new Set<number>();
+
+  // Priority words (nouns that typically identify the service object)
+  const priorityNouns = [
+    'piano', 'guitar', 'violin', 'drums', 'lessons', 'training', 'class',
+    'kitchen', 'bathroom', 'bedroom', 'house', 'home', 'office', 'basement', 'garage',
+    'sink', 'toilet', 'shower', 'tub', 'faucet', 'pipe', 'drain', 'water', 'sewer',
+    'air', 'conditioner', 'heater', 'furnace', 'boiler', 'hvac', 'ac',
+    'lawn', 'yard', 'grass', 'tree', 'trees', 'bush', 'bushes', 'hedge', 'hedges',
+    'brakes', 'truck', 'car', 'vehicle', 'oil', 'tire', 'tires',
+    'carpet', 'floor', 'windows', 'roof', 'gutter', 'gutters', 'paint',
+    'pool', 'spa', 'hot', 'tub',
+  ];
+
+  // Find priority nouns first
+  words.forEach((word, index) => {
+    if (priorityNouns.includes(word) && !usedIndices.has(index)) {
+      keyWords.push(word);
+      usedIndices.add(index);
+    }
+  });
+
+  // Add remaining meaningful words (verbs, other nouns) up to reasonable limit
+  const meaningfulWords = words.filter((word, index) => 
+    !usedIndices.has(index) && 
+    word.length > 2 &&
+    !fillerWords.includes(word)
+  );
+
+  // Combine priority words with meaningful words, limit to 6 total
+  const titleWords = [...keyWords, ...meaningfulWords].slice(0, 6);
+
+  if (titleWords.length === 0) return 'Service Request';
+
+  // Apply service type normalization if detected
+  let finalTitle = titleWords.join(' ');
+  
+  if (serviceType) {
+    // Normalize common service patterns into standard titles
+    // Only add service type if it's not already implied by the words
+    if (serviceType === 'repair') {
+      if (!finalTitle.includes('repair') && !finalTitle.includes('fix') && !finalTitle.includes('leak') && !finalTitle.includes('broken')) {
+        finalTitle = finalTitle + ' Repair';
+      }
+    } else if (serviceType === 'replacement') {
+      if (!finalTitle.includes('replacement') && !finalTitle.includes('replace') && !finalTitle.includes('new')) {
+        finalTitle = finalTitle + ' Replacement';
+      }
+    } else if (serviceType === 'cleaning') {
+      if (!finalTitle.includes('cleaning') && !finalTitle.includes('clean') && !finalTitle.includes('wash')) {
+        finalTitle = finalTitle + ' Cleaning';
+      }
+    } else if (serviceType === 'maintenance') {
+      if (!finalTitle.includes('maintenance') && !finalTitle.includes('service') && !finalTitle.includes('mow') && !finalTitle.includes('trim')) {
+        finalTitle = finalTitle + ' Maintenance';
+      }
+    } else if (serviceType === 'installation') {
+      if (!finalTitle.includes('installation') && !finalTitle.includes('install') && !finalTitle.includes('set')) {
+        finalTitle = finalTitle + ' Installation';
+      }
+    }
+  }
+
+  // Convert to Title Case
+  const titleCased = finalTitle.split(' ').map(word => 
     word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
   ).join(' ');
 
-  return titleCased;
+  // Final cleanup: ensure title is natural and not truncated
+  // If title ends abruptly, remove the last partial word
+  if (titleCased.length > 3 && !/[.!?,]$/.test(titleCased)) {
+    // Check if the last word seems cut off
+    const lastWord = titleCased.split(' ').pop();
+    if (lastWord && lastWord.length < 3) {
+      titleCased = titleCased.replace(/\s+\w{1,2}$/, '');
+    }
+  }
+
+  return titleCased || 'Service Request';
 };
 
 // Field-specific normalization for addresses
