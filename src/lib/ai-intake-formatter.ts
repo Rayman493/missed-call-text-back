@@ -335,7 +335,7 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
   }
 
   // Convert to Title Case
-  const titleCased = finalTitle.split(' ').map(word => 
+  let titleCased = finalTitle.split(' ').map(word => 
     word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
   ).join(' ');
 
