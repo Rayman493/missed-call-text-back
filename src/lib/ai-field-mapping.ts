@@ -7,6 +7,94 @@
 import { normalizeCustomerName, normalizeServiceReason, normalizeAddress, normalizeTiming, normalizeAdditionalDetails, safeTrimAndCapitalize } from './ai-intake-formatter'
 import { isCompleteAIIntake } from './ai-intake-completion'
 
+/**
+ * Generate a concise request title from AI intake reason
+ * Target: 2-6 meaningful words for use in cards, jobs, tasks, etc.
+ * 
+ * Examples:
+ * - "I need someone to come look at my kitchen sink that's leaking" → "Kitchen Sink Repair"
+ * - "I'm looking for beginner piano lessons for my daughter" → "Beginner Piano Lessons"
+ * - "I need weekly lawn maintenance for my property" → "Weekly Lawn Maintenance"
+ * - "I want to schedule an HVAC tune-up before winter" → "HVAC Tune-Up"
+ * - "I need a bathroom remodel estimate" → "Bathroom Remodel Estimate"
+ */
+export function generateConciseRequestTitle(reasonForCalling: string | undefined | null): string {
+  if (!reasonForCalling || typeof reasonForCalling !== 'string') {
+    return ''
+  }
+
+  // Remove common prefixes
+  const prefixes = [
+    'i need',
+    'i want',
+    'i would like',
+    'i\'m looking for',
+    'i am looking for',
+    'looking for',
+    'need',
+    'want',
+    'would like',
+    'can you help with',
+    'help with',
+    'interested in',
+    'inquiring about',
+    'question about',
+  ]
+  
+  let cleaned = reasonForCalling.toLowerCase().trim()
+  
+  // Remove prefixes
+  for (const prefix of prefixes) {
+    if (cleaned.startsWith(prefix)) {
+      cleaned = cleaned.slice(prefix.length).trim()
+      break
+    }
+  }
+
+  // Remove trailing filler words
+  const suffixes = [
+    'please',
+    'thanks',
+    'thank you',
+    'as soon as possible',
+    'asap',
+    'as soon as you can',
+    'when possible',
+    'at your earliest convenience',
+  ]
+  
+  for (const suffix of suffixes) {
+    if (cleaned.endsWith(suffix)) {
+      cleaned = cleaned.slice(0, -suffix.length).trim()
+    }
+  }
+
+  // Split into words and clean
+  const words = cleaned
+    .replace(/[^\w\s\-]/g, ' ') // Remove special characters except hyphens
+    .split(/\s+/)
+    .filter(word => word.length > 0)
+    .filter(word => {
+      // Remove common filler words
+      const fillerWords = ['a', 'an', 'the', 'to', 'for', 'my', 'our', 'me', 'us', 'someone', 'somebody', 'anyone']
+      return !fillerWords.includes(word.toLowerCase())
+    })
+
+  // Take first 2-6 words for the title
+  const titleWords = words.slice(0, 6)
+  
+  if (titleWords.length === 0) {
+    return ''
+  }
+
+  // Capitalize each word
+  const title = titleWords
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
+
+  return title
+}
+
 // Helper function to detect if a string looks like a phone number
 function looksLikePhoneNumber(text: string): boolean {
   if (!text || typeof text !== 'string') return false;
@@ -289,6 +377,7 @@ export interface LeadAIIntake {
   serviceAddress: string | null
   desiredCompletion: string | null
   callbackTime: string | null
+  conciseRequestTitle: string | null
 }
 
 /**
@@ -353,6 +442,16 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
     return selected;
   };
 
+  // Extract service requested value first for concise title generation
+  const serviceRequestedValue = normalizeServiceReason(traceFieldSelection('serviceRequested', [
+    corrected.serviceRequested,
+    corrected.reason,
+    corrected.reasonForCalling,
+    rawMetadata.serviceRequested,
+    normalized.reasonForCalling,
+    extractedInfoRaw.serviceRequested
+  ], pick));
+
   const result = {
     customerName: normalizeCustomerName(traceFieldSelection('customerName', [
       corrected.name,
@@ -378,14 +477,7 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       extractedInfoRaw.phone,
       extractedInfoRaw.customerPhone
     ),
-    serviceRequested: normalizeServiceReason(traceFieldSelection('serviceRequested', [
-      corrected.serviceRequested,
-      corrected.reason,
-      corrected.reasonForCalling,
-      rawMetadata.serviceRequested,
-      normalized.reasonForCalling,
-      extractedInfoRaw.serviceRequested
-    ], pick)),
+    serviceRequested: serviceRequestedValue,
     additionalDetails: normalizeAdditionalDetails(pick(
       corrected.details,
       corrected.issueDescription,
@@ -420,6 +512,15 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
       normalized.preferredCallbackTime,
       extractedInfoRaw.callbackTime
     )),
+    conciseRequestTitle: generateConciseRequestTitle(
+      serviceRequestedValue ||
+      corrected.serviceRequested ||
+      corrected.reason ||
+      corrected.reasonForCalling ||
+      rawMetadata.serviceRequested ||
+      normalized.reasonForCalling ||
+      extractedInfoRaw.serviceRequested
+    ),
   }
 
   // Development-only trace log

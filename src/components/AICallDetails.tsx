@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatRelativeTime, formatPhoneNumber, sentenceCase } from '@/lib/utils'
-import { MessageCircle, ChevronDown, ChevronUp, Pencil, X, Check, Loader2, User, FileText, MapPin, Calendar, Phone, Sparkles, RefreshCw } from 'lucide-react'
-import { normalizeExtractedInfo, getLeadAIIntake, getAIIntakeStatus } from '@/lib/ai-field-mapping'
+import { MessageCircle, ChevronDown, ChevronUp, Pencil, X, Check, Loader2, User, FileText, MapPin, Calendar, Phone, Sparkles, RefreshCw, Clock, Info } from 'lucide-react'
+import { normalizeExtractedInfo, getLeadAIIntake, getAIIntakeStatus, generateConciseRequestTitle } from '@/lib/ai-field-mapping'
 import { normalizeAITranscript } from '@/lib/transcript-normalization'
 import { normalizeAICallRecord, getHistoryCardTitle, getOutcomeColor as getRecordOutcomeColor, getIntakeBadgeLabel, type NormalizedIntake } from '@/lib/ai-call-record-normalizer'
 import { normalizeCustomerName, normalizeServiceReason, normalizeAdditionalDetails, normalizeAddress, normalizeTiming } from '@/lib/ai-intake-formatter'
@@ -222,13 +222,34 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
   // Unified intake field rendering for both desktop and mobile
   const renderIntakeFields = () => {
+    const intake = getLeadAIIntake(leadData || {})
+    const conciseTitle = intake.conciseRequestTitle || intake.serviceRequested || ''
+
     return (
-      <div className="space-y-3">
+      <div className="space-y-4">
+        {/* Concise Request Title - Prominent in view mode */}
+        {!isEditMode && conciseTitle && (
+          <div className="bg-gradient-to-r from-blue-500/5 to-violet-500/5 border border-blue-500/10 rounded-lg px-4 py-3">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-md bg-blue-500/10 flex items-center justify-center">
+                <FileText className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70 mb-0.5">Request</p>
+                <p className="text-sm font-semibold text-foreground leading-tight">{conciseTitle}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Name */}
         {isEditMode || extractedInfo?.callerName ? (
-          <div className="rounded-lg border border-border/25 bg-background/25 px-3.5 py-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">Name</span>
+          <div className="rounded-lg border border-border/25 bg-background/25 px-4 py-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4 text-muted-foreground" />
+                <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">Customer</span>
+              </div>
               {manualFields.has('callerName') && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
               )}
@@ -238,22 +259,25 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                 type="text"
                 value={editValues.callerName}
                 onChange={(e) => setEditValues({ ...editValues, callerName: e.target.value })}
-                className="w-full px-2.5 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className="w-full px-3 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
                 placeholder="Customer name"
               />
             ) : (
-              <p className="text-sm font-medium leading-relaxed text-foreground">
-                {extractedInfo?.callerName || 'Not provided'}
+              <p className="text-sm font-medium leading-relaxed text-foreground pl-6">
+                {extractedInfo?.callerName || <span className="text-muted-foreground italic">Not provided</span>}
               </p>
             )}
           </div>
         ) : null}
 
-        {/* Request - Combined field */}
+        {/* Request Details - Combined field */}
         {isEditMode || extractedInfo?.reasonForCalling || extractedInfo?.importantDetails || correctedFields?.details ? (
-          <div className="rounded-lg border border-border/25 bg-background/25 px-3.5 py-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">Request</span>
+          <div className="rounded-lg border border-border/25 bg-background/25 px-4 py-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-muted-foreground" />
+                <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">Details</span>
+              </div>
               {(manualFields.has('reasonForCalling') || manualFields.has('importantDetails')) && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
               )}
@@ -279,21 +303,21 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                     importantDetails: parts.slice(1).join('\n\n') || ''
                   });
                 }}
-                className="w-full min-h-[120px] px-2.5 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
+                className="w-full min-h-[120px] px-3 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
                 rows={5}
                 placeholder="What can we help you with? Feel free to include any details."
               />
             ) : (
-              <p className="text-sm font-medium leading-relaxed text-foreground">
+              <p className="text-sm font-medium leading-relaxed text-foreground pl-6">
                 {(() => {
                   const reason = correctedFields?.serviceRequested ? sentenceCase(correctedFields.serviceRequested) : (extractedInfo?.reasonForCalling ? sentenceCase(extractedInfo.reasonForCalling) : '');
                   const details = correctedFields?.details ? sentenceCase(correctedFields.details) : (extractedInfo?.importantDetails ? sentenceCase(extractedInfo.importantDetails) : '');
 
                   // Only concatenate details if it contains a real value (not a placeholder)
                   const isPlaceholder = (text: string) => !text || text === 'Not collected' || text === 'Not Provided' || text === 'Unknown' || text === 'N/A';
-                  const combined = reason && !isPlaceholder(details) ? `${reason}\n\n${details}` : (reason || (!isPlaceholder(details) ? details : 'Not provided'));
+                  const combined = reason && !isPlaceholder(details) ? `${reason}\n\n${details}` : (reason || (!isPlaceholder(details) ? details : <span className="text-muted-foreground italic">Not provided</span>));
 
-                  if (!detailsExpanded && combined.length > 200) {
+                  if (!detailsExpanded && typeof combined === 'string' && combined.length > 200) {
                     return combined.substring(0, 200) + '...';
                   }
                   return combined;
@@ -305,9 +329,12 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
 
         {/* Address - only show for onsite mode or if address is provided */}
         {isEditMode || (requiresServiceAddress && (extractedInfo?.addressOrLocation || correctedFields?.address)) ? (
-          <div className="rounded-lg border border-border/25 bg-background/25 px-3.5 py-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">Address</span>
+          <div className="rounded-lg border border-border/25 bg-background/25 px-4 py-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-muted-foreground" />
+                <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">Address</span>
+              </div>
               {manualFields.has('addressOrLocation') && !isEditMode && (
                 <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
               )}
@@ -316,67 +343,87 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               <textarea
                 value={editValues.addressOrLocation}
                 onChange={(e) => setEditValues({ ...editValues, addressOrLocation: e.target.value })}
-                className="w-full min-h-[48px] px-2.5 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
+                className="w-full min-h-[48px] px-3 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
                 rows={2}
                 placeholder="Service address"
               />
             ) : (
-              <p className="text-sm font-medium leading-relaxed text-foreground">
-                {correctedFields?.address || extractedInfo?.addressOrLocation || 'Not provided'}
+              <p className="text-sm font-medium leading-relaxed text-foreground pl-6">
+                {correctedFields?.address || extractedInfo?.addressOrLocation || <span className="text-muted-foreground italic">Not provided</span>}
               </p>
             )}
           </div>
         ) : null}
 
-        {/* Completion Time */}
-        {isEditMode || extractedInfo?.desiredCompletionTime ? (
-          <div className="rounded-lg border border-border/25 bg-background/25 px-3.5 py-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">Completion Time</span>
-              {manualFields.has('desiredCompletionTime') && !isEditMode && (
-                <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
-              )}
+        {/* Timing Section - Grouped */}
+        {(isEditMode || extractedInfo?.desiredCompletionTime || extractedInfo?.preferredCallbackTime) && (
+          <div className="rounded-lg border border-border/25 bg-background/25 px-4 py-3">
+            <div className="flex items-center gap-2 mb-3">
+              <Clock className="w-4 h-4 text-muted-foreground" />
+              <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">Timing</span>
             </div>
-            {isEditMode ? (
-              <textarea
-                value={editValues.desiredCompletionTime}
-                onChange={(e) => setEditValues({ ...editValues, desiredCompletionTime: e.target.value })}
-                className="w-full min-h-[48px] px-2.5 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
-                rows={2}
-                placeholder="Desired completion"
-              />
-            ) : (
-              <p className="text-sm font-medium leading-relaxed text-foreground">
-                {sentenceCase(extractedInfo.desiredCompletionTime)}
-              </p>
-            )}
-          </div>
-        ) : null}
+            
+            <div className="space-y-3">
+              {/* Completion Time */}
+              {isEditMode || extractedInfo?.desiredCompletionTime ? (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] text-muted-foreground/70">Desired Completion</span>
+                    {manualFields.has('desiredCompletionTime') && !isEditMode && (
+                      <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
+                    )}
+                  </div>
+                  {isEditMode ? (
+                    <textarea
+                      value={editValues.desiredCompletionTime}
+                      onChange={(e) => setEditValues({ ...editValues, desiredCompletionTime: e.target.value })}
+                      className="w-full min-h-[48px] px-3 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
+                      rows={2}
+                      placeholder="Desired completion"
+                    />
+                  ) : (
+                    <p className="text-sm font-medium leading-relaxed text-foreground">
+                      {sentenceCase(extractedInfo.desiredCompletionTime) || <span className="text-muted-foreground italic">Not specified</span>}
+                    </p>
+                  )}
+                </div>
+              ) : null}
 
-        {/* Callback Time */}
-        {isEditMode || extractedInfo?.preferredCallbackTime ? (
-          <div className="rounded-lg border border-border/25 bg-background/25 px-3.5 py-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">Callback Time</span>
-              {manualFields.has('preferredCallbackTime') && !isEditMode && (
-                <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
-              )}
+              {/* Callback Time */}
+              {isEditMode || extractedInfo?.preferredCallbackTime ? (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] text-muted-foreground/70">Preferred Callback</span>
+                    {manualFields.has('preferredCallbackTime') && !isEditMode && (
+                      <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
+                    )}
+                  </div>
+                  {isEditMode ? (
+                    <textarea
+                      value={editValues.preferredCallbackTime}
+                      onChange={(e) => setEditValues({ ...editValues, preferredCallbackTime: e.target.value })}
+                      className="w-full min-h-[48px] px-3 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
+                      rows={2}
+                      placeholder="Best time to call"
+                    />
+                  ) : (
+                    <p className="text-sm font-medium leading-relaxed text-foreground">
+                      {sentenceCase(extractedInfo.preferredCallbackTime) || <span className="text-muted-foreground italic">Not specified</span>}
+                    </p>
+                  )}
+                </div>
+              ) : null}
             </div>
-            {isEditMode ? (
-              <textarea
-                value={editValues.preferredCallbackTime}
-                onChange={(e) => setEditValues({ ...editValues, preferredCallbackTime: e.target.value })}
-                className="w-full min-h-[48px] px-2.5 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
-                rows={2}
-                placeholder="Best time to call"
-              />
-            ) : (
-              <p className="text-sm font-medium leading-relaxed text-foreground">
-                {sentenceCase(extractedInfo.preferredCallbackTime)}
-              </p>
-            )}
           </div>
-        ) : null}
+        )}
+
+        {/* Metadata - Only in view mode */}
+        {!isEditMode && aiCallRecord && (
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground/60 px-2">
+            <Info className="w-3.5 h-3.5" />
+            <span>Captured by AI • {formatRelativeTime(aiCallRecord.created_at)}</span>
+          </div>
+        )}
       </div>
     )
   }
@@ -696,13 +743,13 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           </button>
 
           {fullTranscriptExpanded && (
-            <div className="px-3 pb-3 pt-2 border-t border-border/30">
-              <div className="space-y-2.5 max-h-96 overflow-y-auto">
+            <div className="px-4 pb-4 pt-3 border-t border-border/30">
+              <div className="space-y-4 max-h-96 overflow-y-auto">
                 {(() => {
                   const messages = normalizeAITranscript(selectedRecord.transcript);
                   if (messages.length === 0) {
                     return (
-                      <div className="text-sm text-muted-foreground py-4 text-center">
+                      <div className="text-sm text-muted-foreground py-6 text-center">
                         Full conversation unavailable
                       </div>
                     );
@@ -710,24 +757,24 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                   return messages.map((message, index) => (
                     <div
                       key={message.id || index}
-                      className={`flex gap-2.5 ${message.role === 'assistant' ? 'justify-start' : 'justify-end'}`}
+                      className={`flex gap-3 ${message.role === 'assistant' ? 'justify-start' : 'justify-end'}`}
                     >
                       {message.role === 'assistant' && (
-                        <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0 mt-1">
                           <span className="text-xs">🤖</span>
                         </div>
                       )}
                       <div
-                        className={`max-w-[92%] rounded-lg px-3 py-2 ${
+                        className={`max-w-[90%] rounded-2xl px-4 py-3 ${
                           message.role === 'assistant'
-                            ? 'bg-muted/30 dark:bg-muted/20 text-foreground border border-border/20'
-                            : 'bg-muted/50 dark:bg-muted/30 text-foreground border border-border/30'
+                            ? 'bg-muted/40 dark:bg-muted/30 text-foreground border border-border/20'
+                            : 'bg-primary/5 dark:bg-primary/10 text-foreground border border-primary/20'
                         }`}
                       >
-                        <p className="text-sm leading-relaxed">{message.content}</p>
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
                       </div>
                       {message.role !== 'assistant' && (
-                        <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0 mt-1">
                           <span className="text-xs">👤</span>
                         </div>
                       )}
