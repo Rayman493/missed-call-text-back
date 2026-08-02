@@ -376,25 +376,25 @@ export default function NavbarNotifications() {
                 </div>
               ) : notifications.length === 0 ? (
                 <div className="text-center py-12 px-4">
-                  <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Bell className="w-8 h-8 text-slate-400" />
                   </div>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Everything looks good. No new notifications.</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">New activity will appear here when available.</p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">You're all caught up</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Notifications will appear here as your business becomes active.</p>
                 </div>
               ) : displayedUnreadCount > 0 && notifications.filter(n => !n.read).length === 0 ? (
                 <div className="text-center py-8 px-4">
-                  <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
                     <AlertTriangle className="w-8 h-8 text-amber-600 dark:text-amber-400" />
                   </div>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Notification sync issue</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Showing {displayedUnreadCount} unread but list is empty. Try refreshing.</p>
-                  <button
-                    onClick={refreshNotifications}
-                    className="mt-2 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                  <p className="text-sm font-semibold text-slate-900 dark:text-foreground mb-1">Older notifications unread</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">View all notifications to see older unread items.</p>
+                  <Link
+                    href="/dashboard/notifications"
+                    className="inline-block mt-2 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
                   >
-                    Refresh
-                  </button>
+                    View all notifications
+                  </Link>
                 </div>
               ) : (
                 <>

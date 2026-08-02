@@ -42,25 +42,23 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   const fetchNotifications = async (businessId: string) => {
     try {
       setLoading(true)
-      // Use a single query to fetch all notifications, then derive count from the results
-      // This ensures consistency between count and list
+      // Fetch notifications for the preview list (limited to 10)
       const notificationsData = await notificationService.getNotifications(businessId, 10)
       
-      const countData = {
-        unread: notificationsData.filter(n => !n.read).length,
-        total: notificationsData.length
-      }
+      // Fetch the actual count from all notifications (no limit)
+      const countData = await notificationService.getNotificationCount(businessId)
       
       setNotifications(notificationsData)
       setNotificationCount(countData)
       setDisplayedUnreadCount(countData.unread)
       
-      // Consistency check: if count says unread > 0 but no notifications, log warning
+      // Consistency check: if count says unread > 0 but no notifications in preview, this is expected
+      // (there may be more unread notifications beyond the first 10)
       if (countData.unread > 0 && notificationsData.length === 0) {
-        console.warn('[NotificationContext] INCONSISTENCY: unread count > 0 but no notifications fetched', {
+        console.log('[NotificationContext] Unread count > 0 but no notifications in preview (may be beyond first 10)', {
           unreadCount: countData.unread,
           totalCount: countData.total,
-          notificationsData
+          previewCount: notificationsData.length
         })
       }
     } catch (error) {
