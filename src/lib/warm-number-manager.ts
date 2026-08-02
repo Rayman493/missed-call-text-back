@@ -48,13 +48,30 @@ export function selectExcessNumbersForTrim<T extends { created_at?: string | nul
 }
 
 interface InventoryMetrics {
-  assignedCount: number;
-  availableCount: number;
-  desiredAvailableBuffer: number;
-  desiredTotal: number;
   totalManaged: number;
+  availableCount: number;
+  assignedCount: number;
+  failedCount: number;
+  quarantinedCount: number;
+  desiredTotal: number;
+  desiredAvailableBuffer: number;
   purchaseNeeded: number;
-  excessCount: number;
+}
+
+export interface CleanupResult {
+  success: boolean;
+  partialFailure: boolean;
+  numbersEligible: number;
+  numbersRetired: number;
+  numbersReleased: number;
+  numbersFailed: number;
+  failures: Array<{
+    phoneNumber: string;
+    stage: 'db_update' | 'twilio_release' | 'messaging_service_removal';
+    code?: string;
+    message: string;
+  }>;
+  error?: string;
 }
 
 /**
@@ -188,7 +205,8 @@ export async function getInventoryMetrics(): Promise<InventoryMetrics> {
       desiredTotal: MIN_AVAILABLE_WARM_NUMBERS,
       totalManaged: 0,
       purchaseNeeded: 0,
-      excessCount: 0,
+      failedCount: 0,
+      quarantinedCount: 0,
     };
   }
 
@@ -220,7 +238,8 @@ export async function getInventoryMetrics(): Promise<InventoryMetrics> {
       desiredTotal,
       totalManaged,
       purchaseNeeded,
-      excessCount,
+      failedCount: stats.failedCount,
+      quarantinedCount: stats.quarantinedCount,
     };
   } catch (error) {
     console.error('[INVENTORY] Exception calculating inventory metrics:', error);
@@ -231,7 +250,8 @@ export async function getInventoryMetrics(): Promise<InventoryMetrics> {
       desiredTotal: MIN_AVAILABLE_WARM_NUMBERS,
       totalManaged: 0,
       purchaseNeeded: 0,
-      excessCount: 0,
+      failedCount: 0,
+      quarantinedCount: 0,
     };
   }
 }
@@ -408,7 +428,7 @@ export async function ensureWarmNumberMinimum(): Promise<{ success: boolean; num
 export async function ensureWarmNumberMinimumWith(deps: {
   getInventoryMetrics: typeof getInventoryMetrics,
   getAvailableWarmNumberCount: typeof getAvailableWarmNumberCount,
-  cleanupExcessInventory: typeof cleanupExcessInventory,
+  cleanupExcessInventory: () => Promise<CleanupResult>,
   provisionWarmNumber: typeof provisionWarmNumber,
 }): Promise<{ success: boolean; numbersAdded: number; availableBefore: number; availableAfter: number }> {
   const metrics = await deps.getInventoryMetrics();
@@ -466,7 +486,28 @@ export async function ensureWarmNumberMinimumWith(deps: {
   // using real production path (no-op if already exactly at target post-purchase).
   cleanupExcessInventory()
     .then((cleanupResult) => {
-      console.log('[INVENTORY] Excess inventory cleanup complete:', cleanupResult);
+      if (cleanupResult.success) {
+        if (cleanupResult.partialFailure) {
+          console.error('[INVENTORY] Excess inventory cleanup: PARTIAL FAILURE', {
+            eligible: cleanupResult.numbersEligible,
+            retired: cleanupResult.numbersRetired,
+            released: cleanupResult.numbersReleased,
+            failed: cleanupResult.numbersFailed,
+            failures: cleanupResult.failures
+          });
+        } else {
+          console.log('[INVENTORY] Excess inventory cleanup: SUCCESS', {
+            eligible: cleanupResult.numbersEligible,
+            retired: cleanupResult.numbersRetired,
+            released: cleanupResult.numbersReleased
+          });
+        }
+      } else {
+        console.error('[INVENTORY] Excess inventory cleanup: COMPLETE FAILURE', {
+          error: cleanupResult.error,
+          failures: cleanupResult.failures
+        });
+      }
     })
     .catch((cleanupError) => {
       console.error('[INVENTORY] Excess inventory cleanup failed (non-blocking):', cleanupError);
@@ -1001,6 +1042,80 @@ export async function recycleTwilioNumberToInventory(
 }
 
 /**
+ * Check if an error is transient and should be retried
+ */
+function isTransientError(error: any): boolean {
+  if (!error) return false;
+  
+  const errorMessage = error.message?.toLowerCase() || '';
+  const errorCode = error.code?.toLowerCase() || '';
+  
+  // Network-related transient errors
+  if (errorMessage.includes('fetch failed')) return true;
+  if (errorMessage.includes('und_err_socket')) return true;
+  if (errorMessage.includes('econnreset')) return true;
+  if (errorMessage.includes('connection reset')) return true;
+  if (errorMessage.includes('connection closed')) return true;
+  if (errorMessage.includes('timeout')) return true;
+  if (errorMessage.includes('etimedout')) return true;
+  if (errorMessage.includes('enotfound')) return true;
+  if (errorMessage.includes('econnrefused')) return true;
+  if (errorMessage.includes('network')) return true;
+  
+  // Specific error codes
+  if (errorCode.includes('5')) return true; // 5xx server errors
+  if (errorCode === '503') return true;
+  if (errorCode === '502') return true;
+  if (errorCode === '504') return true;
+  
+  return false;
+}
+
+/**
+ * Sleep for a specified duration
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Execute a function with retry logic for transient errors
+ */
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxAttempts: number = 3,
+  baseDelayMs: number = 1000
+): Promise<{ success: boolean; result?: T; error?: string }> {
+  let lastError: string = '';
+  
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const result = await fn();
+      return { success: true, result };
+    } catch (error: any) {
+      lastError = error.message || String(error);
+      
+      console.error(`[RETRY] Attempt ${attempt}/${maxAttempts} failed:`, lastError);
+      
+      // Don't retry non-transient errors
+      if (!isTransientError(error)) {
+        console.error('[RETRY] Non-transient error, not retrying');
+        break;
+      }
+      
+      // Don't wait after last attempt
+      if (attempt < maxAttempts) {
+        const delay = baseDelayMs * Math.pow(2, attempt - 1); // Exponential backoff
+        console.log(`[RETRY] Waiting ${delay}ms before retry...`);
+        await sleep(delay);
+      }
+    }
+  }
+  
+  return { success: false, error: lastError };
+}
+
+/**
  * Clean up excess inventory by releasing/retiring safe extra unused numbers
  * Only releases numbers that are:
  * - status='available'
@@ -1009,15 +1124,40 @@ export async function recycleTwilioNumberToInventory(
  * - NOT the protected system number
  * - Newest created_at (to release newest first, keep oldest)
  * 
+ * SAFE ORDERING:
+ * 1. Mark as retired in database FIRST
+ * 2. Release from Twilio SECOND
+ * 3. If database update fails, do NOT release from Twilio
+ * 4. Never leave Twilio released while database shows active/available
+ * 
  * Marks numbers as retired in database with detached_at and detached_reason
  * instead of deleting them, for audit trail
  */
-export async function cleanupExcessInventory(): Promise<{ success: boolean; numbersReleased: number; error?: string }> {
+export async function cleanupExcessInventory(): Promise<CleanupResult> {
   console.log('[CLEANUP] ========== START EXCESS INVENTORY CLEANUP ==========');
+
+  const result: CleanupResult = {
+    success: true,
+    partialFailure: false,
+    numbersEligible: 0,
+    numbersRetired: 0,
+    numbersReleased: 0,
+    numbersFailed: 0,
+    failures: []
+  };
 
   if (!supabase) {
     console.error('[CLEANUP] ERROR: Supabase client not configured');
-    return { success: false, numbersReleased: 0, error: 'Supabase client not configured' };
+    return {
+      success: false,
+      partialFailure: false,
+      numbersEligible: 0,
+      numbersRetired: 0,
+      numbersReleased: 0,
+      numbersFailed: 0,
+      failures: [],
+      error: 'Supabase client not configured'
+    };
   }
 
   try {
@@ -1030,7 +1170,15 @@ export async function cleanupExcessInventory(): Promise<{ success: boolean; numb
     
     if (availableCount <= targetAvailable) {
       console.log('[CLEANUP] No excess inventory to clean up');
-      return { success: true, numbersReleased: 0 };
+      return {
+        success: true,
+        partialFailure: false,
+        numbersEligible: 0,
+        numbersRetired: 0,
+        numbersReleased: 0,
+        numbersFailed: 0,
+        failures: []
+      };
     }
 
     const excessCount = availableCount - targetAvailable;
@@ -1054,29 +1202,67 @@ export async function cleanupExcessInventory(): Promise<{ success: boolean; numb
 
     if (fetchError) {
       console.error('[CLEANUP] ERROR: Failed to fetch excess numbers:', fetchError);
-      return { success: false, numbersReleased: 0, error: 'Failed to fetch excess numbers' };
+      return {
+        success: false,
+        partialFailure: false,
+        numbersEligible: 0,
+        numbersRetired: 0,
+        numbersReleased: 0,
+        numbersFailed: 0,
+        failures: [],
+        error: 'Failed to fetch excess numbers'
+      };
     }
 
     if (!healthyNumbers || healthyNumbers.length === 0) {
       console.log('[CLEANUP] No excess numbers found to release');
-      return { success: true, numbersReleased: 0 };
+      return {
+        success: true,
+        partialFailure: false,
+        numbersEligible: 0,
+        numbersRetired: 0,
+        numbersReleased: 0,
+        numbersFailed: 0,
+        failures: []
+      };
     }
 
-    const excessNumbers = selectExcessNumbersForTrim(healthyNumbers, targetAvailable)
+    const excessNumbers = selectExcessNumbersForTrim(healthyNumbers, targetAvailable);
     if (excessNumbers.length === 0) {
       console.log('[CLEANUP] Computed no excess after selection, nothing to release');
-      return { success: true, numbersReleased: 0 };
+      return {
+        success: true,
+        partialFailure: false,
+        numbersEligible: 0,
+        numbersRetired: 0,
+        numbersReleased: 0,
+        numbersFailed: 0,
+        failures: []
+      };
     }
 
+    result.numbersEligible = excessNumbers.length;
     console.log(`[CLEANUP] Found ${excessNumbers.length} excess numbers to potentially release`);
 
-    let numbersReleased = 0;
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
     const authToken = process.env.TWILIO_AUTH_TOKEN;
 
     if (!accountSid || !authToken) {
       console.error('[CLEANUP] ERROR: Missing Twilio credentials');
-      return { success: false, numbersReleased: 0, error: 'Missing Twilio credentials' };
+      return {
+        success: false,
+        partialFailure: false,
+        numbersEligible: result.numbersEligible,
+        numbersRetired: 0,
+        numbersReleased: 0,
+        numbersFailed: result.numbersEligible,
+        failures: excessNumbers.map(n => ({
+          phoneNumber: n.phone_number,
+          stage: 'db_update' as const,
+          message: 'Missing Twilio credentials'
+        })),
+        error: 'Missing Twilio credentials'
+      };
     }
 
     const client = Twilio(accountSid, authToken);
@@ -1106,6 +1292,13 @@ export async function cleanupExcessInventory(): Promise<{ success: boolean; numb
           .single();
         if (refetchError || !latest) {
           console.warn('[CLEANUP] Skipping due to refetch error/missing row');
+          result.numbersFailed++;
+          result.failures.push({
+            phoneNumber: number.phone_number,
+            stage: 'db_update',
+            message: refetchError?.message || 'Row not found'
+          });
+          result.partialFailure = true;
           continue;
         }
         const isHealthy = (
@@ -1119,6 +1312,39 @@ export async function cleanupExcessInventory(): Promise<{ success: boolean; numb
           continue;
         }
 
+        // STEP 1: Mark as retired in database FIRST (safe ordering)
+        // This must succeed before we touch Twilio
+        const updateResult = await retryWithBackoff(async () => {
+          const { error } = await supabase
+            .from('twilio_numbers')
+            .update({
+              status: 'retired',
+              detached_at: new Date().toISOString(),
+              detached_reason: 'excess_inventory_cleanup',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', number.id);
+          
+          if (error) throw error;
+        }, 3, 1000);
+
+        if (!updateResult.success) {
+          console.error(`[CLEANUP] ERROR: Failed to mark as retired in database after retries:`, updateResult.error);
+          result.numbersFailed++;
+          result.failures.push({
+            phoneNumber: number.phone_number,
+            stage: 'db_update',
+            message: updateResult.error || 'Database update failed'
+          });
+          result.partialFailure = true;
+          // CRITICAL: Do NOT proceed to Twilio release if DB update failed
+          continue;
+        }
+
+        console.log(`[CLEANUP] Marked retired in database`);
+        result.numbersRetired++;
+
+        // STEP 2: Only after DB update succeeds, proceed with Twilio release
         // Remove from Messaging Service if attached
         const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
         if (messagingServiceSid) {
@@ -1127,8 +1353,15 @@ export async function cleanupExcessInventory(): Promise<{ success: boolean; numb
               .phoneNumbers(number.twilio_sid)
               .remove();
             console.log(`[CLEANUP] Removed from Messaging Service`);
-          } catch (msError) {
+          } catch (msError: any) {
             console.warn(`[CLEANUP] Failed to remove from Messaging Service (continuing):`, msError);
+            result.failures.push({
+              phoneNumber: number.phone_number,
+              stage: 'messaging_service_removal',
+              code: msError.code,
+              message: msError.message || 'Failed to remove from messaging service'
+            });
+            // Don't fail the entire operation for messaging service removal failure
           }
         }
 
@@ -1136,48 +1369,64 @@ export async function cleanupExcessInventory(): Promise<{ success: boolean; numb
         try {
           await client.incomingPhoneNumbers(number.twilio_sid).remove();
           console.log(`[CLEANUP] Released from Twilio`);
+          result.numbersReleased++;
         } catch (twilioError: any) {
-          // If number is already gone in Twilio, still mark as retired
+          // If number is already gone in Twilio, still count as success (DB is correct)
           if (twilioError.code === 20404 || twilioError.status === 404) {
-            console.log(`[CLEANUP] Number not found in Twilio (already released), marking as retired`);
+            console.log(`[CLEANUP] Number not found in Twilio (already released)`);
+            result.numbersReleased++;
           } else {
             console.error(`[CLEANUP] Failed to release from Twilio:`, twilioError);
-            // Don't mark as retired if release failed and number still exists
-            continue;
+            result.failures.push({
+              phoneNumber: number.phone_number,
+              stage: 'twilio_release',
+              code: twilioError.code,
+              message: twilioError.message || 'Failed to release from Twilio'
+            });
+            result.partialFailure = true;
+            // DB is correct (retired), but Twilio still has the number
+            // This is acceptable - it will be cleaned up later
           }
-        }
-
-        // Mark as retired in database instead of deleting
-        const { error: updateError } = await supabase
-          .from('twilio_numbers')
-          .update({
-            status: 'retired',
-            detached_at: new Date().toISOString(),
-            detached_reason: 'excess_inventory_cleanup',
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', number.id);
-
-        if (updateError) {
-          console.error(`[CLEANUP] ERROR: Failed to mark as retired in database:`, updateError);
-        } else {
-          console.log(`[CLEANUP] Marked retired in database`);
-          numbersReleased++;
         }
       } catch (releaseError: any) {
         console.error(`[CLEANUP] ERROR: Failed to release number ${number.phone_number}:`, releaseError);
-        // Continue with next number
+        result.numbersFailed++;
+        result.failures.push({
+          phoneNumber: number.phone_number,
+          stage: 'db_update',
+          message: releaseError.message || 'Unknown error'
+        });
+        result.partialFailure = true;
       }
     }
 
-    console.log(`[CLEANUP] Released ${numbersReleased} excess numbers`);
+    // Determine overall success
+    result.success = result.numbersFailed === 0 || result.numbersRetired > 0;
+    
+    console.log(`[CLEANUP] Cleanup complete:`, {
+      eligible: result.numbersEligible,
+      retired: result.numbersRetired,
+      released: result.numbersReleased,
+      failed: result.numbersFailed,
+      partialFailure: result.partialFailure
+    });
     console.log('[CLEANUP] ========== END EXCESS INVENTORY CLEANUP ==========');
-    return { success: true, numbersReleased };
+    
+    return result;
 
   } catch (error: any) {
     console.error('[CLEANUP] EXCEPTION: Exception during cleanup');
     console.error('[CLEANUP] EXCEPTION Details:', JSON.stringify(error, null, 2));
     console.error('[CLEANUP] ========== END EXCESS INVENTORY CLEANUP (EXCEPTION) ==========');
-    return { success: false, numbersReleased: 0, error: error.message };
+    return {
+      success: false,
+      partialFailure: false,
+      numbersEligible: 0,
+      numbersRetired: 0,
+      numbersReleased: 0,
+      numbersFailed: 0,
+      failures: [],
+      error: error.message
+    };
   }
 }

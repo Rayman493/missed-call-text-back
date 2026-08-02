@@ -946,7 +946,30 @@ If forwarding does not stop immediately, restart your phone or contact your carr
       const { cleanupExcessInventory } = await import('@/lib/warm-number-manager')
       cleanupExcessInventory()
         .then((cleanupResult) => {
-          console.log('[delete-account] Excess inventory cleanup complete:', cleanupResult)
+          if (cleanupResult.success) {
+            if (cleanupResult.numbersEligible === 0) {
+              console.log('[delete-account] Excess inventory cleanup: nothing eligible for cleanup')
+            } else if (cleanupResult.partialFailure) {
+              console.error('[delete-account] Excess inventory cleanup: PARTIAL FAILURE', {
+                eligible: cleanupResult.numbersEligible,
+                retired: cleanupResult.numbersRetired,
+                released: cleanupResult.numbersReleased,
+                failed: cleanupResult.numbersFailed,
+                failures: cleanupResult.failures
+              })
+            } else {
+              console.log('[delete-account] Excess inventory cleanup: SUCCESS', {
+                eligible: cleanupResult.numbersEligible,
+                retired: cleanupResult.numbersRetired,
+                released: cleanupResult.numbersReleased
+              })
+            }
+          } else {
+            console.error('[delete-account] Excess inventory cleanup: COMPLETE FAILURE', {
+              error: cleanupResult.error,
+              failures: cleanupResult.failures
+            })
+          }
         })
         .catch((cleanupError) => {
           console.error('[delete-account] Excess inventory cleanup failed (non-blocking):', cleanupError)
