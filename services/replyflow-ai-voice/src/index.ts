@@ -8326,10 +8326,44 @@ function handleSimpleModeConnection(ws: WebSocket, req: any) {
       return normalized || 'Not collected';
     };
 
+    // Helper function to generate canonical request title for SMS
+    const generateCanonicalTitle = (text: string | null | undefined): string => {
+      if (!text || text.trim() === '') return 'Not collected';
+      
+      const original = text.trim().toLowerCase();
+      let processed = original;
+      
+      // Remove conversational prefixes
+      const prefixes = [
+        /^i would like /i,
+        /^i'd like /i,
+        /^i want /i,
+        /^i need /i,
+        /^i'?m /i,
+        /^i am /i,
+        /^looking for /i,
+        /^need help with /i,
+        /^help with /i,
+      ];
+      
+      for (const pattern of prefixes) {
+        processed = processed.replace(pattern, '');
+      }
+      
+      // Extract key service words (simple heuristic for canonical title)
+      const words = processed.split(/\s+/).filter(w => w.length > 0);
+      if (words.length === 0) return 'Not collected';
+      
+      // Take first 3-5 meaningful words
+      const titleWords = words.slice(0, 5);
+      return titleWords.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    };
+
     // Helper function to format AI intake summary (used by SMS and dashboard)
     const formatAiIntakeSummary = (intakeData: any, callerPhone: string, businessName?: string): string => {
       const customerName = sanitizeEnglishIntakeField('customerName', intakeData.customerName || '') || 'Not collected';
       const serviceRequested = sanitizeEnglishIntakeField('serviceRequested', intakeData.serviceRequested || '') || 'Not collected';
+      const canonicalRequest = generateCanonicalTitle(serviceRequested);
       const serviceAddress = sanitizeEnglishIntakeField('serviceAddress', intakeData.serviceAddress || '') || 'Not collected';
       const desiredCompletionTime = sanitizeEnglishIntakeField('desiredCompletion', intakeData.desiredCompletionTime || '') || 'Not collected';
       const callbackTime = sanitizeEnglishIntakeField('callbackTime', intakeData.callbackTime || '') || 'Not collected';
@@ -8350,7 +8384,7 @@ ${customerName}
 ${callerPhone}
 
 🛠️ Service Requested
-${serviceRequested}
+${canonicalRequest}
 
 📍 Service Address
 ${serviceAddress}
