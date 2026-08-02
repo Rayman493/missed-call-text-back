@@ -335,9 +335,19 @@ export default function NavbarNotifications() {
   // UI polish: Get display message with canonical title for AI intake
   const getDisplayMessage = (notification: Notification): string => {
     if (notification.type === 'ai_intake_completed') {
-      // Use canonical title from the message field
-      const canonicalTitle = generateCanonicalRequestTitle(notification.message)
-      return canonicalTitle
+      // Extract the service request from notification data, not the full message
+      const serviceRequested = notification.data?.serviceRequested || 
+                              notification.data?.request || 
+                              notification.data?.reasonForCalling ||
+                              null
+      
+      if (serviceRequested) {
+        const canonicalTitle = generateCanonicalRequestTitle(serviceRequested)
+        return canonicalTitle
+      }
+      
+      // Fallback to message if no service request in data
+      return notification.message || 'No message'
     }
     return notification.message || 'No message'
   }
@@ -372,53 +382,35 @@ export default function NavbarNotifications() {
     thisWeek.setDate(thisWeek.getDate() - 7)
 
     notifications.forEach(notification => {
-      try {
-        const notificationDate = new Date(notification.created_at)
-        
-        if (isNaN(notificationDate.getTime())) {
-          // If date is invalid, put in 'Older' group
-          groups['Older'].push(notification)
-          return
-        }
-        
-        if (notificationDate >= today) {
-          groups['Today'].push(notification)
-        } else if (notificationDate >= yesterday) {
-          groups['Yesterday'].push(notification)
-        } else if (notificationDate >= thisWeek) {
-          groups['Earlier This Week'].push(notification)
-        } else {
-          groups['Older'].push(notification)
-        }
-      } catch (error) {
-        console.error('[NavbarNotifications] Error grouping notification:', error, notification)
+      const notificationDate = new Date(notification.created_at)
+      
+      if (notificationDate >= today) {
+        groups['Today'].push(notification)
+      } else if (notificationDate >= yesterday) {
+        groups['Yesterday'].push(notification)
+      } else if (notificationDate >= thisWeek) {
+        groups['Earlier This Week'].push(notification)
+      } else {
         groups['Older'].push(notification)
       }
     })
 
-    const groupedCount = Object.values(groups).reduce(
-      (total, group) => total + group.length,
-      0
-    )
-    
-    console.log('[NavbarNotifications] Group result', {
+    // Audit: Verify no notifications were lost
+    const totalGrouped = Object.values(groups).reduce((sum, group) => sum + group.length, 0)
+    console.log('[NavbarNotifications] Grouping audit', {
       inputCount: notifications.length,
-      groupedCount,
+      totalGrouped,
       groupSizes: Object.fromEntries(
         Object.entries(groups).map(([name, group]) => [name, group.length])
       ),
+      invariant: totalGrouped === notifications.length
     })
 
     return groups
   } catch (error) {
     console.error('[NavbarNotifications] Error grouping notifications:', error)
-    // Return all notifications in 'Today' group as fallback
-    return {
-      'Today': notifications,
-      'Yesterday': [],
-      'Earlier This Week': [],
-      'Older': []
-    }
+    // Fallback: return all notifications in 'Today' group if grouping fails
+    return { 'Today': notifications, 'Yesterday': [], 'Earlier This Week': [], 'Older': [] }
   }
 }
 
@@ -473,60 +465,77 @@ export default function NavbarNotifications() {
               )}
             </div>
 
-            {/* Notifications List - Phase 3: Add click handlers and navigation */}
+            {/* Notifications List - Phase 4: Restore grouping with audit logging */}
             <div className="max-h-96 overflow-y-auto p-2 sm:p-3">
               {notifications.length > 0 ? (
-                <div className="space-y-1">
-                  {notifications.map((notification) => {
-                    const displayName = getDisplayName(notification)
-                    const displayMessage = getDisplayMessage(notification)
+                (() => {
+                  const groupedNotifications = groupNotificationsByRecency(notifications)
+                  const groupOrder = ['Today', 'Yesterday', 'Earlier This Week', 'Older']
+                  
+                  return groupOrder.map(groupName => {
+                    const groupNotifications = groupedNotifications[groupName]
+                    if (groupNotifications.length === 0) return null
                     
                     return (
-                      <div
-                        key={notification.id}
-                        onClick={() => handleNotificationClick(notification)}
-                        className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-800/50 transition-colors cursor-pointer"
-                      >
-                        {/* Icon */}
-                        <div className={`flex-shrink-0 w-8 h-8 rounded-lg ${getNotificationColor(notification.type)} flex items-center justify-center`}>
-                          {getNotificationIcon(notification.type)}
+                      <div key={groupName} className="mb-4 last:mb-0">
+                        <div className="px-2 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                          {groupName}
                         </div>
-                        
-                        {/* Content */}
-                        <div className="flex-1 min-w-0">
-                          {/* Title */}
-                          <p className="text-sm font-medium text-slate-200 mb-0.5">
-                            {notification.title || 'Notification'}
-                          </p>
-                          
-                          {/* Customer name or phone number (masked for SMS failures) */}
-                          {displayName && (
-                            <p className="text-xs sm:text-sm font-medium text-slate-300 mb-1">
-                              {displayName}
-                            </p>
-                          )}
-                          
-                          {/* Message preview - canonical title for AI intake */}
-                          <p className="text-xs sm:text-sm text-slate-400 truncate">
-                            {displayMessage}
-                          </p>
-                          
-                          {/* Time */}
-                          <p className="text-[10px] sm:text-xs text-slate-500 mt-1">
-                            {formatNotificationTime(notification.created_at)}
-                          </p>
+                        <div className="space-y-1">
+                          {groupNotifications.map((notification) => {
+                            const displayName = getDisplayName(notification)
+                            const displayMessage = getDisplayMessage(notification)
+                            
+                            return (
+                              <div
+                                key={notification.id}
+                                onClick={() => handleNotificationClick(notification)}
+                                className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-800/50 transition-colors cursor-pointer"
+                              >
+                                {/* Icon */}
+                                <div className={`flex-shrink-0 w-8 h-8 rounded-lg ${getNotificationColor(notification.type)} flex items-center justify-center`}>
+                                  {getNotificationIcon(notification.type)}
+                                </div>
+                                
+                                {/* Content */}
+                                <div className="flex-1 min-w-0">
+                                  {/* Title */}
+                                  <p className="text-sm font-medium text-slate-200 mb-0.5">
+                                    {notification.title || 'Notification'}
+                                  </p>
+                                  
+                                  {/* Customer name or phone number (masked for SMS failures) */}
+                                  {displayName && (
+                                    <p className="text-xs sm:text-sm font-medium text-slate-300 mb-1">
+                                      {displayName}
+                                    </p>
+                                  )}
+                                  
+                                  {/* Message preview - canonical title for AI intake */}
+                                  <p className="text-xs sm:text-sm text-slate-400 truncate">
+                                    {displayMessage}
+                                  </p>
+                                  
+                                  {/* Time */}
+                                  <p className="text-[10px] sm:text-xs text-slate-500 mt-1">
+                                    {formatNotificationTime(notification.created_at)}
+                                  </p>
+                                </div>
+                                
+                                {/* Unread indicator dot */}
+                                {!notification.read && (
+                                  <div className="flex-shrink-0 mt-1">
+                                    <div className={`w-2 h-2 rounded-full ${getNotificationDotColor(notification.type)}`}></div>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
                         </div>
-                        
-                        {/* Unread indicator dot */}
-                        {!notification.read && (
-                          <div className="flex-shrink-0 mt-1">
-                            <div className={`w-2 h-2 rounded-full ${getNotificationDotColor(notification.type)}`}></div>
-                          </div>
-                        )}
                       </div>
                     )
-                  })}
-                </div>
+                  })
+                })()
               ) : loading ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-slate-600"></div>
