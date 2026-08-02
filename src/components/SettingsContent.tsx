@@ -115,6 +115,16 @@ export default function SettingsContent() {
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [passwordError, setPasswordError] = useState('')
 
+  // Change email modal state
+  const [showChangeEmailModal, setShowChangeEmailModal] = useState(false)
+  const [newEmail, setNewEmail] = useState('')
+  const [confirmNewEmail, setConfirmNewEmail] = useState('')
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [isChangingEmail, setIsChangingEmail] = useState(false)
+  const [emailError, setEmailError] = useState('')
+  const [emailSuccess, setEmailSuccess] = useState(false)
+  const [pendingNewEmail, setPendingNewEmail] = useState<string | null>(null)
+
   // Handle Sending Number change with Business Number confirmation
   const handleSendingSourceChange = async (source: SendingSource) => {
     if (source === 'business') {
@@ -173,7 +183,7 @@ export default function SettingsContent() {
 
   const supabase = createBrowserClient()
 
-  useBodyScrollLock(showAddModal || showDeleteModal || showChangePasswordModal || showFollowUpSettings)
+  useBodyScrollLock(showAddModal || showDeleteModal || showChangePasswordModal || showChangeEmailModal || showFollowUpSettings)
 
   // Time input refs for better UX
   const openTimeInputRef = useRef<HTMLInputElement>(null)
@@ -906,6 +916,116 @@ export default function SettingsContent() {
       showToast('Failed to delete account. Please try again.', 'error')
       setIsDeleting(false)
     }
+  }
+
+  // Change email handler
+  const handleChangeEmail = async () => {
+    if (!newEmail || !confirmNewEmail || !currentPassword) {
+      setEmailError('Please fill in all fields')
+      return
+    }
+
+    if (newEmail !== confirmNewEmail) {
+      setEmailError('Email addresses do not match')
+      return
+    }
+
+    if (newEmail === user?.email) {
+      setEmailError('New email must be different from current email')
+      return
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(newEmail)) {
+      setEmailError('Invalid email format')
+      return
+    }
+
+    setIsChangingEmail(true)
+    setEmailError('')
+    setEmailSuccess(false)
+
+    try {
+      // Verify current password by re-authenticating
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user?.email || '',
+        password: currentPassword,
+      })
+
+      if (signInError) {
+        setEmailError('Current password is incorrect')
+        setIsChangingEmail(false)
+        return
+      }
+
+      // Update email using Supabase Auth
+      const { error: updateError } = await supabase.auth.updateUser({
+        email: newEmail,
+      })
+
+      if (updateError) {
+        console.error('[Settings] Email update error:', updateError)
+        
+        if (updateError.message?.toLowerCase().includes('duplicate') || 
+            updateError.message?.toLowerCase().includes('already been registered') ||
+            updateError.message?.toLowerCase().includes('already in use')) {
+          setEmailError('This email is already in use')
+        } else {
+          setEmailError(updateError.message || 'Failed to update email')
+        }
+        setIsChangingEmail(false)
+        return
+      }
+
+      // Success - email change initiated
+      setEmailSuccess(true)
+      setPendingNewEmail(newEmail)
+      showToast('Check your new inbox to confirm the email change', 'info')
+      
+      // Clear form
+      setNewEmail('')
+      setConfirmNewEmail('')
+      setCurrentPassword('')
+      
+      // Close modal after delay
+      setTimeout(() => {
+        setShowChangeEmailModal(false)
+        setEmailSuccess(false)
+      }, 3000)
+    } catch (error) {
+      console.error('[Settings] Email change error:', error)
+      setEmailError('Failed to update email. Please try again.')
+    } finally {
+      setIsChangingEmail(false)
+    }
+  }
+
+  const handleResendConfirmation = async () => {
+    if (!pendingNewEmail) return
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        email: pendingNewEmail,
+      })
+
+      if (error) {
+        showToast('Failed to resend confirmation. Please try again.', 'error')
+      } else {
+        showToast('Confirmation email resent to ' + pendingNewEmail, 'success')
+      }
+    } catch (error) {
+      console.error('[Settings] Resend confirmation error:', error)
+      showToast('Failed to resend confirmation. Please try again.', 'error')
+    }
+  }
+
+  const handleCloseChangeEmailModal = () => {
+    setShowChangeEmailModal(false)
+    setNewEmail('')
+    setConfirmNewEmail('')
+    setCurrentPassword('')
+    setEmailError('')
+    setEmailSuccess(false)
   }
 
   // Fetch ignored contacts when business loads and user is authenticated
@@ -2319,14 +2439,50 @@ export default function SettingsContent() {
                   <p className="text-sm text-muted-foreground leading-relaxed">Your account details and status.</p>
                 </div>
                 <div className="border border-border/30 rounded-lg overflow-hidden">
-                  {/* Email */}
+                  {/* Login Email */}
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 border-b border-border/20 last:border-b-0">
-                    <div className="flex items-center gap-2.5">
-                      <Mail className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm font-medium text-muted-foreground">Email</span>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2.5">
+                        <Mail className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm font-medium text-muted-foreground">Login Email</span>
+                      </div>
+                      {pendingNewEmail && (
+                        <span className="text-xs text-amber-600 dark:text-amber-400">
+                          Pending confirmation: {pendingNewEmail}
+                        </span>
+                      )}
                     </div>
-                    <span className="text-sm font-semibold text-foreground">{user?.email}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-semibold text-foreground">{user?.email}</span>
+                      <button
+                        onClick={() => setShowChangeEmailModal(true)}
+                        className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
+                      >
+                        Change Email
+                      </button>
+                    </div>
                   </div>
+
+                  {/* Pending Email Confirmation */}
+                  {pendingNewEmail && (
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 border-b border-border/20 last:border-b-0 bg-amber-50 dark:bg-amber-900/20">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2.5">
+                          <Mail className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                          <span className="text-sm font-medium text-amber-800 dark:text-amber-300">Email Change Pending</span>
+                        </div>
+                        <span className="text-xs text-amber-700 dark:text-amber-400">
+                          Check your new inbox to confirm: {pendingNewEmail}
+                        </span>
+                      </div>
+                      <button
+                        onClick={handleResendConfirmation}
+                        className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-amber-100 dark:bg-amber-800 hover:bg-amber-200 dark:hover:bg-amber-700 text-amber-700 dark:text-amber-300"
+                      >
+                        Resend Confirmation
+                      </button>
+                    </div>
+                  )}
 
                   {/* Status */}
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 border-b border-border/20 last:border-b-0">
@@ -2883,6 +3039,117 @@ export default function SettingsContent() {
                       </>
                     ) : (
                       'Update Password'
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Change Email Modal */}
+          {showChangeEmailModal && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+              <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl max-w-md w-full">
+                <div className="p-6 border-b border-slate-200/70 dark:border-slate-700/50">
+                  <h3 className="text-base font-semibold text-slate-900 dark:text-foreground">
+                    Change Login Email
+                  </h3>
+                </div>
+                
+                {emailError && (
+                  <div className="px-6 py-3 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800/50">
+                    <p className="text-xs text-red-600 dark:text-red-400">{emailError}</p>
+                  </div>
+                )}
+
+                <div className="p-6 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
+                      Current Email
+                    </label>
+                    <div className="px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg bg-slate-50 dark:bg-slate-800/40 text-slate-600 dark:text-slate-400 text-sm">
+                      {user?.email}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="newEmail" className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
+                      New Login Email
+                    </label>
+                    <input
+                      id="newEmail"
+                      type="email"
+                      value={newEmail}
+                      onChange={(e) => setNewEmail(e.target.value)}
+                      required
+                      autoComplete="email"
+                      className="w-full px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm"
+                      placeholder="Enter new email"
+                      disabled={isChangingEmail}
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="confirmNewEmail" className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
+                      Confirm New Login Email
+                    </label>
+                    <input
+                      id="confirmNewEmail"
+                      type="email"
+                      value={confirmNewEmail}
+                      onChange={(e) => setConfirmNewEmail(e.target.value)}
+                      required
+                      autoComplete="email"
+                      className="w-full px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm"
+                      placeholder="Confirm new email"
+                      disabled={isChangingEmail}
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="currentPassword" className="block text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
+                      Current Password
+                    </label>
+                    <PasswordInput
+                      id="currentPassword"
+                      name="currentPassword"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      required
+                      autoComplete="current-password"
+                      className="w-full px-3 py-2.5 border border-slate-200/70 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm"
+                      placeholder="Enter current password"
+                      disabled={isChangingEmail}
+                    />
+                  </div>
+
+                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                    <p className="text-xs text-amber-800 dark:text-amber-300">
+                      <strong>Warning:</strong> This changes your login email only. It does not change your business contact email or any other account settings.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 p-4 border-t border-slate-200/70 dark:border-slate-700/50">
+                  <button
+                    onClick={handleCloseChangeEmailModal}
+                    disabled={isChangingEmail}
+                    className="h-11 px-4 text-sm font-medium rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleChangeEmail}
+                    disabled={isChangingEmail || !newEmail.trim() || !confirmNewEmail.trim() || !currentPassword.trim()}
+                    className="h-11 px-4 text-sm font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 hover:bg-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                  >
+                    {isChangingEmail ? (
+                      <>
+                        <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent border-solid inline-block mr-2"></div>
+                        Processing...
+                      </>
+                    ) : (
+                      'Change Email'
                     )}
                   </button>
                 </div>
