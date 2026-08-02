@@ -7,7 +7,7 @@ import AuthGuard from '@/components/AuthGuard'
 import Navigation from '@/components/Navigation'
 import UserDropdown from '@/components/UserDropdown'
 import AppHeader from '@/components/AppHeader'
-import { Copy, Key, Mail, Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react'
+import { Copy, Key, Mail, Eye, EyeOff, CheckCircle, XCircle, RefreshCw } from 'lucide-react'
 
 interface Business {
   id: string
@@ -105,6 +105,18 @@ export default function AdminSupportPage() {
   const [passwordResetError, setPasswordResetError] = useState('')
   const [passwordResetSuccess, setPasswordResetSuccess] = useState(false)
   const [showSecondConfirmation, setShowSecondConfirmation] = useState(false)
+
+  // Change email state
+  const [showChangeEmailModal, setShowChangeEmailModal] = useState(false)
+  const [currentLoginEmail, setCurrentLoginEmail] = useState('')
+  const [newEmail, setNewEmail] = useState('')
+  const [confirmNewEmail, setConfirmNewEmail] = useState('')
+  const [supportReason, setSupportReason] = useState('')
+  const [identityVerified, setIdentityVerified] = useState(false)
+  const [changeEmailLoading, setChangeEmailLoading] = useState(false)
+  const [changeEmailError, setChangeEmailError] = useState('')
+  const [changeEmailSuccess, setChangeEmailSuccess] = useState(false)
+  const [showEmailSecondConfirmation, setShowEmailSecondConfirmation] = useState(false)
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -747,6 +759,129 @@ export default function AdminSupportPage() {
     setShowSecondConfirmation(false)
   }
 
+  const handleResendVerification = async () => {
+    if (!selectedBusiness?.user_id) return
+
+    setChangeEmailLoading(true)
+    setChangeEmailError('')
+    setActionResult(null)
+
+    try {
+      const response = await fetch(`/api/admin/support/users/${selectedBusiness.user_id}/resend-verification`, {
+        method: 'POST',
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setActionResult({ success: true, message: 'Verification email sent successfully' })
+      } else {
+        setActionResult({ success: false, message: data.error || 'Failed to send verification email' })
+      }
+    } catch (error) {
+      setActionResult({ success: false, message: 'Failed to send verification email' })
+    } finally {
+      setChangeEmailLoading(false)
+    }
+  }
+
+  const handleOpenChangeEmailModal = async () => {
+    if (!selectedBusiness?.user_id) return
+
+    setChangeEmailLoading(true)
+    setShowChangeEmailModal(true)
+
+    try {
+      // Fetch current login email from Auth
+      const response = await fetch('/api/admin/support/users/' + selectedBusiness.user_id + '/get-email', {
+        method: 'GET',
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setCurrentLoginEmail(data.email || '')
+      } else {
+        setCurrentLoginEmail('')
+      }
+    } catch (error) {
+      console.error('Failed to fetch current email:', error)
+      setCurrentLoginEmail('')
+    } finally {
+      setChangeEmailLoading(false)
+    }
+
+    setNewEmail('')
+    setConfirmNewEmail('')
+    setSupportReason('')
+    setIdentityVerified(false)
+    setChangeEmailError('')
+    setChangeEmailSuccess(false)
+    setShowEmailSecondConfirmation(false)
+  }
+
+  const handleCloseChangeEmailModal = () => {
+    setShowChangeEmailModal(false)
+    setNewEmail('')
+    setConfirmNewEmail('')
+    setSupportReason('')
+    setIdentityVerified(false)
+    setChangeEmailError('')
+    setChangeEmailSuccess(false)
+    setShowEmailSecondConfirmation(false)
+    setCurrentLoginEmail('')
+  }
+
+  const handleChangeEmail = async () => {
+    if (!selectedBusiness?.user_id) return
+
+    if (!showEmailSecondConfirmation) {
+      setShowEmailSecondConfirmation(true)
+      return
+    }
+
+    setChangeEmailLoading(true)
+    setChangeEmailError('')
+
+    try {
+      const response = await fetch(`/api/admin/support/users/${selectedBusiness.user_id}/change-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          newEmail, 
+          supportReason 
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setChangeEmailSuccess(true)
+        setCurrentLoginEmail(data.newEmail)
+        setActionResult({ success: true, message: 'Login email updated successfully' })
+        setTimeout(() => {
+          setShowChangeEmailModal(false)
+          setChangeEmailSuccess(false)
+          setNewEmail('')
+          setConfirmNewEmail('')
+          setSupportReason('')
+          setIdentityVerified(false)
+          setShowEmailSecondConfirmation(false)
+          // Refresh business data to update search results
+          if (selectedBusiness) {
+            const updatedBusiness = { ...selectedBusiness }
+            setSelectedBusiness(updatedBusiness)
+          }
+        }, 2000)
+      } else {
+        setChangeEmailError(data.error || 'Failed to update email')
+      }
+    } catch (error) {
+      setChangeEmailError('Failed to update email')
+    } finally {
+      setChangeEmailLoading(false)
+    }
+  }
+
   if (loading) {
     return (
       <AuthGuard>
@@ -1232,12 +1367,26 @@ export default function AdminSupportPage() {
                           Reset Password
                         </button>
                         <button
+                          onClick={handleOpenChangeEmailModal}
+                          disabled={actionLoading}
+                          className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Change Login Email
+                        </button>
+                        <button
                           onClick={handleSendRecoveryEmail}
                           disabled={actionLoading || passwordResetLoading}
-                          className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="flex items-center gap-2 px-3 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           <Mail className="w-4 h-4" />
                           Send Recovery Email
+                        </button>
+                        <button
+                          onClick={handleResendVerification}
+                          disabled={actionLoading || changeEmailLoading}
+                          className="flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Resend Verification
                         </button>
                       </div>
 
@@ -1832,6 +1981,166 @@ export default function AdminSupportPage() {
                       </p>
                       <p className="text-sm text-slate-600 dark:text-slate-400">
                         The user can now log in with the new password.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Change Login Email Modal */}
+            {showChangeEmailModal && selectedBusiness && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-xl">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground">
+                      Change Login Email
+                    </h3>
+                    <button
+                      onClick={handleCloseChangeEmailModal}
+                      className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                    >
+                      <XCircle className="w-6 h-6" />
+                    </button>
+                  </div>
+
+                  {!changeEmailSuccess ? (
+                    <div className="space-y-4">
+                      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                        <p className="text-xs text-blue-800 dark:text-blue-300 font-medium">
+                          User ID: {selectedBusiness.user_id.slice(0, 8)}...
+                        </p>
+                        <p className="text-xs text-blue-800 dark:text-blue-300 mt-1">
+                          Current login email: {changeEmailLoading ? 'Loading...' : currentLoginEmail || 'Not available'}
+                        </p>
+                      </div>
+
+                      <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                        <p className="text-xs text-amber-800 dark:text-amber-300">
+                          <strong>Warning:</strong> This changes the customer's login email only. It does NOT create a new account, change the User ID, business, subscription, ReplyFlow number, Twilio provisioning, onboarding status, or customer data.
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                          New Login Email
+                        </label>
+                        <input
+                          type="email"
+                          value={newEmail}
+                          onChange={(e) => setNewEmail(e.target.value)}
+                          className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground"
+                          placeholder="Enter new email"
+                          disabled={changeEmailLoading}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                          Confirm New Login Email
+                        </label>
+                        <input
+                          type="email"
+                          value={confirmNewEmail}
+                          onChange={(e) => setConfirmNewEmail(e.target.value)}
+                          className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground"
+                          placeholder="Confirm new email"
+                          disabled={changeEmailLoading}
+                        />
+                      </div>
+
+                      {newEmail && (
+                        <div className="text-xs space-y-1">
+                          <div className="flex items-center gap-1">
+                            {/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail) ? (
+                              <CheckCircle className="w-3 h-3 text-green-500" />
+                            ) : (
+                              <XCircle className="w-3 h-3 text-red-500" />
+                            )}
+                            <span className={/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail) ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                              Valid email format
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {newEmail === confirmNewEmail && confirmNewEmail ? (
+                              <CheckCircle className="w-3 h-3 text-green-500" />
+                            ) : (
+                              <XCircle className="w-3 h-3 text-red-500" />
+                            )}
+                            <span className={newEmail === confirmNewEmail && confirmNewEmail ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                              Emails match
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                          Support Reason <span className="text-red-500">*</span>
+                        </label>
+                        <textarea
+                          value={supportReason}
+                          onChange={(e) => setSupportReason(e.target.value)}
+                          className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground"
+                          placeholder="Explain why this email change is necessary"
+                          rows={3}
+                          disabled={changeEmailLoading}
+                        />
+                      </div>
+
+                      <div className="flex items-start gap-2">
+                        <input
+                          type="checkbox"
+                          id="identityVerified"
+                          checked={identityVerified}
+                          onChange={(e) => setIdentityVerified(e.target.checked)}
+                          className="mt-1"
+                          disabled={changeEmailLoading}
+                        />
+                        <label htmlFor="identityVerified" className="text-sm text-slate-700 dark:text-slate-300">
+                          I have verified this customer's identity.
+                        </label>
+                      </div>
+
+                      {changeEmailError && (
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                          <p className="text-sm text-red-800 dark:text-red-300">{changeEmailError}</p>
+                        </div>
+                      )}
+
+                      <div className="flex justify-end gap-3 mt-6">
+                        <button
+                          onClick={handleCloseChangeEmailModal}
+                          disabled={changeEmailLoading}
+                          className="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleChangeEmail}
+                          disabled={
+                            changeEmailLoading ||
+                            !newEmail ||
+                            !confirmNewEmail ||
+                            newEmail !== confirmNewEmail ||
+                            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail) ||
+                            !supportReason ||
+                            !identityVerified
+                          }
+                          className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {changeEmailLoading ? 'Processing...' : showEmailSecondConfirmation ? 'Confirm Change' : 'Change Login Email'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-6">
+                      <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                      <p className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">
+                        Login email updated successfully
+                      </p>
+                      <p className="text-sm text-slate-600 dark:text-slate-400">
+                        The customer can now log in with the new email address.
                       </p>
                     </div>
                   )}
