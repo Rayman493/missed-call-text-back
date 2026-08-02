@@ -7,6 +7,7 @@ import AuthGuard from '@/components/AuthGuard'
 import Navigation from '@/components/Navigation'
 import UserDropdown from '@/components/UserDropdown'
 import AppHeader from '@/components/AppHeader'
+import { Copy, Key, Mail, Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react'
 
 interface Business {
   id: string
@@ -93,6 +94,17 @@ export default function AdminSupportPage() {
   // Recent businesses state
   const [recentBusinesses, setRecentBusinesses] = useState<any[]>([])
   const [recentBusinessesLoading, setRecentBusinessesLoading] = useState(true)
+
+  // Password reset state
+  const [showPasswordResetModal, setShowPasswordResetModal] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [passwordResetLoading, setPasswordResetLoading] = useState(false)
+  const [passwordResetError, setPasswordResetError] = useState('')
+  const [passwordResetSuccess, setPasswordResetSuccess] = useState(false)
+  const [showSecondConfirmation, setShowSecondConfirmation] = useState(false)
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -643,6 +655,98 @@ export default function AdminSupportPage() {
     setDeleteConfirmation('')
   }
 
+  const handleCopyUserId = () => {
+    if (selectedBusiness?.user_id) {
+      navigator.clipboard.writeText(selectedBusiness.user_id)
+      setActionResult({ success: true, message: 'User ID copied to clipboard' })
+      setTimeout(() => setActionResult(null), 2000)
+    }
+  }
+
+  const handleSendRecoveryEmail = async () => {
+    if (!selectedBusiness?.user_id) return
+
+    setPasswordResetLoading(true)
+    setPasswordResetError('')
+    setActionResult(null)
+
+    try {
+      const response = await fetch(`/api/admin/support/users/${selectedBusiness.user_id}/send-recovery`, {
+        method: 'POST',
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setActionResult({ success: true, message: 'Recovery email sent successfully' })
+      } else {
+        setActionResult({ success: false, message: data.error || 'Failed to send recovery email' })
+      }
+    } catch (error) {
+      setActionResult({ success: false, message: 'Failed to send recovery email' })
+    } finally {
+      setPasswordResetLoading(false)
+    }
+  }
+
+  const handlePasswordReset = async () => {
+    if (!selectedBusiness?.user_id) return
+
+    if (!showSecondConfirmation) {
+      setShowSecondConfirmation(true)
+      return
+    }
+
+    setPasswordResetLoading(true)
+    setPasswordResetError('')
+
+    try {
+      const response = await fetch(`/api/admin/support/users/${selectedBusiness.user_id}/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: newPassword }),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setPasswordResetSuccess(true)
+        setActionResult({ success: true, message: 'Password updated successfully' })
+        setTimeout(() => {
+          setShowPasswordResetModal(false)
+          setPasswordResetSuccess(false)
+          setNewPassword('')
+          setConfirmPassword('')
+          setShowSecondConfirmation(false)
+        }, 2000)
+      } else {
+        setPasswordResetError(data.error || 'Failed to update password')
+      }
+    } catch (error) {
+      setPasswordResetError('Failed to update password')
+    } finally {
+      setPasswordResetLoading(false)
+    }
+  }
+
+  const handleOpenPasswordResetModal = () => {
+    setShowPasswordResetModal(true)
+    setNewPassword('')
+    setConfirmPassword('')
+    setPasswordResetError('')
+    setPasswordResetSuccess(false)
+    setShowSecondConfirmation(false)
+  }
+
+  const handleClosePasswordResetModal = () => {
+    setShowPasswordResetModal(false)
+    setNewPassword('')
+    setConfirmPassword('')
+    setPasswordResetError('')
+    setPasswordResetSuccess(false)
+    setShowSecondConfirmation(false)
+  }
+
   if (loading) {
     return (
       <AuthGuard>
@@ -1109,6 +1213,34 @@ export default function AdminSupportPage() {
                         </div>
                       </div>
 
+                      {/* Account Actions */}
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={handleCopyUserId}
+                          disabled={actionLoading}
+                          className="flex items-center gap-2 px-3 py-2 bg-slate-600 text-white text-sm font-medium rounded-lg hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <Copy className="w-4 h-4" />
+                          Copy User ID
+                        </button>
+                        <button
+                          onClick={handleOpenPasswordResetModal}
+                          disabled={actionLoading}
+                          className="flex items-center gap-2 px-3 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <Key className="w-4 h-4" />
+                          Reset Password
+                        </button>
+                        <button
+                          onClick={handleSendRecoveryEmail}
+                          disabled={actionLoading || passwordResetLoading}
+                          className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <Mail className="w-4 h-4" />
+                          Send Recovery Email
+                        </button>
+                      </div>
+
                       {/* Billing Section */}
                       <div>
                         <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-3 uppercase tracking-wide">
@@ -1521,6 +1653,188 @@ export default function AdminSupportPage() {
                       {actionLoading ? 'Processing...' : (protectAction === 'protect' ? 'Protect Account' : 'Unprotect Account')}
                     </button>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Password Reset Modal */}
+            {showPasswordResetModal && selectedBusiness && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-xl">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground">
+                      Reset Password
+                    </h3>
+                    <button
+                      onClick={handleClosePasswordResetModal}
+                      className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                    >
+                      <XCircle className="w-6 h-6" />
+                    </button>
+                  </div>
+
+                  {!passwordResetSuccess ? (
+                    <div className="space-y-4">
+                      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                        <p className="text-xs text-blue-800 dark:text-blue-300 font-medium">
+                          Account Email: {selectedBusiness.business_name || 'N/A'}
+                        </p>
+                        <p className="text-xs text-blue-800 dark:text-blue-300 font-mono mt-1">
+                          User ID: {selectedBusiness.user_id.slice(0, 8)}...
+                        </p>
+                      </div>
+
+                      <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                        <p className="text-xs text-amber-800 dark:text-amber-300">
+                          <strong>Warning:</strong> This changes login credentials only. It will not create a new account or alter the business, subscription, phone number, or provisioning state.
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                          New Password
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showPassword ? 'text' : 'password'}
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            className="w-full px-3 py-2 pr-10 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground"
+                            placeholder="Enter new password"
+                            disabled={passwordResetLoading}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                          >
+                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                          Confirm Password
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showConfirmPassword ? 'text' : 'password'}
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            className="w-full px-3 py-2 pr-10 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground"
+                            placeholder="Confirm new password"
+                            disabled={passwordResetLoading}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                          >
+                            {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {newPassword && (
+                        <div className="text-xs space-y-1">
+                          <p className="font-medium text-slate-700 dark:text-slate-300">Password requirements:</p>
+                          <div className="flex items-center gap-1">
+                            {newPassword.length >= 8 ? (
+                              <CheckCircle className="w-3 h-3 text-green-500" />
+                            ) : (
+                              <XCircle className="w-3 h-3 text-red-500" />
+                            )}
+                            <span className={newPassword.length >= 8 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                              At least 8 characters
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {/[A-Z]/.test(newPassword) ? (
+                              <CheckCircle className="w-3 h-3 text-green-500" />
+                            ) : (
+                              <XCircle className="w-3 h-3 text-red-500" />
+                            )}
+                            <span className={/[A-Z]/.test(newPassword) ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                              At least one uppercase letter
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {/[a-z]/.test(newPassword) ? (
+                              <CheckCircle className="w-3 h-3 text-green-500" />
+                            ) : (
+                              <XCircle className="w-3 h-3 text-red-500" />
+                            )}
+                            <span className={/[a-z]/.test(newPassword) ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                              At least one lowercase letter
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {/[0-9]/.test(newPassword) ? (
+                              <CheckCircle className="w-3 h-3 text-green-500" />
+                            ) : (
+                              <XCircle className="w-3 h-3 text-red-500" />
+                            )}
+                            <span className={/[0-9]/.test(newPassword) ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                              At least one number
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {newPassword === confirmPassword && confirmPassword ? (
+                              <CheckCircle className="w-3 h-3 text-green-500" />
+                            ) : (
+                              <XCircle className="w-3 h-3 text-red-500" />
+                            )}
+                            <span className={newPassword === confirmPassword && confirmPassword ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                              Passwords match
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {passwordResetError && (
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                          <p className="text-sm text-red-800 dark:text-red-300">{passwordResetError}</p>
+                        </div>
+                      )}
+
+                      <div className="flex justify-end gap-3 mt-6">
+                        <button
+                          onClick={handleClosePasswordResetModal}
+                          disabled={passwordResetLoading}
+                          className="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handlePasswordReset}
+                          disabled={
+                            passwordResetLoading ||
+                            !newPassword ||
+                            !confirmPassword ||
+                            newPassword !== confirmPassword ||
+                            newPassword.length < 8 ||
+                            !/[A-Z]/.test(newPassword) ||
+                            !/[a-z]/.test(newPassword) ||
+                            !/[0-9]/.test(newPassword)
+                          }
+                          className="px-4 py-2 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {passwordResetLoading ? 'Processing...' : showSecondConfirmation ? 'Confirm Reset' : 'Reset Password'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-6">
+                      <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                      <p className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">
+                        Password updated successfully
+                      </p>
+                      <p className="text-sm text-slate-600 dark:text-slate-400">
+                        The user can now log in with the new password.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
