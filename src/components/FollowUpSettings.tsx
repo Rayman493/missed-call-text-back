@@ -54,6 +54,7 @@ export default function FollowUpSettings({ isOpen, onClose, onSave }: FollowUpSe
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [savedSettings, setSavedSettings] = useState<FollowUpSettings | null>(null)
+  const [expandedFollowUp, setExpandedFollowUp] = useState<number>(1) // First follow-up expanded by default
 
   useEffect(() => {
     if (isOpen) {
@@ -278,6 +279,22 @@ export default function FollowUpSettings({ isOpen, onClose, onSave }: FollowUpSe
                 </div>
               </div>
 
+              {/* Sequence Overview */}
+              <div className="bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-900/50 dark:to-slate-800/30 border border-slate-200/60 dark:border-slate-700/50 rounded-xl p-3 shadow-sm">
+                <h4 className="text-xs font-semibold text-foreground mb-2 uppercase tracking-wider">Follow-Up Sequence</h4>
+                <div className="space-y-1.5">
+                  {settings.followUps.filter(fu => fu.enabled).map((followUp) => (
+                    <div key={followUp.step} className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
+                      <span className="font-medium w-16">Day {followUp.delayDays}</span>
+                      <span>{getFollowUpName(followUp.step)}</span>
+                    </div>
+                  ))}
+                  {settings.followUps.filter(fu => fu.enabled).length === 0 && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400 italic">No follow-ups enabled</p>
+                  )}
+                </div>
+              </div>
+
               {/* Error Message */}
               {error && (
                 <div className="bg-red-50/90 dark:bg-red-900/20 border border-red-200/70 dark:border-red-800/50 rounded-xl p-3 shadow-sm">
@@ -295,83 +312,120 @@ export default function FollowUpSettings({ isOpen, onClose, onSave }: FollowUpSe
                 </div>
                 <div className="space-y-3">
                   {settings.followUps.map((followUp) => (
-                    <div key={followUp.step} className="bg-white dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-700/40 rounded-xl p-4 shadow-sm">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <button
-                            onClick={() => updateFollowUp(followUp.step, { enabled: !followUp.enabled })}
-                            className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200 ${
-                              followUp.enabled ? 'bg-blue-600 shadow-lg shadow-blue-600/30' : 'bg-slate-200 dark:bg-slate-700'
-                            }`}
-                            aria-label={followUp.enabled ? `Disable ${getFollowUpName(followUp.step)}` : `Enable ${getFollowUpName(followUp.step)}`}
-                          >
-                            <span
-                              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${
-                                followUp.enabled ? 'translate-x-6' : 'translate-x-0.5'
+                    <div key={followUp.step} className="bg-white dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-700/40 rounded-xl shadow-sm overflow-hidden">
+                      {/* Collapsed Header */}
+                      <div 
+                        className="p-4 cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors"
+                        onClick={() => setExpandedFollowUp(expandedFollowUp === followUp.step ? null : followUp.step)}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                updateFollowUp(followUp.step, { enabled: !followUp.enabled })
+                              }}
+                              className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors duration-200 ${
+                                followUp.enabled ? 'bg-blue-600 shadow-lg shadow-blue-600/30' : 'bg-slate-200 dark:bg-slate-700'
                               }`}
-                            />
-                          </button>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="text-sm font-medium text-foreground leading-tight">{getFollowUpName(followUp.step)}</h4>
-                            <div className="flex items-center gap-2 mt-2">
-                              <span className="text-xs text-muted-foreground">Send after</span>
-                              <div className="flex items-center gap-1.5">
-                                <input
-                                  type="number"
-                                  min="1"
-                                  max={followUp.delayUnit === 'minutes' ? 60 : followUp.delayUnit === 'hours' ? 24 : 30}
-                                  value={followUp.delayDays}
-                                  onChange={(e) => updateFollowUpDelay(followUp.step, e.target.value)}
-                                  onBlur={() => normalizeFollowUpDelay(followUp.step)}
-                                  className="w-16 px-2.5 py-1.5 border border-slate-200/60 dark:border-slate-700/50 rounded-lg bg-white dark:bg-slate-800/50 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/40 text-center font-medium shadow-sm"
-                                  disabled={!followUp.enabled}
-                                />
-                                <select
-                                  value={followUp.delayUnit}
-                                  onChange={(e) => updateFollowUp(followUp.step, { delayUnit: e.target.value as 'minutes' | 'hours' | 'days' })}
-                                  className="px-2.5 py-1.5 border border-slate-200/60 dark:border-slate-700/50 rounded-lg bg-white dark:bg-slate-800/50 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/40 font-medium shadow-sm"
-                                  disabled={!followUp.enabled}
-                                >
-                                  <option value="minutes">minutes</option>
-                                  <option value="hours">hours</option>
-                                  <option value="days">days</option>
-                                </select>
-                              </div>
+                              aria-label={followUp.enabled ? `Disable ${getFollowUpName(followUp.step)}` : `Enable ${getFollowUpName(followUp.step)}`}
+                            >
+                              <span
+                                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                                  followUp.enabled ? 'translate-x-6' : 'translate-x-0.5'
+                                }`}
+                              />
+                            </button>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-sm font-medium text-foreground leading-tight">{getFollowUpName(followUp.step)}</h4>
+                              {expandedFollowUp !== followUp.step && (
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className="text-xs text-muted-foreground">
+                                    {followUp.enabled ? `Send after ${followUp.delayDays} ${followUp.delayUnit}` : 'Disabled'}
+                                  </span>
+                                  {followUp.enabled && followUp.message && (
+                                    <span className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[200px]">
+                                      "{followUp.message.substring(0, 50)}{followUp.message.length > 50 ? '...' : ''}"
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
+                          <svg 
+                            className={`w-4 h-4 text-slate-400 transition-transform duration-200 flex-shrink-0 ml-2 ${
+                              expandedFollowUp === followUp.step ? 'rotate-180' : ''
+                            }`} 
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
                         </div>
                       </div>
 
-                      {/* Message Input */}
-                      <div className="mt-3">
-                        <textarea
-                          value={followUp.message}
-                          onChange={(e) => updateFollowUp(followUp.step, { message: e.target.value })}
-                          rows={3}
-                          className="w-full px-3 py-2.5 border border-slate-200/60 dark:border-slate-700/50 rounded-lg bg-white dark:bg-slate-800/50 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/40 resize-none text-sm leading-relaxed shadow-sm"
-                          placeholder="Enter your follow-up message..."
-                          disabled={!followUp.enabled}
-                          autoCapitalize="sentences"
-                          autoCorrect="on"
-                          spellCheck={true}
-                        />
-                        <div className="flex items-center justify-between mt-2">
-                          <p className="text-[11px] text-muted-foreground/70 leading-relaxed">
-                            Use {'{{businessName}}'} as a placeholder
-                          </p>
-                          <p className="text-[11px] text-muted-foreground/60 font-medium">
-                            {followUp.message.length} / 320
-                          </p>
-                        </div>
-                      </div>
+                      {/* Expanded Content */}
+                      {expandedFollowUp === followUp.step && (
+                        <div className="px-4 pb-4 border-t border-slate-200/60 dark:border-slate-700/40">
+                          <div className="flex items-center gap-2 mt-3">
+                            <span className="text-xs text-muted-foreground">Send after</span>
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                type="number"
+                                min="1"
+                                max={followUp.delayUnit === 'minutes' ? 60 : followUp.delayUnit === 'hours' ? 24 : 30}
+                                value={followUp.delayDays}
+                                onChange={(e) => updateFollowUpDelay(followUp.step, e.target.value)}
+                                onBlur={() => normalizeFollowUpDelay(followUp.step)}
+                                className="w-16 px-2.5 py-1.5 border border-slate-200/60 dark:border-slate-700/50 rounded-lg bg-white dark:bg-slate-800/50 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/40 text-center font-medium shadow-sm"
+                                disabled={!followUp.enabled}
+                              />
+                              <select
+                                value={followUp.delayUnit}
+                                onChange={(e) => updateFollowUp(followUp.step, { delayUnit: e.target.value as 'minutes' | 'hours' | 'days' })}
+                                className="px-2.5 py-1.5 border border-slate-200/60 dark:border-slate-700/50 rounded-lg bg-white dark:bg-slate-800/50 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/40 font-medium shadow-sm"
+                                disabled={!followUp.enabled}
+                              >
+                                <option value="minutes">minutes</option>
+                                <option value="hours">hours</option>
+                                <option value="days">days</option>
+                              </select>
+                            </div>
+                          </div>
 
-                      {/* Preview */}
-                      {followUp.enabled && followUp.message && (
-                        <div className="mt-3 p-3 bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/40 rounded-lg">
-                          <p className="text-[11px] text-muted-foreground/60 mb-1.5 font-semibold uppercase tracking-wider">Preview</p>
-                          <p className="text-xs text-muted-foreground/80 italic leading-relaxed">
-                            "{followUp.message.replace('{{businessName}}', 'ReplyFlowHQ')}"
-                          </p>
+                          {/* Message Input */}
+                          <div className="mt-3">
+                            <textarea
+                              value={followUp.message}
+                              onChange={(e) => updateFollowUp(followUp.step, { message: e.target.value })}
+                              rows={3}
+                              className="w-full px-3 py-2.5 border border-slate-200/60 dark:border-slate-700/50 rounded-lg bg-white dark:bg-slate-800/50 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/40 resize-none text-sm leading-relaxed shadow-sm"
+                              placeholder="Enter your follow-up message..."
+                              disabled={!followUp.enabled}
+                              autoCapitalize="sentences"
+                              autoCorrect="on"
+                              spellCheck={true}
+                            />
+                            <div className="flex items-center justify-between mt-2">
+                              <p className="text-[11px] text-muted-foreground/70 leading-relaxed">
+                                Use {'{{businessName}}'} as a placeholder
+                              </p>
+                              <p className="text-[11px] text-muted-foreground/60 font-medium">
+                                {followUp.message.length} / 320
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Preview */}
+                          {followUp.enabled && followUp.message && (
+                            <div className="mt-3 p-3 bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/40 rounded-lg">
+                              <p className="text-[11px] text-muted-foreground/60 mb-1.5 font-semibold uppercase tracking-wider">Preview</p>
+                              <p className="text-xs text-muted-foreground/80 italic leading-relaxed">
+                                "{followUp.message.replace('{{businessName}}', 'ReplyFlowHQ')}"
+                              </p>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

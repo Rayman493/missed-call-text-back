@@ -104,6 +104,10 @@ export default function SettingsContent() {
   // Follow-up settings modal state
   const [showFollowUpSettings, setShowFollowUpSettings] = useState(false)
 
+  // Automation section collapsed/expanded states
+  const [businessHoursExpanded, setBusinessHoursExpanded] = useState(false)
+  const [outOfOfficeExpanded, setOutOfOfficeExpanded] = useState(false)
+
   // Change password modal state
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
   const [newPassword, setNewPassword] = useState('')
@@ -1477,9 +1481,9 @@ export default function SettingsContent() {
                 <div className="space-y-4">
                   {/* Spam & Repeat Call Filtering */}
                   <div className="border border-border/30 rounded-lg p-4">
-                    <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-start justify-between mb-2">
                       <div className="flex-1 pr-4">
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-2 mb-1">
                           <h3 className="text-sm font-semibold text-foreground">Spam & Repeat Filtering</h3>
                         </div>
                         <p className="text-sm text-muted-foreground leading-relaxed">
@@ -1504,11 +1508,11 @@ export default function SettingsContent() {
 
                     {/* Filtering Options - Only show when enabled */}
                     {spamFilteringEnabled && (
-                      <div className="space-y-4 mt-4">
+                      <div className="space-y-3 mt-3">
                         {/* Repeat Call Protection */}
                         <div className="flex items-start justify-between">
                           <div className="flex-1 pr-4">
-                            <div className="flex items-center gap-2 mb-2">
+                            <div className="flex items-center gap-2 mb-1">
                               <h4 className="text-sm font-semibold text-foreground">Prevent duplicate replies</h4>
                             </div>
                             <p className="text-sm text-muted-foreground leading-relaxed">
@@ -1538,7 +1542,7 @@ export default function SettingsContent() {
                         {/* Private/Blocked Numbers */}
                         <div className="flex items-start justify-between">
                           <div className="flex-1 pr-4">
-                            <div className="flex items-center gap-2 mb-2">
+                            <div className="flex items-center gap-2 mb-1">
                               <h4 className="text-sm font-semibold text-foreground">Skip blocked or hidden callers</h4>
                             </div>
                             <p className="text-sm text-muted-foreground">
@@ -1568,7 +1572,7 @@ export default function SettingsContent() {
                         {/* Spam Detection */}
                         <div className="flex items-start justify-between">
                           <div className="flex-1 pr-4">
-                            <div className="flex items-center gap-2 mb-2">
+                            <div className="flex items-center gap-2 mb-1">
                               <h4 className="text-sm font-semibold text-foreground">Skip suspected spam callers</h4>
                             </div>
                             <p className="text-sm text-muted-foreground">
@@ -1600,226 +1604,287 @@ export default function SettingsContent() {
 
                   {/* Business Hours */}
                   <div className="border border-border/30 rounded-lg p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1 pr-4">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-sm font-medium text-foreground">Business Hours</h3>
-                          {formBusiness.business_hours_enabled && (
-                            <span className="text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-2">
-                              <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
-                              Active
-                            </span>
+                    {!businessHoursExpanded ? (
+                      // Collapsed state
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 pr-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="text-sm font-medium text-foreground">Business Hours</h3>
+                            {formBusiness.business_hours_enabled && (
+                              <span className="text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-2">
+                                <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
+                                Active
+                              </span>
+                            )}
+                            {!formBusiness.business_hours_enabled && (
+                              <span className="text-xs px-2 py-0.5 bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded-full font-medium">
+                                Inactive
+                              </span>
+                            )}
+                          </div>
+                          {formBusiness.business_hours_enabled ? (
+                            <div className="text-xs text-slate-600 dark:text-slate-400 space-y-0.5">
+                              <p>Monday–Friday</p>
+                              <p>{formBusiness.business_hours_start || '9:00 AM'}–{formBusiness.business_hours_end || '6:00 PM'}</p>
+                              <p>{formBusiness.business_hours_timezone === 'America/New_York' ? 'Eastern Time' : formBusiness.business_hours_timezone === 'America/Chicago' ? 'Central Time' : formBusiness.business_hours_timezone === 'America/Denver' ? 'Mountain Time' : formBusiness.business_hours_timezone === 'America/Los_Angeles' ? 'Pacific Time' : formBusiness.business_hours_timezone}</p>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-slate-600 dark:text-slate-400">
+                              Business hours not configured.
+                            </p>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground leading-relaxed mb-2">
-                          Send different replies inside and outside business hours.
-                        </p>
+                        <button
+                          onClick={() => setBusinessHoursExpanded(true)}
+                          className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                        >
+                          Edit
+                        </button>
                       </div>
-                      <button
-                        onClick={() => {
-                          updateBusiness({ business_hours_enabled: !formBusiness.business_hours_enabled })
-                        }}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 flex-shrink-0 ${
-                          formBusiness.business_hours_enabled ? 'bg-blue-600' : 'bg-slate-600'
-                        }`}
-                        aria-label={formBusiness.business_hours_enabled ? 'Disable business hours' : 'Enable business hours'}
-                      >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
-                            formBusiness.business_hours_enabled ? 'translate-x-6' : 'translate-x-1'
-                          }`}
-                        />
-                      </button>
-                    </div>
                     
-                    {/* Timezone and Hours Selector */}
-                    {formBusiness.business_hours_enabled && (
-                      <div className="mt-4 space-y-4">
-                        <div>
-                          <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
-                            Timezone
-                          </label>
-                          <select
-                            value={formBusiness.business_hours_timezone || 'America/New_York'}
-                            onChange={(e) => updateBusiness({ business_hours_timezone: e.target.value })}
-                            className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground text-sm"
+                    ) : (
+                      // Expanded state
+                      <>
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1 pr-4">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="text-sm font-medium text-foreground">Business Hours</h3>
+                              {formBusiness.business_hours_enabled && (
+                                <span className="text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-2">
+                                  <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
+                                  Active
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground leading-relaxed mb-2">
+                              Send different replies inside and outside business hours.
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => setBusinessHoursExpanded(false)}
+                            className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
                           >
-                            <option value="America/New_York">Eastern Time (ET)</option>
-                            <option value="America/Chicago">Central Time (CT)</option>
-                            <option value="America/Denver">Mountain Time (MT)</option>
-                            <option value="America/Los_Angeles">Pacific Time (PT)</option>
-                            <option value="America/Anchorage">Alaska Time (AKT)</option>
-                            <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
-                            <option value="America/Phoenix">Arizona Time (MST)</option>
-                          </select>
+                            Done
+                          </button>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        
+                        {/* Timezone and Hours Selector */}
+                        <div className="space-y-4">
                           <div>
                             <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
-                              Open Time
+                              Timezone
                             </label>
-                            <div
-                              onClick={() => {
-                                openTimeInputRef.current?.focus()
-                                if (openTimeInputRef.current && 'showPicker' in openTimeInputRef.current) {
-                                  (openTimeInputRef.current as any).showPicker()
-                                }
-                              }}
-                              className="relative cursor-pointer"
+                            <select
+                              value={formBusiness.business_hours_timezone || 'America/New_York'}
+                              onChange={(e) => updateBusiness({ business_hours_timezone: e.target.value })}
+                              className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground text-sm"
                             >
-                              <input
-                                ref={openTimeInputRef}
-                                type="time"
-                                value={formBusiness.business_hours_start || '09:00'}
-                                onChange={(e) => updateBusiness({ business_hours_start: e.target.value })}
-                                className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground text-sm"
-                              />
+                              <option value="America/New_York">Eastern Time (ET)</option>
+                              <option value="America/Chicago">Central Time (CT)</option>
+                              <option value="America/Denver">Mountain Time (MT)</option>
+                              <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                              <option value="America/Anchorage">Alaska Time (AKT)</option>
+                              <option value="Pacific/Honolulu">Hawaii Time (HST)</option>
+                              <option value="America/Phoenix">Arizona Time (MST)</option>
+                            </select>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
+                                Open Time
+                              </label>
+                              <div
+                                onClick={() => {
+                                  openTimeInputRef.current?.focus()
+                                  if (openTimeInputRef.current && 'showPicker' in openTimeInputRef.current) {
+                                    (openTimeInputRef.current as any).showPicker()
+                                  }
+                                }}
+                                className="relative cursor-pointer"
+                              >
+                                <input
+                                  ref={openTimeInputRef}
+                                  type="time"
+                                  value={formBusiness.business_hours_start || '09:00'}
+                                  onChange={(e) => updateBusiness({ business_hours_start: e.target.value })}
+                                  className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground text-sm"
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
+                                Close Time
+                              </label>
+                              <div
+                                onClick={() => {
+                                  closeTimeInputRef.current?.focus()
+                                  if (closeTimeInputRef.current && 'showPicker' in closeTimeInputRef.current) {
+                                    (closeTimeInputRef.current as any).showPicker()
+                                  }
+                                }}
+                                className="relative cursor-pointer"
+                              >
+                                <input
+                                  ref={closeTimeInputRef}
+                                  type="time"
+                                  value={formBusiness.business_hours_end || '18:00'}
+                                  onChange={(e) => updateBusiness({ business_hours_end: e.target.value })}
+                                  className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground text-sm"
+                                />
+                              </div>
                             </div>
                           </div>
-                          <div>
-                            <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
-                              Close Time
-                            </label>
-                            <div
-                              onClick={() => {
-                                closeTimeInputRef.current?.focus()
-                                if (closeTimeInputRef.current && 'showPicker' in closeTimeInputRef.current) {
-                                  (closeTimeInputRef.current as any).showPicker()
-                                }
-                              }}
-                              className="relative cursor-pointer"
-                            >
-                              <input
-                                ref={closeTimeInputRef}
-                                type="time"
-                                value={formBusiness.business_hours_end || '18:00'}
-                                onChange={(e) => updateBusiness({ business_hours_end: e.target.value })}
-                                className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground text-sm"
-                              />
+                          {formBusiness.business_hours_start && formBusiness.business_hours_end && formBusiness.business_hours_start > formBusiness.business_hours_end && (
+                            <div className="flex items-start gap-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                              <svg className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                              </svg>
+                              <div className="text-xs text-amber-800 dark:text-amber-200">
+                                <span className="font-semibold">Overnight Hours</span> - Hours continue overnight into the next day.
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                        {formBusiness.business_hours_start && formBusiness.business_hours_end && formBusiness.business_hours_start > formBusiness.business_hours_end && (
-                          <div className="flex items-start gap-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                            <svg className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                            </svg>
-                            <div className="text-xs text-amber-800 dark:text-amber-200">
-                              <span className="font-semibold">Overnight Hours</span> - Hours continue overnight into the next day.
-                            </div>
-                          </div>
-                        )}
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          Applies Monday through Friday.
-                        </p>
-                        <div className="mt-4">
-                          <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
-                            After Hours Message
-                          </label>
-                          <textarea
-                            value={formBusiness.after_hours_message || ''}
-                            onChange={(e) => updateBusiness({ after_hours_message: e.target.value })}
-                            rows={2}
-                            className="w-full px-3 py-2 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-200 text-xs sm:text-sm hover:border-border/80 dark:hover:border-border/60 resize-none"
-                          />
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
-                            {`{{business_name}}`} inserts your business name.
+                          )}
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            Applies Monday through Friday.
                           </p>
+                          <div className="mt-4">
+                            <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
+                              After Hours Message
+                            </label>
+                            <textarea
+                              value={formBusiness.after_hours_message || ''}
+                              onChange={(e) => updateBusiness({ after_hours_message: e.target.value })}
+                              rows={2}
+                              className="w-full px-3 py-2 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-200 text-xs sm:text-sm hover:border-border/80 dark:hover:border-border/60 resize-none"
+                            />
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
+                              {`{{business_name}}`} inserts your business name.
+                            </p>
+                          </div>
                         </div>
-                      </div>
+                      </>
                     )}
                   </div>
 
                   {/* Out of Office Mode */}
                   <div className="p-3 sm:p-4 rounded-lg border border-border/30">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 pr-4">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-sm font-medium text-slate-900 dark:text-foreground">Out of Office</h3>
-                          {formBusiness.out_of_office_enabled && (
-                            <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-2">
-                              <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
-                              Active
-                            </span>
+                    {!outOfOfficeExpanded ? (
+                      // Collapsed state
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 pr-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="text-sm font-medium text-slate-900 dark:text-foreground">Out of Office</h3>
+                            {formBusiness.out_of_office_enabled ? (
+                              <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-2">
+                                <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
+                                Active
+                              </span>
+                            ) : (
+                              <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded-full font-medium">
+                                Inactive
+                              </span>
+                            )}
+                          </div>
+                          {formBusiness.out_of_office_enabled && formBusiness.out_of_office_start && formBusiness.out_of_office_end ? (
+                            <p className="text-xs text-slate-600 dark:text-slate-400">
+                              {new Date(formBusiness.out_of_office_start).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} – {new Date(formBusiness.out_of_office_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                            </p>
+                          ) : (
+                            <p className="text-xs text-slate-600 dark:text-slate-400">
+                              No automatic away message scheduled.
+                            </p>
                           )}
                         </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          Automatically reply while you're away.
-                        </p>
+                        <button
+                          onClick={() => setOutOfOfficeExpanded(true)}
+                          className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                        >
+                          {formBusiness.out_of_office_enabled ? 'Edit' : 'Configure'}
+                        </button>
                       </div>
-                      <button
-                        onClick={() => {
-                          updateBusiness({ out_of_office_enabled: !formBusiness.out_of_office_enabled })
-                        }}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
-                          formBusiness.out_of_office_enabled ? 'bg-blue-600' : 'bg-gray-600'
-                        }`}
-                        aria-label={formBusiness.out_of_office_enabled ? 'Disable out of office' : 'Enable out of office'}
-                      >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                            formBusiness.out_of_office_enabled ? 'translate-x-6' : 'translate-x-1'
-                          }`}
-                        />
-                      </button>
-                    </div>
 
-                    {/* Out of Office Settings */}
-                    {formBusiness.out_of_office_enabled && (
-                      <div className="mt-4 space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
-                              Start Date & Time
-                            </label>
-                            <input
-                              type="datetime-local"
-                              value={formBusiness.out_of_office_start ? toDateTimeLocal(formBusiness.out_of_office_start) : ''}
-                              onChange={(e) => updateBusiness({ out_of_office_start: fromDateTimeLocal(e.target.value) })}
-                              className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground text-sm"
-                            />
+                    ) : (
+                      // Expanded state
+                      <>
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1 pr-4">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="text-sm font-medium text-slate-900 dark:text-foreground">Out of Office</h3>
+                              {formBusiness.out_of_office_enabled && (
+                                <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-2">
+                                  <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
+                                  Active
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              Automatically reply while you're away.
+                            </p>
                           </div>
-                          <div>
-                            <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
-                              End Date & Time
-                            </label>
-                            <input
-                              type="datetime-local"
-                              value={formBusiness.out_of_office_end ? toDateTimeLocal(formBusiness.out_of_office_end) : ''}
-                              onChange={(e) => updateBusiness({ out_of_office_end: fromDateTimeLocal(e.target.value) })}
-                              className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground text-sm"
-                            />
-                          </div>
+                          <button
+                            onClick={() => setOutOfOfficeExpanded(false)}
+                            className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
+                          >
+                            Done
+                          </button>
                         </div>
 
-                        {/* Validation Error */}
-                        {formBusiness.out_of_office_start && formBusiness.out_of_office_end && 
-                         new Date(formBusiness.out_of_office_start) >= new Date(formBusiness.out_of_office_end) && (
-                          <div className="flex items-start gap-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                            <svg className="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                            </svg>
-                            <div className="text-xs text-red-800 dark:text-red-200">
-                              <span className="font-semibold">Invalid date range:</span> End time must be after start time.
+                        {/* Out of Office Settings */}
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
+                                Start Date & Time
+                              </label>
+                              <input
+                                type="datetime-local"
+                                value={formBusiness.out_of_office_start ? toDateTimeLocal(formBusiness.out_of_office_start) : ''}
+                                onChange={(e) => updateBusiness({ out_of_office_start: fromDateTimeLocal(e.target.value) })}
+                                className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground text-sm"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-slate-900 dark:text-foreground mb-1.5">
+                                End Date & Time
+                              </label>
+                              <input
+                                type="datetime-local"
+                                value={formBusiness.out_of_office_end ? toDateTimeLocal(formBusiness.out_of_office_end) : ''}
+                                onChange={(e) => updateBusiness({ out_of_office_end: fromDateTimeLocal(e.target.value) })}
+                                className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground text-sm"
+                              />
                             </div>
                           </div>
-                        )}
 
-                        <div>
-                          <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
-                            Custom Message (Optional)
-                          </label>
-                          <textarea
-                            value={formBusiness.out_of_office_message || ''}
-                            onChange={(e) => updateBusiness({ out_of_office_message: e.target.value })}
-                            rows={2}
-                            className="w-full px-3 py-2 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-200 text-xs sm:text-sm hover:border-border/80 dark:hover:border-border/60 resize-none"
-                          />
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
-                            Use <code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{"{{business_name}}"}</code> and <code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{"{{return_date}}"}</code> placeholders.
-                          </p>
+                          {/* Validation Error */}
+                          {formBusiness.out_of_office_start && formBusiness.out_of_office_end && 
+                           new Date(formBusiness.out_of_office_start) >= new Date(formBusiness.out_of_office_end) && (
+                            <div className="flex items-start gap-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                              <svg className="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                              </svg>
+                              <div className="text-xs text-red-800 dark:text-red-200">
+                                <span className="font-semibold">Invalid date range:</span> End time must be after start time.
+                              </div>
+                            </div>
+                          )}
+
+                          <div>
+                            <label className="block text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground mb-1.5">
+                              Custom Message (Optional)
+                            </label>
+                            <textarea
+                              value={formBusiness.out_of_office_message || ''}
+                              onChange={(e) => updateBusiness({ out_of_office_message: e.target.value })}
+                              rows={2}
+                              className="w-full px-3 py-2 border border-border/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-foreground placeholder:text-muted-foreground transition-all duration-200 text-xs sm:text-sm hover:border-border/80 dark:hover:border-border/60 resize-none"
+                            />
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5">
+                              Use <code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{"{{business_name}}"}</code> and <code className="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">{"{{return_date}}"}</code> placeholders.
+                            </p>
+                          </div>
                         </div>
-                      </div>
+                      </>
                     )}
                   </div>
 
@@ -1856,42 +1921,30 @@ export default function SettingsContent() {
                         <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                       </svg>
                       <div className="flex-1">
-                        <h4 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">Operational Status</h4>
+                        <h4 className="text-sm font-semibold text-slate-900 dark:text-foreground mb-2">Automation Status</h4>
                         <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 space-y-1.5">
                           {getAutomationSettings().spamRepeatFilteringEnabled && (
                             <div className="flex items-center gap-2">
                               <span className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></span>
-                              <span>Spam filtering active</span>
-                            </div>
-                          )}
-                          {getAutomationSettings().ignoreRepeatCalls && (
-                            <div className="flex items-center gap-2">
-                              <span className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></span>
-                              <span>Duplicate reply prevention enabled</span>
-                            </div>
-                          )}
-                          {getAutomationSettings().ignoreBlockedPrivateNumbers && (
-                            <div className="flex items-center gap-2">
-                              <span className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></span>
-                              <span>Blocked/private callers filtered</span>
-                            </div>
-                          )}
-                          {getAutomationSettings().ignoreSuspectedSpamCallers && (
-                            <div className="flex items-center gap-2">
-                              <span className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></span>
-                              <span>Spam detection enabled</span>
+                              <span>Protection enabled</span>
                             </div>
                           )}
                           {formBusiness.business_hours_enabled && (
                             <div className="flex items-center gap-2">
                               <span className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></span>
-                              <span>Business hours enforced</span>
+                              <span>Business hours active</span>
                             </div>
                           )}
-                          {!getAutomationSettings().spamRepeatFilteringEnabled && !formBusiness.business_hours_enabled && (
+                          {formBusiness.out_of_office_enabled && (
+                            <div className="flex items-center gap-2">
+                              <span className="w-1.5 h-1.5 bg-green-500 rounded-full flex-shrink-0"></span>
+                              <span>Out of office active</span>
+                            </div>
+                          )}
+                          {!getAutomationSettings().spamRepeatFilteringEnabled && !formBusiness.business_hours_enabled && !formBusiness.out_of_office_enabled && (
                             <div className="flex items-center gap-2">
                               <span className="w-1.5 h-1.5 bg-amber-500 rounded-full flex-shrink-0"></span>
-                              <span>Respond to missed calls - enable settings above to activate automation</span>
+                              <span>Automation disabled - enable settings above</span>
                             </div>
                           )}
                         </div>
