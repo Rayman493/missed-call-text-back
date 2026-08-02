@@ -87,17 +87,6 @@ export default function NavbarNotifications() {
   const [buttonPosition, setButtonPosition] = useState<{ top: number; right: number } | null>(null)
   const isMobile = useIsMobile()
 
-  // Simplified render state logging
-  const hasNotifications = notifications.length > 0
-
-  console.log('[NavbarNotifications] Render state', {
-    isOpen,
-    loading,
-    error,
-    notificationsLength: notifications.length,
-    hasNotifications,
-  })
-
   // Lock body scroll when notifications panel is open
   useBodyScrollLock(isOpen)
 
@@ -393,17 +382,6 @@ export default function NavbarNotifications() {
       } else {
         groups['Older'].push(notification)
       }
-    })
-
-    // Audit: Verify no notifications were lost
-    const totalGrouped = Object.values(groups).reduce((sum, group) => sum + group.length, 0)
-    console.log('[NavbarNotifications] Grouping audit', {
-      inputCount: notifications.length,
-      totalGrouped,
-      groupSizes: Object.fromEntries(
-        Object.entries(groups).map(([name, group]) => [name, group.length])
-      ),
-      invariant: totalGrouped === notifications.length
     })
 
     return groups
