@@ -22,7 +22,6 @@ interface TapToPayModalProps {
   description?: string
   customerName?: string
   onPaymentComplete?: () => void
-  autoStart?: boolean
 }
 
 type PaymentState = 'ready' | 'preparing' | 'waiting_for_card' | 'processing' | 'success' | 'failure' | 'canceled' | 'pending' | 'ambiguous'
@@ -39,7 +38,6 @@ export default function TapToPayModal({
   description,
   customerName,
   onPaymentComplete,
-  autoStart = false,
 }: TapToPayModalProps) {
   const [paymentState, setPaymentState] = useState<PaymentState>('ready')
   const [error, setError] = useState<string>('')
@@ -82,7 +80,7 @@ export default function TapToPayModal({
         try {
           // Bounded retry approach: wait for Capacitor bridge to be ready
           // This is more reliable than a fixed setTimeout
-          const MAX_RETRIES = 10
+          const MAX_RETRIES = 20  // Increased from 10 to give more time for native initialization
           const RETRY_DELAY = 50
           let retries = 0
           
@@ -92,7 +90,12 @@ export default function TapToPayModal({
             
             // If we can check plugin availability, bridge is ready
             if (pluginAvailable !== undefined) {
-              break
+              // Additional check: ensure platform is properly detected
+              const currentPlatform = Capacitor.getPlatform()
+              // Only proceed if platform is not 'web' or we're confident it's actually web
+              if (currentPlatform !== 'web' || pluginAvailable === false) {
+                break
+              }
             }
             
             // Wait and retry
@@ -126,11 +129,15 @@ export default function TapToPayModal({
           
           // Only set error message in web - never in native app
           // The user is already in the app, so this message is redundant
-          if (!supported && detectedPlatform === 'web') {
+          // Also don't set error during initial detection to avoid flicker
+          if (!supported && detectedPlatform === 'web' && retries < MAX_RETRIES) {
             setError('Tap to Pay is only available on the mobile app')
           } else if (!supported && (detectedPlatform === 'ios' || detectedPlatform === 'android')) {
             // Native app but plugin not available - this is a genuine error
             setError('Tap to Pay is not available. Please update the app to the latest version.')
+          } else if (!supported && detectedPlatform === 'web') {
+            // Web platform - show appropriate message
+            setError('Tap to Pay is only available on the mobile app')
           }
           
           // Do NOT check location permission here - only check when Start Tap to Pay is pressed
@@ -149,10 +156,10 @@ export default function TapToPayModal({
         setError('Payment status uncertain - checking...')
         // Trigger recovery check
         checkAttemptStatus(unresolvedAttemptId)
-      } else if (autoStart) {
-        // Auto-start on initial open to remove redundant Start press
+      } else {
+        // Auto-start payment immediately when modal opens to eliminate duplicate confirmation
         // Guard with in-progress flag to avoid duplicate starts
-        if (!isPaymentInProgress) {
+        if (!isPaymentInProgress && isNativeSupported) {
           // Defer to next tick to allow initial state to settle
           setTimeout(() => {
             // Double-check visibility and no unresolved attempt before starting
@@ -912,21 +919,13 @@ export default function TapToPayModal({
               </div>
             )}
 
-            {/* Actions */}
+            {/* Cancel button only - payment auto-starts */}
             <div className="flex gap-3">
               <button
                 onClick={() => { try { logTapToPayEvent('CLOSE_BUTTON_PRESSED', { phase: terminalService.getCurrentPhase() as any, sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined, meta: { modal: 'TapToPay' } }) } catch {}; try { logTapToPayEvent('MODAL_DISMISSED', { phase: 'startup', sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined, meta: { modal: 'TapToPay' } }) } catch {}; try { logTapToPayEvent('USER_EXITED_MODAL', { phase: 'startup', sessionId: terminalService.getSessionId(), attemptId: terminalService.getCurrentAttemptId() || undefined, meta: { modal: 'TapToPay' } }) } catch {}; onClose() }}
-                className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+                className="w-full px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
               >
                 Cancel
-              </button>
-              <button
-                onClick={handleStartPayment}
-                disabled={!isNativeSupported}
-                className="flex-1 px-4 py-3 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                <Smartphone className="w-4 h-4" />
-                Start Tap to Pay
               </button>
             </div>
           </div>

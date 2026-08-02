@@ -84,7 +84,44 @@ export default function QuickTapToPayModal({
   // Check native support when modal opens
   useEffect(() => {
     if (isOpen) {
-      setIsNativeSupported(isNativeCapacitor())
+      // Wait for Capacitor to be ready before checking platform
+      ;(async () => {
+        try {
+          // Bounded retry approach: wait for Capacitor bridge to be ready
+          const MAX_RETRIES = 20
+          const RETRY_DELAY = 50
+          let retries = 0
+          
+          while (retries < MAX_RETRIES) {
+            // Check if Capacitor is ready by testing plugin availability
+            const pluginAvailable = Capacitor.isPluginAvailable('ReplyflowStripeTerminal')
+            
+            // If we can check plugin availability, bridge is ready
+            if (pluginAvailable !== undefined) {
+              // Additional check: ensure platform is properly detected
+              const currentPlatform = Capacitor.getPlatform()
+              // Only proceed if platform is not 'web' or we're confident it's actually web
+              if (currentPlatform !== 'web' || pluginAvailable === false) {
+                break
+              }
+            }
+            
+            // Wait and retry
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY))
+            retries++
+          }
+          
+          console.log('[QuickTTP UI] Capacitor bridge ready after', retries, 'retries')
+          
+          // Now set native support after Capacitor is ready
+          setIsNativeSupported(isNativeCapacitor())
+        } catch (err) {
+          console.error('[QuickTTP UI] Platform detection error:', err)
+          // Fail safe: assume not supported
+          setIsNativeSupported(false)
+        }
+      })()
+
       // Diagnostics: modal opened
       logTapToPayEvent('MODAL_OPENED', { phase: 'startup', sessionId: terminalService.getSessionId(), meta: { modal: 'QuickTapToPay' } }).catch(() => {})
 
@@ -530,7 +567,6 @@ export default function QuickTapToPayModal({
           jobId={selectedJobId || undefined}
           description={description || undefined}
           customerName={selectedLead?.name || undefined}
-          autoStart={true}
           onPaymentComplete={async () => {
             // Close the TapToPay modal immediately after success; keep Quick modal UX smooth
             setShowTapToPay(false)
