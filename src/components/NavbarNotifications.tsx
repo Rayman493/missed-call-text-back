@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { useNotifications } from '@/contexts/NotificationContext'
 import { Notification } from '@/lib/notifications'
+import { generateCanonicalRequestTitle } from '@/lib/ai-intake-formatter'
 import { Bell, Check, MessageCircle, PhoneMissed, Send, Calendar, Info, CheckCircle, AlertTriangle, User, MessageSquare, Clock, CreditCard, Trash2, X } from 'lucide-react'
 
 // Hook to detect mobile breakpoint
@@ -322,6 +323,38 @@ export default function NavbarNotifications() {
   }
 }
 
+  // UI polish: Mask phone numbers for privacy
+  const maskPhoneNumber = (phone: string): string => {
+    if (!phone) return ''
+    const digits = phone.replace(/\D/g, '')
+    if (digits.length < 4) return phone
+    const last4 = digits.slice(-4)
+    return `••••••${last4}`
+  }
+
+  // UI polish: Get display message with canonical title for AI intake
+  const getDisplayMessage = (notification: Notification): string => {
+    if (notification.type === 'ai_intake_completed') {
+      // Use canonical title from the message field
+      const canonicalTitle = generateCanonicalRequestTitle(notification.message)
+      return canonicalTitle
+    }
+    return notification.message || 'No message'
+  }
+
+  // UI polish: Get display name with phone masking for SMS failures
+  const getDisplayName = (notification: Notification): string | null => {
+    const name = notification.data?.leadName || notification.data?.lead_phone || null
+    if (!name) return null
+    
+    // Mask phone numbers for SMS failure notifications
+    if (notification.type === 'sms_failed' && notification.data?.lead_phone) {
+      return maskPhoneNumber(notification.data.lead_phone)
+    }
+    
+    return name
+  }
+
   const groupNotificationsByRecency = (notifications: Notification[]) => {
   try {
     const groups: { [key: string]: Notification[] } = {
@@ -440,17 +473,19 @@ export default function NavbarNotifications() {
               )}
             </div>
 
-            {/* Notifications List - Phase 2: Original row layout without interactions */}
+            {/* Notifications List - Phase 3: Add click handlers and navigation */}
             <div className="max-h-96 overflow-y-auto p-2 sm:p-3">
               {notifications.length > 0 ? (
                 <div className="space-y-1">
                   {notifications.map((notification) => {
-                    const displayName = notification.data?.leadName || notification.data?.lead_phone || null
+                    const displayName = getDisplayName(notification)
+                    const displayMessage = getDisplayMessage(notification)
                     
                     return (
                       <div
                         key={notification.id}
-                        className="flex items-start gap-3 p-3 rounded-xl bg-slate-800/30"
+                        onClick={() => handleNotificationClick(notification)}
+                        className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-800/50 transition-colors cursor-pointer"
                       >
                         {/* Icon */}
                         <div className={`flex-shrink-0 w-8 h-8 rounded-lg ${getNotificationColor(notification.type)} flex items-center justify-center`}>
@@ -464,16 +499,16 @@ export default function NavbarNotifications() {
                             {notification.title || 'Notification'}
                           </p>
                           
-                          {/* Customer name or phone number */}
+                          {/* Customer name or phone number (masked for SMS failures) */}
                           {displayName && (
                             <p className="text-xs sm:text-sm font-medium text-slate-300 mb-1">
                               {displayName}
                             </p>
                           )}
                           
-                          {/* Message preview - single line truncated */}
+                          {/* Message preview - canonical title for AI intake */}
                           <p className="text-xs sm:text-sm text-slate-400 truncate">
-                            {notification.message || 'No message'}
+                            {displayMessage}
                           </p>
                           
                           {/* Time */}
