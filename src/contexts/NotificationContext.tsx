@@ -52,15 +52,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       setNotificationCount(countData)
       setDisplayedUnreadCount(countData.unread)
       
-      // Diagnostics: log pipeline metrics
-      console.log('[NotificationContext] Pipeline diagnostics:', {
-        apiCount: countData.total,
-        unreadCount: countData.unread,
-        normalizedCount: notificationsData.length,
-        unreadInPreview: notificationsData.filter(n => !n.read).length,
-        businessId
-      })
-      
       // Consistency check: if count says unread > 0 but no notifications in preview, this is expected
       // (there may be more unread notifications beyond the first 50)
       if (countData.unread > 0 && notificationsData.length === 0) {
