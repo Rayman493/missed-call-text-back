@@ -177,8 +177,13 @@ export class NotificationService {
         .limit(limit)
 
       if (error) {
-        console.error('[NotificationService] Error fetching notifications:', error)
-        return []
+        console.error('[NotificationService] Simple query failed', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        })
+        throw error // Don't swallow - let caller handle
       }
 
       console.log('[NotificationService] Fetched notifications result (simple):', {
@@ -193,6 +198,11 @@ export class NotificationService {
     // This guarantees all unread notifications appear regardless of age
     const recentLimit = Math.min(limit, 15) // Cap recent notifications at 15
     
+    let recentNotifications: Notification[] = []
+    let unreadNotifications: Notification[] = []
+    let recentFailed = false
+    let unreadFailed = false
+
     // Fetch recent notifications
     const { data: recentData, error: recentError } = await this.supabase
       .from('notifications')
@@ -202,11 +212,18 @@ export class NotificationService {
       .limit(recentLimit)
 
     if (recentError) {
-      console.error('[NotificationService] Error fetching recent notifications:', recentError)
-      return []
+      console.error('[NotificationService] Recent query failed', {
+        code: recentError.code,
+        message: recentError.message,
+        details: recentError.details,
+        hint: recentError.hint
+      })
+      recentFailed = true
+    } else {
+      recentNotifications = recentData || []
+      console.log('[NotificationService] Recent query succeeded:', { count: recentNotifications.length })
     }
 
-    const recentNotifications = recentData || []
     const recentIds = new Set(recentNotifications.map((n: any) => n.id))
 
     // Fetch unread notifications not already in recent set
@@ -219,11 +236,23 @@ export class NotificationService {
       // No limit - we need all unread
 
     if (unreadError) {
-      console.error('[NotificationService] Error fetching unread notifications:', unreadError)
-      return []
+      console.error('[NotificationService] Unread query failed', {
+        code: unreadError.code,
+        message: unreadError.message,
+        details: unreadError.details,
+        hint: unreadError.hint
+      })
+      unreadFailed = true
+    } else {
+      unreadNotifications = (unreadData || []).filter((n: any) => !recentIds.has(n.id))
+      console.log('[NotificationService] Unread query succeeded:', { count: unreadNotifications.length })
     }
 
-    const unreadNotifications = (unreadData || []).filter((n: any) => !recentIds.has(n.id))
+    // Handle partial failures
+    if (recentFailed && unreadFailed) {
+      // Both failed - throw error
+      throw new Error('Both recent and unread queries failed')
+    }
 
     // Merge and deduplicate
     const merged = [...recentNotifications, ...unreadNotifications]
@@ -239,6 +268,8 @@ export class NotificationService {
       unreadCount: unreadNotifications.length,
       mergedCount: merged.length,
       finalCount: result.length,
+      recentFailed,
+      unreadFailed,
       result
     })
 

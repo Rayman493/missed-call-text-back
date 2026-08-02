@@ -9,6 +9,7 @@ interface NotificationContextType {
   notificationCount: NotificationCount
   displayedUnreadCount: number
   loading: boolean
+  error: boolean
   refreshNotifications: () => Promise<void>
   markAsRead: (notificationId: string) => Promise<void>
   markAllAsRead: () => Promise<void>
@@ -35,6 +36,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   const [notificationCount, setNotificationCount] = useState<NotificationCount>({ unread: 0, total: 0 })
   const [displayedUnreadCount, setDisplayedUnreadCount] = useState<number>(0)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const supabase = createBrowserClient()
   const subscriptionRef = useRef<any>(null)
   const currentBusinessIdRef = useRef<string | null>(null)
@@ -42,6 +44,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   const fetchNotifications = async (businessId: string) => {
     try {
       setLoading(true)
+      setError(false)
       // Fetch notifications for the preview list with unread guarantee
       // This merges recent notifications with all unread notifications
       const notificationsData = await notificationService.getNotifications(businessId, 50, true)
@@ -63,6 +66,8 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       }
     } catch (error) {
       console.error('[NotificationContext] Error fetching notifications:', error)
+      // Don't clear notifications on error - retain previous state
+      setError(true)
     } finally {
       setLoading(false)
     }
@@ -174,6 +179,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     setNotificationCount({ unread: 0, total: 0 })
     setDisplayedUnreadCount(0)
     setLoading(true)
+    setError(false)
 
     fetchNotifications(businessId)
     setupRealtimeSubscription(businessId)
@@ -255,6 +261,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         notificationCount,
         displayedUnreadCount,
         loading,
+        error,
         refreshNotifications,
         markAsRead,
         markAllAsRead,
