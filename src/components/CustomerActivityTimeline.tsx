@@ -1,51 +1,53 @@
 'use client'
 
 import React, { useMemo } from 'react'
-import { 
-  Phone, 
-  Calendar, 
-  CreditCard, 
-  CheckCircle, 
-  MessageSquare, 
+import {
+  Phone,
+  Calendar,
+  CreditCard,
+  CheckCircle,
+  MessageSquare,
   UserPlus,
   Clock,
   AlertCircle,
   FileText,
-  MessageCircle
+  MessageCircle,
+  Briefcase,
+  ListTodo,
+  ArrowRight,
+  Edit3,
+  Sparkles,
+  XCircle,
+  RefreshCw
 } from 'lucide-react'
 
 interface ActivityEvent {
   id: string
-  type: 'created' | 'call_received' | 'ai_intake' | 'voicemail' | 'message' | 'appointment_created' | 'appointment_completed' | 'payment_requested' | 'payment_paid' | 'completed' | 'status_changed' | 'photo_sent' | 'business_phone_text' | 'business_phone_payment_request' | 'business_phone_call'
+  type: 'created' | 'call_received' | 'ai_intake' | 'voicemail' | 'message' | 'appointment_created' | 'appointment_completed' | 'appointment_cancelled' | 'payment_requested' | 'payment_reminder' | 'payment_failed' | 'payment_paid' | 'completed' | 'status_changed' | 'photo_sent' | 'business_phone_text' | 'business_phone_payment_request' | 'business_phone_call' | 'job_created' | 'job_updated' | 'job_completed' | 'task_created' | 'task_completed' | 'task_reopened' | 'ai_intake_edited' | 'ai_summary_refreshed' | 'customer_ignored' | 'customer_restored'
   title: string
   timestamp: string
   detail?: string
   subtitle?: string
   preview?: string
   metadata?: Record<string, any>
+  navigable?: boolean
+  onClick?: () => void
 }
 
 interface CustomerActivityTimelineProps {
   leadData: any
+  onNavigateToJob?: (jobId: string) => void
+  onNavigateToTask?: (taskId: string) => void
+  onNavigateToPayment?: (paymentId: string) => void
+  onNavigateToMessage?: (messageId: string) => void
+  onNavigateToIntake?: () => void
 }
 
-export default function CustomerActivityTimeline({ leadData }: CustomerActivityTimelineProps) {
+export default function CustomerActivityTimeline({ leadData, onNavigateToJob, onNavigateToTask, onNavigateToPayment, onNavigateToMessage, onNavigateToIntake }: CustomerActivityTimelineProps) {
   const events = useMemo(() => {
     const activityEvents: ActivityEvent[] = []
 
     if (!leadData) return activityEvents
-
-    console.log('[CUSTOMER ACTIVITY TIMELINE] Processing leadData:', {
-      leadId: leadData.id,
-      paymentRequestsCount: leadData.paymentRequests?.length || 0,
-      paymentRequests: leadData.paymentRequests?.map((pr: any) => ({
-        id: pr.id,
-        amount_cents: pr.amount_cents,
-        conversation_id: pr.conversation_id,
-        status: pr.status,
-        created_at: pr.created_at
-      }))
-    })
 
     // Customer created
     activityEvents.push({
@@ -55,6 +57,42 @@ export default function CustomerActivityTimeline({ leadData }: CustomerActivityT
       timestamp: leadData.created_at,
     })
 
+    // Customer status changes
+    if (leadData.status_history && Array.isArray(leadData.status_history)) {
+      leadData.status_history.forEach((historyItem: any, index: number) => {
+        if (index === 0) return // Skip the initial status (already covered by created)
+        activityEvents.push({
+          id: `status-change-${historyItem.id || index}`,
+          type: 'status_changed',
+          title: `Status changed to ${historyItem.new_status || historyItem.status}`,
+          timestamp: historyItem.changed_at || historyItem.created_at,
+        })
+      })
+    }
+
+    // Customer ignored
+    if (leadData.status === 'ignored' && leadData.updated_at !== leadData.created_at) {
+      activityEvents.push({
+        id: `ignored-${leadData.id}`,
+        type: 'customer_ignored',
+        title: 'Customer ignored',
+        timestamp: leadData.updated_at,
+      })
+    }
+
+    // Customer restored (if status changed from ignored back to something else)
+    if (leadData.status !== 'ignored' && leadData.status_history) {
+      const wasIgnored = leadData.status_history.some((h: any) => h.old_status === 'ignored' || h.new_status !== 'ignored')
+      if (wasIgnored) {
+        activityEvents.push({
+          id: `restored-${leadData.id}`,
+          type: 'customer_restored',
+          title: 'Customer restored',
+          timestamp: leadData.updated_at,
+        })
+      }
+    }
+
     // Missed call / AI intake
     if (leadData.aiCallRecords && leadData.aiCallRecords.length > 0) {
       leadData.aiCallRecords.forEach((aiCall: any) => {
@@ -63,13 +101,26 @@ export default function CustomerActivityTimeline({ leadData }: CustomerActivityT
         if (outcome === 'early_hangup') title = 'Caller hung up'
         else if (outcome === 'no_speech') title = 'No speech detected'
         else if (outcome === 'ai_connection_failed') title = 'AI connection failed'
-        
+
         activityEvents.push({
           id: `ai-intake-${aiCall.id}`,
           type: 'ai_intake',
           title,
           timestamp: aiCall.created_at,
+          navigable: !!onNavigateToIntake,
+          onClick: onNavigateToIntake,
         })
+      })
+    }
+
+    // AI intake manually edited
+    if (leadData.raw_metadata?.corrected_fields && Object.keys(leadData.raw_metadata.corrected_fields).length > 0) {
+      const editTime = leadData.raw_metadata.corrected_fields.edited_at || leadData.updated_at
+      activityEvents.push({
+        id: `ai-intake-edited-${leadData.id}`,
+        type: 'ai_intake_edited',
+        title: 'AI intake manually edited',
+        timestamp: editTime,
       })
     }
 
@@ -85,17 +136,30 @@ export default function CustomerActivityTimeline({ leadData }: CustomerActivityT
       })
     }
 
-    // Customer replied (inbound messages)
+    // Customer replied (inbound messages) - group multiple replies
     if (leadData.messages && leadData.messages.length > 0) {
       const inboundMessages = leadData.messages.filter((msg: any) => msg.direction === 'inbound')
       if (inboundMessages.length > 0) {
         const firstReply = inboundMessages[0]
-        activityEvents.push({
-          id: `first-reply-${firstReply.id}`,
-          type: 'message',
-          title: 'Customer replied',
-          timestamp: firstReply.created_at,
-        })
+        if (inboundMessages.length === 1) {
+          activityEvents.push({
+            id: `reply-${firstReply.id}`,
+            type: 'message',
+            title: 'Customer replied',
+            timestamp: firstReply.created_at,
+            navigable: !!onNavigateToMessage,
+            onClick: () => onNavigateToMessage?.(firstReply.id),
+          })
+        } else {
+          activityEvents.push({
+            id: `replies-group-${firstReply.id}`,
+            type: 'message',
+            title: `Customer sent ${inboundMessages.length} message${inboundMessages.length > 1 ? 's' : ''}`,
+            timestamp: firstReply.created_at,
+            navigable: !!onNavigateToMessage,
+            onClick: () => onNavigateToMessage?.(firstReply.id),
+          })
+        }
       }
     }
 
@@ -116,56 +180,99 @@ export default function CustomerActivityTimeline({ leadData }: CustomerActivityT
 
     // Business Phone activities from messages table
     if (leadData.messages && leadData.messages.length > 0) {
-      const businessPhoneMessages = leadData.messages.filter((msg: any) => 
-        msg.direction === 'outbound' && 
+      const businessPhoneMessages = leadData.messages.filter((msg: any) =>
+        msg.direction === 'outbound' &&
         msg.metadata?.source === 'business_phone' &&
         msg.metadata?.confirmation_method === 'user_confirmed'
       )
-      
-      businessPhoneMessages.forEach((msg: any) => {
+
+      // Group business phone texts
+      const textMessages = businessPhoneMessages.filter((msg: any) => msg.metadata?.actionType === 'business_phone_text')
+      if (textMessages.length > 0) {
+        const firstText = textMessages[0]
+        activityEvents.push({
+          id: `business-phone-text-group-${firstText.id}`,
+          type: 'business_phone_text',
+          title: `Sent ${textMessages.length} message${textMessages.length > 1 ? 's' : ''} from Business Phone`,
+          timestamp: firstText.created_at,
+          subtitle: 'Confirmed by you',
+          preview: firstText.metadata?.messageBody || undefined,
+          metadata: firstText.metadata,
+        })
+      }
+
+      const paymentMessages = businessPhoneMessages.filter((msg: any) => msg.metadata?.actionType === 'business_phone_payment_request')
+      paymentMessages.forEach((msg: any) => {
         const metadata = msg.metadata || {}
-        const actionType = metadata.actionType || ''
-        
-        if (actionType === 'business_phone_text') {
-          activityEvents.push({
-            id: `business-phone-text-${msg.id}`,
-            type: 'business_phone_text',
-            title: 'Text sent from Business Phone',
-            timestamp: msg.created_at,
-            subtitle: 'Confirmed by you',
-            preview: metadata.messageBody || undefined,
-            metadata,
-          })
-        } else if (actionType === 'business_phone_payment_request') {
-          let detail = ''
-          if (metadata.amountCents) {
-            detail = `$${(metadata.amountCents / 100).toFixed(2)} payment request`
-          }
-          
-          activityEvents.push({
-            id: `business-phone-payment-${msg.id}`,
-            type: 'business_phone_payment_request',
-            title: 'Payment request sent from Business Phone',
-            timestamp: msg.created_at,
-            detail,
-            metadata,
-          })
-        } else if (actionType === 'business_phone_call') {
-          activityEvents.push({
-            id: `business-phone-call-${msg.id}`,
-            type: 'business_phone_call',
-            title: 'Called customer from Business Phone',
-            timestamp: msg.created_at,
-            subtitle: 'Confirmed by you',
-            metadata,
-          })
+        let detail = ''
+        if (metadata.amountCents) {
+          detail = `$${(metadata.amountCents / 100).toFixed(2)} payment request`
         }
+
+        activityEvents.push({
+          id: `business-phone-payment-${msg.id}`,
+          type: 'business_phone_payment_request',
+          title: 'Payment request sent from Business Phone',
+          timestamp: msg.created_at,
+          detail,
+          metadata,
+        })
+      })
+
+      const callMessages = businessPhoneMessages.filter((msg: any) => msg.metadata?.actionType === 'business_phone_call')
+      callMessages.forEach((msg: any) => {
+        activityEvents.push({
+          id: `business-phone-call-${msg.id}`,
+          type: 'business_phone_call',
+          title: 'Called customer from Business Phone',
+          timestamp: msg.created_at,
+          subtitle: 'Confirmed by you',
+          metadata: msg.metadata,
+        })
       })
     }
 
-    // Appointments (from jobs)
+    // Jobs
     if (leadData.jobs && leadData.jobs.length > 0) {
       leadData.jobs.forEach((job: any) => {
+        // Job created
+        activityEvents.push({
+          id: `job-created-${job.id}`,
+          type: 'job_created',
+          title: 'Job created',
+          timestamp: job.created_at,
+          detail: job.title || undefined,
+          navigable: !!onNavigateToJob,
+          onClick: () => onNavigateToJob?.(job.id),
+        })
+
+        // Job updated (if status changed and not created/completed)
+        if (job.updated_at !== job.created_at && job.status !== 'completed') {
+          activityEvents.push({
+            id: `job-updated-${job.id}`,
+            type: 'job_updated',
+            title: 'Job updated',
+            timestamp: job.updated_at,
+            detail: job.title || undefined,
+            navigable: !!onNavigateToJob,
+            onClick: () => onNavigateToJob?.(job.id),
+          })
+        }
+
+        // Job completed
+        if (job.status === 'completed') {
+          activityEvents.push({
+            id: `job-completed-${job.id}`,
+            type: 'job_completed',
+            title: 'Job completed',
+            timestamp: job.updated_at || job.created_at,
+            detail: job.title || undefined,
+            navigable: !!onNavigateToJob,
+            onClick: () => onNavigateToJob?.(job.id),
+          })
+        }
+
+        // Appointments (from jobs)
         if (job.scheduled_date) {
           activityEvents.push({
             id: `appointment-${job.id}`,
@@ -175,12 +282,46 @@ export default function CustomerActivityTimeline({ leadData }: CustomerActivityT
             detail: new Date(job.scheduled_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
           })
         }
-        if (job.status === 'completed') {
+      })
+    }
+
+    // Tasks
+    if (leadData.tasks && leadData.tasks.length > 0) {
+      leadData.tasks.forEach((task: any) => {
+        // Task created
+        activityEvents.push({
+          id: `task-created-${task.id}`,
+          type: 'task_created',
+          title: 'Task created',
+          timestamp: task.created_at,
+          detail: task.title || undefined,
+          navigable: !!onNavigateToTask,
+          onClick: () => onNavigateToTask?.(task.id),
+        })
+
+        // Task completed
+        if (task.status === 'completed') {
           activityEvents.push({
-            id: `appointment-completed-${job.id}`,
-            type: 'appointment_completed',
-            title: 'Appointment completed',
-            timestamp: job.updated_at || job.created_at,
+            id: `task-completed-${task.id}`,
+            type: 'task_completed',
+            title: 'Task completed',
+            timestamp: task.updated_at || task.created_at,
+            detail: task.title || undefined,
+            navigable: !!onNavigateToTask,
+            onClick: () => onNavigateToTask?.(task.id),
+          })
+        }
+
+        // Task reopened (if was completed then not completed)
+        if (task.status !== 'completed' && task.updated_at !== task.created_at) {
+          activityEvents.push({
+            id: `task-reopened-${task.id}`,
+            type: 'task_reopened',
+            title: 'Task reopened',
+            timestamp: task.updated_at,
+            detail: task.title || undefined,
+            navigable: !!onNavigateToTask,
+            onClick: () => onNavigateToTask?.(task.id),
           })
         }
       })
@@ -196,6 +337,8 @@ export default function CustomerActivityTimeline({ leadData }: CustomerActivityT
             title: 'Payment requested',
             timestamp: pr.created_at,
             detail: `$${(pr.amount_cents / 100).toFixed(2)}`,
+            navigable: !!onNavigateToPayment,
+            onClick: () => onNavigateToPayment?.(pr.id),
           })
         } else if (pr.status === 'paid') {
           activityEvents.push({
@@ -203,6 +346,16 @@ export default function CustomerActivityTimeline({ leadData }: CustomerActivityT
             type: 'payment_paid',
             title: 'Payment received',
             timestamp: pr.paid_at || pr.created_at,
+            detail: `$${(pr.amount_cents / 100).toFixed(2)}`,
+            navigable: !!onNavigateToPayment,
+            onClick: () => onNavigateToPayment?.(pr.id),
+          })
+        } else if (pr.status === 'failed') {
+          activityEvents.push({
+            id: `payment-failed-${pr.id}`,
+            type: 'payment_failed',
+            title: 'Payment failed',
+            timestamp: pr.updated_at || pr.created_at,
             detail: `$${(pr.amount_cents / 100).toFixed(2)}`,
           })
         }
@@ -220,10 +373,10 @@ export default function CustomerActivityTimeline({ leadData }: CustomerActivityT
     }
 
     // Sort chronologically
-    return activityEvents.sort((a, b) => 
+    return activityEvents.sort((a, b) =>
       new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     )
-  }, [leadData])
+  }, [leadData, onNavigateToJob, onNavigateToTask, onNavigateToPayment, onNavigateToMessage, onNavigateToIntake])
 
   const groupedEvents = useMemo(() => {
     const groups: Record<string, ActivityEvent[]> = {}
@@ -261,29 +414,55 @@ export default function CustomerActivityTimeline({ leadData }: CustomerActivityT
         return <UserPlus className="w-4 h-4 text-blue-500" />
       case 'call_received':
       case 'ai_intake':
-        return <Phone className="w-4 h-4 text-green-500" />
+        return <Phone className="w-4 h-4 text-emerald-500" />
       case 'voicemail':
         return <MessageSquare className="w-4 h-4 text-amber-500" />
       case 'message':
-        return <MessageSquare className="w-4 h-4 text-blue-500" />
-      case 'appointment_created':
-        return <Calendar className="w-4 h-4 text-purple-500" />
-      case 'appointment_completed':
-        return <CheckCircle className="w-4 h-4 text-green-500" />
-      case 'payment_requested':
-        return <CreditCard className="w-4 h-4 text-purple-500" />
-      case 'payment_paid':
-        return <CheckCircle className="w-4 h-4 text-green-500" />
-      case 'completed':
-        return <CheckCircle className="w-4 h-4 text-green-500" />
-      case 'photo_sent':
-        return <FileText className="w-4 h-4 text-blue-500" />
       case 'business_phone_text':
         return <MessageCircle className="w-4 h-4 text-blue-500" />
+      case 'appointment_created':
+        return <Calendar className="w-4 h-4 text-violet-500" />
+      case 'appointment_completed':
+        return <CheckCircle className="w-4 h-4 text-emerald-500" />
+      case 'appointment_cancelled':
+        return <XCircle className="w-4 h-4 text-red-500" />
+      case 'payment_requested':
       case 'business_phone_payment_request':
-        return <CreditCard className="w-4 h-4 text-purple-500" />
+        return <CreditCard className="w-4 h-4 text-amber-500" />
+      case 'payment_reminder':
+        return <RefreshCw className="w-4 h-4 text-amber-500" />
+      case 'payment_failed':
+        return <XCircle className="w-4 h-4 text-red-500" />
+      case 'payment_paid':
+        return <CheckCircle className="w-4 h-4 text-emerald-500" />
+      case 'completed':
+        return <CheckCircle className="w-4 h-4 text-emerald-500" />
+      case 'status_changed':
+        return <ArrowRight className="w-4 h-4 text-blue-500" />
+      case 'photo_sent':
+        return <FileText className="w-4 h-4 text-blue-500" />
       case 'business_phone_call':
-        return <Phone className="w-4 h-4 text-green-500" />
+        return <Phone className="w-4 h-4 text-emerald-500" />
+      case 'job_created':
+        return <Briefcase className="w-4 h-4 text-teal-500" />
+      case 'job_updated':
+        return <Edit3 className="w-4 h-4 text-teal-500" />
+      case 'job_completed':
+        return <CheckCircle className="w-4 h-4 text-emerald-500" />
+      case 'task_created':
+        return <ListTodo className="w-4 h-4 text-purple-500" />
+      case 'task_completed':
+        return <CheckCircle className="w-4 h-4 text-emerald-500" />
+      case 'task_reopened':
+        return <RefreshCw className="w-4 h-4 text-purple-500" />
+      case 'ai_intake_edited':
+        return <Edit3 className="w-4 h-4 text-amber-500" />
+      case 'ai_summary_refreshed':
+        return <Sparkles className="w-4 h-4 text-amber-500" />
+      case 'customer_ignored':
+        return <XCircle className="w-4 h-4 text-slate-500" />
+      case 'customer_restored':
+        return <CheckCircle className="w-4 h-4 text-emerald-500" />
       default:
         return <Clock className="w-4 h-4 text-muted-foreground" />
     }
@@ -306,10 +485,10 @@ export default function CustomerActivityTimeline({ leadData }: CustomerActivityT
 
   if (events.length === 0) {
     return (
-      <div className="text-center py-6">
-        <Clock className="w-8 h-8 mx-auto text-muted-foreground/30 mb-2" />
-        <p className="text-sm text-muted-foreground">
-          Customer activity will appear here as conversations, appointments, and payments occur.
+      <div className="text-center py-8">
+        <Clock className="w-10 h-10 mx-auto text-muted-foreground/30 mb-3" />
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          Activity will appear here as you communicate with this customer.
         </p>
       </div>
     )
@@ -319,13 +498,17 @@ export default function CustomerActivityTimeline({ leadData }: CustomerActivityT
     <div className="space-y-4">
       {Object.entries(groupedEvents).map(([dateLabel, dateEvents]) => (
         <div key={dateLabel}>
-          <div className="text-xs font-medium text-muted-foreground mb-3 flex items-center gap-2">
+          <div className="text-xs font-semibold text-muted-foreground mb-3 flex items-center gap-2">
             {dateLabel}
             <div className="flex-1 h-px bg-border/30" />
           </div>
           <div className="space-y-3">
             {dateEvents.map((event) => (
-              <div key={event.id} className="flex items-start gap-3">
+              <div
+                key={event.id}
+                className={`flex items-start gap-3 ${event.navigable ? 'cursor-pointer hover:bg-muted/30 -mx-2 px-2 py-1 rounded-lg transition-colors' : ''}`}
+                onClick={event.onClick}
+              >
                 <div className="flex-shrink-0 mt-0.5">
                   {getIcon(event.type)}
                 </div>
@@ -335,6 +518,9 @@ export default function CustomerActivityTimeline({ leadData }: CustomerActivityT
                     {event.detail && (
                       <span className="text-xs text-muted-foreground">{event.detail}</span>
                     )}
+                    {event.navigable && (
+                      <ArrowRight className="w-3 h-3 text-muted-foreground/50" />
+                    )}
                   </div>
                   {event.subtitle && (
                     <p className="text-xs text-muted-foreground mb-1">{event.subtitle}</p>
@@ -342,7 +528,7 @@ export default function CustomerActivityTimeline({ leadData }: CustomerActivityT
                   {event.preview && (
                     <p className="text-xs text-muted-foreground mb-1 line-clamp-2 whitespace-pre-wrap">{event.preview}</p>
                   )}
-                  <p className="text-xs text-muted-foreground">{getRelativeTime(event.timestamp)}</p>
+                  <p className="text-xs text-muted-foreground/70">{getRelativeTime(event.timestamp)}</p>
                 </div>
               </div>
             ))}
