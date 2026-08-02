@@ -1385,7 +1385,7 @@ export default function LeadsPage() {
                   // Single customer: centered with supportive text
                   const lead = filteredLeads[0]
                   const latestMessage = lead.messages && lead.messages.length > 0
-                    ? lead.messages.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+                    ? lead.messages.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]     
                     : null
 
                   const messageStatus = getLeadMessageStatus(latestMessage)
@@ -1403,8 +1403,8 @@ export default function LeadsPage() {
                       {/* Removed inline count here to avoid duplication and lift the card on mobile */}
                       <div
                         key={lead.id}
-                        onClick={() => handleConversationClick(lead.id)}
                         className={`w-full max-w-2xl h-full flex flex-col rounded-xl border border-border/50 relative overflow-hidden transition-all duration-200 cursor-pointer bg-white dark:bg-slate-800/80 shadow-sm hover:shadow-md hover:-translate-y-0.5 ${getCardGradientClasses(getLeadLifecycleStatus(lead))} ${getCardBorderClasses(getLeadLifecycleStatus(lead))} ${getCardAccentClasses(getLeadLifecycleStatus(lead))} active:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2`}
+                        onClick={() => handleConversationClick(lead.id)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault()
@@ -1415,6 +1415,57 @@ export default function LeadsPage() {
                         role="link"
                         aria-label={`Open ${getLeadDisplayName(lead)}`}
                       >
+                        <div className="p-4 pl-5 flex-1 flex flex-col">
+                          {/* Header: Name, Phone, Status */}
+                          <div className="flex items-start justify-between gap-3 mb-3">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-lg font-semibold text-foreground mb-0.5 truncate tracking-tight leading-tight">
+                                <span className="text-foreground">{getLeadDisplayName(lead)}</span>
+                              </h3>
+                              <p className="text-xs text-muted-foreground/90">
+                                {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}
+                              </p>
+                            </div>
+                            <div onClick={(e) => e.stopPropagation()}>
+                              {lead.deleted_at ? (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
+                                  Deleted
+                                </span>
+                              ) : (
+                                <LeadStatusDropdown
+                                  currentStatus={getLeadLifecycleStatus(lead)}
+                                  onStatusChange={(newStatus) => handleLeadStatusChange(lead.id, newStatus)}
+                                  size="sm"
+                                />
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Compact Preview - Simplified Hierarchy */}
+                          <div className="mb-3 space-y-2 flex-1">
+                            {aiData.reason && (
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1 font-medium">Latest Request</p>
+                                <p className="line-clamp-1 text-sm font-semibold text-foreground leading-relaxed">
+                                  {sentenceCase(aiData.reason)}
+                                </p>
+                              </div>
+                            )}
+                            {aiData.urgency && (
+                              <p className={`text-xs font-medium ${
+                                aiData.urgency.toLowerCase() === 'urgent' || aiData.urgency.toLowerCase() === 'high'
+                                  ? 'text-red-500 dark:text-red-400'
+                                  : 'text-muted-foreground'
+                              }`}>
+                                {sentenceCase(aiData.urgency)}
+                              </p>
+                            )}
+                            {!aiData.reason && !aiData.urgency && (
+                              <p className="line-clamp-2 text-xs text-muted-foreground leading-relaxed">
+                                {getCompactSummary(lead)}
+                              </p>
+                            )}
+                          </div>
 
                           {/* Metadata */}
                           <div className="flex items-center justify-between mb-3">
