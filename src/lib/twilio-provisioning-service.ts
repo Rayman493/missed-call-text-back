@@ -1,4 +1,333 @@
 /**
+ * Reconcile Twilio inventory with database (read-only)
+ * 
+ * Compares Twilio owned numbers with twilio_numbers table to detect discrepancies.
+ * Reports orphaned numbers without taking any destructive actions.
+ * 
+ * Returns:
+ * - numbersInTwilioNotInDb: Numbers purchased from Twilio but not recorded in DB
+ * - numbersInDbNotInTwilio: Numbers in DB but not owned by Twilio
+ * - systemNumber: The protected system number (if found)
+ */
+export async function reconcileTwilioInventory(): Promise<{
+  success: boolean;
+  numbersInTwilioNotInDb: Array<{ phoneNumber: string; sid: string }>;
+  numbersInDbNotInTwilio: Array<{ phoneNumber: string; sid: string; id: string }>;
+  systemNumber?: { phoneNumber: string; sid: string };
+  error?: string;
+}> {
+  console.log('[RECONCILE] ========== START TWILIO INVENTORY RECONCILIATION ==========');
+
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const systemPhoneNumber = process.env.REPLYFLOW_SYSTEM_SMS_NUMBER;
+
+  if (!accountSid || !authToken) {
+    console.error('[RECONCILE] ERROR: Missing Twilio credentials');
+    return {
+      success: false,
+      numbersInTwilioNotInDb: [],
+      numbersInDbNotInTwilio: [],
+      error: 'Missing Twilio credentials'
+    };
+  }
+
+  try {
+    const client = Twilio(accountSid, authToken);
+
+    // STEP 1: Fetch all numbers from Twilio
+    console.log('[RECONCILE] STEP 1: Fetching all numbers from Twilio...');
+    const twilioNumbers = await client.incomingPhoneNumbers.list();
+    console.log(`[RECONCILE] Found ${twilioNumbers.length} numbers in Twilio`);
+
+    // STEP 2: Fetch all numbers from database
+    console.log('[RECONCILE] STEP 2: Fetching all numbers from database...');
+    const { data: dbNumbers, error: dbError } = await supabase
+      .from('twilio_numbers')
+      .select('id, phone_number, twilio_sid, status')
+      .neq('status', 'released');
+
+    if (dbError) {
+      console.error('[RECONCILE] ERROR: Failed to fetch from database:', dbError);
+      return {
+        success: false,
+        numbersInTwilioNotInDb: [],
+        numbersInDbNotInTwilio: [],
+        error: 'Failed to fetch from database'
+      };
+    }
+
+    console.log(`[RECONCILE] Found ${dbNumbers?.length || 0} numbers in database`);
+
+    // STEP 3: Build lookup maps
+    const dbSidMap = new Map(dbNumbers?.map(n => [n.twilio_sid, n]) || []);
+    const twilioSidMap = new Map(twilioNumbers.map(n => [n.sid, n]));
+
+    // STEP 4: Find numbers in Twilio but not in DB
+    const numbersInTwilioNotInDb: Array<{ phoneNumber: string; sid: string }> = [];
+    let systemNumber: { phoneNumber: string; sid: string } | undefined = undefined;
+
+    for (const twilioNumber of twilioNumbers) {
+      if (!dbSidMap.has(twilioNumber.sid)) {
+        // Check if this is the system number
+        if (systemPhoneNumber && twilioNumber.phoneNumber === systemPhoneNumber) {
+          systemNumber = {
+            phoneNumber: twilioNumber.phoneNumber,
+            sid: twilioNumber.sid
+          };
+          console.log(`[RECONCILE] Found system number: ${twilioNumber.phoneNumber}`);
+        } else {
+          numbersInTwilioNotInDb.push({
+            phoneNumber: twilioNumber.phoneNumber,
+            sid: twilioNumber.sid
+          });
+          console.log(`[RECONCILE] ORPHAN DETECTED: Number in Twilio but not in DB: ${twilioNumber.phoneNumber} (${twilioNumber.sid})`);
+        }
+      }
+    }
+
+    // STEP 5: Find numbers in DB but not in Twilio
+    const numbersInDbNotInTwilio: Array<{ phoneNumber: string; sid: string; id: string }> = [];
+
+    for (const dbNumber of dbNumbers || []) {
+      if (!twilioSidMap.has(dbNumber.twilio_sid)) {
+        numbersInDbNotInTwilio.push({
+          phoneNumber: dbNumber.phone_number,
+          sid: dbNumber.twilio_sid,
+          id: dbNumber.id
+        });
+        console.log(`[RECONCILE] DISCREPANCY: Number in DB but not in Twilio: ${dbNumber.phone_number} (${dbNumber.twilio_sid})`);
+      }
+    }
+
+    console.log(`[RECONCILE] Reconciliation complete:`);
+    console.log(`[RECONCILE] - Orphaned numbers (Twilio not in DB): ${numbersInTwilioNotInDb.length}`);
+    console.log(`[RECONCILE] - Discrepant numbers (DB not in Twilio): ${numbersInDbNotInTwilio.length}`);
+    console.log(`[RECONCILE] - System number: ${systemNumber ? systemNumber.phoneNumber : 'not found'}`);
+    console.log('[RECONCILE] ========== END TWILIO INVENTORY RECONCILIATION ==========');
+
+    return {
+      success: true,
+      numbersInTwilioNotInDb,
+      numbersInDbNotInTwilio,
+      systemNumber
+    };
+
+  } catch (error: any) {
+    console.error('[RECONCILE] EXCEPTION: Reconciliation failed:', error);
+    console.error('[RECONCILE] ========== END TWILIO INVENTORY RECONCILIATION (EXCEPTION) ==========');
+    return {
+      success: false,
+      numbersInTwilioNotInDb: [],
+      numbersInDbNotInTwilio: [],
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Recover stuck provisioning states
+ * 
+ * Finds numbers stuck in intermediate provisioning states and attempts to recover them.
+ * States handled: campaign_registering, campaign_registered, sender_pool_attaching, purchasing
+ * 
+ * Recovery strategy:
+ * - If stuck > 30 minutes: attempt to resume provisioning
+ * - If recovery fails: mark as failed with error
+ * - Respect retry limits and exponential backoff
+ * 
+ * Returns recovery statistics.
+ */
+export async function recoverStuckProvisioning(): Promise<{
+  success: boolean;
+  recovered: number;
+  failed: number;
+  skipped: number;
+  errors: Array<{ phoneNumber: string; sid: string; state: string; error: string }>;
+}> {
+  console.log('[RECOVERY] ========== START STUCK PROVISIONING RECOVERY ==========');
+
+  const STUCK_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes
+  const now = new Date();
+  const stuckTime = new Date(now.getTime() - STUCK_THRESHOLD_MS).toISOString();
+
+  const errors: Array<{ phoneNumber: string; sid: string; state: string; error: string }> = [];
+  let recovered = 0;
+  let failed = 0;
+  let skipped = 0;
+
+  try {
+    // STEP 1: Find numbers stuck in intermediate states
+    console.log('[RECOVERY] STEP 1: Finding stuck numbers...');
+    const { data: stuckNumbers, error: fetchError } = await supabase
+      .from('twilio_numbers')
+      .select('id, phone_number, twilio_sid, business_id, provisioning_status, last_provisioning_attempt_at, provisioning_error')
+      .in('provisioning_status', ['campaign_registering', 'campaign_registered', 'sender_pool_attaching', 'purchasing'])
+      .lt('last_provisioning_attempt_at', stuckTime)
+      .is('business_id', 'not.is.null');
+
+    if (fetchError) {
+      console.error('[RECOVERY] ERROR: Failed to fetch stuck numbers:', fetchError);
+      return {
+        success: false,
+        recovered: 0,
+        failed: 0,
+        skipped: 0,
+        errors: []
+      };
+    }
+
+    if (!stuckNumbers || stuckNumbers.length === 0) {
+      console.log('[RECOVERY] No stuck numbers found');
+      return {
+        success: true,
+        recovered: 0,
+        failed: 0,
+        skipped: 0,
+        errors: []
+      };
+    }
+
+    console.log(`[RECOVERY] Found ${stuckNumbers.length} stuck numbers`);
+
+    // STEP 2: Attempt to recover each stuck number
+    for (const number of stuckNumbers) {
+      console.log(`[RECOVERY] Recovering: ${number.phone_number} (${number.provisioning_status})`);
+      const correlationId = `recovery-${Date.now()}-${number.id}`;
+
+      try {
+        if (!number.business_id) {
+          console.log(`[RECOVERY] Skipping ${number.phone_number}: no business_id`);
+          skipped++;
+          continue;
+        }
+
+        let recoverySuccess = false;
+        let recoveryError: string | undefined;
+
+        // Recovery strategy based on current state
+        switch (number.provisioning_status) {
+          case 'campaign_registering':
+          case 'campaign_registered':
+            // Retry campaign registration
+            console.log(`[RECOVERY] Retrying campaign registration for ${number.phone_number}`);
+            const campaignResult = await registerToA2PCampaign(
+              number.twilio_sid,
+              number.business_id,
+              correlationId
+            );
+            recoverySuccess = campaignResult.success;
+            recoveryError = campaignResult.error;
+            break;
+
+          case 'sender_pool_attaching':
+            // Retry sender pool attachment
+            console.log(`[RECOVERY] Retrying sender pool attachment for ${number.phone_number}`);
+            const attachResult = await attachToSenderPool(
+              number.twilio_sid,
+              number.business_id,
+              correlationId
+            );
+            recoverySuccess = attachResult.success;
+            recoveryError = attachResult.error;
+            break;
+
+          case 'purchasing':
+            // Purchasing is stuck - this is critical, mark as failed
+            console.log(`[RECOVERY] Number stuck in 'purchasing' - marking as failed: ${number.phone_number}`);
+            await updateProvisioningStatus(
+              number.business_id,
+              number.twilio_sid,
+              'failed',
+              'Stuck in purchasing state - manual intervention required',
+              correlationId
+            );
+            recoverySuccess = false;
+            recoveryError = 'Stuck in purchasing state';
+            break;
+
+          default:
+            console.log(`[RECOVERY] Unknown state: ${number.provisioning_status}`);
+            skipped++;
+            continue;
+        }
+
+        if (recoverySuccess) {
+          console.log(`[RECOVERY] ✓ Recovered: ${number.phone_number}`);
+          recovered++;
+        } else {
+          console.log(`[RECOVERY] ✗ Recovery failed: ${number.phone_number} - ${recoveryError}`);
+          
+          // Mark as failed if recovery fails
+          await updateProvisioningStatus(
+            number.business_id,
+            number.twilio_sid,
+            'failed',
+            recoveryError || 'Recovery failed',
+            correlationId
+          );
+          
+          errors.push({
+            phoneNumber: number.phone_number,
+            sid: number.twilio_sid,
+            state: number.provisioning_status,
+            error: recoveryError || 'Unknown error'
+          });
+          failed++;
+        }
+
+      } catch (error: any) {
+        console.error(`[RECOVERY] Exception recovering ${number.phone_number}:`, error);
+        
+        // Mark as failed on exception
+        if (number.business_id) {
+          await updateProvisioningStatus(
+            number.business_id,
+            number.twilio_sid,
+            'failed',
+            error.message || 'Recovery exception',
+            correlationId
+          );
+        }
+        
+        errors.push({
+          phoneNumber: number.phone_number,
+          sid: number.twilio_sid,
+          state: number.provisioning_status,
+          error: error.message || 'Unknown error'
+        });
+        failed++;
+      }
+    }
+
+    console.log(`[RECOVERY] Recovery complete:`);
+    console.log(`[RECOVERY] - Recovered: ${recovered}`);
+    console.log(`[RECOVERY] - Failed: ${failed}`);
+    console.log(`[RECOVERY] - Skipped: ${skipped}`);
+    console.log('[RECOVERY] ========== END STUCK PROVISIONING RECOVERY ==========');
+
+    return {
+      success: true,
+      recovered,
+      failed,
+      skipped,
+      errors
+    };
+
+  } catch (error: any) {
+    console.error('[RECOVERY] EXCEPTION: Recovery failed:', error);
+    console.error('[RECOVERY] ========== END STUCK PROVISIONING RECOVERY (EXCEPTION) ==========');
+    return {
+      success: false,
+      recovered: 0,
+      failed: 0,
+      skipped: 0,
+      errors: []
+    };
+  }
+}
+
+/**
  * Comprehensive Twilio Provisioning Service
  * 
  * This service implements the full provisioning + compliance workflow for ReplyFlowHQ

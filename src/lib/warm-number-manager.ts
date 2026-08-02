@@ -596,110 +596,14 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<{ succ
   }
 
   try {
-    // STEP 1: Get available count
-    console.log(`[Warm Inventory] STEP 1: Checking for available numbers...`);
-    const countResult = await getAvailableWarmNumberCount();
-    console.log(`[Warm Inventory] Available count: ${countResult}`);
-
-    if (countResult === 0) {
-      console.log(`[Warm Inventory] No warm numbers available, returning failure`);
-      return { success: false, error: 'No warm numbers available' };
-    }
-
-    // STEP 2: Fetch the oldest available warm number (NO legacy compatibility)
-    console.log(`[Warm Inventory] STEP 2: Fetching oldest available warm number...`);
-    console.log(`[Warm Inventory] Query criteria: status=available, business_id IS NULL, sms_status=ready, provisioning_status=ready`);
-    const { data: availableNumbers, error: fetchError } = await supabase
-      .from('twilio_numbers')
-      .select('*')
-      .is('business_id', null)
-      .eq('status', 'available')
-      .eq('sms_status', 'ready')
-      .eq('provisioning_status', 'ready')
-      .order('created_at', { ascending: true })
-      .limit(1);
-
-    if (fetchError) {
-      console.error('[Warm Inventory] ERROR: Failed to fetch available warm numbers:', fetchError);
-      console.error('[Warm Inventory] ERROR Details:', JSON.stringify(fetchError, null, 2));
-      return { success: false, error: 'Failed to fetch available warm numbers' };
-    }
-
-    if (!availableNumbers || availableNumbers.length === 0) {
-      console.log('[Warm Inventory] No warm numbers found in query result');
-      return { success: false, error: 'No warm numbers available' };
-    }
-
-    const warmNumber = availableNumbers[0];
-    console.log(`[Warm Inventory] First available number: ${warmNumber.phone_number}`);
-    console.log(`[Warm Inventory] First available SID: ${warmNumber.twilio_sid}`);
-    console.log(`[Warm Inventory] First available status: ${warmNumber.status}`);
-    console.log(`[Warm Inventory] First available sms_status: ${warmNumber.sms_status}`);
-    console.log(`[Warm Inventory] First available id: ${warmNumber.id}`);
-
-    // STEP 3: Verify Twilio still owns the number before assignment
-    console.log(`[Warm Inventory] STEP 3: Verifying Twilio ownership...`);
-    const accountSid = process.env.TWILIO_ACCOUNT_SID;
-    const authToken = process.env.TWILIO_AUTH_TOKEN;
-
-    if (!accountSid || !authToken) {
-      console.error('[Warm Inventory] ERROR: Missing Twilio credentials for ownership verification');
-      return { success: false, error: 'Missing Twilio credentials' };
-    }
-
-    const client = Twilio(accountSid, authToken);
-    let twilioOwnsNumber = false;
-
-    try {
-      await client.incomingPhoneNumbers(warmNumber.twilio_sid).fetch();
-      twilioOwnsNumber = true;
-      console.log(`[Warm Inventory] Twilio ownership verified: ${warmNumber.phone_number}`);
-    } catch (twilioError: any) {
-      console.error(`[Warm Inventory] Twilio ownership check failed for ${warmNumber.phone_number}:`, twilioError);
-      if (twilioError.code === 20404 || twilioError.status === 404) {
-        console.log(`[Warm Inventory] Number not found in Twilio Active Numbers - marking as invalid`);
-        // Mark the number as invalid/retired
-        await supabase
-          .from('twilio_numbers')
-          .update({
-            status: 'retired',
-            detached_at: new Date().toISOString(),
-            detached_reason: 'twilio_number_not_owned',
-            business_id: null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', warmNumber.id);
-        console.log(`[Warm Inventory] Marked number as retired: ${warmNumber.phone_number}`);
-      }
-      return { success: false, error: 'Number not owned by Twilio' };
-    }
-
+    // STEP 1: Atomic claim - UPDATE with WHERE conditions to prevent race condition
+    // This ensures only one request can claim a specific number
+    console.log(`[Warm Inventory] STEP 1: Atomically claiming warm number for business ${businessId}...`);
+    
     const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
-    let senderPoolAttachedAt = warmNumber.sender_pool_attached_at || null;
+    const senderPoolAttachedAt = new Date().toISOString();
 
-    if (messagingServiceSid) {
-      console.log(`[Warm Inventory] STEP 4: Verifying sender pool attachment...`);
-      const senderPool = await client.messaging.v1.services(messagingServiceSid)
-        .phoneNumbers
-        .list({ limit: 100 });
-      const isInSenderPool = senderPool.some(pn => pn.sid === warmNumber.twilio_sid);
-
-      if (!isInSenderPool) {
-        console.error('[Warm Inventory] ERROR: Warm number is not attached to sender pool');
-        return { success: false, error: 'Warm number is not attached to sender pool' };
-      }
-
-      senderPoolAttachedAt = senderPoolAttachedAt || new Date().toISOString();
-      console.log(`[Warm Inventory] Sender pool attachment verified: ${warmNumber.phone_number}`);
-    }
-
-    // STEP 5: Update twilio_numbers table
-    console.log(`[Warm Inventory] STEP 5: Assigning number to business...`);
-    console.log(`[Warm Inventory] Business ID: ${businessId}`);
-    console.log(`[Warm Inventory] Phone Number: ${warmNumber.phone_number}`);
-    console.log(`[Warm Inventory] Phone SID: ${warmNumber.twilio_sid}`);
-
-    const { error: updateError } = await supabase
+    const { data: updatedNumbers, error: claimError } = await supabase
       .from('twilio_numbers')
       .update({
         status: 'assigned',
@@ -714,18 +618,94 @@ export async function getAndAssignWarmNumber(businessId: string): Promise<{ succ
         provisioning_error: null,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', warmNumber.id);
+      .is('business_id', null)
+      .eq('status', 'available')
+      .eq('sms_status', 'ready')
+      .eq('provisioning_status', 'ready')
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .select();
 
-    if (updateError) {
-      console.error('[Warm Inventory] ERROR: Assignment DB update failed');
-      console.error('[Warm Inventory] ERROR Details:', JSON.stringify(updateError, null, 2));
-      return { success: false, error: 'Failed to assign warm number' };
+    if (claimError) {
+      console.error('[Warm Inventory] ERROR: Atomic claim failed:', claimError);
+      console.error('[Warm Inventory] ERROR Details:', JSON.stringify(claimError, null, 2));
+      return { success: false, error: 'Failed to claim warm number' };
     }
 
-    console.log(`[Warm Inventory] SUCCESS: Assignment DB update successful`);
+    if (!updatedNumbers || updatedNumbers.length === 0) {
+      console.log('[Warm Inventory] No warm numbers available (atomic claim returned 0 rows)');
+      return { success: false, error: 'No warm numbers available' };
+    }
 
-    // STEP 6: Update businesses table to mark provisioning as ready
-    console.log(`[Warm Inventory] STEP 6: Updating business provisioning status to ready...`);
+    const warmNumber = updatedNumbers[0];
+    console.log(`[Warm Inventory] Successfully claimed number: ${warmNumber.phone_number}`);
+    console.log(`[Warm Inventory] Claimed SID: ${warmNumber.twilio_sid}`);
+    console.log(`[Warm Inventory] Claimed id: ${warmNumber.id}`);
+
+    // STEP 2: Verify Twilio still owns the number after claim
+    console.log(`[Warm Inventory] STEP 2: Verifying Twilio ownership...`);
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+
+    if (!accountSid || !authToken) {
+      console.error('[Warm Inventory] ERROR: Missing Twilio credentials for ownership verification');
+      return { success: false, error: 'Missing Twilio credentials' };
+    }
+
+    const client = Twilio(accountSid, authToken);
+
+    try {
+      await client.incomingPhoneNumbers(warmNumber.twilio_sid).fetch();
+      console.log(`[Warm Inventory] Twilio ownership verified: ${warmNumber.phone_number}`);
+    } catch (twilioError: any) {
+      console.error(`[Warm Inventory] Twilio ownership check failed for ${warmNumber.phone_number}:`, twilioError);
+      if (twilioError.code === 20404 || twilioError.status === 404) {
+        console.log(`[Warm Inventory] Number not found in Twilio - releasing claim and marking as retired`);
+        // Release the claim and mark as retired
+        await supabase
+          .from('twilio_numbers')
+          .update({
+            status: 'retired',
+            detached_at: new Date().toISOString(),
+            detached_reason: 'twilio_number_not_owned',
+            business_id: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', warmNumber.id);
+        console.log(`[Warm Inventory] Released claim and marked as retired: ${warmNumber.phone_number}`);
+      }
+      return { success: false, error: 'Number not owned by Twilio' };
+    }
+
+    if (messagingServiceSid) {
+      console.log(`[Warm Inventory] STEP 3: Verifying sender pool attachment...`);
+      const senderPool = await client.messaging.v1.services(messagingServiceSid)
+        .phoneNumbers
+        .list({ limit: 100 });
+      const isInSenderPool = senderPool.some(pn => pn.sid === warmNumber.twilio_sid);
+
+      if (!isInSenderPool) {
+        console.error('[Warm Inventory] ERROR: Warm number is not attached to sender pool - releasing claim');
+        // Release the claim
+        await supabase
+          .from('twilio_numbers')
+          .update({
+            status: 'available',
+            business_id: null,
+            assigned_at: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', warmNumber.id);
+        return { success: false, error: 'Warm number is not attached to sender pool' };
+      }
+
+      console.log(`[Warm Inventory] Sender pool attachment verified: ${warmNumber.phone_number}`);
+    }
+
+    console.log(`[Warm Inventory] SUCCESS: Number claimed and verified`);
+
+    // STEP 4: Update businesses table to mark provisioning as ready
+    console.log(`[Warm Inventory] STEP 4: Updating business provisioning status to ready...`);
     const { error: businessUpdateError } = await supabase
       .from('businesses')
       .update({
