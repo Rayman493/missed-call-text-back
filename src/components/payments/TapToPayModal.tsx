@@ -110,10 +110,8 @@ export default function TapToPayModal({
             setError('Tap to Pay is not available. Please update the app to the latest version.')
           }
           
-          // Check location permission for Android when modal opens
-          if (detectedPlatform === 'android' && supported) {
-            await checkLocationPermission()
-          }
+          // Do NOT check location permission here - only check when Start Tap to Pay is pressed
+          // This ensures we don't request permission until the user explicitly tries to use Tap to Pay
         } catch (err) {
           console.error('[TTP UI] Platform detection error:', err)
           // Fail safe: assume not supported
@@ -234,6 +232,7 @@ export default function TapToPayModal({
     let errorListener: { remove: () => void } | undefined
     let diagListener: { remove: () => void } | undefined
     let locationPermissionListener: { remove: () => void } | undefined
+    let appStateListener: { remove: () => void } | undefined
     ;(async () => {
       try {
         const Terminal = await import('@/lib/terminal')
@@ -250,15 +249,45 @@ export default function TapToPayModal({
         })
 
         // Listen for location permission result
-        locationPermissionListener = await plugin.addListener('locationPermissionResult', (result: { granted: boolean }) => {
+        locationPermissionListener = await plugin.addListener('locationPermissionResult', async (result: { granted: boolean }) => {
           console.log('[TTP UI] Location permission result:', result)
           setLocationPermissionGranted(result.granted)
           
           // Re-check location services after permission is granted
           if (result.granted) {
-            checkLocationPermission()
+            const servicesOk = await checkLocationPermission()
+            
+            // If we were waiting for permission and both requirements are now satisfied,
+            // automatically continue the payment flow without requiring user to click Start again
+            if (showLocationPermissionDialog && result.granted && servicesOk) {
+              console.log('[TTP UI] Permission and services now satisfied, auto-continuing payment')
+              setShowLocationPermissionDialog(false)
+              setError('')
+              // Automatically start payment after permission is granted
+              handleStartPayment()
+            }
           }
         })
+
+        // Listen for app state changes to detect when user returns from Settings
+        if (typeof document !== 'undefined') {
+          const handleVisibilityChange = async () => {
+            if (!document.hidden && showLocationPermissionDialog) {
+              console.log('[TTP UI] App became visible, re-checking location services')
+              const servicesOk = await checkLocationPermission()
+              
+              // If both requirements are now satisfied, auto-continue payment
+              if (locationPermissionGranted && servicesOk) {
+                console.log('[TTP UI] Services now enabled, auto-continuing payment')
+                setShowLocationPermissionDialog(false)
+                setError('')
+                handleStartPayment()
+              }
+            }
+          }
+          document.addEventListener('visibilitychange', handleVisibilityChange)
+          appStateListener = { remove: () => document.removeEventListener('visibilitychange', handleVisibilityChange) }
+        }
 
         // Diagnostics lifecycle tap: infer confirmation-wait once per attempt
         diagListener = await (plugin as any).addListener('tpDiagnostics', (payload: any) => {
@@ -286,8 +315,9 @@ export default function TapToPayModal({
       errorListener?.remove?.()
       diagListener?.remove?.()
       locationPermissionListener?.remove?.()
+      appStateListener?.remove?.()
     }
-  }, [isOpen, isNativeSupported])
+  }, [isOpen, isNativeSupported, showLocationPermissionDialog, locationPermissionGranted])
 
   const getErrorMessage = (error: any): string => {
     // Log raw error in development for debugging

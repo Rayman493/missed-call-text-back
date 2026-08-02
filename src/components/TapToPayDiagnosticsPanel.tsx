@@ -115,6 +115,10 @@ export default function TapToPayDiagnosticsPanel({ context }: { context?: any } 
             const locationServicesEnabled = ui.locationServicesEnabled ?? null
             const isNativeSupported = ui.isNativeSupported ?? false
             
+            // Get terminal state from service
+            const connectionStatus = (svc as any)?.connectionStatus || 'unknown'
+            const readerId = svc?.getReaderId?.() || '-'
+            
             return (
               <>
                 <div className="space-y-1">
@@ -131,6 +135,8 @@ export default function TapToPayDiagnosticsPanel({ context }: { context?: any } 
                   <div className="text-muted-foreground">Session: {sessionId || '-'}</div>
                   <div className="text-muted-foreground">Attempt: {attemptId || '-'}</div>
                   <div className="text-muted-foreground">Phase: {phase || '-'}</div>
+                  <div className="text-muted-foreground">Connection: {connectionStatus}</div>
+                  <div className="text-muted-foreground">Reader: {readerId !== '-' ? 'Connected' : 'Not connected'}</div>
                 </div>
                 <div className="space-y-1">
                   <div className="font-medium text-foreground">Platform & Permissions</div>
@@ -138,6 +144,7 @@ export default function TapToPayDiagnosticsPanel({ context }: { context?: any } 
                   <div className="text-muted-foreground">Loc Permission: {locationPermissionGranted === null ? 'Unknown' : locationPermissionGranted ? 'Granted' : 'Denied'}</div>
                   <div className="text-muted-foreground">Loc Services: {locationServicesEnabled === null ? 'Unknown' : locationServicesEnabled ? 'Enabled' : 'Disabled'}</div>
                   <div className="text-muted-foreground">Native Supported: {isNativeSupported ? 'Yes' : 'No'}</div>
+                  <div className="text-muted-foreground">Terminal Init: {connectionStatus === 'ready' || connectionStatus === 'connected' ? 'Yes' : 'No'}</div>
                 </div>
               </>
             )
