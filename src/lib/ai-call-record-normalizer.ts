@@ -8,6 +8,8 @@
  * were used during AI extraction or manual correction.
  */
 
+import { generateCanonicalRequestTitle } from './ai-intake-formatter'
+
 export interface NormalizedIntake {
   id: string
   callSid: string
@@ -29,13 +31,19 @@ export interface NormalizedIntake {
 export function normalizeAICallRecord(record: any): NormalizedIntake {
   const extracted = record.extracted_info || {}
   
+  // Use canonical request title generation when the request field is used
+  // This creates a concise 2-5 word service title instead of truncating
+  const serviceRequested = extracted.request 
+    ? generateCanonicalRequestTitle(extracted.request)
+    : (extracted.reasonForCalling || extracted.serviceRequested || extracted.service || extracted.reason || extracted.issueDescription || null)
+  
   return {
     id: record.id,
     callSid: record.call_sid,
     receivedAt: record.created_at,
     outcome: record.outcome,
     customerName: extracted.callerName || extracted.customerName || extracted.name || null,
-    serviceRequested: extracted.reasonForCalling || extracted.serviceRequested || extracted.service || extracted.reason || extracted.request || extracted.issueDescription || null,
+    serviceRequested,
     additionalDetails: extracted.importantDetails || extracted.additionalDetails || extracted.issueDescription || extracted.details || null,
     serviceAddress: extracted.addressOrLocation || extracted.serviceAddress || extracted.location || null,
     desiredCompletion: extracted.desiredCompletionTime || extracted.desiredCompletion || extracted.completionTime || null,

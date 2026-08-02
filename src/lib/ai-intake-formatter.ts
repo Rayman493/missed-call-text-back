@@ -168,6 +168,56 @@ export const normalizeServiceReason = (text: string | null | undefined): string 
   return normalized;
 };
 
+/**
+ * Generate a concise service title from the full request text
+ * This creates a 2-5 word title case title that describes the service being requested
+ * Removes conversational filler, pronouns, and transforms into a headline-style title
+ * 
+ * Examples:
+ * - "I would like piano lessons. I would just like to learn the basics." → "Piano Lessons"
+ * - "My kitchen sink has been leaking underneath the cabinet." → "Kitchen Sink Leak"
+ * - "I need someone to mow my lawn every other week." → "Recurring Lawn Mowing"
+ */
+export const generateCanonicalRequestTitle = (text: string | null | undefined): string => {
+  if (!text || text.trim() === '') return 'Not collected';
+
+  const original = text.trim();
+  let title = original;
+
+  // Remove conversational filler and prefixes
+  const fillerPatterns = [
+    /^(?:I would like |I'd like |I want |I need |I'm |I am |Can you |Need help with |Help with )\s*/i,
+    /^(?:And |So |Well |Um |Uh |Yeah )\s*/i,
+    /^(?:I'm calling |I am calling |I'm here for |I'm looking for )\s*(?:for |to |because )/i,
+    /^(?:The reason I'?m calling is )/i,
+  ];
+  
+  for (const pattern of fillerPatterns) {
+    title = title.replace(pattern, '');
+  }
+
+  // Remove pronouns and personal references at the start
+  title = title.replace(/^(?:my |our |someone to )\s*/i, '');
+
+  // Remove trailing conversational filler
+  title = title.replace(/\s*(?:\.|!|\?|,?\s*(?:please|thanks|thank you))?$/i, '');
+
+  // Split into words
+  const words = title.split(/\s+/).filter(w => w.length > 0);
+
+  if (words.length === 0) return 'Service Request';
+
+  // Take first 2-5 words for the title
+  const titleWords = words.slice(0, Math.min(5, words.length));
+
+  // Convert to title case
+  const titleCased = titleWords.map(word => 
+    word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+  ).join(' ');
+
+  return titleCased;
+};
+
 // Field-specific normalization for addresses
 // Removes location-specific conversational prefixes
 export const normalizeAddress = (text: string | null | undefined): string => {
@@ -521,7 +571,10 @@ export const formatAiIntakeSummary = (
   }
   
   // Use the new request field if available, otherwise fall back to combined
-  const finalRequest = intakeData?.request ? normalizeServiceReason(intakeData.request) : request;
+  // When the request field is present, generate a concise canonical title
+  const finalRequest = intakeData?.request 
+    ? generateCanonicalRequestTitle(intakeData.request)
+    : request;
 
   const displayName = businessName || 'us';
   const prefix = prefixNotice ? `${prefixNotice}\n\n` : '';

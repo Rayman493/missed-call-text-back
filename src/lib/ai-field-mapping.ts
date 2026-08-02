@@ -4,12 +4,15 @@
  * Provides canonical field names and backward compatibility for reading extracted_info
  */
 
-import { normalizeCustomerName, normalizeServiceReason, normalizeAddress, normalizeTiming, normalizeAdditionalDetails, safeTrimAndCapitalize } from './ai-intake-formatter'
+import { normalizeCustomerName, normalizeServiceReason, normalizeAddress, normalizeTiming, normalizeAdditionalDetails, safeTrimAndCapitalize, generateCanonicalRequestTitle } from './ai-intake-formatter'
 import { isCompleteAIIntake } from './ai-intake-completion'
 
 /**
  * Generate a concise request title from AI intake reason
- * Target: 2-6 meaningful words for use in cards, jobs, tasks, etc.
+ * Target: 2-5 meaningful words for use in cards, jobs, tasks, etc.
+ * 
+ * This function now uses the canonical request title generation for consistency
+ * across the application.
  * 
  * Examples:
  * - "I need someone to come look at my kitchen sink that's leaking" → "Kitchen Sink Repair"
@@ -19,80 +22,8 @@ import { isCompleteAIIntake } from './ai-intake-completion'
  * - "I need a bathroom remodel estimate" → "Bathroom Remodel Estimate"
  */
 export function generateConciseRequestTitle(reasonForCalling: string | undefined | null): string {
-  if (!reasonForCalling || typeof reasonForCalling !== 'string') {
-    return ''
-  }
-
-  // Remove common prefixes
-  const prefixes = [
-    'i need',
-    'i want',
-    'i would like',
-    'i\'m looking for',
-    'i am looking for',
-    'looking for',
-    'need',
-    'want',
-    'would like',
-    'can you help with',
-    'help with',
-    'interested in',
-    'inquiring about',
-    'question about',
-  ]
-  
-  let cleaned = reasonForCalling.toLowerCase().trim()
-  
-  // Remove prefixes
-  for (const prefix of prefixes) {
-    if (cleaned.startsWith(prefix)) {
-      cleaned = cleaned.slice(prefix.length).trim()
-      break
-    }
-  }
-
-  // Remove trailing filler words
-  const suffixes = [
-    'please',
-    'thanks',
-    'thank you',
-    'as soon as possible',
-    'asap',
-    'as soon as you can',
-    'when possible',
-    'at your earliest convenience',
-  ]
-  
-  for (const suffix of suffixes) {
-    if (cleaned.endsWith(suffix)) {
-      cleaned = cleaned.slice(0, -suffix.length).trim()
-    }
-  }
-
-  // Split into words and clean
-  const words = cleaned
-    .replace(/[^\w\s\-]/g, ' ') // Remove special characters except hyphens
-    .split(/\s+/)
-    .filter(word => word.length > 0)
-    .filter(word => {
-      // Remove common filler words
-      const fillerWords = ['a', 'an', 'the', 'to', 'for', 'my', 'our', 'me', 'us', 'someone', 'somebody', 'anyone']
-      return !fillerWords.includes(word.toLowerCase())
-    })
-
-  // Take first 2-6 words for the title
-  const titleWords = words.slice(0, 6)
-  
-  if (titleWords.length === 0) {
-    return ''
-  }
-
-  // Capitalize each word
-  const title = titleWords
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ')
-
-  return title
+  const title = generateCanonicalRequestTitle(reasonForCalling)
+  return title === 'Not collected' ? '' : title
 }
 
 // Helper function to detect if a string looks like a phone number
