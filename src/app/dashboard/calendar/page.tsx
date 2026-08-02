@@ -1085,67 +1085,73 @@ export default function SchedulePage() {
 
                   {/* Mobile tab toggle (responsive grid, no horizontal scrolling) */}
                   <div className="md:hidden mb-4 mt-2">
-                    <div className="bg-slate-900/40 dark:bg-slate-800/60 rounded-xl p-0.5 grid grid-cols-3 gap-0.5 border border-slate-200/50 dark:border-slate-700/50">
-                      <button
-                        onClick={() => setScheduleTab('today')}
-                        className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg font-medium transition-all duration-200 ease-out ${
-                          scheduleTab === 'today'
-                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50'
-                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-xs'
-                        }`}
-                      >
-                        <CheckCircle2 className={`w-3.5 h-3.5 ${scheduleTab === 'today' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
-                        <span>Today</span>
-                      </button>
-                      <button
-                        onClick={() => setScheduleTab('calendar')}
-                        className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg font-medium transition-all duration-200 ease-out ${
-                          scheduleTab === 'calendar'
-                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50'
-                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-xs'
-                        }`}
-                      >
-                        <CalendarIcon className={`w-3.5 h-3.5 ${scheduleTab === 'calendar' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
-                        <span>Calendar</span>
-                      </button>
-                      <button
-                        onClick={() => setScheduleTab('meetings')}
-                        className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg font-medium transition-all duration-200 ease-out ${
-                          scheduleTab === 'meetings'
-                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50'
-                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-xs'
-                        }`}
-                      >
-                        <CalendarIcon className={`w-3.5 h-3.5 ${scheduleTab === 'meetings' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
-                        <span>Meetings</span>
-                      </button>
-                      <button
-                        onClick={() => setScheduleTab('jobs')}
-                        className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg font-medium transition-all duration-200 ease-out ${
-                          scheduleTab === 'jobs'
-                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50'
-                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-xs'
-                        }`}
-                      >
-                        <Briefcase className={`w-3.5 h-3.5 ${scheduleTab === 'jobs' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
-                        <span>Jobs</span>
-                        {jobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress').length > 0 && (
-                          <span className="ml-2.5 px-1 py-0.5 text-[9px] font-semibold bg-blue-600/90 text-white rounded-full">
-                            {jobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress').length}
-                          </span>
-                        )}
-                      </button>
-                      <button
-                        onClick={() => setScheduleTab('tasks')}
-                        className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg font-medium transition-all duration-200 ease-out col-span-2 ${
-                          scheduleTab === 'tasks'
-                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50'
-                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-xs'
-                        }`}
-                      >
-                        <CheckCircle2 className={`w-3.5 h-3.5 ${scheduleTab === 'tasks' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
-                        <span>Tasks</span>
-                      </button>
+                    <div className="bg-slate-900/40 dark:bg-slate-800/60 rounded-xl p-0.5 border border-slate-200/50 dark:border-slate-700/50">
+                      {/* First row: 3-column grid */}
+                      <div className="grid grid-cols-3 gap-0.5 mb-0.5">
+                        <button
+                          onClick={() => setScheduleTab('today')}
+                          className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg font-medium transition-all duration-200 ease-out ${
+                            scheduleTab === 'today'
+                              ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50'
+                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-xs'
+                          }`}
+                        >
+                          <CheckCircle2 className={`w-3.5 h-3.5 ${scheduleTab === 'today' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
+                          <span>Today</span>
+                        </button>
+                        <button
+                          onClick={() => setScheduleTab('calendar')}
+                          className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg font-medium transition-all duration-200 ease-out ${
+                            scheduleTab === 'calendar'
+                              ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50'
+                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-xs'
+                          }`}
+                        >
+                          <CalendarIcon className={`w-3.5 h-3.5 ${scheduleTab === 'calendar' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
+                          <span>Calendar</span>
+                        </button>
+                        <button
+                          onClick={() => setScheduleTab('meetings')}
+                          className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg font-medium transition-all duration-200 ease-out ${
+                            scheduleTab === 'meetings'
+                              ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50'
+                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-xs'
+                          }`}
+                        >
+                          <CalendarIcon className={`w-3.5 h-3.5 ${scheduleTab === 'meetings' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
+                          <span>Meetings</span>
+                        </button>
+                      </div>
+                      {/* Second row: natural width with centering */}
+                      <div className="flex justify-center gap-0.5">
+                        <button
+                          onClick={() => setScheduleTab('jobs')}
+                          className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg font-medium transition-all duration-200 ease-out ${
+                            scheduleTab === 'jobs'
+                              ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50'
+                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-xs'
+                          }`}
+                        >
+                          <Briefcase className={`w-3.5 h-3.5 ${scheduleTab === 'jobs' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
+                          <span>Jobs</span>
+                          {jobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress').length > 0 && (
+                            <span className="ml-2.5 px-1 py-0.5 text-[9px] font-semibold bg-blue-600/90 text-white rounded-full">
+                              {jobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress').length}
+                            </span>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setScheduleTab('tasks')}
+                          className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg font-medium transition-all duration-200 ease-out ${
+                            scheduleTab === 'tasks'
+                              ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50'
+                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-xs'
+                          }`}
+                        >
+                          <CheckCircle2 className={`w-3.5 h-3.5 ${scheduleTab === 'tasks' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
+                          <span>Tasks</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
 
