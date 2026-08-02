@@ -440,15 +440,57 @@ export default function NavbarNotifications() {
               )}
             </div>
 
-            {/* Notifications List - Phase 1: Simplified rendering */}
+            {/* Notifications List - Phase 2: Original row layout without interactions */}
             <div className="max-h-96 overflow-y-auto p-2 sm:p-3">
               {notifications.length > 0 ? (
-                <div className="divide-y divide-border">
-                  {notifications.map((notification) => (
-                    <div key={notification.id} className="px-4 py-3 text-sm text-slate-200">
-                      {notification.title || 'Notification'}
-                    </div>
-                  ))}
+                <div className="space-y-1">
+                  {notifications.map((notification) => {
+                    const displayName = notification.data?.leadName || notification.data?.lead_phone || null
+                    
+                    return (
+                      <div
+                        key={notification.id}
+                        className="flex items-start gap-3 p-3 rounded-xl bg-slate-800/30"
+                      >
+                        {/* Icon */}
+                        <div className={`flex-shrink-0 w-8 h-8 rounded-lg ${getNotificationColor(notification.type)} flex items-center justify-center`}>
+                          {getNotificationIcon(notification.type)}
+                        </div>
+                        
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          {/* Title */}
+                          <p className="text-sm font-medium text-slate-200 mb-0.5">
+                            {notification.title || 'Notification'}
+                          </p>
+                          
+                          {/* Customer name or phone number */}
+                          {displayName && (
+                            <p className="text-xs sm:text-sm font-medium text-slate-300 mb-1">
+                              {displayName}
+                            </p>
+                          )}
+                          
+                          {/* Message preview - single line truncated */}
+                          <p className="text-xs sm:text-sm text-slate-400 truncate">
+                            {notification.message || 'No message'}
+                          </p>
+                          
+                          {/* Time */}
+                          <p className="text-[10px] sm:text-xs text-slate-500 mt-1">
+                            {formatNotificationTime(notification.created_at)}
+                          </p>
+                        </div>
+                        
+                        {/* Unread indicator dot */}
+                        {!notification.read && (
+                          <div className="flex-shrink-0 mt-1">
+                            <div className={`w-2 h-2 rounded-full ${getNotificationDotColor(notification.type)}`}></div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               ) : loading ? (
                 <div className="flex items-center justify-center py-8">
