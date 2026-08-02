@@ -8,6 +8,7 @@ import Navigation from '@/components/Navigation'
 import UserDropdown from '@/components/UserDropdown'
 import AppHeader from '@/components/AppHeader'
 import { Copy, Key, Mail, Eye, EyeOff, CheckCircle, XCircle, RefreshCw } from 'lucide-react'
+import TwilioHealthDashboard from '@/components/TwilioHealthDashboard'
 
 interface Business {
   id: string
@@ -117,6 +118,11 @@ export default function AdminSupportPage() {
   const [changeEmailError, setChangeEmailError] = useState('')
   const [changeEmailSuccess, setChangeEmailSuccess] = useState(false)
   const [showEmailSecondConfirmation, setShowEmailSecondConfirmation] = useState(false)
+
+  // Twilio health state
+  const [twilioHealthData, setTwilioHealthData] = useState<any>(null)
+  const [twilioHealthLoading, setTwilioHealthLoading] = useState(false)
+  const [twilioHealthError, setTwilioHealthError] = useState<string | null>(null)
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -881,6 +887,31 @@ export default function AdminSupportPage() {
       setChangeEmailLoading(false)
     }
   }
+
+  const fetchTwilioHealth = async () => {
+    setTwilioHealthLoading(true)
+    setTwilioHealthError(null)
+    try {
+      const response = await fetch('/api/admin/support/twilio-health')
+      const data = await response.json()
+      if (data.success) {
+        setTwilioHealthData(data.data)
+      } else {
+        setTwilioHealthError(data.error || 'Failed to fetch Twilio health data')
+      }
+    } catch (error) {
+      setTwilioHealthError('Failed to fetch Twilio health data')
+    } finally {
+      setTwilioHealthLoading(false)
+    }
+  }
+
+  // Fetch Twilio health data on mount
+  useEffect(() => {
+    if (isAdmin) {
+      fetchTwilioHealth()
+    }
+  }, [isAdmin])
 
   if (loading) {
     return (
@@ -2307,6 +2338,14 @@ export default function AdminSupportPage() {
                 </div>
               </div>
             )}
+
+            {/* Twilio Number Provisioning Health Dashboard */}
+            <TwilioHealthDashboard
+              data={twilioHealthData}
+              loading={twilioHealthLoading}
+              error={twilioHealthError}
+              onRefresh={fetchTwilioHealth}
+            />
           </div>
         </div>
       </div>
