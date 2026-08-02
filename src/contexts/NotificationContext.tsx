@@ -52,9 +52,17 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       // Fetch the actual count from all notifications (no limit)
       const countData = await notificationService.getNotificationCount(businessId)
       
+      console.log('[NotificationContext] Fetch result', {
+        notificationsCount: notificationsData.length,
+        notificationCount: countData,
+        unreadInNotifications: notificationsData.filter(n => !n.read).length,
+      })
+      
       setNotifications(notificationsData)
       setNotificationCount(countData)
-      setDisplayedUnreadCount(countData.unread)
+      // Use actual unread count from notifications array for display to ensure consistency
+      const actualUnreadCount = notificationsData.filter(n => !n.read).length
+      setDisplayedUnreadCount(actualUnreadCount)
       
       // Consistency check: if count says unread > 0 but no notifications in preview, this indicates a bug
       if (countData.unread > 0 && notificationsData.length === 0) {
@@ -97,13 +105,15 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
             // Keep unread notifications, slice to 50 limit
             const unread = updated.filter(n => !n.read)
             const read = updated.filter(n => n.read).slice(0, 50 - unread.length)
-            return [...unread, ...read].slice(0, 50)
+            const result = [...unread, ...read].slice(0, 50)
+            // Update displayedUnreadCount to match actual unread count
+            setDisplayedUnreadCount(result.filter(n => !n.read).length)
+            return result
           })
           setNotificationCount(prev => ({ 
             unread: prev.unread + 1, 
             total: prev.total + 1 
           }))
-          setDisplayedUnreadCount(prev => prev + 1)
         }
       )
       .on(
@@ -121,14 +131,21 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
             // Maintain unread priority: keep all unread, slice read to fit limit
             const unread = updated.filter(n => !n.read)
             const read = updated.filter(n => n.read).slice(0, 50 - unread.length)
-            return [...unread, ...read].slice(0, 50)
+            const result = [...unread, ...read].slice(0, 50)
+            // Update displayedUnreadCount to match actual unread count
+            setDisplayedUnreadCount(result.filter(n => !n.read).length)
+            return result
           })
           if (payload.new.read && !payload.old.read) {
             setNotificationCount(prev => ({ 
               ...prev, 
               unread: Math.max(0, prev.unread - 1) 
             }))
-            setDisplayedUnreadCount(prev => Math.max(0, prev - 1))
+          } else if (!payload.new.read && payload.old.read) {
+            setNotificationCount(prev => ({ 
+              ...prev, 
+              unread: prev.unread + 1 
+            }))
           }
         }
       )
@@ -148,15 +165,15 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
             // Maintain unread priority
             const unread = filtered.filter(n => !n.read)
             const read = filtered.filter(n => n.read).slice(0, 50 - unread.length)
-            return [...unread, ...read].slice(0, 50)
+            const result = [...unread, ...read].slice(0, 50)
+            // Update displayedUnreadCount to match actual unread count
+            setDisplayedUnreadCount(result.filter(n => !n.read).length)
+            return result
           })
           setNotificationCount(prev => ({
             unread: deletedNotification && !deletedNotification.read ? Math.max(0, prev.unread - 1) : prev.unread,
             total: Math.max(0, prev.total - 1)
           }))
-          if (deletedNotification && !deletedNotification.read) {
-            setDisplayedUnreadCount(prev => Math.max(0, prev - 1))
-          }
         }
       )
       .subscribe()
@@ -204,11 +221,13 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
   const markAsRead = async (notificationId: string) => {
     await notificationService.markAsRead(notificationId)
-    setNotifications(prev => 
-      prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
-    )
+    setNotifications(prev => {
+      const updated = prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+      // Update displayedUnreadCount to match actual unread count
+      setDisplayedUnreadCount(updated.filter(n => !n.read).length)
+      return updated
+    })
     setNotificationCount(prev => ({ ...prev, unread: Math.max(0, prev.unread - 1) }))
-    setDisplayedUnreadCount(prev => Math.max(0, prev - 1))
   }
 
   const markAllAsRead = async () => {

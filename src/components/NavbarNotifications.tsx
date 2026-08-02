@@ -85,6 +85,28 @@ export default function NavbarNotifications() {
   const [buttonPosition, setButtonPosition] = useState<{ top: number; right: number } | null>(null)
   const isMobile = useIsMobile()
 
+  // Log incoming notification records (compact, no sensitive content)
+  console.log(
+    '[NavbarNotifications] Incoming records',
+    notifications.map((notification) => ({
+      id: notification.id,
+      type: notification.type,
+      title: notification.title,
+      message: notification.message,
+      read: notification.read,
+      created_at: notification.created_at,
+      action_url: notification.action_url,
+    }))
+  )
+
+  // Log unread count source
+  console.log('[NavbarNotifications] Unread count source', {
+    notificationCount,
+    displayedUnreadCount,
+    notificationsLength: notifications.length,
+    unreadFromNotifications: notifications.filter(n => !n.read).length,
+  })
+
   // Lock body scroll when notifications panel is open
   useBodyScrollLock(isOpen)
 
@@ -349,6 +371,19 @@ export default function NavbarNotifications() {
         console.error('[NavbarNotifications] Error grouping notification:', error, notification)
         groups['Older'].push(notification)
       }
+    })
+
+    const groupedCount = Object.values(groups).reduce(
+      (total, group) => total + group.length,
+      0
+    )
+    
+    console.log('[NavbarNotifications] Group result', {
+      inputCount: notifications.length,
+      groupedCount,
+      groupSizes: Object.fromEntries(
+        Object.entries(groups).map(([name, group]) => [name, group.length])
+      ),
     })
 
     return groups
