@@ -64,6 +64,9 @@ export default function TapToPayModal({
 
   // Emit WAITING_FOR_CONFIRMATION exactly once per attempt when native indicates confirm stage
   const waitingForConfirmationEmitted = useRef<string | null>(null) // attemptId
+  
+  // Guard against duplicate auto-retry triggers from permission callback + visibility change
+  const autoRetryInProgress = useRef(false)
 
   // Do NOT auto-expand diagnostics in production - keep technical details hidden from users
   // Diagnostics can be manually expanded via "Show diagnostics" button if needed
@@ -77,8 +80,27 @@ export default function TapToPayModal({
       // Wait for Capacitor to be ready before checking platform
       ;(async () => {
         try {
-          // Wait a brief moment for Capacitor bridge to be ready
-          await new Promise(resolve => setTimeout(resolve, 100))
+          // Bounded retry approach: wait for Capacitor bridge to be ready
+          // This is more reliable than a fixed setTimeout
+          const MAX_RETRIES = 10
+          const RETRY_DELAY = 50
+          let retries = 0
+          
+          while (retries < MAX_RETRIES) {
+            // Check if Capacitor is ready by testing plugin availability
+            const pluginAvailable = Capacitor.isPluginAvailable('ReplyflowStripeTerminal')
+            
+            // If we can check plugin availability, bridge is ready
+            if (pluginAvailable !== undefined) {
+              break
+            }
+            
+            // Wait and retry
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY))
+            retries++
+          }
+          
+          console.log('[TTP UI] Capacitor bridge ready after', retries, 'retries')
           
           // Detect platform for platform-specific messaging
           const detectedPlatform = Capacitor.getPlatform() as 'ios' | 'android' | 'web'
@@ -94,7 +116,8 @@ export default function TapToPayModal({
             detectedPlatform,
             isNative,
             pluginAvailable,
-            isNativeCapacitor: isNativeCapacitor()
+            isNativeCapacitor: isNativeCapacitor(),
+            bridgeReady: retries < MAX_RETRIES
           })
           
           // Set native support based on actual platform and plugin availability
@@ -149,6 +172,7 @@ export default function TapToPayModal({
       setShowTechnicalDetails(false)
       setLastSuccessfulStage('none')
       setIsPaymentInProgress(false)
+      autoRetryInProgress.current = false
       waitingForConfirmationEmitted.current = null
     }
   }, [isOpen])
@@ -259,8 +283,9 @@ export default function TapToPayModal({
             
             // If we were waiting for permission and both requirements are now satisfied,
             // automatically continue the payment flow without requiring user to click Start again
-            if (showLocationPermissionDialog && result.granted && servicesOk) {
+            if (showLocationPermissionDialog && result.granted && servicesOk && !autoRetryInProgress.current) {
               console.log('[TTP UI] Permission and services now satisfied, auto-continuing payment')
+              autoRetryInProgress.current = true
               setShowLocationPermissionDialog(false)
               setError('')
               // Automatically start payment after permission is granted
@@ -272,13 +297,14 @@ export default function TapToPayModal({
         // Listen for app state changes to detect when user returns from Settings
         if (typeof document !== 'undefined') {
           const handleVisibilityChange = async () => {
-            if (!document.hidden && showLocationPermissionDialog) {
+            if (!document.hidden && showLocationPermissionDialog && !autoRetryInProgress.current) {
               console.log('[TTP UI] App became visible, re-checking location services')
               const servicesOk = await checkLocationPermission()
               
               // If both requirements are now satisfied, auto-continue payment
               if (locationPermissionGranted && servicesOk) {
                 console.log('[TTP UI] Services now enabled, auto-continuing payment')
+                autoRetryInProgress.current = true
                 setShowLocationPermissionDialog(false)
                 setError('')
                 handleStartPayment()
@@ -507,6 +533,9 @@ export default function TapToPayModal({
       return
     }
 
+    // Reset auto-retry guard to allow manual retry or new auto-retry
+    autoRetryInProgress.current = false
+
     // Check for unresolved attempt before starting new payment
     const unresolvedAttemptId = terminalService.getUnresolvedAttempt()
     if (unresolvedAttemptId) {
@@ -542,6 +571,7 @@ export default function TapToPayModal({
           console.log('[TTP UI] Location permission or services not available')
           setShowLocationPermissionDialog(true)
           setIsPaymentInProgress(false)
+          autoRetryInProgress.current = false
           setPaymentState('ready')
           setError('Location permission is required for Tap to Pay')
           return
@@ -620,6 +650,7 @@ export default function TapToPayModal({
         setLastSuccessfulStage('payment_complete')
         setPaymentState('success')
         setIsPaymentInProgress(false)
+        autoRetryInProgress.current = false
         if (onPaymentComplete) {
           setTimeout(() => onPaymentComplete(), 1500)
         }
@@ -629,6 +660,7 @@ export default function TapToPayModal({
         paymentResult?.error?.code === 'canceled'
       ) {
         setIsPaymentInProgress(false)
+        autoRetryInProgress.current = false
         setStructuredError(null)
         setJsError(null)
         setError('')
@@ -641,6 +673,7 @@ export default function TapToPayModal({
       console.error('[TTP ERROR] Full error object:', err)
       console.error('Tap to Pay error:', err)
       setIsPaymentInProgress(false)
+      autoRetryInProgress.current = false
 
       // Check if this is a Capacitor rejection with structured error data
       if (err && typeof err === 'object' && 'data' in err) {
@@ -869,7 +902,9 @@ export default function TapToPayModal({
                         locationPermissionGranted,
                         locationServicesEnabled,
                         selectedLeadId: leadId,
-                        selectedJobId: jobId
+                        selectedJobId: jobId,
+                        structuredError,
+                        jsError
                       }
                     }} />
                   </div>
@@ -955,7 +990,21 @@ export default function TapToPayModal({
                 </button>
                 {showDiagnostics && (
                   <div className="w-full px-4 min-h-[240px] animate-in slide-in-from-top-2 duration-200">
-                    <TapToPayDiagnosticsPanel />
+                    <TapToPayDiagnosticsPanel context={{
+                      ui: {
+                        modal: 'TapToPay',
+                        isOpen,
+                        amountCents,
+                        isNativeSupported,
+                        platform,
+                        locationPermissionGranted,
+                        locationServicesEnabled,
+                        selectedLeadId: leadId,
+                        selectedJobId: jobId,
+                        structuredError,
+                        jsError
+                      }
+                    }} />
                   </div>
                 )}
               </div>

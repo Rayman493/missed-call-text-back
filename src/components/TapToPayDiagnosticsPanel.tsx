@@ -119,6 +119,12 @@ export default function TapToPayDiagnosticsPanel({ context }: { context?: any } 
             const connectionStatus = (svc as any)?.connectionStatus || 'unknown'
             const readerId = svc?.getReaderId?.() || '-'
             
+            // Get last error from context
+            const lastError = ui.structuredError || ui.jsError || null
+            
+            // Check plugin availability for readiness status
+            const pluginAvailable = Capacitor.isPluginAvailable('ReplyflowStripeTerminal')
+            
             return (
               <>
                 <div className="space-y-1">
@@ -137,6 +143,7 @@ export default function TapToPayDiagnosticsPanel({ context }: { context?: any } 
                   <div className="text-muted-foreground">Phase: {phase || '-'}</div>
                   <div className="text-muted-foreground">Connection: {connectionStatus}</div>
                   <div className="text-muted-foreground">Reader: {readerId !== '-' ? 'Connected' : 'Not connected'}</div>
+                  {readerId !== '-' && <div className="text-muted-foreground">Reader ID: {readerId.slice(-8)}</div>}
                 </div>
                 <div className="space-y-1">
                   <div className="font-medium text-foreground">Platform & Permissions</div>
@@ -145,7 +152,15 @@ export default function TapToPayDiagnosticsPanel({ context }: { context?: any } 
                   <div className="text-muted-foreground">Loc Services: {locationServicesEnabled === null ? 'Unknown' : locationServicesEnabled ? 'Enabled' : 'Disabled'}</div>
                   <div className="text-muted-foreground">Native Supported: {isNativeSupported ? 'Yes' : 'No'}</div>
                   <div className="text-muted-foreground">Terminal Init: {connectionStatus === 'ready' || connectionStatus === 'connected' ? 'Yes' : 'No'}</div>
+                  <div className="text-muted-foreground">Bridge Ready: {pluginAvailable !== undefined ? 'Yes' : 'Checking...'}</div>
                 </div>
+                {lastError && (
+                  <div className="space-y-1">
+                    <div className="font-medium text-foreground">Last Error</div>
+                    <div className="text-muted-foreground">Code: {lastError.code || 'unknown'}</div>
+                    <div className="text-muted-foreground">Message: {lastError.message?.slice(0, 100) || 'No message'}</div>
+                  </div>
+                )}
               </>
             )
           } catch {
