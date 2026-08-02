@@ -7,7 +7,6 @@ import { useBusiness } from '@/contexts/BusinessContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useTrialEligibility } from '@/hooks/useTrialEligibility'
-import LeadCard from '@/components/LeadCard'
 import AuthGuard from '@/components/AuthGuard'
 import BusinessGuard from '@/components/BusinessGuard'
 import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
@@ -1385,23 +1384,37 @@ export default function LeadsPage() {
                 if (singleLead) {
                   // Single customer: centered with supportive text
                   const lead = filteredLeads[0]
+                  const latestMessage = lead.messages && lead.messages.length > 0
+                    ? lead.messages.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+                    : null
+
+                  const messageStatus = getLeadMessageStatus(latestMessage)
+                  const lastActivity = lead.last_message_at || lead.first_contact_at || lead.created_at
+                  const hasReplied = lead.messages?.some((m: any) => m.direction === 'inbound')
+                  const hasTexted = lead.messages?.some((m: any) => m.direction === 'outbound')
+                  const isUnread = hasUnread(lead.id)
+                  const needsResponse = needsResponseCheck(lead.id)
+                  const leadTiming = calculateLeadTiming(lead)
+                  const isNewCustomer = (Date.now() - new Date(lastActivity).getTime()) < 24 * 60 * 60 * 1000
+                  const aiData = getAIData(lead)
 
                   return (
                     <div className="flex flex-col items-center">
                       {/* Removed inline count here to avoid duplication and lift the card on mobile */}
-                      <LeadCard
-                        lead={lead}
-                        handleConversationClick={handleConversationClick}
-                        handleLeadStatusChange={handleLeadStatusChange}
-                        hasUnread={hasUnread}
-                        needsResponseCheck={needsResponseCheck}
-                        getCardGradientClasses={getCardGradientClasses}
-                        getCardBorderClasses={getCardBorderClasses}
-                        getCardAccentClasses={getCardAccentClasses}
-                        getLeadLifecycleStatus={getLeadLifecycleStatus}
-                        getCompactSummary={getCompactSummary}
-                        isSingle={true}
-                      />
+                      <div
+                        key={lead.id}
+                        onClick={() => handleConversationClick(lead.id)}
+                        className={`w-full max-w-2xl h-full flex flex-col rounded-xl border border-border/50 relative overflow-hidden transition-all duration-200 cursor-pointer bg-white dark:bg-slate-800/80 shadow-sm hover:shadow-md hover:-translate-y-0.5 ${getCardGradientClasses(getLeadLifecycleStatus(lead))} ${getCardBorderClasses(getLeadLifecycleStatus(lead))} ${getCardAccentClasses(getLeadLifecycleStatus(lead))} active:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2`}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            handleConversationClick(lead.id)
+                          }
+                        }}
+                        tabIndex={0}
+                        role="link"
+                        aria-label={`Open ${getLeadDisplayName(lead)}`}
+                      >
 
                           {/* Metadata */}
                           <div className="flex items-center justify-between mb-3">
