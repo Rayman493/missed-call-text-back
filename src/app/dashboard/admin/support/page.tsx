@@ -2016,8 +2016,14 @@ export default function AdminSupportPage() {
                       </div>
 
                       <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                        <p className="text-xs text-amber-800 dark:text-amber-300 font-bold mb-2">
+                          ⚠️ IMPORTANT: Email Confirmation Bypassed
+                        </p>
+                        <p className="text-xs text-amber-800 dark:text-amber-300 mb-2">
+                          This admin action bypasses the normal email-confirmation flow. The new login email will be immediately active without requiring the customer to click a confirmation link.
+                        </p>
                         <p className="text-xs text-amber-800 dark:text-amber-300">
-                          <strong>Warning:</strong> This changes the customer's login email only. It does NOT create a new account, change the User ID, business, subscription, ReplyFlow number, Twilio provisioning, onboarding status, or customer data.
+                          <strong>Warning:</strong> This changes the customer's login email only. It does NOT create a new account, change the User ID, business, subscription, ReplyFlow number, Twilio provisioning, onboarding status, or customer data. Use only after verifying the customer's identity.
                         </p>
                       </div>
 

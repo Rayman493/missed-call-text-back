@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 import { isAdmin } from '@/lib/admin'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { logAdminAction } from '@/lib/admin-audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -90,10 +91,19 @@ export async function POST(
       return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 })
     }
 
-    // Resend verification email using Supabase Auth
-    const { error: verificationError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-      targetUser.user.email!
-    )
+    // Check if user is already confirmed
+    if (targetUser.user.email_confirmed_at) {
+      return NextResponse.json({ success: false, error: 'Email is already verified' }, { status: 400 })
+    }
+
+    // Resend confirmation email using Supabase Auth
+    const { error: verificationError } = await supabaseAdmin.auth.resend({
+      type: 'signup',
+      email: targetUser.user.email!,
+      options: {
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`
+      }
+    })
 
     if (verificationError) {
       console.error('[ADMIN RESEND VERIFICATION] Failed to send verification email:', {
@@ -106,13 +116,12 @@ export async function POST(
     }
 
     // Audit log
-    console.log('[ADMIN AUDIT] Verification email resent', {
+    await logAdminAction({
+      acting_admin_user_id: user.id,
+      acting_admin_email: user.email || '',
+      target_user_id: userId,
+      target_email: targetUser.user.email,
       action: 'admin_resend_verification_email',
-      actingAdminUserId: user.id,
-      actingAdminEmail: user.email,
-      targetUserId: userId,
-      targetEmail: targetUser.user.email,
-      timestamp: new Date().toISOString(),
       success: true
     })
 

@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 import { isAdmin } from '@/lib/admin'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { logAdminAction } from '@/lib/admin-audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -109,13 +110,12 @@ export async function POST(
     }
 
     // Audit log
-    console.log('[ADMIN AUDIT] Recovery email sent', {
+    await logAdminAction({
+      acting_admin_user_id: user.id,
+      acting_admin_email: user.email || '',
+      target_user_id: userId,
+      target_email: targetUser.user.email,
       action: 'admin_send_recovery_email',
-      actingAdminUserId: user.id,
-      actingAdminEmail: user.email,
-      targetUserId: userId,
-      targetEmail: targetUser.user.email,
-      timestamp: new Date().toISOString(),
       success: true
     })
 

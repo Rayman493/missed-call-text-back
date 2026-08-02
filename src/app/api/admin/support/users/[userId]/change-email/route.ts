@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 import { isAdmin } from '@/lib/admin'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { logAdminAction } from '@/lib/admin-audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -125,15 +126,7 @@ export async function POST(
 
     const oldEmail = targetUser.user.email
 
-    // Check if new email is already taken
-    const { data: usersList } = await supabaseAdmin.auth.admin.listUsers()
-    const emailExists = usersList?.users.some(u => u.email === newEmail && u.id !== userId)
-
-    if (emailExists) {
-      return NextResponse.json({ success: false, error: 'Email already in use' }, { status: 409 })
-    }
-
-    // Update email
+    // Update email - Supabase will return an error if email already exists
     const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
       email: newEmail,
     })
@@ -146,19 +139,41 @@ export async function POST(
         error: updateError.message,
         code: updateError.status
       })
+      
+      // Log failed attempt
+      await logAdminAction({
+        acting_admin_user_id: user.id,
+        acting_admin_email: user.email || '',
+        target_user_id: userId,
+        target_email: newEmail,
+        action: 'admin_login_email_changed',
+        support_reason: supportReason,
+        old_email: oldEmail,
+        new_email: newEmail,
+        success: false,
+        error_message: updateError.message
+      })
+      
+      // Map duplicate email error to 409 Conflict
+      if (updateError.message?.toLowerCase().includes('duplicate') || 
+          updateError.message?.toLowerCase().includes('already been registered') ||
+          updateError.message?.toLowerCase().includes('already in use')) {
+        return NextResponse.json({ success: false, error: 'Email already in use' }, { status: 409 })
+      }
+      
       return NextResponse.json({ success: false, error: 'Failed to update email' }, { status: 500 })
     }
 
     // Audit log
-    console.log('[ADMIN AUDIT] Login email changed', {
+    await logAdminAction({
+      acting_admin_user_id: user.id,
+      acting_admin_email: user.email || '',
+      target_user_id: userId,
+      target_email: newEmail,
       action: 'admin_login_email_changed',
-      actingAdminUserId: user.id,
-      actingAdminEmail: user.email,
-      targetUserId: userId,
-      oldEmail,
-      newEmail,
-      supportReason,
-      timestamp: new Date().toISOString(),
+      support_reason: supportReason,
+      old_email: oldEmail,
+      new_email: newEmail,
       success: true
     })
 
