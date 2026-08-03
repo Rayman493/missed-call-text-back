@@ -38,6 +38,7 @@ export default function QuickTapToPayModal({
   const [isLoadingJobs, setIsLoadingJobs] = useState(false)
   const [isNativeSupported, setIsNativeSupported] = useState(false)
   const [showCustomerSelector, setShowCustomerSelector] = useState(false)
+  const [modalSessionId, setModalSessionId] = useState<string>(`modal_${Date.now()}`)
 
   // Ref for modal title for accessibility focus
   const titleRef = useRef<HTMLHeadingElement>(null)
@@ -57,6 +58,7 @@ export default function QuickTapToPayModal({
     cancelPayment,
     retryPayment,
     resetTapToPayUiState,
+    resetToSetup,
     checkPlatformSupport,
   } = useTapToPayOrchestration({
     amountCents,
@@ -89,6 +91,22 @@ export default function QuickTapToPayModal({
     
     // Note: We don't clear amount/customer/job as user may want to retry
   }, [resetTapToPayUiState])
+
+  // Modal-session initialization
+  useEffect(() => {
+    if (isOpen) {
+      const newSessionId = `modal_${Date.now()}`
+      console.log('[QuickTTP UI] MODAL_OPEN', { 
+        previousSessionId: modalSessionId, 
+        newSessionId,
+        currentPaymentState: paymentState 
+      })
+      setModalSessionId(newSessionId)
+      
+      // Clear transient UI state on modal open
+      resetToSetup('modal_opened')
+    }
+  }, [isOpen, paymentState, resetToSetup])
 
   // Render logging for debugging
   useEffect(() => {
@@ -720,7 +738,7 @@ export default function QuickTapToPayModal({
                         onClick={() => {
                           console.log('[QuickTTP UI] CANCELED_BACK_CLICKED')
                           emergencyCleanup()
-                          cancelPayment('user_back')
+                          resetToSetup('back_from_canceled')
                         }}
                         className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
                       >

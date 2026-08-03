@@ -6,6 +6,7 @@ import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
 // Storage schema version - increment when storage format changes
 const STORAGE_SCHEMA_VERSION = 'v1'
 const STORAGE_SCHEMA_KEY = 'terminal_storage_schema_version'
+const WEB_BUILD_MARKER = 'TAP_TO_PAY_2026_08_03_MODAL_OPEN_FIX'
 
 interface TokenRequest {
   requestId: string
@@ -97,6 +98,7 @@ export class TerminalBridgeService {
     this.instanceId = Math.random().toString(36).substring(2, 9)
     this.sessionId = 'ttp_' + this.instanceId
     console.log('[TERMINAL_INSTANCE_TRACE] service_instance_id=' + this.instanceId + ' created')
+    console.log('[TERMINAL_BUILD_MARKER] Web TTP Build: ' + WEB_BUILD_MARKER)
     this.migrateStorage()
   }
 
