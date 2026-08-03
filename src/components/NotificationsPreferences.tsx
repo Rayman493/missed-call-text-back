@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Bell, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react'
-import { useNativePermissions } from '@/hooks/useNativePermissions'
+import { Bell } from 'lucide-react'
+import { Capacitor } from '@capacitor/core'
 import { useBusiness } from '@/contexts/BusinessContext'
-import { isNativeMobilePlatform } from '@/lib/settings-config'
+import { useNativePermissions } from '@/hooks/useNativePermissions'
+import { pushService } from '@/lib/push-service'
+import { permissionLock } from '@/lib/permission-lock'
 
 interface NotificationPreference {
   key: string
@@ -15,9 +16,9 @@ interface NotificationPreference {
 }
 
 export function NotificationsPreferences() {
-  const router = useRouter()
   const { business } = useBusiness()
-  const { notifications, platform, isNative } = useNativePermissions()
+  const { notifications, checkNotificationPermission } = useNativePermissions()
+  const [isRequesting, setIsRequesting] = useState(false)
   
   const [preferences, setPreferences] = useState<NotificationPreference[]>([
     {
@@ -66,6 +67,34 @@ export function NotificationsPreferences() {
 
   const [isUpdating, setIsUpdating] = useState(false)
 
+  // Check notification permission on mount (native only)
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      checkNotificationPermission()
+    }
+  }, [checkNotificationPermission])
+
+  const handleEnableDeviceNotifications = async () => {
+    if (!Capacitor.isNativePlatform()) {
+      return
+    }
+
+    if (!permissionLock.requestPermission('notification')) {
+      return
+    }
+
+    setIsRequesting(true)
+    try {
+      await pushService.requestPermission()
+      await checkNotificationPermission()
+    } catch (error) {
+      console.error('[NOTIFICATIONS] Failed to request permission:', error)
+    } finally {
+      setIsRequesting(false)
+      permissionLock.releasePermission('notification')
+    }
+  }
+
   // Load preferences from business settings if available
   useEffect(() => {
     if (business && (business as any).notification_preferences) {
@@ -91,10 +120,6 @@ export function NotificationsPreferences() {
     setTimeout(() => setIsUpdating(false), 300)
   }
 
-  const handleReviewPermissions = () => {
-    router.push('/dashboard/settings#permissions')
-  }
-
   return (
     <div id="notifications" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
       <div className="mb-5">
@@ -104,37 +129,29 @@ export function NotificationsPreferences() {
         </p>
       </div>
 
-      {/* OS Permission Status Banner - Native mobile only */}
-      {isNativeMobilePlatform() && (
-        <div className={`mb-5 p-4 rounded-lg border ${
-          notifications.status === 'granted' 
-            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-            : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'
-        }`}>
-          <div className="flex items-start gap-3">
-            {notifications.status === 'granted' ? (
-              <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-            ) : (
-              <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-            )}
-            <div className="flex-1">
-              <div className="text-sm font-medium text-foreground mb-1">
-                {notifications.status === 'granted' 
-                  ? 'Device notifications are enabled.'
-                  : 'Device notifications are not enabled.'
-                }
-              </div>
-              {notifications.status !== 'granted' && (
-                <button
-                  onClick={handleReviewPermissions}
-                  className="mt-2 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1"
-                >
-                  Review Permissions
-                  <ArrowRight className="w-3 h-3" />
-                </button>
-              )}
+      {/* Device Notification Status - Native Only */}
+      {Capacitor.isNativePlatform() && (
+        <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          {notifications.status === 'granted' && (
+            <div className="flex items-center gap-2 text-sm text-blue-800 dark:text-blue-200">
+              <span className="text-green-600 dark:text-green-400">✓</span>
+              <span>Device notifications enabled</span>
             </div>
-          </div>
+          )}
+          {notifications.status !== 'granted' && notifications.status !== 'denied' && notifications.status !== 'blocked' && (
+            <button
+              onClick={handleEnableDeviceNotifications}
+              disabled={isRequesting}
+              className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isRequesting ? 'Enabling...' : 'Enable Device Notifications'}
+            </button>
+          )}
+          {(notifications.status === 'denied' || notifications.status === 'blocked') && (
+            <p className="text-sm text-blue-800 dark:text-blue-200">
+              Notifications are disabled for ReplyFlow. Enable them from your phone's Settings.
+            </p>
+          )}
         </div>
       )}
 

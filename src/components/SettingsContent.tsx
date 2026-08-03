@@ -19,7 +19,7 @@ import PageBackground from '@/components/PageBackground'
 import UserDropdown from '@/components/UserDropdown'
 import AppHeader from '@/components/AppHeader'
 import BottomNavigation from '@/components/BottomNavigation'
-import { settingsSections, getSettingsSections, isNativeMobilePlatform } from '@/lib/settings-config'
+import { settingsSections, getSettingsSections } from '@/lib/settings-config'
 import {
   getSubscriptionStatusText,
   getSubscriptionStatusDescription,
@@ -45,9 +45,7 @@ import ConfirmModal from '@/components/ui/ConfirmModal'
 import Skeleton, { CardSkeleton, ListItemSkeleton } from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
 import Input from '@/components/ui/Input'
-import { NotificationPermissionEducation } from '@/components/notifications/NotificationPermissionEducation'
 import { NotificationsPreferences } from '@/components/NotificationsPreferences'
-import { PermissionsSettings } from '@/components/PermissionsSettings'
 
 // Check if running in native mobile app
 const isNativeMobile = () => {
@@ -77,25 +75,6 @@ export default function SettingsContent() {
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
   const [activeSection, setActiveSection] = useState('general')
   const [showBusinessNumberWarning, setShowBusinessNumberWarning] = useState(false)
-  const [platformReady, setPlatformReady] = useState(false)
-  const [dynamicSections, setDynamicSections] = useState(getSettingsSections())
-
-  // Platform readiness to avoid hydration mismatch
-  useEffect(() => {
-    setPlatformReady(true)
-    setDynamicSections(getSettingsSections())
-  }, [])
-
-  // Hash navigation fallback for desktop
-  useEffect(() => {
-    if (!platformReady) return
-    
-    const hash = window.location.hash.replace('#', '')
-    if (hash === 'permissions' && !isNativeMobilePlatform()) {
-      // Redirect to notifications on desktop
-      window.location.hash = 'notifications'
-    }
-  }, [platformReady])
 
   // Default out of office message (use canonical template)
   const DEFAULT_OUT_OF_OFFICE_MESSAGE = getDefaultOutOfOfficeTemplate()
@@ -1269,7 +1248,7 @@ export default function SettingsContent() {
     // Handle URL hash for initial navigation only
     const handleHashChange = () => {
       const hash = window.location.hash.slice(1)
-      const sectionIds = dynamicSections.map(s => s.id)
+      const sectionIds = settingsSections.map((s: { id: string }) => s.id)
       if (sectionIds.includes(hash)) {
         // Target the divider element for proper scroll offset
         const dividerId = `${hash}-divider`
@@ -1396,7 +1375,7 @@ export default function SettingsContent() {
             {/* Settings Navigation Tabs - sticky only */}
             <div ref={settingsTabsContainerRef} className="sticky z-40 border-b border-border/50 bg-background py-4 top-0 backdrop-blur-sm" style={{ backgroundColor: 'var(--background)' }}>
               <nav ref={settingsTabsNavRef} className="flex items-center gap-3 overflow-x-auto custom-scrollbar-horizontal">
-                {dynamicSections.map((section) => (
+                {settingsSections.map((section) => (
                   <button
                     key={section.id}
                     ref={(element) => { sectionTabRefs.current[section.id] = element }}
@@ -2137,18 +2116,6 @@ export default function SettingsContent() {
               </div>
 
               {/* Group: Permissions */}
-              {isNativeMobilePlatform() && (
-                <>
-                  <div id="permissions-divider" className="flex items-center gap-3 mb-6 scroll-mt-[64px]">
-                    <div className="h-px flex-1 bg-border/30"></div>
-                    <h3 className="text-sm font-medium text-muted-foreground">{dynamicSections.find(s => s.id === 'permissions')?.label}</h3>
-                    <div className="h-px flex-1 bg-border/30"></div>
-                  </div>
-
-                  <PermissionsSettings />
-                </>
-              )}
-
               {/* Group: Notifications */}
               <div id="notifications-divider" className="flex items-center gap-3 mb-6 scroll-mt-[64px]">
                 <div className="h-px flex-1 bg-border/30"></div>

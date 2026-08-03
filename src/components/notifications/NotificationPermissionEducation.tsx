@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { AlertCircle, Bell } from 'lucide-react'
+import { Bell } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
-import { Device } from '@capacitor/device'
 import { pushService } from '@/lib/push-service'
 import { permissionLock } from '@/lib/permission-lock'
 import { useNativePermissions } from '@/hooks/useNativePermissions'
@@ -19,7 +18,6 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
   const { notifications, checkNotificationPermission } = useNativePermissions()
   const [show, setShow] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [isAndroid13Plus, setIsAndroid13Plus] = useState(false)
   const hasShownRef = useRef(false)
   const isCheckingRef = useRef(false)
 
@@ -38,28 +36,9 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
     isCheckingRef.current = true
 
     try {
-      // Only on native Android
+      // Only on native platforms (Android and iOS)
       if (!Capacitor.isNativePlatform()) {
-        console.log('[NOTIFICATION_EDUCATION_BLOCKED] reason=not_android')
-        return
-      }
-
-      const platform = Capacitor.getPlatform()
-      if (platform !== 'android') {
-        console.log('[NOTIFICATION_EDUCATION_BLOCKED] reason=not_android_platform')
-        return
-      }
-
-      // Check Android version (POST_NOTIFICATIONS required for API 33+)
-      const info = await Device.getInfo()
-      const androidVersion = parseInt(info.osVersion || '0', 10)
-      const isAndroid13 = androidVersion >= 33
-      setIsAndroid13Plus(isAndroid13)
-
-      console.log(`[NOTIFICATION_EDUCATION] Android version: ${androidVersion}, Android 13+: ${isAndroid13}`)
-
-      if (!isAndroid13) {
-        console.log('[NOTIFICATION_EDUCATION_BLOCKED] reason=android_version_below_33')
+        console.log('[NOTIFICATION_EDUCATION_BLOCKED] reason=not_native')
         return
       }
 
@@ -94,10 +73,9 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
         return
       }
 
-      // If denied or blocked, don't show education (Settings recovery will handle this)
+      // If denied or blocked, don't show education
       if (notifications.status === 'denied' || notifications.status === 'blocked') {
         console.log('[NOTIFICATION_EDUCATION_BLOCKED] reason=permission_denied')
-        console.log('[NOTIFICATION_EDUCATION] Previously denied, not showing education')
         setShow(false)
         onComplete?.()
         return
@@ -164,17 +142,7 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
     onComplete?.()
   }
 
-  const handleOpenSettings = async () => {
-    console.log('[NOTIFICATION_SETTINGS_OPENED] User clicked Open Settings')
-    try {
-      // Use window.location to open app settings on Android
-      window.location.href = 'app-settings:'
-    } catch (error) {
-      console.error('[NOTIFICATION_EDUCATION] Failed to open settings:', error)
-    }
-  }
-
-  if (!show || !isAndroid13Plus) {
+  if (!show) {
     return null
   }
 
@@ -186,59 +154,29 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
             <Bell className="w-6 h-6 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Enable notifications</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Stay Updated</h2>
           </div>
         </div>
 
         <p className="text-gray-600 dark:text-gray-300 mb-6">
-          Receive alerts for new customer replies, AI intake calls, appointments, payments, and personal voicemails.
+          Get notified when customers call, reply, schedule appointments, and complete payments.
         </p>
 
-        {(notifications.status === 'denied' || notifications.status === 'blocked') && (
-          <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm text-amber-800 dark:text-amber-200">
-                Notifications are disabled. To enable them, go to your device settings.
-              </p>
-            </div>
-          </div>
-        )}
-
         <div className="flex gap-3">
-          {(notifications.status === 'denied' || notifications.status === 'blocked') ? (
-            <>
-              <button
-                onClick={handleNotNow}
-                className="flex-1 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
-              >
-                Close
-              </button>
-              <button
-                onClick={handleOpenSettings}
-                className="flex-1 px-4 py-3 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-              >
-                Open Settings
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                onClick={handleNotNow}
-                disabled={isLoading}
-                className="flex-1 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
-              >
-                Not Now
-              </button>
-              <button
-                onClick={handleEnable}
-                disabled={isLoading}
-                className="flex-1 px-4 py-3 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50"
-              >
-                {isLoading ? 'Enabling...' : 'Enable Notifications'}
-              </button>
-            </>
-          )}
+          <button
+            onClick={handleNotNow}
+            disabled={isLoading}
+            className="flex-1 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
+          >
+            Not Now
+          </button>
+          <button
+            onClick={handleEnable}
+            disabled={isLoading}
+            className="flex-1 px-4 py-3 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50"
+          >
+            {isLoading ? 'Enabling...' : 'Enable Notifications'}
+          </button>
         </div>
       </div>
     </div>

@@ -112,12 +112,31 @@ export async function PATCH(
       googleEvent.location = body.location
     }
     
+    // Add timezone to timed events (consistent with create flow)
+    const businessTimezone = business.business_hours_timezone || 'America/New_York'
+    
     if (body.start !== undefined) {
-      googleEvent.start = body.start
+      // If start is a timed event (has dateTime), add timezone parameter
+      if (body.start.dateTime && !body.start.timeZone) {
+        googleEvent.start = {
+          dateTime: body.start.dateTime,
+          timeZone: businessTimezone
+        }
+      } else {
+        googleEvent.start = body.start
+      }
     }
     
     if (body.end !== undefined) {
-      googleEvent.end = body.end
+      // If end is a timed event (has dateTime), add timezone parameter
+      if (body.end.dateTime && !body.end.timeZone) {
+        googleEvent.end = {
+          dateTime: body.end.dateTime,
+          timeZone: businessTimezone
+        }
+      } else {
+        googleEvent.end = body.end
+      }
     }
 
     // Update event in Google Calendar
