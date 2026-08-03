@@ -7,7 +7,7 @@
 
 // Diagnostics display flag - set to false for production and Apple review recordings
 // Diagnostics are hidden for production but retained for support troubleshooting
-export const SHOW_TAP_TO_PAY_DIAGNOSTICS = false;
+export const SHOW_TAP_TO_PAY_DIAGNOSTICS = true;
 
 // Temporary test status flag - shows minimal debug info in modal for device testing
 // Set to false for production and Apple review recordings

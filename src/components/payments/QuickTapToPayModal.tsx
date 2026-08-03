@@ -42,8 +42,7 @@ export default function QuickTapToPayModal({
   const [modalSessionId, setModalSessionId] = useState<string>(`modal_${Date.now()}`)
   const [connectingElapsedTime, setConnectingElapsedTime] = useState(0)
   const [eventTimeline, setEventTimeline] = useState<Array<{ timestamp: string; event: string; sessionId?: string; attemptId?: string; paymentState?: string; stage?: string }>>([])
-  const [diagnosticsSnapshot, setDiagnosticsSnapshot] = useState<any>(null)
-  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_DIAGNOSTICS_EXPANDED'
+  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_DIAGNOSTICS_VISIBLE_FIX'
 
   // Ref for modal title for accessibility focus
   const titleRef = useRef<HTMLHeadingElement>(null)
@@ -153,37 +152,13 @@ export default function QuickTapToPayModal({
   // Render-level diagnostics - track what's actually being rendered
   useEffect(() => {
     const renderedBranch = getRenderedBranch(paymentState, showPaymentSetup)
-    const snapshot = {
-      webBuildMarker: WEB_BUILD_MARKER,
-      platform,
-      nativeSupported: hookIsNativeSupported,
-      paymentState,
-      previousPaymentState: lastSuccessfulStage,
-      renderedBranch,
-      showPaymentSetup,
-      isPaymentInProgress,
-      lastSuccessfulStage,
-      lastResetReason,
-      currentOperation: paymentState,
-      sessionId: modalSessionId,
-      attemptId: undefined, // Will be populated from hook if available
-      connectionOperationId: undefined,
-      paymentIntentId: undefined,
-      readerStatus: undefined, // Will be populated from hook
-      terminalInitialized: undefined,
-      discovering: undefined,
-      connecting: undefined,
-      collecting: undefined,
-      timestamp: new Date().toISOString()
-    }
-    setDiagnosticsSnapshot(snapshot)
     dispatchTTPEvent('PAYMENT_STATE_RENDER', {
       paymentState,
       previousPaymentState: lastSuccessfulStage,
       renderedBranch,
       showPaymentSetup,
       isPaymentInProgress,
-      timestamp: snapshot.timestamp
+      timestamp: new Date().toISOString()
     })
   }, [paymentState, showPaymentSetup, isPaymentInProgress, lastSuccessfulStage, lastResetReason, platform, hookIsNativeSupported])
 
@@ -576,6 +551,116 @@ export default function QuickTapToPayModal({
               className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-4"
               style={{ WebkitOverflowScrolling: 'touch' as any, paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
             >
+              {/* Visible Diagnostics Panel - unconditional */}
+              {SHOW_TAP_TO_PAY_DIAGNOSTICS && (
+                <div className="space-y-3 mb-4">
+                  {/* Unmistakable Banner */}
+                  <div className="p-3 rounded-lg border-2 border-purple-700 bg-purple-900/30 text-center">
+                    <div className="text-purple-300 font-extrabold text-lg tracking-wide">TTP DIAGNOSTICS BUILD 2026-08-03-VISIBLE</div>
+                    <div className="text-xs text-purple-200/80">WEB BUILD: {WEB_BUILD_MARKER}</div>
+                  </div>
+                  
+                  {/* Diagnostics Panel */}
+                  <div className="p-3 rounded-lg border-2 border-red-700 bg-red-900/30">
+                    <div className="text-red-300 font-bold text-sm mb-2">Tap to Pay Diagnostics</div>
+                    
+                    {/* Current State */}
+                    <div className="text-xs font-mono space-y-1 mb-3">
+                      <div className="text-gray-300">
+                        <span className="text-gray-500">State:</span>
+                        <span className="text-blue-300 ml-2">{paymentState}</span>
+                      </div>
+                      <div className="text-gray-300">
+                        <span className="text-gray-500">Rendered branch:</span>
+                        <span className="text-blue-300 ml-2">{getRenderedBranch(paymentState, showPaymentSetup)}</span>
+                      </div>
+                      <div className="text-gray-300">
+                        <span className="text-gray-500">Session ID:</span>
+                        <span className="text-blue-300 ml-2">{modalSessionId.slice(0, 8)}...</span>
+                      </div>
+                      <div className="text-gray-300">
+                        <span className="text-gray-500">Events:</span>
+                        <span className="text-blue-300 ml-2">{eventTimeline.length}</span>
+                      </div>
+                    </div>
+                    
+                    {/* Controls */}
+                    <div className="flex gap-2 mb-3">
+                      <button
+                        onClick={() => {
+                          const diagnosticsOutput = {
+                            webBuildMarker: WEB_BUILD_MARKER,
+                            paymentState,
+                            renderedBranch: getRenderedBranch(paymentState, showPaymentSetup),
+                            showPaymentSetup,
+                            sessionId: modalSessionId,
+                            eventCount: eventTimeline.length,
+                            captureTimestamp: new Date().toISOString(),
+                            timeline: eventTimeline
+                          }
+                          const json = JSON.stringify(diagnosticsOutput, null, 2)
+                          try {
+                            navigator.clipboard.writeText(json)
+                            dispatchTTPEvent('DIAGNOSTICS_COPIED')
+                            alert('Copied to clipboard')
+                          } catch (e) {
+                            alert('Clipboard failed. Displaying JSON:')
+                            console.log(json)
+                          }
+                        }}
+                        className="flex-1 px-3 py-2 text-xs font-semibold rounded bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                      >
+                        Copy Diagnostics
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEventTimeline([])
+                          dispatchTTPEvent('DIAGNOSTICS_CLEARED')
+                        }}
+                        className="flex-1 px-3 py-2 text-xs font-semibold rounded bg-gray-600 hover:bg-gray-700 text-white transition-colors"
+                      >
+                        Clear Diagnostics
+                      </button>
+                      <button
+                        onClick={() => {
+                          dispatchTTPEvent('MANUAL_DIAGNOSTIC_TEST')
+                        }}
+                        className="flex-1 px-3 py-2 text-xs font-semibold rounded bg-purple-600 hover:bg-purple-700 text-white transition-colors"
+                      >
+                        Add Test Event
+                      </button>
+                    </div>
+                    
+                    {/* Event Timeline */}
+                    <div className="text-xs font-bold text-gray-300 mb-2">Event Timeline (last 200)</div>
+                    <div 
+                      ref={(el) => {
+                        if (el) {
+                          el.scrollTop = el.scrollHeight
+                        }
+                      }}
+                      className="max-h-40 overflow-y-auto text-xs font-mono space-y-1 bg-gray-900/50 p-2 rounded border border-gray-600/50"
+                    >
+                      {eventTimeline.length === 0 && <div className="text-gray-500">No events yet</div>}
+                      {eventTimeline.map((evt, idx) => (
+                        <div key={idx} className="text-gray-300">
+                          <span className="text-gray-500">{evt.timestamp}</span>
+                          <span className="text-blue-300 ml-2">{evt.event}</span>
+                          {(evt.sessionId || evt.attemptId || evt.paymentState || evt.stage) && (
+                            <span className="text-gray-500 ml-2">
+                              {evt.sessionId && `sid:${evt.sessionId.slice(0,8)} `}
+                              {evt.attemptId && `att:${evt.attemptId.slice(0,8)} `}
+                              {evt.paymentState && `state:${evt.paymentState} `}
+                              {evt.stage && `stage:${evt.stage}`}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {showPaymentSetup ? (
                 /* Payment Setup Screen */
                 <div className="space-y-4">
@@ -597,89 +682,6 @@ export default function QuickTapToPayModal({
                         </>
                       )}
                     </div>
-                  )}
-
-                  {/* Debug UI - re-enabled for diagnostics */}
-                  {SHOW_TAP_TO_PAY_DIAGNOSTICS && (
-                    <>
-                      <div className="p-3 rounded-lg border-2 border-red-700 bg-red-900/30 text-center">
-                        <div className="text-red-300 font-extrabold text-lg tracking-wide">DEBUG PANEL BUILD 2026-08-03 DIAGNOSTICS</div>
-                        <div className="text-xs text-red-200/80">This banner proves this QuickTapToPayModal is rendering from src/components/payments/QuickTapToPayModal.tsx</div>
-                      </div>
-                      
-                      {/* Snapshot Diagnostics */}
-                      {diagnosticsSnapshot && (
-                        <div className="p-2 rounded bg-gray-900/50 border border-gray-600/50">
-                          <div className="text-xs font-bold text-gray-300 mb-2">Current Snapshot</div>
-                          <div className="max-h-40 overflow-y-auto text-xs font-mono space-y-1">
-                            {Object.entries(diagnosticsSnapshot).map(([key, value]) => (
-                              <div key={key} className="text-gray-300">
-                                <span className="text-gray-500">{key}:</span>
-                                <span className="text-blue-300 ml-2">{String(value)}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Diagnostics Controls */}
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            const diagnosticsOutput = {
-                              snapshot: diagnosticsSnapshot,
-                              webBuildMarker: WEB_BUILD_MARKER,
-                              eventCount: eventTimeline.length,
-                              captureTimestamp: new Date().toISOString(),
-                              timeline: eventTimeline
-                            }
-                            navigator.clipboard.writeText(JSON.stringify(diagnosticsOutput, null, 2))
-                            dispatchTTPEvent('DIAGNOSTICS_COPIED')
-                          }}
-                          className="flex-1 px-3 py-2 text-xs font-semibold rounded bg-blue-600 hover:bg-blue-700 text-white transition-colors"
-                        >
-                          Copy Diagnostics
-                        </button>
-                        <button
-                          onClick={() => {
-                            setEventTimeline([])
-                            dispatchTTPEvent('DIAGNOSTICS_CLEARED')
-                          }}
-                          className="flex-1 px-3 py-2 text-xs font-semibold rounded bg-gray-600 hover:bg-gray-700 text-white transition-colors"
-                        >
-                          Clear Diagnostics
-                        </button>
-                      </div>
-                      
-                      {/* Event Timeline */}
-                      <div className="p-2 rounded bg-gray-900/50 border border-gray-600/50">
-                        <div className="text-xs font-bold text-gray-300 mb-2">Event Timeline (last 200)</div>
-                        <div 
-                          ref={(el) => {
-                            if (el) {
-                              el.scrollTop = el.scrollHeight
-                            }
-                          }}
-                          className="max-h-60 overflow-y-auto text-xs font-mono space-y-1"
-                        >
-                          {eventTimeline.length === 0 && <div className="text-gray-500">No events yet</div>}
-                          {eventTimeline.map((evt, idx) => (
-                            <div key={idx} className="text-gray-300">
-                              <span className="text-gray-500">{evt.timestamp}</span>
-                              <span className="text-blue-300 ml-2">{evt.event}</span>
-                              {(evt.sessionId || evt.attemptId || evt.paymentState || evt.stage) && (
-                                <span className="text-gray-500 ml-2">
-                                  {evt.sessionId && `sid:${evt.sessionId.slice(0,8)} `}
-                                  {evt.attemptId && `att:${evt.attemptId.slice(0,8)} `}
-                                  {evt.paymentState && `state:${evt.paymentState} `}
-                                  {evt.stage && `stage:${evt.stage}`}
-                                </span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </>
                   )}
 
                   {/* Amount Input */}
@@ -855,92 +857,7 @@ export default function QuickTapToPayModal({
                 </div>
               ) : (
                 /* Payment Progress Screen */
-                <div className="space-y-4">
-                  {/* Debug UI - visible in all states */}
-                  {SHOW_TAP_TO_PAY_DIAGNOSTICS && (
-                    <>
-                      <div className="p-3 rounded-lg border-2 border-red-700 bg-red-900/30 text-center">
-                        <div className="text-red-300 font-extrabold text-lg tracking-wide">DEBUG PANEL BUILD 2026-08-03 DIAGNOSTICS</div>
-                        <div className="text-xs text-red-200/80">This banner proves this QuickTapToPayModal is rendering from src/components/payments/QuickTapToPayModal.tsx</div>
-                      </div>
-                      
-                      {/* Snapshot Diagnostics */}
-                      {diagnosticsSnapshot && (
-                        <div className="p-2 rounded bg-gray-900/50 border border-gray-600/50">
-                          <div className="text-xs font-bold text-gray-300 mb-2">Current Snapshot</div>
-                          <div className="max-h-40 overflow-y-auto text-xs font-mono space-y-1">
-                            {Object.entries(diagnosticsSnapshot).map(([key, value]) => (
-                              <div key={key} className="text-gray-300">
-                                <span className="text-gray-500">{key}:</span>
-                                <span className="text-blue-300 ml-2">{String(value)}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Diagnostics Controls */}
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            const diagnosticsOutput = {
-                              snapshot: diagnosticsSnapshot,
-                              webBuildMarker: WEB_BUILD_MARKER,
-                              eventCount: eventTimeline.length,
-                              captureTimestamp: new Date().toISOString(),
-                              timeline: eventTimeline
-                            }
-                            navigator.clipboard.writeText(JSON.stringify(diagnosticsOutput, null, 2))
-                            dispatchTTPEvent('DIAGNOSTICS_COPIED')
-                          }}
-                          className="flex-1 px-3 py-2 text-xs font-semibold rounded bg-blue-600 hover:bg-blue-700 text-white transition-colors"
-                        >
-                          Copy Diagnostics
-                        </button>
-                        <button
-                          onClick={() => {
-                            setEventTimeline([])
-                            dispatchTTPEvent('DIAGNOSTICS_CLEARED')
-                          }}
-                          className="flex-1 px-3 py-2 text-xs font-semibold rounded bg-gray-600 hover:bg-gray-700 text-white transition-colors"
-                        >
-                          Clear Diagnostics
-                        </button>
-                      </div>
-                      
-                      {/* Event Timeline */}
-                      <div className="p-2 rounded bg-gray-900/50 border border-gray-600/50">
-                        <div className="text-xs font-bold text-gray-300 mb-2">Event Timeline (last 200)</div>
-                        <div 
-                          ref={(el) => {
-                            if (el) {
-                              el.scrollTop = el.scrollHeight
-                            }
-                          }}
-                          className="max-h-60 overflow-y-auto text-xs font-mono space-y-1"
-                        >
-                          {eventTimeline.length === 0 && <div className="text-gray-500">No events yet</div>}
-                          {eventTimeline.map((evt, idx) => (
-                            <div key={idx} className="text-gray-300">
-                              <span className="text-gray-500">{evt.timestamp}</span>
-                              <span className="text-blue-300 ml-2">{evt.event}</span>
-                              {(evt.sessionId || evt.attemptId || evt.paymentState || evt.stage) && (
-                                <span className="text-gray-500 ml-2">
-                                  {evt.sessionId && `sid:${evt.sessionId.slice(0,8)} `}
-                                  {evt.attemptId && `att:${evt.attemptId.slice(0,8)} `}
-                                  {evt.paymentState && `state:${evt.paymentState} `}
-                                  {evt.stage && `stage:${evt.stage}`}
-                                </span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  {/* Payment Progress Content */}
-                  <div className="flex flex-col items-center justify-center py-8 space-y-4">
+                <div className="flex flex-col items-center justify-center py-8 space-y-4">
                   {paymentState === 'preparing' && (
                     <>
                       <Loader2 className="w-12 h-12 animate-spin text-green-600 dark:text-green-400" />
@@ -1038,7 +955,6 @@ export default function QuickTapToPayModal({
                       <p className="text-xs text-muted-foreground text-center">Unknown state: {paymentState}</p>
                     </>
                   )}
-                  </div>
                 </div>
               )}
             </div>
