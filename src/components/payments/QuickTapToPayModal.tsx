@@ -47,7 +47,7 @@ export default function QuickTapToPayModal({
   const [modalSessionId, setModalSessionId] = useState<string>(`modal_${Date.now()}`)
   const [connectingElapsedTime, setConnectingElapsedTime] = useState(0)
   const [eventTimeline, setEventTimeline] = useState<Array<{ timestamp: string; event: string; sessionId?: string; attemptId?: string; paymentState?: string; stage?: string }>>([])
-  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_RETRY_SETUP_SUCCESS_CLOSE_FIX'
+  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_CANCELED_ATTEMPT_CLEANUP_FIX'
 
   // Ref for modal title for accessibility focus
   const titleRef = useRef<HTMLHeadingElement>(null)
@@ -154,6 +154,13 @@ export default function QuickTapToPayModal({
   const resetToSetupRef = useRef(resetToSetup)
   resetToSetupRef.current = resetToSetup
 
+  // Ref to track previous payment state for accurate reset reasons
+  const prevPaymentStateRef = useRef<string>('ready')
+  const prevIsOpenRef = useRef(false)
+
+  // Ref to prevent duplicate close handlers
+  const closeHandledRef = useRef(false)
+
   // Derive showPaymentSetup from paymentState to ensure UI is always in sync
   const showPaymentSetup = paymentState === 'ready'
 
@@ -184,24 +191,51 @@ export default function QuickTapToPayModal({
     // Note: We don't clear amount/customer/job as user may want to retry
   }, [resetTapToPayUiState])
 
-  // Modal-session initialization - only runs on closed→open transition
+  // Modal-open effect: reset state when opening, but use accurate reasons
   useEffect(() => {
-    const justOpened = isOpen && !previousIsOpenRef.current
-    previousIsOpenRef.current = isOpen
+    if (!isOpen) {
+      // Track state when modal closes
+      prevIsOpenRef.current = false
+      prevPaymentStateRef.current = paymentState
+      return
+    }
 
-    if (!justOpened) return
+    // Modal is opening
+    const wasClosed = !prevIsOpenRef.current
+    const previousState = prevPaymentStateRef.current
 
-    const newSessionId = `modal_${Date.now()}`
-    console.log('[QuickTTP UI] MODAL_OPEN', { 
-      previousSessionId: modalSessionId, 
-      newSessionId,
-      currentPaymentState: paymentState 
-    })
-    setModalSessionId(newSessionId)
-    
-    // Call resetToSetup via ref to avoid unstable dependency
-    resetToSetupRef.current('modal_opened')
-  }, [isOpen])
+    // Only reset if modal was previously closed (fresh open, not state change within open modal)
+    if (wasClosed) {
+      console.log('[QuickTTP UI] MODAL_OPENED', { previousState, currentPaymentState: paymentState })
+      
+      // Reset close guard for fresh modal session
+      closeHandledRef.current = false
+      
+      // Use accurate reset reason based on previous state
+      let resetReason = 'modal_reopened'
+      if (previousState === 'success') {
+        resetReason = 'reset_prepared_for_next_open'
+        dispatchTTPEvent('RESET_PREPARED_FOR_NEXT_OPEN')
+      } else if (previousState === 'ready') {
+        resetReason = 'setup_initialized'
+      }
+      
+      // Call resetToSetup via ref to avoid unstable dependency
+      resetToSetupRef.current(resetReason)
+      
+      // Generate new session ID for fresh modal session
+      const newSessionId = `modal_${Date.now()}`
+
+      console.log('[QuickTTP UI] NEW_SESSION_ID', {
+        oldSessionId: modalSessionId,
+        newSessionId,
+        currentPaymentState: paymentState 
+      })
+      setModalSessionId(newSessionId)
+    }
+
+    prevIsOpenRef.current = true
+  }, [isOpen, paymentState, modalSessionId])
 
   // Render logging for debugging
   useEffect(() => {
@@ -443,6 +477,14 @@ export default function QuickTapToPayModal({
   }
 
   const handlePaymentComplete = async () => {
+    // Prevent duplicate close handlers
+    if (closeHandledRef.current) {
+      console.log('[QuickTTP UI] MODAL_CLOSE_IGNORED_ALREADY_HANDLED')
+      dispatchTTPEvent('MODAL_CLOSE_IGNORED_ALREADY_HANDLED')
+      return
+    }
+    closeHandledRef.current = true
+
     // Dispatch event for Recent Payments refresh before closing modal
     const paymentIntentId = terminalService.getPaymentIntentId()
     if (paymentIntentId) {
@@ -450,7 +492,9 @@ export default function QuickTapToPayModal({
         detail: { paymentIntentId }
       }))
       console.log('[QuickTTP UI] PAYMENTS_LIST_REFRESH_DISPATCHED_ON_MODAL_CLOSE', { paymentIntentId })
+      dispatchTTPEvent('PAYMENTS_REFRESH_DISPATCHED')
     }
+    dispatchTTPEvent('MODAL_CLOSED')
     onClose()
     onRefreshAfterSuccess?.()
   }

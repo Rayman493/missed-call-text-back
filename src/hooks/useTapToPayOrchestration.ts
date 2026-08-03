@@ -1156,6 +1156,14 @@ export function useTapToPayOrchestration({
           activeAttemptIdRef.current = null
           activeAttemptTokenRef.current = null
           console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_CLEARED_CANCELED')
+          
+          // Start cleanup in background - do NOT await to avoid blocking UI
+          const paymentIntentId = terminalService.getPaymentIntentId()
+          const attemptId = terminalService.getCurrentAttemptId() || undefined
+          cleanupCanceledAttempt(paymentIntentId, attemptId).catch(error => {
+            console.error('[TTP Hook] Cleanup error (non-blocking):', error)
+          })
+          
           return
         }
 
@@ -1235,6 +1243,7 @@ export function useTapToPayOrchestration({
         }
       } else if (normalizedStatus === 'canceled') {
         console.log('[TTP Hook] PAYMENT_CANCELED')
+        dispatchTTPEvent('NATIVE_PAYMENT_CANCELED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, 'native_canceled_result')
         updatePaymentStateRef('canceled', 'native_canceled')
         setIsPaymentInProgress(false)
         permissionLock.setTapToPayActive(false)
@@ -1243,17 +1252,25 @@ export function useTapToPayOrchestration({
         activeAttemptIdRef.current = null
         activeAttemptTokenRef.current = null
         console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_CLEARED_CANCELED')
-      } else if (normalizedStatus === 'failed') {
-        const errorMsg = paymentResult.error || 'Payment failed'
-        setError(errorMsg)
-        updatePaymentStateRef('failure')
-        setIsPaymentInProgress(false)
-            permissionLock.setTapToPayActive(false)
-        onPaymentError?.(errorMsg)
+        
+        // Start cleanup in background - do NOT await to avoid blocking UI
+        const paymentIntentId = terminalService.getPaymentIntentId()
+        const attemptId = terminalService.getCurrentAttemptId() || undefined
+        cleanupCanceledAttempt(paymentIntentId, attemptId).catch(error => {
+          console.error('[TTP Hook] Cleanup error (non-blocking):', error)
+        })
       } else if (paymentResult.status === 'canceled') {
+        dispatchTTPEvent('NATIVE_PAYMENT_CANCELED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, 'native_canceled_status')
         updatePaymentStateRef('canceled')
         setIsPaymentInProgress(false)
             permissionLock.setTapToPayActive(false)
+        
+        // Start cleanup in background - do NOT await to avoid blocking UI
+        const paymentIntentId = terminalService.getPaymentIntentId()
+        const attemptId = terminalService.getCurrentAttemptId() || undefined
+        cleanupCanceledAttempt(paymentIntentId, attemptId).catch(error => {
+          console.error('[TTP Hook] Cleanup error (non-blocking):', error)
+        })
       }
 
     } catch (err: any) {
@@ -1366,6 +1383,45 @@ async function withTimeout<T>(
   }, [startPayment, paymentState, lastSuccessfulStage])
 
   // Retry after cancellation - dedicated function for clean cancellation retry
+  // Cleanup function for canceled attempts
+  const cleanupCanceledAttempt = useCallback(async (paymentIntentId: string | undefined, attemptId: string | undefined) => {
+    console.log('[TTP Hook] CANCELED_ATTEMPT_CLEANUP_STARTED', { paymentIntentId, attemptId })
+    dispatchTTPEvent('CANCELED_ATTEMPT_CLEANUP_STARTED', terminalService.getSessionId(), attemptId, 'canceled', 'cleanup_started')
+
+    try {
+      if (paymentIntentId) {
+        // Update local payment request status to canceled
+        console.log('[TTP Hook] CANCELED_LOCAL_ATTEMPT_UPDATE_STARTED', { paymentIntentId })
+        dispatchTTPEvent('CANCELED_LOCAL_ATTEMPT_UPDATE_STARTED', terminalService.getSessionId(), attemptId, 'canceled', 'local_update_started')
+
+        const updateResponse = await fetch('/api/terminal/reconcile-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paymentIntentId, terminalAttemptId: attemptId }),
+        })
+
+        if (updateResponse.ok) {
+          console.log('[TTP Hook] CANCELED_LOCAL_ATTEMPT_UPDATED', { paymentIntentId })
+          dispatchTTPEvent('CANCELED_LOCAL_ATTEMPT_UPDATED', terminalService.getSessionId(), attemptId, 'canceled', 'local_updated')
+        } else {
+          console.error('[TTP Hook] CANCELED_LOCAL_ATTEMPT_UPDATE_FAILED', { paymentIntentId })
+          dispatchTTPEvent('CANCELED_LOCAL_ATTEMPT_UPDATE_FAILED', terminalService.getSessionId(), attemptId, 'canceled', 'local_update_failed')
+        }
+      }
+
+      // Clear unresolved attempt tracking
+      terminalService.clearUnresolvedAttempt()
+      console.log('[TTP Hook] CANCELLATION_UNRESOLVED_MARKER_CLEARED')
+      dispatchTTPEvent('CANCELLATION_UNRESOLVED_MARKER_CLEARED', terminalService.getSessionId(), attemptId, 'canceled', 'unresolved_cleared')
+
+      console.log('[TTP Hook] CANCELED_ATTEMPT_CLEANUP_COMPLETED', { paymentIntentId, attemptId })
+      dispatchTTPEvent('CANCELED_ATTEMPT_CLEANUP_COMPLETED', terminalService.getSessionId(), attemptId, 'ready', 'cleanup_completed')
+    } catch (error) {
+      console.error('[TTP Hook] CANCELED_ATTEMPT_CLEANUP_FAILED', error)
+      dispatchTTPEvent('CANCELED_ATTEMPT_CLEANUP_FAILED', terminalService.getSessionId(), attemptId, 'canceled', 'cleanup_failed')
+    }
+  }, [terminalService])
+
   const retryAfterCancellation = useCallback(async () => {
     console.log('[TTP Hook] RETRY_AFTER_CANCELLATION_STARTED', {
       previousState: paymentState,
@@ -1398,7 +1454,7 @@ async function withTimeout<T>(
       timestamp: new Date().toISOString()
     })
     dispatchTTPEvent('RETRY_AFTER_CANCELLATION_COMPLETED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), paymentStateRef.current, 'retry_after_cancellation')
-  }, [updatePaymentStateRef, paymentState])
+  }, [updatePaymentStateRef, paymentState, terminalService])
 
   // Emergency reset function to clear all UI state
   const resetTapToPayUiState = useCallback((preserveSucceededAttempt: boolean = true) => {
