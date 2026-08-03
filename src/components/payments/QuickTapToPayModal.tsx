@@ -47,12 +47,15 @@ export default function QuickTapToPayModal({
   const [modalSessionId, setModalSessionId] = useState<string>(`modal_${Date.now()}`)
   const [connectingElapsedTime, setConnectingElapsedTime] = useState(0)
   const [eventTimeline, setEventTimeline] = useState<Array<{ timestamp: string; event: string; sessionId?: string; attemptId?: string; paymentState?: string; stage?: string }>>([])
-  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_LOCATION_EDUCATION_UX_FIX'
+  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_LOCATION_EDUCATION_VISIBILITY_FIX'
   
   // Location education states
   const [showLocationEducation, setShowLocationEducation] = useState(false)
   const [showLocationServicesRequired, setShowLocationServicesRequired] = useState(false)
   const [showLocationPermissionBlocked, setShowLocationPermissionBlocked] = useState(false)
+  
+  // Ref for tracking overlay state violations
+  const locationOverlayCountRef = useRef(0)
 
   // Ref for modal title for accessibility focus
   const titleRef = useRef<HTMLHeadingElement>(null)
@@ -155,6 +158,52 @@ export default function QuickTapToPayModal({
     },
     onPaymentError: () => {},
   })
+  
+  // Track overlay state violations
+  useEffect(() => {
+    const count = (showLocationEducation ? 1 : 0) + (showLocationServicesRequired ? 1 : 0) + (showLocationPermissionBlocked ? 1 : 0)
+    if (count > 1) {
+      console.error('[QuickTTP UI] LOCATION_OVERLAY_STATE_VIOLATION', { count, showLocationEducation, showLocationServicesRequired, showLocationPermissionBlocked })
+      dispatchTTPEvent('LOCATION_OVERLAY_STATE_VIOLATION', { count, showLocationEducation, showLocationServicesRequired, showLocationPermissionBlocked })
+    }
+    locationOverlayCountRef.current = count
+  }, [showLocationEducation, showLocationServicesRequired, showLocationPermissionBlocked])
+  
+  // DOM mounted diagnostics for location education
+  useEffect(() => {
+    if (showLocationEducation) {
+      dispatchTTPEvent('LOCATION_EDUCATION_DOM_MOUNTED', { showLocationEducation, paymentState, modalOpen: isOpen, timestamp: new Date().toISOString() })
+      console.log('[QuickTTP UI] LOCATION_EDUCATION_DOM_MOUNTED', { showLocationEducation, paymentState })
+      return () => {
+        dispatchTTPEvent('LOCATION_EDUCATION_DOM_UNMOUNTED')
+        console.log('[QuickTTP UI] LOCATION_EDUCATION_DOM_UNMOUNTED')
+      }
+    }
+  }, [showLocationEducation, paymentState, isOpen])
+  
+  // DOM mounted diagnostics for location services required
+  useEffect(() => {
+    if (showLocationServicesRequired) {
+      dispatchTTPEvent('LOCATION_SERVICES_DOM_MOUNTED', { showLocationServicesRequired, paymentState, modalOpen: isOpen, timestamp: new Date().toISOString() })
+      console.log('[QuickTTP UI] LOCATION_SERVICES_DOM_MOUNTED', { showLocationServicesRequired, paymentState })
+      return () => {
+        dispatchTTPEvent('LOCATION_SERVICES_DOM_UNMOUNTED')
+        console.log('[QuickTTP UI] LOCATION_SERVICES_DOM_UNMOUNTED')
+      }
+    }
+  }, [showLocationServicesRequired, paymentState, isOpen])
+  
+  // DOM mounted diagnostics for location permission blocked
+  useEffect(() => {
+    if (showLocationPermissionBlocked) {
+      dispatchTTPEvent('LOCATION_BLOCKED_DOM_MOUNTED', { showLocationPermissionBlocked, paymentState, modalOpen: isOpen, timestamp: new Date().toISOString() })
+      console.log('[QuickTTP UI] LOCATION_BLOCKED_DOM_MOUNTED', { showLocationPermissionBlocked, paymentState })
+      return () => {
+        dispatchTTPEvent('LOCATION_BLOCKED_DOM_UNMOUNTED')
+        console.log('[QuickTTP UI] LOCATION_BLOCKED_DOM_UNMOUNTED')
+      }
+    }
+  }, [showLocationPermissionBlocked, paymentState, isOpen])
 
   // Ref to store resetToSetup for modal-open effect (avoid unstable dependency)
   const resetToSetupRef = useRef(resetToSetup)
@@ -465,6 +514,7 @@ export default function QuickTapToPayModal({
       
       if (!locationCheck.granted && locationCheck.canAskAgain) {
         // Show education dialog before requesting permission
+        dispatchTTPEvent('LOCATION_EDUCATION_STATE_SET')
         dispatchTTPEvent('LOCATION_EDUCATION_RENDERED')
         setShowLocationEducation(true)
         return
@@ -814,6 +864,16 @@ export default function QuickTapToPayModal({
                           <div className="text-blue-200">Mapped Action: {mappedError?.action}</div>
                         </>
                       )}
+                      <button
+                        onClick={() => {
+                          console.log('[QuickTTP UI] TEST_SHOW_LOCATION_EDUCATION')
+                          dispatchTTPEvent('LOCATION_EDUCATION_STATE_SET')
+                          setShowLocationEducation(true)
+                        }}
+                        className="mt-2 px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs"
+                      >
+                        Show Location Education
+                      </button>
                     </div>
                   )}
 
@@ -1244,141 +1304,156 @@ export default function QuickTapToPayModal({
                 </>
               )}
             </div>
+            
+            {/* Location Education Overlay */}
+            {showLocationEducation && (
+              <div className="absolute inset-0 bg-white/95 flex flex-col items-center justify-center z-50 p-6">
+                <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 border border-gray-200">
+                  <div className="text-xs text-red-600 mb-2 font-mono">LOCATION EDUCATION UI ACTIVE</div>
+                  <h3 className="text-lg font-semibold mb-3">Location is required for Tap to Pay</h3>
+                  <p className="text-sm text-gray-700 mb-6">
+                    Android requires location access while ReplyFlow prepares the secure Tap to Pay reader. ReplyFlow does not use your location for advertising or customer tracking.
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        setShowLocationEducation(false)
+                        dispatchTTPEvent('LOCATION_EDUCATION_NOT_NOW')
+                      }}
+                      className="flex-1 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      Not Now
+                    </button>
+                    <button
+                      onClick={async () => {
+                        setShowLocationEducation(false)
+                        dispatchTTPEvent('LOCATION_EDUCATION_CONTINUE')
+                        dispatchTTPEvent('LOCATION_NATIVE_PERMISSION_REQUEST_STARTED')
+                        const result = await requestLocationPermission()
+                        dispatchTTPEvent('LOCATION_NATIVE_PERMISSION_REQUEST_RESOLVED', { granted: result.granted, locationEnabled: result.locationEnabled, canAskAgain: result.canAskAgain })
+                        // Re-check after permission request
+                        const checkResult = await checkLocationPermission()
+                        if (checkResult.granted && checkResult.locationEnabled) {
+                          dispatchTTPEvent('LOCATION_REQUIREMENTS_SATISFIED')
+                          await startPayment()
+                        } else if (!checkResult.granted && !checkResult.canAskAgain) {
+                          dispatchTTPEvent('LOCATION_PERMISSION_BLOCKED')
+                          setShowLocationPermissionBlocked(true)
+                        } else if (checkResult.granted && !checkResult.locationEnabled) {
+                          dispatchTTPEvent('LOCATION_SERVICES_REQUIRED')
+                          setShowLocationServicesRequired(true)
+                        } else {
+                          dispatchTTPEvent('LOCATION_PERMISSION_REQUIRED')
+                          setShowLocationEducation(true)
+                        }
+                      }}
+                      className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                    >
+                      Continue
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Location Services Required Overlay */}
+            {showLocationServicesRequired && (
+              <div className="absolute inset-0 bg-white/95 flex flex-col items-center justify-center z-50 p-6">
+                <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 border border-gray-200">
+                  <div className="text-xs text-red-600 mb-2 font-mono">LOCATION SERVICES UI ACTIVE</div>
+                  <h3 className="text-lg font-semibold mb-3">Turn on Location Services</h3>
+                  <p className="text-sm text-gray-700 mb-6">
+                    Tap to Pay requires Location Services to be turned on while the secure reader is being prepared.
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        setShowLocationServicesRequired(false)
+                        cancelPayment('user_canceled')
+                      }}
+                      className="flex-1 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={async () => {
+                        dispatchTTPEvent('OPEN_LOCATION_SETTINGS_REQUESTED')
+                        await handleOpenLocationSettings()
+                        // Re-check after returning from settings
+                        const checkResult = await checkLocationPermission()
+                        dispatchTTPEvent('LOCATION_RECHECK_AFTER_SETTINGS', { granted: checkResult.granted, locationEnabled: checkResult.locationEnabled })
+                        if (checkResult.granted && checkResult.locationEnabled) {
+                          setShowLocationServicesRequired(false)
+                          dispatchTTPEvent('LOCATION_REQUIREMENTS_SATISFIED')
+                          await startPayment()
+                        } else {
+                          if (!checkResult.locationEnabled) {
+                            dispatchTTPEvent('LOCATION_SERVICES_REQUIRED')
+                          } else if (!checkResult.granted) {
+                            setShowLocationServicesRequired(false)
+                            setShowLocationEducation(true)
+                            dispatchTTPEvent('LOCATION_PERMISSION_REQUIRED')
+                          }
+                        }
+                      }}
+                      className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                    >
+                      Open Location Settings
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Location Permission Blocked Overlay */}
+            {showLocationPermissionBlocked && (
+              <div className="absolute inset-0 bg-white/95 flex flex-col items-center justify-center z-50 p-6">
+                <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 border border-gray-200">
+                  <div className="text-xs text-red-600 mb-2 font-mono">LOCATION BLOCKED UI ACTIVE</div>
+                  <h3 className="text-lg font-semibold mb-3">Allow Location in Settings</h3>
+                  <p className="text-sm text-gray-700 mb-6">
+                    Location access is required for Tap to Pay. Enable it for ReplyFlow in Android Settings, then return to continue.
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        setShowLocationPermissionBlocked(false)
+                        cancelPayment('user_canceled')
+                      }}
+                      className="flex-1 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={async () => {
+                        dispatchTTPEvent('OPEN_APP_SETTINGS_REQUESTED')
+                        await handleOpenAppSettings()
+                        // Re-check after returning from settings
+                        const checkResult = await checkLocationPermission()
+                        dispatchTTPEvent('LOCATION_RECHECK_AFTER_SETTINGS', { granted: checkResult.granted, locationEnabled: checkResult.locationEnabled, canAskAgain: checkResult.canAskAgain })
+                        if (checkResult.granted && checkResult.locationEnabled) {
+                          setShowLocationPermissionBlocked(false)
+                          dispatchTTPEvent('LOCATION_REQUIREMENTS_SATISFIED')
+                          await startPayment()
+                        } else if (!checkResult.canAskAgain) {
+                          dispatchTTPEvent('LOCATION_PERMISSION_BLOCKED')
+                        } else {
+                          setShowLocationPermissionBlocked(false)
+                          setShowLocationEducation(true)
+                          dispatchTTPEvent('LOCATION_PERMISSION_REQUIRED')
+                        }
+                      }}
+                      className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                    >
+                      Open App Settings
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>,
         document.body
-      )}
-      
-      {/* Location Education Dialog */}
-      {showLocationEducation && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h3 className="text-lg font-semibold mb-3">Location is required for Tap to Pay</h3>
-            <p className="text-sm text-gray-700 mb-6">
-              Android requires location access while ReplyFlow prepares the secure Tap to Pay reader. ReplyFlow does not use your location for advertising or customer tracking.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowLocationEducation(false)
-                  dispatchTTPEvent('LOCATION_EDUCATION_NOT_NOW')
-                }}
-                className="flex-1 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                Not Now
-              </button>
-              <button
-                onClick={async () => {
-                  setShowLocationEducation(false)
-                  dispatchTTPEvent('LOCATION_EDUCATION_CONTINUE')
-                  await requestLocationPermission()
-                }}
-                className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
-              >
-                Continue
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Location Services Required Dialog */}
-      {showLocationServicesRequired && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h3 className="text-lg font-semibold mb-3">Turn on Location Services</h3>
-            <p className="text-sm text-gray-700 mb-6">
-              Tap to Pay requires Location Services to be turned on while the secure reader is being prepared.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowLocationServicesRequired(false)
-                  cancelPayment('user_canceled')
-                }}
-                className="flex-1 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
-                  dispatchTTPEvent('OPEN_LOCATION_SETTINGS_REQUESTED')
-                  await handleOpenLocationSettings()
-                  // Re-check after returning from settings
-                  const checkResult = await checkLocationPermission()
-                  dispatchTTPEvent('LOCATION_RECHECK_AFTER_SETTINGS', { granted: checkResult.granted, locationEnabled: checkResult.locationEnabled })
-                  if (checkResult.granted && checkResult.locationEnabled) {
-                    setShowLocationServicesRequired(false)
-                    dispatchTTPEvent('LOCATION_REQUIREMENTS_SATISFIED')
-                    // Continue with payment flow
-                    await startPayment()
-                  } else {
-                    // Keep dialog visible if requirements still not met
-                    if (!checkResult.locationEnabled) {
-                      dispatchTTPEvent('LOCATION_SERVICES_REQUIRED')
-                    } else if (!checkResult.granted) {
-                      setShowLocationServicesRequired(false)
-                      setShowLocationEducation(true)
-                      dispatchTTPEvent('LOCATION_PERMISSION_REQUIRED')
-                    }
-                  }
-                }}
-                className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
-              >
-                Open Location Settings
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Location Permission Blocked Dialog */}
-      {showLocationPermissionBlocked && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h3 className="text-lg font-semibold mb-3">Allow Location in Settings</h3>
-            <p className="text-sm text-gray-700 mb-6">
-              Location access is required for Tap to Pay. Enable it for ReplyFlow in Android Settings, then return to continue.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowLocationPermissionBlocked(false)
-                  cancelPayment('user_canceled')
-                }}
-                className="flex-1 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
-                  dispatchTTPEvent('OPEN_APP_SETTINGS_REQUESTED')
-                  await handleOpenAppSettings()
-                  // Re-check after returning from settings
-                  const checkResult = await checkLocationPermission()
-                  dispatchTTPEvent('LOCATION_RECHECK_AFTER_SETTINGS', { granted: checkResult.granted, locationEnabled: checkResult.locationEnabled, canAskAgain: checkResult.canAskAgain })
-                  if (checkResult.granted && checkResult.locationEnabled) {
-                    setShowLocationPermissionBlocked(false)
-                    dispatchTTPEvent('LOCATION_REQUIREMENTS_SATISFIED')
-                    // Continue with payment flow
-                    await startPayment()
-                  } else if (!checkResult.canAskAgain) {
-                    // Still permanently denied
-                    dispatchTTPEvent('LOCATION_PERMISSION_BLOCKED')
-                  } else {
-                    // Can ask again, show education
-                    setShowLocationPermissionBlocked(false)
-                    setShowLocationEducation(true)
-                    dispatchTTPEvent('LOCATION_PERMISSION_REQUIRED')
-                  }
-                }}
-                className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
-              >
-                Open App Settings
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </>
   )
