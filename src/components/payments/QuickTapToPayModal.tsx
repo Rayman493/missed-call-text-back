@@ -30,6 +30,11 @@ export default function QuickTapToPayModal({
   const [amountCents, setAmountCents] = useState<number>(0)
   const [amountDisplay, setAmountDisplay] = useState<string>('')
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
+
+  // Minimum payment amount validation
+  const MINIMUM_AMOUNT_CENTS = 50 // $0.50
+  const isAmountValid = amountCents === 0 || amountCents >= MINIMUM_AMOUNT_CENTS
+  const isAmountBelowMinimum = amountCents > 0 && amountCents < MINIMUM_AMOUNT_CENTS
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
   const [description, setDescription] = useState<string>('')
   const [leads, setLeads] = useState<any[]>([])
@@ -404,7 +409,11 @@ export default function QuickTapToPayModal({
   }
 
   const handleStartPayment = async () => {
-    if (amountCents <= 0) return
+    // Defensive validation: block payments below minimum amount
+    if (amountCents < MINIMUM_AMOUNT_CENTS) {
+      console.log('[QuickTTP UI] INVALID_PAYMENT_AMOUNT_BLOCKED', { amountCents, minimumAmountCents: MINIMUM_AMOUNT_CENTS })
+      return
+    }
     logTapToPayEvent('PAY_BUTTON_PRESSED', { phase: 'payment_intent', sessionId: terminalService.getSessionId(), meta: { amountCents } }).catch(() => {})
     // Don't switch UI state yet - let the hook's state change trigger the UI update
     await startPayment()
@@ -859,6 +868,13 @@ export default function QuickTapToPayModal({
                     <p className="text-sm text-red-500 text-center">Please enter a valid amount</p>
                   )}
 
+                  {/* Minimum amount validation */}
+                  {isAmountBelowMinimum && (
+                    <p className="text-sm text-red-500 text-center animate-in fade-in duration-200">
+                      Minimum payment amount is $0.50.
+                    </p>
+                  )}
+
                   {/* Only show app-only message in web */}
                   {!isNativeSupported && platform === 'web' && (
                     <p className="text-sm text-amber-600 dark:text-amber-400 text-center">
@@ -987,11 +1003,11 @@ export default function QuickTapToPayModal({
                   </button>
                   <button
                     onClick={handleStartPayment}
-                    disabled={amountCents <= 0 || !isNativeSupported || isPaymentInProgress}
+                    disabled={amountCents <= 0 || !isAmountValid || !isNativeSupported || isPaymentInProgress}
                     className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-green-600 flex items-center justify-center gap-2 active:scale-95"
                   >
                     <Smartphone className="w-4 h-4" />
-                    Start Tap to Pay
+                    {isAmountBelowMinimum ? 'Minimum $0.50 Required' : 'Start Tap to Pay'}
                   </button>
                 </>
               ) : (
