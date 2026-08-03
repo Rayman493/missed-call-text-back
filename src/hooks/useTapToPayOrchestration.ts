@@ -26,8 +26,10 @@ interface UseTapToPayOrchestrationReturn {
   isPaymentInProgress: boolean
   platform: 'ios' | 'android' | 'web'
   isNativeSupported: boolean
+  lastSuccessfulStage: string
+  lastResetReason: string
   startPayment: () => Promise<void>
-  cancelPayment: () => void
+  cancelPayment: (reason?: string) => void
   retryPayment: () => Promise<void>
   checkPlatformSupport: () => Promise<{ platform: 'ios' | 'android' | 'web'; isNativeSupported: boolean }>
 }
@@ -51,15 +53,26 @@ export function useTapToPayOrchestration({
   const [locationPermissionGranted, setLocationPermissionGranted] = useState<boolean | null>(null)
   const [locationServicesEnabled, setLocationServicesEnabled] = useState<boolean | null>(null)
   const [showLocationPermissionDialog, setShowLocationPermissionDialog] = useState(false)
+  const [lastResetReason, setLastResetReason] = useState<string>('none')
 
   const terminalService = TerminalBridgeService.getInstance()
   const paymentStateRef = useRef<PaymentState>(paymentState)
   const autoRetryInProgress = useRef(false)
 
-  // Update ref when state changes
-  const updatePaymentStateRef = useCallback((newState: PaymentState) => {
+  // Update ref when state changes with logging and reason
+  const updatePaymentStateRef = useCallback((newState: PaymentState, reason: string = 'unknown') => {
+    const previousState = paymentStateRef.current
     paymentStateRef.current = newState
     setPaymentState(newState)
+    setLastResetReason(reason)
+    console.log('[TTP Hook] STATE_CHANGE', {
+      previousState,
+      nextState: newState,
+      reason,
+      sessionId: terminalService.getSessionId(),
+      attemptId: terminalService.getCurrentAttemptId(),
+      timestamp: new Date().toISOString()
+    })
   }, [])
 
   useEffect(() => {
@@ -96,9 +109,11 @@ export function useTapToPayOrchestration({
 
   // Check location permission for Android
   const checkLocationPermission = useCallback(async (): Promise<boolean> => {
+    console.log('[TTP Hook] checkLocationPermission called', { platform })
     if (platform !== 'android') {
       setLocationPermissionGranted(true)
       setLocationServicesEnabled(true)
+      console.log('[TTP Hook] checkLocationPermission: not Android, skipping')
       return true
     }
 
@@ -106,7 +121,9 @@ export function useTapToPayOrchestration({
       const Terminal = await import('@/lib/terminal')
       const plugin = Terminal.default
 
+      console.log('[TTP Hook] Calling plugin.checkLocationPermission')
       const result = await plugin.checkLocationPermission()
+      console.log('[TTP Hook] plugin.checkLocationPermission result:', result)
       setLocationPermissionGranted(result.granted)
       setLocationServicesEnabled(result.locationEnabled)
 
@@ -115,22 +132,28 @@ export function useTapToPayOrchestration({
       console.error('[TTP Hook] Failed to check location permission:', error)
       setLocationPermissionGranted(true)
       setLocationServicesEnabled(true)
+      console.log('[TTP Hook] checkLocationPermission: error, returning true (fallback)')
       return true
     }
   }, [platform])
 
   // Main payment orchestration function
   const startPayment = useCallback(async () => {
-    console.log('[TTP Hook] Payment started:', {
+    console.log('[TTP Hook] START_PAYMENT_ENTERED', {
       isNativeSupported,
       platform,
       amountCents,
       leadId,
-      jobId
+      jobId,
+      previousState: paymentState
     })
 
     if (!isNativeSupported) {
-      console.log('[TTP Hook] Native support check failed')
+      console.log('[TTP Hook] VALIDATION_FAILED: Native support check failed', {
+        platform,
+        isNativeSupported,
+        nextState: 'ready'
+      })
       if (platform === 'web') {
         const errorMsg = 'Tap to Pay is only available on the mobile app'
         setError(errorMsg)
@@ -138,20 +161,24 @@ export function useTapToPayOrchestration({
       }
       return
     }
+    console.log('[TTP Hook] VALIDATION_PASSED: Native support', { platform })
 
     // Minimum amount validation
     if (typeof amountCents !== 'number' || !Number.isFinite(amountCents) || Math.floor(amountCents) !== amountCents) {
+      console.log('[TTP Hook] VALIDATION_FAILED: Invalid amount format', { amountCents })
       const errorMsg = 'Invalid amount. Please enter a valid amount.'
       setError(errorMsg)
       onPaymentError?.(errorMsg)
       return
     }
     if (amountCents < 50) {
+      console.log('[TTP Hook] VALIDATION_FAILED: Amount below minimum', { amountCents })
       const errorMsg = 'Amount must be at least $0.50.'
       setError(errorMsg)
       onPaymentError?.(errorMsg)
       return
     }
+    console.log('[TTP Hook] VALIDATION_PASSED: Amount', { amountCents })
 
     // Double-tap protection
     if (isPaymentInProgress) {
@@ -165,7 +192,7 @@ export function useTapToPayOrchestration({
     const unresolvedAttemptId = terminalService.getUnresolvedAttempt()
     if (unresolvedAttemptId) {
       console.log('[TTP Hook] Unresolved attempt found:', unresolvedAttemptId)
-      updatePaymentStateRef('ambiguous')
+      updatePaymentStateRef('ambiguous', 'unresolved_attempt_found')
       const errorMsg = 'Please resolve the previous payment status first'
       setError(errorMsg)
       onPaymentError?.(errorMsg)
@@ -173,28 +200,36 @@ export function useTapToPayOrchestration({
     }
 
     setIsPaymentInProgress(true)
-    updatePaymentStateRef('preparing')
+    updatePaymentStateRef('preparing', 'start_payment_called')
     setError('')
     setStructuredError(null)
     setLastSuccessfulStage('initializing')
 
     try {
+      console.log('[TTP Hook] DEVICE_SUPPORT_CHECK_STARTED')
       // Check device support
       const supportCheck = await terminalService.isSupported()
+      console.log('[TTP Hook] DEVICE_SUPPORT_CHECK_COMPLETED', {
+        supported: supportCheck.supported,
+        unsupportedReason: supportCheck.unsupportedReason
+      })
       if (!supportCheck.supported) {
+        console.log('[TTP Hook] VALIDATION_FAILED: Device not supported', { unsupportedReason: supportCheck.unsupportedReason })
         throw new Error('This device does not support Tap to Pay')
       }
       setLastSuccessfulStage('device_supported')
 
       // Check location permission for Android
       if (platform === 'android') {
+        console.log('[TTP Hook] LOCATION_CHECK_STARTED', { platform })
         const locationOk = await checkLocationPermission()
+        console.log('[TTP Hook] LOCATION_CHECK_COMPLETED', { locationOk })
         if (!locationOk) {
-          console.log('[TTP Hook] Location permission or services not available')
+          console.log('[TTP Hook] LOCATION_PERMISSION_FAILED')
           setShowLocationPermissionDialog(true)
           setIsPaymentInProgress(false)
           autoRetryInProgress.current = false
-          updatePaymentStateRef('ready')
+          updatePaymentStateRef('failure', 'location_permission_denied')
           const errorMsg = 'Location permission is required for Tap to Pay'
           setError(errorMsg)
           onPaymentError?.(errorMsg)
@@ -204,8 +239,11 @@ export function useTapToPayOrchestration({
       }
 
       // Initialize terminal
+      console.log('[TTP Hook] INITIALIZE_STARTED')
       const initResult = await terminalService.initialize()
+      console.log('[TTP Hook] INITIALIZE_COMPLETED', { status: initResult.status })
       if (initResult.status !== 'ready' && initResult.status !== 'connected') {
+        console.log('[TTP Hook] INITIALIZE_FAILED', { status: initResult.status })
         throw new Error('Failed to initialize payment terminal')
       }
       setLastSuccessfulStage('initialized')
@@ -215,10 +253,13 @@ export function useTapToPayOrchestration({
         setLastSuccessfulStage('connected')
       } else {
         if (paymentStateRef.current !== 'preparing') {
-          updatePaymentStateRef('preparing')
+          updatePaymentStateRef('preparing', 'reconnect_to_preparing')
         }
+        console.log('[TTP Hook] CONNECTION_STARTED')
         const connectResult = await terminalService.connectTapToPay()
+        console.log('[TTP Hook] CONNECTION_COMPLETED', { status: connectResult.status })
         if (connectResult.status !== 'connected') {
+          console.log('[TTP Hook] CONNECTION_FAILED', { status: connectResult.status })
           throw new Error('Failed to connect to payment terminal')
         }
         setLastSuccessfulStage('connected')
@@ -262,14 +303,20 @@ export function useTapToPayOrchestration({
       }
 
     } catch (err: any) {
-      console.error('[TTP Hook] Payment error:', err)
-      const errorMsg = err.message || 'Payment failed'
-      setError(errorMsg)
-      setStructuredError(err as TerminalError)
-      updatePaymentStateRef('failure')
-      setIsPaymentInProgress(false)
-      onPaymentError?.(errorMsg)
-    }
+    console.error('[TTP Hook] START_PAYMENT_FAILED', {
+      error: err.message,
+      code: err.code,
+      name: err.name,
+      stack: err.stack,
+      lastSuccessfulStage
+    })
+    updatePaymentStateRef('failure', 'error_thrown')
+    const errorMsg = err.message || 'Payment failed'
+    setError(errorMsg)
+    setStructuredError(err as TerminalError)
+    setIsPaymentInProgress(false)
+    onPaymentError?.(errorMsg)
+  }
   }, [
     amountCents,
     leadId,
@@ -286,10 +333,10 @@ export function useTapToPayOrchestration({
   ])
 
   // Cancel payment
-  const cancelPayment = useCallback(() => {
-    console.log('[TTP Hook] Payment canceled')
+  const cancelPayment = useCallback((reason: string = 'user_canceled') => {
+    console.log('[TTP Hook] Payment canceled', { reason })
     setIsPaymentInProgress(false)
-    updatePaymentStateRef('canceled')
+    updatePaymentStateRef('canceled', reason)
     setError('')
     setStructuredError(null)
     autoRetryInProgress.current = false
@@ -310,6 +357,8 @@ export function useTapToPayOrchestration({
     isPaymentInProgress,
     platform,
     isNativeSupported,
+    lastSuccessfulStage,
+    lastResetReason,
     startPayment,
     cancelPayment,
     retryPayment,

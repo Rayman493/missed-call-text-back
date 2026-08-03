@@ -10,7 +10,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { TerminalBridgeService } from '@/lib/terminal/service'
 import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
-import { SHOW_TAP_TO_PAY_DIAGNOSTICS } from './tapToPayUiConfig'
+import { SHOW_TAP_TO_PAY_DIAGNOSTICS, SHOW_TTP_TEST_STATUS } from './tapToPayUiConfig'
 import { useTapToPayOrchestration } from '@/hooks/useTapToPayOrchestration'
 import { Capacitor } from '@capacitor/core'
 
@@ -50,6 +50,8 @@ export default function QuickTapToPayModal({
     isPaymentInProgress,
     platform,
     isNativeSupported: hookIsNativeSupported,
+    lastSuccessfulStage,
+    lastResetReason,
     startPayment,
     cancelPayment,
     retryPayment,
@@ -71,6 +73,17 @@ export default function QuickTapToPayModal({
 
   // Derive showPaymentSetup from paymentState to ensure UI is always in sync
   const showPaymentSetup = paymentState === 'ready' || paymentState === 'canceled'
+
+  // Render logging for debugging
+  useEffect(() => {
+    if (isOpen) {
+      console.log('[QuickTTP UI] RENDER_BRANCH', {
+        branch: showPaymentSetup ? 'SETUP' : paymentState === 'failure' ? 'FAILURE' : paymentState.toUpperCase(),
+        paymentState,
+        showPaymentSetup
+      })
+    }
+  }, [isOpen, showPaymentSetup, paymentState])
 
   // Focus modal title on open for accessibility (prevents keyboard from opening on amount input)
   useEffect(() => {
@@ -125,21 +138,22 @@ export default function QuickTapToPayModal({
       // Diagnostics: modal opened
       logTapToPayEvent('MODAL_OPENED', { phase: 'startup', sessionId: terminalService.getSessionId(), meta: { modal: 'QuickTapToPay' } }).catch(() => {})
 
-      // Reset state
+      // Reset state only on actual modal open, not on dependency changes
       setAmountCents(0)
       setAmountDisplay('')
       setSelectedLeadId(null)
       setSelectedJobId(null)
       setDescription('')
       setShowCustomerSelector(false)
-      cancelPayment() // Resets payment state to 'ready'
+      cancelPayment('modal_opened')
     }
     return () => {
       if (isOpen) {
         logTapToPayEvent('MODAL_CLOSED', { phase: 'startup', sessionId: terminalService.getSessionId(), meta: { modal: 'QuickTapToPay' } }).catch(() => {})
       }
     }
-  }, [isOpen, checkPlatformSupport, terminalService])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen])
 
   // Load leads when customer selector is opened
   useEffect(() => {
@@ -320,7 +334,7 @@ export default function QuickTapToPayModal({
                 </h3>
               </div>
               <button
-                onClick={showPaymentSetup ? onClose : cancelPayment}
+                onClick={() => showPaymentSetup ? onClose() : cancelPayment('user_canceled')}
                 className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
                 style={{ minWidth: '44px', minHeight: '44px' }}
               >
@@ -338,6 +352,19 @@ export default function QuickTapToPayModal({
               {showPaymentSetup ? (
                 /* Payment Setup Screen */
                 <div className="space-y-4">
+                  {/* Test Status - temporary for device testing */}
+                  {SHOW_TTP_TEST_STATUS && (
+                    <div className="p-2 rounded bg-blue-900/20 border border-blue-500/30 text-xs font-mono space-y-1">
+                      <div className="text-blue-300">TTP Build: 2026-08-02-fix-reset</div>
+                      <div className="text-blue-200">State: {paymentState}</div>
+                      <div className="text-blue-200">Stage: {lastSuccessfulStage}</div>
+                      {error && <div className="text-red-300">Error: {error}</div>}
+                      <div className="text-blue-200">Reset Reason: {lastResetReason}</div>
+                      <div className="text-blue-200">Native: {isNativeSupported ? 'Yes' : 'No'}</div>
+                      <div className="text-blue-200">Platform: {platform}</div>
+                    </div>
+                  )}
+
                   {/* Debug UI - hidden in production */}
                   {SHOW_TAP_TO_PAY_DIAGNOSTICS && (
                     <>
@@ -602,7 +629,7 @@ export default function QuickTapToPayModal({
                   {paymentState === 'failure' ? (
                     <>
                       <button
-                        onClick={cancelPayment}
+                        onClick={() => cancelPayment('user_back')}
                         className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
                       >
                         Back
@@ -625,7 +652,7 @@ export default function QuickTapToPayModal({
                     </button>
                   ) : (
                     <button
-                      onClick={cancelPayment}
+                      onClick={() => cancelPayment('user_canceled')}
                       disabled={isPaymentInProgress}
                       className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
                     >
