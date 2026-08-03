@@ -42,7 +42,7 @@ export default function QuickTapToPayModal({
   const [modalSessionId, setModalSessionId] = useState<string>(`modal_${Date.now()}`)
   const [connectingElapsedTime, setConnectingElapsedTime] = useState(0)
   const [eventTimeline, setEventTimeline] = useState<Array<{ timestamp: string; event: string; sessionId?: string; attemptId?: string; paymentState?: string; stage?: string }>>([])
-  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_DIAGNOSTICS_VISIBLE_FIX'
+  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_DIAGNOSTICS_LOOP_FIX'
 
   // Ref for modal title for accessibility focus
   const titleRef = useRef<HTMLHeadingElement>(null)
@@ -100,10 +100,7 @@ export default function QuickTapToPayModal({
       }
       setEventTimeline(prev => {
         const updated = [...prev, eventData]
-        // Keep last 200 events
-        if (updated.length > 200) {
-          dispatchTTPEvent('DIAGNOSTIC_EVENTS_TRIMMED')
-        }
+        // Keep last 200 events - silently trim without dispatching to prevent recursion
         return updated.slice(-200)
       })
     }
@@ -556,7 +553,7 @@ export default function QuickTapToPayModal({
                 <div className="space-y-3 mb-4">
                   {/* Unmistakable Banner */}
                   <div className="p-3 rounded-lg border-2 border-purple-700 bg-purple-900/30 text-center">
-                    <div className="text-purple-300 font-extrabold text-lg tracking-wide">TTP DIAGNOSTICS BUILD 2026-08-03-VISIBLE</div>
+                    <div className="text-purple-300 font-extrabold text-lg tracking-wide">TTP DIAGNOSTICS BUILD 2026-08-03-LOOP-FIX</div>
                     <div className="text-xs text-purple-200/80">WEB BUILD: {WEB_BUILD_MARKER}</div>
                   </div>
                   

@@ -100,6 +100,7 @@ export function useTapToPayOrchestration({
   const autoRetryInProgress = useRef(false)
   const startInFlight = useRef(false)
   const activeAttemptRef = useRef(false)
+  const recoveryRunRef = useRef(false)
 
   // Update ref when state changes with logging and reason
   const updatePaymentStateRef = useCallback((newState: PaymentState, reason: string = 'unknown') => {
@@ -112,6 +113,18 @@ export function useTapToPayOrchestration({
         timestamp: new Date().toISOString()
       })
       // Do not transition to invalid state
+      return
+    }
+
+    // Prevent same-state transitions to avoid infinite loops
+    if (paymentStateRef.current === newState) {
+      console.log('[TTP Hook] SAME_STATE_TRANSITION_SKIPPED', {
+        state: newState,
+        reason,
+        sessionId: terminalService.getSessionId(),
+        attemptId: terminalService.getCurrentAttemptId(),
+      })
+      // Do not transition or dispatch events for same state
       return
     }
 
@@ -283,27 +296,38 @@ export function useTapToPayOrchestration({
 
   // Check for unresolved previous attempts on mount
   useEffect(() => {
+    // Guard: Prevent recovery from running more than once per modal session
+    if (recoveryRunRef.current) {
+      console.log('[TTP Hook] RECOVERY_ALREADY_RAN_SKIPPED')
+      return
+    }
+
     const checkUnresolvedAttempt = async () => {
+      dispatchTTPEvent('RECOVERY_EFFECT_STARTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId())
+      recoveryRunRef.current = true
+      
       // Guard: Skip recovery if a payment is already active
       if (startInFlight.current || activeAttemptRef.current) {
         console.log('[TTP Hook] RECOVERY_SKIPPED_ACTIVE_ATTEMPT', {
           startInFlight: startInFlight.current,
           activeAttempt: activeAttemptRef.current
         })
+        dispatchTTPEvent('RECOVERY_SKIPPED_ACTIVE_ATTEMPT', terminalService.getSessionId(), terminalService.getCurrentAttemptId())
         return
       }
 
       const RECOVERY_TIMEOUT_MS = 15000 // 15 seconds
       const timeoutId = setTimeout(() => {
         console.log('[TTP Hook] RECOVERY_TIMEOUT - clearing recovery state')
-        updatePaymentStateRef('ready', 'recovery_timeout')
         setError('')
         setStructuredError(null)
         setMappedError(null)
+        dispatchTTPEvent('RECOVERY_TIMEOUT', terminalService.getSessionId(), terminalService.getCurrentAttemptId())
       }, RECOVERY_TIMEOUT_MS)
 
       try {
         console.log('[TTP Hook] Checking for unresolved attempts')
+        dispatchTTPEvent('RECOVERY_PROMISE_STARTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId())
         const response = await fetch('/api/terminal/attempt-status', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -319,39 +343,49 @@ export function useTapToPayOrchestration({
           if (data.unresolvedAttempt.status === 'succeeded') {
             console.log('[TTP Hook] Previous attempt succeeded, showing success')
             clearTimeout(timeoutId)
-            updatePaymentStateRef('success', 'previous_attempt_succeeded')
+            setPaymentState('success')
+            setLastSuccessfulStage('payment_completed')
             onPaymentComplete?.()
             startInFlight.current = false
             activeAttemptRef.current = false
             console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_CLEARED_SUCCESS')
+            dispatchTTPEvent('RECOVERY_PROMISE_RESOLVED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, 'previous_attempt_succeeded')
           } else if (data.unresolvedAttempt.status === 'canceled' || data.unresolvedAttempt.status === 'failed') {
             console.log('[TTP Hook] Previous attempt failed/canceled, clearing and transitioning to ready')
             clearTimeout(timeoutId)
             // Clear stale attempt and transition to ready, not canceled
             // Canceled state is only for current session cancellations
-            updatePaymentStateRef('ready', 'previous_attempt_cleared')
+            setPaymentState('ready')
+            setLastSuccessfulStage('none')
+            dispatchTTPEvent('RECOVERY_PROMISE_RESOLVED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, 'previous_attempt_cleared')
           } else {
             // Still pending but stale, clear it
             console.log('[TTP Hook] Previous attempt stale, clearing and transitioning to ready')
             clearTimeout(timeoutId)
-            updatePaymentStateRef('ready', 'stale_attempt_cleared')
+            setPaymentState('ready')
+            setLastSuccessfulStage('none')
+            dispatchTTPEvent('RECOVERY_PROMISE_RESOLVED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, 'stale_attempt_cleared')
           }
         } else {
           // No unresolved attempt, explicitly set to ready
           console.log('[TTP Hook] No unresolved attempt, transitioning to ready')
           clearTimeout(timeoutId)
-          updatePaymentStateRef('ready', 'no_unresolved_attempt')
+          setPaymentState('ready')
+          setLastSuccessfulStage('none')
+          dispatchTTPEvent('RECOVERY_PROMISE_RESOLVED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, 'no_unresolved_attempt')
         }
       } catch (error) {
         console.error('[TTP Hook] Failed to check unresolved attempt', error)
         clearTimeout(timeoutId)
         // On error, ensure we're in ready state
-        updatePaymentStateRef('ready', 'recovery_error')
+        setPaymentState('ready')
+        setLastSuccessfulStage('none')
+        dispatchTTPEvent('RECOVERY_PROMISE_REJECTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, String(error))
       }
     }
     
     checkUnresolvedAttempt()
-  }, [updatePaymentStateRef, onPaymentComplete])
+  }, []) // Empty dependency array - run only on mount
 
   // Main payment orchestration function
   const startPayment = useCallback(async () => {
