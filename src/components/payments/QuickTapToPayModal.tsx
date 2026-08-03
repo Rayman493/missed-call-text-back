@@ -47,13 +47,20 @@ export default function QuickTapToPayModal({
   const [modalSessionId, setModalSessionId] = useState<string>(`modal_${Date.now()}`)
   const [connectingElapsedTime, setConnectingElapsedTime] = useState(0)
   const [eventTimeline, setEventTimeline] = useState<Array<{ timestamp: string; event: string; sessionId?: string; attemptId?: string; paymentState?: string; stage?: string }>>([])
-  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_LOCATION_REPROMPT_SIMPLIFIED'
+  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_ANDROID_FINAL_POLISH_FREEZE'
   
   // Location guidance card states (inline on setup screen, not overlays)
 const [showLocationPermissionCard, setShowLocationPermissionCard] = useState(false)
 const [showLocationServicesCard, setShowLocationServicesCard] = useState(false)
 const [showLocationBlockedCard, setShowLocationBlockedCard] = useState(false)
 const [isRequestingLocationPermission, setIsRequestingLocationPermission] = useState(false)
+
+// Canonical selection state to preserve display during loading
+const [selectionType, setSelectionType] = useState<'quick' | 'customer' | 'job'>('quick')
+const [selectionLabel, setSelectionLabel] = useState<string>('')
+
+// One-shot continuation guard to prevent duplicate ATTEMPT_STARTED
+const continuationAttemptedRef = useRef(false)
 
   // Ref for modal title for accessibility focus
   const titleRef = useRef<HTMLHeadingElement>(null)
@@ -488,29 +495,14 @@ const [isRequestingLocationPermission, setIsRequestingLocationPermission] = useS
       }
     }
     
-    // Don't switch UI state yet - let the hook's state change trigger the UI update
+    // One-shot continuation guard to prevent duplicate ATTEMPT_STARTED
+    if (continuationAttemptedRef.current) {
+      dispatchTTPEvent('DUPLICATE_LOCATION_CONTINUATION_IGNORED')
+      return
+    }
+    continuationAttemptedRef.current = true
+    
     await startPayment()
-  }
-
-  const handleOpenAppSettings = async () => {
-    try {
-      const { Browser } = await import('@capacitor/browser')
-      await Browser.open({ url: 'app-settings:' })
-    } catch (error) {
-      console.error('[QuickTTP UI] Failed to open app settings:', error)
-    }
-  }
-
-  const handleOpenLocationSettings = async () => {
-    try {
-      // For Android, open location settings
-      const { Browser } = await import('@capacitor/browser')
-      await Browser.open({ url: 'android.settings.LOCATION_SOURCE_SETTINGS' })
-    } catch (error) {
-      console.error('[QuickTTP UI] Failed to open location settings:', error)
-      // Fallback to general settings
-      await handleOpenAppSettings()
-    }
   }
 
   const handlePaymentComplete = async () => {
@@ -859,18 +851,18 @@ const [isRequestingLocationPermission, setIsRequestingLocationPermission] = useS
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2.5">
                           <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-                            {selectedLead ? (
+                            {selectionType !== 'quick' ? (
                               <User className="w-4.5 h-4.5 text-foreground" />
                             ) : (
-                              <User className="w-4.5 h-4.5 text-muted-foreground" />
+                              <Smartphone className="w-4.5 h-4.5 text-muted-foreground" />
                             )}
                           </div>
                           <div className="text-left">
                             <p className="font-medium text-foreground text-sm">
-                              {selectedLead ? (selectedLead.name && selectedLead.name !== 'Not collected' ? selectedLead.name : 'Unknown') : 'Quick Payment'}
+                              {selectionType === 'quick' ? 'Quick Payment' : selectionLabel}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {selectedLead ? selectedLead.caller_phone : 'No customer or job'}
+                              {selectionType === 'quick' ? 'No customer or job' : selectedLead?.caller_phone || ''}
                             </p>
                           </div>
                         </div>
@@ -887,8 +879,12 @@ const [isRequestingLocationPermission, setIsRequestingLocationPermission] = useS
                       <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
                         <button
                           onClick={() => {
+                            dispatchTTPEvent('CUSTOMER_JOB_SELECTION_COMMITTED', { type: 'quick', leadId: null, jobId: null })
                             setSelectedLeadId(null)
                             setSelectedJobId(null)
+                            setSelectionType('quick')
+                            setSelectionLabel('')
+                            setShowCustomerSelector(false)
                           }}
                           className={`w-full p-2.5 rounded-lg border transition-colors text-left active:scale-[0.99] ${
                             selectedLeadId === null
@@ -918,7 +914,18 @@ const [isRequestingLocationPermission, setIsRequestingLocationPermission] = useS
                             {leads.slice(0, 10).map((lead) => (
                               <button
                                 key={lead.id}
-                                onClick={() => setSelectedLeadId(lead.id)}
+                                onClick={() => {
+                                  if (selectedLeadId === lead.id) {
+                                    dispatchTTPEvent('DUPLICATE_CUSTOMER_JOB_SELECTION_IGNORED', { type: 'customer', leadId: lead.id })
+                                    return
+                                  }
+                                  dispatchTTPEvent('CUSTOMER_JOB_SELECTION_COMMITTED', { type: 'customer', leadId: lead.id, jobId: null })
+                                  setSelectedLeadId(lead.id)
+                                  setSelectedJobId(null)
+                                  setSelectionType('customer')
+                                  setSelectionLabel((lead.name && lead.name !== 'Not collected') ? lead.name : 'Unknown')
+                                  setShowCustomerSelector(false)
+                                }}
                                 className={`w-full p-2.5 rounded-lg border transition-colors text-left active:scale-[0.99] ${
                                   selectedLeadId === lead.id
                                     ? 'border-primary bg-primary/10'
@@ -954,7 +961,17 @@ const [isRequestingLocationPermission, setIsRequestingLocationPermission] = useS
                                 {jobs.map((job) => (
                                   <button
                                     key={job.id}
-                                    onClick={() => setSelectedJobId(job.id)}
+                                    onClick={() => {
+                                      if (selectedJobId === job.id) {
+                                        dispatchTTPEvent('DUPLICATE_CUSTOMER_JOB_SELECTION_IGNORED', { type: 'job', jobId: job.id })
+                                        return
+                                      }
+                                      dispatchTTPEvent('CUSTOMER_JOB_SELECTION_COMMITTED', { type: 'job', leadId: selectedLeadId, jobId: job.id })
+                                      setSelectedJobId(job.id)
+                                      setSelectionType('job')
+                                      setSelectionLabel(job.name || 'Unknown Job')
+                                      setShowCustomerSelector(false)
+                                    }}
                                     className={`w-full p-2.5 rounded-lg border transition-colors text-left active:scale-[0.99] ${
                                       selectedJobId === job.id
                                         ? 'border-primary bg-primary/10'
@@ -966,8 +983,8 @@ const [isRequestingLocationPermission, setIsRequestingLocationPermission] = useS
                                         <Briefcase className="w-4 h-4 text-muted-foreground" />
                                       </div>
                                       <div className="flex-1 min-w-0">
-                                        <p className="font-medium text-foreground text-sm truncate">{job.title || 'Untitled Job'}</p>
-                                        <p className="text-xs text-muted-foreground truncate">{job.scheduled_date || 'No date'}</p>
+                                        <p className="font-medium text-foreground text-sm truncate">{job.name || 'Unknown Job'}</p>
+                                        <p className="text-xs text-muted-foreground truncate">{job.description || ''}</p>
                                       </div>
                                     </div>
                                   </button>
@@ -1293,35 +1310,19 @@ const [isRequestingLocationPermission, setIsRequestingLocationPermission] = useS
                   ) : paymentState === 'failure' ? (
                     <>
                       {mappedError?.action === 'open_app_settings' ? (
-                        <>
-                          <button
-                            onClick={() => cancelPayment('user_back')}
-                            className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
-                          >
-                            Back
-                          </button>
-                          <button
-                            onClick={handleOpenAppSettings}
-                            className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors active:scale-95"
-                          >
-                            Open Settings
-                          </button>
-                        </>
+                        <button
+                          onClick={() => cancelPayment('user_back')}
+                          className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
+                        >
+                          Back
+                        </button>
                       ) : mappedError?.action === 'open_location_settings' ? (
-                        <>
-                          <button
-                            onClick={() => cancelPayment('user_back')}
-                            className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
-                          >
-                            Back
-                          </button>
-                          <button
-                            onClick={handleOpenLocationSettings}
-                            className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors active:scale-95"
-                          >
-                            Open Location Settings
-                          </button>
-                        </>
+                        <button
+                          onClick={() => cancelPayment('user_back')}
+                          className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
+                        >
+                          Back
+                        </button>
                       ) : mappedError?.action === 'back' ? (
                         <button
                           onClick={() => cancelPayment('user_back')}
