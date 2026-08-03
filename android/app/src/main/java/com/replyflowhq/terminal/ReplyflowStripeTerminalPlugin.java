@@ -64,7 +64,7 @@ import java.util.Locale;
 )
 public class ReplyflowStripeTerminalPlugin extends Plugin {
   private static final String TAG = "ReplyflowStripeTerminal";
-  private static final String BUILD_MARKER = "TTP_2026_08_03_PERMISSION_CONTINUATION_FIX";
+  private static final String BUILD_MARKER = "TTP_2026_08_03_PREMATURE_RESET_FIX";
 
   // Request ID for permission correlation
   private String locationPermissionRequestId = null;

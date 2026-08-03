@@ -72,6 +72,7 @@ export function useTapToPayOrchestration({
   const paymentStateRef = useRef<PaymentState>(paymentState)
   const autoRetryInProgress = useRef(false)
   const startInFlight = useRef(false)
+  const activeAttemptRef = useRef(false)
 
   // Update ref when state changes with logging and reason
   const updatePaymentStateRef = useCallback((newState: PaymentState, reason: string = 'unknown') => {
@@ -79,15 +80,31 @@ export function useTapToPayOrchestration({
     paymentStateRef.current = newState
     setPaymentState(newState)
     setLastResetReason(reason)
-    console.log('[TTP Hook] STATE_CHANGE', {
-      previousState,
-      nextState: newState,
+    
+    // Log state transition with attempt ID
+    console.log('[TTP Hook] STATE_TRANSITION', {
+      previous: previousState,
+      next: newState,
       reason,
       sessionId: terminalService.getSessionId(),
       attemptId: terminalService.getCurrentAttemptId(),
+      startInFlight: startInFlight.current,
+      activeAttempt: activeAttemptRef.current,
       timestamp: new Date().toISOString()
     })
-  }, [])
+    
+    // Invariant check: ready state should not have active payment
+    if (newState === 'ready' && (startInFlight.current || activeAttemptRef.current)) {
+      console.error('[TTP Hook] STATE_VIOLATION', {
+        violation: 'ready_state_with_active_payment',
+        state: newState,
+        startInFlight: startInFlight.current,
+        activeAttempt: activeAttemptRef.current,
+        stage: lastSuccessfulStage,
+        reason
+      })
+    }
+  }, [lastSuccessfulStage])
 
   useEffect(() => {
     paymentStateRef.current = paymentState
@@ -196,6 +213,15 @@ export function useTapToPayOrchestration({
   // Check for unresolved previous attempts on mount
   useEffect(() => {
     const checkUnresolvedAttempt = async () => {
+      // Guard: Skip recovery if a payment is already active
+      if (startInFlight.current || activeAttemptRef.current) {
+        console.log('[TTP Hook] RECOVERY_SKIPPED_ACTIVE_ATTEMPT', {
+          startInFlight: startInFlight.current,
+          activeAttempt: activeAttemptRef.current
+        })
+        return
+      }
+
       const RECOVERY_TIMEOUT_MS = 15000 // 15 seconds
       const timeoutId = setTimeout(() => {
         console.log('[TTP Hook] RECOVERY_TIMEOUT - clearing recovery state')
@@ -225,6 +251,7 @@ export function useTapToPayOrchestration({
             updatePaymentStateRef('success', 'previous_attempt_succeeded')
             onPaymentComplete?.()
             startInFlight.current = false
+            activeAttemptRef.current = false
             console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_CLEARED_SUCCESS')
           } else if (data.unresolvedAttempt.status === 'canceled' || data.unresolvedAttempt.status === 'failed') {
             console.log('[TTP Hook] Previous attempt failed/canceled, clearing and transitioning to ready')
@@ -323,7 +350,12 @@ export function useTapToPayOrchestration({
       return
     }
     startInFlight.current = true
+    activeAttemptRef.current = true
     console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_SET')
+    console.log('[TTP Hook] ATTEMPT_STARTED', {
+      sessionId: terminalService.getSessionId(),
+      attemptId: terminalService.getCurrentAttemptId()
+    })
 
     setIsPaymentInProgress(true)
     permissionLock.setTapToPayActive(true)
@@ -331,6 +363,7 @@ export function useTapToPayOrchestration({
     setError('')
     setStructuredError(null)
     setMappedError(null)
+    setLastResetReason('') // Clear recovery error when starting new payment
     setLastSuccessfulStage('initializing')
 
     try {
@@ -385,6 +418,7 @@ export function useTapToPayOrchestration({
             permissionLock.setTapToPayActive(false)
             autoRetryInProgress.current = false
             startInFlight.current = false
+            activeAttemptRef.current = false
             console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_CLEARED_PERMISSION_DENIED')
             updatePaymentStateRef('failure', 'location_permission_denied')
             
@@ -492,6 +526,7 @@ export function useTapToPayOrchestration({
         setIsPaymentInProgress(false)
             permissionLock.setTapToPayActive(false)
         startInFlight.current = false
+            activeAttemptRef.current = false
         console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_CLEARED_SUCCESS')
         onPaymentComplete?.()
       } else if (paymentResult.status === 'failed') {
@@ -536,6 +571,7 @@ export function useTapToPayOrchestration({
     setIsPaymentInProgress(false)
             permissionLock.setTapToPayActive(false)
     startInFlight.current = false
+            activeAttemptRef.current = false
     console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_CLEARED_ERROR')
     onPaymentError?.(errorMsg)
   }
@@ -615,6 +651,7 @@ async function withTimeout<T>(
     setIsPaymentInProgress(false)
             permissionLock.setTapToPayActive(false)
     startInFlight.current = false
+            activeAttemptRef.current = false
     console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_CLEARED_RESET')
     updatePaymentStateRef('ready', 'emergency_reset')
     setError('')
@@ -632,6 +669,7 @@ async function withTimeout<T>(
     setIsPaymentInProgress(false)
             permissionLock.setTapToPayActive(false)
     startInFlight.current = false
+            activeAttemptRef.current = false
     console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_CLEARED_RESET_TO_SETUP')
     updatePaymentStateRef('ready', reason)
     setError('')
