@@ -302,34 +302,28 @@ export function useTapToPayOrchestration({
       // Check location permission for Android
       if (platform === 'android') {
         console.log('[TTP Hook] LOCATION_CHECK_STARTED', { platform })
-        let locationOk = await withTimeout(
+        let permissionResult: any = await withTimeout(
           checkLocationPermission(),
           'LOCATION_PERMISSION_CHECK',
           TIMEOUTS.PERMISSION_REQUEST,
           terminalService.getSessionId() || 'unknown',
           terminalService.getCurrentAttemptId() || 'unknown'
         )
-        console.log('[TTP Hook] LOCATION_CHECK_COMPLETED', { locationOk })
+        console.log('[TTP Hook] LOCATION_CHECK_COMPLETED', { permissionResult })
         
-        if (!locationOk) {
+        if (!permissionResult.granted) {
           console.log('[TTP Hook] LOCATION_PERMISSION_CHECK_FAILED - requesting permission')
-          await withTimeout(
+          permissionResult = await withTimeout(
             requestLocationPermission(),
             'LOCATION_PERMISSION_REQUEST',
             TIMEOUTS.PERMISSION_REQUEST,
             terminalService.getSessionId() || 'unknown',
             terminalService.getCurrentAttemptId() || 'unknown'
           )
-          console.log('[TTP Hook] LOCATION_PERMISSION_REQUEST_COMPLETED')
+          console.log('[TTP Hook] LOCATION_PERMISSION_REQUEST_COMPLETED', { permissionResult })
           
-          // Re-check permission after the system dialog closes
-          console.log('[TTP Hook] LOCATION_PERMISSION_RECHECK')
-          await new Promise(resolve => setTimeout(resolve, 150)) // Brief delay for Android to update state
-          locationOk = await checkLocationPermission()
-          console.log('[TTP Hook] LOCATION_PERMISSION_RECHECK_RESULT', { locationOk })
-          
-          if (!locationOk) {
-            console.log('[TTP Hook] LOCATION_PERMISSION_DENIED after request')
+          if (!permissionResult.granted) {
+            console.log('[TTP Hook] LOCATION_PERMISSION_DENIED after request', { permissionResult })
             setShowLocationPermissionDialog(true)
             setIsPaymentInProgress(false)
             autoRetryInProgress.current = false
@@ -346,6 +340,7 @@ export function useTapToPayOrchestration({
             onPaymentError?.(errorMsg)
             return
           }
+          console.log('[TTP Hook] LOCATION_PERMISSION_CONTINUING_SAME_ATTEMPT')
         }
         setLastSuccessfulStage('location_permission_ok')
       }

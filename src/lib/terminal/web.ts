@@ -22,9 +22,9 @@ export class TerminalWeb extends WebPlugin implements TerminalPlugin {
     return { granted: true, locationEnabled: true }
   }
 
-  async requestLocationPermission(): Promise<{ granted: boolean; pending?: boolean }> {
+  async requestLocationPermission(): Promise<{ granted: boolean; precise: boolean; canAskAgain: boolean; locationEnabled: boolean }> {
     // Web doesn't require location permission for Tap to Pay
-    return { granted: true }
+    return { granted: true, precise: false, canAskAgain: true, locationEnabled: true }
   }
 
   async openLocationSettings(): Promise<{ opened: boolean }> {

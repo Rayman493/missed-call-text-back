@@ -25,6 +25,7 @@ import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.BridgeWebViewClient;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.content.Intent;
 import com.replyflowhq.terminal.ReplyflowStripeTerminalPlugin;
 import com.replyflowhq.app.SmsLauncherPlugin;
 
@@ -170,6 +171,26 @@ public class MainActivity extends BridgeActivity {
 
         // Set up network callback to detect connectivity changes
         setupNetworkMonitoring();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        
+        // Forward location permission result to ReplyflowStripeTerminalPlugin
+        if (requestCode == 1001) {
+            try {
+                com.getcapacitor.PluginHandle pluginHandle = getBridge().getPlugin(ReplyflowStripeTerminalPlugin.class.getName());
+                if (pluginHandle != null) {
+                    com.getcapacitor.Plugin plugin = pluginHandle.getInstance();
+                    if (plugin instanceof ReplyflowStripeTerminalPlugin) {
+                        ((ReplyflowStripeTerminalPlugin) plugin).onPermissionResult(requestCode, permissions, grantResults);
+                    }
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "[LOCATION] Failed to forward permission result to plugin", e);
+            }
+        }
     }
 
     private void setupNetworkMonitoring() {
@@ -400,25 +421,6 @@ public class MainActivity extends BridgeActivity {
         layout.addView(supportingText, supportingParams);
 
         return layout;
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        
-        if (requestCode == 1001) {
-            // Location permission request result
-            boolean granted = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
-            Log.d(TAG, "[LOCATION] Permission result: granted=" + granted);
-            
-            // Notify the web layer via a Capacitor plugin event
-            try {
-                // Use Capacitor's notifyListeners mechanism to notify JS
-                getBridge().triggerJSEvent("locationPermissionResult", "{\"granted\":" + granted + "}");
-            } catch (Exception e) {
-                Log.e(TAG, "[LOCATION] Failed to notify JS of permission result", e);
-            }
-        }
     }
 
     // (Diagnostics removed)

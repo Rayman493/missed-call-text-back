@@ -769,8 +769,6 @@ export default function TapToPayModal({
         setShowLocationPermissionDialog(false)
         setError('')
         // Permission granted, user can retry
-      } else if (result.pending) {
-        // Permission request was shown, wait for result via event listener
       }
     } catch (err) {
       console.error('[TTP UI] Failed to request location permission:', err)

@@ -83,7 +83,7 @@ export interface TerminalPlugin {
   initialize(options?: InitializeOptions): Promise<{ status: TerminalStatus }>
   isSupported(): Promise<{ supported: boolean; platform: 'ios' | 'android' | 'web'; unsupportedReason?: string }>
   checkLocationPermission(): Promise<{ granted: boolean; locationEnabled: boolean }>
-  requestLocationPermission(): Promise<{ granted: boolean; pending?: boolean }>
+  requestLocationPermission(): Promise<{ granted: boolean; precise: boolean; canAskAgain: boolean; locationEnabled: boolean }>
   openLocationSettings(): Promise<{ opened: boolean }>
   // Deprecated: use connectionTokenRequested event instead
   requestConnectionToken(): Promise<ConnectionToken>

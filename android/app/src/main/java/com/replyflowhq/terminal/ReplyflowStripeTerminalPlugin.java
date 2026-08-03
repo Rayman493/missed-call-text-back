@@ -370,54 +370,121 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     call.resolve(ret);
   }
 
+  private PluginCall pendingPermissionCall = null;
+  private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
+
   @PluginMethod
   public void requestLocationPermission(PluginCall call) {
-    Log.d(TAG, "[LOCATION] requestLocationPermission() called");
+    Log.d(TAG, "[LOCATION_PERMISSION_REQUEST_STARTED] requestLocationPermission() called");
     
     try {
       // Check if activity is available
       if (getActivity() == null) {
-        Log.e(TAG, "[LOCATION] Activity is null, cannot request permission");
+        Log.e(TAG, "[LOCATION_PERMISSION_REQUEST_FAILED] Activity is null, cannot request permission");
         JSObject ret = new JSObject();
         ret.put("granted", false);
+        ret.put("precise", false);
+        ret.put("canAskAgain", false);
+        ret.put("locationEnabled", false);
         ret.put("error", "Activity not available");
         call.resolve(ret);
         return;
       }
       
       // Check if already granted
-      boolean hasPermission = ContextCompat.checkSelfPermission(
+      boolean hasFinePermission = ContextCompat.checkSelfPermission(
         getContext(),
         Manifest.permission.ACCESS_FINE_LOCATION
       ) == PackageManager.PERMISSION_GRANTED;
       
-      if (hasPermission) {
-        Log.d(TAG, "[LOCATION] Permission already granted");
+      boolean hasCoarsePermission = ContextCompat.checkSelfPermission(
+        getContext(),
+        Manifest.permission.ACCESS_COARSE_LOCATION
+      ) == PackageManager.PERMISSION_GRANTED;
+      
+      boolean locationEnabled = isLocationEnabled();
+      
+      if (hasFinePermission || hasCoarsePermission) {
+        Log.d(TAG, "[LOCATION_PERMISSION_REQUEST_RESULT] Permission already granted fine=" + hasFinePermission + " coarse=" + hasCoarsePermission);
         JSObject ret = new JSObject();
         ret.put("granted", true);
+        ret.put("precise", hasFinePermission);
+        ret.put("canAskAgain", true);
+        ret.put("locationEnabled", locationEnabled);
         call.resolve(ret);
         return;
       }
       
+      // Store the call to resolve later when callback is received
+      if (pendingPermissionCall != null) {
+        Log.w(TAG, "[LOCATION_PERMISSION_REQUEST] Previous pending permission call exists, resolving as canceled");
+        JSObject ret = new JSObject();
+        ret.put("granted", false);
+        ret.put("precise", false);
+        ret.put("canAskAgain", true);
+        ret.put("locationEnabled", locationEnabled);
+        ret.put("error", "Previous permission request in progress");
+        pendingPermissionCall.resolve(ret);
+      }
+      
+      pendingPermissionCall = call;
+      // call.keepAlive = true; // Keep call alive across Activity pause/resume - not available in Capacitor 3+
+      
       // Request the permission
-      String[] permissions = { Manifest.permission.ACCESS_FINE_LOCATION };
-      ActivityCompat.requestPermissions(getActivity(), permissions, 1001);
+      String[] permissions = { Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION };
+      ActivityCompat.requestPermissions(getActivity(), permissions, LOCATION_PERMISSION_REQUEST_CODE);
       
-      Log.d(TAG, "[LOCATION] Permission request initiated");
-      
-      // Note: The result will be handled by onRequestPermissionsResult in MainActivity
-      // For now, return pending state
-      JSObject ret = new JSObject();
-      ret.put("granted", false);
-      ret.put("pending", true);
-      call.resolve(ret);
+      Log.d(TAG, "[LOCATION_PERMISSION_CALLBACK_RECEIVED] Permission request initiated, waiting for callback");
+      // DO NOT resolve here - wait for onRequestPermissionsResult
     } catch (Exception e) {
-      Log.e(TAG, "[LOCATION] Exception in requestLocationPermission", e);
+      Log.e(TAG, "[LOCATION_PERMISSION_REQUEST_FAILED] Exception in requestLocationPermission", e);
       JSObject ret = new JSObject();
       ret.put("granted", false);
+      ret.put("precise", false);
+      ret.put("canAskAgain", false);
+      ret.put("locationEnabled", false);
       ret.put("error", e.getMessage());
       call.resolve(ret);
     }
+  }
+  
+  // Called by MainActivity when permission result is received
+  public void onPermissionResult(int requestCode, String[] permissions, int[] grantResults) {
+    Log.d(TAG, "[LOCATION_PERMISSION_CALLBACK_RECEIVED] requestCode=" + requestCode + " grantResults.length=" + (grantResults != null ? grantResults.length : 0));
+    
+    if (requestCode == LOCATION_PERMISSION_REQUEST_CODE && pendingPermissionCall != null) {
+      boolean granted = false;
+      boolean precise = false;
+      
+      if (grantResults != null && grantResults.length > 0) {
+        granted = grantResults[0] == PackageManager.PERMISSION_GRANTED;
+        precise = grantResults[0] == PackageManager.PERMISSION_GRANTED && 
+                   permissions[0].equals(Manifest.permission.ACCESS_FINE_LOCATION);
+      }
+      
+      boolean locationEnabled = isLocationEnabled();
+      boolean canAskAgain = !ActivityCompat.shouldShowRequestPermissionRationale(getActivity(), Manifest.permission.ACCESS_FINE_LOCATION);
+      
+      Log.d(TAG, "[LOCATION_PERMISSION_CALLBACK_RESULT] granted=" + granted + " precise=" + precise + " locationEnabled=" + locationEnabled + " canAskAgain=" + canAskAgain);
+      
+      JSObject ret = new JSObject();
+      ret.put("granted", granted);
+      ret.put("precise", precise);
+      ret.put("canAskAgain", canAskAgain);
+      ret.put("locationEnabled", locationEnabled);
+      
+      pendingPermissionCall.resolve(ret);
+      pendingPermissionCall = null;
+      
+      Log.d(TAG, "[LOCATION_PERMISSION_REQUEST_RESOLVED] Permission request resolved");
+    }
+  }
+  
+  private boolean isLocationEnabled() {
+    LocationManager locationManager = (LocationManager) getContext().getSystemService(Context.LOCATION_SERVICE);
+    return locationManager != null && 
+           (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || 
+            locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER));
   }
 
   @PluginMethod
@@ -756,8 +823,41 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
             Log.d(TAG, "[TAP_SESSION_TRACE] race_recovery_no_reader propagating_error");
           }
 
+          // Log complete discovery failure details
+          boolean permissionGranted = ContextCompat.checkSelfPermission(
+            getContext(),
+            Manifest.permission.ACCESS_FINE_LOCATION
+          ) == PackageManager.PERMISSION_GRANTED;
+          boolean locationEnabled = isLocationEnabled();
+          
+          Log.e(TAG, "[DISCOVERY_FAILED] " +
+            "code=" + (e.getErrorCode() != null ? e.getErrorCode().toString() : "null") + " " +
+            "message=" + (e.getMessage() != null ? e.getMessage() : "null") + " " +
+            "exceptionClass=" + e.getClass().getSimpleName() + " " +
+            "discoveryMethod=local_mobile " +
+            "simulated=" + effectiveSimulated + " " +
+            "permissionGranted=" + permissionGranted + " " +
+            "locationEnabled=" + locationEnabled + " " +
+            "deviceModel=" + android.os.Build.MODEL + " " +
+            "androidVersion=" + android.os.Build.VERSION.SDK_INT + " " +
+            "terminalInitialized=" + (Terminal.getInstance() != null) + " " +
+            "correlationId=" + connectCorrelationId,
+            e);
+
           JSObject err = createStructuredError("discover_readers", e);
           err.put("deviceState", captureDeviceState());
+          
+          // Add detailed error info
+          if (e.getErrorCode() != null) {
+            err.put("stripeErrorCode", e.getErrorCode().toString());
+          }
+          err.put("stripeErrorMessage", e.getMessage() != null ? e.getMessage() : "null");
+          err.put("exceptionClass", e.getClass().getSimpleName());
+          err.put("discoveryMethod", "local_mobile");
+          err.put("simulated", effectiveSimulated);
+          err.put("permissionGranted", permissionGranted);
+          err.put("locationEnabled", locationEnabled);
+          
           notifyListeners("error", err);
           status = "error";
           notifyListeners("statusChanged", new JSObject().put("status", status));
@@ -1275,7 +1375,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
     // Cancel ongoing discovery
     if (discovering && discoveryCancelable != null) {
-      Log.d(TAG, "[PAYMENT_TRACE] stage=cancel_discovery_start");
+      Log.d(TAG, "[DISCOVERY_CANCELED] reason=cancel_payment called");
       discoveryCancelable.cancel(new com.stripe.stripeterminal.external.callable.Callback() {
         @Override
         public void onSuccess() {
@@ -1344,6 +1444,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
   public void teardown(PluginCall call) {
     // Cancel any ongoing discovery
     if (discovering && discoveryCancelable != null) {
+      Log.d(TAG, "[DISCOVERY_CANCELED] reason=teardown called");
       discoveryCancelable.cancel(new com.stripe.stripeterminal.external.callable.Callback() {
         @Override
         public void onSuccess() {
