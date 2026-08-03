@@ -95,12 +95,14 @@ export function useTapToPayOrchestration({
 
   // Check platform and native support
   const checkPlatformSupport = useCallback(async () => {
+    console.log('[QuickTTP UI] NATIVE_DETECTION_STARTED')
     const MAX_RETRIES = 20
     const RETRY_DELAY = 50
     let retries = 0
 
     while (retries < MAX_RETRIES) {
       const pluginAvailable = Capacitor.isPluginAvailable('ReplyflowStripeTerminal')
+      console.log(`[QuickTTP UI] NATIVE_DETECTION_RETRY ${retries}: pluginAvailable=${pluginAvailable}`)
       if (pluginAvailable !== undefined) {
         const currentPlatform = Capacitor.getPlatform()
         if (currentPlatform !== 'web' || pluginAvailable === false) {
@@ -116,6 +118,16 @@ export function useTapToPayOrchestration({
     const isNative = Capacitor.isNativePlatform()
     const pluginAvailable = Capacitor.isPluginAvailable('ReplyflowStripeTerminal')
     const supported = isNativeCapacitor() && pluginAvailable
+    
+    console.log('[QuickTTP UI] NATIVE_DETECTION_RESULT', {
+      capacitorIsNativePlatform: isNative,
+      capacitorPlatform: detectedPlatform,
+      pluginName: 'ReplyflowStripeTerminal',
+      pluginAvailable,
+      isNativeCapacitor: isNativeCapacitor(),
+      isNativeSupported: supported
+    })
+    
     setIsNativeSupported(supported)
 
     return { platform: detectedPlatform, isNativeSupported: supported }

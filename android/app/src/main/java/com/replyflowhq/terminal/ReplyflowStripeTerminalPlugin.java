@@ -64,7 +64,7 @@ import java.util.Locale;
 )
 public class ReplyflowStripeTerminalPlugin extends Plugin {
   private static final String TAG = "ReplyflowStripeTerminal";
-  private static final String BUILD_MARKER = "TTP_2026_08_03_PERMISSION_BRIDGE_FIX";
+  private static final String BUILD_MARKER = "TTP_2026_08_03_NATIVE_DETECTION_FIX";
 
   // Initialization state tracking
   private enum InitState {

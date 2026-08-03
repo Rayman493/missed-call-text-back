@@ -37,9 +37,10 @@ export default function QuickTapToPayModal({
   const [isLoadingLeads, setIsLoadingLeads] = useState(false)
   const [isLoadingJobs, setIsLoadingJobs] = useState(false)
   const [isNativeSupported, setIsNativeSupported] = useState(false)
+  const [disabledReason, setDisabledReason] = useState<string>('')
   const [showCustomerSelector, setShowCustomerSelector] = useState(false)
   const [modalSessionId, setModalSessionId] = useState<string>(`modal_${Date.now()}`)
-  const WEB_BUILD_MARKER = 'TTP_WEB_BUILD_2026_08_03_PERMISSION_BRIDGE_FIX'
+  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_NATIVE_DETECTION_FIX'
 
   // Ref for modal title for accessibility focus
   const titleRef = useRef<HTMLHeadingElement>(null)
@@ -188,9 +189,22 @@ export default function QuickTapToPayModal({
         try {
           const result = await checkPlatformSupport()
           setIsNativeSupported(result.isNativeSupported)
+          if (!result.isNativeSupported) {
+            setDisabledReason('Native platform not supported or plugin not available')
+            console.log('[QuickTTP UI] START_BUTTON_DISABLED', {
+              reasons: [
+                amountCents <= 0 ? 'invalid_amount' : null,
+                !result.isNativeSupported ? 'native_not_supported' : null,
+                isPaymentInProgress ? 'payment_in_progress' : null
+              ].filter(Boolean)
+            })
+          } else {
+            setDisabledReason('')
+          }
         } catch (err) {
           console.error('[QuickTTP UI] Platform detection error:', err)
           setIsNativeSupported(false)
+          setDisabledReason('Platform detection error')
         }
       })()
 
@@ -446,13 +460,14 @@ export default function QuickTapToPayModal({
                   {/* Test Status - temporary for device testing */}
                   {SHOW_TTP_TEST_STATUS && (
                     <div className="p-2 rounded bg-blue-900/20 border border-blue-500/30 text-xs font-mono space-y-1">
-                      <div className="text-blue-300">TTP Build: 2026-08-02-timeout-recovery</div>
+                      <div className="text-blue-300">TTP Build: {WEB_BUILD_MARKER}</div>
                       <div className="text-blue-200">State: {paymentState}</div>
                       <div className="text-blue-200">Stage: {lastSuccessfulStage}</div>
                       {error && <div className="text-red-300">Error: {error}</div>}
                       <div className="text-blue-200">Reset Reason: {lastResetReason}</div>
                       <div className="text-blue-200">Native: {isNativeSupported ? 'Yes' : 'No'}</div>
                       <div className="text-blue-200">Platform: {platform}</div>
+                      {disabledReason && <div className="text-amber-300">Disabled: {disabledReason}</div>}
                       {mappedError && (
                         <>
                           <div className="text-blue-200">Mapped Title: {mappedError.title}</div>
@@ -721,6 +736,11 @@ export default function QuickTapToPayModal({
             <div className="px-4 py-3 border-t border-border/50 flex gap-3 shrink-0" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
               {showPaymentSetup ? (
                 <>
+                  {disabledReason && (
+                    <div className="col-span-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg mb-2">
+                      <p className="text-xs text-amber-800 dark:text-amber-200">{disabledReason}</p>
+                    </div>
+                  )}
                   <button
                     onClick={onClose}
                     className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"

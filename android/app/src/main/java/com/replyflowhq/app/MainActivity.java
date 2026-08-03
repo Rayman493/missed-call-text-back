@@ -26,6 +26,7 @@ import com.getcapacitor.BridgeWebViewClient;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Intent;
+import com.replyflowhq.terminal.ReplyflowStripeTerminalPlugin;
 import com.replyflowhq.app.SmsLauncherPlugin;
 
 public class MainActivity extends BridgeActivity {
@@ -42,7 +43,10 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         // Register custom local plugins BEFORE super.onCreate()
         // Per Capacitor documentation: registerPlugin must come before super.onCreate()
-        // Note: ReplyflowStripeTerminalPlugin is auto-discovered via @CapacitorPlugin annotation
+        
+        Log.d(TAG, "[PLUGIN] Registering ReplyflowStripeTerminalPlugin...");
+        registerPlugin(ReplyflowStripeTerminalPlugin.class);
+        Log.d(TAG, "[PLUGIN] ReplyflowStripeTerminalPlugin registered successfully");
         
         Log.d(TAG, "[PLUGIN] Registering SmsLauncherPlugin...");
         registerPlugin(SmsLauncherPlugin.class);
