@@ -38,7 +38,6 @@ export default function QuickTapToPayModal({
   const [isLoadingJobs, setIsLoadingJobs] = useState(false)
   const [isNativeSupported, setIsNativeSupported] = useState(false)
   const [showCustomerSelector, setShowCustomerSelector] = useState(false)
-  const [showPaymentSetup, setShowPaymentSetup] = useState(true)
 
   // Ref for modal title for accessibility focus
   const titleRef = useRef<HTMLHeadingElement>(null)
@@ -69,6 +68,9 @@ export default function QuickTapToPayModal({
     },
     onPaymentError: () => {},
   })
+
+  // Derive showPaymentSetup from paymentState to ensure UI is always in sync
+  const showPaymentSetup = paymentState === 'ready' || paymentState === 'canceled'
 
   // Focus modal title on open for accessibility (prevents keyboard from opening on amount input)
   useEffect(() => {
@@ -130,7 +132,7 @@ export default function QuickTapToPayModal({
       setSelectedJobId(null)
       setDescription('')
       setShowCustomerSelector(false)
-      setShowPaymentSetup(true)
+      cancelPayment() // Resets payment state to 'ready'
     }
     return () => {
       if (isOpen) {
@@ -237,7 +239,7 @@ export default function QuickTapToPayModal({
   const handleStartPayment = async () => {
     if (amountCents <= 0) return
     logTapToPayEvent('PAY_BUTTON_PRESSED', { phase: 'payment_intent', sessionId: terminalService.getSessionId(), meta: { amountCents } }).catch(() => {})
-    setShowPaymentSetup(false)
+    // Don't switch UI state yet - let the hook's state change trigger the UI update
     await startPayment()
   }
 
@@ -255,10 +257,15 @@ export default function QuickTapToPayModal({
     } catch {}
 
     const onPopState = () => {
-      if (!showPaymentSetup && (paymentState === 'ready' || paymentState === 'failure' || paymentState === 'canceled')) {
-        setShowPaymentSetup(true)
-      } else {
+      if (paymentState === 'failure') {
+        // On back from failure, go to setup
+        // handled by cancelPayment which resets state
+        cancelPayment()
+      } else if (paymentState === 'ready' || paymentState === 'canceled') {
         onClose()
+      } else {
+        // During active payment, allow cancel
+        cancelPayment()
       }
     }
     window.addEventListener('popstate', onPopState)
@@ -269,10 +276,12 @@ export default function QuickTapToPayModal({
         const mod = await import('@capacitor/app')
         const { App } = mod as any
         capListener = await App.addListener('backButton', () => {
-          if (!showPaymentSetup && (paymentState === 'ready' || paymentState === 'failure' || paymentState === 'canceled')) {
-            setShowPaymentSetup(true)
-          } else {
+          if (paymentState === 'failure') {
+            cancelPayment()
+          } else if (paymentState === 'ready' || paymentState === 'canceled') {
             onClose()
+          } else {
+            cancelPayment()
           }
         })
       } catch {}
@@ -282,7 +291,7 @@ export default function QuickTapToPayModal({
       window.removeEventListener('popstate', onPopState)
       capListener?.remove?.()
     }
-  }, [isOpen, onClose, showPaymentSetup, paymentState])
+  }, [isOpen, onClose, paymentState, cancelPayment])
 
   if (!isOpen) return null
 
@@ -558,6 +567,13 @@ export default function QuickTapToPayModal({
                       <p className="text-sm text-red-500 text-center">{error || 'An error occurred'}</p>
                     </>
                   )}
+                  {/* Defensive fallback for unhandled states */}
+                  {(!['preparing', 'waiting_for_card', 'processing', 'success', 'failure'].includes(paymentState)) && (
+                    <>
+                      <Loader2 className="w-12 h-12 animate-spin text-green-600 dark:text-green-400" />
+                      <p className="text-sm text-muted-foreground text-center">Initializing…</p>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -586,7 +602,7 @@ export default function QuickTapToPayModal({
                   {paymentState === 'failure' ? (
                     <>
                       <button
-                        onClick={() => setShowPaymentSetup(true)}
+                        onClick={cancelPayment}
                         className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
                       >
                         Back
