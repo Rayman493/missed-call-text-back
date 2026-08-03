@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Bell, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react'
 import { useNativePermissions } from '@/hooks/useNativePermissions'
 import { useBusiness } from '@/contexts/BusinessContext'
+import { isNativeMobilePlatform } from '@/lib/settings-config'
 
 interface NotificationPreference {
   key: string
@@ -103,42 +104,39 @@ export function NotificationsPreferences() {
         </p>
       </div>
 
-      {/* OS Permission Status Banner */}
-      <div className={`mb-5 p-4 rounded-lg border ${
-        notifications.status === 'granted' 
-          ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-          : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'
-      }`}>
-        <div className="flex items-start gap-3">
-          {notifications.status === 'granted' ? (
-            <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-          ) : (
-            <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-          )}
-          <div className="flex-1">
-            <div className="text-sm font-medium text-foreground mb-1">
-              {notifications.status === 'granted' 
-                ? 'Device notifications are enabled.'
-                : 'Device notifications are not enabled.'
-              }
+      {/* OS Permission Status Banner - Native mobile only */}
+      {isNativeMobilePlatform() && (
+        <div className={`mb-5 p-4 rounded-lg border ${
+          notifications.status === 'granted' 
+            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+            : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'
+        }`}>
+          <div className="flex items-start gap-3">
+            {notifications.status === 'granted' ? (
+              <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+            ) : (
+              <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            )}
+            <div className="flex-1">
+              <div className="text-sm font-medium text-foreground mb-1">
+                {notifications.status === 'granted' 
+                  ? 'Device notifications are enabled.'
+                  : 'Device notifications are not enabled.'
+                }
+              </div>
+              {notifications.status !== 'granted' && (
+                <button
+                  onClick={handleReviewPermissions}
+                  className="mt-2 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1"
+                >
+                  Review Permissions
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              )}
             </div>
-            {platform === 'web' && (
-              <p className="text-xs text-muted-foreground">
-                Push notifications require the mobile app where applicable.
-              </p>
-            )}
-            {notifications.status !== 'granted' && platform !== 'web' && (
-              <button
-                onClick={handleReviewPermissions}
-                className="mt-2 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1"
-              >
-                Review Permissions
-                <ArrowRight className="w-3 h-3" />
-              </button>
-            )}
           </div>
         </div>
-      </div>
+      )}
 
       {/* Notification Preferences */}
       <div className="space-y-3">
