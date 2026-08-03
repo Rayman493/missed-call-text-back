@@ -15,6 +15,7 @@
 import { PushNotifications } from '@capacitor/push-notifications'
 import { Capacitor } from '@capacitor/core'
 import { App } from '@capacitor/app'
+import { nativePermissionsStore } from '@/lib/native-permissions/native-permissions-store'
 
 export interface PushNotificationData {
   notificationId?: string
@@ -157,28 +158,31 @@ class PushService {
     }
 
     try {
-      console.log('[NOTIFICATION_PERMISSION_CHECK] Checking permission state')
-      const currentPermissions = await PushNotifications.checkPermissions()
-      console.log('[NOTIFICATION_PERMISSION_CHECK] Current state:', currentPermissions.receive)
+      // Use shared permission store to check and request notification permission
+      console.log('[NOTIFICATION_PERMISSION_CHECK] Checking permission state via shared store')
+      const state = nativePermissionsStore.getState()
+      console.log('[NOTIFICATION_PERMISSION_CHECK] Current state:', state.notifications.status)
 
       // If already granted, just return true
-      if (currentPermissions.receive === 'granted') {
+      if (state.notifications.status === 'granted') {
         console.log('[NOTIFICATION_PERMISSION_CHECK] Already granted, skipping request')
         return true
       }
 
-      // If denied, don't request again (user would need to go to settings)
-      if (currentPermissions.receive === 'denied') {
-        console.log('[NOTIFICATION_PERMISSION_CHECK] Previously denied, not requesting again')
+      // If denied or blocked, don't request again (user would need to go to settings)
+      if (state.notifications.status === 'denied' || state.notifications.status === 'blocked') {
+        console.log('[NOTIFICATION_PERMISSION_CHECK] Previously denied/blocked, not requesting again')
         return false
       }
 
-      // Request permission
-      console.log('[NOTIFICATION_PERMISSION_REQUESTED] Requesting permission')
-      const result = await PushNotifications.requestPermissions()
-      console.log('[NOTIFICATION_PERMISSION_RESULT] Result:', result.receive)
+      // Request permission via shared store
+      console.log('[NOTIFICATION_PERMISSION_REQUESTED] Requesting permission via shared store')
+      await nativePermissionsStore.requestNotificationPermission()
       
-      if (result.receive === 'granted') {
+      const newState = nativePermissionsStore.getState()
+      console.log('[NOTIFICATION_PERMISSION_RESULT] Result:', newState.notifications.status)
+      
+      if (newState.notifications.status === 'granted') {
         console.log('[NOTIFICATION_PERMISSION_RESULT] Permission granted, registering for push')
         await this.register()
         return true

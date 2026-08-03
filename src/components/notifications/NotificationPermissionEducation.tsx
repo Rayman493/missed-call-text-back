@@ -3,10 +3,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { AlertCircle, Bell } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
-import { PushNotifications } from '@capacitor/push-notifications'
 import { Device } from '@capacitor/device'
 import { pushService } from '@/lib/push-service'
 import { permissionLock } from '@/lib/permission-lock'
+import { useNativePermissions } from '@/hooks/useNativePermissions'
 
 interface NotificationPermissionEducationProps {
   onComplete?: () => void
@@ -16,8 +16,8 @@ const COOLDOWN_KEY = 'notification_education_cooldown'
 const COOLDOWN_DURATION = 24 * 60 * 60 * 1000 // 24 hours in milliseconds
 
 export function NotificationPermissionEducation({ onComplete }: NotificationPermissionEducationProps) {
+  const { notifications, checkNotificationPermission } = useNativePermissions()
   const [show, setShow] = useState(false)
-  const [permissionState, setPermissionState] = useState<'prompt' | 'prompt-with-rationale' | 'granted' | 'denied' | 'unknown'>('unknown')
   const [isLoading, setIsLoading] = useState(false)
   const [isAndroid13Plus, setIsAndroid13Plus] = useState(false)
   const hasShownRef = useRef(false)
@@ -80,13 +80,12 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
       }
 
       // Check native permission state
-      console.log('[NOTIFICATION_PERMISSION_CHECK] Checking permission state')
-      const result = await PushNotifications.checkPermissions()
-      console.log('[NOTIFICATION_PERMISSION_CHECK] Current state:', result.receive)
-      setPermissionState(result.receive)
+      console.log('[NOTIFICATION_PERMISSION_CHECK] Checking permission state via shared hook')
+      await checkNotificationPermission()
+      console.log('[NOTIFICATION_PERMISSION_CHECK] Current state:', notifications.status)
 
       // If already granted, register and don't show education
-      if (result.receive === 'granted') {
+      if (notifications.status === 'granted') {
         console.log('[NOTIFICATION_EDUCATION_BLOCKED] reason=permission_already_granted')
         console.log('[NOTIFICATION_PERMISSION_CHECK] Already granted, registering push')
         await pushService.register()
@@ -95,8 +94,8 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
         return
       }
 
-      // If denied, don't show education (Settings recovery will handle this)
-      if (result.receive === 'denied') {
+      // If denied or blocked, don't show education (Settings recovery will handle this)
+      if (notifications.status === 'denied' || notifications.status === 'blocked') {
         console.log('[NOTIFICATION_EDUCATION_BLOCKED] reason=permission_denied')
         console.log('[NOTIFICATION_EDUCATION] Previously denied, not showing education')
         setShow(false)
@@ -141,13 +140,11 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
 
       if (granted) {
         console.log('[NOTIFICATION_EDUCATION] Permission granted')
-        setPermissionState('granted')
         setShow(false)
         localStorage.removeItem(COOLDOWN_KEY)
         onComplete?.()
       } else {
         console.log('[NOTIFICATION_EDUCATION] Permission denied')
-        setPermissionState('denied')
       }
     } catch (error) {
       console.error('[NOTIFICATION_EDUCATION] Failed to request permission:', error)
@@ -197,7 +194,7 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
           Receive alerts for new customer replies, AI intake calls, appointments, payments, and personal voicemails.
         </p>
 
-        {permissionState === 'denied' && (
+        {(notifications.status === 'denied' || notifications.status === 'blocked') && (
           <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
@@ -209,7 +206,7 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
         )}
 
         <div className="flex gap-3">
-          {permissionState === 'denied' ? (
+          {(notifications.status === 'denied' || notifications.status === 'blocked') ? (
             <>
               <button
                 onClick={handleNotNow}

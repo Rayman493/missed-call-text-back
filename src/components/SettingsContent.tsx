@@ -46,7 +46,7 @@ import Skeleton, { CardSkeleton, ListItemSkeleton } from '@/components/ui/Skelet
 import EmptyState from '@/components/ui/EmptyState'
 import Input from '@/components/ui/Input'
 import { NotificationPermissionEducation } from '@/components/notifications/NotificationPermissionEducation'
-import { NotificationsSettings } from '@/components/notifications/NotificationsSettings'
+import { NotificationsPreferences } from '@/components/NotificationsPreferences'
 import { PermissionsSettings } from '@/components/PermissionsSettings'
 
 // Check if running in native mobile app
@@ -1650,30 +1650,6 @@ export default function SettingsContent() {
                 </>
               )}
 
-              {/* Group: Notifications - Only show on native mobile */}
-              {isNativeMobile() && (
-                <>
-                  <div id="notifications-divider" className="flex items-center gap-3 mb-6 scroll-mt-[64px]">
-                    <div className="h-px flex-1 bg-border/30"></div>
-                    <h3 className="text-sm font-medium text-muted-foreground">Notifications</h3>
-                    <div className="h-px flex-1 bg-border/30"></div>
-                  </div>
-
-                  <NotificationsSettings />
-                </>
-              )}
-
-              {/* Permissions Section */}
-              <div id="permissions-divider" className="flex items-center gap-3 mb-6 scroll-mt-[64px]">
-                <div className="h-px flex-1 bg-border/30"></div>
-                <h3 className="text-sm font-medium text-muted-foreground">{settingsSections.find(s => s.id === 'permissions')?.label}</h3>
-                <div className="h-px flex-1 bg-border/30"></div>
-              </div>
-
-              <PermissionsSettings />
-
-              {/* Next section would go here */}
-
               {/* Group: Automation */}
               <div id="automation-divider" className="flex items-center gap-3 mb-6 scroll-mt-[64px]">
                 <div className="h-px flex-1 bg-border/30"></div>
@@ -2140,6 +2116,24 @@ export default function SettingsContent() {
                   {/* Automation Status Summary - REMOVED */}
                 </div>
               </div>
+
+              {/* Group: Permissions */}
+              <div id="permissions-divider" className="flex items-center gap-3 mb-6 scroll-mt-[64px]">
+                <div className="h-px flex-1 bg-border/30"></div>
+                <h3 className="text-sm font-medium text-muted-foreground">{settingsSections.find(s => s.id === 'permissions')?.label}</h3>
+                <div className="h-px flex-1 bg-border/30"></div>
+              </div>
+
+              <PermissionsSettings />
+
+              {/* Group: Notifications */}
+              <div id="notifications-divider" className="flex items-center gap-3 mb-6 scroll-mt-[64px]">
+                <div className="h-px flex-1 bg-border/30"></div>
+                <h3 className="text-sm font-medium text-muted-foreground">{settingsSections.find(s => s.id === 'notifications')?.label}</h3>
+                <div className="h-px flex-1 bg-border/30"></div>
+              </div>
+
+              <NotificationsPreferences />
 
               {/* Group: Integrations */}
               <div id="integrations-divider" className="flex items-center gap-3 mb-6 scroll-mt-[64px]">

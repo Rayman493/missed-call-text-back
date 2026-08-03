@@ -8,6 +8,7 @@ import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
 import { Capacitor } from '@capacitor/core'
 import { mapTapToPayError } from '@/lib/terminal/error-mapper'
 import { permissionLock } from '@/lib/permission-lock'
+import { nativePermissionsStore } from '@/lib/native-permissions/native-permissions-store'
 
 type PaymentState = 'ready' | 'preparing' | 'connecting_reader' | 'creating_payment_intent' | 'waiting_for_card' | 'processing' | 'success' | 'failure' | 'canceled' | 'pending' | 'ambiguous'
 
@@ -238,17 +239,20 @@ export function useTapToPayOrchestration({
     }
 
     try {
-      const Terminal = await import('@/lib/terminal')
-      const plugin = Terminal.default
+      // Use shared permission store with force refresh for Tap to Pay
+      await nativePermissionsStore.checkLocationPermission({ forceRefresh: true })
+      const state = nativePermissionsStore.getState()
+      
+      const granted = state.location.status === 'granted'
+      const locationEnabled = state.location.servicesEnabled === true
+      const canAskAgain = state.location.canAskAgain ?? true
+      
+      console.log('[TTP Hook] Shared permission store result:', { granted, locationEnabled, canAskAgain, status: state.location.status })
+      setLocationPermissionGranted(granted)
+      setLocationServicesEnabled(locationEnabled)
 
-      console.log('[TTP Hook] Calling plugin.checkLocationPermission')
-      const result = await plugin.checkLocationPermission()
-      console.log('[TTP Hook] plugin.checkLocationPermission result:', result)
-      setLocationPermissionGranted(result.granted)
-      setLocationServicesEnabled(result.locationEnabled)
-
-      dispatchTTPEvent('LOCATION_PERMISSION_PROMISE_RESOLVED', terminalService.getSessionId(), undefined, undefined, result.granted ? 'granted' : 'denied')
-      return { granted: result.granted, locationEnabled: result.locationEnabled, canAskAgain: result.canAskAgain ?? true }
+      dispatchTTPEvent('LOCATION_PERMISSION_PROMISE_RESOLVED', terminalService.getSessionId(), undefined, undefined, granted ? 'granted' : 'denied')
+      return { granted, locationEnabled, canAskAgain }
     } catch (error) {
       console.error('[TTP Hook] Failed to check location permission:', error)
       dispatchTTPEvent('LOCATION_PERMISSION_PROMISE_REJECTED', terminalService.getSessionId(), undefined, undefined, String(error))
@@ -271,30 +275,26 @@ export function useTapToPayOrchestration({
     }
 
     try {
-      const Terminal = await import('@/lib/terminal')
-      const plugin = Terminal.default
+      // Use shared permission store to request location permission
+      await nativePermissionsStore.requestLocationPermission()
+      const state = nativePermissionsStore.getState()
+      
+      const granted = state.location.status === 'granted'
+      const locationEnabled = state.location.servicesEnabled === true
+      const canAskAgain = state.location.canAskAgain ?? true
+      
+      console.log('[TTP Hook] Shared permission store request result:', { granted, locationEnabled, canAskAgain, status: state.location.status })
+      setLocationPermissionGranted(granted)
+      setLocationServicesEnabled(locationEnabled)
 
-      console.log('[TTP Hook] Calling plugin.requestLocationPermission')
-      const result = await plugin.requestLocationPermission()
-      console.log('[TTP Hook] plugin.requestLocationPermission result:', result)
-      setLocationPermissionGranted(result.granted)
-      
-      // After requesting permission, check location services
-      if (result.granted) {
-        const locationCheck = await checkLocationPermission()
-        setLocationServicesEnabled(locationCheck.locationEnabled)
-        dispatchTTPEvent('REQUEST_LOCATION_PERMISSION_PROMISE_RESOLVED', terminalService.getSessionId(), undefined, undefined, 'granted')
-        return { granted: true, locationEnabled: locationCheck.locationEnabled, canAskAgain: result.canAskAgain ?? true }
-      }
-      
-      dispatchTTPEvent('REQUEST_LOCATION_PERMISSION_PROMISE_RESOLVED', terminalService.getSessionId(), undefined, undefined, 'denied')
-      return { granted: false, locationEnabled: false, canAskAgain: result.canAskAgain ?? false }
+      dispatchTTPEvent('REQUEST_LOCATION_PERMISSION_PROMISE_RESOLVED', terminalService.getSessionId(), undefined, undefined, granted ? 'granted' : 'denied')
+      return { granted, locationEnabled, canAskAgain }
     } catch (error) {
       console.error('[TTP Hook] Failed to request location permission:', error)
       dispatchTTPEvent('REQUEST_LOCATION_PERMISSION_PROMISE_REJECTED', terminalService.getSessionId(), undefined, undefined, String(error))
       return { granted: false, locationEnabled: false, canAskAgain: false }
     }
-  }, [platform, checkLocationPermission])
+  }, [platform])
 
   // Check for unresolved previous attempts on mount
   useEffect(() => {
