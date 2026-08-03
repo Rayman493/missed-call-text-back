@@ -1363,6 +1363,48 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
             Log.d(TAG, "[TAP_SESSION_TRACE] stage=collect_failure code=" + e.getErrorCode() + " ts=" + System.currentTimeMillis());
             collectingPayment = false;
             setKeepScreenOn(false);
+
+            // Check if this is a user cancellation
+            String codeStr = e.getErrorCode() != null ? e.getErrorCode().toString() : "";
+            String msgStr = e.getMessage() != null ? e.getMessage() : "";
+            boolean isCancellation =
+              codeStr.toLowerCase(java.util.Locale.US).contains("cancel") ||
+              msgStr.toLowerCase(java.util.Locale.US).contains("cancel");
+
+            JSObject diag = new JSObject();
+            if (e.getErrorCode() != null) diag.put("code", e.getErrorCode().toString());
+            diag.put("message", e.getMessage());
+            diag.put("userCanceled", isCancellation);
+            diag.put("phase", "collect_payment_method");
+            emitDiag("collect_payment_method_rejected", "collect_payment", correlationId, diag);
+
+            if (isCancellation) {
+              Log.d(TAG, "[TTP_NATIVE_COLLECTION_REJECTED] userCanceled=true code=" + codeStr + " message=" + msgStr);
+              status = "ready";
+              setOperationState(OperationState.IDLE, "collect_canceled");
+              notifyListeners("statusChanged", new JSObject().put("status", status));
+              notifyListeners("paymentStatusChanged", new JSObject().put("status", "canceled"));
+
+              // Resolve with canceled status instead of rejecting
+              JSObject canceledResult = new JSObject();
+              canceledResult.put("status", "canceled");
+              canceledResult.put("outcome", "canceled");
+              canceledResult.put("userCanceled", true);
+              canceledResult.put("code", codeStr);
+              canceledResult.put("message", msgStr);
+              canceledResult.put("phase", "collect_payment_method");
+
+              try {
+                if (!originalCall.isReleased()) {
+                  originalCall.resolve(canceledResult);
+                }
+              } catch (Exception resolveException) {
+                Log.e(TAG, "[PAYMENT_TRACE] Failed to resolve canceled call", resolveException);
+              }
+              return;
+            }
+
+            // Non-cancellation error - treat as failure
             status = "error";
             setOperationState(OperationState.FAILED, "collect_failure");
 

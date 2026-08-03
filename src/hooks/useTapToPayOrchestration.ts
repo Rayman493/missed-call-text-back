@@ -462,56 +462,256 @@ export function useTapToPayOrchestration({
     return 'ambiguous'
   }, [])
 
-// Helper to classify payment collection outcome from both resolved results and rejected errors
-  const classifyPaymentCollectionOutcome = useCallback((resultOrError: any): 'succeeded' | 'canceled' | 'failed' | 'pending' | 'ambiguous' => {
+// Helper to serialize native payment error for diagnostics (safe, no secrets)
+  const serializeNativePaymentError = useCallback((error: any): any => {
+    const platform = Capacitor.getPlatform()
+
+    // Capture basic error properties
+    const serialized: any = {
+      typeof: typeof error,
+      constructorName: error?.constructor?.name || 'Unknown',
+      platform,
+      timestamp: new Date().toISOString(),
+    }
+
+    // Capture string representation
+    try {
+      serialized.stringified = String(error)
+    } catch (e) {
+      serialized.stringified = '[unstringifiable]'
+    }
+
+    // Capture standard error fields
+    if (error) {
+      if (error.name) serialized.name = String(error.name)
+      if (error.message) {
+        serialized.message = String(error.message)
+        serialized.messageContainsCancel = String(error.message).toLowerCase().includes('cancel')
+      }
+      if (error.code) serialized.code = String(error.code)
+      if (error.errorCode) serialized.errorCode = String(error.errorCode)
+      if (error.nativeCode) serialized.nativeCode = String(error.nativeCode)
+      if (error.technicalCode) serialized.technicalCode = String(error.technicalCode)
+      if (error.localizedMessage) serialized.localizedMessage = String(error.localizedMessage)
+      if (error.status) serialized.status = String(error.status)
+      if (error.userCanceled !== undefined) serialized.userCanceled = Boolean(error.userCanceled)
+      if (error.outcome) serialized.outcome = String(error.outcome)
+    }
+
+    // Capture all own property names
+    try {
+      serialized.ownPropertyNames = Object.getOwnPropertyNames(error || {})
+    } catch (e) {
+      serialized.ownPropertyNames = []
+    }
+
+    // Capture all enumerable keys
+    try {
+      serialized.keys = Object.keys(error || {})
+    } catch (e) {
+      serialized.keys = []
+    }
+
+    // Capture nested data/details safely
+    if (error?.data && typeof error.data === 'object') {
+      try {
+        serialized.data = {
+          keys: Object.keys(error.data),
+          // Only capture specific safe fields
+          ...(error.data.userCanceled !== undefined && { userCanceled: Boolean(error.data.userCanceled) }),
+          ...(error.data.outcome !== undefined && { outcome: String(error.data.outcome) }),
+          ...(error.data.code !== undefined && { code: String(error.data.code) }),
+          ...(error.data.message !== undefined && { message: String(error.data.message) }),
+        }
+      } catch (e) {
+        serialized.data = '[unserializable]'
+      }
+    }
+
+    if (error?.details && typeof error.details === 'object') {
+      try {
+        serialized.details = {
+          keys: Object.keys(error.details),
+          ...(error.details.userCanceled !== undefined && { userCanceled: Boolean(error.details.userCanceled) }),
+          ...(error.details.outcome !== undefined && { outcome: String(error.details.outcome) }),
+        }
+      } catch (e) {
+        serialized.details = '[unserializable]'
+      }
+    }
+
+    // Capture cause chain
+    if (error?.cause) {
+      try {
+        serialized.cause = {
+          name: error.cause?.name,
+          message: error.cause?.message,
+          code: error.cause?.code,
+        }
+      } catch (e) {
+        serialized.cause = '[unserializable]'
+      }
+    }
+
+    return serialized
+  }, [])
+
+  // Helper to classify payment collection outcome from both resolved results and rejected errors
+  const classifyPaymentCollectionOutcome = useCallback((resultOrError: any): {
+    outcome: 'succeeded' | 'canceled' | 'failed' | 'pending' | 'ambiguous'
+    matchedBy: string
+    rawCode?: string
+    rawMessage?: string
+    userCanceled?: boolean
+  } => {
     // Handle resolved result
     if (resultOrError && typeof resultOrError === 'object' && resultOrError.status) {
-      return normalizeNativePaymentResult(resultOrError.status)
+      const status = String(resultOrError.status).toLowerCase()
+      if (status === 'canceled' || status === 'cancelled') {
+        return {
+          outcome: 'canceled',
+          matchedBy: 'status',
+          rawCode: resultOrError.code,
+          rawMessage: resultOrError.message,
+          userCanceled: resultOrError.userCanceled,
+        }
+      }
+      if (status === 'success' || status === 'succeeded') {
+        return {
+          outcome: 'succeeded',
+          matchedBy: 'status',
+          rawCode: resultOrError.code,
+          rawMessage: resultOrError.message,
+        }
+      }
+      if (status === 'fail' || status === 'failed' || status === 'error') {
+        return {
+          outcome: 'failed',
+          matchedBy: 'status',
+          rawCode: resultOrError.code,
+          rawMessage: resultOrError.message,
+        }
+      }
+      if (status === 'pending') {
+        return {
+          outcome: 'pending',
+          matchedBy: 'status',
+          rawCode: resultOrError.code,
+          rawMessage: resultOrError.message,
+        }
+      }
+      return {
+        outcome: 'ambiguous',
+        matchedBy: 'status',
+        rawCode: resultOrError.code,
+        rawMessage: resultOrError.message,
+      }
     }
 
     // Handle rejected error
     if (resultOrError && (resultOrError instanceof Error || typeof resultOrError === 'object')) {
-      const code = String(resultOrError.code || resultOrError.nativeCode || '').toLowerCase()
-      const message = String(resultOrError.message || '').toLowerCase()
+      const code = String(resultOrError.code || resultOrError.nativeCode || '')
+      const message = String(resultOrError.message || '')
+      const userCanceled = resultOrError.userCanceled !== undefined ? Boolean(resultOrError.userCanceled) : undefined
 
-      // Check for cancellation indicators
+      // Check explicit userCanceled flag first
+      if (userCanceled === true) {
+        return {
+          outcome: 'canceled',
+          matchedBy: 'userCanceled',
+          rawCode: code,
+          rawMessage: message,
+          userCanceled: true,
+        }
+      }
+
+      // Check nested data.userCanceled
+      if (resultOrError.data?.userCanceled === true || resultOrError.details?.userCanceled === true) {
+        return {
+          outcome: 'canceled',
+          matchedBy: 'nested.userCanceled',
+          rawCode: code,
+          rawMessage: message,
+          userCanceled: true,
+        }
+      }
+
+      // Check for explicit outcome field
+      if (resultOrError.outcome === 'canceled') {
+        return {
+          outcome: 'canceled',
+          matchedBy: 'outcome',
+          rawCode: code,
+          rawMessage: message,
+          userCanceled,
+        }
+      }
+
+      // Check for cancellation indicators in code/message
+      const codeLower = code.toLowerCase()
+      const messageLower = message.toLowerCase()
+
       if (
-        code.includes('cancel') ||
-        code.includes('canceled') ||
-        code.includes('cancelled') ||
-        code.includes('user_canceled') ||
-        code.includes('command_canceled') ||
-        message.includes('cancel') ||
-        message.includes('canceled') ||
-        message.includes('cancelled')
+        codeLower.includes('cancel') ||
+        codeLower.includes('canceled') ||
+        codeLower.includes('cancelled') ||
+        codeLower.includes('user_canceled') ||
+        codeLower.includes('command_canceled') ||
+        messageLower.includes('cancel') ||
+        messageLower.includes('canceled') ||
+        messageLower.includes('cancelled')
       ) {
-        return 'canceled'
+        return {
+          outcome: 'canceled',
+          matchedBy: 'code_or_message',
+          rawCode: code,
+          rawMessage: message,
+          userCanceled,
+        }
       }
 
       // Check for success indicators in error (shouldn't happen but defensive)
       if (
-        code.includes('success') ||
-        code.includes('succeeded') ||
-        message.includes('success') ||
-        message.includes('succeeded')
+        codeLower.includes('success') ||
+        codeLower.includes('succeeded') ||
+        messageLower.includes('success') ||
+        messageLower.includes('succeeded')
       ) {
-        return 'succeeded'
+        return {
+          outcome: 'succeeded',
+          matchedBy: 'code_or_message',
+          rawCode: code,
+          rawMessage: message,
+        }
       }
 
       // Check for pending indicators
       if (
-        code.includes('pending') ||
-        message.includes('pending')
+        codeLower.includes('pending') ||
+        messageLower.includes('pending')
       ) {
-        return 'pending'
+        return {
+          outcome: 'pending',
+          matchedBy: 'code_or_message',
+          rawCode: code,
+          rawMessage: message,
+        }
       }
 
       // Default to failed for other errors
-      return 'failed'
+      return {
+        outcome: 'failed',
+        matchedBy: 'default',
+        rawCode: code,
+        rawMessage: message,
+      }
     }
 
-    return 'ambiguous'
-  }, [normalizeNativePaymentResult])
+    return {
+      outcome: 'ambiguous',
+      matchedBy: 'default',
+    }
+  }, [])
 
   // Main payment orchestration function
   const startPayment = useCallback(async () => {
@@ -877,27 +1077,33 @@ export function useTapToPayOrchestration({
         dispatchTTPEvent('PAYMENT_COLLECTION_PROMISE_RESOLVED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, paymentResult.status)
 
         // Normalize the native result status using the new classifier
-        const outcome = classifyPaymentCollectionOutcome(paymentResult)
-        dispatchTTPEvent('PAYMENT_COLLECTION_OUTCOME_CLASSIFIED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, outcome)
+        const classification = classifyPaymentCollectionOutcome(paymentResult)
+        dispatchTTPEvent('PAYMENT_COLLECTION_OUTCOME_CLASSIFIED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, JSON.stringify({
+          outcome: classification.outcome,
+          matchedBy: classification.matchedBy,
+          rawCode: classification.rawCode,
+          rawMessage: classification.rawMessage,
+          userCanceled: classification.userCanceled
+        }))
 
         // Emit appropriate event based on outcome
-        if (outcome === 'succeeded') {
+        if (classification.outcome === 'succeeded') {
           console.log('[TTP Hook] NATIVE_PAYMENT_SUCCEEDED', {
             status: paymentResult.status,
-            outcome,
+            outcome: classification.outcome,
             paymentIntentId: terminalService.getPaymentIntentId(),
             attemptId: terminalService.getCurrentAttemptId(),
             sessionId: terminalService.getSessionId()
           })
-          dispatchTTPEvent('NATIVE_PAYMENT_SUCCEEDED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, outcome)
-        } else if (outcome === 'canceled') {
+          dispatchTTPEvent('NATIVE_PAYMENT_SUCCEEDED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, classification.outcome)
+        } else if (classification.outcome === 'canceled') {
           console.log('[TTP Hook] NATIVE_PAYMENT_CANCELED', {
             status: paymentResult.status,
-            outcome,
+            outcome: classification.outcome,
             attemptId: terminalService.getCurrentAttemptId(),
             sessionId: terminalService.getSessionId()
           })
-          dispatchTTPEvent('NATIVE_PAYMENT_CANCELED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, outcome)
+          dispatchTTPEvent('NATIVE_PAYMENT_CANCELED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, classification.outcome)
           updatePaymentStateRef('canceled', 'native_canceled')
           setIsPaymentInProgress(false)
           permissionLock.setTapToPayActive(false)
@@ -907,25 +1113,37 @@ export function useTapToPayOrchestration({
           activeAttemptTokenRef.current = null
           console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_CLEARED_CANCELED')
           return
-        } else if (outcome === 'failed') {
+        } else if (classification.outcome === 'failed') {
           console.log('[TTP Hook] NATIVE_PAYMENT_FAILED', {
             status: paymentResult.status,
-            outcome,
+            outcome: classification.outcome,
             attemptId: terminalService.getCurrentAttemptId(),
             sessionId: terminalService.getSessionId()
           })
-          dispatchTTPEvent('NATIVE_PAYMENT_FAILED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, outcome)
+          dispatchTTPEvent('NATIVE_PAYMENT_FAILED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, classification.outcome)
         }
       } catch (collectionError: any) {
-        // Classify the error to detect cancellation
-        const outcome = classifyPaymentCollectionOutcome(collectionError)
-        dispatchTTPEvent('PAYMENT_COLLECTION_NATIVE_REJECTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, outcome)
+        // Serialize the complete error for diagnostics before classification
+        const serializedError = serializeNativePaymentError(collectionError)
+        dispatchTTPEvent('PAYMENT_COLLECTION_NATIVE_REJECTION_RAW', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, JSON.stringify(serializedError))
 
-        if (outcome === 'canceled') {
+        // Classify the error to detect cancellation
+        const classification = classifyPaymentCollectionOutcome(collectionError)
+        dispatchTTPEvent('PAYMENT_COLLECTION_OUTCOME_CLASSIFIED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, JSON.stringify({
+          outcome: classification.outcome,
+          matchedBy: classification.matchedBy,
+          rawCode: classification.rawCode,
+          rawMessage: classification.rawMessage,
+          userCanceled: classification.userCanceled
+        }))
+
+        if (classification.outcome === 'canceled') {
           console.log('[TTP Hook] PAYMENT_COLLECTION_CANCELED_VIA_ERROR', {
             error: collectionError.message,
             code: collectionError.code,
             nativeCode: collectionError.nativeCode,
+            matchedBy: classification.matchedBy,
+            userCanceled: classification.userCanceled,
             attemptId: terminalService.getCurrentAttemptId(),
             sessionId: terminalService.getSessionId()
           })
