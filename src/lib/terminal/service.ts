@@ -214,6 +214,32 @@ export class TerminalBridgeService {
     return this.plugin.isSupported()
   }
 
+  async checkLocationPermission() {
+    if (!this.plugin) {
+      return { granted: false, locationEnabled: false, canAskAgain: false }
+    }
+    try {
+      const result = await this.plugin.checkLocationPermission()
+      return result
+    } catch (error) {
+      console.error('[TTP Service] Failed to check location permission:', error)
+      return { granted: false, locationEnabled: false, canAskAgain: false }
+    }
+  }
+
+  async requestLocationPermission() {
+    if (!this.plugin) {
+      return { granted: false, locationEnabled: false, canAskAgain: false }
+    }
+    try {
+      const result = await this.plugin.requestLocationPermission()
+      return result
+    } catch (error) {
+      console.error('[TTP Service] Failed to request location permission:', error)
+      return { granted: false, locationEnabled: false, canAskAgain: false }
+    }
+  }
+
   async initialize(options?: InitializeOptions) {
     const platform = Capacitor.getPlatform()
     console.log('[TTP NATIVE] Plugin initialization started')

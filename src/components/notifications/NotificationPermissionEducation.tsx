@@ -28,8 +28,11 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
   }, [])
 
   const checkEligibility = async () => {
+    console.log('[NOTIFICATION_EDUCATION_EVALUATED] Starting eligibility check')
+    
     // Prevent multiple checks
     if (isCheckingRef.current) {
+      console.log('[NOTIFICATION_EDUCATION_BLOCKED] reason=already_checking')
       return
     }
     isCheckingRef.current = true
@@ -37,13 +40,13 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
     try {
       // Only on native Android
       if (!Capacitor.isNativePlatform()) {
-        console.log('[NOTIFICATION_EDUCATION] Web platform, skipping')
+        console.log('[NOTIFICATION_EDUCATION_BLOCKED] reason=not_android')
         return
       }
 
       const platform = Capacitor.getPlatform()
       if (platform !== 'android') {
-        console.log('[NOTIFICATION_EDUCATION] Non-Android platform, skipping')
+        console.log('[NOTIFICATION_EDUCATION_BLOCKED] reason=not_android_platform')
         return
       }
 
@@ -56,7 +59,7 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
       console.log(`[NOTIFICATION_EDUCATION] Android version: ${androidVersion}, Android 13+: ${isAndroid13}`)
 
       if (!isAndroid13) {
-        console.log('[NOTIFICATION_EDUCATION] Android < 13, POST_NOTIFICATIONS not required, skipping')
+        console.log('[NOTIFICATION_EDUCATION_BLOCKED] reason=android_version_below_33')
         return
       }
 
@@ -65,14 +68,14 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
       if (cooldownEnd) {
         const now = Date.now()
         if (now < parseInt(cooldownEnd, 10)) {
-          console.log('[NOTIFICATION_EDUCATION] In cooldown period, skipping')
+          console.log('[NOTIFICATION_EDUCATION_BLOCKED] reason=cooldown_active')
           return
         }
       }
 
       // Check if permission is currently active (Tap to Pay, etc.)
       if (permissionLock.isAnyPermissionActive()) {
-        console.log('[NOTIFICATION_EDUCATION] Another permission is active, skipping')
+        console.log('[NOTIFICATION_EDUCATION_BLOCKED] reason=another_permission_active')
         return
       }
 
@@ -84,6 +87,7 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
 
       // If already granted, register and don't show education
       if (result.receive === 'granted') {
+        console.log('[NOTIFICATION_EDUCATION_BLOCKED] reason=permission_already_granted')
         console.log('[NOTIFICATION_PERMISSION_CHECK] Already granted, registering push')
         await pushService.register()
         setShow(false)
@@ -93,6 +97,7 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
 
       // If denied, don't show education (Settings recovery will handle this)
       if (result.receive === 'denied') {
+        console.log('[NOTIFICATION_EDUCATION_BLOCKED] reason=permission_denied')
         console.log('[NOTIFICATION_EDUCATION] Previously denied, not showing education')
         setShow(false)
         onComplete?.()
@@ -101,7 +106,7 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
 
       // Check if already shown in this session
       if (hasShownRef.current) {
-        console.log('[NOTIFICATION_EDUCATION] Already shown this session, skipping')
+        console.log('[NOTIFICATION_EDUCATION_BLOCKED] reason=already_shown_this_session')
         return
       }
 

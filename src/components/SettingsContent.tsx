@@ -47,6 +47,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import Input from '@/components/ui/Input'
 import { NotificationPermissionEducation } from '@/components/notifications/NotificationPermissionEducation'
 import { NotificationsSettings } from '@/components/notifications/NotificationsSettings'
+import { PermissionsSettings } from '@/components/PermissionsSettings'
 
 // Check if running in native mobile app
 const isNativeMobile = () => {
@@ -1661,6 +1662,15 @@ export default function SettingsContent() {
                   <NotificationsSettings />
                 </>
               )}
+
+              {/* Permissions Section */}
+              <div id="permissions-divider" className="flex items-center gap-3 mb-6 scroll-mt-[64px]">
+                <div className="h-px flex-1 bg-border/30"></div>
+                <h3 className="text-sm font-medium text-muted-foreground">{settingsSections.find(s => s.id === 'permissions')?.label}</h3>
+                <div className="h-px flex-1 bg-border/30"></div>
+              </div>
+
+              <PermissionsSettings />
 
               {/* Next section would go here */}
 
