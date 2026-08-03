@@ -177,6 +177,45 @@ export function useTapToPayOrchestration({
     }
   }, [platform, checkLocationPermission])
 
+  // Check for unresolved previous attempts on mount
+  useEffect(() => {
+    const checkUnresolvedAttempt = async () => {
+      try {
+        console.log('[TTP Hook] Checking for unresolved attempts')
+        const response = await fetch('/api/terminal/attempt-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        })
+        const data = await response.json()
+        
+        if (data.unresolvedAttempt) {
+          console.log('[TTP Hook] Found unresolved attempt', data.unresolvedAttempt)
+          setLastSuccessfulStage('checking_previous_payment')
+          
+          // If the attempt succeeded, show success
+          if (data.unresolvedAttempt.status === 'succeeded') {
+            console.log('[TTP Hook] Previous attempt succeeded, showing success')
+            updatePaymentStateRef('success', 'previous_attempt_succeeded')
+            onPaymentComplete?.()
+          } else if (data.unresolvedAttempt.status === 'canceled' || data.unresolvedAttempt.status === 'failed') {
+            console.log('[TTP Hook] Previous attempt failed/canceled, clearing')
+            updatePaymentStateRef('canceled', 'previous_attempt_cleared')
+          } else {
+            // Still pending but stale, clear it
+            console.log('[TTP Hook] Previous attempt stale, clearing')
+            updatePaymentStateRef('canceled', 'stale_attempt_cleared')
+          }
+        }
+      } catch (error) {
+        console.error('[TTP Hook] Failed to check unresolved attempt', error)
+        // Continue normally on error
+      }
+    }
+    
+    checkUnresolvedAttempt()
+  }, [updatePaymentStateRef, onPaymentComplete])
+
   // Main payment orchestration function
   const startPayment = useCallback(async () => {
     console.log('[TTP Hook] START_PAYMENT_ENTERED', {
@@ -263,12 +302,24 @@ export function useTapToPayOrchestration({
       // Check location permission for Android
       if (platform === 'android') {
         console.log('[TTP Hook] LOCATION_CHECK_STARTED', { platform })
-        const locationOk = await checkLocationPermission()
+        const locationOk = await withTimeout(
+          checkLocationPermission(),
+          'LOCATION_PERMISSION_CHECK',
+          TIMEOUTS.PERMISSION_REQUEST,
+          terminalService.getSessionId() || 'unknown',
+          terminalService.getCurrentAttemptId() || 'unknown'
+        )
         console.log('[TTP Hook] LOCATION_CHECK_COMPLETED', { locationOk })
         
         if (!locationOk) {
           console.log('[TTP Hook] LOCATION_PERMISSION_CHECK_FAILED - requesting permission')
-          const permissionGranted = await requestLocationPermission()
+          const permissionGranted = await withTimeout(
+            requestLocationPermission(),
+            'LOCATION_PERMISSION_REQUEST',
+            TIMEOUTS.PERMISSION_REQUEST,
+            terminalService.getSessionId() || 'unknown',
+            terminalService.getCurrentAttemptId() || 'unknown'
+          )
           console.log('[TTP Hook] LOCATION_PERMISSION_REQUEST_RESULT', { permissionGranted })
           
           if (!permissionGranted) {
@@ -295,7 +346,14 @@ export function useTapToPayOrchestration({
 
       // Initialize terminal
       console.log('[TTP Hook] INITIALIZE_STARTED')
-      const initResult = await terminalService.initialize()
+      setLastSuccessfulStage('initializing_terminal')
+      const initResult = await withTimeout(
+        terminalService.initialize(),
+        'TERMINAL_INITIALIZATION',
+        TIMEOUTS.TERMINAL_INIT,
+        terminalService.getSessionId() || 'unknown',
+        terminalService.getCurrentAttemptId() || 'unknown'
+      )
       console.log('[TTP Hook] INITIALIZE_COMPLETED', { status: initResult.status })
       if (initResult.status !== 'ready' && initResult.status !== 'connected') {
         console.log('[TTP Hook] INITIALIZE_FAILED', { status: initResult.status })
@@ -311,7 +369,14 @@ export function useTapToPayOrchestration({
           updatePaymentStateRef('preparing', 'reconnect_to_preparing')
         }
         console.log('[TTP Hook] CONNECTION_STARTED')
-        const connectResult = await terminalService.connectTapToPay()
+        setLastSuccessfulStage('connecting_reader')
+        const connectResult = await withTimeout(
+          terminalService.connectTapToPay(),
+          'READER_CONNECTION',
+          TIMEOUTS.READER_DISCOVERY,
+          terminalService.getSessionId() || 'unknown',
+          terminalService.getCurrentAttemptId() || 'unknown'
+        )
         console.log('[TTP Hook] CONNECTION_COMPLETED', { status: connectResult.status })
         if (connectResult.status !== 'connected') {
           console.log('[TTP Hook] CONNECTION_FAILED', { status: connectResult.status })
@@ -321,13 +386,19 @@ export function useTapToPayOrchestration({
       }
 
       // Start payment collection
-      const paymentPromise = terminalService.startTapToPayPayment({
-        amountCents,
-        currency: 'usd',
-        leadId,
-        jobId,
-        description,
-      })
+      const paymentPromise = withTimeout(
+        terminalService.startTapToPayPayment({
+          amountCents,
+          currency: 'usd',
+          leadId,
+          jobId,
+          description,
+        }),
+        'PAYMENT_COLLECTION',
+        TIMEOUTS.COLLECT_PAYMENT,
+        terminalService.getSessionId() || 'unknown',
+        terminalService.getCurrentAttemptId() || 'unknown'
+      )
 
       // Wait for PaymentIntent before showing waiting state
       const startWait = Date.now()
@@ -398,7 +469,40 @@ export function useTapToPayOrchestration({
     updatePaymentStateRef,
   ])
 
-  // Cancel payment
+  // Timeout durations in milliseconds
+const TIMEOUTS = {
+  PERMISSION_REQUEST: 30000,
+  TERMINAL_INIT: 30000,
+  READER_DISCOVERY: 45000,
+  PAYMENT_INTENT: 30000,
+  COLLECT_PAYMENT: 60000,
+  CONFIRM_PAYMENT: 45000,
+  RECONCILIATION: 30000,
+}
+
+// Create a timeout promise that rejects after specified duration
+function createTimeout(stage: string, duration: number, sessionId: string, attemptId: string): Promise<never> {
+  return new Promise((_, reject) => {
+    setTimeout(() => {
+      console.error(`[TTP Hook] TIMEOUT: ${stage} after ${duration}ms`, { sessionId, attemptId })
+      reject(new Error(`Timeout: ${stage}`))
+    }, duration)
+  })
+}
+
+// Wrap an async operation with a timeout
+async function withTimeout<T>(
+  promise: Promise<T>,
+  stage: string,
+  duration: number,
+  sessionId: string,
+  attemptId: string
+): Promise<T> {
+  return Promise.race([
+    promise,
+    createTimeout(stage, duration, sessionId, attemptId),
+  ])
+}
   const cancelPayment = useCallback((reason: string = 'user_canceled') => {
     console.log('[TTP Hook] Payment canceled', { reason })
     setIsPaymentInProgress(false)

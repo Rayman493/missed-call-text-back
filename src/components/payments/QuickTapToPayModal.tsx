@@ -377,13 +377,19 @@ export default function QuickTapToPayModal({
                   {/* Test Status - temporary for device testing */}
                   {SHOW_TTP_TEST_STATUS && (
                     <div className="p-2 rounded bg-blue-900/20 border border-blue-500/30 text-xs font-mono space-y-1">
-                      <div className="text-blue-300">TTP Build: 2026-08-02-fix-reset</div>
+                      <div className="text-blue-300">TTP Build: 2026-08-02-timeout-recovery</div>
                       <div className="text-blue-200">State: {paymentState}</div>
                       <div className="text-blue-200">Stage: {lastSuccessfulStage}</div>
                       {error && <div className="text-red-300">Error: {error}</div>}
                       <div className="text-blue-200">Reset Reason: {lastResetReason}</div>
                       <div className="text-blue-200">Native: {isNativeSupported ? 'Yes' : 'No'}</div>
                       <div className="text-blue-200">Platform: {platform}</div>
+                      {mappedError && (
+                        <>
+                          <div className="text-blue-200">Mapped Title: {mappedError.title}</div>
+                          <div className="text-blue-200">Mapped Action: {mappedError.action}</div>
+                        </>
+                      )}
                     </div>
                   )}
 
@@ -574,7 +580,11 @@ export default function QuickTapToPayModal({
                   {paymentState === 'preparing' && (
                     <>
                       <Loader2 className="w-12 h-12 animate-spin text-green-600 dark:text-green-400" />
-                      <p className="text-sm text-muted-foreground text-center">Initializing payment terminal…</p>
+                      <p className="text-sm text-muted-foreground text-center">
+                        {lastSuccessfulStage === 'checking_previous_payment' 
+                          ? 'Checking previous payment…' 
+                          : 'Initializing payment terminal…'}
+                      </p>
                       <p className="text-xs text-muted-foreground/60 text-center">{formatCurrency(amountCents / 100)}</p>
                     </>
                   )}

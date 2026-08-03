@@ -374,32 +374,50 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
   public void requestLocationPermission(PluginCall call) {
     Log.d(TAG, "[LOCATION] requestLocationPermission() called");
     
-    // Check if already granted
-    boolean hasPermission = ContextCompat.checkSelfPermission(
-      getContext(),
-      Manifest.permission.ACCESS_FINE_LOCATION
-    ) == PackageManager.PERMISSION_GRANTED;
-    
-    if (hasPermission) {
-      Log.d(TAG, "[LOCATION] Permission already granted");
+    try {
+      // Check if activity is available
+      if (getActivity() == null) {
+        Log.e(TAG, "[LOCATION] Activity is null, cannot request permission");
+        JSObject ret = new JSObject();
+        ret.put("granted", false);
+        ret.put("error", "Activity not available");
+        call.resolve(ret);
+        return;
+      }
+      
+      // Check if already granted
+      boolean hasPermission = ContextCompat.checkSelfPermission(
+        getContext(),
+        Manifest.permission.ACCESS_FINE_LOCATION
+      ) == PackageManager.PERMISSION_GRANTED;
+      
+      if (hasPermission) {
+        Log.d(TAG, "[LOCATION] Permission already granted");
+        JSObject ret = new JSObject();
+        ret.put("granted", true);
+        call.resolve(ret);
+        return;
+      }
+      
+      // Request the permission
+      String[] permissions = { Manifest.permission.ACCESS_FINE_LOCATION };
+      ActivityCompat.requestPermissions(getActivity(), permissions, 1001);
+      
+      Log.d(TAG, "[LOCATION] Permission request initiated");
+      
+      // Note: The result will be handled by onRequestPermissionsResult in MainActivity
+      // For now, return pending state
       JSObject ret = new JSObject();
-      ret.put("granted", true);
+      ret.put("granted", false);
+      ret.put("pending", true);
       call.resolve(ret);
-      return;
+    } catch (Exception e) {
+      Log.e(TAG, "[LOCATION] Exception in requestLocationPermission", e);
+      JSObject ret = new JSObject();
+      ret.put("granted", false);
+      ret.put("error", e.getMessage());
+      call.resolve(ret);
     }
-    
-    // Request the permission
-    String[] permissions = { Manifest.permission.ACCESS_FINE_LOCATION };
-    ActivityCompat.requestPermissions(getActivity(), permissions, 1001);
-    
-    Log.d(TAG, "[LOCATION] Permission request initiated");
-    
-    // Note: The result will be handled by onRequestPermissionsResult in MainActivity
-    // For now, return pending state
-    JSObject ret = new JSObject();
-    ret.put("granted", false);
-    ret.put("pending", true);
-    call.resolve(ret);
   }
 
   @PluginMethod
@@ -1052,48 +1070,87 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
   private void collectPaymentMethod(PaymentIntent paymentIntent, PluginCall originalCall, final String correlationId) {
     Log.d(TAG, "[PAYMENT_TRACE] stage=collect_payment_method_start payment_intent_id=" + paymentIntent.getId() + " payment_intent_status=" + paymentIntent.getStatus());
     Log.d(TAG, "[TAP_SESSION_TRACE] stage=collect_start payment_intent_id=" + paymentIntent.getId() + " ts=" + System.currentTimeMillis());
+    
+    // Null check for call
+    if (originalCall == null) {
+      Log.e(TAG, "[PAYMENT_TRACE] originalCall is null, cannot collect payment");
+      return;
+    }
+    
     setOperationState(OperationState.COLLECTING_PAYMENT_METHOD, "collect_start");
     notifyListeners("paymentStatusChanged", new JSObject().put("status", "waiting_for_card"));
     JSObject m0 = new JSObject(); m0.put("paymentIntentId", paymentIntent.getId()); emitDiag("collect_payment_method_started", "collect_payment", correlationId, m0);
 
-    paymentCancelable = Terminal.getInstance().collectPaymentMethod(
-      paymentIntent,
-      new PaymentIntentCallback() {
-        @Override
-        public void onSuccess(@NonNull PaymentIntent collectedIntent) {
-          Log.d(TAG, "[PAYMENT_TRACE] stage=collect_payment_method_success payment_intent_id=" + collectedIntent.getId() + " payment_intent_status=" + collectedIntent.getStatus());
-          Log.d(TAG, "[TAP_SESSION_TRACE] stage=collect_success payment_intent_id=" + collectedIntent.getId() + " ts=" + System.currentTimeMillis());
-          setOperationState(OperationState.CONFIRMING_PAYMENT_INTENT, "collect_success");
-          notifyListeners("paymentStatusChanged", new JSObject().put("status", "confirming_payment"));
-          JSObject m = new JSObject(); m.put("paymentIntentId", collectedIntent.getId()); emitDiag("collect_payment_method_completed", "collect_payment", correlationId, m);
+    try {
+      paymentCancelable = Terminal.getInstance().collectPaymentMethod(
+        paymentIntent,
+        new PaymentIntentCallback() {
+          @Override
+          public void onSuccess(@NonNull PaymentIntent collectedIntent) {
+            Log.d(TAG, "[PAYMENT_TRACE] stage=collect_payment_method_success payment_intent_id=" + collectedIntent.getId() + " payment_intent_status=" + collectedIntent.getStatus());
+            Log.d(TAG, "[TAP_SESSION_TRACE] stage=collect_success payment_intent_id=" + collectedIntent.getId() + " ts=" + System.currentTimeMillis());
+            setOperationState(OperationState.CONFIRMING_PAYMENT_INTENT, "collect_success");
+            notifyListeners("paymentStatusChanged", new JSObject().put("status", "confirming_payment"));
+            JSObject m = new JSObject(); m.put("paymentIntentId", collectedIntent.getId()); emitDiag("collect_payment_method_completed", "collect_payment", correlationId, m);
 
-          // CRITICAL FIX: collectPaymentMethod only collects the card, it does NOT confirm/charge
-          // We must call confirmPaymentIntent to actually charge the card
-          // For card_present payments, this is required to move from requires_payment_method to succeeded
-          confirmPaymentIntent(collectedIntent, originalCall, correlationId);
+            // CRITICAL FIX: collectPaymentMethod only collects the card, it does NOT confirm/charge
+            // We must call confirmPaymentIntent to actually charge the card
+            // For card_present payments, this is required to move from requires_payment_method to succeeded
+            confirmPaymentIntent(collectedIntent, originalCall, correlationId);
+          }
+
+          @Override
+          public void onFailure(@NonNull TerminalException e) {
+            Log.d(TAG, "[PAYMENT_TRACE] stage=collect_payment_method_failure error_code=" + e.getErrorCode());
+            Log.d(TAG, "[TAP_SESSION_TRACE] stage=collect_failure code=" + e.getErrorCode() + " ts=" + System.currentTimeMillis());
+            collectingPayment = false;
+            setKeepScreenOn(false);
+            status = "error";
+            setOperationState(OperationState.FAILED, "collect_failure");
+
+            JSObject err = createStructuredError("collect_payment_method", e);
+            err.put("deviceState", captureDeviceState());
+            notifyListeners("error", err);
+            notifyListeners("paymentStatusChanged", new JSObject().put("status", "payment_failed").put("error", err));
+
+            Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_failure stage=collect_payment_method");
+            // Pass structured error to JS via rejection
+            try {
+              if (!originalCall.isReleased()) {
+                originalCall.reject("collect_payment_method", err);
+              }
+            } catch (Exception rejectException) {
+              Log.e(TAG, "[PAYMENT_TRACE] Failed to reject call", rejectException);
+            }
+            JSObject d = new JSObject(); if (e.getErrorCode() != null) d.put("code", e.getErrorCode().toString()); d.put("message", e.getMessage()); emitDiag("collect_payment_method_failed", "collect_payment", correlationId, d);
+          }
         }
-
-        @Override
-        public void onFailure(@NonNull TerminalException e) {
-          Log.d(TAG, "[PAYMENT_TRACE] stage=collect_payment_method_failure error_code=" + e.getErrorCode());
-          Log.d(TAG, "[TAP_SESSION_TRACE] stage=collect_failure code=" + e.getErrorCode() + " ts=" + System.currentTimeMillis());
-          collectingPayment = false;
-          setKeepScreenOn(false);
-          status = "error";
-          setOperationState(OperationState.FAILED, "collect_failure");
-
-          JSObject err = createStructuredError("collect_payment_method", e);
-          err.put("deviceState", captureDeviceState());
-          notifyListeners("error", err);
-          notifyListeners("paymentStatusChanged", new JSObject().put("status", "payment_failed").put("error", err));
-
-          Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_failure stage=collect_payment_method");
-          // Pass structured error to JS via rejection
+      );
+    } catch (Exception e) {
+      Log.e(TAG, "[PAYMENT_TRACE] Exception in collectPaymentMethod", e);
+      collectingPayment = false;
+      setKeepScreenOn(false);
+      status = "error";
+      setOperationState(OperationState.FAILED, "collect_exception");
+      
+      JSObject err = new JSObject();
+      err.put("code", "collect_exception");
+      err.put("message", e.getMessage());
+      err.put("stage", "collect_payment_method");
+      err.put("deviceState", captureDeviceState());
+      err.put("timestamp", System.currentTimeMillis());
+      
+      notifyListeners("error", err);
+      notifyListeners("paymentStatusChanged", new JSObject().put("status", "payment_failed").put("error", err));
+      
+      try {
+        if (!originalCall.isReleased()) {
           originalCall.reject("collect_payment_method", err);
-          JSObject d = new JSObject(); if (e.getErrorCode() != null) d.put("code", e.getErrorCode().toString()); d.put("message", e.getMessage()); emitDiag("collect_payment_method_failed", "collect_payment", correlationId, d);
         }
+      } catch (Exception rejectException) {
+        Log.e(TAG, "[PAYMENT_TRACE] Failed to reject call after exception", rejectException);
       }
-    );
+    }
   }
 
   private void confirmPaymentIntent(PaymentIntent paymentIntent, PluginCall originalCall, final String correlationId) {

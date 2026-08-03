@@ -106,11 +106,13 @@ export function mapTapToPayError(
     lowerCode.includes('timeout') ||
     lowerMessage.includes('timeout') ||
     lowerCode.includes('timed out') ||
-    lowerMessage.includes('timed out')
+    lowerMessage.includes('timed out') ||
+    lowerCode.startsWith('timeout:') ||
+    lowerMessage.startsWith('timeout:')
   ) {
     return {
-      title: 'Tap Timed Out',
-      message: 'No card or device was detected in time. Ask the customer to hold their card or phone near the device and try again.',
+      title: 'Tap to Pay timed out',
+      message: 'ReplyFlow could not start Tap to Pay in time. Check your connection and try again.',
       action: 'retry',
       technicalCode: code,
       technicalMessage: message,
