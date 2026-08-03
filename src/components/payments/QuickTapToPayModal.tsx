@@ -42,7 +42,7 @@ export default function QuickTapToPayModal({
   const [modalSessionId, setModalSessionId] = useState<string>(`modal_${Date.now()}`)
   const [connectingElapsedTime, setConnectingElapsedTime] = useState(0)
   const [eventTimeline, setEventTimeline] = useState<Array<{ timestamp: string; event: string; sessionId?: string; attemptId?: string; paymentState?: string; stage?: string }>>([])
-  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_DIAGNOSTICS_LOOP_FIX'
+  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_MODAL_OPEN_RACE_FIX'
 
   // Ref for modal title for accessibility focus
   const titleRef = useRef<HTMLHeadingElement>(null)
@@ -111,6 +111,9 @@ export default function QuickTapToPayModal({
     }
   }, [])
 
+  // Track previous isOpen state to detect modal open transition
+  const previousIsOpenRef = useRef(false)
+
   // Use the orchestration hook
   const {
     paymentState,
@@ -175,19 +178,19 @@ export default function QuickTapToPayModal({
 
   // Modal-session initialization
   useEffect(() => {
-    if (isOpen) {
-      const newSessionId = `modal_${Date.now()}`
-      console.log('[QuickTTP UI] MODAL_OPEN', { 
-        previousSessionId: modalSessionId, 
-        newSessionId,
-        currentPaymentState: paymentState 
-      })
-      setModalSessionId(newSessionId)
-      
-      // Clear transient UI state on modal open
-      resetToSetup('modal_opened')
-    }
-  }, [isOpen, paymentState, resetToSetup])
+    const justOpened = isOpen && !previousIsOpenRef.current
+    previousIsOpenRef.current = isOpen
+
+    if (!justOpened) return
+
+    const newSessionId = `modal_${Date.now()}`
+    console.log('[QuickTTP UI] MODAL_OPEN', { 
+      previousSessionId: modalSessionId, 
+      newSessionId,
+      currentPaymentState: paymentState 
+    })
+    setModalSessionId(newSessionId)
+  }, [isOpen, paymentState, modalSessionId])
 
   // Render logging for debugging
   useEffect(() => {
@@ -292,7 +295,6 @@ export default function QuickTapToPayModal({
       setSelectedJobId(null)
       setDescription('')
       setShowCustomerSelector(false)
-      cancelPayment('modal_opened')
     }
     return () => {
       if (isOpen) {
@@ -553,7 +555,7 @@ export default function QuickTapToPayModal({
                 <div className="space-y-3 mb-4">
                   {/* Unmistakable Banner */}
                   <div className="p-3 rounded-lg border-2 border-purple-700 bg-purple-900/30 text-center">
-                    <div className="text-purple-300 font-extrabold text-lg tracking-wide">TTP DIAGNOSTICS BUILD 2026-08-03-LOOP-FIX</div>
+                    <div className="text-purple-300 font-extrabold text-lg tracking-wide">TTP DIAGNOSTICS BUILD 2026-08-03-RACE-FIX</div>
                     <div className="text-xs text-purple-200/80">WEB BUILD: {WEB_BUILD_MARKER}</div>
                   </div>
                   

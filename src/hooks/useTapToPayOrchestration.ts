@@ -101,6 +101,7 @@ export function useTapToPayOrchestration({
   const startInFlight = useRef(false)
   const activeAttemptRef = useRef(false)
   const recoveryRunRef = useRef(false)
+  const activeAttemptIdRef = useRef<string | null>(null)
 
   // Update ref when state changes with logging and reason
   const updatePaymentStateRef = useCallback((newState: PaymentState, reason: string = 'unknown') => {
@@ -333,7 +334,19 @@ export function useTapToPayOrchestration({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({}),
         })
-        const data = await response.json()
+        // Safe response parsing to handle empty or malformed responses
+        const text = await response.text()
+        let data = null
+        try {
+          data = text.trim() ? JSON.parse(text) : null
+        } catch (parseError) {
+          console.error('[TTP Hook] Failed to parse recovery response', parseError)
+          data = null
+        }
+        
+        if (!data) {
+          data = { unresolvedAttempt: null }
+        }
         
         if (data.unresolvedAttempt) {
           console.log('[TTP Hook] Found unresolved attempt', data.unresolvedAttempt)
@@ -398,6 +411,16 @@ export function useTapToPayOrchestration({
       previousState: paymentState
     })
 
+    // Guard: Prevent duplicate start calls when attempt is already in flight
+    if (startInFlight.current || activeAttemptRef.current) {
+      console.log('[TTP Hook] START_IGNORED_ALREADY_IN_FLIGHT', {
+        startInFlight: startInFlight.current,
+        activeAttempt: activeAttemptRef.current,
+      })
+      dispatchTTPEvent('START_IGNORED_ALREADY_IN_FLIGHT', terminalService.getSessionId(), terminalService.getCurrentAttemptId())
+      return
+    }
+
     if (!isNativeSupported) {
       console.log('[TTP Hook] VALIDATION_FAILED: Native support check failed', {
         platform,
@@ -456,12 +479,14 @@ export function useTapToPayOrchestration({
     }
     startInFlight.current = true
     activeAttemptRef.current = true
+    const currentAttemptId = terminalService.getCurrentAttemptId()
+    activeAttemptIdRef.current = currentAttemptId
     console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_SET')
     console.log('[TTP Hook] ATTEMPT_STARTED', {
       sessionId: terminalService.getSessionId(),
-      attemptId: terminalService.getCurrentAttemptId()
+      attemptId: currentAttemptId
     })
-    dispatchTTPEvent('ATTEMPT_STARTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId())
+    dispatchTTPEvent('ATTEMPT_STARTED', terminalService.getSessionId(), currentAttemptId)
 
     setIsPaymentInProgress(true)
     permissionLock.setTapToPayActive(true)
@@ -680,13 +705,23 @@ export function useTapToPayOrchestration({
       dispatchTTPEvent('COLLECT_COMPLETED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, paymentResult.status)
       dispatchTTPEvent('PAYMENT_COLLECTION_PROMISE_RESOLVED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, paymentResult.status)
 
-      console.log('[TTP Hook] NATIVE_PAYMENT_SUCCEEDED', {
-        status: paymentResult.status,
-        paymentIntentId: terminalService.getPaymentIntentId(),
-        attemptId: terminalService.getCurrentAttemptId(),
-        sessionId: terminalService.getSessionId()
-      })
-      dispatchTTPEvent('NATIVE_PAYMENT_SUCCEEDED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, paymentResult.status)
+      // Emit appropriate event based on actual status
+      if (paymentResult.status === 'success') {
+        console.log('[TTP Hook] NATIVE_PAYMENT_SUCCEEDED', {
+          status: paymentResult.status,
+          paymentIntentId: terminalService.getPaymentIntentId(),
+          attemptId: terminalService.getCurrentAttemptId(),
+          sessionId: terminalService.getSessionId()
+        })
+        dispatchTTPEvent('NATIVE_PAYMENT_SUCCEEDED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, paymentResult.status)
+      } else if (paymentResult.status === 'canceled' || paymentResult.status === 'cancelled') {
+        console.log('[TTP Hook] NATIVE_PAYMENT_CANCELED', {
+          status: paymentResult.status,
+          attemptId: terminalService.getCurrentAttemptId(),
+          sessionId: terminalService.getSessionId()
+        })
+        dispatchTTPEvent('NATIVE_PAYMENT_CANCELED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, paymentResult.status)
+      }
 
       if (paymentResult.status === 'success') {
         const paymentIntentId = terminalService.getPaymentIntentId()
