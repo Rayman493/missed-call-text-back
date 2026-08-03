@@ -232,6 +232,52 @@ export function mapTapToPayError(
     }
   }
 
+  // Connection-specific errors (distinguish from discovery)
+  if (
+    lowerCode.includes('connect-already-in-progress') ||
+    lowerCode.includes('not-initialized') ||
+    lowerCode.includes('discovery-already-active') ||
+    lowerCode.includes('location-id-required')
+  ) {
+    return {
+      title: 'Tap to Pay Unavailable',
+      message: 'The secure reader could not be prepared. Close and reopen ReplyFlow, then try again.',
+      action: 'back',
+      technicalCode: code,
+      technicalMessage: message,
+    }
+  }
+
+  // Discovery/reader connection timeout
+  if (
+    stage === 'connecting_reader' &&
+    (lowerCode.includes('timeout') || lowerMessage.includes('timeout'))
+  ) {
+    return {
+      title: 'Reader Connection Timed Out',
+      message: 'ReplyFlow could not connect to Tap to Pay. Check your internet connection and try again.',
+      action: 'retry',
+      technicalCode: code,
+      technicalMessage: message,
+    }
+  }
+
+  // Discovery failed
+  if (
+    lowerCode.includes('discover') ||
+    lowerMessage.includes('discover') ||
+    lowerCode.includes('no reader') ||
+    lowerMessage.includes('no reader')
+  ) {
+    return {
+      title: 'Reader Not Found',
+      message: 'No Tap to Pay reader was found. Ensure your device supports Tap to Pay and NFC is enabled.',
+      action: 'retry',
+      technicalCode: code,
+      technicalMessage: message,
+    }
+  }
+
   // Default fallback - don't show technical stage names
   if (stage && !message.includes(stage)) {
     return {

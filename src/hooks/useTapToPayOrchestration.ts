@@ -676,7 +676,6 @@ export function useTapToPayOrchestration({
         dispatchTTPEvent('CONNECTION_STARTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'connecting_reader')
         setLastSuccessfulStage('connecting_reader')
         dispatchTTPEvent('CONNECT_PROMISE_STARTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId())
-        const connectStartTime = Date.now()
         
         // Yield two frames to allow React to paint the connecting state before native call
         await new Promise<void>(resolve => {
@@ -686,27 +685,65 @@ export function useTapToPayOrchestration({
         })
         
         const localAttemptToken = activeAttemptTokenRef.current
-        const connectResult = await withTimeout(
-          terminalService.connectTapToPay(),
-          'READER_CONNECTION',
-          TIMEOUTS.READER_DISCOVERY,
-          terminalService.getSessionId() || 'unknown',
-          terminalService.getCurrentAttemptId() || 'unknown'
-        )
-        
-        // Check if this result belongs to the active attempt
-        if (!isResultFromActiveAttempt(localAttemptToken, 'connectTapToPay')) {
-          throw new Error('Stale connection result ignored')
+        const connectStartTime = Date.now()
+        dispatchTTPEvent('CONNECT_CALL_ENTERED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'connecting_reader')
+
+        try {
+          const connectResult = await withTimeout(
+            terminalService.connectTapToPay(),
+            'READER_CONNECTION',
+            TIMEOUTS.READER_DISCOVERY,
+            terminalService.getSessionId() || 'unknown',
+            terminalService.getCurrentAttemptId() || 'unknown'
+          )
+
+          // Check if this result belongs to the active attempt
+          if (!isResultFromActiveAttempt(localAttemptToken, 'connectTapToPay')) {
+            throw new Error('Stale connection result ignored')
+          }
+
+          console.log('[TTP Hook] CONNECTION_COMPLETED', { status: connectResult.status })
+          dispatchTTPEvent('CONNECTION_COMPLETED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, connectResult.status)
+          dispatchTTPEvent('CONNECT_PROMISE_RESOLVED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, connectResult.status)
+          if (connectResult.status !== 'connected') {
+            console.log('[TTP Hook] CONNECTION_FAILED', { status: connectResult.status })
+            throw new Error('Failed to connect to payment terminal')
+          }
+          setLastSuccessfulStage('connected')
+        } catch (connectError: any) {
+          const durationMs = Date.now() - connectStartTime
+          console.log('[TTP Hook] CONNECT_ERROR_CAUGHT', {
+            errorName: connectError?.name,
+            errorMessage: connectError?.message,
+            errorCode: connectError?.code,
+            nativeCode: connectError?.nativeCode,
+            technicalCode: connectError?.technicalCode,
+            technicalMessage: connectError?.technicalMessage,
+            durationMs,
+            attemptToken: localAttemptToken,
+            terminalSessionId: terminalService.getSessionId(),
+            paymentState: paymentStateRef.current,
+            timestamp: new Date().toISOString()
+          })
+
+          // Dispatch structured rejection diagnostics
+          dispatchTTPEvent('CONNECT_PROMISE_REJECTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'connecting_reader', JSON.stringify({
+            errorName: connectError?.name,
+            errorMessage: connectError?.message,
+            errorCode: connectError?.code,
+            nativeCode: connectError?.nativeCode,
+            technicalCode: connectError?.technicalCode,
+            technicalMessage: connectError?.technicalMessage,
+            durationMs,
+            attemptToken: localAttemptToken,
+            terminalSessionId: terminalService.getSessionId(),
+            paymentState: paymentStateRef.current,
+            timestamp: new Date().toISOString()
+          }))
+
+          // Preserve structured error for outer catch
+          throw connectError
         }
-        
-        console.log('[TTP Hook] CONNECTION_COMPLETED', { status: connectResult.status })
-        dispatchTTPEvent('CONNECTION_COMPLETED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, connectResult.status)
-        dispatchTTPEvent('CONNECT_PROMISE_RESOLVED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, connectResult.status)
-        if (connectResult.status !== 'connected') {
-          console.log('[TTP Hook] CONNECTION_FAILED', { status: connectResult.status })
-          throw new Error('Failed to connect to payment terminal')
-        }
-        setLastSuccessfulStage('connected')
       }
 
       // Start payment collection
@@ -1001,12 +1038,17 @@ async function withTimeout<T>(
 
   // Retry payment
   const retryPayment = useCallback(async () => {
-    console.log('[TTP Hook] Retrying payment')
+    console.log('[TTP Hook] RETRY_STARTED_AFTER_CONNECT_FAILURE', {
+      previousState: paymentState,
+      lastSuccessfulStage,
+      timestamp: new Date().toISOString()
+    })
+    dispatchTTPEvent('RETRY_STARTED_AFTER_CONNECT_FAILURE', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), paymentState, 'retry_after_connect_failure')
     setError('')
     setStructuredError(null)
     setMappedError(null)
     await startPayment()
-  }, [startPayment])
+  }, [startPayment, paymentState, lastSuccessfulStage])
 
   // Emergency reset function to clear all UI state
   const resetTapToPayUiState = useCallback((preserveSucceededAttempt: boolean = true) => {

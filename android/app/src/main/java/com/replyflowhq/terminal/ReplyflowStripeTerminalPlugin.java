@@ -615,32 +615,54 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
   public void connectTapToPay(PluginCall call) {
     // Capture optional diagnosticAttemptId for this operation scope
     final String connectCorrelationId = call.getString("diagnosticAttemptId");
-    
+
     // Guard: Prevent overlapping connect operations
     if (connectOperationId != null) {
-      Log.e(TAG, "[CONNECT_IGNORED_ALREADY_IN_PROGRESS] operationId=" + connectOperationId);
+      Log.e(TAG, "[CONNECT_REJECTED_ALREADY_IN_PROGRESS] operationId=" + connectOperationId);
+      JSObject err = new JSObject();
+      err.put("code", "connect-already-in-progress");
+      err.put("message", "A connection operation is already in progress");
+      err.put("stage", "connect_reader");
+      err.put("operationId", connectOperationId);
+      err.put("deviceState", captureDeviceState());
+      err.put("timestamp", System.currentTimeMillis());
+      notifyListeners("error", err);
       connectOperationId = null;
-      call.reject("connect-already-in-progress");
+      call.reject("connect-already-in-progress", err);
       return;
     }
-    
+
     connectOperationId = "connect_" + System.currentTimeMillis() + "_" + (int)(Math.random() * 10000);
     Log.d(TAG, "[CONNECT_CALL_ENTERED] operationId=" + connectOperationId + " correlationId=" + connectCorrelationId);
-    
+
     if (!initialized) {
       Log.e(TAG, "[CONNECT_REJECTED_NOT_INITIALIZED] operationId=" + connectOperationId);
+      JSObject err = new JSObject();
+      err.put("code", "not-initialized");
+      err.put("message", "Terminal is not initialized");
+      err.put("stage", "connect_reader");
+      err.put("operationId", connectOperationId);
+      err.put("deviceState", captureDeviceState());
+      err.put("timestamp", System.currentTimeMillis());
+      notifyListeners("error", err);
       connectOperationId = null;
-      connectOperationId = null;
-      call.reject("not-initialized");
+      call.reject("not-initialized", err);
       return;
     }
 
     // Prevent duplicate discovery
     if (discovering) {
       Log.e(TAG, "[CONNECT_REJECTED_DISCOVERY_ACTIVE] operationId=" + connectOperationId);
+      JSObject err = new JSObject();
+      err.put("code", "discovery-already-active");
+      err.put("message", "Reader discovery is already in progress");
+      err.put("stage", "connect_reader");
+      err.put("operationId", connectOperationId);
+      err.put("deviceState", captureDeviceState());
+      err.put("timestamp", System.currentTimeMillis());
+      notifyListeners("error", err);
       connectOperationId = null;
-      connectOperationId = null;
-      call.reject("discovery-already-active");
+      call.reject("discovery-already-active", err);
       return;
     }
 
@@ -649,8 +671,16 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
     // Location ID is required for Tap to Pay connection
     if (locationId == null || locationId.isEmpty()) {
+      JSObject err = new JSObject();
+      err.put("code", "location-id-required");
+      err.put("message", "Location ID is required for Tap to Pay connection");
+      err.put("stage", "connect_reader");
+      err.put("operationId", connectOperationId);
+      err.put("deviceState", captureDeviceState());
+      err.put("timestamp", System.currentTimeMillis());
+      notifyListeners("error", err);
       connectOperationId = null;
-      call.reject("location-id-required");
+      call.reject("location-id-required", err);
       return;
     }
 
