@@ -158,6 +158,16 @@ export function useTapToPayOrchestration({
     paymentStateRef.current = paymentState
   }, [paymentState])
 
+  // Hook lifecycle diagnostics
+  useEffect(() => {
+    console.log('[TTP Hook] HOOK_MOUNTED')
+    dispatchTTPEvent('HOOK_MOUNTED')
+    return () => {
+      console.log('[TTP Hook] HOOK_UNMOUNTED')
+      dispatchTTPEvent('HOOK_UNMOUNTED')
+    }
+  }, [])
+
   // Check platform and native support
   const checkPlatformSupport = useCallback(async () => {
     console.log('[QuickTTP UI] NATIVE_DETECTION_STARTED')
@@ -201,10 +211,14 @@ export function useTapToPayOrchestration({
   // Check location permission for Android
   const checkLocationPermission = useCallback(async (): Promise<{ granted: boolean; locationEnabled: boolean }> => {
     console.log('[TTP Hook] checkLocationPermission called', { platform })
+    dispatchTTPEvent('LOCATION_PERMISSION_PROMISE_STARTED', terminalService.getSessionId())
+    const startTime = Date.now()
+    
     if (platform !== 'android') {
       setLocationPermissionGranted(true)
       setLocationServicesEnabled(true)
       console.log('[TTP Hook] checkLocationPermission: not Android, skipping')
+      dispatchTTPEvent('LOCATION_PERMISSION_PROMISE_RESOLVED', terminalService.getSessionId(), undefined, undefined, 'not_android')
       return { granted: true, locationEnabled: true }
     }
 
@@ -218,9 +232,11 @@ export function useTapToPayOrchestration({
       setLocationPermissionGranted(result.granted)
       setLocationServicesEnabled(result.locationEnabled)
 
+      dispatchTTPEvent('LOCATION_PERMISSION_PROMISE_RESOLVED', terminalService.getSessionId(), undefined, undefined, result.granted ? 'granted' : 'denied')
       return { granted: result.granted, locationEnabled: result.locationEnabled }
     } catch (error) {
       console.error('[TTP Hook] Failed to check location permission:', error)
+      dispatchTTPEvent('LOCATION_PERMISSION_PROMISE_REJECTED', terminalService.getSessionId(), undefined, undefined, String(error))
       setLocationPermissionGranted(true)
       setLocationServicesEnabled(true)
       console.log('[TTP Hook] checkLocationPermission: error, returning true (fallback)')
@@ -231,7 +247,11 @@ export function useTapToPayOrchestration({
   // Request location permission proactively
   const requestLocationPermission = useCallback(async (): Promise<{ granted: boolean; locationEnabled: boolean }> => {
     console.log('[TTP Hook] requestLocationPermission called', { platform })
+    dispatchTTPEvent('REQUEST_LOCATION_PERMISSION_PROMISE_STARTED', terminalService.getSessionId())
+    const startTime = Date.now()
+    
     if (platform !== 'android') {
+      dispatchTTPEvent('REQUEST_LOCATION_PERMISSION_PROMISE_RESOLVED', terminalService.getSessionId(), undefined, undefined, 'not_android')
       return { granted: true, locationEnabled: true }
     }
 
@@ -248,12 +268,15 @@ export function useTapToPayOrchestration({
       if (result.granted) {
         const locationCheck = await checkLocationPermission()
         setLocationServicesEnabled(locationCheck.locationEnabled)
+        dispatchTTPEvent('REQUEST_LOCATION_PERMISSION_PROMISE_RESOLVED', terminalService.getSessionId(), undefined, undefined, 'granted')
         return locationCheck
       }
       
+      dispatchTTPEvent('REQUEST_LOCATION_PERMISSION_PROMISE_RESOLVED', terminalService.getSessionId(), undefined, undefined, 'denied')
       return { granted: false, locationEnabled: false }
     } catch (error) {
       console.error('[TTP Hook] Failed to request location permission:', error)
+      dispatchTTPEvent('REQUEST_LOCATION_PERMISSION_PROMISE_REJECTED', terminalService.getSessionId(), undefined, undefined, String(error))
       return { granted: false, locationEnabled: false }
     }
   }, [platform, checkLocationPermission])
@@ -529,6 +552,8 @@ export function useTapToPayOrchestration({
         })
         dispatchTTPEvent('CONNECTION_STARTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'connecting_reader')
         setLastSuccessfulStage('connecting_reader')
+        dispatchTTPEvent('CONNECT_PROMISE_STARTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId())
+        const connectStartTime = Date.now()
         
         // Yield two frames to allow React to paint the connecting state before native call
         await new Promise<void>(resolve => {
@@ -546,6 +571,7 @@ export function useTapToPayOrchestration({
         )
         console.log('[TTP Hook] CONNECTION_COMPLETED', { status: connectResult.status })
         dispatchTTPEvent('CONNECTION_COMPLETED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, connectResult.status)
+        dispatchTTPEvent('CONNECT_PROMISE_RESOLVED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, connectResult.status)
         if (connectResult.status !== 'connected') {
           console.log('[TTP Hook] CONNECTION_FAILED', { status: connectResult.status })
           throw new Error('Failed to connect to payment terminal')
@@ -567,6 +593,9 @@ export function useTapToPayOrchestration({
           requestAnimationFrame(() => resolve())
         })
       })
+      
+      const paymentStartTime = Date.now()
+      dispatchTTPEvent('PAYMENT_COLLECTION_PROMISE_STARTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId())
       
       const paymentPromise = withTimeout(
         terminalService.startTapToPayPayment({
@@ -615,6 +644,7 @@ export function useTapToPayOrchestration({
         sessionId: terminalService.getSessionId()
       })
       dispatchTTPEvent('COLLECT_COMPLETED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, paymentResult.status)
+      dispatchTTPEvent('PAYMENT_COLLECTION_PROMISE_RESOLVED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, paymentResult.status)
 
       console.log('[TTP Hook] NATIVE_PAYMENT_SUCCEEDED', {
         status: paymentResult.status,
@@ -753,6 +783,7 @@ async function withTimeout<T>(
 }
   const cancelPayment = useCallback((reason: string = 'user_canceled') => {
     console.log('[QuickTTP UI] CANCEL_PAYMENT_CALLED', { reason, currentPaymentState: paymentState })
+    dispatchTTPEvent('RESET_TRIGGERED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), paymentState, `cancelPayment:${reason}`)
     setIsPaymentInProgress(false)
             permissionLock.setTapToPayActive(false)
     updatePaymentStateRef('canceled', reason)
@@ -760,7 +791,7 @@ async function withTimeout<T>(
     setStructuredError(null)
     setMappedError(null)
     autoRetryInProgress.current = false
-  }, [updatePaymentStateRef, paymentState])
+  }, [updatePaymentStateRef, paymentState, lastSuccessfulStage, isPaymentInProgress])
 
   // Retry payment
   const retryPayment = useCallback(async () => {
@@ -774,6 +805,7 @@ async function withTimeout<T>(
   // Emergency reset function to clear all UI state
   const resetTapToPayUiState = useCallback((preserveSucceededAttempt: boolean = true) => {
     console.log('[TTP Hook] EMERGENCY_RESET', { preserveSucceededAttempt })
+    dispatchTTPEvent('RESET_TRIGGERED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), paymentState, 'resetTapToPayUiState:emergency_reset')
     setIsPaymentInProgress(false)
             permissionLock.setTapToPayActive(false)
     startInFlight.current = false
@@ -787,11 +819,12 @@ async function withTimeout<T>(
     setLastSuccessfulStage('none')
     setShowLocationPermissionDialog(false)
     // Note: We don't clear session/attempt IDs here as they're managed by the terminal service
-  }, [updatePaymentStateRef])
+  }, [updatePaymentStateRef, paymentState, lastSuccessfulStage, isPaymentInProgress])
 
   // Reset to setup state (separate from cancelPayment)
   const resetToSetup = useCallback((reason: string = 'reset_to_setup') => {
     console.log('[QuickTTP UI] RESET_TO_SETUP', { reason, currentPaymentState: paymentState })
+    dispatchTTPEvent('RESET_TRIGGERED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), paymentState, `resetToSetup:${reason}`)
     setIsPaymentInProgress(false)
             permissionLock.setTapToPayActive(false)
     startInFlight.current = false
@@ -803,7 +836,7 @@ async function withTimeout<T>(
     setMappedError(null)
     autoRetryInProgress.current = false
     setShowLocationPermissionDialog(false)
-  }, [updatePaymentStateRef, paymentState])
+  }, [updatePaymentStateRef, paymentState, lastSuccessfulStage, isPaymentInProgress])
 
   return {
     paymentState,
