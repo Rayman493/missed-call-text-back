@@ -696,33 +696,80 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
     // Reconcile plugin state with Stripe SDK state
     Reader stripeConnectedReader = Terminal.getInstance().getConnectedReader();
+    Log.d(TAG, "[CONNECTED_READER_CHECK_STARTED] operationId=" + connectOperationId + " connected=" + (stripeConnectedReader != null));
+    JSObject checkResult = new JSObject();
+    checkResult.put("connected", stripeConnectedReader != null);
     if (stripeConnectedReader != null) {
-      // Reader is already connected - reuse it
-      Log.d(TAG, "[TAP_TO_PAY] Reader already connected, reusing: " + stripeConnectedReader.getId());
-      connectedReader = stripeConnectedReader;
-      status = "connected";
-      notifyListeners("statusChanged", new JSObject().put("status", status));
+      checkResult.put("readerId", stripeConnectedReader.getId());
+      checkResult.put("deviceType", stripeConnectedReader.getDeviceType().toString());
+    }
+    emitDiag("connected_reader_check_result", "connect_reader", connectCorrelationId, checkResult);
 
-      JSObject readerInfo = new JSObject();
-      readerInfo.put("connected", true);
-      readerInfo.put("readerId", stripeConnectedReader.getId());
-      readerInfo.put("deviceType", stripeConnectedReader.getDeviceType().toString());
-      readerInfo.put("simulated", effectiveSimulated);
+    if (stripeConnectedReader != null) {
+      // Reader is already connected - validate and reuse it
+      Log.d(TAG, "[EXISTING_READER_CONNECTION_DETECTED] operationId=" + connectOperationId + " readerId=" + stripeConnectedReader.getId());
 
-      notifyListeners("readerConnected", readerInfo);
+      // Verify the reader is a valid Tap to Pay reader
+      String deviceType = stripeConnectedReader.getDeviceType().toString();
+      boolean isTapToPayReader = deviceType.contains("TAP_TO_PAY") || deviceType.contains("LOCAL_MOBILE");
 
-      // Minimal trace for reuse before discovery
-      Log.d(TAG, "[TAP_SESSION_TRACE] stage=pre_discovery_reader_reused reader_id=" + stripeConnectedReader.getId() + " connection_status=" + status);
-      JSObject diag1 = new JSObject();
-      diag1.put("readerId", stripeConnectedReader.getId());
-      diag1.put("connectionStatus", status);
-      emitDiag("pre_discovery_reader_reused", "connect_reader", connectCorrelationId, diag1);
+      if (!isTapToPayReader) {
+        Log.w(TAG, "[EXISTING_READER_CONNECTION_INVALID] operationId=" + connectOperationId + " reason=wrong_device_type deviceType=" + deviceType);
+        JSObject invalidDiag = new JSObject();
+        invalidDiag.put("readerId", stripeConnectedReader.getId());
+        invalidDiag.put("deviceType", deviceType);
+        invalidDiag.put("reason", "wrong_device_type");
+        emitDiag("existing_reader_connection_invalid", "connect_reader", connectCorrelationId, invalidDiag);
+        // Disconnect and proceed to discovery
+        try {
+          Terminal.getInstance().disconnectReader(new com.stripe.stripeterminal.external.callable.Callback() {
+            @Override
+            public void onSuccess() {
+              Log.d(TAG, "[EXISTING_READER_DISCONNECT_COMPLETED] operationId=" + connectOperationId);
+              // Proceed to discovery below
+            }
+            @Override
+            public void onFailure(@NonNull TerminalException e) {
+              Log.w(TAG, "[EXISTING_READER_DISCONNECT_FAILED] operationId=" + connectOperationId + " error=" + e.getMessage());
+              // Proceed to discovery anyway
+            }
+          });
+        } catch (Exception e) {
+          Log.w(TAG, "[EXISTING_READER_DISCONNECT_EXCEPTION] operationId=" + connectOperationId + " error=" + e.getMessage());
+        }
+      } else {
+        // Valid Tap to Pay reader - reuse it
+        Log.d(TAG, "[EXISTING_READER_CONNECTION_VALIDATED] operationId=" + connectOperationId + " readerId=" + stripeConnectedReader.getId());
+        connectedReader = stripeConnectedReader;
+        status = "connected";
+        notifyListeners("statusChanged", new JSObject().put("status", status));
 
-      JSObject ret = new JSObject();
-      ret.put("status", status);
-      connectOperationId = null;
-      call.resolve(ret);
-      return;
+        JSObject readerInfo = new JSObject();
+        readerInfo.put("connected", true);
+        readerInfo.put("readerId", stripeConnectedReader.getId());
+        readerInfo.put("deviceType", stripeConnectedReader.getDeviceType().toString());
+        readerInfo.put("simulated", effectiveSimulated);
+
+        notifyListeners("readerConnected", readerInfo);
+
+        Log.d(TAG, "[EXISTING_READER_CONNECTION_REUSED] operationId=" + connectOperationId + " readerId=" + stripeConnectedReader.getId());
+        JSObject reuseDiag = new JSObject();
+        reuseDiag.put("readerId", stripeConnectedReader.getId());
+        reuseDiag.put("deviceType", stripeConnectedReader.getDeviceType().toString());
+        reuseDiag.put("connectionStatus", status);
+        reuseDiag.put("operationId", connectOperationId);
+        emitDiag("existing_reader_connection_reused", "connect_reader", connectCorrelationId, reuseDiag);
+
+        JSObject ret = new JSObject();
+        ret.put("status", status);
+        ret.put("reusedExistingConnection", true);
+        ret.put("readerId", stripeConnectedReader.getId());
+        ret.put("readerType", stripeConnectedReader.getDeviceType().toString());
+        ret.put("operationId", connectOperationId);
+        connectOperationId = null;
+        call.resolve(ret);
+        return;
+      }
     }
 
     discovering = true;
@@ -741,33 +788,73 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     Reader preDiscoveryReader = Terminal.getInstance().getConnectedReader();
     Log.d(TAG, "[TAP_SESSION_TRACE] stage=pre_discovery_reader_check connected=" + (preDiscoveryReader != null));
     if (preDiscoveryReader != null) {
-      // Reader is now connected - reuse it instead of discovering
-      Log.d(TAG, "[TAP_SESSION_TRACE] reader_connected_before_discovery reusing=" + preDiscoveryReader.getId());
-      discovering = false;
-      connectedReader = preDiscoveryReader;
-      status = "connected";
-      notifyListeners("statusChanged", new JSObject().put("status", status));
+      // Reader is now connected - validate and reuse it instead of discovering
+      Log.d(TAG, "[EXISTING_READER_CONNECTION_DETECTED] operationId=" + connectOperationId + " readerId=" + preDiscoveryReader.getId() + " stage=pre_discovery");
 
-      JSObject readerInfo = new JSObject();
-      readerInfo.put("connected", true);
-      readerInfo.put("readerId", preDiscoveryReader.getId());
-      readerInfo.put("deviceType", preDiscoveryReader.getDeviceType().toString());
-      readerInfo.put("simulated", effectiveSimulated);
+      // Verify the reader is a valid Tap to Pay reader
+      String deviceType = preDiscoveryReader.getDeviceType().toString();
+      boolean isTapToPayReader = deviceType.contains("TAP_TO_PAY") || deviceType.contains("LOCAL_MOBILE");
 
-      notifyListeners("readerConnected", readerInfo);
+      if (!isTapToPayReader) {
+        Log.w(TAG, "[EXISTING_READER_CONNECTION_INVALID] operationId=" + connectOperationId + " reason=wrong_device_type deviceType=" + deviceType + " stage=pre_discovery");
+        JSObject invalidDiag = new JSObject();
+        invalidDiag.put("readerId", preDiscoveryReader.getId());
+        invalidDiag.put("deviceType", deviceType);
+        invalidDiag.put("reason", "wrong_device_type");
+        invalidDiag.put("stage", "pre_discovery");
+        emitDiag("existing_reader_connection_invalid", "connect_reader", connectCorrelationId, invalidDiag);
+        // Disconnect and proceed to discovery
+        try {
+          Terminal.getInstance().disconnectReader(new com.stripe.stripeterminal.external.callable.Callback() {
+            @Override
+            public void onSuccess() {
+              Log.d(TAG, "[EXISTING_READER_DISCONNECT_COMPLETED] operationId=" + connectOperationId + " stage=pre_discovery");
+              // Proceed to discovery below
+            }
+            @Override
+            public void onFailure(@NonNull TerminalException e) {
+              Log.w(TAG, "[EXISTING_READER_DISCONNECT_FAILED] operationId=" + connectOperationId + " error=" + e.getMessage() + " stage=pre_discovery");
+              // Proceed to discovery anyway
+            }
+          });
+        } catch (Exception e) {
+          Log.w(TAG, "[EXISTING_READER_DISCONNECT_EXCEPTION] operationId=" + connectOperationId + " error=" + e.getMessage() + " stage=pre_discovery");
+        }
+      } else {
+        // Valid Tap to Pay reader - reuse it
+        Log.d(TAG, "[EXISTING_READER_CONNECTION_VALIDATED] operationId=" + connectOperationId + " readerId=" + preDiscoveryReader.getId() + " stage=pre_discovery");
+        discovering = false;
+        connectedReader = preDiscoveryReader;
+        status = "connected";
+        notifyListeners("statusChanged", new JSObject().put("status", status));
 
-      // Minimal trace for reuse before discovery connect
-      Log.d(TAG, "[TAP_SESSION_TRACE] stage=pre_discovery_reader_reused reader_id=" + preDiscoveryReader.getId() + " connection_status=" + status);
-      JSObject diag2 = new JSObject();
-      diag2.put("readerId", preDiscoveryReader.getId());
-      diag2.put("connectionStatus", status);
-      emitDiag("pre_discovery_reader_reused", "connect_reader", connectCorrelationId, diag2);
+        JSObject readerInfo = new JSObject();
+        readerInfo.put("connected", true);
+        readerInfo.put("readerId", preDiscoveryReader.getId());
+        readerInfo.put("deviceType", preDiscoveryReader.getDeviceType().toString());
+        readerInfo.put("simulated", effectiveSimulated);
 
-      JSObject ret = new JSObject();
-      ret.put("status", status);
-      connectOperationId = null;
-      call.resolve(ret);
-      return;
+        notifyListeners("readerConnected", readerInfo);
+
+        Log.d(TAG, "[EXISTING_READER_CONNECTION_REUSED] operationId=" + connectOperationId + " readerId=" + preDiscoveryReader.getId() + " stage=pre_discovery");
+        JSObject reuseDiag = new JSObject();
+        reuseDiag.put("readerId", preDiscoveryReader.getId());
+        reuseDiag.put("deviceType", preDiscoveryReader.getDeviceType().toString());
+        reuseDiag.put("connectionStatus", status);
+        reuseDiag.put("operationId", connectOperationId);
+        reuseDiag.put("stage", "pre_discovery");
+        emitDiag("existing_reader_connection_reused", "connect_reader", connectCorrelationId, reuseDiag);
+
+        JSObject ret = new JSObject();
+        ret.put("status", status);
+        ret.put("reusedExistingConnection", true);
+        ret.put("readerId", preDiscoveryReader.getId());
+        ret.put("readerType", preDiscoveryReader.getDeviceType().toString());
+        ret.put("operationId", connectOperationId);
+        connectOperationId = null;
+        call.resolve(ret);
+        return;
+      }
     }
 
     discoveryCancelable = Terminal.getInstance().discoverReaders(

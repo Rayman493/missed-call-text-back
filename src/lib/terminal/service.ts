@@ -743,18 +743,13 @@ export class TerminalBridgeService {
         const errorListener = await this.plugin!.addListener('error', (e: any) => {
           const code = String(e?.code || e?.nativeCode || '').toLowerCase()
           const msg = String(e?.message || '').toLowerCase()
-          if (code.includes('already') && code.includes('connected')) {
-            // Do NOT treat ALREADY_CONNECTED_TO_READER as automatic success
-            // Require native verification before proceeding
-            try { logTapToPayEvent('connect_already_connected_unverified', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: this.connectionStatus || 'unknown', readerId: this.lastReaderId, code: e?.code || e?.nativeCode, message: e?.message }) } catch {}
-            // Reject to allow the connectedPromise to wait for actual native confirmation
-            rejectOnError?.(new Error('ALREADY_CONNECTED_TO_READER - awaiting native verification'))
-            return
-          }
+          // The Java layer now handles ALREADY_CONNECTED_TO_READER by reusing the connection
+          // We no longer reject this error here - let the Java layer resolve the connection
           console.warn('[TAP_SESSION_TRACE] stage=connect_event_error')
           try { logTapToPayEvent('connect_error', { phase: 'connect_reader', sessionId: this.sessionId, code: e?.code || e?.nativeCode, message: e?.message }) } catch {}
           rejectOnError?.(e)
         })
+
         // Track temp listeners in diagnostics counts
         { const c = this.bumpListener('readerConnected', 1); this.addListenerId('readerConnected', readerConnectedId); logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listener: 'reader_connected_temp', listenerType: 'readerConnected', scope: 'temp_connect', listenerId: readerConnectedId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('readerConnected') } }).catch(() => {}) }
         { const c = this.bumpListener('statusChanged', 1); this.addListenerId('statusChanged', statusChangedId); logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listener: 'connection_status_temp', listenerType: 'statusChanged', scope: 'temp_connect', listenerId: statusChangedId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('statusChanged') } }).catch(() => {}) }
@@ -777,11 +772,24 @@ export class TerminalBridgeService {
           attemptId,
           connectionOperationId,
           sessionId,
-          status: result.status
+          status: result.status,
+          reusedExistingConnection: result.reusedExistingConnection
         })
 
-        console.log('[TAP_SESSION_TRACE] stage=connect_call_resolved status=' + result.status)
-        try { await logTapToPayEvent('connect_call_resolved', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: result.status }) } catch {}
+        console.log('[TAP_SESSION_TRACE] stage=connect_call_resolved status=' + result.status + ' reused=' + result.reusedExistingConnection)
+        try { await logTapToPayEvent('connect_call_resolved', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: result.status, meta: { reusedExistingConnection: result.reusedExistingConnection } }) } catch {}
+
+        // Log when existing reader connection is reused
+        if (result.reusedExistingConnection) {
+          console.log('[TTP Service] CONNECT_REUSED_EXISTING_READER', {
+            attemptId,
+            connectionOperationId,
+            sessionId,
+            readerId: result.readerId,
+            readerType: result.readerType
+          })
+          try { await logTapToPayEvent('connect_reused_existing_reader', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: result.status, readerId: result.readerId, meta: { readerType: result.readerType } }) } catch {}
+        }
 
         // Note: 'already connected' is handled by error listener above; result path proceeds normally
 

@@ -91,7 +91,7 @@ export interface TerminalPlugin {
   supplyConnectionToken(params: { requestId: string; secret: string }): Promise<void>
   // JS reports a failure for a specific requestId
   supplyConnectionTokenError(params: { requestId: string; message: string }): Promise<void>
-  connectTapToPay(options?: ConnectTapToPayOptions): Promise<{ status: TerminalStatus }>
+  connectTapToPay(options?: ConnectTapToPayOptions): Promise<{ status: TerminalStatus; reusedExistingConnection?: boolean; readerId?: string; readerType?: string; operationId?: string }>
   createTerminalPayment(options: CreateTerminalPaymentOptions): Promise<{ paymentIntentId: string; clientSecret: string; localPaymentId: string }>
   collectPayment(options: CollectPaymentOptions): Promise<TerminalPaymentResult>
   cancel(): Promise<{ status: TerminalStatus }>
