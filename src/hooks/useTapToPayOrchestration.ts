@@ -445,7 +445,7 @@ export function useTapToPayOrchestration({
   // Helper to normalize native payment result status
   const normalizeNativePaymentResult = useCallback((status: string): 'succeeded' | 'canceled' | 'failed' | 'pending' | 'ambiguous' => {
     const normalized = status?.toLowerCase() || ''
-    
+
     if (normalized === 'success' || normalized === 'succeeded') {
       return 'succeeded'
     }
@@ -458,9 +458,60 @@ export function useTapToPayOrchestration({
     if (normalized === 'pending') {
       return 'pending'
     }
-    
+
     return 'ambiguous'
   }, [])
+
+// Helper to classify payment collection outcome from both resolved results and rejected errors
+  const classifyPaymentCollectionOutcome = useCallback((resultOrError: any): 'succeeded' | 'canceled' | 'failed' | 'pending' | 'ambiguous' => {
+    // Handle resolved result
+    if (resultOrError && typeof resultOrError === 'object' && resultOrError.status) {
+      return normalizeNativePaymentResult(resultOrError.status)
+    }
+
+    // Handle rejected error
+    if (resultOrError && (resultOrError instanceof Error || typeof resultOrError === 'object')) {
+      const code = String(resultOrError.code || resultOrError.nativeCode || '').toLowerCase()
+      const message = String(resultOrError.message || '').toLowerCase()
+
+      // Check for cancellation indicators
+      if (
+        code.includes('cancel') ||
+        code.includes('canceled') ||
+        code.includes('cancelled') ||
+        code.includes('user_canceled') ||
+        code.includes('command_canceled') ||
+        message.includes('cancel') ||
+        message.includes('canceled') ||
+        message.includes('cancelled')
+      ) {
+        return 'canceled'
+      }
+
+      // Check for success indicators in error (shouldn't happen but defensive)
+      if (
+        code.includes('success') ||
+        code.includes('succeeded') ||
+        message.includes('success') ||
+        message.includes('succeeded')
+      ) {
+        return 'succeeded'
+      }
+
+      // Check for pending indicators
+      if (
+        code.includes('pending') ||
+        message.includes('pending')
+      ) {
+        return 'pending'
+      }
+
+      // Default to failed for other errors
+      return 'failed'
+    }
+
+    return 'ambiguous'
+  }, [normalizeNativePaymentResult])
 
   // Main payment orchestration function
   const startPayment = useCallback(async () => {
@@ -804,53 +855,98 @@ export function useTapToPayOrchestration({
         sessionId: terminalService.getSessionId()
       })
       dispatchTTPEvent('COLLECT_STARTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'waiting_for_card', 'collect_payment')
-      
+
       const localAttemptToken = activeAttemptTokenRef.current
-      const paymentResult = await paymentPromise
-      
-      // Check if this result belongs to the active attempt
-      if (!isResultFromActiveAttempt(localAttemptToken, 'startTapToPayPayment')) {
-        throw new Error('Stale payment result ignored')
-      }
-      
-      console.log('[TTP Hook] COLLECT_COMPLETED', {
-        paymentResult,
-        attemptId: terminalService.getCurrentAttemptId(),
-        sessionId: terminalService.getSessionId()
-      })
-      dispatchTTPEvent('COLLECT_COMPLETED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, paymentResult.status)
-      dispatchTTPEvent('PAYMENT_COLLECTION_PROMISE_RESOLVED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, paymentResult.status)
+      let paymentResult: any
 
-      // Normalize the native result status
+      // Specific try-catch for payment collection to handle cancellation before generic error handler
+      try {
+        paymentResult = await paymentPromise
+
+        // Check if this result belongs to the active attempt
+        if (!isResultFromActiveAttempt(localAttemptToken, 'startTapToPayPayment')) {
+          throw new Error('Stale payment result ignored')
+        }
+
+        console.log('[TTP Hook] COLLECT_COMPLETED', {
+          paymentResult,
+          attemptId: terminalService.getCurrentAttemptId(),
+          sessionId: terminalService.getSessionId()
+        })
+        dispatchTTPEvent('COLLECT_COMPLETED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, paymentResult.status)
+        dispatchTTPEvent('PAYMENT_COLLECTION_PROMISE_RESOLVED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, paymentResult.status)
+
+        // Normalize the native result status using the new classifier
+        const outcome = classifyPaymentCollectionOutcome(paymentResult)
+        dispatchTTPEvent('PAYMENT_COLLECTION_OUTCOME_CLASSIFIED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, outcome)
+
+        // Emit appropriate event based on outcome
+        if (outcome === 'succeeded') {
+          console.log('[TTP Hook] NATIVE_PAYMENT_SUCCEEDED', {
+            status: paymentResult.status,
+            outcome,
+            paymentIntentId: terminalService.getPaymentIntentId(),
+            attemptId: terminalService.getCurrentAttemptId(),
+            sessionId: terminalService.getSessionId()
+          })
+          dispatchTTPEvent('NATIVE_PAYMENT_SUCCEEDED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, outcome)
+        } else if (outcome === 'canceled') {
+          console.log('[TTP Hook] NATIVE_PAYMENT_CANCELED', {
+            status: paymentResult.status,
+            outcome,
+            attemptId: terminalService.getCurrentAttemptId(),
+            sessionId: terminalService.getSessionId()
+          })
+          dispatchTTPEvent('NATIVE_PAYMENT_CANCELED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, outcome)
+          updatePaymentStateRef('canceled', 'native_canceled')
+          setIsPaymentInProgress(false)
+          permissionLock.setTapToPayActive(false)
+          startInFlight.current = false
+          activeAttemptRef.current = false
+          activeAttemptIdRef.current = null
+          activeAttemptTokenRef.current = null
+          console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_CLEARED_CANCELED')
+          return
+        } else if (outcome === 'failed') {
+          console.log('[TTP Hook] NATIVE_PAYMENT_FAILED', {
+            status: paymentResult.status,
+            outcome,
+            attemptId: terminalService.getCurrentAttemptId(),
+            sessionId: terminalService.getSessionId()
+          })
+          dispatchTTPEvent('NATIVE_PAYMENT_FAILED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, outcome)
+        }
+      } catch (collectionError: any) {
+        // Classify the error to detect cancellation
+        const outcome = classifyPaymentCollectionOutcome(collectionError)
+        dispatchTTPEvent('PAYMENT_COLLECTION_NATIVE_REJECTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, outcome)
+
+        if (outcome === 'canceled') {
+          console.log('[TTP Hook] PAYMENT_COLLECTION_CANCELED_VIA_ERROR', {
+            error: collectionError.message,
+            code: collectionError.code,
+            nativeCode: collectionError.nativeCode,
+            attemptId: terminalService.getCurrentAttemptId(),
+            sessionId: terminalService.getSessionId()
+          })
+          dispatchTTPEvent('NATIVE_PAYMENT_CANCELED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, 'native_canceled_error')
+          updatePaymentStateRef('canceled', 'native_canceled')
+          setIsPaymentInProgress(false)
+          permissionLock.setTapToPayActive(false)
+          startInFlight.current = false
+          activeAttemptRef.current = false
+          activeAttemptIdRef.current = null
+          activeAttemptTokenRef.current = null
+          console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_CLEARED_CANCELED')
+          return
+        }
+
+        // Re-throw non-cancellation errors to the generic handler
+        throw collectionError
+      }
+
+      // Normalize the native result status (for success path)
       const normalizedStatus = normalizeNativePaymentResult(paymentResult.status)
-
-      // Emit appropriate event based on normalized status
-      if (normalizedStatus === 'succeeded') {
-        console.log('[TTP Hook] NATIVE_PAYMENT_SUCCEEDED', {
-          status: paymentResult.status,
-          normalizedStatus,
-          paymentIntentId: terminalService.getPaymentIntentId(),
-          attemptId: terminalService.getCurrentAttemptId(),
-          sessionId: terminalService.getSessionId()
-        })
-        dispatchTTPEvent('NATIVE_PAYMENT_SUCCEEDED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, normalizedStatus)
-      } else if (normalizedStatus === 'canceled') {
-        console.log('[TTP Hook] NATIVE_PAYMENT_CANCELED', {
-          status: paymentResult.status,
-          normalizedStatus,
-          attemptId: terminalService.getCurrentAttemptId(),
-          sessionId: terminalService.getSessionId()
-        })
-        dispatchTTPEvent('NATIVE_PAYMENT_CANCELED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, normalizedStatus)
-      } else if (normalizedStatus === 'failed') {
-        console.log('[TTP Hook] NATIVE_PAYMENT_FAILED', {
-          status: paymentResult.status,
-          normalizedStatus,
-          attemptId: terminalService.getCurrentAttemptId(),
-          sessionId: terminalService.getSessionId()
-        })
-        dispatchTTPEvent('NATIVE_PAYMENT_FAILED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, normalizedStatus)
-      }
 
       if (normalizedStatus === 'succeeded') {
         const paymentIntentId = terminalService.getPaymentIntentId()
@@ -1064,6 +1160,13 @@ async function withTimeout<T>(
     setStructuredError(null)
     setMappedError(null)
     autoRetryInProgress.current = false
+
+    // Clear all attempt flags to ensure setup controls return
+    startInFlight.current = false
+    activeAttemptRef.current = false
+    activeAttemptIdRef.current = null
+    activeAttemptTokenRef.current = null
+    setIsPaymentInProgress(false)
 
     // Clear reset reason to avoid confusion
     setLastResetReason('retry_after_cancellation')
