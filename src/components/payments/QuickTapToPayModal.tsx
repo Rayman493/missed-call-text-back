@@ -42,7 +42,7 @@ export default function QuickTapToPayModal({
   const [modalSessionId, setModalSessionId] = useState<string>(`modal_${Date.now()}`)
   const [connectingElapsedTime, setConnectingElapsedTime] = useState(0)
   const [eventTimeline, setEventTimeline] = useState<Array<{ timestamp: string; event: string; sessionId?: string; attemptId?: string; paymentState?: string; stage?: string }>>([])
-  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_MODAL_OPEN_RACE_FIX'
+  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_ATTEMPT_OWNERSHIP_FIX'
 
   // Ref for modal title for accessibility focus
   const titleRef = useRef<HTMLHeadingElement>(null)
@@ -146,6 +146,10 @@ export default function QuickTapToPayModal({
     onPaymentError: () => {},
   })
 
+  // Ref to store resetToSetup for modal-open effect (avoid unstable dependency)
+  const resetToSetupRef = useRef(resetToSetup)
+  resetToSetupRef.current = resetToSetup
+
   // Derive showPaymentSetup from paymentState to ensure UI is always in sync
   const showPaymentSetup = paymentState === 'ready'
 
@@ -176,7 +180,7 @@ export default function QuickTapToPayModal({
     // Note: We don't clear amount/customer/job as user may want to retry
   }, [resetTapToPayUiState])
 
-  // Modal-session initialization
+  // Modal-session initialization - only runs on closed→open transition
   useEffect(() => {
     const justOpened = isOpen && !previousIsOpenRef.current
     previousIsOpenRef.current = isOpen
@@ -190,7 +194,10 @@ export default function QuickTapToPayModal({
       currentPaymentState: paymentState 
     })
     setModalSessionId(newSessionId)
-  }, [isOpen, paymentState, modalSessionId])
+    
+    // Call resetToSetup via ref to avoid unstable dependency
+    resetToSetupRef.current('modal_opened')
+  }, [isOpen])
 
   // Render logging for debugging
   useEffect(() => {
@@ -555,7 +562,7 @@ export default function QuickTapToPayModal({
                 <div className="space-y-3 mb-4">
                   {/* Unmistakable Banner */}
                   <div className="p-3 rounded-lg border-2 border-purple-700 bg-purple-900/30 text-center">
-                    <div className="text-purple-300 font-extrabold text-lg tracking-wide">TTP DIAGNOSTICS BUILD 2026-08-03-RACE-FIX</div>
+                    <div className="text-purple-300 font-extrabold text-lg tracking-wide">TTP DIAGNOSTICS BUILD 2026-08-03-OWNERSHIP</div>
                     <div className="text-xs text-purple-200/80">WEB BUILD: {WEB_BUILD_MARKER}</div>
                   </div>
                   

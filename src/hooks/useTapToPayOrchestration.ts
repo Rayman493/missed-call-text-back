@@ -102,6 +102,7 @@ export function useTapToPayOrchestration({
   const activeAttemptRef = useRef(false)
   const recoveryRunRef = useRef(false)
   const activeAttemptIdRef = useRef<string | null>(null)
+  const activeAttemptTokenRef = useRef<string | null>(null)
 
   // Update ref when state changes with logging and reason
   const updatePaymentStateRef = useCallback((newState: PaymentState, reason: string = 'unknown') => {
@@ -400,6 +401,66 @@ export function useTapToPayOrchestration({
     checkUnresolvedAttempt()
   }, []) // Empty dependency array - run only on mount
 
+  // Helper to check if reset is safe given active attempt
+  const canResetPaymentUi = useCallback((source: string) => {
+    const canReset = !(
+      startInFlight.current ||
+      activeAttemptRef.current ||
+      isPaymentInProgress ||
+      activeAttemptIdRef.current !== null
+    )
+    
+    if (!canReset) {
+      console.log('[TTP Hook] RESET_SKIPPED_ACTIVE_ATTEMPT', {
+        source,
+        paymentState: paymentStateRef.current,
+        activeAttemptId: activeAttemptIdRef.current,
+        startInFlight: startInFlight.current,
+        activeAttempt: activeAttemptRef.current,
+        isPaymentInProgress,
+      })
+      dispatchTTPEvent('RESET_SKIPPED_ACTIVE_ATTEMPT', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), paymentStateRef.current, source)
+    }
+    
+    return canReset
+  }, [isPaymentInProgress])
+
+  // Helper to check if an async result belongs to the active attempt
+  const isResultFromActiveAttempt = useCallback((localAttemptToken: string | null, source: string) => {
+    const isActive = activeAttemptTokenRef.current !== null && activeAttemptTokenRef.current === localAttemptToken
+    
+    if (!isActive && localAttemptToken !== null) {
+      console.log('[TTP Hook] STALE_ATTEMPT_RESULT_IGNORED', {
+        source,
+        localAttemptToken,
+        activeAttemptToken: activeAttemptTokenRef.current,
+      })
+      dispatchTTPEvent('STALE_ATTEMPT_RESULT_IGNORED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), paymentStateRef.current, source)
+    }
+    
+    return isActive
+  }, [])
+
+  // Helper to normalize native payment result status
+  const normalizeNativePaymentResult = useCallback((status: string): 'succeeded' | 'canceled' | 'failed' | 'pending' | 'ambiguous' => {
+    const normalized = status?.toLowerCase() || ''
+    
+    if (normalized === 'success' || normalized === 'succeeded') {
+      return 'succeeded'
+    }
+    if (normalized === 'cancel' || normalized === 'canceled' || normalized === 'cancelled') {
+      return 'canceled'
+    }
+    if (normalized === 'fail' || normalized === 'failed' || normalized === 'error') {
+      return 'failed'
+    }
+    if (normalized === 'pending') {
+      return 'pending'
+    }
+    
+    return 'ambiguous'
+  }, [])
+
   // Main payment orchestration function
   const startPayment = useCallback(async () => {
     console.log('[TTP Hook] START_PAYMENT_ENTERED', {
@@ -480,11 +541,14 @@ export function useTapToPayOrchestration({
     startInFlight.current = true
     activeAttemptRef.current = true
     const currentAttemptId = terminalService.getCurrentAttemptId()
+    const attemptToken = crypto.randomUUID()
     activeAttemptIdRef.current = currentAttemptId
+    activeAttemptTokenRef.current = attemptToken
     console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_SET')
     console.log('[TTP Hook] ATTEMPT_STARTED', {
       sessionId: terminalService.getSessionId(),
-      attemptId: currentAttemptId
+      attemptId: currentAttemptId,
+      attemptToken
     })
     dispatchTTPEvent('ATTEMPT_STARTED', terminalService.getSessionId(), currentAttemptId)
 
@@ -621,6 +685,7 @@ export function useTapToPayOrchestration({
           })
         })
         
+        const localAttemptToken = activeAttemptTokenRef.current
         const connectResult = await withTimeout(
           terminalService.connectTapToPay(),
           'READER_CONNECTION',
@@ -628,6 +693,12 @@ export function useTapToPayOrchestration({
           terminalService.getSessionId() || 'unknown',
           terminalService.getCurrentAttemptId() || 'unknown'
         )
+        
+        // Check if this result belongs to the active attempt
+        if (!isResultFromActiveAttempt(localAttemptToken, 'connectTapToPay')) {
+          throw new Error('Stale connection result ignored')
+        }
+        
         console.log('[TTP Hook] CONNECTION_COMPLETED', { status: connectResult.status })
         dispatchTTPEvent('CONNECTION_COMPLETED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, connectResult.status)
         dispatchTTPEvent('CONNECT_PROMISE_RESOLVED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, connectResult.status)
@@ -696,7 +767,14 @@ export function useTapToPayOrchestration({
       })
       dispatchTTPEvent('COLLECT_STARTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'waiting_for_card', 'collect_payment')
       
+      const localAttemptToken = activeAttemptTokenRef.current
       const paymentResult = await paymentPromise
+      
+      // Check if this result belongs to the active attempt
+      if (!isResultFromActiveAttempt(localAttemptToken, 'startTapToPayPayment')) {
+        throw new Error('Stale payment result ignored')
+      }
+      
       console.log('[TTP Hook] COLLECT_COMPLETED', {
         paymentResult,
         attemptId: terminalService.getCurrentAttemptId(),
@@ -705,56 +783,121 @@ export function useTapToPayOrchestration({
       dispatchTTPEvent('COLLECT_COMPLETED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, paymentResult.status)
       dispatchTTPEvent('PAYMENT_COLLECTION_PROMISE_RESOLVED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, paymentResult.status)
 
-      // Emit appropriate event based on actual status
-      if (paymentResult.status === 'success') {
+      // Normalize the native result status
+      const normalizedStatus = normalizeNativePaymentResult(paymentResult.status)
+
+      // Emit appropriate event based on normalized status
+      if (normalizedStatus === 'succeeded') {
         console.log('[TTP Hook] NATIVE_PAYMENT_SUCCEEDED', {
           status: paymentResult.status,
+          normalizedStatus,
           paymentIntentId: terminalService.getPaymentIntentId(),
           attemptId: terminalService.getCurrentAttemptId(),
           sessionId: terminalService.getSessionId()
         })
-        dispatchTTPEvent('NATIVE_PAYMENT_SUCCEEDED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, paymentResult.status)
-      } else if (paymentResult.status === 'canceled' || paymentResult.status === 'cancelled') {
+        dispatchTTPEvent('NATIVE_PAYMENT_SUCCEEDED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, normalizedStatus)
+      } else if (normalizedStatus === 'canceled') {
         console.log('[TTP Hook] NATIVE_PAYMENT_CANCELED', {
           status: paymentResult.status,
+          normalizedStatus,
           attemptId: terminalService.getCurrentAttemptId(),
           sessionId: terminalService.getSessionId()
         })
-        dispatchTTPEvent('NATIVE_PAYMENT_CANCELED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, paymentResult.status)
+        dispatchTTPEvent('NATIVE_PAYMENT_CANCELED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, normalizedStatus)
+      } else if (normalizedStatus === 'failed') {
+        console.log('[TTP Hook] NATIVE_PAYMENT_FAILED', {
+          status: paymentResult.status,
+          normalizedStatus,
+          attemptId: terminalService.getCurrentAttemptId(),
+          sessionId: terminalService.getSessionId()
+        })
+        dispatchTTPEvent('NATIVE_PAYMENT_FAILED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, normalizedStatus)
       }
 
-      if (paymentResult.status === 'success') {
+      if (normalizedStatus === 'succeeded') {
         const paymentIntentId = terminalService.getPaymentIntentId()
         console.log('[TTP Hook] RECONCILE_STARTED', {
           paymentIntentId,
           attemptId: terminalService.getCurrentAttemptId(),
           sessionId: terminalService.getSessionId()
         })
+        dispatchTTPEvent('RECONCILE_STARTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'processing', 'reconciliation_started')
         
-        updatePaymentStateRef('success', 'payment_completed')
-        console.log('[TTP Hook] MODAL_SUCCESS_RENDERED', {
-          paymentIntentId,
-          attemptId: terminalService.getCurrentAttemptId(),
-          sessionId: terminalService.getSessionId()
-        })
-        dispatchTTPEvent('MODAL_SUCCESS_RENDERED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'success')
+        // Set processing state while reconciling
+        updatePaymentStateRef('processing', 'reconciliation_started')
         
+        try {
+          const reconcileResponse = await fetch('/api/terminal/reconcile-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paymentIntentId }),
+          })
+          
+          console.log('[TTP Hook] RECONCILE_COMPLETED', { paymentIntentId })
+          dispatchTTPEvent('RECONCILE_COMPLETED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'processing', 'reconciliation_completed')
+          
+          // Now commit success
+          updatePaymentStateRef('success', 'payment_completed')
+          console.log('[TTP Hook] SUCCESS_STATE_ENTERED', {
+            paymentIntentId,
+            attemptId: terminalService.getCurrentAttemptId(),
+            sessionId: terminalService.getSessionId()
+          })
+          dispatchTTPEvent('SUCCESS_STATE_ENTERED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'success')
+          
+          console.log('[TTP Hook] MODAL_SUCCESS_RENDERED', {
+            paymentIntentId,
+            attemptId: terminalService.getCurrentAttemptId(),
+            sessionId: terminalService.getSessionId()
+          })
+          dispatchTTPEvent('MODAL_SUCCESS_RENDERED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'success')
+          
+          // Clear flags after success is committed
+          setIsPaymentInProgress(false)
+          permissionLock.setTapToPayActive(false)
+          startInFlight.current = false
+          activeAttemptRef.current = false
+          activeAttemptIdRef.current = null
+          activeAttemptTokenRef.current = null
+          console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_CLEARED_SUCCESS')
+          
+          // Dispatch event for Recent Payments refresh
+          if (paymentIntentId) {
+            window.dispatchEvent(new CustomEvent('replyflow:payment-completed', {
+              detail: { paymentIntentId }
+            }))
+            console.log('[TTP Hook] PAYMENTS_LIST_REFRESH_DISPATCHED', { paymentIntentId })
+            dispatchTTPEvent('PAYMENTS_LIST_REFRESH_DISPATCHED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'success', 'payment_intent:' + paymentIntentId.slice(0, 8))
+          }
+          
+          onPaymentComplete?.()
+        } catch (reconcileError) {
+          console.error('[TTP Hook] RECONCILE_FAILED', reconcileError)
+          // Still show success even if reconciliation fails - payment was successful
+          updatePaymentStateRef('success', 'payment_completed')
+          dispatchTTPEvent('MODAL_SUCCESS_RENDERED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'success')
+          
+          // Clear flags
+          setIsPaymentInProgress(false)
+          permissionLock.setTapToPayActive(false)
+          startInFlight.current = false
+          activeAttemptRef.current = false
+          activeAttemptIdRef.current = null
+          activeAttemptTokenRef.current = null
+          
+          onPaymentComplete?.()
+        }
+      } else if (normalizedStatus === 'canceled') {
+        console.log('[TTP Hook] PAYMENT_CANCELED')
+        updatePaymentStateRef('canceled', 'native_canceled')
         setIsPaymentInProgress(false)
         permissionLock.setTapToPayActive(false)
         startInFlight.current = false
         activeAttemptRef.current = false
-        console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_CLEARED_SUCCESS')
-        
-        // Dispatch event for Recent Payments refresh
-        if (paymentIntentId) {
-          window.dispatchEvent(new CustomEvent('replyflow:payment-completed', {
-            detail: { paymentIntentId }
-          }))
-          console.log('[TTP Hook] PAYMENTS_LIST_REFRESH_DISPATCHED', { paymentIntentId })
-        }
-        
-        onPaymentComplete?.()
-      } else if (paymentResult.status === 'failed') {
+        activeAttemptIdRef.current = null
+        activeAttemptTokenRef.current = null
+        console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_CLEARED_CANCELED')
+      } else if (normalizedStatus === 'failed') {
         const errorMsg = paymentResult.error || 'Payment failed'
         setError(errorMsg)
         updatePaymentStateRef('failure')
@@ -873,6 +1016,11 @@ async function withTimeout<T>(
 
   // Emergency reset function to clear all UI state
   const resetTapToPayUiState = useCallback((preserveSucceededAttempt: boolean = true) => {
+    // Guard: Do not reset if an active attempt is in progress (unless preserving succeeded attempt)
+    if (!preserveSucceededAttempt && !canResetPaymentUi('resetTapToPayUiState:emergency_reset')) {
+      return
+    }
+    
     console.log('[TTP Hook] EMERGENCY_RESET', { preserveSucceededAttempt })
     dispatchTTPEvent('RESET_TRIGGERED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), paymentState, 'resetTapToPayUiState:emergency_reset')
     setIsPaymentInProgress(false)
@@ -888,10 +1036,14 @@ async function withTimeout<T>(
     setLastSuccessfulStage('none')
     setShowLocationPermissionDialog(false)
     // Note: We don't clear session/attempt IDs here as they're managed by the terminal service
-  }, [updatePaymentStateRef, paymentState, lastSuccessfulStage, isPaymentInProgress])
+  }, [updatePaymentStateRef, paymentState, lastSuccessfulStage, isPaymentInProgress, canResetPaymentUi])
 
-  // Reset to setup state (separate from cancelPayment)
   const resetToSetup = useCallback((reason: string = 'reset_to_setup') => {
+    // Guard: Do not reset if an active attempt is in progress
+    if (!canResetPaymentUi(`resetToSetup:${reason}`)) {
+      return
+    }
+    
     console.log('[QuickTTP UI] RESET_TO_SETUP', { reason, currentPaymentState: paymentState })
     dispatchTTPEvent('RESET_TRIGGERED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), paymentState, `resetToSetup:${reason}`)
     setIsPaymentInProgress(false)
@@ -905,7 +1057,7 @@ async function withTimeout<T>(
     setMappedError(null)
     autoRetryInProgress.current = false
     setShowLocationPermissionDialog(false)
-  }, [updatePaymentStateRef, paymentState, lastSuccessfulStage, isPaymentInProgress])
+  }, [updatePaymentStateRef, paymentState, lastSuccessfulStage, isPaymentInProgress, canResetPaymentUi])
 
   return {
     paymentState,
