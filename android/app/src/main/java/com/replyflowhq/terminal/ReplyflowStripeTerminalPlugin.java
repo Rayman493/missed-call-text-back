@@ -64,7 +64,10 @@ import java.util.Locale;
 )
 public class ReplyflowStripeTerminalPlugin extends Plugin {
   private static final String TAG = "ReplyflowStripeTerminal";
-  private static final String BUILD_MARKER = "TTP_2026_08_03_NATIVE_DETECTION_FIX";
+  private static final String BUILD_MARKER = "TTP_2026_08_03_PERMISSION_CONTINUATION_FIX";
+
+  // Request ID for permission correlation
+  private String locationPermissionRequestId = null;
 
   // Initialization state tracking
   private enum InitState {
@@ -397,13 +400,13 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
   @PluginMethod
   public void requestLocationPermission(PluginCall call) {
-    String requestId = UUID.randomUUID().toString();
-    Log.d(TAG, "[LOCATION_PERMISSION_REQUEST_STARTED] requestLocationPermission() called requestId=" + requestId);
+    locationPermissionRequestId = UUID.randomUUID().toString();
+    Log.d(TAG, "[LOCATION_PERMISSION_REQUEST_STARTED] requestLocationPermission() called requestId=" + locationPermissionRequestId);
     
     try {
       // Check if activity is available
       if (getActivity() == null) {
-        Log.e(TAG, "[LOCATION_PERMISSION_REQUEST_FAILED] Activity is null, cannot request permission requestId=" + requestId);
+        Log.e(TAG, "[LOCATION_PERMISSION_REQUEST_FAILED] Activity is null, cannot request permission requestId=" + locationPermissionRequestId);
         resolveLocationStatus(call, false, false, false, false, "Activity not available");
         return;
       }
@@ -422,24 +425,26 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       boolean locationEnabled = isLocationEnabled();
       
       if (hasFinePermission || hasCoarsePermission) {
-        Log.d(TAG, "[LOCATION_PERMISSION_REQUEST_RESULT] Permission already granted fine=" + hasFinePermission + " coarse=" + hasCoarsePermission + " requestId=" + requestId);
+        Log.d(TAG, "[LOCATION_PERMISSION_REQUEST_RESULT] Permission already granted fine=" + hasFinePermission + " coarse=" + hasCoarsePermission + " requestId=" + locationPermissionRequestId);
         resolveLocationStatus(call, true, hasFinePermission, true, locationEnabled, null);
+        locationPermissionRequestId = null;
         return;
       }
       
       // Request permission using Capacitor's mechanism
-      Log.d(TAG, "[LOCATION_PERMISSION_REQUEST_DISPATCHED] Requesting location permission requestId=" + requestId);
+      Log.d(TAG, "[LOCATION_PERMISSION_REQUEST_DISPATCHED] Requesting location permission requestId=" + locationPermissionRequestId);
       call.save();
       requestPermissionForAlias("location", call, "locationPermissionCallback");
     } catch (Exception e) {
-      Log.e(TAG, "[LOCATION_PERMISSION_REQUEST_FAILED] Exception in requestLocationPermission requestId=" + requestId, e);
+      Log.e(TAG, "[LOCATION_PERMISSION_REQUEST_FAILED] Exception in requestLocationPermission requestId=" + locationPermissionRequestId, e);
       resolveLocationStatus(call, false, false, false, false, e.getMessage());
+      locationPermissionRequestId = null;
     }
   }
   
   @PermissionCallback
   private void locationPermissionCallback(PluginCall call) {
-    String requestId = UUID.randomUUID().toString();
+    String requestId = locationPermissionRequestId != null ? locationPermissionRequestId : UUID.randomUUID().toString();
     Log.d(TAG, "[LOCATION_PERMISSION_CALLBACK_RECEIVED] Permission callback received requestId=" + requestId);
     
     boolean granted = getPermissionState("location") == PermissionState.GRANTED;
@@ -454,6 +459,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     
     resolveLocationStatus(call, granted, precise, canAskAgain, locationEnabled, null);
     Log.d(TAG, "[LOCATION_PERMISSION_REQUEST_RESOLVED] Permission request resolved requestId=" + requestId + " granted=" + granted);
+    
+    locationPermissionRequestId = null;
   }
   
   private void resolveLocationStatus(PluginCall call, boolean granted, boolean precise, boolean canAskAgain, boolean locationEnabled, String error) {

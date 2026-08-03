@@ -43,7 +43,7 @@ interface UseTapToPayOrchestrationReturn {
   resetTapToPayUiState: (preserveSucceededAttempt?: boolean) => void
   resetToSetup: (reason?: string) => void
   checkPlatformSupport: () => Promise<{ platform: 'ios' | 'android' | 'web'; isNativeSupported: boolean }>
-  requestLocationPermission: () => Promise<boolean>
+  requestLocationPermission: () => Promise<{ granted: boolean; locationEnabled: boolean }>
 }
 
 export function useTapToPayOrchestration({
@@ -134,13 +134,13 @@ export function useTapToPayOrchestration({
   }, [])
 
   // Check location permission for Android
-  const checkLocationPermission = useCallback(async (): Promise<boolean> => {
+  const checkLocationPermission = useCallback(async (): Promise<{ granted: boolean; locationEnabled: boolean }> => {
     console.log('[TTP Hook] checkLocationPermission called', { platform })
     if (platform !== 'android') {
       setLocationPermissionGranted(true)
       setLocationServicesEnabled(true)
       console.log('[TTP Hook] checkLocationPermission: not Android, skipping')
-      return true
+      return { granted: true, locationEnabled: true }
     }
 
     try {
@@ -153,21 +153,21 @@ export function useTapToPayOrchestration({
       setLocationPermissionGranted(result.granted)
       setLocationServicesEnabled(result.locationEnabled)
 
-      return result.granted && result.locationEnabled
+      return { granted: result.granted, locationEnabled: result.locationEnabled }
     } catch (error) {
       console.error('[TTP Hook] Failed to check location permission:', error)
       setLocationPermissionGranted(true)
       setLocationServicesEnabled(true)
       console.log('[TTP Hook] checkLocationPermission: error, returning true (fallback)')
-      return true
+      return { granted: true, locationEnabled: true }
     }
   }, [platform])
 
   // Request location permission proactively
-  const requestLocationPermission = useCallback(async (): Promise<boolean> => {
+  const requestLocationPermission = useCallback(async (): Promise<{ granted: boolean; locationEnabled: boolean }> => {
     console.log('[TTP Hook] requestLocationPermission called', { platform })
     if (platform !== 'android') {
-      return true
+      return { granted: true, locationEnabled: true }
     }
 
     try {
@@ -182,14 +182,14 @@ export function useTapToPayOrchestration({
       // After requesting permission, check location services
       if (result.granted) {
         const locationCheck = await checkLocationPermission()
-        setLocationServicesEnabled(locationServicesEnabled)
+        setLocationServicesEnabled(locationCheck.locationEnabled)
         return locationCheck
       }
       
-      return false
+      return { granted: false, locationEnabled: false }
     } catch (error) {
       console.error('[TTP Hook] Failed to request location permission:', error)
-      return false
+      return { granted: false, locationEnabled: false }
     }
   }, [platform, checkLocationPermission])
 
@@ -361,6 +361,7 @@ export function useTapToPayOrchestration({
         
         if (!permissionResult.granted) {
           console.log('[QuickTTP UI] LOCATION_CHECK_FAILED - requesting permission')
+          console.log('[QuickTTP UI] BEFORE_PERMISSION_AWAIT')
           permissionResult = await withTimeout(
             requestLocationPermission(),
             'LOCATION_PERMISSION_REQUEST',
@@ -368,6 +369,12 @@ export function useTapToPayOrchestration({
             terminalService.getSessionId() || 'unknown',
             terminalService.getCurrentAttemptId() || 'unknown'
           )
+          console.log('[QuickTTP UI] AFTER_PERMISSION_AWAIT', {
+            granted: permissionResult?.granted,
+            locationEnabled: permissionResult?.locationEnabled,
+            resultType: typeof permissionResult,
+            resultPresent: !!permissionResult
+          })
           console.log('[QuickTTP UI] LOCATION_REQUEST_RESULT', { permissionResult })
           
           if (!permissionResult.granted) {
@@ -395,6 +402,17 @@ export function useTapToPayOrchestration({
           console.log('[QuickTTP UI] LOCATION_PERMISSION_CONTINUING_SAME_ATTEMPT')
         }
         console.log('[QuickTTP UI] LOCATION_FINAL_RESULT', { granted: permissionResult.granted, locationEnabled: permissionResult.locationEnabled })
+        
+        if (!permissionResult.granted) {
+          console.log('[QuickTTP UI] LOCATION_PERMISSION_DENIED_BRANCH')
+          throw new Error('Location permission was denied')
+        }
+        
+        if (!permissionResult.locationEnabled) {
+          console.log('[QuickTTP UI] LOCATION_SERVICES_DISABLED_BRANCH')
+          throw new Error('Location services are disabled')
+        }
+        
         console.log('[QuickTTP UI] LOCATION_BLOCK_PASSED')
         setLastSuccessfulStage('location_permission_ok')
       }
