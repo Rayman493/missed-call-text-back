@@ -476,6 +476,12 @@ export function useTapToPayOrchestration({
         updatePaymentStateRef('connecting_reader', 'connection_started')
         console.log('[TTP Hook] CONNECTION_STARTED')
         setLastSuccessfulStage('connecting_reader')
+        
+        // Yield one frame to allow React to paint the connecting state before native call
+        await new Promise<void>(resolve => {
+          requestAnimationFrame(() => resolve())
+        })
+        
         const connectResult = await withTimeout(
           terminalService.connectTapToPay(),
           'READER_CONNECTION',
@@ -493,6 +499,12 @@ export function useTapToPayOrchestration({
 
       // Start payment collection
       updatePaymentStateRef('creating_payment_intent', 'payment_intent_creation_started')
+      
+      // Yield one frame to allow React to paint the creating_payment_intent state
+      await new Promise<void>(resolve => {
+        requestAnimationFrame(() => resolve())
+      })
+      
       const paymentPromise = withTimeout(
         terminalService.startTapToPayPayment({
           amountCents,

@@ -41,7 +41,7 @@ export default function QuickTapToPayModal({
   const [showCustomerSelector, setShowCustomerSelector] = useState(false)
   const [modalSessionId, setModalSessionId] = useState<string>(`modal_${Date.now()}`)
   const [connectingElapsedTime, setConnectingElapsedTime] = useState(0)
-  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_UX_POLISH'
+  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_PROGRESS_RENDER_FIX'
 
   // Ref for modal title for accessibility focus
   const titleRef = useRef<HTMLHeadingElement>(null)
@@ -127,7 +127,7 @@ export default function QuickTapToPayModal({
         platform,
         renderedBranch: showPaymentSetup ? 'SETUP' : paymentState === 'failure' ? 'FAILURE' : paymentState === 'canceled' ? 'CANCELED' : paymentState.toUpperCase()
       }
-      console.log('[QuickTTP UI] RENDER_BRANCH', stateSnapshot)
+      console.log('[QuickTTP UI] PAYMENT_STATE_RENDER', stateSnapshot)
       
       // State invariants
       const invariants = [
