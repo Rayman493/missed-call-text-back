@@ -47,12 +47,13 @@ export default function QuickTapToPayModal({
   const [modalSessionId, setModalSessionId] = useState<string>(`modal_${Date.now()}`)
   const [connectingElapsedTime, setConnectingElapsedTime] = useState(0)
   const [eventTimeline, setEventTimeline] = useState<Array<{ timestamp: string; event: string; sessionId?: string; attemptId?: string; paymentState?: string; stage?: string }>>([])
-  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_LOCATION_CARD_FINAL_POLISH'
+  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_LOCATION_REPROMPT_SIMPLIFIED'
   
   // Location guidance card states (inline on setup screen, not overlays)
 const [showLocationPermissionCard, setShowLocationPermissionCard] = useState(false)
 const [showLocationServicesCard, setShowLocationServicesCard] = useState(false)
 const [showLocationBlockedCard, setShowLocationBlockedCard] = useState(false)
+const [isRequestingLocationPermission, setIsRequestingLocationPermission] = useState(false)
 
   // Ref for modal title for accessibility focus
   const titleRef = useRef<HTMLHeadingElement>(null)
@@ -1013,7 +1014,10 @@ const [showLocationBlockedCard, setShowLocationBlockedCard] = useState(false)
                           <button
                             onClick={async () => {
                               dispatchTTPEvent('LOCATION_PERMISSION_REQUEST_STARTED')
+                              dispatchTTPEvent('LOCATION_PERMISSION_REPROMPT_SELECTED')
+                              setIsRequestingLocationPermission(true)
                               const result = await requestLocationPermission()
+                              setIsRequestingLocationPermission(false)
                               dispatchTTPEvent('LOCATION_PERMISSION_REQUEST_RESOLVED', { granted: result.granted, locationEnabled: result.locationEnabled, canAskAgain: result.canAskAgain })
                               // Re-check after permission request
                               const checkResult = await checkLocationPermission()
@@ -1025,16 +1029,28 @@ const [showLocationBlockedCard, setShowLocationBlockedCard] = useState(false)
                               } else if (!checkResult.granted && !checkResult.canAskAgain) {
                                 setShowLocationPermissionCard(false)
                                 setShowLocationBlockedCard(true)
+                                dispatchTTPEvent('LOCATION_PERMISSION_BLOCKED')
                                 dispatchTTPEvent('LOCATION_INLINE_CARD_SHOWN', { card: 'blocked' })
                               } else if (checkResult.granted && !checkResult.locationEnabled) {
                                 setShowLocationPermissionCard(false)
                                 setShowLocationServicesCard(true)
                                 dispatchTTPEvent('LOCATION_INLINE_CARD_SHOWN', { card: 'services' })
+                              } else {
+                                // Normal denial - keep card visible for retry
+                                dispatchTTPEvent('LOCATION_PERMISSION_REPROMPT_AVAILABLE')
                               }
                             }}
-                            className="w-full h-[44px] px-3 text-xs font-medium bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors"
+                            disabled={isRequestingLocationPermission}
+                            className="w-full h-[44px] px-3 text-xs font-medium bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                           >
-                            Allow Location
+                            {isRequestingLocationPermission ? (
+                              <>
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                                Requesting...
+                              </>
+                            ) : (
+                              'Allow Location'
+                            )}
                           </button>
                         </div>
                       </div>
@@ -1051,13 +1067,14 @@ const [showLocationBlockedCard, setShowLocationBlockedCard] = useState(false)
                         <div className="flex-1 min-w-0">
                           <h4 className="text-xs font-semibold text-amber-900 dark:text-amber-100 mb-1">Turn On Location Services</h4>
                           <p className="text-[11px] text-gray-700 dark:text-gray-300 mb-2.5 leading-relaxed">
-                            Location Services must be enabled before Android can prepare Tap to Pay.
+                            Tap to Pay requires Location Services to be turned on while the secure reader is being prepared.
+                          </p>
+                          <p className="text-[11px] text-gray-600 dark:text-gray-400 mb-2.5 leading-relaxed">
+                            Turn on Location Services from your phone's quick settings, then return here.
                           </p>
                           <button
                             onClick={async () => {
-                              dispatchTTPEvent('OPEN_LOCATION_SETTINGS_REQUESTED')
-                              await handleOpenLocationSettings()
-                              // Re-check after returning from settings
+                              dispatchTTPEvent('LOCATION_SERVICES_CHECK_SELECTED')
                               const checkResult = await checkLocationPermission()
                               dispatchTTPEvent('LOCATION_RECHECK_AFTER_SETTINGS', { granted: checkResult.granted, locationEnabled: checkResult.locationEnabled })
                               if (checkResult.granted && checkResult.locationEnabled) {
@@ -1075,7 +1092,7 @@ const [showLocationBlockedCard, setShowLocationBlockedCard] = useState(false)
                             }}
                             className="w-full h-[44px] px-3 text-xs font-medium bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors"
                           >
-                            Open Location Settings
+                            Check Again
                           </button>
                         </div>
                       </div>
@@ -1092,13 +1109,11 @@ const [showLocationBlockedCard, setShowLocationBlockedCard] = useState(false)
                         <div className="flex-1 min-w-0">
                           <h4 className="text-xs font-semibold text-amber-900 dark:text-amber-100 mb-1">Location Permission Required</h4>
                           <p className="text-[11px] text-gray-700 dark:text-gray-300 mb-2.5 leading-relaxed">
-                            Location permission has been permanently denied. Enable it in Android Settings to continue.
+                            Location permission is turned off for ReplyFlow. Enable it in Android Settings to use Tap to Pay.
                           </p>
                           <button
                             onClick={async () => {
-                              dispatchTTPEvent('OPEN_APP_SETTINGS_REQUESTED')
-                              await handleOpenAppSettings()
-                              // Re-check after returning from settings
+                              dispatchTTPEvent('LOCATION_PERMISSION_BLOCKED_RETRY_SELECTED')
                               const checkResult = await checkLocationPermission()
                               dispatchTTPEvent('LOCATION_RECHECK_AFTER_SETTINGS', { granted: checkResult.granted, locationEnabled: checkResult.locationEnabled, canAskAgain: checkResult.canAskAgain })
                               if (checkResult.granted && checkResult.locationEnabled) {
@@ -1116,7 +1131,7 @@ const [showLocationBlockedCard, setShowLocationBlockedCard] = useState(false)
                             }}
                             className="w-full h-[44px] px-3 text-xs font-medium bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors"
                           >
-                            Open App Settings
+                            Try Again
                           </button>
                         </div>
                       </div>
