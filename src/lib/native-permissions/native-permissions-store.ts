@@ -35,10 +35,14 @@ import {
   checkNotificationPermissionNative,
   requestNotificationPermissionNative,
   addAppResumeListener,
+  createTimeoutPromise,
 } from './native-permissions-service'
 
 // Cache duration: 10 seconds
 const CACHE_DURATION_MS = 10000
+
+// Timeout for native permission checks: 10 seconds
+const PERMISSION_CHECK_TIMEOUT_MS = 10000
 
 /**
  * Initial permission state
@@ -299,7 +303,7 @@ class NativePermissionsStore {
   }
 
   /**
-   * Check notification permission (with caching and deduplication)
+   * Check notification permission (with caching, deduplication, and timeout)
    */
   async checkNotificationPermission(options?: CheckPermissionOptions): Promise<void> {
     // If a check is already in flight, wait for it
@@ -318,12 +322,30 @@ class NativePermissionsStore {
       return
     }
 
-    // Start new check
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[NativePermissionsStore] NATIVE_NOTIFICATION_CHECK_ENTERED')
+    }
+
+    // Start new check with timeout
     this.notificationCheckPromise = (async () => {
+      const previousStatus = this.state.notifications.status
+      const previousError = this.state.notifications.error
+      
       try {
         this.updateNotificationState({ status: 'checking', error: null })
 
-        const result = await checkNotificationPermissionNative(options)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[NativePermissionsStore] NATIVE_NOTIFICATION_CHECK_NATIVE_CALL_STARTED')
+        }
+
+        const result = await Promise.race([
+          checkNotificationPermissionNative(options),
+          createTimeoutPromise(PERMISSION_CHECK_TIMEOUT_MS, 'Notification permission check'),
+        ]) as any
+
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[NativePermissionsStore] NATIVE_NOTIFICATION_CHECK_NATIVE_CALL_RESOLVED', result)
+        }
 
         this.updateNotificationState({
           status: result.status,
@@ -331,12 +353,26 @@ class NativePermissionsStore {
           lastCheckedAt: result.timestamp,
           error: result.error,
         })
+
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[NativePermissionsStore] NATIVE_NOTIFICATION_STATE_COMMITTED', { status: result.status })
+        }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error)
-        console.error('[NativePermissionsStore] Notification check failed:', error)
+        const isTimeout = error instanceof Error && error.name === 'TimeoutError'
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[NativePermissionsStore] NATIVE_NOTIFICATION_CHECK_FAILED', { error: errorMessage, isTimeout })
+        }
+
+        // Preserve previous status if we have one and it's not 'checking'
+        // This prevents getting stuck on 'checking' after timeout/error
+        const fallbackStatus = (previousStatus && previousStatus !== 'checking') ? previousStatus : 'unavailable'
+        
         this.updateNotificationState({
-          status: 'unknown',
-          error: errorMessage,
+          status: fallbackStatus,
+          canAskAgain: null,
+          error: isTimeout ? 'Permission check timed out. Try again.' : errorMessage,
         })
       } finally {
         this.notificationCheckPromise = null
@@ -347,7 +383,7 @@ class NativePermissionsStore {
   }
 
   /**
-   * Request notification permission (with deduplication)
+   * Request notification permission (with deduplication and timeout)
    */
   async requestNotificationPermission(options?: RequestPermissionOptions): Promise<void> {
     // If a request is already in flight, wait for it
@@ -358,12 +394,26 @@ class NativePermissionsStore {
       return this.notificationRequestPromise
     }
 
-    // Start new request
+    // Start new request with timeout
     this.notificationRequestPromise = (async () => {
+      const previousStatus = this.state.notifications.status
+      const previousError = this.state.notifications.error
+      
       try {
         this.updateNotificationState({ status: 'checking', error: null })
 
-        const result = await requestNotificationPermissionNative(options)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[NativePermissionsStore] NATIVE_NOTIFICATION_REQUEST_STARTED')
+        }
+
+        const result = await Promise.race([
+          requestNotificationPermissionNative(options),
+          createTimeoutPromise(PERMISSION_CHECK_TIMEOUT_MS, 'Notification permission request'),
+        ]) as any
+
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[NativePermissionsStore] NATIVE_NOTIFICATION_REQUEST_RESOLVED', result)
+        }
 
         this.updateNotificationState({
           status: result.status,
@@ -371,12 +421,25 @@ class NativePermissionsStore {
           lastCheckedAt: result.timestamp,
           error: result.error,
         })
+
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[NativePermissionsStore] NATIVE_NOTIFICATION_STATE_COMMITTED', { status: result.status })
+        }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error)
-        console.error('[NativePermissionsStore] Notification request failed:', error)
+        const isTimeout = error instanceof Error && error.name === 'TimeoutError'
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[NativePermissionsStore] NATIVE_NOTIFICATION_REQUEST_FAILED', { error: errorMessage, isTimeout })
+        }
+
+        // Preserve previous status if we have one and it's not 'checking'
+        const fallbackStatus = (previousStatus && previousStatus !== 'checking') ? previousStatus : 'unavailable'
+        
         this.updateNotificationState({
-          status: 'unknown',
-          error: errorMessage,
+          status: fallbackStatus,
+          canAskAgain: null,
+          error: isTimeout ? 'Permission request timed out. Try again.' : errorMessage,
         })
       } finally {
         this.notificationRequestPromise = null

@@ -29,6 +29,8 @@ export function PermissionsSettings() {
         return <span className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full">Not Available</span>
       case 'limited':
         return <span className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full">Limited</span>
+      case 'unknown':
+        return <span className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full"><AlertCircle className="w-3 h-3" />Error</span>
       default:
         return <span className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full">Checking…</span>
     }
@@ -69,7 +71,7 @@ export function PermissionsSettings() {
           <div className="flex items-center justify-between mt-3 gap-3">
             {location.status === 'granted' && (
               <button
-                onClick={checkLocationPermission}
+                onClick={() => checkLocationPermission(true)}
                 disabled={isLoadingLocation}
                 className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -77,17 +79,19 @@ export function PermissionsSettings() {
               </button>
             )}
 
-            {(location.status === 'denied' || location.status === 'limited') && location.canAskAgain && (
+            {(location.status === 'denied' || location.status === 'limited') && (
               <>
+                {location.canAskAgain !== false && (
+                  <button
+                    onClick={() => requestLocationPermission()}
+                    disabled={isLoadingLocation}
+                    className="px-3 py-1.5 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Allow Location
+                  </button>
+                )}
                 <button
-                  onClick={requestLocationPermission}
-                  disabled={isLoadingLocation}
-                  className="px-3 py-1.5 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Allow Location
-                </button>
-                <button
-                  onClick={checkLocationPermission}
+                  onClick={() => checkLocationPermission(true)}
                   disabled={isLoadingLocation}
                   className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -96,17 +100,32 @@ export function PermissionsSettings() {
               </>
             )}
 
-            {(location.status === 'blocked' || (location.status === 'denied' && !location.canAskAgain)) && (
+            {(location.status === 'blocked' || (location.status === 'denied' && location.canAskAgain === false)) && (
               <div className="flex-1">
                 <button
-                  onClick={checkLocationPermission}
+                  onClick={() => checkLocationPermission(true)}
                   disabled={isLoadingLocation}
                   className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Check Again
                 </button>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Enable Location for ReplyFlow in your device Settings, then return and check again.
+                  Location permission is disabled for ReplyFlow. Update it in your device settings, then return and tap Check Again.
+                </p>
+              </div>
+            )}
+
+            {location.status === 'granted' && location.servicesEnabled === false && (
+              <div className="flex-1">
+                <button
+                  onClick={() => checkLocationPermission(true)}
+                  disabled={isLoadingLocation}
+                  className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Check Again
+                </button>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Location Services are disabled. Enable them in your device settings, then return and tap Check Again.
                 </p>
               </div>
             )}
@@ -151,7 +170,7 @@ export function PermissionsSettings() {
           <div className="flex items-center justify-between mt-3 gap-3">
             {notifications.status === 'granted' && (
               <button
-                onClick={checkNotificationPermission}
+                onClick={() => checkNotificationPermission(true)}
                 disabled={isLoadingNotifications}
                 className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -159,17 +178,19 @@ export function PermissionsSettings() {
               </button>
             )}
 
-            {(notifications.status === 'denied' || notifications.status === 'limited') && notifications.canAskAgain && (
+            {(notifications.status === 'denied' || notifications.status === 'limited') && (
               <>
+                {notifications.canAskAgain !== false && (
+                  <button
+                    onClick={() => requestNotificationPermission()}
+                    disabled={isLoadingNotifications}
+                    className="px-3 py-1.5 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Allow Notifications
+                  </button>
+                )}
                 <button
-                  onClick={requestNotificationPermission}
-                  disabled={isLoadingNotifications}
-                  className="px-3 py-1.5 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Allow Notifications
-                </button>
-                <button
-                  onClick={checkNotificationPermission}
+                  onClick={() => checkNotificationPermission(true)}
                   disabled={isLoadingNotifications}
                   className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -178,17 +199,17 @@ export function PermissionsSettings() {
               </>
             )}
 
-            {(notifications.status === 'blocked' || (notifications.status === 'denied' && !notifications.canAskAgain)) && (
+            {(notifications.status === 'blocked' || (notifications.status === 'denied' && notifications.canAskAgain === false)) && (
               <div className="flex-1">
                 <button
-                  onClick={checkNotificationPermission}
+                  onClick={() => checkNotificationPermission(true)}
                   disabled={isLoadingNotifications}
                   className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Check Again
                 </button>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Enable notifications for ReplyFlow in your device Settings, then return and check again.
+                  Notifications are disabled for ReplyFlow. Update it in your device settings, then return and tap Check Again.
                 </p>
               </div>
             )}
@@ -196,6 +217,12 @@ export function PermissionsSettings() {
             {notifications.status === 'unavailable' && (
               <div className="text-xs text-muted-foreground">
                 {platform === 'web' ? 'Mobile App Required' : 'Not Available on this platform'}
+              </div>
+            )}
+
+            {notifications.error && (
+              <div className="text-xs text-red-600 dark:text-red-400">
+                {notifications.error}
               </div>
             )}
 

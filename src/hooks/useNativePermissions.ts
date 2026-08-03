@@ -16,6 +16,7 @@ export interface LocationPermissionState {
 export interface NotificationPermissionState {
   status: PermissionStatus
   canAskAgain: boolean | null
+  error: string | null
 }
 
 export interface NativePermissionsState {
@@ -26,9 +27,9 @@ export interface NativePermissionsState {
 }
 
 export interface NativePermissionsActions {
-  checkLocationPermission: () => Promise<void>
+  checkLocationPermission: (forceRefresh?: boolean) => Promise<void>
   requestLocationPermission: () => Promise<void>
-  checkNotificationPermission: () => Promise<void>
+  checkNotificationPermission: (forceRefresh?: boolean) => Promise<void>
   requestNotificationPermission: () => Promise<void>
 }
 
@@ -59,8 +60,8 @@ export function useNativePermissions(): NativePermissionsState & NativePermissio
   }, [])
 
   // Location permission check
-  const checkLocationPermission = useCallback(async () => {
-    await nativePermissionsStore.checkLocationPermission()
+  const checkLocationPermission = useCallback(async (forceRefresh?: boolean) => {
+    await nativePermissionsStore.checkLocationPermission({ forceRefresh: forceRefresh ?? false })
   }, [])
 
   // Location permission request
@@ -69,8 +70,8 @@ export function useNativePermissions(): NativePermissionsState & NativePermissio
   }, [])
 
   // Notification permission check
-  const checkNotificationPermission = useCallback(async () => {
-    await nativePermissionsStore.checkNotificationPermission()
+  const checkNotificationPermission = useCallback(async (forceRefresh?: boolean) => {
+    await nativePermissionsStore.checkNotificationPermission({ forceRefresh: forceRefresh ?? false })
   }, [])
 
   // Notification permission request
@@ -89,6 +90,7 @@ export function useNativePermissions(): NativePermissionsState & NativePermissio
     notifications: {
       status: state.notifications.status,
       canAskAgain: state.notifications.canAskAgain,
+      error: state.notifications.error,
     },
     checkLocationPermission,
     requestLocationPermission,

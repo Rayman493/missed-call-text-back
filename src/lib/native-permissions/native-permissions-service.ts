@@ -51,6 +51,24 @@ function emitDiagnostic(event: string, data?: any) {
 }
 
 /**
+ * Create a timeout promise that rejects after specified milliseconds
+ */
+export function createTimeoutPromise<T>(ms: number, operation: string): Promise<T> {
+  return new Promise<T>((_, reject) => {
+    const timeoutId = setTimeout(() => {
+      const error = new Error(`${operation} timeout after ${ms}ms`)
+      error.name = 'TimeoutError'
+      reject(error)
+    }, ms)
+    
+    // Don't leak timer if promise is somehow cancelled
+    if (typeof timeoutId.unref === 'function') {
+      timeoutId.unref()
+    }
+  })
+}
+
+/**
  * Normalize Capacitor notification permission status to canonical status
  */
 function normalizeNotificationStatus(
