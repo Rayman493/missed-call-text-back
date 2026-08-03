@@ -47,7 +47,12 @@ export default function QuickTapToPayModal({
   const [modalSessionId, setModalSessionId] = useState<string>(`modal_${Date.now()}`)
   const [connectingElapsedTime, setConnectingElapsedTime] = useState(0)
   const [eventTimeline, setEventTimeline] = useState<Array<{ timestamp: string; event: string; sessionId?: string; attemptId?: string; paymentState?: string; stage?: string }>>([])
-  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_CANCELED_ATTEMPT_CLEANUP_FIX'
+  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_LOCATION_EDUCATION_UX_FIX'
+  
+  // Location education states
+  const [showLocationEducation, setShowLocationEducation] = useState(false)
+  const [showLocationServicesRequired, setShowLocationServicesRequired] = useState(false)
+  const [showLocationPermissionBlocked, setShowLocationPermissionBlocked] = useState(false)
 
   // Ref for modal title for accessibility focus
   const titleRef = useRef<HTMLHeadingElement>(null)
@@ -138,6 +143,7 @@ export default function QuickTapToPayModal({
     resetToSetup,
     checkPlatformSupport,
     requestLocationPermission,
+    checkLocationPermission,
   } = useTapToPayOrchestration({
     amountCents,
     leadId: selectedLeadId || undefined,
@@ -451,6 +457,33 @@ export default function QuickTapToPayModal({
       return
     }
     logTapToPayEvent('PAY_BUTTON_PRESSED', { phase: 'payment_intent', sessionId: terminalService.getSessionId(), meta: { amountCents } }).catch(() => {})
+    
+    // Check location permission first for Android
+    if (platform === 'android') {
+      const locationCheck = await checkLocationPermission()
+      console.log('[QuickTTP UI] LOCATION_CHECK_BEFORE_START', { granted: locationCheck.granted, locationEnabled: locationCheck.locationEnabled, canAskAgain: locationCheck.canAskAgain })
+      
+      if (!locationCheck.granted && locationCheck.canAskAgain) {
+        // Show education dialog before requesting permission
+        dispatchTTPEvent('LOCATION_EDUCATION_RENDERED')
+        setShowLocationEducation(true)
+        return
+      } else if (!locationCheck.granted && !locationCheck.canAskAgain) {
+        // Permanently denied - show blocked dialog
+        dispatchTTPEvent('LOCATION_PERMISSION_BLOCKED')
+        setShowLocationPermissionBlocked(true)
+        return
+      } else if (locationCheck.granted && !locationCheck.locationEnabled) {
+        // Permission granted but Location Services off
+        dispatchTTPEvent('LOCATION_SERVICES_REQUIRED')
+        setShowLocationServicesRequired(true)
+        return
+      } else if (locationCheck.granted && locationCheck.locationEnabled) {
+        // Both granted and enabled - continue with payment
+        dispatchTTPEvent('LOCATION_REQUIREMENTS_SATISFIED')
+      }
+    }
+    
     // Don't switch UI state yet - let the hook's state change trigger the UI update
     await startPayment()
   }
@@ -1214,6 +1247,138 @@ export default function QuickTapToPayModal({
           </div>
         </div>,
         document.body
+      )}
+      
+      {/* Location Education Dialog */}
+      {showLocationEducation && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold mb-3">Location is required for Tap to Pay</h3>
+            <p className="text-sm text-gray-700 mb-6">
+              Android requires location access while ReplyFlow prepares the secure Tap to Pay reader. ReplyFlow does not use your location for advertising or customer tracking.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowLocationEducation(false)
+                  dispatchTTPEvent('LOCATION_EDUCATION_NOT_NOW')
+                }}
+                className="flex-1 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Not Now
+              </button>
+              <button
+                onClick={async () => {
+                  setShowLocationEducation(false)
+                  dispatchTTPEvent('LOCATION_EDUCATION_CONTINUE')
+                  await requestLocationPermission()
+                }}
+                className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Location Services Required Dialog */}
+      {showLocationServicesRequired && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold mb-3">Turn on Location Services</h3>
+            <p className="text-sm text-gray-700 mb-6">
+              Tap to Pay requires Location Services to be turned on while the secure reader is being prepared.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowLocationServicesRequired(false)
+                  cancelPayment('user_canceled')
+                }}
+                className="flex-1 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  dispatchTTPEvent('OPEN_LOCATION_SETTINGS_REQUESTED')
+                  await handleOpenLocationSettings()
+                  // Re-check after returning from settings
+                  const checkResult = await checkLocationPermission()
+                  dispatchTTPEvent('LOCATION_RECHECK_AFTER_SETTINGS', { granted: checkResult.granted, locationEnabled: checkResult.locationEnabled })
+                  if (checkResult.granted && checkResult.locationEnabled) {
+                    setShowLocationServicesRequired(false)
+                    dispatchTTPEvent('LOCATION_REQUIREMENTS_SATISFIED')
+                    // Continue with payment flow
+                    await startPayment()
+                  } else {
+                    // Keep dialog visible if requirements still not met
+                    if (!checkResult.locationEnabled) {
+                      dispatchTTPEvent('LOCATION_SERVICES_REQUIRED')
+                    } else if (!checkResult.granted) {
+                      setShowLocationServicesRequired(false)
+                      setShowLocationEducation(true)
+                      dispatchTTPEvent('LOCATION_PERMISSION_REQUIRED')
+                    }
+                  }
+                }}
+                className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+              >
+                Open Location Settings
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Location Permission Blocked Dialog */}
+      {showLocationPermissionBlocked && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold mb-3">Allow Location in Settings</h3>
+            <p className="text-sm text-gray-700 mb-6">
+              Location access is required for Tap to Pay. Enable it for ReplyFlow in Android Settings, then return to continue.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowLocationPermissionBlocked(false)
+                  cancelPayment('user_canceled')
+                }}
+                className="flex-1 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  dispatchTTPEvent('OPEN_APP_SETTINGS_REQUESTED')
+                  await handleOpenAppSettings()
+                  // Re-check after returning from settings
+                  const checkResult = await checkLocationPermission()
+                  dispatchTTPEvent('LOCATION_RECHECK_AFTER_SETTINGS', { granted: checkResult.granted, locationEnabled: checkResult.locationEnabled, canAskAgain: checkResult.canAskAgain })
+                  if (checkResult.granted && checkResult.locationEnabled) {
+                    setShowLocationPermissionBlocked(false)
+                    dispatchTTPEvent('LOCATION_REQUIREMENTS_SATISFIED')
+                    // Continue with payment flow
+                    await startPayment()
+                  } else if (!checkResult.canAskAgain) {
+                    // Still permanently denied
+                    dispatchTTPEvent('LOCATION_PERMISSION_BLOCKED')
+                  } else {
+                    // Can ask again, show education
+                    setShowLocationPermissionBlocked(false)
+                    setShowLocationEducation(true)
+                    dispatchTTPEvent('LOCATION_PERMISSION_REQUIRED')
+                  }
+                }}
+                className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+              >
+                Open App Settings
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   )

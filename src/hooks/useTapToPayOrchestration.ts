@@ -48,22 +48,19 @@ interface UseTapToPayOrchestrationOptions {
   onPaymentError?: (error: string) => void
 }
 
-interface UseTapToPayOrchestrationReturn {
+export interface UseTapToPayOrchestrationReturn {
   paymentState: PaymentState
   error: string
   structuredError: TerminalError | null
-  mappedError: {
-    title: string
-    message: string
-    action: 'retry' | 'open_app_settings' | 'open_location_settings' | 'back' | 'none'
-    technicalCode?: string
-    technicalMessage?: string
-  } | null
+  mappedError: ReturnType<typeof mapTapToPayError> | null
   isPaymentInProgress: boolean
   platform: 'ios' | 'android' | 'web'
   isNativeSupported: boolean
   lastSuccessfulStage: string
   lastResetReason: string
+  locationPermissionGranted: boolean | null
+  locationServicesEnabled: boolean | null
+  locationPermissionState: 'granted' | 'denied' | 'permanently_denied' | 'unknown'
   startPayment: () => Promise<void>
   cancelPayment: (reason?: string) => void
   retryPayment: () => Promise<void>
@@ -71,7 +68,8 @@ interface UseTapToPayOrchestrationReturn {
   resetTapToPayUiState: (preserveSucceededAttempt?: boolean) => void
   resetToSetup: (reason?: string) => void
   checkPlatformSupport: () => Promise<{ platform: 'ios' | 'android' | 'web'; isNativeSupported: boolean }>
-  requestLocationPermission: () => Promise<{ granted: boolean; locationEnabled: boolean }>
+  requestLocationPermission: () => Promise<{ granted: boolean; locationEnabled: boolean; canAskAgain: boolean }>
+  checkLocationPermission: () => Promise<{ granted: boolean; locationEnabled: boolean; canAskAgain: boolean }>
 }
 
 export function useTapToPayOrchestration({
@@ -93,6 +91,7 @@ export function useTapToPayOrchestration({
   const [lastSuccessfulStage, setLastSuccessfulStage] = useState<string>('none')
   const [locationPermissionGranted, setLocationPermissionGranted] = useState<boolean | null>(null)
   const [locationServicesEnabled, setLocationServicesEnabled] = useState<boolean | null>(null)
+  const [locationPermissionState, setLocationPermissionState] = useState<'granted' | 'denied' | 'permanently_denied' | 'unknown'>('unknown')
   const [showLocationPermissionDialog, setShowLocationPermissionDialog] = useState(false)
   const [lastResetReason, setLastResetReason] = useState<string>('none')
 
@@ -225,7 +224,7 @@ export function useTapToPayOrchestration({
   }, [])
 
   // Check location permission for Android
-  const checkLocationPermission = useCallback(async (): Promise<{ granted: boolean; locationEnabled: boolean }> => {
+  const checkLocationPermission = useCallback(async (): Promise<{ granted: boolean; locationEnabled: boolean; canAskAgain: boolean }> => {
     console.log('[TTP Hook] checkLocationPermission called', { platform })
     dispatchTTPEvent('LOCATION_PERMISSION_PROMISE_STARTED', terminalService.getSessionId())
     const startTime = Date.now()
@@ -235,7 +234,7 @@ export function useTapToPayOrchestration({
       setLocationServicesEnabled(true)
       console.log('[TTP Hook] checkLocationPermission: not Android, skipping')
       dispatchTTPEvent('LOCATION_PERMISSION_PROMISE_RESOLVED', terminalService.getSessionId(), undefined, undefined, 'not_android')
-      return { granted: true, locationEnabled: true }
+      return { granted: true, locationEnabled: true, canAskAgain: true }
     }
 
     try {
@@ -249,26 +248,26 @@ export function useTapToPayOrchestration({
       setLocationServicesEnabled(result.locationEnabled)
 
       dispatchTTPEvent('LOCATION_PERMISSION_PROMISE_RESOLVED', terminalService.getSessionId(), undefined, undefined, result.granted ? 'granted' : 'denied')
-      return { granted: result.granted, locationEnabled: result.locationEnabled }
+      return { granted: result.granted, locationEnabled: result.locationEnabled, canAskAgain: result.canAskAgain ?? true }
     } catch (error) {
       console.error('[TTP Hook] Failed to check location permission:', error)
       dispatchTTPEvent('LOCATION_PERMISSION_PROMISE_REJECTED', terminalService.getSessionId(), undefined, undefined, String(error))
       setLocationPermissionGranted(true)
       setLocationServicesEnabled(true)
       console.log('[TTP Hook] checkLocationPermission: error, returning true (fallback)')
-      return { granted: true, locationEnabled: true }
+      return { granted: true, locationEnabled: true, canAskAgain: true }
     }
   }, [platform])
 
   // Request location permission proactively
-  const requestLocationPermission = useCallback(async (): Promise<{ granted: boolean; locationEnabled: boolean }> => {
+  const requestLocationPermission = useCallback(async (): Promise<{ granted: boolean; locationEnabled: boolean; canAskAgain: boolean }> => {
     console.log('[TTP Hook] requestLocationPermission called', { platform })
     dispatchTTPEvent('REQUEST_LOCATION_PERMISSION_PROMISE_STARTED', terminalService.getSessionId())
     const startTime = Date.now()
     
     if (platform !== 'android') {
       dispatchTTPEvent('REQUEST_LOCATION_PERMISSION_PROMISE_RESOLVED', terminalService.getSessionId(), undefined, undefined, 'not_android')
-      return { granted: true, locationEnabled: true }
+      return { granted: true, locationEnabled: true, canAskAgain: true }
     }
 
     try {
@@ -285,15 +284,15 @@ export function useTapToPayOrchestration({
         const locationCheck = await checkLocationPermission()
         setLocationServicesEnabled(locationCheck.locationEnabled)
         dispatchTTPEvent('REQUEST_LOCATION_PERMISSION_PROMISE_RESOLVED', terminalService.getSessionId(), undefined, undefined, 'granted')
-        return locationCheck
+        return { granted: true, locationEnabled: locationCheck.locationEnabled, canAskAgain: result.canAskAgain ?? true }
       }
       
       dispatchTTPEvent('REQUEST_LOCATION_PERMISSION_PROMISE_RESOLVED', terminalService.getSessionId(), undefined, undefined, 'denied')
-      return { granted: false, locationEnabled: false }
+      return { granted: false, locationEnabled: false, canAskAgain: result.canAskAgain ?? false }
     } catch (error) {
       console.error('[TTP Hook] Failed to request location permission:', error)
       dispatchTTPEvent('REQUEST_LOCATION_PERMISSION_PROMISE_REJECTED', terminalService.getSessionId(), undefined, undefined, String(error))
-      return { granted: false, locationEnabled: false }
+      return { granted: false, locationEnabled: false, canAskAgain: false }
     }
   }, [platform, checkLocationPermission])
 
@@ -1511,6 +1510,9 @@ async function withTimeout<T>(
     isNativeSupported,
     lastSuccessfulStage,
     lastResetReason,
+    locationPermissionGranted,
+    locationServicesEnabled,
+    locationPermissionState,
     startPayment,
     cancelPayment,
     retryPayment,
@@ -1519,5 +1521,6 @@ async function withTimeout<T>(
     resetToSetup,
     checkPlatformSupport,
     requestLocationPermission,
+    checkLocationPermission,
   }
 }
