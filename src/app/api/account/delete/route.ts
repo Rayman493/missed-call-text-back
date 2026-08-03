@@ -193,6 +193,51 @@ export async function POST(request: NextRequest) {
 
     console.log('[delete-account] Found businesses:', businessIds.length, businessIds)
 
+    // SAFETY FIX: Two-phase preflight validation - validate all businesses before any destructive operation
+    console.log('[delete-account] PREFLIGHT VALIDATION: Validating all businesses for lifecycle safety')
+    const { validateTwilioNumberLifecycleMutation } = await import('@/lib/twilio-lifecycle-validator')
+    
+    for (const business of businesses as any[]) {
+      if (business.twilio_phone_number_sid) {
+        console.log('[delete-account] PREFLIGHT: Validating business:', business.id)
+        
+        // Skip system phone check in preflight (will be handled during actual recycling)
+        if (isSystemPhoneNumber(business.twilio_phone_number)) {
+          console.log('[delete-account] PREFLIGHT: Skipping system phone validation:', business.twilio_phone_number)
+          continue
+        }
+
+        const validation = await validateTwilioNumberLifecycleMutation({
+          businessId: business.id,
+          phoneNumber: business.twilio_phone_number,
+          phoneNumberSid: business.twilio_phone_number_sid,
+          operation: 'recycle'
+        })
+
+        if (!validation.valid) {
+          console.error('[delete-account] PREFLIGHT VALIDATION FAILED:', validation.error)
+          console.error('[delete-account] PREFLIGHT Validation error type:', validation.errorType)
+          console.error('[delete-account] PREFLIGHT Validation details:', validation.details)
+          
+          // HARD BLOCKING: Abort entire deletion if any business fails preflight validation
+          return NextResponse.json(
+            { 
+              ok: false, 
+              step: 'preflight_validation', 
+              error: validation.error,
+              errorType: validation.errorType,
+              details: validation.details,
+              businessId: business.id
+            },
+            { status: 409 }
+          )
+        }
+        
+        console.log('[delete-account] PREFLIGHT: Validation passed for business:', business.id)
+      }
+    }
+    console.log('[delete-account] PREFLIGHT VALIDATION: All businesses validated successfully')
+
     // Gather analytics for journey email before deletion
     let analytics = {
       totalDays: 0,
@@ -888,6 +933,7 @@ If forwarding does not stop immediately, restart your phone or contact your carr
 
       // Step 18: Recycle Twilio numbers back to warm inventory (instead of releasing from Twilio)
       console.log('[delete-account] Step 18: recycle assigned Twilio numbers back to warm inventory')
+      // NOTE: Preflight validation was already completed before destructive operations, so we can proceed directly
 
       for (const business of businesses as any[]) {
         if (business.twilio_phone_number_sid) {

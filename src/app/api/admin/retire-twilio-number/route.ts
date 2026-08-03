@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 import { isAdmin } from '@/lib/admin'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { validateTwilioNumberLifecycleMutation, maskPhoneNumber } from '@/lib/twilio-lifecycle-validator'
 
 export const dynamic = 'force-dynamic'
 
@@ -80,14 +81,63 @@ export async function POST(request: NextRequest) {
     // Check if number is assigned to a business
     const { data: business } = await supabaseAdmin
       .from('businesses')
-      .select('id, name, twilio_phone_number, twilio_phone_number_sid')
+      .select('id, name, user_id, twilio_phone_number, twilio_phone_number_sid, subscription_status, is_protected_account, protected_reason, manual_access_granted_by, manual_access_granted_at, assigned_twilio_number_id')
       .eq('twilio_phone_number', phoneNumber)
       .single()
 
     console.log('[ADMIN RETIRE TWILIO] Business using number:', business?.id || 'None')
 
-    // Mark number as retired
-    const { error: updateError } = await supabaseAdmin
+    // P0 FIX 2: If number is assigned to a business, validate lifecycle mutation
+    if (business) {
+      console.log('[ADMIN RETIRE TWILIO] Number is assigned to business - performing lifecycle validation')
+      const validation = await validateTwilioNumberLifecycleMutation({
+        businessId: business.id,
+        phoneNumber: phoneNumber,
+        phoneNumberSid: twilioNumber.twilio_sid,
+        operation: 'retire'
+      })
+
+      if (!validation.valid) {
+        console.error('[ADMIN RETIRE TWILIO] LIFECYCLE VALIDATION FAILED:', validation.error)
+        console.error('[ADMIN RETIRE TWILIO] Validation error type:', validation.errorType)
+        console.error('[ADMIN RETIRE TWILIO] Validation details:', validation.details)
+        
+        // Return 409 Conflict for subscription/protected account issues
+        if (validation.errorType === 'subscription_active' || validation.errorType === 'protected_account') {
+          return NextResponse.json(
+            {
+              success: false,
+              error: validation.error,
+              errorType: validation.errorType,
+              details: validation.details
+            },
+            { status: 409 }
+          )
+        }
+
+        // Return 400 for other validation errors
+        return NextResponse.json(
+          {
+            success: false,
+            error: validation.error,
+            errorType: validation.errorType,
+            details: validation.details
+          },
+          { status: 400 }
+        )
+      }
+    }
+
+    // P0 FIX 2: Fetch current state for compare-and-swap
+    const previousStatus = twilioNumber.status
+    const previousBusinessId = twilioNumber.business_id
+    const previousLastError = twilioNumber.last_error
+    const previousReleasedAt = twilioNumber.released_at
+    const previousDetachedAt = twilioNumber.detached_at
+    const previousDetachedReason = twilioNumber.detached_reason
+
+    // P0 FIX 2: Mark number as retired with compare-and-swap
+    const { error: updateError, count: updateCount } = await supabaseAdmin
       .from('twilio_numbers')
       .update({
         status: 'retired',
@@ -97,18 +147,28 @@ export async function POST(request: NextRequest) {
         detached_at: new Date().toISOString(),
         detached_reason: reason || 'admin_retired'
       })
-      .eq('phone_number', phoneNumber)
+      .eq('id', twilioNumber.id)
+      .eq('status', previousStatus)
+      .eq('business_id', previousBusinessId)
 
     if (updateError) {
       console.error('[ADMIN RETIRE TWILIO] Failed to retire number:', updateError)
       return NextResponse.json({ success: false, error: 'Failed to retire number' }, { status: 500 })
     }
 
-    // If number was assigned to a business, clear the Twilio assignment from business
-    // but preserve all CRM data
+    if (updateCount === 0) {
+      console.error('[ADMIN RETIRE TWILIO] Compare-and-swap failed - zero rows updated')
+      return NextResponse.json(
+        { success: false, error: 'Concurrent modification detected - please retry' },
+        { status: 409 }
+      )
+    }
+
+    // P0 FIX 2: If number was assigned to a business, clear the Twilio assignment from business
+    // with compare-and-swap and atomic compensation
     if (business) {
       console.log('[ADMIN RETIRE TWILIO] Clearing Twilio assignment from business:', business.id)
-      const { error: businessUpdateError } = await supabaseAdmin
+      const { error: businessUpdateError, count: businessUpdateCount } = await supabaseAdmin
         .from('businesses')
         .update({
           twilio_phone_number: null,
@@ -120,13 +180,118 @@ export async function POST(request: NextRequest) {
           call_forwarding_enabled: false,
         })
         .eq('id', business.id)
+        .eq('twilio_phone_number', phoneNumber)
+        .eq('twilio_phone_number_sid', twilioNumber.twilio_sid)
 
       if (businessUpdateError) {
         console.error('[ADMIN RETIRE TWILIO] Failed to update business:', businessUpdateError)
-        return NextResponse.json({ success: false, error: 'Failed to update business' }, { status: 500 })
+
+        // SAFETY FIX: Compensation rollback with compare-and-swap and full field restoration
+        console.error('[ADMIN RETIRE TWILIO] COMPENSATION: Rolling back twilio_numbers update')
+        const { error: rollbackError, count: rollbackCount } = await supabaseAdmin
+          .from('twilio_numbers')
+          .update({
+            status: previousStatus,
+            business_id: previousBusinessId,
+            last_error: previousLastError,
+            released_at: previousReleasedAt,
+            detached_at: previousDetachedAt,
+            detached_reason: previousDetachedReason
+          })
+          .eq('id', twilioNumber.id)
+          .eq('status', 'retired') // Ensure we're rolling back from the retired state
+          .eq('business_id', null)
+
+        if (rollbackError || rollbackCount === 0) {
+          console.error('[ADMIN RETIRE TWILIO] CRITICAL: Compensation rollback failed - data may be inconsistent', {
+            rollbackError: rollbackError?.message,
+            rollbackCount
+          })
+          return NextResponse.json(
+            { success: false, error: 'CRITICAL: Failed to update business AND compensation rollback failed - data may be inconsistent' },
+            { status: 500 }
+          )
+        }
+
+        console.error('[ADMIN RETIRE TWILIO] COMPENSATION: Rollback successful')
+        return NextResponse.json(
+          { success: false, error: 'Failed to update business - transaction rolled back' },
+          { status: 500 }
+        )
+      }
+
+      if (businessUpdateCount === 0) {
+        console.error('[ADMIN RETIRE TWILIO] Compare-and-swap failed on business update')
+
+        // SAFETY FIX: Compensation rollback with compare-and-swap and full field restoration
+        console.error('[ADMIN RETIRE TWILIO] COMPENSATION: Rolling back twilio_numbers update')
+        const { error: rollbackError, count: rollbackCount } = await supabaseAdmin
+          .from('twilio_numbers')
+          .update({
+            status: previousStatus,
+            business_id: previousBusinessId,
+            last_error: previousLastError,
+            released_at: previousReleasedAt,
+            detached_at: previousDetachedAt,
+            detached_reason: previousDetachedReason
+          })
+          .eq('id', twilioNumber.id)
+          .eq('status', 'retired') // Ensure we're rolling back from the retired state
+          .eq('business_id', null)
+
+        if (rollbackError || rollbackCount === 0) {
+          console.error('[ADMIN RETIRE TWILIO] CRITICAL: Compensation rollback failed - data may be inconsistent', {
+            rollbackError: rollbackError?.message,
+            rollbackCount
+          })
+          return NextResponse.json(
+            { success: false, error: 'CRITICAL: Compare-and-swap failed AND compensation rollback failed - data may be inconsistent' },
+            { status: 500 }
+          )
+        }
+
+        console.error('[ADMIN RETIRE TWILIO] COMPENSATION: Rollback successful')
+        return NextResponse.json(
+          { success: false, error: 'Concurrent modification detected - please retry' },
+          { status: 409 }
+        )
       }
 
       console.log('[ADMIN RETIRE TWILIO] Business updated successfully', { businessId: business.id })
+    }
+
+    // P0 FIX 2: Emit audit event
+    console.log('[ADMIN RETIRE TWILIO] Emitting audit event')
+    try {
+      await supabaseAdmin
+        .from('admin_audit_logs')
+        .insert({
+          acting_admin_user_id: user.id,
+          acting_admin_email: user.email,
+          action: 'retire_twilio_number',
+          support_reason: reason || 'Admin retirement',
+          success: true,
+          target_user_id: business?.user_id || null,
+          target_email: business?.user_id ? null : null, // Would need to fetch user email
+          metadata: {
+            business_id: business?.id || null,
+            business_name: business?.name || null,
+            twilio_number_id: twilioNumber.id,
+            masked_phone_number: maskPhoneNumber(phoneNumber),
+            previous_status: previousStatus,
+            new_status: 'retired',
+            previous_business_id: previousBusinessId,
+            new_business_id: null,
+            subscription_status: business?.subscription_status || null,
+            is_protected_account: business?.is_protected_account || false,
+            protected_reason: business?.protected_reason || null,
+            deployment_version: process.env.VERCEL_GIT_COMMIT_SHA || 'unknown',
+            timestamp: new Date().toISOString()
+          }
+        })
+    } catch (auditError) {
+      console.error('[ADMIN RETIRE TWILIO] Failed to emit audit event:', auditError)
+      // Don't fail the operation for audit failures
     }
 
     console.log('[ADMIN RETIRE TWILIO] Number retired successfully', { phoneNumber })

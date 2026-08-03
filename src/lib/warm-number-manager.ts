@@ -962,9 +962,39 @@ export async function recycleTwilioNumberToInventory(
     console.log('[RECYCLE] Verification complete:', verificationDetails);
     console.log('[RECYCLE] Final readiness determination:', isGenuinelyReady ? 'ready' : 'pending');
     
-    // STEP 2: Detach from business in twilio_numbers table
-    console.log('[RECYCLE] STEP 2: Detaching number from business...');
-    const { error: detachError } = await supabase
+    // STEP 2: Fetch current state for compare-and-swap validation
+    console.log('[RECYCLE] STEP 2: Fetching current state for compare-and-swap validation...');
+    const { data: currentNumber, error: fetchError } = await supabase
+      .from('twilio_numbers')
+      .select('id, phone_number, twilio_sid, business_id, status, sms_status, assigned_at, assigned_twilio_number_id')
+      .eq('twilio_sid', phoneNumberSid)
+      .single();
+
+    if (fetchError || !currentNumber) {
+      console.error('[RECYCLE] ERROR: Failed to fetch current number state:', fetchError);
+      return { success: false, error: 'Failed to fetch current number state for validation' };
+    }
+
+    // P0 FIX 1: Compare-and-swap validation
+    if (currentNumber.business_id !== businessId) {
+      console.error('[RECYCLE] ERROR: Business ID mismatch - concurrent modification detected', {
+        expected: businessId,
+        actual: currentNumber.business_id
+      });
+      return { success: false, error: 'Business ID mismatch - concurrent modification detected' };
+    }
+
+    if (currentNumber.twilio_sid !== phoneNumberSid) {
+      console.error('[RECYCLE] ERROR: Twilio SID mismatch - concurrent modification detected', {
+        expected: phoneNumberSid,
+        actual: currentNumber.twilio_sid
+      });
+      return { success: false, error: 'Twilio SID mismatch - concurrent modification detected' };
+    }
+
+    // STEP 3: Detach from business in twilio_numbers table with compare-and-swap
+    console.log('[RECYCLE] STEP 3: Detaching number from business with compare-and-swap...');
+    const { error: detachError, count: detachCount } = await supabase
       .from('twilio_numbers')
       .update({
         business_id: null,
@@ -975,8 +1005,10 @@ export async function recycleTwilioNumberToInventory(
         detached_reason: 'account_deletion',
         updated_at: new Date().toISOString(),
       })
+      .eq('id', currentNumber.id)
       .eq('twilio_sid', phoneNumberSid)
-      .eq('business_id', businessId);
+      .eq('business_id', businessId)
+      .in('status', ['assigned', 'active']);
 
     if (detachError) {
       console.error('[RECYCLE] ERROR: Failed to detach number from business:', detachError);
@@ -984,11 +1016,16 @@ export async function recycleTwilioNumberToInventory(
       return { success: false, error: 'Failed to detach number from business' };
     }
 
+    if (detachCount === 0) {
+      console.error('[RECYCLE] ERROR: Compare-and-swap failed - zero rows updated');
+      return { success: false, error: 'Compare-and-swap failed - concurrent modification detected' };
+    }
+
     console.log('[RECYCLE] SUCCESS: Number detached from business');
 
-    // STEP 2: Clear assigned_twilio_number_id in businesses table
-    console.log('[RECYCLE] STEP 2: Clearing assigned_twilio_number_id in businesses table...');
-    const { error: businessUpdateError } = await supabase
+    // STEP 4: Clear business references with compare-and-swap and forwarding field reset
+    console.log('[RECYCLE] STEP 4: Clearing business references with forwarding field reset...');
+    const { error: businessUpdateError, count: businessUpdateCount } = await supabase
       .from('businesses')
       .update({
         assigned_twilio_number_id: null,
@@ -998,16 +1035,88 @@ export async function recycleTwilioNumberToInventory(
         provisioning_status: null,
         provisioning_error: null,
         provisioned_at: null,
+        // P0 FIX 1: Reset forwarding state (only columns that exist in schema)
+        forwarding_verified: false,
+        forwarding_verified_at: null,
+        call_forwarding_enabled: false,
+        phone_setup_completed_at: null,
       })
-      .eq('id', businessId);
+      .eq('id', businessId)
+      .eq('twilio_phone_number', phoneNumber)
+      .eq('twilio_phone_number_sid', phoneNumberSid);
 
     if (businessUpdateError) {
-      console.error('[RECYCLE] WARNING: Failed to clear business references:', businessUpdateError);
-      console.error('[RECYCLE] WARNING Details:', JSON.stringify(businessUpdateError, null, 2));
-      // Don't fail - number is already recycled, this is cleanup
-    } else {
-      console.log('[RECYCLE] SUCCESS: Business references cleared');
+      console.error('[RECYCLE] ERROR: Failed to clear business references:', businessUpdateError);
+      console.error('[RECYCLE] ERROR Details:', JSON.stringify(businessUpdateError, null, 2));
+      
+      // SAFETY FIX: Compensation rollback with compare-and-swap and full field restoration
+      console.error('[RECYCLE] COMPENSATION: Rolling back twilio_numbers update due to business update failure');
+      const { error: rollbackError, count: rollbackCount } = await supabase
+        .from('twilio_numbers')
+        .update({
+          business_id: businessId,
+          status: currentNumber.status,
+          sms_status: currentNumber.sms_status || null,
+          assigned_at: currentNumber.assigned_at || null,
+          detached_at: null,
+          detached_reason: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', currentNumber.id)
+        .eq('business_id', null) // Ensure we're rolling back from the detached state
+        .in('status', ['available']);
+      
+      if (rollbackError || rollbackCount === 0) {
+        console.error('[RECYCLE] CRITICAL: Compensation rollback failed - data may be inconsistent', {
+          rollbackError: rollbackError?.message,
+          rollbackCount
+        });
+        return { 
+          success: false, 
+          error: 'CRITICAL: Failed to clear business references AND compensation rollback failed - data may be inconsistent' 
+        };
+      }
+      
+      console.error('[RECYCLE] COMPENSATION: Rollback successful');
+      return { success: false, error: 'Failed to clear business references - transaction rolled back' };
     }
+
+    if (businessUpdateCount === 0) {
+      console.error('[RECYCLE] ERROR: Compare-and-swap failed on business update - zero rows updated');
+      
+      // SAFETY FIX: Compensation rollback with compare-and-swap and full field restoration
+      console.error('[RECYCLE] COMPENSATION: Rolling back twilio_numbers update due to business compare-and-swap failure');
+      const { error: rollbackError, count: rollbackCount } = await supabase
+        .from('twilio_numbers')
+        .update({
+          business_id: businessId,
+          status: currentNumber.status,
+          sms_status: currentNumber.sms_status || null,
+          assigned_at: currentNumber.assigned_at || null,
+          detached_at: null,
+          detached_reason: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', currentNumber.id)
+        .eq('business_id', null) // Ensure we're rolling back from the detached state
+        .in('status', ['available']);
+      
+      if (rollbackError || rollbackCount === 0) {
+        console.error('[RECYCLE] CRITICAL: Compensation rollback failed - data may be inconsistent', {
+          rollbackError: rollbackError?.message,
+          rollbackCount
+        });
+        return { 
+          success: false, 
+          error: 'CRITICAL: Compare-and-swap failed on business update AND compensation rollback failed - data may be inconsistent' 
+        };
+      }
+      
+      console.error('[RECYCLE] COMPENSATION: Rollback successful');
+      return { success: false, error: 'Compare-and-swap failed on business update - transaction rolled back' };
+    }
+
+    console.log('[RECYCLE] SUCCESS: Business references cleared and forwarding state reset');
 
     console.log(`[RECYCLE] Number recycled to warm inventory: ${phoneNumber}`);
     console.log('[RECYCLE] ========== END NUMBER RECYCLING (SUCCESS) ==========');
