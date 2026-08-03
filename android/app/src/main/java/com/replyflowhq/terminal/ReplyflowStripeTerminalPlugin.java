@@ -64,10 +64,13 @@ import java.util.Locale;
 )
 public class ReplyflowStripeTerminalPlugin extends Plugin {
   private static final String TAG = "ReplyflowStripeTerminal";
-  private static final String BUILD_MARKER = "TTP_2026_08_03_PREMATURE_RESET_FIX";
+  private static final String BUILD_MARKER = "TTP_2026_08_03_CONNECTION_HANG_FIX";
 
   // Request ID for permission correlation
   private String locationPermissionRequestId = null;
+
+  // Connect operation guard
+  private String connectOperationId = null;
 
   // Initialization state tracking
   private enum InitState {
@@ -238,7 +241,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
         status = "ready";
         JSObject ret = new JSObject();
         ret.put("status", status);
-        call.resolve(ret);
+        connectOperationId = null;
+      call.resolve(ret);
         return;
       }
 
@@ -247,7 +251,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
         // For simplicity, reject concurrent initialization attempts
         JSObject err = new JSObject();
         err.put("message", "Initialization already in progress");
-        call.reject("terminal-init-in-progress", err);
+        connectOperationId = null;
+      call.reject("terminal-init-in-progress", err);
         return;
       }
 
@@ -297,6 +302,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       err.put("nativeCode", e.getClass().getSimpleName());
       err.put("nativeMessage", e.getMessage());
       err.put("exceptionType", e.getClass().getName());
+      connectOperationId = null;
       call.reject("terminal-init-failed", err);
       return;
     }
@@ -304,7 +310,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     status = "ready";
     JSObject ret = new JSObject();
     ret.put("status", status);
-    call.resolve(ret);
+    connectOperationId = null;
+      call.resolve(ret);
   }
 
   @PluginMethod
@@ -314,7 +321,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     ret.put("available", true);
     ret.put("platform", "android");
     ret.put("buildMarker", BUILD_MARKER);
-    call.resolve(ret);
+    connectOperationId = null;
+      call.resolve(ret);
   }
 
   @PluginMethod
@@ -360,7 +368,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     ret.put("androidRelease", Build.VERSION.RELEASE);
     ret.put("manufacturer", Build.MANUFACTURER);
     ret.put("model", Build.MODEL);
-    call.resolve(ret);
+    connectOperationId = null;
+      call.resolve(ret);
   }
 
   @PluginMethod
@@ -395,7 +404,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     
     Log.d(TAG, "[LOCATION] Permission check result: granted=" + (hasPermission || hasCoarsePermission) + " precise=" + precise + " canAskAgain=" + canAskAgain + " locationEnabled=" + locationEnabled);
     
-    call.resolve(ret);
+    connectOperationId = null;
+      call.resolve(ret);
   }
 
   @PluginMethod
@@ -474,7 +484,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       ret.put("error", error);
     }
     
-    call.resolve(ret);
+    connectOperationId = null;
+      call.resolve(ret);
   }
   
   private boolean isLocationEnabled() {
@@ -494,11 +505,13 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       
       JSObject ret = new JSObject();
       ret.put("opened", true);
+      connectOperationId = null;
       call.resolve(ret);
       
       Log.d(TAG, "[LOCATION] Location settings opened");
     } catch (Exception e) {
       Log.e(TAG, "[LOCATION] Failed to open location settings", e);
+      connectOperationId = null;
       call.reject("failed-to-open-settings", e.getMessage());
     }
   }
@@ -517,6 +530,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
     if (requestId == null || requestId.isEmpty() || secret == null || secret.isEmpty()) {
       Log.w(TAG, "[TOKEN_TRACE] stage=native_supply_rejected requestId=" + requestId + " reason=invalid_params");
+      connectOperationId = null;
       call.reject("invalid-params");
       return;
     }
@@ -561,6 +575,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     String requestId = call.getString("requestId");
     String message = call.getString("message");
     if (requestId == null || requestId.isEmpty()) {
+      connectOperationId = null;
       call.reject("invalid-params");
       return;
     }
@@ -600,13 +615,31 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
   public void connectTapToPay(PluginCall call) {
     // Capture optional diagnosticAttemptId for this operation scope
     final String connectCorrelationId = call.getString("diagnosticAttemptId");
+    
+    // Guard: Prevent overlapping connect operations
+    if (connectOperationId != null) {
+      Log.e(TAG, "[CONNECT_IGNORED_ALREADY_IN_PROGRESS] operationId=" + connectOperationId);
+      connectOperationId = null;
+      call.reject("connect-already-in-progress");
+      return;
+    }
+    
+    connectOperationId = "connect_" + System.currentTimeMillis() + "_" + (int)(Math.random() * 10000);
+    Log.d(TAG, "[CONNECT_CALL_ENTERED] operationId=" + connectOperationId + " correlationId=" + connectCorrelationId);
+    
     if (!initialized) {
+      Log.e(TAG, "[CONNECT_REJECTED_NOT_INITIALIZED] operationId=" + connectOperationId);
+      connectOperationId = null;
+      connectOperationId = null;
       call.reject("not-initialized");
       return;
     }
 
     // Prevent duplicate discovery
     if (discovering) {
+      Log.e(TAG, "[CONNECT_REJECTED_DISCOVERY_ACTIVE] operationId=" + connectOperationId);
+      connectOperationId = null;
+      connectOperationId = null;
       call.reject("discovery-already-active");
       return;
     }
@@ -616,6 +649,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
     // Location ID is required for Tap to Pay connection
     if (locationId == null || locationId.isEmpty()) {
+      connectOperationId = null;
       call.reject("location-id-required");
       return;
     }
@@ -656,6 +690,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
       JSObject ret = new JSObject();
       ret.put("status", status);
+      connectOperationId = null;
       call.resolve(ret);
       return;
     }
@@ -700,6 +735,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
       JSObject ret = new JSObject();
       ret.put("status", status);
+      connectOperationId = null;
       call.resolve(ret);
       return;
     }
@@ -813,7 +849,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
               JSObject ret = new JSObject();
               ret.put("status", status);
-              call.resolve(ret);
+              connectOperationId = null;
+      call.resolve(ret);
               return;
             }
             // No reader after error - propagate the error
@@ -868,7 +905,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
     JSObject ret = new JSObject();
     ret.put("status", status);
-    call.resolve(ret);
+    connectOperationId = null;
+      call.resolve(ret);
   }
   
   private void connectToReader(Reader reader, boolean simulated, String locationId, final String correlationId) {
@@ -1071,7 +1109,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
   public void createTerminalPayment(PluginCall call) {
     // This is a no-op on Android - the PaymentIntent is created server-side
     // The JS layer calls the backend endpoint directly
-    call.reject("createTerminalPayment should be called from JS layer via backend API");
+    connectOperationId = null;
+      call.reject("createTerminalPayment should be called from JS layer via backend API");
   }
 
   @PluginMethod
@@ -1085,6 +1124,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     if (!initialized) {
       Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_failure reason=not_initialized");
       setOperationState(OperationState.FAILED, "not_initialized");
+      connectOperationId = null;
       call.reject("not-initialized");
       return;
     }
@@ -1092,6 +1132,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     if (connectedReader == null) {
       Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_failure reason=no_reader_connected");
       setOperationState(OperationState.FAILED, "no_reader_connected");
+      connectOperationId = null;
       call.reject("no-reader-connected");
       return;
     }
@@ -1099,6 +1140,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     // Prevent duplicate payment collection
     if (collectingPayment) {
       Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_failure reason=payment_already_in_progress");
+      connectOperationId = null;
       call.reject("payment-already-in-progress");
       return;
     }
@@ -1111,6 +1153,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     if (clientSecret == null || clientSecret.isEmpty()) {
       Log.w(TAG, "[PAYMENT_TRACE] stage=payment_operation_failure reason=client_secret_missing");
       setOperationState(OperationState.FAILED, "client_secret_missing");
+      connectOperationId = null;
       call.reject("client-secret-required");
       return;
     }
@@ -1157,7 +1200,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
           Log.d(TAG, "[PAYMENT_TRACE] stage=payment_operation_failure stage=retrieve_payment_intent");
           // Pass structured error to JS via rejection
-          call.reject("retrieve_payment_intent", err);
+          connectOperationId = null;
+      call.reject("retrieve_payment_intent", err);
           JSObject d = new JSObject(); if (e.getErrorCode() != null) d.put("code", e.getErrorCode().toString()); d.put("message", e.getMessage()); emitDiag("retrieve_payment_intent_failed", "payment_intent", collectCorrelationId, d);
         }
       }
@@ -1404,7 +1448,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
 
     JSObject ret = new JSObject();
     ret.put("status", status);
-    call.resolve(ret);
+    connectOperationId = null;
+      call.resolve(ret);
   }
 
   @PluginMethod
@@ -1434,7 +1479,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     
     JSObject ret = new JSObject();
     ret.put("status", status);
-    call.resolve(ret);
+    connectOperationId = null;
+      call.resolve(ret);
   }
 
   @PluginMethod
@@ -1483,7 +1529,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     
     JSObject ret = new JSObject();
     ret.put("status", status);
-    call.resolve(ret);
+    connectOperationId = null;
+      call.resolve(ret);
   }
 
   private class JsBridgedConnectionTokenProvider implements ConnectionTokenProvider {

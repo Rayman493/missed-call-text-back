@@ -6,7 +6,7 @@ import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
 // Storage schema version - increment when storage format changes
 const STORAGE_SCHEMA_VERSION = 'v1'
 const STORAGE_SCHEMA_KEY = 'terminal_storage_schema_version'
-const WEB_BUILD_MARKER = 'TTP_2026_08_03_PREMATURE_RESET_FIX'
+const WEB_BUILD_MARKER = 'TTP_2026_08_03_CONNECTION_HANG_FIX'
 
 interface TokenRequest {
   requestId: string
@@ -45,6 +45,7 @@ export class TerminalBridgeService {
   private attemptInitialConnectionStatus?: string
   private sessionTimings: { initializeMs?: number; discoveryStart?: number; discoveryEnd?: number; discoveryMs?: number; connectStart?: number; connectEnd?: number; connectMs?: number } = {}
   private connectInFlight: Promise<{ status: 'connected' | string }> | null = null
+  private connectionOperationId: string | null = null
   // Attempt-scoped flags/timings and app state
   private attemptSummaryEmitted = false
   private attemptFlags = {
@@ -623,6 +624,17 @@ export class TerminalBridgeService {
   async connectTapToPay(options?: { simulated?: boolean }) {
     if (!this.plugin) throw new Error('Stripe Terminal is not available on web')
 
+    const connectionOperationId = this.connectionOperationId = `conn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    const attemptId = this.currentAttemptId
+    const sessionId = this.sessionId
+
+    console.log('[TTP Service] CONNECT_CALL_ENTERED', {
+      attemptId,
+      connectionOperationId,
+      sessionId,
+      timestamp: new Date().toISOString()
+    })
+
     console.log('[TAP_SESSION_TRACE] stage=connect_call_start')
     // Do not await any diagnostics before assigning in-flight to avoid races
     const __connectReason = (() => {
@@ -719,11 +731,25 @@ export class TerminalBridgeService {
       { const c = this.bumpListener('statusChanged', 1); this.addListenerId('statusChanged', statusChangedId); logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listener: 'connection_status_temp', listenerType: 'statusChanged', scope: 'temp_connect', listenerId: statusChangedId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('statusChanged') } }).catch(() => {}) }
       { const c = this.bumpListener('error', 1); this.addListenerId('error', errorListenerId); logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listener: 'native_error_temp', listenerType: 'error', scope: 'temp_connect', listenerId: errorListenerId, activeListenerCount: c.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds('error') } }).catch(() => {}) }
 
+      console.log('[TTP Service] CONNECT_READER_STARTED', {
+        attemptId,
+        connectionOperationId,
+        sessionId,
+        locationId
+      })
+
       const result = await this.plugin!.connectTapToPay({
         simulated: options?.simulated || false,
         locationId,
         diagnosticAttemptId: this.sessionId,
       } as any)
+
+      console.log('[TTP Service] CONNECT_READER_CALLBACK_RECEIVED', {
+        attemptId,
+        connectionOperationId,
+        sessionId,
+        status: result.status
+      })
 
       console.log('[TAP_SESSION_TRACE] stage=connect_call_resolved status=' + result.status)
       try { await logTapToPayEvent('connect_call_resolved', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: result.status }) } catch {}
@@ -749,9 +775,20 @@ export class TerminalBridgeService {
     })()
 
     try {
+      console.log('[TTP Service] CONNECT_PROMISE_RESOLVED', {
+        attemptId,
+        connectionOperationId,
+        sessionId
+      })
       return await this.connectInFlight
     } finally {
+      console.log('[TTP Service] CONNECT_PROMISE_FINALLY', {
+        attemptId,
+        connectionOperationId,
+        sessionId
+      })
       this.connectInFlight = null
+      this.connectionOperationId = null
     }
   }
 
