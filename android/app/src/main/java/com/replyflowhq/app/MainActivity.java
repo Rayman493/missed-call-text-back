@@ -26,7 +26,6 @@ import com.getcapacitor.BridgeWebViewClient;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Intent;
-import com.replyflowhq.terminal.ReplyflowStripeTerminalPlugin;
 import com.replyflowhq.app.SmsLauncherPlugin;
 
 public class MainActivity extends BridgeActivity {
@@ -43,9 +42,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         // Register custom local plugins BEFORE super.onCreate()
         // Per Capacitor documentation: registerPlugin must come before super.onCreate()
-        Log.d(TAG, "[PLUGIN] Registering ReplyflowStripeTerminalPlugin...");
-        registerPlugin(ReplyflowStripeTerminalPlugin.class);
-        Log.d(TAG, "[PLUGIN] ReplyflowStripeTerminalPlugin registered successfully");
+        // Note: ReplyflowStripeTerminalPlugin is auto-discovered via @CapacitorPlugin annotation
         
         Log.d(TAG, "[PLUGIN] Registering SmsLauncherPlugin...");
         registerPlugin(SmsLauncherPlugin.class);
@@ -171,36 +168,6 @@ public class MainActivity extends BridgeActivity {
 
         // Set up network callback to detect connectivity changes
         setupNetworkMonitoring();
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        Log.d(TAG, "[LOCATION] onRequestPermissionsResult called: requestCode=" + requestCode + " permissions.length=" + (permissions != null ? permissions.length : 0) + " grantResults.length=" + (grantResults != null ? grantResults.length : 0));
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        
-        // Forward location permission result to ReplyflowStripeTerminalPlugin
-        if (requestCode == 1001) {
-            Log.d(TAG, "[LOCATION] Request code matches LOCATION_PERMISSION_REQUEST_CODE, forwarding to plugin");
-            try {
-                com.getcapacitor.PluginHandle pluginHandle = getBridge().getPlugin(ReplyflowStripeTerminalPlugin.class.getName());
-                if (pluginHandle != null) {
-                    Log.d(TAG, "[LOCATION] Plugin handle found, getting instance");
-                    com.getcapacitor.Plugin plugin = pluginHandle.getInstance();
-                    if (plugin instanceof ReplyflowStripeTerminalPlugin) {
-                        Log.d(TAG, "[LOCATION] Plugin instance is ReplyflowStripeTerminalPlugin, calling onPermissionResult");
-                        ((ReplyflowStripeTerminalPlugin) plugin).onPermissionResult(requestCode, permissions, grantResults);
-                    } else {
-                        Log.e(TAG, "[LOCATION] Plugin instance is not ReplyflowStripeTerminalPlugin: " + plugin.getClass().getName());
-                    }
-                } else {
-                    Log.e(TAG, "[LOCATION] Plugin handle is null");
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "[LOCATION] Failed to forward permission result to plugin", e);
-            }
-        } else {
-            Log.d(TAG, "[LOCATION] Request code does not match LOCATION_PERMISSION_REQUEST_CODE: " + requestCode);
-        }
     }
 
     private void setupNetworkMonitoring() {

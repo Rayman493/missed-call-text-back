@@ -6,7 +6,7 @@ import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
 // Storage schema version - increment when storage format changes
 const STORAGE_SCHEMA_VERSION = 'v1'
 const STORAGE_SCHEMA_KEY = 'terminal_storage_schema_version'
-const WEB_BUILD_MARKER = 'TAP_TO_PAY_2026_08_03_MODAL_OPEN_FIX'
+const WEB_BUILD_MARKER = 'TTP_2026_08_03_PERMISSION_BRIDGE_FIX'
 
 interface TokenRequest {
   requestId: string

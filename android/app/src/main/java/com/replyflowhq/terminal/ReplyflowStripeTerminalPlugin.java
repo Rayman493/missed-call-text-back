@@ -25,6 +25,10 @@ import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
+import com.getcapacitor.annotation.PermissionCallback;
+import com.getcapacitor.PluginConfig;
+import com.getcapacitor.PermissionState;
 
 // Stripe Terminal Android SDK (added as Gradle dependency)
 import com.stripe.stripeterminal.Terminal;
@@ -46,10 +50,21 @@ import com.stripe.stripeterminal.external.models.LocaleConfig;
 import com.stripe.stripeterminal.external.callable.PaymentIntentCallback;
 import java.util.Locale;
 
-@CapacitorPlugin(name = "ReplyflowStripeTerminal")
+@CapacitorPlugin(
+  name = "ReplyflowStripeTerminal",
+  permissions = {
+    @Permission(
+      alias = "location",
+      strings = {
+        Manifest.permission.ACCESS_FINE_LOCATION,
+        Manifest.permission.ACCESS_COARSE_LOCATION
+      }
+    )
+  }
+)
 public class ReplyflowStripeTerminalPlugin extends Plugin {
   private static final String TAG = "ReplyflowStripeTerminal";
-  private static final String BUILD_MARKER = "TAP_TO_PAY_2026_08_03_MODAL_OPEN_FIX";
+  private static final String BUILD_MARKER = "TTP_2026_08_03_PERMISSION_BRIDGE_FIX";
 
   // Initialization state tracking
   private enum InitState {
@@ -380,24 +395,16 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     call.resolve(ret);
   }
 
-  private PluginCall pendingPermissionCall = null;
-  private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
-
   @PluginMethod
   public void requestLocationPermission(PluginCall call) {
-    Log.d(TAG, "[LOCATION_PERMISSION_REQUEST_STARTED] requestLocationPermission() called");
+    String requestId = UUID.randomUUID().toString();
+    Log.d(TAG, "[LOCATION_PERMISSION_REQUEST_STARTED] requestLocationPermission() called requestId=" + requestId);
     
     try {
       // Check if activity is available
       if (getActivity() == null) {
-        Log.e(TAG, "[LOCATION_PERMISSION_REQUEST_FAILED] Activity is null, cannot request permission");
-        JSObject ret = new JSObject();
-        ret.put("granted", false);
-        ret.put("precise", false);
-        ret.put("canAskAgain", false);
-        ret.put("locationEnabled", false);
-        ret.put("error", "Activity not available");
-        call.resolve(ret);
+        Log.e(TAG, "[LOCATION_PERMISSION_REQUEST_FAILED] Activity is null, cannot request permission requestId=" + requestId);
+        resolveLocationStatus(call, false, false, false, false, "Activity not available");
         return;
       }
       
@@ -415,81 +422,52 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       boolean locationEnabled = isLocationEnabled();
       
       if (hasFinePermission || hasCoarsePermission) {
-        Log.d(TAG, "[LOCATION_PERMISSION_REQUEST_RESULT] Permission already granted fine=" + hasFinePermission + " coarse=" + hasCoarsePermission);
-        JSObject ret = new JSObject();
-        ret.put("granted", true);
-        ret.put("precise", hasFinePermission);
-        ret.put("canAskAgain", true);
-        ret.put("locationEnabled", locationEnabled);
-        call.resolve(ret);
+        Log.d(TAG, "[LOCATION_PERMISSION_REQUEST_RESULT] Permission already granted fine=" + hasFinePermission + " coarse=" + hasCoarsePermission + " requestId=" + requestId);
+        resolveLocationStatus(call, true, hasFinePermission, true, locationEnabled, null);
         return;
       }
       
-      // Store the call to resolve later when callback is received
-      if (pendingPermissionCall != null) {
-        Log.w(TAG, "[LOCATION_PERMISSION_REQUEST] Previous pending permission call exists, resolving as canceled");
-        JSObject ret = new JSObject();
-        ret.put("granted", false);
-        ret.put("precise", false);
-        ret.put("canAskAgain", true);
-        ret.put("locationEnabled", locationEnabled);
-        ret.put("error", "Previous permission request in progress");
-        pendingPermissionCall.resolve(ret);
-      }
-      
-      pendingPermissionCall = call;
-      // call.keepAlive = true; // Keep call alive across Activity pause/resume - not available in Capacitor 3+
-      
-      // Request the permission
-      String[] permissions = { Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION };
-      ActivityCompat.requestPermissions(getActivity(), permissions, LOCATION_PERMISSION_REQUEST_CODE);
-      
-      Log.d(TAG, "[LOCATION_PERMISSION_REQUEST_DISPATCHED] Permission request dispatched, waiting for callback");
-      // DO NOT resolve here - wait for onRequestPermissionsResult
+      // Request permission using Capacitor's mechanism
+      Log.d(TAG, "[LOCATION_PERMISSION_REQUEST_DISPATCHED] Requesting location permission requestId=" + requestId);
+      call.save();
+      requestPermissionForAlias("location", call, "locationPermissionCallback");
     } catch (Exception e) {
-      Log.e(TAG, "[LOCATION_PERMISSION_REQUEST_FAILED] Exception in requestLocationPermission", e);
-      JSObject ret = new JSObject();
-      ret.put("granted", false);
-      ret.put("precise", false);
-      ret.put("canAskAgain", false);
-      ret.put("locationEnabled", false);
-      ret.put("error", e.getMessage());
-      call.resolve(ret);
+      Log.e(TAG, "[LOCATION_PERMISSION_REQUEST_FAILED] Exception in requestLocationPermission requestId=" + requestId, e);
+      resolveLocationStatus(call, false, false, false, false, e.getMessage());
     }
   }
   
-  // Called by MainActivity when permission result is received
-  public void onPermissionResult(int requestCode, String[] permissions, int[] grantResults) {
-    Log.d(TAG, "[LOCATION_PERMISSION_CALLBACK_RECEIVED] requestCode=" + requestCode + " grantResults.length=" + (grantResults != null ? grantResults.length : 0));
+  @PermissionCallback
+  private void locationPermissionCallback(PluginCall call) {
+    String requestId = UUID.randomUUID().toString();
+    Log.d(TAG, "[LOCATION_PERMISSION_CALLBACK_RECEIVED] Permission callback received requestId=" + requestId);
     
-    if (requestCode == LOCATION_PERMISSION_REQUEST_CODE && pendingPermissionCall != null) {
-      boolean granted = false;
-      boolean precise = false;
-      
-      if (grantResults != null && grantResults.length > 0) {
-        granted = grantResults[0] == PackageManager.PERMISSION_GRANTED;
-        precise = grantResults[0] == PackageManager.PERMISSION_GRANTED && 
-                   permissions[0].equals(Manifest.permission.ACCESS_FINE_LOCATION);
-      }
-      
-      boolean locationEnabled = isLocationEnabled();
-      boolean canAskAgain = !ActivityCompat.shouldShowRequestPermissionRationale(getActivity(), Manifest.permission.ACCESS_FINE_LOCATION);
-      
-      Log.d(TAG, "[LOCATION_PERMISSION_CALLBACK_RESULT] requestCode=" + requestCode + " granted=" + granted + " precise=" + precise + " locationEnabled=" + locationEnabled + " canAskAgain=" + canAskAgain + " pendingCallFound=" + (pendingPermissionCall != null));
-      
-      JSObject ret = new JSObject();
-      ret.put("granted", granted);
-      ret.put("precise", precise);
-      ret.put("canAskAgain", canAskAgain);
-      ret.put("locationEnabled", locationEnabled);
-      
-      pendingPermissionCall.resolve(ret);
-      pendingPermissionCall = null;
-      
-      Log.d(TAG, "[LOCATION_PERMISSION_REQUEST_RESOLVED] Permission request resolved with granted=" + granted);
-    } else if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
-      Log.w(TAG, "[LOCATION_PERMISSION_CALLBACK_RESULT] Request code matches but pendingPermissionCall is null - callback received after timeout or already resolved");
+    boolean granted = getPermissionState("location") == PermissionState.GRANTED;
+    boolean precise = ContextCompat.checkSelfPermission(
+      getContext(),
+      Manifest.permission.ACCESS_FINE_LOCATION
+    ) == PackageManager.PERMISSION_GRANTED;
+    boolean canAskAgain = true;
+    boolean locationEnabled = isLocationEnabled();
+    
+    Log.d(TAG, "[LOCATION_PERMISSION_CALLBACK_RESULT] requestId=" + requestId + " granted=" + granted + " precise=" + precise + " locationEnabled=" + locationEnabled + " canAskAgain=" + canAskAgain);
+    
+    resolveLocationStatus(call, granted, precise, canAskAgain, locationEnabled, null);
+    Log.d(TAG, "[LOCATION_PERMISSION_REQUEST_RESOLVED] Permission request resolved requestId=" + requestId + " granted=" + granted);
+  }
+  
+  private void resolveLocationStatus(PluginCall call, boolean granted, boolean precise, boolean canAskAgain, boolean locationEnabled, String error) {
+    JSObject ret = new JSObject();
+    ret.put("granted", granted);
+    ret.put("precise", precise);
+    ret.put("canAskAgain", canAskAgain);
+    ret.put("locationEnabled", locationEnabled);
+    
+    if (error != null) {
+      ret.put("error", error);
     }
+    
+    call.resolve(ret);
   }
   
   private boolean isLocationEnabled() {

@@ -39,9 +39,15 @@ export default function QuickTapToPayModal({
   const [isNativeSupported, setIsNativeSupported] = useState(false)
   const [showCustomerSelector, setShowCustomerSelector] = useState(false)
   const [modalSessionId, setModalSessionId] = useState<string>(`modal_${Date.now()}`)
+  const WEB_BUILD_MARKER = 'TTP_WEB_BUILD_2026_08_03_PERMISSION_BRIDGE_FIX'
 
   // Ref for modal title for accessibility focus
   const titleRef = useRef<HTMLHeadingElement>(null)
+
+  // Log web build marker on mount
+  useEffect(() => {
+    console.log('[QuickTTP UI] WEB_BUILD_MARKER: ' + WEB_BUILD_MARKER)
+  }, [])
 
   // Use the orchestration hook
   const {
