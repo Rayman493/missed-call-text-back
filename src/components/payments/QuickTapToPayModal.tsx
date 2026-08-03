@@ -2,17 +2,16 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Smartphone, User, Briefcase, Loader2, ChevronDown, ChevronUp } from 'lucide-react'
+import { X, Smartphone, User, Briefcase, Loader2, ChevronDown, ChevronUp, CheckCircle2, AlertCircle, XCircle } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { isNativeCapacitor } from '@/lib/terminal'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import TapToPayModal from './TapToPayModal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { TerminalBridgeService } from '@/lib/terminal/service'
-import TapToPayDiagnosticsPanel from '@/components/TapToPayDiagnosticsPanel'
 import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
 import { SHOW_TAP_TO_PAY_DIAGNOSTICS } from './tapToPayUiConfig'
+import { useTapToPayOrchestration } from '@/hooks/useTapToPayOrchestration'
 import { Capacitor } from '@capacitor/core'
 
 interface QuickTapToPayModalProps {
@@ -38,11 +37,38 @@ export default function QuickTapToPayModal({
   const [isLoadingLeads, setIsLoadingLeads] = useState(false)
   const [isLoadingJobs, setIsLoadingJobs] = useState(false)
   const [isNativeSupported, setIsNativeSupported] = useState(false)
-  const [showTapToPay, setShowTapToPay] = useState(false)
   const [showCustomerSelector, setShowCustomerSelector] = useState(false)
+  const [showPaymentSetup, setShowPaymentSetup] = useState(true)
 
   // Ref for modal title for accessibility focus
   const titleRef = useRef<HTMLHeadingElement>(null)
+
+  // Use the orchestration hook
+  const {
+    paymentState,
+    error,
+    structuredError,
+    isPaymentInProgress,
+    platform,
+    isNativeSupported: hookIsNativeSupported,
+    startPayment,
+    cancelPayment,
+    retryPayment,
+    checkPlatformSupport,
+  } = useTapToPayOrchestration({
+    amountCents,
+    leadId: selectedLeadId || undefined,
+    jobId: selectedJobId || undefined,
+    description,
+    onPaymentComplete: async () => {
+      // Wait a moment for reconciliation to complete before refreshing
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      if (typeof window !== 'undefined') {
+        window.location.reload()
+      }
+    },
+    onPaymentError: () => {},
+  })
 
   // Focus modal title on open for accessibility (prevents keyboard from opening on amount input)
   useEffect(() => {
@@ -77,47 +103,19 @@ export default function QuickTapToPayModal({
       el.removeEventListener('touchmove', onTm as any)
       window.removeEventListener('resize', logDims)
     }
-  }, [showTapToPay])
+  }, [showPaymentSetup])
 
   useBodyScrollLock(isOpen)
 
   // Check native support when modal opens
   useEffect(() => {
     if (isOpen) {
-      // Wait for Capacitor to be ready before checking platform
       ;(async () => {
         try {
-          // Bounded retry approach: wait for Capacitor bridge to be ready
-          const MAX_RETRIES = 20
-          const RETRY_DELAY = 50
-          let retries = 0
-          
-          while (retries < MAX_RETRIES) {
-            // Check if Capacitor is ready by testing plugin availability
-            const pluginAvailable = Capacitor.isPluginAvailable('ReplyflowStripeTerminal')
-            
-            // If we can check plugin availability, bridge is ready
-            if (pluginAvailable !== undefined) {
-              // Additional check: ensure platform is properly detected
-              const currentPlatform = Capacitor.getPlatform()
-              // Only proceed if platform is not 'web' or we're confident it's actually web
-              if (currentPlatform !== 'web' || pluginAvailable === false) {
-                break
-              }
-            }
-            
-            // Wait and retry
-            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY))
-            retries++
-          }
-          
-          console.log('[QuickTTP UI] Capacitor bridge ready after', retries, 'retries')
-          
-          // Now set native support after Capacitor is ready
-          setIsNativeSupported(isNativeCapacitor())
+          const result = await checkPlatformSupport()
+          setIsNativeSupported(result.isNativeSupported)
         } catch (err) {
           console.error('[QuickTTP UI] Platform detection error:', err)
-          // Fail safe: assume not supported
           setIsNativeSupported(false)
         }
       })()
@@ -125,26 +123,21 @@ export default function QuickTapToPayModal({
       // Diagnostics: modal opened
       logTapToPayEvent('MODAL_OPENED', { phase: 'startup', sessionId: terminalService.getSessionId(), meta: { modal: 'QuickTapToPay' } }).catch(() => {})
 
-      // Development diagnostics
-      if (process.env.NODE_ENV === 'development') {
-        const terminalService = TerminalBridgeService.getInstance()
-        const diagnostics = terminalService.getDiagnostics()
-        // Development-only terminal diagnostics
-      }
-
+      // Reset state
       setAmountCents(0)
       setAmountDisplay('')
       setSelectedLeadId(null)
       setSelectedJobId(null)
       setDescription('')
       setShowCustomerSelector(false)
+      setShowPaymentSetup(true)
     }
     return () => {
       if (isOpen) {
         logTapToPayEvent('MODAL_CLOSED', { phase: 'startup', sessionId: terminalService.getSessionId(), meta: { modal: 'QuickTapToPay' } }).catch(() => {})
       }
     }
-  }, [isOpen])
+  }, [isOpen, checkPlatformSupport, terminalService])
 
   // Load leads when customer selector is opened
   useEffect(() => {
@@ -241,23 +234,16 @@ export default function QuickTapToPayModal({
     logTapToPayEvent('AMOUNT_ENTERED', { phase: 'payment_intent', sessionId: terminalService.getSessionId(), meta: { amountCents: dollars * 100 } }).catch(() => {})
   }
 
-  const handleStartPayment = () => {
+  const handleStartPayment = async () => {
     if (amountCents <= 0) return
     logTapToPayEvent('PAY_BUTTON_PRESSED', { phase: 'payment_intent', sessionId: terminalService.getSessionId(), meta: { amountCents } }).catch(() => {})
-    setShowTapToPay(true)
+    setShowPaymentSetup(false)
+    await startPayment()
   }
 
   const handlePaymentComplete = async () => {
-    setShowTapToPay(false)
     onClose()
-    // Wait a moment for reconciliation to complete before refreshing
-    // This ensures the payment is marked as paid before the UI refreshes
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    // Trigger a page refresh to update Payments UI
-    // This ensures the newly paid payment appears as paid
-    if (typeof window !== 'undefined') {
-      window.location.reload()
-    }
+    onRefreshAfterSuccess?.()
   }
 
   // Handle Android back and browser back
@@ -269,8 +255,8 @@ export default function QuickTapToPayModal({
     } catch {}
 
     const onPopState = () => {
-      if (showTapToPay) {
-        setShowTapToPay(false)
+      if (!showPaymentSetup && (paymentState === 'ready' || paymentState === 'failure' || paymentState === 'canceled')) {
+        setShowPaymentSetup(true)
       } else {
         onClose()
       }
@@ -283,8 +269,8 @@ export default function QuickTapToPayModal({
         const mod = await import('@capacitor/app')
         const { App } = mod as any
         capListener = await App.addListener('backButton', () => {
-          if (showTapToPay) {
-            setShowTapToPay(false)
+          if (!showPaymentSetup && (paymentState === 'ready' || paymentState === 'failure' || paymentState === 'canceled')) {
+            setShowPaymentSetup(true)
           } else {
             onClose()
           }
@@ -296,7 +282,7 @@ export default function QuickTapToPayModal({
       window.removeEventListener('popstate', onPopState)
       capListener?.remove?.()
     }
-  }, [isOpen, onClose, showTapToPay])
+  }, [isOpen, onClose, showPaymentSetup, paymentState])
 
   if (!isOpen) return null
 
@@ -305,8 +291,7 @@ export default function QuickTapToPayModal({
 
   return (
     <>
-      {/* Quick Tap to Pay Modal via portal to ensure top-level stacking context */}
-      {!showTapToPay && typeof document !== 'undefined' && createPortal(
+      {typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-x-0 top-0 h-[100dvh] z-[70] flex items-center justify-center p-3 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-card rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/30 border border-border/50 w-full max-w-md max-h-[calc(100dvh-env(safe-area-inset-top)-24px)] overflow-hidden flex flex-col min-h-0 animate-in zoom-in-95 duration-200">
             {/* Header */}
@@ -315,10 +300,18 @@ export default function QuickTapToPayModal({
                 <div className="w-7 h-7 bg-green-500/10 rounded-lg flex items-center justify-center select-none">
                   <Smartphone className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
                 </div>
-                <h3 ref={titleRef} className="text-base font-semibold text-foreground select-none" tabIndex={-1}>Tap to Pay</h3>
+                <h3 ref={titleRef} className="text-base font-semibold text-foreground select-none" tabIndex={-1}>
+                  {showPaymentSetup ? 'Tap to Pay' : 
+                   paymentState === 'preparing' ? 'Preparing Tap to Pay…' :
+                   paymentState === 'waiting_for_card' ? 'Ready for card' :
+                   paymentState === 'processing' ? 'Processing…' :
+                   paymentState === 'success' ? 'Payment Complete' :
+                   paymentState === 'failure' ? 'Payment Failed' :
+                   'Tap to Pay'}
+                </h3>
               </div>
               <button
-                onClick={onClose}
+                onClick={showPaymentSetup ? onClose : cancelPayment}
                 className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
                 style={{ minWidth: '44px', minHeight: '44px' }}
               >
@@ -330,254 +323,305 @@ export default function QuickTapToPayModal({
             <div
               ref={scrollRef}
               data-scroll-lock-allow
-              className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-4 space-y-4"
+              className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-4"
               style={{ WebkitOverflowScrolling: 'touch' as any, paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
             >
-                {/* Debug UI - hidden in production */}
-              {SHOW_TAP_TO_PAY_DIAGNOSTICS && (
-                <>
-                  {/* Unmistakable debug marker to verify correct component */}
-                  <div className="p-3 rounded-lg border-2 border-red-700 bg-red-900/30 text-center">
-                    <div className="text-red-300 font-extrabold text-lg tracking-wide">DEBUG PANEL BUILD 2026-07-23</div>
-                    <div className="text-xs text-red-200/80">This banner proves this QuickTapToPayModal is rendering from src/components/payments/QuickTapToPayModal.tsx</div>
-                  </div>
-
-                  {/* Always-visible diagnostics directly beneath the title/marker */}
-                  <div className="min-h-[240px]">
-                    <TapToPayDiagnosticsPanel context={{
-                      ui: {
-                        modal: 'QuickTapToPay',
-                        isOpen,
-                        isNativeSupported,
-                        amountCents,
-                        selectedLeadId,
-                        selectedJobId,
-                      },
-                      service: {
-                        sessionId: terminalService.getSessionId(),
-                        attemptId: terminalService.getCurrentAttemptId() || undefined,
-                        phase: terminalService.getCurrentPhase(),
-                      }
-                    }} />
-                  </div>
-                </>
-              )}
-              {/* Amount Input */}
-              <div className="text-center py-2">
-                <p className="text-sm text-muted-foreground mb-2">Enter amount</p>
-                <div className="flex items-center justify-center gap-1">
-                  <span className="text-3xl font-bold text-muted-foreground">$</span>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={amountDisplay}
-                    onChange={(e) => handleAmountChange(e.target.value)}
-                    placeholder="0.00"
-                    className="w-40 text-4xl font-bold text-foreground bg-transparent border-none outline-none text-center placeholder:text-muted-foreground/30"
-                  />
-                </div>
-              </div>
-
-              {/* Quick Amount Buttons */}
-              <div className="grid grid-cols-4 gap-2">
-                {[10, 25, 50, 100].map((amount) => (
-                  <button
-                    key={amount}
-                    onClick={() => handleQuickAmount(amount)}
-                    className="h-11 text-sm font-medium bg-muted hover:bg-muted/80 rounded-lg transition-colors active:scale-95"
-                  >
-                    ${amount}
-                  </button>
-                ))}
-              </div>
-
-              {/* Optional Customer/Job */}
-              <div className="space-y-2">
-                <button
-                  onClick={() => setShowCustomerSelector(!showCustomerSelector)}
-                  className="w-full p-3 rounded-lg border border-border hover:border-border/80 transition-colors text-left active:scale-[0.99]"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-                        {selectedLead ? (
-                          <User className="w-4.5 h-4.5 text-foreground" />
-                        ) : (
-                          <User className="w-4.5 h-4.5 text-muted-foreground" />
-                        )}
+              {showPaymentSetup ? (
+                /* Payment Setup Screen */
+                <div className="space-y-4">
+                  {/* Debug UI - hidden in production */}
+                  {SHOW_TAP_TO_PAY_DIAGNOSTICS && (
+                    <>
+                      <div className="p-3 rounded-lg border-2 border-red-700 bg-red-900/30 text-center">
+                        <div className="text-red-300 font-extrabold text-lg tracking-wide">DEBUG PANEL BUILD 2026-07-23</div>
+                        <div className="text-xs text-red-200/80">This banner proves this QuickTapToPayModal is rendering from src/components/payments/QuickTapToPayModal.tsx</div>
                       </div>
-                      <div className="text-left">
-                        <p className="font-medium text-foreground text-sm">
-                          {selectedLead ? (selectedLead.name && selectedLead.name !== 'Not collected' ? selectedLead.name : 'Unknown') : 'Quick Payment'}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {selectedLead ? selectedLead.caller_phone : 'No customer or job'}
-                        </p>
-                      </div>
+                    </>
+                  )}
+
+                  {/* Amount Input */}
+                  <div className="text-center py-2">
+                    <p className="text-sm text-muted-foreground mb-2">Enter amount</p>
+                    <div className="flex items-center justify-center gap-1">
+                      <span className="text-3xl font-bold text-muted-foreground">$</span>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={amountDisplay}
+                        onChange={(e) => handleAmountChange(e.target.value)}
+                        placeholder="0.00"
+                        className="w-40 text-4xl font-bold text-foreground bg-transparent border-none outline-none text-center placeholder:text-muted-foreground/30"
+                      />
                     </div>
-                    {showCustomerSelector ? (
-                      <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                    )}
                   </div>
-                </button>
 
-                {/* Customer Selector */}
-                {showCustomerSelector && (
-                  <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
+                  {/* Quick Amount Buttons */}
+                  <div className="grid grid-cols-4 gap-2">
+                    {[10, 25, 50, 100].map((amount) => (
+                      <button
+                        key={amount}
+                        onClick={() => handleQuickAmount(amount)}
+                        className="h-11 text-sm font-medium bg-muted hover:bg-muted/80 rounded-lg transition-colors active:scale-95"
+                      >
+                        ${amount}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Optional Customer/Job */}
+                  <div className="space-y-2">
                     <button
-                      onClick={() => {
-                        setSelectedLeadId(null)
-                        setSelectedJobId(null)
-                      }}
-                      className={`w-full p-2.5 rounded-lg border transition-colors text-left active:scale-[0.99] ${
-                        selectedLeadId === null
-                          ? 'border-primary bg-primary/10'
-                          : 'border-border hover:border-border/80'
-                      }`}
+                      onClick={() => setShowCustomerSelector(!showCustomerSelector)}
+                      className="w-full p-3 rounded-lg border border-border hover:border-border/80 transition-colors text-left active:scale-[0.99]"
                     >
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                          <Smartphone className="w-4 h-4 text-muted-foreground" />
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
+                            {selectedLead ? (
+                              <User className="w-4.5 h-4.5 text-foreground" />
+                            ) : (
+                              <User className="w-4.5 h-4.5 text-muted-foreground" />
+                            )}
+                          </div>
+                          <div className="text-left">
+                            <p className="font-medium text-foreground text-sm">
+                              {selectedLead ? (selectedLead.name && selectedLead.name !== 'Not collected' ? selectedLead.name : 'Unknown') : 'Quick Payment'}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {selectedLead ? selectedLead.caller_phone : 'No customer or job'}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-foreground text-sm">Quick Payment</p>
-                          <p className="text-xs text-muted-foreground">No customer or job</p>
-                        </div>
+                        {showCustomerSelector ? (
+                          <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                        )}
                       </div>
                     </button>
 
-                    {isLoadingLeads ? (
-                      <div className="flex items-center justify-center py-3">
-                        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                      </div>
-                    ) : leads.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-2">No customers found</p>
-                    ) : (
-                      <div className="max-h-40 overflow-y-auto space-y-1">
-                        {leads.slice(0, 10).map((lead) => (
-                          <button
-                            key={lead.id}
-                            onClick={() => setSelectedLeadId(lead.id)}
-                            className={`w-full p-2.5 rounded-lg border transition-colors text-left active:scale-[0.99] ${
-                              selectedLeadId === lead.id
-                                ? 'border-primary bg-primary/10'
-                                : 'border-border hover:border-border/80'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2.5">
-                              <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                                <User className="w-4 h-4 text-muted-foreground" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium text-foreground text-sm truncate">{(lead.name && lead.name !== 'Not collected') ? lead.name : 'Unknown'}</p>
-                                <p className="text-xs text-muted-foreground truncate">{lead.caller_phone || ''}</p>
-                              </div>
+                    {/* Customer Selector */}
+                    {showCustomerSelector && (
+                      <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
+                        <button
+                          onClick={() => {
+                            setSelectedLeadId(null)
+                            setSelectedJobId(null)
+                          }}
+                          className={`w-full p-2.5 rounded-lg border transition-colors text-left active:scale-[0.99] ${
+                            selectedLeadId === null
+                              ? 'border-primary bg-primary/10'
+                              : 'border-border hover:border-border/80'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                              <Smartphone className="w-4 h-4 text-muted-foreground" />
                             </div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                            <div>
+                              <p className="font-medium text-foreground text-sm">Quick Payment</p>
+                              <p className="text-xs text-muted-foreground">No customer or job</p>
+                            </div>
+                          </div>
+                        </button>
 
-                    {/* Job Selection */}
-                    {selectedLeadId && (
-                      <div className="space-y-2 pt-2 border-t border-border min-h-[80px]">
-                        <p className="text-xs text-muted-foreground uppercase tracking-wider">Select a job (optional)</p>
-                        {isLoadingJobs ? (
-                          <div className="flex items-center justify-center py-4">
+                        {isLoadingLeads ? (
+                          <div className="flex items-center justify-center py-3">
                             <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                           </div>
-                        ) : jobs.length === 0 ? (
-                          <p className="text-sm text-muted-foreground py-2">No jobs found for this customer</p>
+                        ) : leads.length === 0 ? (
+                          <p className="text-sm text-muted-foreground py-2">No customers found</p>
                         ) : (
-                          <div className="max-h-32 overflow-y-auto space-y-1">
-                            {jobs.map((job) => (
+                          <div className="max-h-40 overflow-y-auto space-y-1">
+                            {leads.slice(0, 10).map((lead) => (
                               <button
-                                key={job.id}
-                                onClick={() => setSelectedJobId(job.id)}
+                                key={lead.id}
+                                onClick={() => setSelectedLeadId(lead.id)}
                                 className={`w-full p-2.5 rounded-lg border transition-colors text-left active:scale-[0.99] ${
-                                  selectedJobId === job.id
+                                  selectedLeadId === lead.id
                                     ? 'border-primary bg-primary/10'
                                     : 'border-border hover:border-border/80'
                                 }`}
                               >
                                 <div className="flex items-center gap-2.5">
                                   <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                                    <Briefcase className="w-4 h-4 text-muted-foreground" />
+                                    <User className="w-4 h-4 text-muted-foreground" />
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-foreground text-sm truncate">{job.title || 'Untitled Job'}</p>
-                                    <p className="text-xs text-muted-foreground truncate">{job.scheduled_date || 'No date'}</p>
+                                    <p className="font-medium text-foreground text-sm truncate">{(lead.name && lead.name !== 'Not collected') ? lead.name : 'Unknown'}</p>
+                                    <p className="text-xs text-muted-foreground truncate">{lead.caller_phone || ''}</p>
                                   </div>
                                 </div>
                               </button>
                             ))}
                           </div>
                         )}
+
+                        {/* Job Selection */}
+                        {selectedLeadId && (
+                          <div className="space-y-2 pt-2 border-t border-border min-h-[80px]">
+                            <p className="text-xs text-muted-foreground uppercase tracking-wider">Select a job (optional)</p>
+                            {isLoadingJobs ? (
+                              <div className="flex items-center justify-center py-4">
+                                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                              </div>
+                            ) : jobs.length === 0 ? (
+                              <p className="text-sm text-muted-foreground py-2">No jobs found for this customer</p>
+                            ) : (
+                              <div className="max-h-32 overflow-y-auto space-y-1">
+                                {jobs.map((job) => (
+                                  <button
+                                    key={job.id}
+                                    onClick={() => setSelectedJobId(job.id)}
+                                    className={`w-full p-2.5 rounded-lg border transition-colors text-left active:scale-[0.99] ${
+                                      selectedJobId === job.id
+                                        ? 'border-primary bg-primary/10'
+                                        : 'border-border hover:border-border/80'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2.5">
+                                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                                        <Briefcase className="w-4 h-4 text-muted-foreground" />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="font-medium text-foreground text-sm truncate">{job.title || 'Untitled Job'}</p>
+                                        <p className="text-xs text-muted-foreground truncate">{job.scheduled_date || 'No date'}</p>
+                                      </div>
+                                    </div>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
-                )}
-              </div>
 
-              {/* Error */}
-              {amountCents <= 0 && amountDisplay && (
-                <p className="text-sm text-red-500 text-center">Please enter a valid amount</p>
-              )}
+                  {/* Error */}
+                  {amountCents <= 0 && amountDisplay && (
+                    <p className="text-sm text-red-500 text-center">Please enter a valid amount</p>
+                  )}
 
-              {/* Only show app-only message in web - never in native app */}
-              {/* The user is already in the app, so this message is redundant */}
-              {!isNativeSupported && Capacitor.getPlatform() === 'web' && (
-                <p className="text-sm text-amber-600 dark:text-amber-400 text-center">
-                  Tap to Pay is only available on the mobile app
-                </p>
+                  {/* Only show app-only message in web */}
+                  {!isNativeSupported && platform === 'web' && (
+                    <p className="text-sm text-amber-600 dark:text-amber-400 text-center">
+                      Tap to Pay is only available on the mobile app
+                    </p>
+                  )}
+                </div>
+              ) : (
+                /* Payment Progress Screen */
+                <div className="flex flex-col items-center justify-center py-8 space-y-4">
+                  {paymentState === 'preparing' && (
+                    <>
+                      <Loader2 className="w-12 h-12 animate-spin text-green-600 dark:text-green-400" />
+                      <p className="text-sm text-muted-foreground text-center">Initializing payment terminal…</p>
+                      <p className="text-xs text-muted-foreground/60 text-center">{formatCurrency(amountCents / 100)}</p>
+                    </>
+                  )}
+
+                  {paymentState === 'waiting_for_card' && (
+                    <>
+                      <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center animate-pulse">
+                        <Smartphone className="w-8 h-8 text-green-600 dark:text-green-400" />
+                      </div>
+                      <p className="text-sm font-medium text-foreground text-center">Ready for card</p>
+                      <p className="text-xs text-muted-foreground text-center">Tap or insert card</p>
+                      <p className="text-lg font-bold text-foreground">{formatCurrency(amountCents / 100)}</p>
+                    </>
+                  )}
+
+                  {paymentState === 'processing' && (
+                    <>
+                      <Loader2 className="w-12 h-12 animate-spin text-green-600 dark:text-green-400" />
+                      <p className="text-sm text-muted-foreground text-center">Processing payment…</p>
+                    </>
+                  )}
+
+                  {paymentState === 'success' && (
+                    <>
+                      <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
+                        <CheckCircle2 className="w-8 h-8 text-green-600 dark:text-green-400" />
+                      </div>
+                      <p className="text-sm font-medium text-foreground text-center">Payment successful!</p>
+                      <p className="text-lg font-bold text-green-600 dark:text-green-400">{formatCurrency(amountCents / 100)}</p>
+                    </>
+                  )}
+
+                  {paymentState === 'failure' && (
+                    <>
+                      <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center">
+                        <XCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
+                      </div>
+                      <p className="text-sm font-medium text-foreground text-center">Payment failed</p>
+                      <p className="text-sm text-red-500 text-center">{error || 'An error occurred'}</p>
+                    </>
+                  )}
+                </div>
               )}
             </div>
 
             {/* Footer */}
             <div className="px-4 py-3 border-t border-border/50 flex gap-3 shrink-0" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
-              <button
-                onClick={onClose}
-                className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleStartPayment}
-                disabled={amountCents <= 0 || !isNativeSupported}
-                className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-green-600 flex items-center justify-center gap-2 active:scale-95"
-              >
-                <Smartphone className="w-4 h-4" />
-                Start Tap to Pay
-              </button>
+              {showPaymentSetup ? (
+                <>
+                  <button
+                    onClick={onClose}
+                    className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleStartPayment}
+                    disabled={amountCents <= 0 || !isNativeSupported || isPaymentInProgress}
+                    className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-green-600 flex items-center justify-center gap-2 active:scale-95"
+                  >
+                    <Smartphone className="w-4 h-4" />
+                    Start Tap to Pay
+                  </button>
+                </>
+              ) : (
+                <>
+                  {paymentState === 'failure' ? (
+                    <>
+                      <button
+                        onClick={() => setShowPaymentSetup(true)}
+                        className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
+                      >
+                        Back
+                      </button>
+                      <button
+                        onClick={retryPayment}
+                        disabled={isPaymentInProgress}
+                        className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-95"
+                      >
+                        <Loader2 className={`w-4 h-4 ${isPaymentInProgress ? 'animate-spin' : ''}`} />
+                        Try Again
+                      </button>
+                    </>
+                  ) : paymentState === 'success' ? (
+                    <button
+                      onClick={handlePaymentComplete}
+                      className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors active:scale-95"
+                    >
+                      Done
+                    </button>
+                  ) : (
+                    <button
+                      onClick={cancelPayment}
+                      disabled={isPaymentInProgress}
+                      className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>,
         document.body
-      )}
-
-      {/* Tap to Pay Modal */}
-      {showTapToPay && (
-        <TapToPayModal
-          isOpen={showTapToPay}
-          onClose={() => setShowTapToPay(false)}
-          amountCents={amountCents}
-          leadId={selectedLeadId || undefined}
-          jobId={selectedJobId || undefined}
-          description={description || undefined}
-          customerName={selectedLead?.name || undefined}
-          onPaymentComplete={async () => {
-            // Close the TapToPay modal immediately after success; keep Quick modal UX smooth
-            setShowTapToPay(false)
-            try {
-              // Fire host refreshes in parallel without reloading the page
-              await Promise.resolve(onRefreshAfterSuccess?.())
-            } catch {}
-            // Close Quick modal after triggering refreshes (no full reload)
-            onClose()
-          }}
-        />
       )}
     </>
   )
