@@ -357,7 +357,17 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       Manifest.permission.ACCESS_FINE_LOCATION
     ) == PackageManager.PERMISSION_GRANTED;
     
-    ret.put("granted", hasPermission);
+    boolean hasCoarsePermission = ContextCompat.checkSelfPermission(
+      getContext(),
+      Manifest.permission.ACCESS_COARSE_LOCATION
+    ) == PackageManager.PERMISSION_GRANTED;
+    
+    boolean precise = hasPermission;
+    boolean canAskAgain = !ActivityCompat.shouldShowRequestPermissionRationale(getActivity(), Manifest.permission.ACCESS_FINE_LOCATION);
+    
+    ret.put("granted", hasPermission || hasCoarsePermission);
+    ret.put("precise", precise);
+    ret.put("canAskAgain", canAskAgain);
     
     // Check if location services are enabled
     LocationManager locationManager = (LocationManager) getContext().getSystemService(Context.LOCATION_SERVICE);
@@ -365,7 +375,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     
     ret.put("locationEnabled", locationEnabled);
     
-    Log.d(TAG, "[LOCATION] Permission check result: granted=" + hasPermission + ", locationEnabled=" + locationEnabled);
+    Log.d(TAG, "[LOCATION] Permission check result: granted=" + (hasPermission || hasCoarsePermission) + " precise=" + precise + " canAskAgain=" + canAskAgain + " locationEnabled=" + locationEnabled);
     
     call.resolve(ret);
   }
@@ -434,7 +444,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       String[] permissions = { Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION };
       ActivityCompat.requestPermissions(getActivity(), permissions, LOCATION_PERMISSION_REQUEST_CODE);
       
-      Log.d(TAG, "[LOCATION_PERMISSION_CALLBACK_RECEIVED] Permission request initiated, waiting for callback");
+      Log.d(TAG, "[LOCATION_PERMISSION_REQUEST_DISPATCHED] Permission request dispatched, waiting for callback");
       // DO NOT resolve here - wait for onRequestPermissionsResult
     } catch (Exception e) {
       Log.e(TAG, "[LOCATION_PERMISSION_REQUEST_FAILED] Exception in requestLocationPermission", e);
@@ -465,7 +475,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       boolean locationEnabled = isLocationEnabled();
       boolean canAskAgain = !ActivityCompat.shouldShowRequestPermissionRationale(getActivity(), Manifest.permission.ACCESS_FINE_LOCATION);
       
-      Log.d(TAG, "[LOCATION_PERMISSION_CALLBACK_RESULT] granted=" + granted + " precise=" + precise + " locationEnabled=" + locationEnabled + " canAskAgain=" + canAskAgain);
+      Log.d(TAG, "[LOCATION_PERMISSION_CALLBACK_RESULT] requestCode=" + requestCode + " granted=" + granted + " precise=" + precise + " locationEnabled=" + locationEnabled + " canAskAgain=" + canAskAgain + " pendingCallFound=" + (pendingPermissionCall != null));
       
       JSObject ret = new JSObject();
       ret.put("granted", granted);
@@ -476,7 +486,9 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       pendingPermissionCall.resolve(ret);
       pendingPermissionCall = null;
       
-      Log.d(TAG, "[LOCATION_PERMISSION_REQUEST_RESOLVED] Permission request resolved");
+      Log.d(TAG, "[LOCATION_PERMISSION_REQUEST_RESOLVED] Permission request resolved with granted=" + granted);
+    } else if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
+      Log.w(TAG, "[LOCATION_PERMISSION_CALLBACK_RESULT] Request code matches but pendingPermissionCall is null - callback received after timeout or already resolved");
     }
   }
   

@@ -324,7 +324,7 @@ export function useTapToPayOrchestration({
 
       // Check location permission for Android
       if (platform === 'android') {
-        console.log('[TTP Hook] LOCATION_CHECK_STARTED', { platform })
+        console.log('[QuickTTP UI] LOCATION_BLOCK_ENTERED', { platform })
         let permissionResult: any = await withTimeout(
           checkLocationPermission(),
           'LOCATION_PERMISSION_CHECK',
@@ -332,10 +332,10 @@ export function useTapToPayOrchestration({
           terminalService.getSessionId() || 'unknown',
           terminalService.getCurrentAttemptId() || 'unknown'
         )
-        console.log('[TTP Hook] LOCATION_CHECK_COMPLETED', { permissionResult })
+        console.log('[QuickTTP UI] LOCATION_CHECK_RESULT', { permissionResult })
         
         if (!permissionResult.granted) {
-          console.log('[TTP Hook] LOCATION_PERMISSION_CHECK_FAILED - requesting permission')
+          console.log('[QuickTTP UI] LOCATION_CHECK_FAILED - requesting permission')
           permissionResult = await withTimeout(
             requestLocationPermission(),
             'LOCATION_PERMISSION_REQUEST',
@@ -343,10 +343,11 @@ export function useTapToPayOrchestration({
             terminalService.getSessionId() || 'unknown',
             terminalService.getCurrentAttemptId() || 'unknown'
           )
-          console.log('[TTP Hook] LOCATION_PERMISSION_REQUEST_COMPLETED', { permissionResult })
+          console.log('[QuickTTP UI] LOCATION_REQUEST_RESULT', { permissionResult })
           
           if (!permissionResult.granted) {
-            console.log('[TTP Hook] LOCATION_PERMISSION_DENIED after request', { permissionResult })
+            console.log('[QuickTTP UI] LOCATION_FINAL_RESULT', { granted: false, locationEnabled: permissionResult.locationEnabled })
+            console.log('[QuickTTP UI] LOCATION_PERMISSION_DENIED after request', { permissionResult })
             setShowLocationPermissionDialog(true)
             setIsPaymentInProgress(false)
             autoRetryInProgress.current = false
@@ -363,12 +364,15 @@ export function useTapToPayOrchestration({
             onPaymentError?.(errorMsg)
             return
           }
-          console.log('[TTP Hook] LOCATION_PERMISSION_CONTINUING_SAME_ATTEMPT')
+          console.log('[QuickTTP UI] LOCATION_PERMISSION_CONTINUING_SAME_ATTEMPT')
         }
+        console.log('[QuickTTP UI] LOCATION_FINAL_RESULT', { granted: permissionResult.granted, locationEnabled: permissionResult.locationEnabled })
+        console.log('[QuickTTP UI] LOCATION_BLOCK_PASSED')
         setLastSuccessfulStage('location_permission_ok')
       }
 
       // Initialize terminal
+      console.log('[QuickTTP UI] ABOUT_TO_INITIALIZE_TERMINAL')
       console.log('[TTP Hook] INITIALIZE_STARTED')
       setLastSuccessfulStage('initializing_terminal')
       const initResult = await withTimeout(
