@@ -860,16 +860,10 @@ export function useTapToPayOrchestration({
           activeAttemptIdRef.current = null
           activeAttemptTokenRef.current = null
           console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_CLEARED_SUCCESS')
-          
-          // Dispatch event for Recent Payments refresh
-          if (paymentIntentId) {
-            window.dispatchEvent(new CustomEvent('replyflow:payment-completed', {
-              detail: { paymentIntentId }
-            }))
-            console.log('[TTP Hook] PAYMENTS_LIST_REFRESH_DISPATCHED', { paymentIntentId })
-            dispatchTTPEvent('PAYMENTS_LIST_REFRESH_DISPATCHED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'success', 'payment_intent:' + paymentIntentId.slice(0, 8))
-          }
-          
+
+          // Note: replyflow:payment-completed event is now dispatched by the modal when user dismisses it
+          // This prevents the page from refreshing while the success modal is still visible
+
           onPaymentComplete?.()
         } catch (reconcileError) {
           console.error('[TTP Hook] RECONCILE_FAILED', reconcileError)

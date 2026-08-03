@@ -136,12 +136,9 @@ export default function QuickTapToPayModal({
     leadId: selectedLeadId || undefined,
     jobId: selectedJobId || undefined,
     description,
-    onPaymentComplete: async () => {
-      // Wait a moment for reconciliation to complete before refreshing
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      if (typeof window !== 'undefined') {
-        window.location.reload()
-      }
+    onPaymentComplete: () => {
+      // Payment completion handling is now done in handlePaymentComplete when user dismisses modal
+      // This prevents page refresh while success modal is still visible
     },
     onPaymentError: () => {},
   })
@@ -435,6 +432,14 @@ export default function QuickTapToPayModal({
   }
 
   const handlePaymentComplete = async () => {
+    // Dispatch event for Recent Payments refresh before closing modal
+    const paymentIntentId = terminalService.getPaymentIntentId()
+    if (paymentIntentId) {
+      window.dispatchEvent(new CustomEvent('replyflow:payment-completed', {
+        detail: { paymentIntentId }
+      }))
+      console.log('[QuickTTP UI] PAYMENTS_LIST_REFRESH_DISPATCHED_ON_MODAL_CLOSE', { paymentIntentId })
+    }
     onClose()
     onRefreshAfterSuccess?.()
   }
