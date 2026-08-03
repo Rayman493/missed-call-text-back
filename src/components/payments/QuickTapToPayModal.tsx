@@ -73,13 +73,13 @@ export default function QuickTapToPayModal({
   })
 
   // Derive showPaymentSetup from paymentState to ensure UI is always in sync
-  const showPaymentSetup = paymentState === 'ready' || paymentState === 'canceled'
+  const showPaymentSetup = paymentState === 'ready'
 
   // Render logging for debugging
   useEffect(() => {
     if (isOpen) {
       console.log('[QuickTTP UI] RENDER_BRANCH', {
-        branch: showPaymentSetup ? 'SETUP' : paymentState === 'failure' ? 'FAILURE' : paymentState.toUpperCase(),
+        branch: showPaymentSetup ? 'SETUP' : paymentState === 'failure' ? 'FAILURE' : paymentState === 'canceled' ? 'CANCELED' : paymentState.toUpperCase(),
         paymentState,
         showPaymentSetup
       })
@@ -297,7 +297,7 @@ export default function QuickTapToPayModal({
         // On back from failure, go to setup
         // handled by cancelPayment which resets state
         cancelPayment()
-      } else if (paymentState === 'ready' || paymentState === 'canceled') {
+      } else if (paymentState === 'ready') {
         onClose()
       } else {
         // During active payment, allow cancel
@@ -314,7 +314,7 @@ export default function QuickTapToPayModal({
         capListener = await App.addListener('backButton', () => {
           if (paymentState === 'failure') {
             cancelPayment()
-          } else if (paymentState === 'ready' || paymentState === 'canceled') {
+          } else if (paymentState === 'ready') {
             onClose()
           } else {
             cancelPayment()
@@ -351,6 +351,7 @@ export default function QuickTapToPayModal({
                    paymentState === 'waiting_for_card' ? 'Ready for card' :
                    paymentState === 'processing' ? 'Processing…' :
                    paymentState === 'success' ? 'Payment Complete' :
+                   paymentState === 'canceled' ? 'Payment Canceled' :
                    paymentState === 'failure' ? 'Payment Failed' :
                    'Tap to Pay'}
                 </h3>
@@ -617,6 +618,16 @@ export default function QuickTapToPayModal({
                     </>
                   )}
 
+                  {paymentState === 'canceled' && (
+                    <>
+                      <div className="w-16 h-16 rounded-full bg-gray-500/10 flex items-center justify-center">
+                        <XCircle className="w-8 h-8 text-gray-600 dark:text-gray-400" />
+                      </div>
+                      <p className="text-sm font-medium text-foreground text-center">Payment canceled</p>
+                      <p className="text-sm text-muted-foreground text-center">No payment was taken.</p>
+                    </>
+                  )}
+
                   {paymentState === 'failure' && (
                     <>
                       <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center">
@@ -658,7 +669,24 @@ export default function QuickTapToPayModal({
                 </>
               ) : (
                 <>
-                  {paymentState === 'failure' ? (
+                  {paymentState === 'canceled' ? (
+                    <>
+                      <button
+                        onClick={() => cancelPayment('user_back')}
+                        className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
+                      >
+                        Back
+                      </button>
+                      <button
+                        onClick={retryPayment}
+                        disabled={isPaymentInProgress}
+                        className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-95"
+                      >
+                        <Loader2 className={`w-4 h-4 ${isPaymentInProgress ? 'animate-spin' : ''}`} />
+                        Try Again
+                      </button>
+                    </>
+                  ) : paymentState === 'failure' ? (
                     <>
                       {mappedError?.action === 'open_app_settings' ? (
                         <>

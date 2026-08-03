@@ -302,7 +302,7 @@ export function useTapToPayOrchestration({
       // Check location permission for Android
       if (platform === 'android') {
         console.log('[TTP Hook] LOCATION_CHECK_STARTED', { platform })
-        const locationOk = await withTimeout(
+        let locationOk = await withTimeout(
           checkLocationPermission(),
           'LOCATION_PERMISSION_CHECK',
           TIMEOUTS.PERMISSION_REQUEST,
@@ -313,16 +313,22 @@ export function useTapToPayOrchestration({
         
         if (!locationOk) {
           console.log('[TTP Hook] LOCATION_PERMISSION_CHECK_FAILED - requesting permission')
-          const permissionGranted = await withTimeout(
+          await withTimeout(
             requestLocationPermission(),
             'LOCATION_PERMISSION_REQUEST',
             TIMEOUTS.PERMISSION_REQUEST,
             terminalService.getSessionId() || 'unknown',
             terminalService.getCurrentAttemptId() || 'unknown'
           )
-          console.log('[TTP Hook] LOCATION_PERMISSION_REQUEST_RESULT', { permissionGranted })
+          console.log('[TTP Hook] LOCATION_PERMISSION_REQUEST_COMPLETED')
           
-          if (!permissionGranted) {
+          // Re-check permission after the system dialog closes
+          console.log('[TTP Hook] LOCATION_PERMISSION_RECHECK')
+          await new Promise(resolve => setTimeout(resolve, 150)) // Brief delay for Android to update state
+          locationOk = await checkLocationPermission()
+          console.log('[TTP Hook] LOCATION_PERMISSION_RECHECK_RESULT', { locationOk })
+          
+          if (!locationOk) {
             console.log('[TTP Hook] LOCATION_PERMISSION_DENIED after request')
             setShowLocationPermissionDialog(true)
             setIsPaymentInProgress(false)
@@ -436,7 +442,6 @@ export function useTapToPayOrchestration({
       stack: err.stack,
       lastSuccessfulStage
     })
-    updatePaymentStateRef('failure', 'error_thrown')
     
     // Map the error to user-friendly message
     const mapped = mapTapToPayError({
@@ -445,9 +450,14 @@ export function useTapToPayOrchestration({
       nativeCode: err.nativeCode,
       stage: lastSuccessfulStage,
     })
+    
+    // Check if this is a cancellation and set state accordingly
+    const isCancellation = mapped.title === 'Payment canceled'
+    updatePaymentStateRef(isCancellation ? 'canceled' : 'failure', isCancellation ? 'user_canceled' : 'error_thrown')
+    
     setMappedError(mapped)
     
-    const errorMsg = err.message || 'Payment failed'
+    const errorMsg = mapped.message
     setError(errorMsg)
     setStructuredError(err as TerminalError)
     setIsPaymentInProgress(false)

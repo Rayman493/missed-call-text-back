@@ -156,11 +156,14 @@ export function mapTapToPayError(
   if (
     lowerCode.includes('canceled') ||
     lowerMessage.includes('canceled') ||
-    lowerMessage.includes('cancelled')
+    lowerMessage.includes('cancelled') ||
+    lowerCode.includes('user_canceled') ||
+    lowerCode.includes('command_canceled') ||
+    lowerCode.includes('request canceled')
   ) {
     return {
-      title: 'Payment Canceled',
-      message: 'The payment was canceled.',
+      title: 'Payment canceled',
+      message: 'No payment was taken.',
       action: 'back',
       technicalCode: code,
       technicalMessage: message,
