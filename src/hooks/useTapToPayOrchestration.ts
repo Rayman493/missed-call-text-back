@@ -9,7 +9,7 @@ import { Capacitor } from '@capacitor/core'
 import { mapTapToPayError } from '@/lib/terminal/error-mapper'
 import { permissionLock } from '@/lib/permission-lock'
 
-type PaymentState = 'ready' | 'preparing' | 'waiting_for_card' | 'processing' | 'success' | 'failure' | 'canceled' | 'pending' | 'ambiguous'
+type PaymentState = 'ready' | 'preparing' | 'connecting_reader' | 'creating_payment_intent' | 'waiting_for_card' | 'processing' | 'success' | 'failure' | 'canceled' | 'pending' | 'ambiguous'
 
 interface UseTapToPayOrchestrationOptions {
   amountCents: number
@@ -473,9 +473,7 @@ export function useTapToPayOrchestration({
       if (initResult.status === 'connected') {
         setLastSuccessfulStage('connected')
       } else {
-        if (paymentStateRef.current !== 'preparing') {
-          updatePaymentStateRef('preparing', 'reconnect_to_preparing')
-        }
+        updatePaymentStateRef('connecting_reader', 'connection_started')
         console.log('[TTP Hook] CONNECTION_STARTED')
         setLastSuccessfulStage('connecting_reader')
         const connectResult = await withTimeout(
@@ -494,6 +492,7 @@ export function useTapToPayOrchestration({
       }
 
       // Start payment collection
+      updatePaymentStateRef('creating_payment_intent', 'payment_intent_creation_started')
       const paymentPromise = withTimeout(
         terminalService.startTapToPayPayment({
           amountCents,

@@ -40,7 +40,8 @@ export default function QuickTapToPayModal({
   const [disabledReason, setDisabledReason] = useState<string>('')
   const [showCustomerSelector, setShowCustomerSelector] = useState(false)
   const [modalSessionId, setModalSessionId] = useState<string>(`modal_${Date.now()}`)
-  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_CONNECTION_HANG_FIX'
+  const [connectingElapsedTime, setConnectingElapsedTime] = useState(0)
+  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_UX_POLISH'
 
   // Ref for modal title for accessibility focus
   const titleRef = useRef<HTMLHeadingElement>(null)
@@ -401,6 +402,24 @@ export default function QuickTapToPayModal({
     }
   }, [isOpen, onClose, paymentState, cancelPayment])
 
+  // Timer for connecting state to show elapsed time reassurance
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null
+    
+    if (paymentState === 'connecting_reader') {
+      setConnectingElapsedTime(0)
+      interval = setInterval(() => {
+        setConnectingElapsedTime(prev => prev + 1)
+      }, 1000)
+    } else {
+      setConnectingElapsedTime(0)
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval)
+    }
+  }, [paymentState])
+
   if (!isOpen) return null
 
   const selectedLead = leads.find(l => l.id === selectedLeadId)
@@ -420,6 +439,8 @@ export default function QuickTapToPayModal({
                 <h3 ref={titleRef} className="text-base font-semibold text-foreground select-none" tabIndex={-1}>
                   {showPaymentSetup ? 'Tap to Pay' : 
                    paymentState === 'preparing' ? 'Preparing Tap to Pay…' :
+                   paymentState === 'connecting_reader' ? 'Connecting to Tap to Pay…' :
+                   paymentState === 'creating_payment_intent' ? 'Preparing payment…' :
                    paymentState === 'waiting_for_card' ? 'Ready for card' :
                    paymentState === 'processing' ? 'Processing…' :
                    paymentState === 'success' ? 'Payment Complete' :
@@ -457,8 +478,8 @@ export default function QuickTapToPayModal({
               {showPaymentSetup ? (
                 /* Payment Setup Screen */
                 <div className="space-y-4">
-                  {/* Test Status - temporary for device testing */}
-                  {SHOW_TTP_TEST_STATUS && (
+                  {/* Test Status - hidden in production */}
+                  {false && SHOW_TTP_TEST_STATUS && (
                     <div className="p-2 rounded bg-blue-900/20 border border-blue-500/30 text-xs font-mono space-y-1">
                       <div className="text-blue-300">TTP Build: {WEB_BUILD_MARKER}</div>
                       <div className="text-blue-200">State: {paymentState}</div>
@@ -470,15 +491,15 @@ export default function QuickTapToPayModal({
                       {disabledReason && <div className="text-amber-300">Disabled: {disabledReason}</div>}
                       {mappedError && (
                         <>
-                          <div className="text-blue-200">Mapped Title: {mappedError.title}</div>
-                          <div className="text-blue-200">Mapped Action: {mappedError.action}</div>
+                          <div className="text-blue-200">Mapped Title: {mappedError?.title}</div>
+                          <div className="text-blue-200">Mapped Action: {mappedError?.action}</div>
                         </>
                       )}
                     </div>
                   )}
 
                   {/* Debug UI - hidden in production */}
-                  {SHOW_TAP_TO_PAY_DIAGNOSTICS && (
+                  {false && SHOW_TAP_TO_PAY_DIAGNOSTICS && (
                     <>
                       <div className="p-3 rounded-lg border-2 border-red-700 bg-red-900/30 text-center">
                         <div className="text-red-300 font-extrabold text-lg tracking-wide">DEBUG PANEL BUILD 2026-07-23</div>
@@ -673,6 +694,29 @@ export default function QuickTapToPayModal({
                     </>
                   )}
 
+                  {paymentState === 'connecting_reader' && (
+                    <>
+                      <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center animate-pulse">
+                        <Smartphone className="w-8 h-8 text-green-600 dark:text-green-400" />
+                      </div>
+                      <p className="text-sm font-medium text-foreground text-center">Connecting to Tap to Pay…</p>
+                      <p className="text-sm text-muted-foreground text-center px-4">
+                        {connectingElapsedTime >= 5
+                          ? 'Still connecting securely… this can take a few seconds.'
+                          : 'Preparing the secure payment reader. This may take a few seconds the first time.'}
+                      </p>
+                      <p className="text-lg font-bold text-foreground">{formatCurrency(amountCents / 100)}</p>
+                    </>
+                  )}
+
+                  {paymentState === 'creating_payment_intent' && (
+                    <>
+                      <Loader2 className="w-12 h-12 animate-spin text-green-600 dark:text-green-400" />
+                      <p className="text-sm text-muted-foreground text-center">Preparing payment…</p>
+                      <p className="text-xs text-muted-foreground/60 text-center">{formatCurrency(amountCents / 100)}</p>
+                    </>
+                  )}
+
                   {paymentState === 'waiting_for_card' && (
                     <>
                       <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center animate-pulse">
@@ -721,7 +765,7 @@ export default function QuickTapToPayModal({
                     </>
                   )}
                   {/* Defensive fallback for unhandled states */}
-                  {(!['preparing', 'waiting_for_card', 'processing', 'success', 'failure', 'canceled'].includes(paymentState)) && (
+                  {(!['preparing', 'connecting_reader', 'creating_payment_intent', 'waiting_for_card', 'processing', 'success', 'failure', 'canceled'].includes(paymentState)) && (
                     <>
                       <AlertCircle className="w-12 h-12 text-red-600 dark:text-red-400" />
                       <p className="text-sm font-medium text-foreground text-center">Tap to Pay needs to be restarted</p>
