@@ -41,7 +41,7 @@ export default function QuickTapToPayModal({
   const [showCustomerSelector, setShowCustomerSelector] = useState(false)
   const [modalSessionId, setModalSessionId] = useState<string>(`modal_${Date.now()}`)
   const [connectingElapsedTime, setConnectingElapsedTime] = useState(0)
-  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_PROGRESS_RENDER_FIX'
+  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_ORCHESTRATION_FIX'
 
   // Ref for modal title for accessibility focus
   const titleRef = useRef<HTMLHeadingElement>(null)

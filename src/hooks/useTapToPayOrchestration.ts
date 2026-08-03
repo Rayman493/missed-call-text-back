@@ -504,12 +504,17 @@ export function useTapToPayOrchestration({
         setLastSuccessfulStage('connected')
       } else {
         updatePaymentStateRef('connecting_reader', 'connection_started')
-        console.log('[TTP Hook] CONNECTION_STARTED')
+        console.log('[TTP Hook] CONNECTION_STARTED', {
+          attemptId: terminalService.getCurrentAttemptId(),
+          sessionId: terminalService.getSessionId()
+        })
         setLastSuccessfulStage('connecting_reader')
         
-        // Yield one frame to allow React to paint the connecting state before native call
+        // Yield two frames to allow React to paint the connecting state before native call
         await new Promise<void>(resolve => {
-          requestAnimationFrame(() => resolve())
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => resolve())
+          })
         })
         
         const connectResult = await withTimeout(
@@ -529,10 +534,16 @@ export function useTapToPayOrchestration({
 
       // Start payment collection
       updatePaymentStateRef('creating_payment_intent', 'payment_intent_creation_started')
+      console.log('[TTP Hook] PAYMENT_INTENT_CREATION_STARTED', {
+        attemptId: terminalService.getCurrentAttemptId(),
+        sessionId: terminalService.getSessionId()
+      })
       
-      // Yield one frame to allow React to paint the creating_payment_intent state
+      // Yield two frames to allow React to paint the creating_payment_intent state
       await new Promise<void>(resolve => {
-        requestAnimationFrame(() => resolve())
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => resolve())
+        })
       })
       
       const paymentPromise = withTimeout(
@@ -555,20 +566,67 @@ export function useTapToPayOrchestration({
         await new Promise(r => setTimeout(r, 50))
       }
       if (terminalService.getPaymentIntentId()) {
+        const paymentIntentId = terminalService.getPaymentIntentId()
+        console.log('[TTP Hook] PAYMENT_INTENT_CREATED', {
+          paymentIntentId,
+          attemptId: terminalService.getCurrentAttemptId(),
+          sessionId: terminalService.getSessionId(),
+          leadId,
+          jobId,
+          amountCents
+        })
         updatePaymentStateRef('waiting_for_card')
         setLastSuccessfulStage('payment_intent_created')
       }
 
+      console.log('[TTP Hook] COLLECT_STARTED', {
+        attemptId: terminalService.getCurrentAttemptId(),
+        sessionId: terminalService.getSessionId()
+      })
+      
       const paymentResult = await paymentPromise
-      console.log('[TTP Hook] Payment result:', paymentResult)
+      console.log('[TTP Hook] COLLECT_COMPLETED', {
+        paymentResult,
+        attemptId: terminalService.getCurrentAttemptId(),
+        sessionId: terminalService.getSessionId()
+      })
+
+      console.log('[TTP Hook] NATIVE_PAYMENT_SUCCEEDED', {
+        status: paymentResult.status,
+        paymentIntentId: terminalService.getPaymentIntentId(),
+        attemptId: terminalService.getCurrentAttemptId(),
+        sessionId: terminalService.getSessionId()
+      })
 
       if (paymentResult.status === 'success') {
-        updatePaymentStateRef('success')
+        const paymentIntentId = terminalService.getPaymentIntentId()
+        console.log('[TTP Hook] RECONCILE_STARTED', {
+          paymentIntentId,
+          attemptId: terminalService.getCurrentAttemptId(),
+          sessionId: terminalService.getSessionId()
+        })
+        
+        updatePaymentStateRef('success', 'payment_completed')
+        console.log('[TTP Hook] MODAL_SUCCESS_RENDERED', {
+          paymentIntentId,
+          attemptId: terminalService.getCurrentAttemptId(),
+          sessionId: terminalService.getSessionId()
+        })
+        
         setIsPaymentInProgress(false)
-            permissionLock.setTapToPayActive(false)
+        permissionLock.setTapToPayActive(false)
         startInFlight.current = false
-            activeAttemptRef.current = false
+        activeAttemptRef.current = false
         console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_CLEARED_SUCCESS')
+        
+        // Dispatch event for Recent Payments refresh
+        if (paymentIntentId) {
+          window.dispatchEvent(new CustomEvent('replyflow:payment-completed', {
+            detail: { paymentIntentId }
+          }))
+          console.log('[TTP Hook] PAYMENTS_LIST_REFRESH_DISPATCHED', { paymentIntentId })
+        }
+        
         onPaymentComplete?.()
       } else if (paymentResult.status === 'failed') {
         const errorMsg = paymentResult.error || 'Payment failed'

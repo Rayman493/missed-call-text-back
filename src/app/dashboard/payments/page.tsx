@@ -196,6 +196,19 @@ export default function PaymentsPage() {
     fetchPayments()
   }, [])
 
+  // Listen for payment completion events to refresh the list
+  useEffect(() => {
+    const handlePaymentCompleted = (event: CustomEvent) => {
+      console.log('[Payments Page] PAYMENT_COMPLETED_EVENT_RECEIVED', event.detail)
+      fetchPayments()
+    }
+
+    window.addEventListener('replyflow:payment-completed', handlePaymentCompleted as EventListener)
+    return () => {
+      window.removeEventListener('replyflow:payment-completed', handlePaymentCompleted as EventListener)
+    }
+  }, [])
+
   const fetchPayments = async () => {
     try {
       const supabase = createBrowserClient()
