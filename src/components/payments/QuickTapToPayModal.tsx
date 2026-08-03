@@ -47,7 +47,7 @@ export default function QuickTapToPayModal({
   const [modalSessionId, setModalSessionId] = useState<string>(`modal_${Date.now()}`)
   const [connectingElapsedTime, setConnectingElapsedTime] = useState(0)
   const [eventTimeline, setEventTimeline] = useState<Array<{ timestamp: string; event: string; sessionId?: string; attemptId?: string; paymentState?: string; stage?: string }>>([])
-  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_ANDROID_FINAL_POLISH_FREEZE'
+  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_SELECTOR_AND_PERMISSION_FINAL_FIX'
   
   // Location guidance card states (inline on setup screen, not overlays)
 const [showLocationPermissionCard, setShowLocationPermissionCard] = useState(false)
@@ -55,12 +55,71 @@ const [showLocationServicesCard, setShowLocationServicesCard] = useState(false)
 const [showLocationBlockedCard, setShowLocationBlockedCard] = useState(false)
 const [isRequestingLocationPermission, setIsRequestingLocationPermission] = useState(false)
 
-// Canonical selection state to preserve display during loading
-const [selectionType, setSelectionType] = useState<'quick' | 'customer' | 'job'>('quick')
-const [selectionLabel, setSelectionLabel] = useState<string>('')
+// Atomic selection model to prevent flashing
+type TapToPaySelection =
+  | {
+      type: 'quick'
+      leadId: null
+      jobId: null
+      label: 'Quick Payment'
+    }
+  | {
+      type: 'customer'
+      leadId: string
+      jobId: null
+      label: string
+    }
+  | {
+      type: 'job'
+      leadId: string | null
+      jobId: string
+      label: string
+    }
+
+const [paymentSelection, setPaymentSelection] = useState<TapToPaySelection>({
+  type: 'quick',
+  leadId: null,
+  jobId: null,
+  label: 'Quick Payment'
+})
+
+// Selection commit guard to prevent duplicate commits
+const selectionCommitInProgressRef = useRef(false)
 
 // One-shot continuation guard to prevent duplicate ATTEMPT_STARTED
 const continuationAttemptedRef = useRef(false)
+
+// Permission normalizer to ensure correct classification
+const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request') => {
+  const rawStatus = raw?.status || null
+  const rawCanAskAgain = raw?.canAskAgain ?? null
+  const rawLocationEnabled = raw?.locationEnabled ?? false
+  const rawGranted = raw?.granted ?? false
+  
+  // Preserve null/undefined as null, don't coerce to false
+  const canAskAgain = rawCanAskAgain === null ? null : rawCanAskAgain
+  
+  const result = {
+    granted: rawGranted,
+    canAskAgain,
+    locationEnabled: rawLocationEnabled,
+    rawStatus,
+    source
+  }
+  
+  dispatchTTPEvent('LOCATION_PERMISSION_RAW_RESULT', {
+    source,
+    rawStatus,
+    rawCanAskAgain,
+    rawLocationEnabled,
+    rawGranted,
+    hasRequestedBefore: source === 'request'
+  })
+  
+  dispatchTTPEvent('LOCATION_PERMISSION_RESULT_NORMALIZED', result)
+  
+  return result
+}
 
   // Ref for modal title for accessibility focus
   const titleRef = useRef<HTMLHeadingElement>(null)
@@ -354,6 +413,13 @@ const continuationAttemptedRef = useRef(false)
       setSelectedJobId(null)
       setDescription('')
       setShowCustomerSelector(false)
+      setPaymentSelection({
+        type: 'quick',
+        leadId: null,
+        jobId: null,
+        label: 'Quick Payment'
+      })
+      continuationAttemptedRef.current = false
     }
     return () => {
       if (isOpen) {
@@ -468,20 +534,27 @@ const continuationAttemptedRef = useRef(false)
     
     // Check location permission first for Android
     if (platform === 'android') {
-      const locationCheck = await checkLocationPermission()
+      const rawLocationCheck = await checkLocationPermission()
+      const locationCheck = normalizeLocationPermissionResult(rawLocationCheck, 'check')
       console.log('[QuickTTP UI] LOCATION_CHECK_BEFORE_START', { granted: locationCheck.granted, locationEnabled: locationCheck.locationEnabled, canAskAgain: locationCheck.canAskAgain })
       
-      if (!locationCheck.granted && locationCheck.canAskAgain) {
+      if (!locationCheck.granted && locationCheck.canAskAgain === true) {
         // Show inline permission card on setup screen
         dispatchTTPEvent('LOCATION_VALIDATION_FAILED')
         dispatchTTPEvent('LOCATION_INLINE_CARD_SHOWN', { card: 'permission' })
         setShowLocationPermissionCard(true)
         return
-      } else if (!locationCheck.granted && !locationCheck.canAskAgain) {
+      } else if (!locationCheck.granted && locationCheck.canAskAgain === false) {
         // Show inline blocked card on setup screen
         dispatchTTPEvent('LOCATION_VALIDATION_FAILED')
         dispatchTTPEvent('LOCATION_INLINE_CARD_SHOWN', { card: 'blocked' })
         setShowLocationBlockedCard(true)
+        return
+      } else if (!locationCheck.granted && locationCheck.canAskAgain === null) {
+        // Unknown state - show permission card with re-prompt
+        dispatchTTPEvent('LOCATION_VALIDATION_FAILED')
+        dispatchTTPEvent('LOCATION_INLINE_CARD_SHOWN', { card: 'permission' })
+        setShowLocationPermissionCard(true)
         return
       } else if (locationCheck.granted && !locationCheck.locationEnabled) {
         // Show inline services card on setup screen
@@ -501,6 +574,7 @@ const continuationAttemptedRef = useRef(false)
       return
     }
     continuationAttemptedRef.current = true
+    dispatchTTPEvent('LOCATION_CONTINUATION_GUARD_ACQUIRED')
     
     await startPayment()
   }
@@ -615,8 +689,8 @@ const continuationAttemptedRef = useRef(false)
 
   if (!isOpen) return null
 
-  const selectedLead = leads.find(l => l.id === selectedLeadId)
-  const selectedJob = jobs.find(j => j.id === selectedJobId)
+  const selectedLead = leads.find(l => l.id === paymentSelection.leadId)
+  const selectedJob = jobs.find(j => j.id === paymentSelection.jobId)
 
   return (
     <>
@@ -851,7 +925,7 @@ const continuationAttemptedRef = useRef(false)
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2.5">
                           <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-                            {selectionType !== 'quick' ? (
+                            {paymentSelection.type !== 'quick' ? (
                               <User className="w-4.5 h-4.5 text-foreground" />
                             ) : (
                               <Smartphone className="w-4.5 h-4.5 text-muted-foreground" />
@@ -859,10 +933,10 @@ const continuationAttemptedRef = useRef(false)
                           </div>
                           <div className="text-left">
                             <p className="font-medium text-foreground text-sm">
-                              {selectionType === 'quick' ? 'Quick Payment' : selectionLabel}
+                              {paymentSelection.label}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {selectionType === 'quick' ? 'No customer or job' : selectedLead?.caller_phone || ''}
+                              {paymentSelection.type === 'quick' ? 'No customer or job' : selectedLead?.caller_phone || ''}
                             </p>
                           </div>
                         </div>
@@ -879,15 +953,27 @@ const continuationAttemptedRef = useRef(false)
                       <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
                         <button
                           onClick={() => {
+                            if (selectionCommitInProgressRef.current) {
+                              dispatchTTPEvent('DUPLICATE_CUSTOMER_JOB_SELECTION_IGNORED', { type: 'quick' })
+                              return
+                            }
+                            selectionCommitInProgressRef.current = true
                             dispatchTTPEvent('CUSTOMER_JOB_SELECTION_COMMITTED', { type: 'quick', leadId: null, jobId: null })
+                            setPaymentSelection({
+                              type: 'quick',
+                              leadId: null,
+                              jobId: null,
+                              label: 'Quick Payment'
+                            })
                             setSelectedLeadId(null)
                             setSelectedJobId(null)
-                            setSelectionType('quick')
-                            setSelectionLabel('')
                             setShowCustomerSelector(false)
+                            setTimeout(() => {
+                              selectionCommitInProgressRef.current = false
+                            }, 0)
                           }}
                           className={`w-full p-2.5 rounded-lg border transition-colors text-left active:scale-[0.99] ${
-                            selectedLeadId === null
+                            paymentSelection.type === 'quick'
                               ? 'border-primary bg-primary/10'
                               : 'border-border hover:border-border/80'
                           }`}
@@ -915,19 +1001,31 @@ const continuationAttemptedRef = useRef(false)
                               <button
                                 key={lead.id}
                                 onClick={() => {
-                                  if (selectedLeadId === lead.id) {
+                                  if (paymentSelection.type === 'customer' && paymentSelection.leadId === lead.id) {
                                     dispatchTTPEvent('DUPLICATE_CUSTOMER_JOB_SELECTION_IGNORED', { type: 'customer', leadId: lead.id })
                                     return
                                   }
+                                  if (selectionCommitInProgressRef.current) {
+                                    dispatchTTPEvent('DUPLICATE_CUSTOMER_JOB_SELECTION_IGNORED', { type: 'customer', leadId: lead.id })
+                                    return
+                                  }
+                                  selectionCommitInProgressRef.current = true
                                   dispatchTTPEvent('CUSTOMER_JOB_SELECTION_COMMITTED', { type: 'customer', leadId: lead.id, jobId: null })
+                                  setPaymentSelection({
+                                    type: 'customer',
+                                    leadId: lead.id,
+                                    jobId: null,
+                                    label: (lead.name && lead.name !== 'Not collected') ? lead.name : 'Unknown'
+                                  })
                                   setSelectedLeadId(lead.id)
                                   setSelectedJobId(null)
-                                  setSelectionType('customer')
-                                  setSelectionLabel((lead.name && lead.name !== 'Not collected') ? lead.name : 'Unknown')
                                   setShowCustomerSelector(false)
+                                  setTimeout(() => {
+                                    selectionCommitInProgressRef.current = false
+                                  }, 0)
                                 }}
                                 className={`w-full p-2.5 rounded-lg border transition-colors text-left active:scale-[0.99] ${
-                                  selectedLeadId === lead.id
+                                  paymentSelection.type === 'customer' && paymentSelection.leadId === lead.id
                                     ? 'border-primary bg-primary/10'
                                     : 'border-border hover:border-border/80'
                                 }`}
@@ -947,7 +1045,7 @@ const continuationAttemptedRef = useRef(false)
                         )}
 
                         {/* Job Selection */}
-                        {selectedLeadId && (
+                        {paymentSelection.leadId && (
                           <div className="space-y-2 pt-2 border-t border-border min-h-[80px]">
                             <p className="text-xs text-muted-foreground uppercase tracking-wider">Select a job (optional)</p>
                             {isLoadingJobs ? (
@@ -962,18 +1060,30 @@ const continuationAttemptedRef = useRef(false)
                                   <button
                                     key={job.id}
                                     onClick={() => {
-                                      if (selectedJobId === job.id) {
+                                      if (paymentSelection.type === 'job' && paymentSelection.jobId === job.id) {
                                         dispatchTTPEvent('DUPLICATE_CUSTOMER_JOB_SELECTION_IGNORED', { type: 'job', jobId: job.id })
                                         return
                                       }
-                                      dispatchTTPEvent('CUSTOMER_JOB_SELECTION_COMMITTED', { type: 'job', leadId: selectedLeadId, jobId: job.id })
+                                      if (selectionCommitInProgressRef.current) {
+                                        dispatchTTPEvent('DUPLICATE_CUSTOMER_JOB_SELECTION_IGNORED', { type: 'job', jobId: job.id })
+                                        return
+                                      }
+                                      selectionCommitInProgressRef.current = true
+                                      dispatchTTPEvent('CUSTOMER_JOB_SELECTION_COMMITTED', { type: 'job', leadId: paymentSelection.leadId, jobId: job.id })
+                                      setPaymentSelection({
+                                        type: 'job',
+                                        leadId: job.leadId ?? paymentSelection.leadId,
+                                        jobId: job.id,
+                                        label: job.name || 'Unknown Job'
+                                      })
                                       setSelectedJobId(job.id)
-                                      setSelectionType('job')
-                                      setSelectionLabel(job.name || 'Unknown Job')
                                       setShowCustomerSelector(false)
+                                      setTimeout(() => {
+                                        selectionCommitInProgressRef.current = false
+                                      }, 0)
                                     }}
                                     className={`w-full p-2.5 rounded-lg border transition-colors text-left active:scale-[0.99] ${
-                                      selectedJobId === job.id
+                                      paymentSelection.type === 'job' && paymentSelection.jobId === job.id
                                         ? 'border-primary bg-primary/10'
                                         : 'border-border hover:border-border/80'
                                     }`}
@@ -1033,26 +1143,30 @@ const continuationAttemptedRef = useRef(false)
                               dispatchTTPEvent('LOCATION_PERMISSION_REQUEST_STARTED')
                               dispatchTTPEvent('LOCATION_PERMISSION_REPROMPT_SELECTED')
                               setIsRequestingLocationPermission(true)
-                              const result = await requestLocationPermission()
+                              const rawResult = await requestLocationPermission()
+                              const result = normalizeLocationPermissionResult(rawResult, 'request')
                               setIsRequestingLocationPermission(false)
-                              dispatchTTPEvent('LOCATION_PERMISSION_REQUEST_RESOLVED', { granted: result.granted, locationEnabled: result.locationEnabled, canAskAgain: result.canAskAgain })
-                              // Re-check after permission request
-                              const checkResult = await checkLocationPermission()
-                              if (checkResult.granted && checkResult.locationEnabled) {
+                              dispatchTTPEvent('LOCATION_PERMISSION_REQUEST_RESOLVED', result)
+                              
+                              // Trust the native request result directly without immediate re-check
+                              if (result.granted && result.locationEnabled) {
                                 setShowLocationPermissionCard(false)
                                 dispatchTTPEvent('LOCATION_REQUIREMENTS_SATISFIED')
                                 dispatchTTPEvent('LOCATION_INLINE_CARD_HIDDEN')
                                 await startPayment()
-                              } else if (!checkResult.granted && !checkResult.canAskAgain) {
+                              } else if (!result.granted && result.canAskAgain === false) {
                                 setShowLocationPermissionCard(false)
                                 setShowLocationBlockedCard(true)
                                 dispatchTTPEvent('LOCATION_PERMISSION_BLOCKED')
                                 dispatchTTPEvent('LOCATION_INLINE_CARD_SHOWN', { card: 'blocked' })
-                              } else if (checkResult.granted && !checkResult.locationEnabled) {
+                              } else if (!result.granted && result.canAskAgain === null) {
+                                // Unknown state - allow re-prompt
+                                dispatchTTPEvent('LOCATION_PERMISSION_REPROMPT_AVAILABLE')
+                              } else if (result.granted && !result.locationEnabled) {
                                 setShowLocationPermissionCard(false)
                                 setShowLocationServicesCard(true)
                                 dispatchTTPEvent('LOCATION_INLINE_CARD_SHOWN', { card: 'services' })
-                              } else {
+                              } else if (!result.granted && result.canAskAgain === true) {
                                 // Normal denial - keep card visible for retry
                                 dispatchTTPEvent('LOCATION_PERMISSION_REPROMPT_AVAILABLE')
                               }
@@ -1092,16 +1206,17 @@ const continuationAttemptedRef = useRef(false)
                           <button
                             onClick={async () => {
                               dispatchTTPEvent('LOCATION_SERVICES_CHECK_SELECTED')
-                              const checkResult = await checkLocationPermission()
-                              dispatchTTPEvent('LOCATION_RECHECK_AFTER_SETTINGS', { granted: checkResult.granted, locationEnabled: checkResult.locationEnabled })
-                              if (checkResult.granted && checkResult.locationEnabled) {
+                              const rawResult = await checkLocationPermission()
+                              const result = normalizeLocationPermissionResult(rawResult, 'check')
+                              dispatchTTPEvent('LOCATION_PERMISSION_STATUS_RECHECKED', result)
+                              if (result.granted && result.locationEnabled) {
                                 setShowLocationServicesCard(false)
                                 dispatchTTPEvent('LOCATION_REQUIREMENTS_SATISFIED')
                                 dispatchTTPEvent('LOCATION_INLINE_CARD_HIDDEN')
                                 await startPayment()
-                              } else if (!checkResult.locationEnabled) {
+                              } else if (!result.locationEnabled) {
                                 // Keep card visible if services still off
-                              } else if (!checkResult.granted) {
+                              } else if (!result.granted) {
                                 setShowLocationServicesCard(false)
                                 setShowLocationPermissionCard(true)
                                 dispatchTTPEvent('LOCATION_INLINE_CARD_SHOWN', { card: 'permission' })
@@ -1131,16 +1246,18 @@ const continuationAttemptedRef = useRef(false)
                           <button
                             onClick={async () => {
                               dispatchTTPEvent('LOCATION_PERMISSION_BLOCKED_RETRY_SELECTED')
-                              const checkResult = await checkLocationPermission()
-                              dispatchTTPEvent('LOCATION_RECHECK_AFTER_SETTINGS', { granted: checkResult.granted, locationEnabled: checkResult.locationEnabled, canAskAgain: checkResult.canAskAgain })
-                              if (checkResult.granted && checkResult.locationEnabled) {
+                              const rawResult = await checkLocationPermission()
+                              const result = normalizeLocationPermissionResult(rawResult, 'check')
+                              dispatchTTPEvent('LOCATION_PERMISSION_STATUS_RECHECKED', result)
+                              if (result.granted && result.locationEnabled) {
                                 setShowLocationBlockedCard(false)
                                 dispatchTTPEvent('LOCATION_REQUIREMENTS_SATISFIED')
                                 dispatchTTPEvent('LOCATION_INLINE_CARD_HIDDEN')
                                 await startPayment()
-                              } else if (!checkResult.canAskAgain) {
+                              } else if (!result.canAskAgain) {
                                 // Keep card visible if still blocked
                               } else {
+                                // canAskAgain is true or null - switch back to normal permission card
                                 setShowLocationBlockedCard(false)
                                 setShowLocationPermissionCard(true)
                                 dispatchTTPEvent('LOCATION_INLINE_CARD_SHOWN', { card: 'permission' })
