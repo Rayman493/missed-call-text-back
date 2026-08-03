@@ -41,6 +41,7 @@ export default function QuickTapToPayModal({
   const [showCustomerSelector, setShowCustomerSelector] = useState(false)
   const [modalSessionId, setModalSessionId] = useState<string>(`modal_${Date.now()}`)
   const [connectingElapsedTime, setConnectingElapsedTime] = useState(0)
+  const [eventTimeline, setEventTimeline] = useState<Array<{ timestamp: string; event: string; sessionId?: string; attemptId?: string; paymentState?: string; stage?: string }>>([])
   const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_ORCHESTRATION_FIX'
 
   // Ref for modal title for accessibility focus
@@ -49,6 +50,31 @@ export default function QuickTapToPayModal({
   // Log web build marker on mount
   useEffect(() => {
     console.log('[QuickTTP UI] WEB_BUILD_MARKER: ' + WEB_BUILD_MARKER)
+  }, [])
+
+  // Listen for TTP events for timeline
+  useEffect(() => {
+    const handleTTPEvent = (event: CustomEvent) => {
+      const timestamp = new Date().toISOString().split('T')[1].split('.')[0]
+      const eventData = {
+        timestamp,
+        event: event.detail.event,
+        sessionId: event.detail.sessionId,
+        attemptId: event.detail.attemptId,
+        paymentState: event.detail.paymentState,
+        stage: event.detail.stage
+      }
+      setEventTimeline(prev => {
+        const updated = [...prev, eventData]
+        // Keep only last 100 events
+        return updated.slice(-100)
+      })
+    }
+
+    window.addEventListener('ttp:event', handleTTPEvent as EventListener)
+    return () => {
+      window.removeEventListener('ttp:event', handleTTPEvent as EventListener)
+    }
   }, [])
 
   // Use the orchestration hook
@@ -479,7 +505,7 @@ export default function QuickTapToPayModal({
                 /* Payment Setup Screen */
                 <div className="space-y-4">
                   {/* Test Status - hidden in production */}
-                  {false && SHOW_TTP_TEST_STATUS && (
+                  {SHOW_TTP_TEST_STATUS && (
                     <div className="p-2 rounded bg-blue-900/20 border border-blue-500/30 text-xs font-mono space-y-1">
                       <div className="text-blue-300">TTP Build: {WEB_BUILD_MARKER}</div>
                       <div className="text-blue-200">State: {paymentState}</div>
@@ -499,11 +525,33 @@ export default function QuickTapToPayModal({
                   )}
 
                   {/* Debug UI - hidden in production */}
-                  {false && SHOW_TAP_TO_PAY_DIAGNOSTICS && (
+                  {SHOW_TAP_TO_PAY_DIAGNOSTICS && (
                     <>
                       <div className="p-3 rounded-lg border-2 border-red-700 bg-red-900/30 text-center">
-                        <div className="text-red-300 font-extrabold text-lg tracking-wide">DEBUG PANEL BUILD 2026-07-23</div>
+                        <div className="text-red-300 font-extrabold text-lg tracking-wide">DEBUG PANEL BUILD 2026-08-03</div>
                         <div className="text-xs text-red-200/80">This banner proves this QuickTapToPayModal is rendering from src/components/payments/QuickTapToPayModal.tsx</div>
+                      </div>
+                      
+                      {/* Event Timeline */}
+                      <div className="p-2 rounded bg-gray-900/50 border border-gray-600/50">
+                        <div className="text-xs font-bold text-gray-300 mb-2">Event Timeline (last 100)</div>
+                        <div className="max-h-60 overflow-y-auto text-xs font-mono space-y-1">
+                          {eventTimeline.length === 0 && <div className="text-gray-500">No events yet</div>}
+                          {eventTimeline.map((evt, idx) => (
+                            <div key={idx} className="text-gray-300">
+                              <span className="text-gray-500">{evt.timestamp}</span>
+                              <span className="text-blue-300 ml-2">{evt.event}</span>
+                              {(evt.sessionId || evt.attemptId || evt.paymentState || evt.stage) && (
+                                <span className="text-gray-500 ml-2">
+                                  {evt.sessionId && `sid:${evt.sessionId.slice(0,8)} `}
+                                  {evt.attemptId && `att:${evt.attemptId.slice(0,8)} `}
+                                  {evt.paymentState && `state:${evt.paymentState} `}
+                                  {evt.stage && `stage:${evt.stage}`}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </>
                   )}

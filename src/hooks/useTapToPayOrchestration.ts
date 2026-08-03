@@ -29,6 +29,15 @@ function isValidPaymentState(value: string): value is PaymentState {
   return validStates.includes(value as PaymentState)
 }
 
+// Event dispatch helper for timeline
+function dispatchTTPEvent(event: string, sessionId?: string | null, attemptId?: string | null, paymentState?: string, stage?: string) {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('ttp:event', {
+      detail: { event, sessionId: sessionId || undefined, attemptId: attemptId || undefined, paymentState, stage }
+    }))
+  }
+}
+
 interface UseTapToPayOrchestrationOptions {
   amountCents: number
   leadId?: string
@@ -122,6 +131,15 @@ export function useTapToPayOrchestration({
       activeAttempt: activeAttemptRef.current,
       timestamp: new Date().toISOString()
     })
+
+    // Dispatch event for timeline
+    dispatchTTPEvent(
+      `STATE_TRANSITION: ${previousState} -> ${newState}`,
+      terminalService.getSessionId(),
+      terminalService.getCurrentAttemptId(),
+      newState,
+      reason
+    )
     
     // Invariant check: ready state should not have active payment
     if (newState === 'ready' && (startInFlight.current || activeAttemptRef.current)) {
@@ -386,6 +404,7 @@ export function useTapToPayOrchestration({
       sessionId: terminalService.getSessionId(),
       attemptId: terminalService.getCurrentAttemptId()
     })
+    dispatchTTPEvent('ATTEMPT_STARTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId())
 
     setIsPaymentInProgress(true)
     permissionLock.setTapToPayActive(true)
@@ -508,6 +527,7 @@ export function useTapToPayOrchestration({
           attemptId: terminalService.getCurrentAttemptId(),
           sessionId: terminalService.getSessionId()
         })
+        dispatchTTPEvent('CONNECTION_STARTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'connecting_reader')
         setLastSuccessfulStage('connecting_reader')
         
         // Yield two frames to allow React to paint the connecting state before native call
@@ -525,6 +545,7 @@ export function useTapToPayOrchestration({
           terminalService.getCurrentAttemptId() || 'unknown'
         )
         console.log('[TTP Hook] CONNECTION_COMPLETED', { status: connectResult.status })
+        dispatchTTPEvent('CONNECTION_COMPLETED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, connectResult.status)
         if (connectResult.status !== 'connected') {
           console.log('[TTP Hook] CONNECTION_FAILED', { status: connectResult.status })
           throw new Error('Failed to connect to payment terminal')
@@ -538,6 +559,7 @@ export function useTapToPayOrchestration({
         attemptId: terminalService.getCurrentAttemptId(),
         sessionId: terminalService.getSessionId()
       })
+      dispatchTTPEvent('PAYMENT_INTENT_CREATION_STARTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'creating_payment_intent')
       
       // Yield two frames to allow React to paint the creating_payment_intent state
       await new Promise<void>(resolve => {
@@ -575,6 +597,7 @@ export function useTapToPayOrchestration({
           jobId,
           amountCents
         })
+        dispatchTTPEvent('PAYMENT_INTENT_CREATED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'waiting_for_card', 'payment_intent_created')
         updatePaymentStateRef('waiting_for_card')
         setLastSuccessfulStage('payment_intent_created')
       }
@@ -583,6 +606,7 @@ export function useTapToPayOrchestration({
         attemptId: terminalService.getCurrentAttemptId(),
         sessionId: terminalService.getSessionId()
       })
+      dispatchTTPEvent('COLLECT_STARTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'waiting_for_card', 'collect_payment')
       
       const paymentResult = await paymentPromise
       console.log('[TTP Hook] COLLECT_COMPLETED', {
@@ -590,6 +614,7 @@ export function useTapToPayOrchestration({
         attemptId: terminalService.getCurrentAttemptId(),
         sessionId: terminalService.getSessionId()
       })
+      dispatchTTPEvent('COLLECT_COMPLETED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, paymentResult.status)
 
       console.log('[TTP Hook] NATIVE_PAYMENT_SUCCEEDED', {
         status: paymentResult.status,
@@ -597,6 +622,7 @@ export function useTapToPayOrchestration({
         attemptId: terminalService.getCurrentAttemptId(),
         sessionId: terminalService.getSessionId()
       })
+      dispatchTTPEvent('NATIVE_PAYMENT_SUCCEEDED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), undefined, paymentResult.status)
 
       if (paymentResult.status === 'success') {
         const paymentIntentId = terminalService.getPaymentIntentId()
@@ -612,6 +638,7 @@ export function useTapToPayOrchestration({
           attemptId: terminalService.getCurrentAttemptId(),
           sessionId: terminalService.getSessionId()
         })
+        dispatchTTPEvent('MODAL_SUCCESS_RENDERED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'success')
         
         setIsPaymentInProgress(false)
         permissionLock.setTapToPayActive(false)
