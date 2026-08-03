@@ -133,23 +133,42 @@ export async function reconcileTwilioInventory(): Promise<{
  * 
  * Recovery strategy:
  * - If stuck > 30 minutes: attempt to resume provisioning
- * - If recovery fails: mark as failed with error
- * - Respect retry limits and exponential backoff
+ * - If recovery fails: mark as failed with error, schedule retry with exponential backoff
+ * - After MAX_RECOVERY_ATTEMPTS: permanently mark as failed
+ * 
+ * Overlap protection:
+ * - Uses recovery_run_id to prevent concurrent processing of same number
+ * - Stale claims (stuck for > 1 hour) are automatically reclaimed
+ * 
+ * Batching:
+ * - Processes up to BATCH_SIZE numbers per run to avoid timeout
+ * - Processes numbers with next_recovery_retry_at <= now first
  * 
  * Returns recovery statistics.
  */
-export async function recoverStuckProvisioning(): Promise<{
+const MAX_RECOVERY_ATTEMPTS = 5;
+const BATCH_SIZE = 20; // Process max 20 numbers per run to avoid timeout
+const STUCK_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes
+const STALE_CLAIM_THRESHOLD_MS = 60 * 60 * 1000; // 1 hour
+const BASE_RETRY_DELAY_MS = 60 * 60 * 1000; // 1 hour base delay
+
+export async function recoverStuckProvisioning(recoveryRunId?: string): Promise<{
   success: boolean;
   recovered: number;
   failed: number;
   skipped: number;
   errors: Array<{ phoneNumber: string; sid: string; state: string; error: string }>;
+  recoveryRunId: string;
 }> {
   console.log('[RECOVERY] ========== START STUCK PROVISIONING RECOVERY ==========');
 
-  const STUCK_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes
+  // Generate or use provided recovery run ID for overlap protection
+  const runId = recoveryRunId || crypto.randomUUID();
+  console.log(`[RECOVERY] Recovery run ID: ${runId}`);
+
   const now = new Date();
   const stuckTime = new Date(now.getTime() - STUCK_THRESHOLD_MS).toISOString();
+  const staleClaimTime = new Date(now.getTime() - STALE_CLAIM_THRESHOLD_MS).toISOString();
 
   const errors: Array<{ phoneNumber: string; sid: string; state: string; error: string }> = [];
   let recovered = 0;
@@ -157,55 +176,179 @@ export async function recoverStuckProvisioning(): Promise<{
   let skipped = 0;
 
   try {
-    // STEP 1: Find numbers stuck in intermediate states
-    console.log('[RECOVERY] STEP 1: Finding stuck numbers...');
-    const { data: stuckNumbers, error: fetchError } = await supabase
-      .from('twilio_numbers')
-      .select('id, phone_number, twilio_sid, business_id, provisioning_status, last_provisioning_attempt_at, provisioning_error')
-      .in('provisioning_status', ['campaign_registering', 'campaign_registered', 'sender_pool_attaching', 'purchasing'])
-      .lt('last_provisioning_attempt_at', stuckTime)
-      .is('business_id', 'not.is.null');
+    // STEP 1: Create recovery run audit record
+    const { data: recoveryRun, error: runError } = await supabase
+      .from('provisioning_recovery_runs')
+      .insert({
+        id: runId,
+        trigger_source: recoveryRunId ? 'manual' : 'cron',
+        deployment_environment: process.env.NODE_ENV || 'unknown',
+      })
+      .select()
+      .single();
 
-    if (fetchError) {
-      console.error('[RECOVERY] ERROR: Failed to fetch stuck numbers:', fetchError);
+    if (runError) {
+      console.error('[RECOVERY] ERROR: Failed to create recovery run record:', runError);
       return {
         success: false,
         recovered: 0,
         failed: 0,
         skipped: 0,
-        errors: []
+        errors: [],
+        recoveryRunId: runId
       };
     }
 
-    if (!stuckNumbers || stuckNumbers.length === 0) {
-      console.log('[RECOVERY] No stuck numbers found');
+    console.log(`[RECOVERY] Created recovery run record: ${recoveryRun.id}`);
+
+    // STEP 2: Reclaim stale claims (numbers with recovery_run_id set > 1 hour ago)
+    console.log('[RECOVERY] STEP 2: Reclaiming stale claims...');
+    const { data: reclaimedClaims } = await supabase
+      .from('twilio_numbers')
+      .update({
+        recovery_run_id: null,
+        last_recovery_error: 'Stale claim reclaimed',
+      })
+      .not('recovery_run_id', 'is', null)
+      .lt('last_recovery_attempt_at', staleClaimTime)
+      .select('id');
+    
+    if (reclaimedClaims && reclaimedClaims.length > 0) {
+      console.log(`[RECOVERY] Reclaimed ${reclaimedClaims.length} stale claims`);
+    }
+
+    // STEP 3: Find numbers eligible for recovery
+    // Priority: next_recovery_retry_at <= now (scheduled retries)
+    // Then: stuck > 30 minutes AND (no recovery_run_id OR recovery_run_id is null)
+    console.log('[RECOVERY] STEP 3: Finding eligible numbers for recovery...');
+    
+    // First, get scheduled retries
+    const { data: scheduledRetries, error: scheduledError } = await supabase
+      .from('twilio_numbers')
+      .select('id, phone_number, twilio_sid, business_id, provisioning_status, last_provisioning_attempt_at, recovery_attempt_count, last_recovery_error')
+      .in('provisioning_status', ['campaign_registering', 'campaign_registered', 'sender_pool_attaching', 'purchasing'])
+      .lte('next_recovery_retry_at', now.toISOString())
+      .is('recovery_run_id', null)
+      .limit(BATCH_SIZE)
+      .order('next_recovery_retry_at', { ascending: true });
+
+    let eligibleNumbers = scheduledRetries || [];
+
+    // If we have capacity, add newly stuck numbers
+    if (eligibleNumbers.length < BATCH_SIZE) {
+      const remainingSlots = BATCH_SIZE - eligibleNumbers.length;
+      const { data: newlyStuck, error: stuckError } = await supabase
+        .from('twilio_numbers')
+        .select('id, phone_number, twilio_sid, business_id, provisioning_status, last_provisioning_attempt_at, recovery_attempt_count, last_recovery_error')
+        .in('provisioning_status', ['campaign_registering', 'campaign_registered', 'sender_pool_attaching', 'purchasing'])
+        .lt('last_provisioning_attempt_at', stuckTime)
+        .is('recovery_run_id', null)
+        .not('next_recovery_retry_at', 'is', null)
+        .limit(remainingSlots)
+        .order('last_provisioning_attempt_at', { ascending: true });
+
+      if (stuckError) {
+        console.error('[RECOVERY] ERROR: Failed to fetch newly stuck numbers:', stuckError);
+      } else if (newlyStuck) {
+        eligibleNumbers = [...eligibleNumbers, ...newlyStuck];
+      }
+    }
+
+    if (eligibleNumbers.length === 0) {
+      console.log('[RECOVERY] No eligible numbers found');
+      
+      // Update recovery run as complete
+      await supabase
+        .from('provisioning_recovery_runs')
+        .update({
+          finished_at: now.toISOString(),
+          stuck_count: 0,
+          processed_count: 0,
+          recovered_count: 0,
+          failed_count: 0,
+          skipped_count: 0,
+          summary: 'No eligible numbers found'
+        })
+        .eq('id', runId);
+
       return {
         success: true,
         recovered: 0,
         failed: 0,
         skipped: 0,
-        errors: []
+        errors: [],
+        recoveryRunId: runId
       };
     }
 
-    console.log(`[RECOVERY] Found ${stuckNumbers.length} stuck numbers`);
+    console.log(`[RECOVERY] Found ${eligibleNumbers.length} eligible numbers`);
 
-    // STEP 2: Attempt to recover each stuck number
-    for (const number of stuckNumbers) {
-      console.log(`[RECOVERY] Recovering: ${number.phone_number} (${number.provisioning_status})`);
-      const correlationId = `recovery-${Date.now()}-${number.id}`;
+    // STEP 4: Attempt to recover each eligible number
+    for (const number of eligibleNumbers) {
+      console.log(`[RECOVERY] Processing: ${number.phone_number} (${number.provisioning_status}, attempt ${number.recovery_attempt_count || 0}/${MAX_RECOVERY_ATTEMPTS})`);
+
+      // ATOMIC CLAIM: Update recovery_run_id to prevent concurrent processing
+      const { data: claimedNumber, error: claimError } = await supabase
+        .from('twilio_numbers')
+        .update({
+          recovery_run_id: runId,
+          last_recovery_attempt_at: now.toISOString(),
+          recovery_attempt_count: (number.recovery_attempt_count || 0) + 1,
+        })
+        .eq('id', number.id)
+        .is('recovery_run_id', null) // Only claim if not already claimed
+        .select()
+        .single();
+
+      if (claimError || !claimedNumber) {
+        console.log(`[RECOVERY] Number ${number.phone_number} already claimed or failed to claim, skipping`);
+        skipped++;
+        continue;
+      }
+
+      console.log(`[RECOVERY] Successfully claimed: ${number.phone_number}`);
 
       try {
         if (!number.business_id) {
           console.log(`[RECOVERY] Skipping ${number.phone_number}: no business_id`);
           skipped++;
+          
+          // Release claim
+          await supabase
+            .from('twilio_numbers')
+            .update({ recovery_run_id: null })
+            .eq('id', number.id);
           continue;
         }
 
         let recoverySuccess = false;
         let recoveryError: string | undefined;
 
+        // Check if max attempts reached
+        if ((number.recovery_attempt_count || 0) >= MAX_RECOVERY_ATTEMPTS) {
+          console.log(`[RECOVERY] Max recovery attempts reached for ${number.phone_number}, marking as failed`);
+          
+          await updateProvisioningStatus(
+            number.business_id,
+            number.twilio_sid,
+            'failed',
+            `Max recovery attempts (${MAX_RECOVERY_ATTEMPTS}) reached. Last error: ${number.last_recovery_error || 'Unknown'}`,
+            runId
+          );
+          
+          failed++;
+          errors.push({
+            phoneNumber: number.phone_number,
+            sid: number.twilio_sid,
+            state: number.provisioning_status,
+            error: `Max recovery attempts reached`
+          });
+          continue;
+        }
+
         // Recovery strategy based on current state
+        const correlationId = `recovery-${Date.now()}-${number.id}`;
+        
         switch (number.provisioning_status) {
           case 'campaign_registering':
           case 'campaign_registered':
@@ -249,23 +392,46 @@ export async function recoverStuckProvisioning(): Promise<{
           default:
             console.log(`[RECOVERY] Unknown state: ${number.provisioning_status}`);
             skipped++;
+            
+            // Release claim
+            await supabase
+              .from('twilio_numbers')
+              .update({ recovery_run_id: null })
+              .eq('id', number.id);
             continue;
         }
 
         if (recoverySuccess) {
           console.log(`[RECOVERY] ✓ Recovered: ${number.phone_number}`);
+          
+          // Clear recovery metadata on success
+          await supabase
+            .from('twilio_numbers')
+            .update({
+              recovery_run_id: null,
+              last_recovery_error: null,
+              next_recovery_retry_at: null,
+            })
+            .eq('id', number.id);
+          
           recovered++;
         } else {
           console.log(`[RECOVERY] ✗ Recovery failed: ${number.phone_number} - ${recoveryError}`);
           
-          // Mark as failed if recovery fails
-          await updateProvisioningStatus(
-            number.business_id,
-            number.twilio_sid,
-            'failed',
-            recoveryError || 'Recovery failed',
-            correlationId
-          );
+          // Calculate exponential backoff: base * 2^(attempt-1), max 24 hours
+          const attemptNumber = number.recovery_attempt_count || 0;
+          const backoffHours = Math.min(Math.pow(2, attemptNumber - 1), 24);
+          const nextRetryAt = new Date(now.getTime() + backoffHours * 60 * 60 * 1000).toISOString();
+          
+          // Update retry metadata
+          await supabase
+            .from('twilio_numbers')
+            .update({
+              recovery_run_id: null, // Release claim
+              last_recovery_error: recoveryError || 'Unknown error',
+              next_recovery_retry_at: nextRetryAt,
+            })
+            .eq('id', number.id);
           
           errors.push({
             phoneNumber: number.phone_number,
@@ -279,16 +445,20 @@ export async function recoverStuckProvisioning(): Promise<{
       } catch (error: any) {
         console.error(`[RECOVERY] Exception recovering ${number.phone_number}:`, error);
         
-        // Mark as failed on exception
-        if (number.business_id) {
-          await updateProvisioningStatus(
-            number.business_id,
-            number.twilio_sid,
-            'failed',
-            error.message || 'Recovery exception',
-            correlationId
-          );
-        }
+        // Calculate exponential backoff
+        const attemptNumber = number.recovery_attempt_count || 0;
+        const backoffHours = Math.min(Math.pow(2, attemptNumber - 1), 24);
+        const nextRetryAt = new Date(now.getTime() + backoffHours * 60 * 60 * 1000).toISOString();
+        
+        // Update retry metadata on exception
+        await supabase
+          .from('twilio_numbers')
+          .update({
+            recovery_run_id: null, // Release claim
+            last_recovery_error: error.message || 'Recovery exception',
+            next_recovery_retry_at: nextRetryAt,
+          })
+          .eq('id', number.id);
         
         errors.push({
           phoneNumber: number.phone_number,
@@ -300,10 +470,26 @@ export async function recoverStuckProvisioning(): Promise<{
       }
     }
 
+    // STEP 5: Update recovery run audit record
+    await supabase
+      .from('provisioning_recovery_runs')
+      .update({
+        finished_at: now.toISOString(),
+        stuck_count: eligibleNumbers.length,
+        processed_count: recovered + failed + skipped,
+        recovered_count: recovered,
+        failed_count: failed,
+        skipped_count: skipped,
+        summary: `Processed ${eligibleNumbers.length} numbers: ${recovered} recovered, ${failed} failed, ${skipped} skipped`,
+        error: errors.length > 0 ? `${errors.length} errors encountered` : null,
+      })
+      .eq('id', runId);
+
     console.log(`[RECOVERY] Recovery complete:`);
     console.log(`[RECOVERY] - Recovered: ${recovered}`);
     console.log(`[RECOVERY] - Failed: ${failed}`);
     console.log(`[RECOVERY] - Skipped: ${skipped}`);
+    console.log(`[RECOVERY] - Recovery Run ID: ${runId}`);
     console.log('[RECOVERY] ========== END STUCK PROVISIONING RECOVERY ==========');
 
     return {
@@ -311,18 +497,35 @@ export async function recoverStuckProvisioning(): Promise<{
       recovered,
       failed,
       skipped,
-      errors
+      errors,
+      recoveryRunId: runId
     };
 
   } catch (error: any) {
     console.error('[RECOVERY] EXCEPTION: Recovery failed:', error);
     console.error('[RECOVERY] ========== END STUCK PROVISIONING RECOVERY (EXCEPTION) ==========');
+    
+    // Mark recovery run as failed (ignore if update fails)
+    try {
+      await supabase
+        .from('provisioning_recovery_runs')
+        .update({
+          finished_at: now.toISOString(),
+          error: error.message || 'Unknown exception',
+        })
+        .eq('id', runId);
+    } catch (updateError) {
+      // Ignore error if update fails (run record may not exist)
+      console.warn('[RECOVERY] Failed to mark recovery run as failed:', updateError);
+    }
+    
     return {
       success: false,
       recovered: 0,
       failed: 0,
       skipped: 0,
-      errors: []
+      errors: [],
+      recoveryRunId: runId
     };
   }
 }

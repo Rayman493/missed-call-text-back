@@ -72,6 +72,23 @@ interface TwilioHealthMetrics {
     contradictoryStatus: number
   }
   
+  // Recovery metrics
+  recovery: {
+    stuckCount: number
+    recoveryQueueCount: number
+    exhaustedAttempts: number
+    lastRecoveryRun: string | null
+    lastRecoveryRunRecovered: number
+    lastRecoveryRunFailed: number
+  }
+  
+  // Reconciliation metrics
+  reconciliation: {
+    numbersInTwilioNotInDb: number
+    numbersInDbNotInTwilio: number
+    lastReconciliationTime: string | null
+  }
+  
   // Protected system number
   protectedSystemNumber: {
     phoneNumber: string | null
@@ -224,6 +241,48 @@ export async function GET(request: NextRequest) {
         n.retired_at &&
         new Date(n.retired_at) < thirtyDaysAgo
       ).length,
+    }
+
+    // Calculate recovery metrics
+    const stuckCount = allNumbers.filter(n =>
+      n.provisioning_status !== 'ready' &&
+      n.last_provisioning_attempt_at &&
+      new Date(n.last_provisioning_attempt_at) < thirtyMinutesAgo
+    ).length
+
+    const recoveryQueueCount = allNumbers.filter(n =>
+      ['campaign_registering', 'campaign_registered', 'sender_pool_attaching', 'purchasing'].includes(n.provisioning_status || '') &&
+      n.next_recovery_retry_at !== null
+    ).length
+
+    const exhaustedAttempts = allNumbers.filter(n =>
+      n.recovery_attempt_count !== null &&
+      n.recovery_attempt_count >= 5
+    ).length
+
+    // Fetch last recovery run
+    const { data: lastRecoveryRun } = await supabaseAdmin
+      .from('provisioning_recovery_runs')
+      .select('*')
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    const recovery = {
+      stuckCount,
+      recoveryQueueCount,
+      exhaustedAttempts,
+      lastRecoveryRun: lastRecoveryRun?.started_at || null,
+      lastRecoveryRunRecovered: lastRecoveryRun?.recovered_count || 0,
+      lastRecoveryRunFailed: lastRecoveryRun?.failed_count || 0,
+    }
+
+    // Calculate reconciliation metrics (placeholder - actual reconciliation requires Twilio API call)
+    // For now, we'll return 0 and null since reconciliation is manual
+    const reconciliation = {
+      numbersInTwilioNotInDb: 0,
+      numbersInDbNotInTwilio: 0,
+      lastReconciliationTime: null,
     }
 
     // Calculate integrity issues
@@ -430,6 +489,8 @@ export async function GET(request: NextRequest) {
         expiredReservations: expiredReservations.length,
         contradictoryStatus: contradictoryStatus.length,
       },
+      recovery,
+      reconciliation,
       protectedSystemNumber,
       anomalies,
     }

@@ -6,17 +6,63 @@
  * 
  * GET /api/admin/reconcile-twilio-inventory
  * 
- * Requires admin authentication.
+ * Requires authenticated ReplyFlow admin.
  */
 
-import { NextResponse } from 'next/server';
-import { reconcileTwilioInventory } from '@/lib/twilio-provisioning-service';
+import { NextRequest, NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
+import { createServerClient } from '@supabase/ssr'
+import { isAdmin } from '@/lib/admin'
+import { reconcileTwilioInventory } from '@/lib/twilio-provisioning-service'
 
-export async function GET() {
-  console.log('[API] Reconcile Twilio Inventory request received');
+export const dynamic = 'force-dynamic'
 
-  // TODO: Add admin authentication check
-  // For now, this endpoint is unprotected for debugging purposes
+export async function GET(request: NextRequest) {
+  console.log('[API] Reconcile Twilio Inventory request received')
+
+  // Get user from session
+  const cookieStore = await cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {
+            // Ignore setAll errors from Server Components
+          }
+        },
+      },
+    }
+  )
+
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+  if (userError || !user) {
+    console.log('[API] Reconcile Twilio Inventory: Unauthorized (no user)')
+    return NextResponse.json(
+      { ok: false, error: 'Unauthorized' },
+      { status: 401 }
+    )
+  }
+
+  // Verify admin access
+  if (!isAdmin(user.id)) {
+    console.log('[API] Reconcile Twilio Inventory: Forbidden (not admin)', { userId: user.id })
+    return NextResponse.json(
+      { ok: false, error: 'Forbidden' },
+      { status: 403 }
+    )
+  }
+
+  console.log('[API] Reconcile Twilio Inventory: Authorized admin', { userId: user.id })
   
   try {
     const result = await reconcileTwilioInventory();
