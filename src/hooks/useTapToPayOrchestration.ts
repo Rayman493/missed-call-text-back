@@ -6,6 +6,7 @@ import { isNativeCapacitor } from '@/lib/terminal'
 import type { TerminalError } from '@/lib/terminal'
 import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
 import { Capacitor } from '@capacitor/core'
+import { mapTapToPayError } from '@/lib/terminal/error-mapper'
 
 type PaymentState = 'ready' | 'preparing' | 'waiting_for_card' | 'processing' | 'success' | 'failure' | 'canceled' | 'pending' | 'ambiguous'
 
@@ -23,6 +24,13 @@ interface UseTapToPayOrchestrationReturn {
   paymentState: PaymentState
   error: string
   structuredError: TerminalError | null
+  mappedError: {
+    title: string
+    message: string
+    action: 'retry' | 'open_app_settings' | 'open_location_settings' | 'back' | 'none'
+    technicalCode?: string
+    technicalMessage?: string
+  } | null
   isPaymentInProgress: boolean
   platform: 'ios' | 'android' | 'web'
   isNativeSupported: boolean
@@ -32,6 +40,7 @@ interface UseTapToPayOrchestrationReturn {
   cancelPayment: (reason?: string) => void
   retryPayment: () => Promise<void>
   checkPlatformSupport: () => Promise<{ platform: 'ios' | 'android' | 'web'; isNativeSupported: boolean }>
+  requestLocationPermission: () => Promise<boolean>
 }
 
 export function useTapToPayOrchestration({
@@ -46,6 +55,7 @@ export function useTapToPayOrchestration({
   const [paymentState, setPaymentState] = useState<PaymentState>('ready')
   const [error, setError] = useState<string>('')
   const [structuredError, setStructuredError] = useState<TerminalError | null>(null)
+  const [mappedError, setMappedError] = useState<ReturnType<typeof mapTapToPayError> | null>(null)
   const [isPaymentInProgress, setIsPaymentInProgress] = useState(false)
   const [platform, setPlatform] = useState<'ios' | 'android' | 'web'>('web')
   const [isNativeSupported, setIsNativeSupported] = useState(false)
@@ -137,6 +147,36 @@ export function useTapToPayOrchestration({
     }
   }, [platform])
 
+  // Request location permission proactively
+  const requestLocationPermission = useCallback(async (): Promise<boolean> => {
+    console.log('[TTP Hook] requestLocationPermission called', { platform })
+    if (platform !== 'android') {
+      return true
+    }
+
+    try {
+      const Terminal = await import('@/lib/terminal')
+      const plugin = Terminal.default
+
+      console.log('[TTP Hook] Calling plugin.requestLocationPermission')
+      const result = await plugin.requestLocationPermission()
+      console.log('[TTP Hook] plugin.requestLocationPermission result:', result)
+      setLocationPermissionGranted(result.granted)
+      
+      // After requesting permission, check location services
+      if (result.granted) {
+        const locationCheck = await checkLocationPermission()
+        setLocationServicesEnabled(locationServicesEnabled)
+        return locationCheck
+      }
+      
+      return false
+    } catch (error) {
+      console.error('[TTP Hook] Failed to request location permission:', error)
+      return false
+    }
+  }, [platform, checkLocationPermission])
+
   // Main payment orchestration function
   const startPayment = useCallback(async () => {
     console.log('[TTP Hook] START_PAYMENT_ENTERED', {
@@ -203,6 +243,7 @@ export function useTapToPayOrchestration({
     updatePaymentStateRef('preparing', 'start_payment_called')
     setError('')
     setStructuredError(null)
+    setMappedError(null)
     setLastSuccessfulStage('initializing')
 
     try {
@@ -224,16 +265,30 @@ export function useTapToPayOrchestration({
         console.log('[TTP Hook] LOCATION_CHECK_STARTED', { platform })
         const locationOk = await checkLocationPermission()
         console.log('[TTP Hook] LOCATION_CHECK_COMPLETED', { locationOk })
+        
         if (!locationOk) {
-          console.log('[TTP Hook] LOCATION_PERMISSION_FAILED')
-          setShowLocationPermissionDialog(true)
-          setIsPaymentInProgress(false)
-          autoRetryInProgress.current = false
-          updatePaymentStateRef('failure', 'location_permission_denied')
-          const errorMsg = 'Location permission is required for Tap to Pay'
-          setError(errorMsg)
-          onPaymentError?.(errorMsg)
-          return
+          console.log('[TTP Hook] LOCATION_PERMISSION_CHECK_FAILED - requesting permission')
+          const permissionGranted = await requestLocationPermission()
+          console.log('[TTP Hook] LOCATION_PERMISSION_REQUEST_RESULT', { permissionGranted })
+          
+          if (!permissionGranted) {
+            console.log('[TTP Hook] LOCATION_PERMISSION_DENIED after request')
+            setShowLocationPermissionDialog(true)
+            setIsPaymentInProgress(false)
+            autoRetryInProgress.current = false
+            updatePaymentStateRef('failure', 'location_permission_denied')
+            
+            const mapped = mapTapToPayError({
+              code: 'location_permission_denied',
+              message: 'Location permission was denied',
+            })
+            setMappedError(mapped)
+            
+            const errorMsg = mapped.message
+            setError(errorMsg)
+            onPaymentError?.(errorMsg)
+            return
+          }
         }
         setLastSuccessfulStage('location_permission_ok')
       }
@@ -311,6 +366,16 @@ export function useTapToPayOrchestration({
       lastSuccessfulStage
     })
     updatePaymentStateRef('failure', 'error_thrown')
+    
+    // Map the error to user-friendly message
+    const mapped = mapTapToPayError({
+      code: err.code || err.nativeCode,
+      message: err.message,
+      nativeCode: err.nativeCode,
+      stage: lastSuccessfulStage,
+    })
+    setMappedError(mapped)
+    
     const errorMsg = err.message || 'Payment failed'
     setError(errorMsg)
     setStructuredError(err as TerminalError)
@@ -327,6 +392,7 @@ export function useTapToPayOrchestration({
     isPaymentInProgress,
     terminalService,
     checkLocationPermission,
+    requestLocationPermission,
     onPaymentComplete,
     onPaymentError,
     updatePaymentStateRef,
@@ -339,6 +405,7 @@ export function useTapToPayOrchestration({
     updatePaymentStateRef('canceled', reason)
     setError('')
     setStructuredError(null)
+    setMappedError(null)
     autoRetryInProgress.current = false
   }, [updatePaymentStateRef])
 
@@ -347,6 +414,7 @@ export function useTapToPayOrchestration({
     console.log('[TTP Hook] Retrying payment')
     setError('')
     setStructuredError(null)
+    setMappedError(null)
     await startPayment()
   }, [startPayment])
 
@@ -354,6 +422,7 @@ export function useTapToPayOrchestration({
     paymentState,
     error,
     structuredError,
+    mappedError,
     isPaymentInProgress,
     platform,
     isNativeSupported,
@@ -363,5 +432,6 @@ export function useTapToPayOrchestration({
     cancelPayment,
     retryPayment,
     checkPlatformSupport,
+    requestLocationPermission,
   }
 }

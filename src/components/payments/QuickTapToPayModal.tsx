@@ -47,6 +47,7 @@ export default function QuickTapToPayModal({
     paymentState,
     error,
     structuredError,
+    mappedError,
     isPaymentInProgress,
     platform,
     isNativeSupported: hookIsNativeSupported,
@@ -255,6 +256,27 @@ export default function QuickTapToPayModal({
     logTapToPayEvent('PAY_BUTTON_PRESSED', { phase: 'payment_intent', sessionId: terminalService.getSessionId(), meta: { amountCents } }).catch(() => {})
     // Don't switch UI state yet - let the hook's state change trigger the UI update
     await startPayment()
+  }
+
+  const handleOpenAppSettings = async () => {
+    try {
+      const { Browser } = await import('@capacitor/browser')
+      await Browser.open({ url: 'app-settings:' })
+    } catch (error) {
+      console.error('[QuickTTP UI] Failed to open app settings:', error)
+    }
+  }
+
+  const handleOpenLocationSettings = async () => {
+    try {
+      // For Android, open location settings
+      const { Browser } = await import('@capacitor/browser')
+      await Browser.open({ url: 'android.settings.LOCATION_SOURCE_SETTINGS' })
+    } catch (error) {
+      console.error('[QuickTTP UI] Failed to open location settings:', error)
+      // Fallback to general settings
+      await handleOpenAppSettings()
+    }
   }
 
   const handlePaymentComplete = async () => {
@@ -590,8 +612,8 @@ export default function QuickTapToPayModal({
                       <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center">
                         <XCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
                       </div>
-                      <p className="text-sm font-medium text-foreground text-center">Payment failed</p>
-                      <p className="text-sm text-red-500 text-center">{error || 'An error occurred'}</p>
+                      <p className="text-sm font-medium text-foreground text-center">{mappedError?.title || 'Payment Failed'}</p>
+                      <p className="text-sm text-red-500 text-center">{mappedError?.message || error || 'An error occurred'}</p>
                     </>
                   )}
                   {/* Defensive fallback for unhandled states */}
@@ -628,20 +650,61 @@ export default function QuickTapToPayModal({
                 <>
                   {paymentState === 'failure' ? (
                     <>
-                      <button
-                        onClick={() => cancelPayment('user_back')}
-                        className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
-                      >
-                        Back
-                      </button>
-                      <button
-                        onClick={retryPayment}
-                        disabled={isPaymentInProgress}
-                        className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-95"
-                      >
-                        <Loader2 className={`w-4 h-4 ${isPaymentInProgress ? 'animate-spin' : ''}`} />
-                        Try Again
-                      </button>
+                      {mappedError?.action === 'open_app_settings' ? (
+                        <>
+                          <button
+                            onClick={() => cancelPayment('user_back')}
+                            className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
+                          >
+                            Back
+                          </button>
+                          <button
+                            onClick={handleOpenAppSettings}
+                            className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors active:scale-95"
+                          >
+                            Open Settings
+                          </button>
+                        </>
+                      ) : mappedError?.action === 'open_location_settings' ? (
+                        <>
+                          <button
+                            onClick={() => cancelPayment('user_back')}
+                            className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
+                          >
+                            Back
+                          </button>
+                          <button
+                            onClick={handleOpenLocationSettings}
+                            className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors active:scale-95"
+                          >
+                            Open Location Settings
+                          </button>
+                        </>
+                      ) : mappedError?.action === 'back' ? (
+                        <button
+                          onClick={() => cancelPayment('user_back')}
+                          className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
+                        >
+                          Back
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => cancelPayment('user_back')}
+                            className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
+                          >
+                            Back
+                          </button>
+                          <button
+                            onClick={retryPayment}
+                            disabled={isPaymentInProgress}
+                            className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-95"
+                          >
+                            <Loader2 className={`w-4 h-4 ${isPaymentInProgress ? 'animate-spin' : ''}`} />
+                            Try Again
+                          </button>
+                        </>
+                      )}
                     </>
                   ) : paymentState === 'success' ? (
                     <button
