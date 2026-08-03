@@ -39,6 +39,7 @@ interface UseTapToPayOrchestrationReturn {
   startPayment: () => Promise<void>
   cancelPayment: (reason?: string) => void
   retryPayment: () => Promise<void>
+  resetTapToPayUiState: (preserveSucceededAttempt?: boolean) => void
   checkPlatformSupport: () => Promise<{ platform: 'ios' | 'android' | 'web'; isNativeSupported: boolean }>
   requestLocationPermission: () => Promise<boolean>
 }
@@ -180,6 +181,15 @@ export function useTapToPayOrchestration({
   // Check for unresolved previous attempts on mount
   useEffect(() => {
     const checkUnresolvedAttempt = async () => {
+      const RECOVERY_TIMEOUT_MS = 15000 // 15 seconds
+      const timeoutId = setTimeout(() => {
+        console.log('[TTP Hook] RECOVERY_TIMEOUT - clearing recovery state')
+        updatePaymentStateRef('ready', 'recovery_timeout')
+        setError('')
+        setStructuredError(null)
+        setMappedError(null)
+      }, RECOVERY_TIMEOUT_MS)
+
       try {
         console.log('[TTP Hook] Checking for unresolved attempts')
         const response = await fetch('/api/terminal/attempt-status', {
@@ -196,19 +206,26 @@ export function useTapToPayOrchestration({
           // If the attempt succeeded, show success
           if (data.unresolvedAttempt.status === 'succeeded') {
             console.log('[TTP Hook] Previous attempt succeeded, showing success')
+            clearTimeout(timeoutId)
             updatePaymentStateRef('success', 'previous_attempt_succeeded')
             onPaymentComplete?.()
           } else if (data.unresolvedAttempt.status === 'canceled' || data.unresolvedAttempt.status === 'failed') {
             console.log('[TTP Hook] Previous attempt failed/canceled, clearing')
+            clearTimeout(timeoutId)
             updatePaymentStateRef('canceled', 'previous_attempt_cleared')
           } else {
             // Still pending but stale, clear it
             console.log('[TTP Hook] Previous attempt stale, clearing')
+            clearTimeout(timeoutId)
             updatePaymentStateRef('canceled', 'stale_attempt_cleared')
           }
+        } else {
+          // No unresolved attempt, clear timeout
+          clearTimeout(timeoutId)
         }
       } catch (error) {
         console.error('[TTP Hook] Failed to check unresolved attempt', error)
+        clearTimeout(timeoutId)
         // Continue normally on error
       }
     }
@@ -527,6 +544,20 @@ async function withTimeout<T>(
     await startPayment()
   }, [startPayment])
 
+  // Emergency reset function to clear all UI state
+  const resetTapToPayUiState = useCallback((preserveSucceededAttempt: boolean = true) => {
+    console.log('[TTP Hook] EMERGENCY_RESET', { preserveSucceededAttempt })
+    setIsPaymentInProgress(false)
+    updatePaymentStateRef('ready', 'emergency_reset')
+    setError('')
+    setStructuredError(null)
+    setMappedError(null)
+    autoRetryInProgress.current = false
+    setLastSuccessfulStage('none')
+    setShowLocationPermissionDialog(false)
+    // Note: We don't clear session/attempt IDs here as they're managed by the terminal service
+  }, [updatePaymentStateRef])
+
   return {
     paymentState,
     error,
@@ -540,6 +571,7 @@ async function withTimeout<T>(
     startPayment,
     cancelPayment,
     retryPayment,
+    resetTapToPayUiState,
     checkPlatformSupport,
     requestLocationPermission,
   }

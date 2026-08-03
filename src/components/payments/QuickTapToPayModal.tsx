@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Smartphone, User, Briefcase, Loader2, ChevronDown, ChevronUp, CheckCircle2, AlertCircle, XCircle } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
@@ -56,6 +56,7 @@ export default function QuickTapToPayModal({
     startPayment,
     cancelPayment,
     retryPayment,
+    resetTapToPayUiState,
     checkPlatformSupport,
   } = useTapToPayOrchestration({
     amountCents,
@@ -75,16 +76,49 @@ export default function QuickTapToPayModal({
   // Derive showPaymentSetup from paymentState to ensure UI is always in sync
   const showPaymentSetup = paymentState === 'ready'
 
+  // Emergency cleanup function to reset UI state
+  const emergencyCleanup = useCallback(() => {
+    console.log('[QuickTTP UI] EMERGENCY_CLEANUP')
+    
+    // Clear spinner flags
+    setIsLoadingLeads(false)
+    setIsLoadingJobs(false)
+    
+    // Reset orchestration state
+    resetTapToPayUiState()
+    
+    // Note: We don't clear amount/customer/job as user may want to retry
+  }, [resetTapToPayUiState])
+
   // Render logging for debugging
   useEffect(() => {
     if (isOpen) {
-      console.log('[QuickTTP UI] RENDER_BRANCH', {
-        branch: showPaymentSetup ? 'SETUP' : paymentState === 'failure' ? 'FAILURE' : paymentState === 'canceled' ? 'CANCELED' : paymentState.toUpperCase(),
+      const stateSnapshot = {
         paymentState,
-        showPaymentSetup
-      })
+        isPaymentInProgress,
+        lastSuccessfulStage,
+        lastResetReason,
+        platform,
+        renderedBranch: showPaymentSetup ? 'SETUP' : paymentState === 'failure' ? 'FAILURE' : paymentState === 'canceled' ? 'CANCELED' : paymentState.toUpperCase()
+      }
+      console.log('[QuickTTP UI] RENDER_BRANCH', stateSnapshot)
+      
+      // State invariants
+      const invariants = [
+        { check: paymentState === 'canceled' && isPaymentInProgress, error: 'canceled + isPaymentInProgress' },
+        { check: paymentState === 'ready' && isPaymentInProgress, error: 'ready + isPaymentInProgress' },
+        { check: paymentState === 'canceled' && lastSuccessfulStage === 'initializing', error: 'canceled + lastSuccessfulStage=initializing' },
+        { check: paymentState === 'canceled' && lastSuccessfulStage === 'preparing', error: 'canceled + lastSuccessfulStage=preparing' },
+        { check: paymentState === 'canceled' && lastSuccessfulStage === 'initializing_terminal', error: 'canceled + lastSuccessfulStage=initializing_terminal' },
+        { check: !['preparing', 'waiting_for_card', 'processing', 'success', 'failure', 'canceled'].includes(paymentState) && !showPaymentSetup, error: 'unhandled state without setup' }
+      ]
+      
+      const violations = invariants.filter(i => i.check)
+      if (violations.length > 0) {
+        console.error('[QuickTTP UI] STATE_INVOLATION', violations.map(v => v.error), stateSnapshot)
+      }
     }
-  }, [isOpen, showPaymentSetup, paymentState])
+  }, [isOpen, showPaymentSetup, paymentState, isPaymentInProgress, lastSuccessfulStage, lastResetReason, platform])
 
   // Focus modal title on open for accessibility (prevents keyboard from opening on amount input)
   useEffect(() => {
@@ -357,7 +391,17 @@ export default function QuickTapToPayModal({
                 </h3>
               </div>
               <button
-                onClick={() => showPaymentSetup ? onClose() : cancelPayment('user_canceled')}
+                onClick={() => {
+                  if (showPaymentSetup) {
+                    onClose()
+                  } else if (paymentState === 'canceled' || paymentState === 'failure') {
+                    console.log('[QuickTTP UI] CLOSE_CLICKED_IN_ERROR_STATE', { paymentState })
+                    emergencyCleanup()
+                    onClose()
+                  } else {
+                    cancelPayment('user_canceled')
+                  }
+                }}
                 className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
                 style={{ minWidth: '44px', minHeight: '44px' }}
               >
@@ -638,10 +682,11 @@ export default function QuickTapToPayModal({
                     </>
                   )}
                   {/* Defensive fallback for unhandled states */}
-                  {(!['preparing', 'waiting_for_card', 'processing', 'success', 'failure'].includes(paymentState)) && (
+                  {(!['preparing', 'waiting_for_card', 'processing', 'success', 'failure', 'canceled'].includes(paymentState)) && (
                     <>
-                      <Loader2 className="w-12 h-12 animate-spin text-green-600 dark:text-green-400" />
-                      <p className="text-sm text-muted-foreground text-center">Initializing…</p>
+                      <AlertCircle className="w-12 h-12 text-red-600 dark:text-red-400" />
+                      <p className="text-sm font-medium text-foreground text-center">Tap to Pay needs to be restarted</p>
+                      <p className="text-xs text-muted-foreground text-center">Unknown state: {paymentState}</p>
                     </>
                   )}
                 </div>
@@ -672,7 +717,11 @@ export default function QuickTapToPayModal({
                   {paymentState === 'canceled' ? (
                     <>
                       <button
-                        onClick={() => cancelPayment('user_back')}
+                        onClick={() => {
+                          console.log('[QuickTTP UI] CANCELED_BACK_CLICKED')
+                          emergencyCleanup()
+                          cancelPayment('user_back')
+                        }}
                         className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
                       >
                         Back
@@ -740,6 +789,26 @@ export default function QuickTapToPayModal({
                           >
                             <Loader2 className={`w-4 h-4 ${isPaymentInProgress ? 'animate-spin' : ''}`} />
                             Try Again
+                          </button>
+                        </>
+                      )}
+                      {/* Reset button for unknown states */}
+                      {(!['preparing', 'waiting_for_card', 'processing', 'success', 'failure', 'canceled'].includes(paymentState)) && (
+                        <>
+                          <button
+                            onClick={onClose}
+                            className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
+                          >
+                            Close
+                          </button>
+                          <button
+                            onClick={() => {
+                              console.log('[QuickTTP UI] RESET_CLICKED')
+                              emergencyCleanup()
+                            }}
+                            className="flex-1 px-4 py-3 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors active:scale-95"
+                          >
+                            Reset
                           </button>
                         </>
                       )}

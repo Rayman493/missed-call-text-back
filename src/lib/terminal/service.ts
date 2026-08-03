@@ -3,6 +3,10 @@ import { Capacitor } from '@capacitor/core'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
 
+// Storage schema version - increment when storage format changes
+const STORAGE_SCHEMA_VERSION = 'v1'
+const STORAGE_SCHEMA_KEY = 'terminal_storage_schema_version'
+
 interface TokenRequest {
   requestId: string
   timestamp: number
@@ -93,6 +97,35 @@ export class TerminalBridgeService {
     this.instanceId = Math.random().toString(36).substring(2, 9)
     this.sessionId = 'ttp_' + this.instanceId
     console.log('[TERMINAL_INSTANCE_TRACE] service_instance_id=' + this.instanceId + ' created')
+    this.migrateStorage()
+  }
+
+  // Storage schema migration
+  private migrateStorage() {
+    try {
+      const currentVersion = localStorage.getItem(STORAGE_SCHEMA_KEY)
+      if (currentVersion === STORAGE_SCHEMA_VERSION) {
+        return // Already on current version
+      }
+
+      console.log('[TERMINAL_STORAGE] Migrating from version', currentVersion, 'to', STORAGE_SCHEMA_VERSION)
+
+      // Clear stale data from old versions
+      if (!currentVersion) {
+        // First time or old version - clear all stale data
+        const unresolvedAttemptId = localStorage.getItem('terminal_unresolved_attempt_id')
+        if (unresolvedAttemptId) {
+          console.log('[TERMINAL_STORAGE] Clearing stale unresolved attempt:', unresolvedAttemptId)
+          localStorage.removeItem('terminal_unresolved_attempt_id')
+        }
+      }
+
+      // Set current version
+      localStorage.setItem(STORAGE_SCHEMA_KEY, STORAGE_SCHEMA_VERSION)
+      console.log('[TERMINAL_STORAGE] Migration complete, version:', STORAGE_SCHEMA_VERSION)
+    } catch (e) {
+      console.error('[TERMINAL_STORAGE] Migration failed:', e)
+    }
   }
 
   // Lightweight getters for diagnostics UI
