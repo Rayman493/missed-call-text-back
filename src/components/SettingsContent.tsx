@@ -45,6 +45,7 @@ import ConfirmModal from '@/components/ui/ConfirmModal'
 import Skeleton, { CardSkeleton, ListItemSkeleton } from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
 import Input from '@/components/ui/Input'
+import { NotificationPermissionEducation } from '@/components/notifications/NotificationPermissionEducation'
 
 // Check if running in native mobile app
 const isNativeMobile = () => {

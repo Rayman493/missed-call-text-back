@@ -90,6 +90,7 @@ class PushService {
   /**
    * Initialize the push notification service
    * This should be called once during app initialization
+   * Note: This does NOT request permission - use requestPermission() for that
    */
   async initialize(): Promise<void> {
     // Prevent concurrent initialization
@@ -124,13 +125,18 @@ class PushService {
         this.listenersSetup = true
       }
 
-      // Request permission
-      console.log('[PUSH SERVICE] Requesting permission')
-      await this.requestPermission()
+      // Check current permission state without requesting
+      console.log('[PUSH SERVICE] Checking permission state')
+      const currentPermissions = await PushNotifications.checkPermissions()
+      console.log('[NOTIFICATION_PERMISSION_CHECK] Current state:', currentPermissions.receive)
 
-      // Register for push notifications
-      console.log('[PUSH SERVICE] Registering')
-      await this.register()
+      // Only register if permission is already granted
+      if (currentPermissions.receive === 'granted') {
+        console.log('[PUSH SERVICE] Permission already granted, registering')
+        await this.register()
+      } else {
+        console.log('[PUSH SERVICE] Permission not granted, skipping registration')
+      }
 
       this.isInitialized = true
       console.log('[PUSH SERVICE] Initialization complete')
@@ -151,23 +157,37 @@ class PushService {
     }
 
     try {
-      console.log('[PUSH SERVICE] Checking permission state')
+      console.log('[NOTIFICATION_PERMISSION_CHECK] Checking permission state')
       const currentPermissions = await PushNotifications.checkPermissions()
-      console.log('[PUSH SERVICE] Current state:', currentPermissions.receive)
+      console.log('[NOTIFICATION_PERMISSION_CHECK] Current state:', currentPermissions.receive)
 
-      console.log('[PUSH SERVICE] Requesting permission')
+      // If already granted, just return true
+      if (currentPermissions.receive === 'granted') {
+        console.log('[NOTIFICATION_PERMISSION_CHECK] Already granted, skipping request')
+        return true
+      }
+
+      // If denied, don't request again (user would need to go to settings)
+      if (currentPermissions.receive === 'denied') {
+        console.log('[NOTIFICATION_PERMISSION_CHECK] Previously denied, not requesting again')
+        return false
+      }
+
+      // Request permission
+      console.log('[NOTIFICATION_PERMISSION_REQUESTED] Requesting permission')
       const result = await PushNotifications.requestPermissions()
-      console.log('[PUSH SERVICE] Result:', result.receive)
+      console.log('[NOTIFICATION_PERMISSION_RESULT] Result:', result.receive)
       
       if (result.receive === 'granted') {
-        console.log('[PUSH SERVICE] Permission granted')
+        console.log('[NOTIFICATION_PERMISSION_RESULT] Permission granted, registering for push')
+        await this.register()
         return true
       } else {
-        console.log('[PUSH SERVICE] Permission denied')
+        console.log('[NOTIFICATION_PERMISSION_RESULT] Permission denied')
         return false
       }
     } catch (error) {
-      console.error('[PUSH SERVICE] Permission failed:', error)
+      console.error('[NOTIFICATION_PERMISSION_RESULT] Permission failed:', error)
       return false
     }
   }
@@ -182,11 +202,11 @@ class PushService {
     }
 
     try {
-      console.log('[PUSH SERVICE] Registering for push notifications')
+      console.log('[PUSH_REGISTRATION_STARTED] Registering for push notifications')
       await PushNotifications.register()
-      console.log('[PUSH SERVICE] Registration successful')
+      console.log('[PUSH_REGISTRATION_COMPLETED] Registration successful')
     } catch (error) {
-      console.error('[PUSH SERVICE] Registration failed:', error)
+      console.error('[PUSH_REGISTRATION_FAILED] Registration failed:', error)
     }
   }
 
