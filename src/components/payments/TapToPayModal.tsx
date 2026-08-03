@@ -24,7 +24,7 @@ interface TapToPayModalProps {
   onPaymentComplete?: () => void
 }
 
-type PaymentState = 'ready' | 'preparing' | 'waiting_for_card' | 'processing' | 'success' | 'failure' | 'canceled' | 'pending' | 'ambiguous'
+type PaymentState = 'ready' | 'preparing' | 'connecting_reader' | 'creating_payment_intent' | 'waiting_for_card' | 'processing' | 'success' | 'failure' | 'canceled' | 'pending' | 'ambiguous'
 
 // Internal diagnostic build marker - gate technical details to this specific build
 const DIAGNOSTIC_BUILD_MARKER = 'TAP_TO_PAY_REAL_NFC_DIAGNOSTIC_2026_07_22_V2'

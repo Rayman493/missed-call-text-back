@@ -136,7 +136,7 @@ export default function QuickTapToPayModal({
         { check: paymentState === 'canceled' && lastSuccessfulStage === 'initializing', error: 'canceled + lastSuccessfulStage=initializing' },
         { check: paymentState === 'canceled' && lastSuccessfulStage === 'preparing', error: 'canceled + lastSuccessfulStage=preparing' },
         { check: paymentState === 'canceled' && lastSuccessfulStage === 'initializing_terminal', error: 'canceled + lastSuccessfulStage=initializing_terminal' },
-        { check: !['preparing', 'waiting_for_card', 'processing', 'success', 'failure', 'canceled'].includes(paymentState) && !showPaymentSetup, error: 'unhandled state without setup' }
+        { check: !['preparing', 'connecting_reader', 'creating_payment_intent', 'waiting_for_card', 'processing', 'success', 'failure', 'canceled', 'pending', 'ambiguous'].includes(paymentState) && !showPaymentSetup, error: 'unhandled state without setup' }
       ]
       
       const violations = invariants.filter(i => i.check)
@@ -765,8 +765,15 @@ export default function QuickTapToPayModal({
                     </>
                   )}
                   {/* Defensive fallback for unhandled states */}
-                  {(!['preparing', 'connecting_reader', 'creating_payment_intent', 'waiting_for_card', 'processing', 'success', 'failure', 'canceled'].includes(paymentState)) && (
+                  {(!['ready', 'preparing', 'connecting_reader', 'creating_payment_intent', 'waiting_for_card', 'processing', 'success', 'failure', 'canceled', 'pending', 'ambiguous'].includes(paymentState)) && (
                     <>
+                      {console.log('[QuickTTP UI] UNKNOWN_STATE_FALLBACK_RENDERED', {
+                        paymentState,
+                        previousPaymentState: lastSuccessfulStage,
+                        lastSuccessfulStage,
+                        isPaymentInProgress,
+                        timestamp: new Date().toISOString()
+                      })}
                       <AlertCircle className="w-12 h-12 text-red-600 dark:text-red-400" />
                       <p className="text-sm font-medium text-foreground text-center">Tap to Pay needs to be restarted</p>
                       <p className="text-xs text-muted-foreground text-center">Unknown state: {paymentState}</p>
@@ -881,7 +888,7 @@ export default function QuickTapToPayModal({
                         </>
                       )}
                       {/* Reset button for unknown states */}
-                      {(!['preparing', 'waiting_for_card', 'processing', 'success', 'failure', 'canceled'].includes(paymentState)) && (
+                      {(!['preparing', 'connecting_reader', 'creating_payment_intent', 'waiting_for_card', 'processing', 'success', 'failure', 'canceled', 'pending', 'ambiguous'].includes(paymentState)) && (
                         <>
                           <button
                             onClick={onClose}

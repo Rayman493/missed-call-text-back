@@ -11,6 +11,24 @@ import { permissionLock } from '@/lib/permission-lock'
 
 type PaymentState = 'ready' | 'preparing' | 'connecting_reader' | 'creating_payment_intent' | 'waiting_for_card' | 'processing' | 'success' | 'failure' | 'canceled' | 'pending' | 'ambiguous'
 
+// Runtime state validation helper
+function isValidPaymentState(value: string): value is PaymentState {
+  const validStates: PaymentState[] = [
+    'ready',
+    'preparing',
+    'connecting_reader',
+    'creating_payment_intent',
+    'waiting_for_card',
+    'processing',
+    'success',
+    'failure',
+    'canceled',
+    'pending',
+    'ambiguous'
+  ]
+  return validStates.includes(value as PaymentState)
+}
+
 interface UseTapToPayOrchestrationOptions {
   amountCents: number
   leadId?: string
@@ -76,6 +94,18 @@ export function useTapToPayOrchestration({
 
   // Update ref when state changes with logging and reason
   const updatePaymentStateRef = useCallback((newState: PaymentState, reason: string = 'unknown') => {
+    // Validate state before transition
+    if (!isValidPaymentState(newState)) {
+      console.error('[TTP Hook] INVALID_PAYMENT_STATE_ATTEMPTED', {
+        requestedState: newState,
+        currentState: paymentStateRef.current,
+        reason,
+        timestamp: new Date().toISOString()
+      })
+      // Do not transition to invalid state
+      return
+    }
+
     const previousState = paymentStateRef.current
     paymentStateRef.current = newState
     setPaymentState(newState)
