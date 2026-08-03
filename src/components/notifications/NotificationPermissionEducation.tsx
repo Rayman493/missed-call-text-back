@@ -148,32 +148,30 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-            <Bell className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-5">
+        <div className="flex items-center gap-2.5 mb-3">
+          <div className="w-9 h-9 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center shrink-0">
+            <Bell className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400" />
           </div>
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Stay Updated</h2>
-          </div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Stay Updated</h2>
         </div>
 
-        <p className="text-gray-600 dark:text-gray-300 mb-6">
-          Get notified when customers call, reply, schedule appointments, and complete payments.
+        <p className="text-sm text-gray-600 dark:text-gray-300 mb-5 leading-relaxed">
+          Get notified about new calls, customer replies, appointments, and payments.
         </p>
 
-        <div className="flex gap-3">
+        <div className="flex gap-2.5">
           <button
             onClick={handleNotNow}
             disabled={isLoading}
-            className="flex-1 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
+            className="flex-1 h-11 px-4 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
           >
             Not Now
           </button>
           <button
             onClick={handleEnable}
             disabled={isLoading}
-            className="flex-1 px-4 py-3 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50"
+            className="flex-1 h-11 px-4 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50"
           >
             {isLoading ? 'Enabling...' : 'Enable Notifications'}
           </button>

@@ -975,7 +975,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                         <div className="flex-1 min-w-0">
                           <h4 className="text-xs font-semibold text-amber-900 dark:text-amber-100 mb-1">Location Required</h4>
                           <p className="text-[11px] text-gray-700 dark:text-gray-300 mb-2.5 leading-relaxed">
-                            Android requires Location permission while preparing Tap to Pay. ReplyFlow never uses your location for advertising or customer tracking.
+                            Android requires location access to prepare Tap to Pay. ReplyFlow only uses it while starting a contactless payment.
                           </p>
                           <button
                             onClick={async () => {
@@ -1035,12 +1035,9 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                           <MapPin className="w-4 h-4 text-amber-600/80 dark:text-amber-400/80" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-xs font-semibold text-amber-900 dark:text-amber-100 mb-1">Turn On Location Services</h4>
+                          <h4 className="text-xs font-semibold text-amber-900 dark:text-amber-100 mb-1">Location Required</h4>
                           <p className="text-[11px] text-gray-700 dark:text-gray-300 mb-2.5 leading-relaxed">
-                            Tap to Pay requires Location Services to be turned on while the secure reader is being prepared.
-                          </p>
-                          <p className="text-[11px] text-gray-600 dark:text-gray-400 mb-2.5 leading-relaxed">
-                            Turn on Location Services from your phone's quick settings, then return here.
+                            Turn on Location Services, then try Tap to Pay again.
                           </p>
                           <button
                             onClick={async () => {
@@ -1078,9 +1075,9 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                           <MapPin className="w-4 h-4 text-amber-600/80 dark:text-amber-400/80" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-xs font-semibold text-amber-900 dark:text-amber-100 mb-1">Location Permission Required</h4>
+                          <h4 className="text-xs font-semibold text-amber-900 dark:text-amber-100 mb-1">Location Required</h4>
                           <p className="text-[11px] text-gray-700 dark:text-gray-300 mb-2.5 leading-relaxed">
-                            Location permission is turned off for ReplyFlow. Enable it in Android Settings to use Tap to Pay.
+                            Location access is disabled for ReplyFlow. Enable it in your phone's app settings, then try Tap to Pay again.
                           </p>
                           <button
                             onClick={async () => {

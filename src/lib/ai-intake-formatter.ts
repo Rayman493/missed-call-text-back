@@ -41,6 +41,30 @@ export const safeTrimAndCapitalize = (text: string | null | undefined): string =
   return normalized || 'Not collected';
 };
 
+// Helper function to apply sentence capitalization (first letter only)
+export const sentenceCapitalize = (text: string | null | undefined): string => {
+  if (!text || text.trim() === '') return 'Not collected';
+  
+  let normalized = text.trim();
+  
+  // Remove duplicate punctuation
+  normalized = normalized.replace(/([.!?])\1+/g, '$1');
+  
+  // Remove trailing punctuation for cleaner display (except for abbreviations)
+  if (/^[^.!?]*[.!?]$/.test(normalized) && 
+      !/\b(?:Mr|Mrs|Ms|Dr|Jr|Sr|St|Ave|Blvd|Rd|Ln|Pt|etc|e\.g|i\.e)\.$/.test(normalized)) {
+    normalized = normalized.slice(0, -1);
+  }
+  
+  // Capitalize first letter only (sentence case)
+  normalized = normalized.charAt(0).toUpperCase() + normalized.slice(1).toLowerCase();
+  
+  // Trim final whitespace
+  normalized = normalized.trim();
+  
+  return normalized || 'Not collected';
+};
+
 // Corruption guard: reject normalized result if it looks damaged
 function isNormalizationDamaged(original: string, normalized: string): boolean {
   // Reject if result is empty when original was not
@@ -705,10 +729,12 @@ export const formatAiIntakeSummary = (
   }
   
   // Always generate a concise canonical title for the SMS Request line
+  // Apply sentence capitalization for natural reading in SMS
   // Priority: intakeData.request (canonical) → serviceRequested (canonicalized) → fallback
-  const finalRequest = intakeData?.request 
+  const canonicalTitle = intakeData?.request 
     ? generateCanonicalRequestTitle(intakeData.request)
     : generateCanonicalRequestTitle(serviceRequested);
+  const finalRequest = sentenceCapitalize(canonicalTitle);
 
   const displayName = businessName || 'us';
   const prefix = prefixNotice ? `${prefixNotice}\n\n` : '';
