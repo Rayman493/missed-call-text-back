@@ -1389,21 +1389,16 @@ async function withTimeout<T>(
     // Clear reset reason to avoid confusion
     setLastResetReason('retry_after_cancellation')
 
-    // Transition to ready state
+    // Transition to ready state (this will emit STATE_TRANSITION via updatePaymentStateRef)
     updatePaymentStateRef('ready', 'retry_after_cancellation')
 
-    // Log state transition
-    dispatchTTPEvent('STATE_TRANSITION', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'ready', 'canceled → ready')
-
-    // Start new payment
-    await startPayment()
-
+    // Complete retry - do NOT auto-start payment
     console.log('[TTP Hook] RETRY_AFTER_CANCELLATION_COMPLETED', {
       paymentState: paymentStateRef.current,
       timestamp: new Date().toISOString()
     })
     dispatchTTPEvent('RETRY_AFTER_CANCELLATION_COMPLETED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), paymentStateRef.current, 'retry_after_cancellation')
-  }, [updatePaymentStateRef, paymentState, startPayment])
+  }, [updatePaymentStateRef, paymentState])
 
   // Emergency reset function to clear all UI state
   const resetTapToPayUiState = useCallback((preserveSucceededAttempt: boolean = true) => {

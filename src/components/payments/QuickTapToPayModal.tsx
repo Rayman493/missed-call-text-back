@@ -47,7 +47,7 @@ export default function QuickTapToPayModal({
   const [modalSessionId, setModalSessionId] = useState<string>(`modal_${Date.now()}`)
   const [connectingElapsedTime, setConnectingElapsedTime] = useState(0)
   const [eventTimeline, setEventTimeline] = useState<Array<{ timestamp: string; event: string; sessionId?: string; attemptId?: string; paymentState?: string; stage?: string }>>([])
-  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_RAW_CANCEL_PAYLOAD_FIX'
+  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_RETRY_SETUP_SUCCESS_CLOSE_FIX'
 
   // Ref for modal title for accessibility focus
   const titleRef = useRef<HTMLHeadingElement>(null)
@@ -468,7 +468,18 @@ export default function QuickTapToPayModal({
         // On back from failure, go to setup
         // handled by cancelPayment which resets state
         cancelPayment()
+      } else if (paymentState === 'success') {
+        console.log('[QuickTTP UI] BACK_PRESSED_IN_SUCCESS_STATE')
+        dispatchTTPEvent('SUCCESSFUL_DONE')
+        handlePaymentComplete()
+      } else if (paymentState === 'canceled') {
+        console.log('[QuickTTP UI] BACK_PRESSED_IN_CANCELED_STATE')
+        dispatchTTPEvent('CANCELED_DONE')
+        dispatchTTPEvent('CANCELLATION_PAYMENT_REFRESH_SKIPPED')
+        onClose()
       } else if (paymentState === 'ready') {
+        console.log('[QuickTTP UI] BACK_PRESSED_IN_SETUP_STATE')
+        dispatchTTPEvent('SETUP_CLOSED')
         onClose()
       } else {
         // During active payment, allow cancel
@@ -485,7 +496,18 @@ export default function QuickTapToPayModal({
         capListener = await App.addListener('backButton', () => {
           if (paymentState === 'failure') {
             cancelPayment()
+          } else if (paymentState === 'success') {
+            console.log('[QuickTTP UI] ANDROID_BACK_PRESSED_IN_SUCCESS_STATE')
+            dispatchTTPEvent('SUCCESSFUL_DONE')
+            handlePaymentComplete()
+          } else if (paymentState === 'canceled') {
+            console.log('[QuickTTP UI] ANDROID_BACK_PRESSED_IN_CANCELED_STATE')
+            dispatchTTPEvent('CANCELED_DONE')
+            dispatchTTPEvent('CANCELLATION_PAYMENT_REFRESH_SKIPPED')
+            onClose()
           } else if (paymentState === 'ready') {
+            console.log('[QuickTTP UI] ANDROID_BACK_PRESSED_IN_SETUP_STATE')
+            dispatchTTPEvent('SETUP_CLOSED')
             onClose()
           } else {
             cancelPayment()
@@ -550,16 +572,24 @@ export default function QuickTapToPayModal({
               <button
                 onClick={() => {
                   if (showPaymentSetup) {
+                    console.log('[QuickTTP UI] CLOSE_CLICKED_IN_SETUP_STATE')
+                    dispatchTTPEvent('SETUP_CLOSED')
                     onClose()
+                  } else if (paymentState === 'success') {
+                    console.log('[QuickTTP UI] CLOSE_CLICKED_IN_SUCCESS_STATE')
+                    dispatchTTPEvent('SUCCESSFUL_DONE')
+                    handlePaymentComplete()
                   } else if (paymentState === 'canceled') {
                     console.log('[QuickTTP UI] CLOSE_CLICKED_IN_CANCELED_STATE')
                     dispatchTTPEvent('CANCELED_DONE')
+                    dispatchTTPEvent('CANCELLATION_PAYMENT_REFRESH_SKIPPED')
                     onClose()
                   } else if (paymentState === 'failure') {
                     console.log('[QuickTTP UI] CLOSE_CLICKED_IN_ERROR_STATE', { paymentState })
-                    emergencyCleanup()
+                    dispatchTTPEvent('FAILURE_CLOSED')
                     onClose()
                   } else {
+                    // During active payment states, allow cancellation
                     cancelPayment('user_canceled')
                   }
                 }}
@@ -1033,8 +1063,7 @@ export default function QuickTapToPayModal({
                       </button>
                       <button
                         onClick={retryAfterCancellation}
-                        disabled={isPaymentInProgress}
-                        className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-95"
+                        className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 active:scale-95"
                         style={{ minHeight: '44px' }}
                       >
                         <Smartphone className="w-4 h-4" />
