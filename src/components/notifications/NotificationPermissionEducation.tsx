@@ -1,62 +1,129 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { AlertCircle, Bell } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { PushNotifications } from '@capacitor/push-notifications'
+import { Device } from '@capacitor/device'
 import { pushService } from '@/lib/push-service'
+import { permissionLock } from '@/lib/permission-lock'
 
 interface NotificationPermissionEducationProps {
   onComplete?: () => void
 }
 
+const COOLDOWN_KEY = 'notification_education_cooldown'
+const COOLDOWN_DURATION = 24 * 60 * 60 * 1000 // 24 hours in milliseconds
+
 export function NotificationPermissionEducation({ onComplete }: NotificationPermissionEducationProps) {
   const [show, setShow] = useState(false)
   const [permissionState, setPermissionState] = useState<'prompt' | 'prompt-with-rationale' | 'granted' | 'denied' | 'unknown'>('unknown')
   const [isLoading, setIsLoading] = useState(false)
+  const [isAndroid13Plus, setIsAndroid13Plus] = useState(false)
+  const hasShownRef = useRef(false)
+  const isCheckingRef = useRef(false)
 
   useEffect(() => {
-    checkPermissionState()
+    checkEligibility()
   }, [])
 
-  const checkPermissionState = async () => {
-    if (!Capacitor.isNativePlatform()) {
-      console.log('[NOTIFICATION_EDUCATION] Web platform, skipping')
+  const checkEligibility = async () => {
+    // Prevent multiple checks
+    if (isCheckingRef.current) {
       return
     }
+    isCheckingRef.current = true
 
     try {
-      console.log('[NOTIFICATION_EDUCATION] Checking permission state')
-      const result = await PushNotifications.checkPermissions()
-      console.log('[NOTIFICATION_EDUCATION] Current state:', result.receive)
-      setPermissionState(result.receive)
+      // Only on native Android
+      if (!Capacitor.isNativePlatform()) {
+        console.log('[NOTIFICATION_EDUCATION] Web platform, skipping')
+        return
+      }
 
-      // If already granted or denied, don't show education
-      if (result.receive === 'granted') {
-        console.log('[NOTIFICATION_EDUCATION] Already granted, skipping education')
-        setShow(false)
-        onComplete?.()
-      } else if (result.receive === 'denied') {
-        console.log('[NOTIFICATION_EDUCATION] Previously denied, showing settings option')
-        setShow(true)
-      } else {
-        // Check if user has seen education before
-        const hasSeenEducation = localStorage.getItem('notification_education_shown')
-        if (hasSeenEducation) {
-          console.log('[NOTIFICATION_EDUCATION] Already shown education, skipping')
-          setShow(false)
-          onComplete?.()
-        } else {
-          setShow(true)
+      const platform = Capacitor.getPlatform()
+      if (platform !== 'android') {
+        console.log('[NOTIFICATION_EDUCATION] Non-Android platform, skipping')
+        return
+      }
+
+      // Check Android version (POST_NOTIFICATIONS required for API 33+)
+      const info = await Device.getInfo()
+      const androidVersion = parseInt(info.osVersion || '0', 10)
+      const isAndroid13 = androidVersion >= 33
+      setIsAndroid13Plus(isAndroid13)
+
+      console.log(`[NOTIFICATION_EDUCATION] Android version: ${androidVersion}, Android 13+: ${isAndroid13}`)
+
+      if (!isAndroid13) {
+        console.log('[NOTIFICATION_EDUCATION] Android < 13, POST_NOTIFICATIONS not required, skipping')
+        return
+      }
+
+      // Check cooldown
+      const cooldownEnd = localStorage.getItem(COOLDOWN_KEY)
+      if (cooldownEnd) {
+        const now = Date.now()
+        if (now < parseInt(cooldownEnd, 10)) {
+          console.log('[NOTIFICATION_EDUCATION] In cooldown period, skipping')
+          return
         }
       }
+
+      // Check if permission is currently active (Tap to Pay, etc.)
+      if (permissionLock.isAnyPermissionActive()) {
+        console.log('[NOTIFICATION_EDUCATION] Another permission is active, skipping')
+        return
+      }
+
+      // Check native permission state
+      console.log('[NOTIFICATION_PERMISSION_CHECK] Checking permission state')
+      const result = await PushNotifications.checkPermissions()
+      console.log('[NOTIFICATION_PERMISSION_CHECK] Current state:', result.receive)
+      setPermissionState(result.receive)
+
+      // If already granted, register and don't show education
+      if (result.receive === 'granted') {
+        console.log('[NOTIFICATION_PERMISSION_CHECK] Already granted, registering push')
+        await pushService.register()
+        setShow(false)
+        onComplete?.()
+        return
+      }
+
+      // If denied, don't show education (Settings recovery will handle this)
+      if (result.receive === 'denied') {
+        console.log('[NOTIFICATION_EDUCATION] Previously denied, not showing education')
+        setShow(false)
+        onComplete?.()
+        return
+      }
+
+      // Check if already shown in this session
+      if (hasShownRef.current) {
+        console.log('[NOTIFICATION_EDUCATION] Already shown this session, skipping')
+        return
+      }
+
+      // Show education
+      console.log('[NOTIFICATION_EDUCATION_SHOWN] Showing education modal')
+      hasShownRef.current = true
+      setShow(true)
     } catch (error) {
-      console.error('[NOTIFICATION_EDUCATION] Failed to check permission state:', error)
+      console.error('[NOTIFICATION_EDUCATION] Failed to check eligibility:', error)
+    } finally {
+      isCheckingRef.current = false
     }
   }
 
   const handleEnable = async () => {
     if (!Capacitor.isNativePlatform()) {
+      return
+    }
+
+    // Request permission lock
+    if (!permissionLock.requestPermission('notification')) {
+      console.log('[NOTIFICATION_EDUCATION] Permission request blocked by lock')
       return
     }
 
@@ -71,7 +138,7 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
         console.log('[NOTIFICATION_EDUCATION] Permission granted')
         setPermissionState('granted')
         setShow(false)
-        localStorage.setItem('notification_education_shown', 'true')
+        localStorage.removeItem(COOLDOWN_KEY)
         onComplete?.()
       } else {
         console.log('[NOTIFICATION_EDUCATION] Permission denied')
@@ -81,46 +148,55 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
       console.error('[NOTIFICATION_EDUCATION] Failed to request permission:', error)
     } finally {
       setIsLoading(false)
+      permissionLock.releasePermission('notification')
     }
   }
 
   const handleNotNow = () => {
-    console.log('[NOTIFICATION_EDUCATION] User clicked Not Now')
-    localStorage.setItem('notification_education_shown', 'true')
+    console.log('[NOTIFICATION_EDUCATION_DISMISSED] User clicked Not Now')
+    // Set cooldown for 24 hours
+    const cooldownEnd = Date.now() + COOLDOWN_DURATION
+    localStorage.setItem(COOLDOWN_KEY, cooldownEnd.toString())
+    console.log(`[NOTIFICATION_EDUCATION] Cooldown set until ${new Date(cooldownEnd).toISOString()}`)
     setShow(false)
     onComplete?.()
   }
 
   const handleOpenSettings = async () => {
-    console.log('[NOTIFICATION_EDUCATION] User clicked Open Settings - not implemented yet')
-    // TODO: Implement settings opening for denied permissions
+    console.log('[NOTIFICATION_SETTINGS_OPENED] User clicked Open Settings')
+    try {
+      // Use window.location to open app settings on Android
+      window.location.href = 'app-settings:'
+    } catch (error) {
+      console.error('[NOTIFICATION_EDUCATION] Failed to open settings:', error)
+    }
   }
 
-  if (!show) {
+  if (!show || !isAndroid13Plus) {
     return null
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-            <Bell className="w-6 h-6 text-blue-600" />
+          <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+            <Bell className="w-6 h-6 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">Enable notifications</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Enable notifications</h2>
           </div>
         </div>
 
-        <p className="text-gray-600 mb-6">
+        <p className="text-gray-600 dark:text-gray-300 mb-6">
           Receive alerts for new customer replies, AI intake calls, appointments, payments, and personal voicemails.
         </p>
 
         {permissionState === 'denied' && (
-          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="text-sm text-amber-800">
+              <p className="text-sm text-amber-800 dark:text-amber-200">
                 Notifications are disabled. To enable them, go to your device settings.
               </p>
             </div>
@@ -132,7 +208,7 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
             <>
               <button
                 onClick={handleNotNow}
-                className="flex-1 px-4 py-3 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+                className="flex-1 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
               >
                 Close
               </button>
@@ -148,7 +224,7 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
               <button
                 onClick={handleNotNow}
                 disabled={isLoading}
-                className="flex-1 px-4 py-3 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors disabled:opacity-50"
+                className="flex-1 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
               >
                 Not Now
               </button>

@@ -20,6 +20,7 @@
     "@capacitor/browser": "^8.0.4",
     "@capacitor/cli": "^8.4.2",
     "@capacitor/core": "^8.4.2",
+    "@capacitor/device": "^8.0.3",
     "@capacitor/haptics": "^8.0.2",
     "@capacitor/ios": "^8.4.2",
     "@capacitor/keyboard": "^8.0.5",
@@ -43,11 +44,11 @@
     "openai": "^6.42.0",
     "react": "^18",
     "react-dom": "^18",
+    "replyflow-stripe-terminal": "file:packages/replyflow-stripe-terminal",
     "resend": "^6.12.4",
     "stripe": "^22.1.0",
     "twilio": "^5.0.0",
-    "zod": "^3.23.8",
-    "replyflow-stripe-terminal": "file:packages/replyflow-stripe-terminal"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^20",

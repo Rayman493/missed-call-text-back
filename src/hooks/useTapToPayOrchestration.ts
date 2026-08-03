@@ -7,6 +7,7 @@ import type { TerminalError } from '@/lib/terminal'
 import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
 import { Capacitor } from '@capacitor/core'
 import { mapTapToPayError } from '@/lib/terminal/error-mapper'
+import { permissionLock } from '@/lib/permission-lock'
 
 type PaymentState = 'ready' | 'preparing' | 'waiting_for_card' | 'processing' | 'success' | 'failure' | 'canceled' | 'pending' | 'ambiguous'
 
@@ -313,6 +314,7 @@ export function useTapToPayOrchestration({
     console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_SET')
 
     setIsPaymentInProgress(true)
+    permissionLock.setTapToPayActive(true)
     updatePaymentStateRef('preparing', 'start_payment_called')
     setError('')
     setStructuredError(null)
@@ -361,6 +363,7 @@ export function useTapToPayOrchestration({
             console.log('[QuickTTP UI] LOCATION_PERMISSION_DENIED after request', { permissionResult })
             setShowLocationPermissionDialog(true)
             setIsPaymentInProgress(false)
+            permissionLock.setTapToPayActive(false)
             autoRetryInProgress.current = false
             startInFlight.current = false
             console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_CLEARED_PERMISSION_DENIED')
@@ -457,6 +460,7 @@ export function useTapToPayOrchestration({
       if (paymentResult.status === 'success') {
         updatePaymentStateRef('success')
         setIsPaymentInProgress(false)
+            permissionLock.setTapToPayActive(false)
         startInFlight.current = false
         console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_CLEARED_SUCCESS')
         onPaymentComplete?.()
@@ -465,10 +469,12 @@ export function useTapToPayOrchestration({
         setError(errorMsg)
         updatePaymentStateRef('failure')
         setIsPaymentInProgress(false)
+            permissionLock.setTapToPayActive(false)
         onPaymentError?.(errorMsg)
       } else if (paymentResult.status === 'canceled') {
         updatePaymentStateRef('canceled')
         setIsPaymentInProgress(false)
+            permissionLock.setTapToPayActive(false)
       }
 
     } catch (err: any) {
@@ -498,6 +504,7 @@ export function useTapToPayOrchestration({
     setError(errorMsg)
     setStructuredError(err as TerminalError)
     setIsPaymentInProgress(false)
+            permissionLock.setTapToPayActive(false)
     startInFlight.current = false
     console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_CLEARED_ERROR')
     onPaymentError?.(errorMsg)
@@ -555,6 +562,7 @@ async function withTimeout<T>(
   const cancelPayment = useCallback((reason: string = 'user_canceled') => {
     console.log('[QuickTTP UI] CANCEL_PAYMENT_CALLED', { reason, currentPaymentState: paymentState })
     setIsPaymentInProgress(false)
+            permissionLock.setTapToPayActive(false)
     updatePaymentStateRef('canceled', reason)
     setError('')
     setStructuredError(null)
@@ -575,6 +583,7 @@ async function withTimeout<T>(
   const resetTapToPayUiState = useCallback((preserveSucceededAttempt: boolean = true) => {
     console.log('[TTP Hook] EMERGENCY_RESET', { preserveSucceededAttempt })
     setIsPaymentInProgress(false)
+            permissionLock.setTapToPayActive(false)
     startInFlight.current = false
     console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_CLEARED_RESET')
     updatePaymentStateRef('ready', 'emergency_reset')
@@ -591,6 +600,7 @@ async function withTimeout<T>(
   const resetToSetup = useCallback((reason: string = 'reset_to_setup') => {
     console.log('[QuickTTP UI] RESET_TO_SETUP', { reason, currentPaymentState: paymentState })
     setIsPaymentInProgress(false)
+            permissionLock.setTapToPayActive(false)
     startInFlight.current = false
     console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_CLEARED_RESET_TO_SETUP')
     updatePaymentStateRef('ready', reason)

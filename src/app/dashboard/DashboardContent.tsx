@@ -48,6 +48,7 @@ import GettingStarted from '@/components/GettingStarted'
 import BottomNavigation from '@/components/BottomNavigation'
 import SetupProgress from '@/components/setup/SetupProgress'
 import OffboardingBanner from '@/components/OffboardingBanner'
+import { NotificationPermissionEducation } from '@/components/notifications/NotificationPermissionEducation'
 import ProvisioningSuccessBanner from '@/components/ProvisioningSuccessBanner'
 import SetupStatusCard from '@/components/SetupStatusCard'
 import PaymentIssueBanner from '@/components/PaymentIssueBanner'
@@ -1018,6 +1019,7 @@ export default function DashboardContent() {
     <DashboardErrorBoundary debugInfo={debugInfo}>
       <AuthGuard>
         <BusinessGuard>
+          <NotificationPermissionEducation />
           <div className="min-h-screen bg-background flex flex-col relative overflow-x-hidden">
             {/* App Header */}
             <AppHeader showNavigation={true} />

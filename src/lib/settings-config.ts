@@ -9,6 +9,7 @@ export interface SettingsSection {
 export const settingsSections: SettingsSection[] = [
   { id: 'general', label: 'General' },
   { id: 'automation', label: 'Automation' },
+  { id: 'notifications', label: 'Notifications' },
   { id: 'integrations', label: 'Integrations' },
   { id: 'payments', label: 'Payments' },
   { id: 'contacts', label: 'Contacts' },
