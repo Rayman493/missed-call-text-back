@@ -47,7 +47,7 @@ export default function QuickTapToPayModal({
   const [modalSessionId, setModalSessionId] = useState<string>(`modal_${Date.now()}`)
   const [connectingElapsedTime, setConnectingElapsedTime] = useState(0)
   const [eventTimeline, setEventTimeline] = useState<Array<{ timestamp: string; event: string; sessionId?: string; attemptId?: string; paymentState?: string; stage?: string }>>([])
-  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_LOCATION_GUIDANCE_INLINE_CARDS'
+  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_LOCATION_CARD_FINAL_POLISH'
   
   // Location guidance card states (inline on setup screen, not overlays)
 const [showLocationPermissionCard, setShowLocationPermissionCard] = useState(false)
@@ -1000,14 +1000,14 @@ const [showLocationBlockedCard, setShowLocationBlockedCard] = useState(false)
 
                   {/* Inline Location Permission Card */}
                   {showLocationPermissionCard && (
-                    <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4 animate-in fade-in duration-200">
-                      <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 mt-0.5">
-                          <MapPin className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                    <div className="bg-amber-50/80 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/50 rounded-xl p-3 animate-in fade-in duration-200">
+                      <div className="flex items-start gap-2.5">
+                        <div className="flex-shrink-0">
+                          <MapPin className="w-4 h-4 text-amber-600/80 dark:text-amber-400/80" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-semibold text-amber-900 dark:text-amber-100 mb-1">Location Required</h4>
-                          <p className="text-xs text-amber-700 dark:text-amber-300 mb-3">
+                          <h4 className="text-xs font-semibold text-amber-900 dark:text-amber-100 mb-1">Location Required</h4>
+                          <p className="text-[11px] text-gray-700 dark:text-gray-300 mb-2.5 leading-relaxed">
                             Android requires Location permission while preparing Tap to Pay. ReplyFlow never uses your location for advertising or customer tracking.
                           </p>
                           <button
@@ -1032,34 +1032,25 @@ const [showLocationBlockedCard, setShowLocationBlockedCard] = useState(false)
                                 dispatchTTPEvent('LOCATION_INLINE_CARD_SHOWN', { card: 'services' })
                               }
                             }}
-                            className="w-full px-3 py-2 text-xs font-medium bg-amber-600 hover:bg-amber-700 text-white rounded transition-colors"
+                            className="w-full h-[44px] px-3 text-xs font-medium bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors"
                           >
                             Allow Location
                           </button>
                         </div>
-                        <button
-                          onClick={() => {
-                            setShowLocationPermissionCard(false)
-                            dispatchTTPEvent('LOCATION_INLINE_CARD_HIDDEN')
-                          }}
-                          className="flex-shrink-0 text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
                       </div>
                     </div>
                   )}
 
                   {/* Inline Location Services Card */}
                   {showLocationServicesCard && (
-                    <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4 animate-in fade-in duration-200">
-                      <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 mt-0.5">
-                          <MapPin className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                    <div className="bg-amber-50/80 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/50 rounded-xl p-3 animate-in fade-in duration-200">
+                      <div className="flex items-start gap-2.5">
+                        <div className="flex-shrink-0">
+                          <MapPin className="w-4 h-4 text-amber-600/80 dark:text-amber-400/80" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-semibold text-amber-900 dark:text-amber-100 mb-1">Turn On Location Services</h4>
-                          <p className="text-xs text-amber-700 dark:text-amber-300 mb-3">
+                          <h4 className="text-xs font-semibold text-amber-900 dark:text-amber-100 mb-1">Turn On Location Services</h4>
+                          <p className="text-[11px] text-gray-700 dark:text-gray-300 mb-2.5 leading-relaxed">
                             Location Services must be enabled before Android can prepare Tap to Pay.
                           </p>
                           <button
@@ -1082,34 +1073,25 @@ const [showLocationBlockedCard, setShowLocationBlockedCard] = useState(false)
                                 dispatchTTPEvent('LOCATION_INLINE_CARD_SHOWN', { card: 'permission' })
                               }
                             }}
-                            className="w-full px-3 py-2 text-xs font-medium bg-amber-600 hover:bg-amber-700 text-white rounded transition-colors"
+                            className="w-full h-[44px] px-3 text-xs font-medium bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors"
                           >
                             Open Location Settings
                           </button>
                         </div>
-                        <button
-                          onClick={() => {
-                            setShowLocationServicesCard(false)
-                            dispatchTTPEvent('LOCATION_INLINE_CARD_HIDDEN')
-                          }}
-                          className="flex-shrink-0 text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
                       </div>
                     </div>
                   )}
 
                   {/* Inline Location Blocked Card */}
                   {showLocationBlockedCard && (
-                    <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4 animate-in fade-in duration-200">
-                      <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 mt-0.5">
-                          <MapPin className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                    <div className="bg-amber-50/80 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/50 rounded-xl p-3 animate-in fade-in duration-200">
+                      <div className="flex items-start gap-2.5">
+                        <div className="flex-shrink-0">
+                          <MapPin className="w-4 h-4 text-amber-600/80 dark:text-amber-400/80" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-semibold text-amber-900 dark:text-amber-100 mb-1">Location Permission Required</h4>
-                          <p className="text-xs text-amber-700 dark:text-amber-300 mb-3">
+                          <h4 className="text-xs font-semibold text-amber-900 dark:text-amber-100 mb-1">Location Permission Required</h4>
+                          <p className="text-[11px] text-gray-700 dark:text-gray-300 mb-2.5 leading-relaxed">
                             Location permission has been permanently denied. Enable it in Android Settings to continue.
                           </p>
                           <button
@@ -1132,20 +1114,11 @@ const [showLocationBlockedCard, setShowLocationBlockedCard] = useState(false)
                                 dispatchTTPEvent('LOCATION_INLINE_CARD_SHOWN', { card: 'permission' })
                               }
                             }}
-                            className="w-full px-3 py-2 text-xs font-medium bg-amber-600 hover:bg-amber-700 text-white rounded transition-colors"
+                            className="w-full h-[44px] px-3 text-xs font-medium bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors"
                           >
                             Open App Settings
                           </button>
                         </div>
-                        <button
-                          onClick={() => {
-                            setShowLocationBlockedCard(false)
-                            dispatchTTPEvent('LOCATION_INLINE_CARD_HIDDEN')
-                          }}
-                          className="flex-shrink-0 text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
                       </div>
                     </div>
                   )}
@@ -1271,11 +1244,11 @@ const [showLocationBlockedCard, setShowLocationBlockedCard] = useState(false)
                   </button>
                   <button
                     onClick={handleStartPayment}
-                    disabled={amountCents <= 0 || !isAmountValid || !isNativeSupported || isPaymentInProgress}
+                    disabled={amountCents <= 0 || !isAmountValid || !isNativeSupported || isPaymentInProgress || showLocationPermissionCard || showLocationServicesCard || showLocationBlockedCard}
                     className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-green-600 flex items-center justify-center gap-2 active:scale-95"
                   >
                     <Smartphone className="w-4 h-4" />
-                    {isAmountBelowMinimum ? 'Minimum $0.50 Required' : 'Start Tap to Pay'}
+                    {showLocationPermissionCard || showLocationServicesCard || showLocationBlockedCard ? 'Complete Location Setup' : isAmountBelowMinimum ? 'Minimum $0.50 Required' : 'Start Tap to Pay'}
                   </button>
                 </>
               ) : (
@@ -1389,7 +1362,18 @@ const [showLocationBlockedCard, setShowLocationBlockedCard] = useState(false)
                     </button>
                   ) : (
                     <button
-                      onClick={() => cancelPayment('user_canceled')}
+                      onClick={() => {
+                        // Hide location cards if visible, otherwise cancel payment
+                        const locationCardVisible = showLocationPermissionCard || showLocationServicesCard || showLocationBlockedCard
+                        if (locationCardVisible) {
+                          setShowLocationPermissionCard(false)
+                          setShowLocationServicesCard(false)
+                          setShowLocationBlockedCard(false)
+                          dispatchTTPEvent('LOCATION_INLINE_CARD_HIDDEN')
+                        } else {
+                          cancelPayment('user_canceled')
+                        }
+                      }}
                       disabled={isPaymentInProgress}
                       className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
                     >
