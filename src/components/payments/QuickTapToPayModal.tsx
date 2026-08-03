@@ -47,7 +47,7 @@ export default function QuickTapToPayModal({
   const [modalSessionId, setModalSessionId] = useState<string>(`modal_${Date.now()}`)
   const [connectingElapsedTime, setConnectingElapsedTime] = useState(0)
   const [eventTimeline, setEventTimeline] = useState<Array<{ timestamp: string; event: string; sessionId?: string; attemptId?: string; paymentState?: string; stage?: string }>>([])
-  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_REUSE_CONNECTED_READER_FIX'
+  const WEB_BUILD_MARKER = 'TTP_WEB_2026_08_03_CANCELLATION_RETRY_UX_FIX'
 
   // Ref for modal title for accessibility focus
   const titleRef = useRef<HTMLHeadingElement>(null)
@@ -133,9 +133,11 @@ export default function QuickTapToPayModal({
     startPayment,
     cancelPayment,
     retryPayment,
+    retryAfterCancellation,
     resetTapToPayUiState,
     resetToSetup,
     checkPlatformSupport,
+    requestLocationPermission,
   } = useTapToPayOrchestration({
     amountCents,
     leadId: selectedLeadId || undefined,
@@ -549,7 +551,11 @@ export default function QuickTapToPayModal({
                 onClick={() => {
                   if (showPaymentSetup) {
                     onClose()
-                  } else if (paymentState === 'canceled' || paymentState === 'failure') {
+                  } else if (paymentState === 'canceled') {
+                    console.log('[QuickTTP UI] CLOSE_CLICKED_IN_CANCELED_STATE')
+                    dispatchTTPEvent('CANCELED_DONE')
+                    onClose()
+                  } else if (paymentState === 'failure') {
                     console.log('[QuickTTP UI] CLOSE_CLICKED_IN_ERROR_STATE', { paymentState })
                     emergencyCleanup()
                     onClose()
@@ -950,11 +956,11 @@ export default function QuickTapToPayModal({
 
                   {paymentState === 'canceled' && (
                     <>
-                      <div className="w-16 h-16 rounded-full bg-gray-500/10 flex items-center justify-center">
-                        <XCircle className="w-8 h-8 text-gray-600 dark:text-gray-400" />
+                      <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center">
+                        <XCircle className="w-8 h-8 text-amber-600 dark:text-amber-400" />
                       </div>
                       <p className="text-sm font-medium text-foreground text-center">Payment canceled</p>
-                      <p className="text-sm text-muted-foreground text-center">No payment was taken.</p>
+                      <p className="text-sm text-muted-foreground text-center">No charge was made. You can try again whenever you're ready.</p>
                     </>
                   )}
 
@@ -1016,20 +1022,22 @@ export default function QuickTapToPayModal({
                     <>
                       <button
                         onClick={() => {
-                          console.log('[QuickTTP UI] CANCELED_BACK_CLICKED')
-                          emergencyCleanup()
-                          resetToSetup('back_from_canceled')
+                          console.log('[QuickTTP UI] CANCELED_DONE_CLICKED')
+                          dispatchTTPEvent('CANCELED_DONE')
+                          onClose()
                         }}
                         className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
+                        style={{ minHeight: '44px' }}
                       >
-                        Back
+                        Done
                       </button>
                       <button
-                        onClick={retryPayment}
+                        onClick={retryAfterCancellation}
                         disabled={isPaymentInProgress}
                         className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-95"
+                        style={{ minHeight: '44px' }}
                       >
-                        <Loader2 className={`w-4 h-4 ${isPaymentInProgress ? 'animate-spin' : ''}`} />
+                        <Smartphone className="w-4 h-4" />
                         Try Again
                       </button>
                     </>

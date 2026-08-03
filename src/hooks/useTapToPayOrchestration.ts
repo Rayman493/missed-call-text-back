@@ -67,6 +67,7 @@ interface UseTapToPayOrchestrationReturn {
   startPayment: () => Promise<void>
   cancelPayment: (reason?: string) => void
   retryPayment: () => Promise<void>
+  retryAfterCancellation: () => Promise<void>
   resetTapToPayUiState: (preserveSucceededAttempt?: boolean) => void
   resetToSetup: (reason?: string) => void
   checkPlatformSupport: () => Promise<{ platform: 'ios' | 'android' | 'web'; isNativeSupported: boolean }>
@@ -1050,6 +1051,39 @@ async function withTimeout<T>(
     await startPayment()
   }, [startPayment, paymentState, lastSuccessfulStage])
 
+  // Retry after cancellation - dedicated function for clean cancellation retry
+  const retryAfterCancellation = useCallback(async () => {
+    console.log('[TTP Hook] RETRY_AFTER_CANCELLATION_STARTED', {
+      previousState: paymentState,
+      timestamp: new Date().toISOString()
+    })
+    dispatchTTPEvent('RETRY_AFTER_CANCELLATION_STARTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), paymentState, 'retry_after_cancellation')
+
+    // Clear cancellation-specific state
+    setError('')
+    setStructuredError(null)
+    setMappedError(null)
+    autoRetryInProgress.current = false
+
+    // Clear reset reason to avoid confusion
+    setLastResetReason('retry_after_cancellation')
+
+    // Transition to ready state
+    updatePaymentStateRef('ready', 'retry_after_cancellation')
+
+    // Log state transition
+    dispatchTTPEvent('STATE_TRANSITION', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'ready', 'canceled → ready')
+
+    // Start new payment
+    await startPayment()
+
+    console.log('[TTP Hook] RETRY_AFTER_CANCELLATION_COMPLETED', {
+      paymentState: paymentStateRef.current,
+      timestamp: new Date().toISOString()
+    })
+    dispatchTTPEvent('RETRY_AFTER_CANCELLATION_COMPLETED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), paymentStateRef.current, 'retry_after_cancellation')
+  }, [updatePaymentStateRef, paymentState, startPayment])
+
   // Emergency reset function to clear all UI state
   const resetTapToPayUiState = useCallback((preserveSucceededAttempt: boolean = true) => {
     // Guard: Do not reset if an active attempt is in progress (unless preserving succeeded attempt)
@@ -1108,6 +1142,7 @@ async function withTimeout<T>(
     startPayment,
     cancelPayment,
     retryPayment,
+    retryAfterCancellation,
     resetTapToPayUiState,
     resetToSetup,
     checkPlatformSupport,
