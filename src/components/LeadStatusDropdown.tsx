@@ -9,7 +9,7 @@ import {
   DropdownMenuPortal,
 } from '@radix-ui/react-dropdown-menu'
 import { Check } from 'lucide-react'
-import { CustomerStatus, getCustomerStatusStyle, getCustomerStatusIcon, getWorkflowStatuses, getTerminalStatuses } from '@/lib/customer-status'
+import { CustomerStatus, getCustomerStatusStyle, getCustomerStatusIcon, getAllCustomerStatuses } from '@/lib/customer-status'
 
 interface LeadStatusDropdownProps {
   currentStatus: CustomerStatus
@@ -87,8 +87,7 @@ export default function LeadStatusDropdown({
     }
   }
 
-  const workflowStatuses = getWorkflowStatuses()
-  const terminalStatuses = getTerminalStatuses()
+  const allStatuses = getAllCustomerStatuses()
 
   return (
     <DropdownMenu>
@@ -139,9 +138,9 @@ export default function LeadStatusDropdown({
             </div>
           </div>
 
-          {/* Workflow Statuses */}
+          {/* All Statuses */}
           <div className="px-1 py-1 space-y-0.5">
-            {workflowStatuses.map((status: CustomerStatus) => {
+            {allStatuses.map((status: CustomerStatus) => {
               const statusStyle = getCustomerStatusStyle(status)
               const Icon = getCustomerStatusIcon(status)
               const isSelected = status === currentStatus
@@ -158,51 +157,13 @@ export default function LeadStatusDropdown({
                     <Icon className="w-3.5 h-3.5" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-foreground">
+                    <div className={`text-sm font-medium ${statusStyle.textClass}`}>
                       {statusStyle.label}
                     </div>
                   </div>
                   {isSelected && (
                     <div className="flex-shrink-0">
-                      <Check className="w-3.5 h-3.5 text-muted-foreground/50" />
-                    </div>
-                  )}
-                </DropdownMenuItem>
-              )
-            })}
-          </div>
-
-          {/* Subtle Divider */}
-          <div className="px-2.5 py-1">
-            <div className="h-px bg-border/10"></div>
-          </div>
-
-          {/* Terminal Statuses */}
-          <div className="px-1 py-1">
-            {terminalStatuses.map((status: CustomerStatus) => {
-              const statusStyle = getCustomerStatusStyle(status)
-              const Icon = getCustomerStatusIcon(status)
-              const isSelected = status === currentStatus
-
-              return (
-                <DropdownMenuItem
-                  key={status}
-                  onSelect={() => handleStatusSelect(status)}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  disabled={isUpdating}
-                  className={`w-full px-2 py-1.5 text-left hover:bg-red-950/5 dark:hover:bg-red-950/10 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:bg-red-950/5 dark:focus:bg-red-950/10 cursor-pointer rounded-md min-h-[36px] group ${isSelected ? statusStyle.selectedClass : ''}`}
-                >
-                  <div className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded ${statusStyle.iconClass} group-hover:opacity-80 transition-opacity`}>
-                    <Icon className="w-3.5 h-3.5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-foreground">
-                      {statusStyle.label}
-                    </div>
-                  </div>
-                  {isSelected && (
-                    <div className="flex-shrink-0">
-                      <Check className="w-3.5 h-3.5 text-muted-foreground/50" />
+                      <Check className={`w-3.5 h-3.5 ${statusStyle.textClass}`} />
                     </div>
                   )}
                 </DropdownMenuItem>

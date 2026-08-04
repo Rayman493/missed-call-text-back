@@ -37,6 +37,7 @@ export interface CustomerStatusStyle {
   accentStripClass: string
   badgeClass: string
   iconClass: string
+  textClass: string
   selectedClass: string
 }
 
@@ -51,6 +52,7 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
     accentStripClass: 'bg-blue-500',
     badgeClass: 'border-blue-500/30 bg-blue-500/10 text-blue-300',
     iconClass: 'bg-blue-500/12 text-blue-300',
+    textClass: 'text-blue-300',
     selectedClass: 'border-blue-400/40 bg-blue-500/10'
   },
   needs_reply: {
@@ -59,6 +61,7 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
     accentStripClass: 'bg-cyan-500',
     badgeClass: 'border-cyan-500/30 bg-cyan-500/10 text-cyan-300',
     iconClass: 'bg-cyan-500/12 text-cyan-300',
+    textClass: 'text-cyan-300',
     selectedClass: 'border-cyan-400/40 bg-cyan-500/10'
   },
   active: {
@@ -67,6 +70,7 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
     accentStripClass: 'bg-green-500',
     badgeClass: 'border-green-500/30 bg-green-500/10 text-green-300',
     iconClass: 'bg-green-500/12 text-green-300',
+    textClass: 'text-green-300',
     selectedClass: 'border-green-400/40 bg-green-500/10'
   },
   scheduled: {
@@ -75,6 +79,7 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
     accentStripClass: 'bg-purple-500',
     badgeClass: 'border-purple-500/30 bg-purple-500/10 text-purple-300',
     iconClass: 'bg-purple-500/12 text-purple-300',
+    textClass: 'text-purple-300',
     selectedClass: 'border-purple-400/40 bg-purple-500/10'
   },
   payment_requested: {
@@ -83,6 +88,7 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
     accentStripClass: 'bg-amber-500',
     badgeClass: 'border-amber-500/30 bg-amber-500/10 text-amber-300',
     iconClass: 'bg-amber-500/12 text-amber-300',
+    textClass: 'text-amber-300',
     selectedClass: 'border-amber-400/40 bg-amber-500/10'
   },
   paid: {
@@ -91,6 +97,7 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
     accentStripClass: 'bg-emerald-500',
     badgeClass: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
     iconClass: 'bg-emerald-500/12 text-emerald-300',
+    textClass: 'text-emerald-300',
     selectedClass: 'border-emerald-400/40 bg-emerald-500/10'
   },
   completed: {
@@ -99,6 +106,7 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
     accentStripClass: 'bg-slate-400',
     badgeClass: 'border-slate-400/30 bg-slate-400/10 text-slate-300',
     iconClass: 'bg-slate-400/12 text-slate-300',
+    textClass: 'text-slate-300',
     selectedClass: 'border-slate-300/40 bg-slate-400/10'
   },
   ignored: {
@@ -107,6 +115,7 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
     accentStripClass: 'bg-orange-500',
     badgeClass: 'border-orange-500/30 bg-orange-500/10 text-orange-300',
     iconClass: 'bg-orange-500/12 text-orange-300',
+    textClass: 'text-orange-300',
     selectedClass: 'border-orange-400/40 bg-orange-500/10'
   },
   lost: {
@@ -115,6 +124,7 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
     accentStripClass: 'bg-red-500',
     badgeClass: 'border-red-500/30 bg-red-500/10 text-red-300',
     iconClass: 'bg-red-500/12 text-red-300',
+    textClass: 'text-red-300',
     selectedClass: 'border-red-400/40 bg-red-500/10'
   }
 }
