@@ -7,8 +7,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import DashboardErrorBoundary from './DashboardErrorBoundary'
 import Link from 'next/link'
 import LeadTimeline from '@/components/LeadTimeline'
-import { getLeadLifecycleStatus } from '@/lib/lead-lifecycle'
-import { getCardAccentClasses, getCardGradientClasses, getCardBorderClasses, getStatusBadgeClasses } from '@/lib/lead-status-colors'
+import { getCustomerStatusStyle, CustomerStatus } from '@/lib/customer-status'
 
 interface RecentLeadsSectionProps {
   businessId: string
@@ -242,8 +241,9 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
   }, [businessId, supabase])
 
   // Helper functions for lead status and display
-  const getLeadStatus = (lead: any) => {
-    return getLeadLifecycleStatus(lead)
+  const getLeadStatus = (lead: any): CustomerStatus => {
+    const rawStatus = lead.status || lead.lead_status || 'new'
+    return rawStatus as CustomerStatus
   }
 
   // Helper to get structured AI data from lead
@@ -386,14 +386,15 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
                   return (
                     <div key={lead.id} className="block">
                       <Link href={`/dashboard/leads/${lead.id}`}>
-                        <div className={`bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl p-2 sm:p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-sm transition-all duration-200 cursor-pointer relative overflow-hidden ${getCardGradientClasses(getLeadStatus(lead))} ${getCardBorderClasses(getLeadStatus(lead))} ${getCardAccentClasses(getLeadStatus(lead))}`}>
+                        <div className="relative overflow-hidden rounded-xl border border-red-500 bg-red-500/20 p-2 sm:p-2.5 shadow-[0_0_30px_rgba(239,68,68,0.4)] hover:bg-red-500/30 transition-all duration-200 cursor-pointer">
+                          <div className="absolute inset-x-0 top-0 z-50 h-1 bg-red-500"></div>
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1.5 mb-0.5">
                                 <p className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground truncate leading-tight">
                                   {getLeadDisplayName(lead)}
                                 </p>
-                                <span className={getStatusBadgeClasses(getLeadStatus(lead))}>
+                                <span className="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium bg-slate-500/10 text-slate-700 dark:text-slate-300">
                                   {getLeadStatus(lead)}
                                 </span>
                                 {aiData.urgency && (
