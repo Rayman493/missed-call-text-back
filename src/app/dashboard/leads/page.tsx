@@ -1504,12 +1504,12 @@ export default function LeadsPage() {
                         />
                         <div className="flex-1 flex flex-col">
                           {/* Header: Name, Phone, Status */}
-                          <div className="flex items-start justify-between gap-3 mb-4">
+                          <div className="flex items-start justify-between gap-3 mb-3">
                             <div className="flex-1 min-w-0">
                               <h3 className="text-xl font-semibold text-foreground mb-1 truncate tracking-tight">
                                 <span className="text-foreground">{getLeadDisplayName(lead)}</span>
                               </h3>
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-sm text-muted-foreground/70">
                                 {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}
                               </p>
                             </div>
@@ -1529,17 +1529,17 @@ export default function LeadsPage() {
                           </div>
 
                           {/* Compact Preview - Simplified Hierarchy */}
-                          <div className="mb-3 flex-1">
+                          <div className="mb-2 flex-1">
                             {aiData.reason && (
                               <>
-                                <p className="line-clamp-2 text-base font-semibold text-foreground leading-relaxed mb-2">
+                                <p className="line-clamp-2 text-base font-semibold text-foreground leading-relaxed mb-1">
                                   {sentenceCase(aiData.reason)}
                                 </p>
                                 {aiData.urgency && (
                                   <p className={`text-sm font-medium ${
                                     aiData.urgency.toLowerCase() === 'urgent' || aiData.urgency.toLowerCase() === 'high'
                                       ? 'text-red-500 dark:text-red-400'
-                                      : 'text-muted-foreground'
+                                      : 'text-muted-foreground/70'
                                   }`}>
                                     {sentenceCase(aiData.urgency)}
                                   </p>
@@ -1550,20 +1550,20 @@ export default function LeadsPage() {
                               <p className={`text-sm font-medium ${
                                 aiData.urgency.toLowerCase() === 'urgent' || aiData.urgency.toLowerCase() === 'high'
                                   ? 'text-red-500 dark:text-red-400'
-                                  : 'text-muted-foreground'
+                                  : 'text-muted-foreground/70'
                               }`}>
                                 {sentenceCase(aiData.urgency)}
                               </p>
                             )}
                             {!aiData.reason && !aiData.urgency && (
-                              <p className="line-clamp-2 text-sm text-muted-foreground leading-relaxed">
+                              <p className="line-clamp-2 text-sm text-muted-foreground/70 leading-relaxed">
                                 {getCompactSummary(lead)}
                               </p>
                             )}
                           </div>
 
                           {/* Metadata */}
-                          <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={(e) => {
@@ -1582,14 +1582,14 @@ export default function LeadsPage() {
                               >
                                 {isNewCustomer ? 'New' : getLeadLifecycleStatus(lead).charAt(0).toUpperCase() + getLeadLifecycleStatus(lead).slice(1)}
                               </button>
-                              <span className="text-xs text-muted-foreground">
+                              <span className="text-xs text-muted-foreground/70">
                                 {formatRelativeTime(lead.created_at)}
                               </span>
                             </div>
                           </div>
 
                           {/* Action Buttons - Open affordance and overflow menu */}
-                          <div className="mt-3 flex w-full items-center border-t border-border/40 pt-3">
+                          <div className="mt-auto flex w-full items-center border-t border-border/40 pt-3">
                             <button
                               type="button"
                               onClick={(e) => {
@@ -1607,16 +1607,17 @@ export default function LeadsPage() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                               </svg>
                             </button>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <button
-                                  type="button"
-                                  className="ml-auto flex h-11 w-11 shrink-0 items-center justify-center p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
-                                  title="More actions"
-                                  aria-label="Customer actions"
-                                  onClick={(e) => e.stopPropagation()}
-                                  onKeyDown={(e) => e.stopPropagation()}
-                                >
+                            <div className="flex shrink-0">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <button
+                                    type="button"
+                                    className="flex h-11 w-11 items-center justify-center p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+                                    title="More actions"
+                                    aria-label="Customer actions"
+                                    onClick={(e) => e.stopPropagation()}
+                                    onKeyDown={(e) => e.stopPropagation()}
+                                  >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                                   </svg>
@@ -1673,6 +1674,7 @@ export default function LeadsPage() {
                               </DropdownMenuContent>
                               </DropdownMenuPortal>
                             </DropdownMenu>
+                            </div>
                           </div>
                         </div>
                       </div>
