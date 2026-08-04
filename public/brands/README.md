@@ -11,7 +11,7 @@ These logos are used to identify supported payment providers (Stripe, Venmo, Pay
 ### Stripe Logo (stripe.svg)
 - **Source**: [Stripe Brand Assets](https://stripe.com/en-gr/newsroom/brand-assets)
 - **Download URL**: https://assets.stripeassets.com/fzn2n1nzq965/7q0dJGs6fRS1LRmMpChoAF/87def4edfbb7fd5aef4ab9baf904b2db/Stripe_logo_kit.zip
-- **Asset**: Stripe wordmark - Slate (for light backgrounds)
+- **Asset**: Stripe wordmark - White (for dark backgrounds)
 - **Format**: SVG
 - **Usage Terms**: [Stripe's Mark Usage Agreement](https://stripe.com/en-gr/marks/legal)
   - Permitted use: "to truthfully convey information about your goods or services, but not in a way that will imply endorsement"
@@ -22,7 +22,7 @@ These logos are used to identify supported payment providers (Stripe, Venmo, Pay
 ### Venmo Logo (venmo.png)
 - **Source**: [PayPal Newsroom Media Resources](https://newsroom.paypal-corp.com/media-resources)
 - **Download URL**: https://newsroom.paypal-corp.com/download/Venmo_Logos_and_Guidelines.zip
-- **Asset**: Venmo wordmark - Blue (primary Venmo color)
+- **Asset**: Venmo wordmark - White (for dark backgrounds)
 - **Format**: PNG (official source provides PNG/EPS, not SVG)
 - **Usage Terms**: [Venmo Brand Guidelines](https://venmo.com/about/brand)
   - Primary logo: "The wordmark is the primary Venmo logo. It should be used as-is, and should not be manipulated in any way"
