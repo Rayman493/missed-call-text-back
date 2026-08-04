@@ -1426,6 +1426,37 @@ async function processVoiceStatusCallback(params: any, method: string, requestUr
 
           // Optional cleanup: cancel any pending follow-up jobs that may have been created earlier
           try {
+            // Update lead status for AI intake completion
+            const { applyCustomerStatusEvent } = await import('@/lib/customer-status-transitions')
+            const nextStatus = applyCustomerStatusEvent(lead.status, 'ai_intake_completed')
+
+            if (nextStatus) {
+              const { error: statusUpdateError } = await supabase
+                .from('leads')
+                .update({ status: nextStatus })
+                .eq('id', lead.id)
+
+              if (statusUpdateError) {
+                console.error('[AI INTAKE COMPLETE] Error updating lead status:', statusUpdateError)
+              } else {
+                console.log('[AI INTAKE COMPLETE] Lead status updated via transition helper:', {
+                  leadId: lead.id,
+                  previousStatus: lead.status,
+                  newStatus: nextStatus
+                })
+              }
+            } else {
+              console.log('[AI INTAKE COMPLETE] Status transition not allowed:', {
+                leadId: lead.id,
+                currentStatus: lead.status
+              })
+            }
+          } catch (statusError) {
+            console.error('[AI INTAKE COMPLETE] Exception during status update (non-critical):', statusError)
+            // Don't fail webhook for status update errors
+          }
+
+          try {
             const { data: pendingJobs, error: pendingJobsError } = await supabase
               .from('follow_up_jobs')
               .select('id')

@@ -8,7 +8,7 @@ import { formatAiIntakeSummary, formatAiIntakeSummaryWithMode } from '@/lib/ai-i
 import { detectCorrection, applyCorrection, generateCorrectionNote, generateMultiFieldAcknowledgement } from '@/lib/ai-correction-engine'
 import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 import { extractFromSmsBody, safeMergeSmsExtraction } from '@/lib/voicemail-extraction'
-import { promoteLeadToActiveIfNew } from '@/lib/lead-lifecycle'
+import { promoteLeadToActiveIfNew, updateLeadStatusForInboundMessage } from '@/lib/lead-lifecycle'
 import { LeadService } from '@/lib/services/LeadService'
 import { ConversationService } from '@/lib/services/ConversationService'
 
@@ -569,34 +569,33 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       body: sanitizedBody.substring(0, 50)
     })
     
-    // CRITICAL: Promote lead from new to active when customer replies
-    // Any customer reply indicates engagement
-    console.log('[LEAD STATUS PROMOTION TRIGGERED]', {
+    // CRITICAL: Update lead status when customer sends an inbound message
+    console.log('[LEAD STATUS UPDATE TRIGGERED]', {
       leadId: lead.id,
-      reason: 'customer_replied',
+      reason: 'customer_inbound_message',
       messageBody: sanitizedBody.substring(0, 50)
     })
     
     try {
-      const wasPromoted = await promoteLeadToActiveIfNew(lead.id, supabaseAdmin)
-      if (wasPromoted) {
-        console.log('[LEAD STATUS PROMOTED SUCCESSFULLY]', {
+      const wasUpdated = await updateLeadStatusForInboundMessage(lead.id, supabaseAdmin)
+      if (wasUpdated) {
+        console.log('[LEAD STATUS UPDATED SUCCESSFULLY]', {
           leadId: lead.id,
-          reason: 'customer_replied'
+          reason: 'customer_inbound_message'
         })
       } else {
-        console.log('[LEAD STATUS PROMOTION SKIPPED]', {
+        console.log('[LEAD STATUS UPDATE SKIPPED]', {
           leadId: lead.id,
-          reason: 'customer_replied',
-          note: 'Lead was not in new status'
+          reason: 'customer_inbound_message',
+          note: 'Status transition not allowed'
         })
       }
-    } catch (promoteError) {
-      console.error('[LEAD STATUS PROMOTION ERROR]', {
+    } catch (updateError) {
+      console.error('[LEAD STATUS UPDATE ERROR]', {
         leadId: lead.id,
-        error: promoteError instanceof Error ? promoteError.message : String(promoteError)
+        error: updateError instanceof Error ? updateError.message : String(updateError)
       })
-      // Don't fail the entire inbound SMS processing if promotion fails
+      // Don't fail the entire inbound SMS processing if update fails
     }
     
     // CRITICAL: Cancel all pending follow-ups for this lead

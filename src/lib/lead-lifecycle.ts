@@ -220,10 +220,12 @@ export function calculateLeadStatusCounts(leads: any[]): {
 /**
  * Promote a lead from 'new' to 'active' status
  * This is called when engagement events occur (follow-up sent, manual SMS, customer reply)
- * Only promotes if current status is 'new' - leaves Active, Completed, Ignored unchanged
+ * Now uses the centralized status transition helper for consistency
  */
 export async function promoteLeadToActiveIfNew(leadId: string, supabaseClient: any): Promise<boolean> {
   try {
+    const { applyCustomerStatusEvent } = await import('./customer-status-transitions')
+
     // Read current lead status
     const { data: lead, error: readError } = await supabaseClient
       .from('leads')
@@ -241,19 +243,21 @@ export async function promoteLeadToActiveIfNew(leadId: string, supabaseClient: a
       return false
     }
 
-    // Only promote if status is 'new'
-    if (lead.status !== 'new') {
-      console.log('[promoteLeadToActiveIfNew] Lead not new, skipping promotion:', {
+    // Use centralized transition helper
+    const nextStatus = applyCustomerStatusEvent(lead.status, 'business_reply_sent')
+
+    if (!nextStatus) {
+      console.log('[promoteLeadToActiveIfNew] Status transition not allowed:', {
         leadId,
         currentStatus: lead.status
       })
       return false
     }
 
-    // Promote to active
+    // Update to the determined status
     const { error: updateError } = await supabaseClient
       .from('leads')
-      .update({ status: 'active' })
+      .update({ status: nextStatus })
       .eq('id', leadId)
 
     if (updateError) {
@@ -261,10 +265,73 @@ export async function promoteLeadToActiveIfNew(leadId: string, supabaseClient: a
       return false
     }
 
-    console.log('[promoteLeadToActiveIfNew] Lead promoted from new to active:', leadId)
+    console.log('[promoteLeadToActiveIfNew] Lead status updated:', {
+      leadId,
+      previousStatus: lead.status,
+      newStatus: nextStatus
+    })
     return true
   } catch (error) {
     console.error('[promoteLeadToActiveIfNew] Unexpected error:', error)
+    return false
+  }
+}
+
+/**
+ * Update lead status when customer sends an inbound message
+ * Uses the centralized status transition helper with inbound_message_received event
+ */
+export async function updateLeadStatusForInboundMessage(leadId: string, supabaseClient: any): Promise<boolean> {
+  try {
+    const { applyCustomerStatusEvent } = await import('./customer-status-transitions')
+
+    // Read current lead status
+    const { data: lead, error: readError } = await supabaseClient
+      .from('leads')
+      .select('status')
+      .eq('id', leadId)
+      .single()
+
+    if (readError) {
+      console.error('[updateLeadStatusForInboundMessage] Error reading lead status:', readError)
+      return false
+    }
+
+    if (!lead) {
+      console.error('[updateLeadStatusForInboundMessage] Lead not found:', leadId)
+      return false
+    }
+
+    // Use centralized transition helper for inbound message
+    const nextStatus = applyCustomerStatusEvent(lead.status, 'inbound_message_received')
+
+    if (!nextStatus) {
+      console.log('[updateLeadStatusForInboundMessage] Status transition not allowed:', {
+        leadId,
+        currentStatus: lead.status
+      })
+      return false
+    }
+
+    // Update to the determined status
+    const { error: updateError } = await supabaseClient
+      .from('leads')
+      .update({ status: nextStatus })
+      .eq('id', leadId)
+
+    if (updateError) {
+      console.error('[updateLeadStatusForInboundMessage] Error updating lead status:', updateError)
+      return false
+    }
+
+    console.log('[updateLeadStatusForInboundMessage] Lead status updated:', {
+      leadId,
+      previousStatus: lead.status,
+      newStatus: nextStatus
+    })
+    return true
+  } catch (error) {
+    console.error('[updateLeadStatusForInboundMessage] Unexpected error:', error)
     return false
   }
 }

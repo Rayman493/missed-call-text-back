@@ -82,6 +82,47 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       )
     } catch {}
 
+    // Update lead status for workflow completion if lead_id is provided
+    if (lead_id) {
+      try {
+        const { data: lead } = await supabase
+          .from('leads')
+          .select('id, status')
+          .eq('id', lead_id)
+          .single()
+
+        if (lead) {
+          const { applyCustomerStatusEvent } = await import('@/lib/customer-status-transitions')
+          const nextStatus = applyCustomerStatusEvent(lead.status, 'workflow_completed')
+
+          if (nextStatus) {
+            const { error: statusUpdateError } = await supabase
+              .from('leads')
+              .update({ status: nextStatus })
+              .eq('id', lead_id)
+
+            if (statusUpdateError) {
+              console.error('[Meeting Complete] Error updating lead status:', statusUpdateError)
+            } else {
+              console.log('[Meeting Complete] Lead status updated via transition helper:', {
+                leadId: lead.id,
+                previousStatus: lead.status,
+                newStatus: nextStatus
+              })
+            }
+          } else {
+            console.log('[Meeting Complete] Status transition not allowed:', {
+              leadId: lead.id,
+              currentStatus: lead.status
+            })
+          }
+        }
+      } catch (statusError) {
+        console.error('[Meeting Complete] Exception during status update (non-critical):', statusError)
+        // Don't fail the request for status update errors
+      }
+    }
+
     // Trigger immediate transcript processing asynchronously (non-blocking)
     // This ensures early-completed meetings get processed without waiting for cron
     const serviceSupabase = createClient(

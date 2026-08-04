@@ -414,6 +414,47 @@ export async function POST(request: NextRequest) {
       console.warn('[Calendar Create] meeting_records upsert attempt failed (non-fatal)')
     }
 
+    // Update lead status for appointment creation if lead_id is provided
+    if (lead_id) {
+      try {
+        const { data: lead } = await supabase
+          .from('leads')
+          .select('id, status')
+          .eq('id', lead_id)
+          .single()
+
+        if (lead) {
+          const { applyCustomerStatusEvent } = await import('@/lib/customer-status-transitions')
+          const nextStatus = applyCustomerStatusEvent(lead.status, 'appointment_created')
+
+          if (nextStatus) {
+            const { error: statusUpdateError } = await supabase
+              .from('leads')
+              .update({ status: nextStatus })
+              .eq('id', lead_id)
+
+            if (statusUpdateError) {
+              console.error('[Calendar Create] Error updating lead status:', statusUpdateError)
+            } else {
+              console.log('[Calendar Create] Lead status updated via transition helper:', {
+                leadId: lead.id,
+                previousStatus: lead.status,
+                newStatus: nextStatus
+              })
+            }
+          } else {
+            console.log('[Calendar Create] Status transition not allowed:', {
+              leadId: lead.id,
+              currentStatus: lead.status
+            })
+          }
+        }
+      } catch (statusError) {
+        console.error('[Calendar Create] Exception during status update (non-critical):', statusError)
+        // Don't fail the request for status update errors
+      }
+    }
+
     return NextResponse.json({
       event: {
         id: createdEvent.id,

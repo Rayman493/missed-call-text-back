@@ -509,9 +509,22 @@ export async function POST(request: Request) {
       last_payment_requested_at: new Date().toISOString(),
     }
 
-    // Update lead status to payment_requested only if current status is new or active
-    if (lead.status === 'new' || lead.status === 'active') {
-      leadStatusUpdate.status = 'payment_requested'
+    // Use centralized transition helper for status update
+    const { applyCustomerStatusEvent } = await import('@/lib/customer-status-transitions')
+    const nextStatus = applyCustomerStatusEvent(lead.status, 'payment_request_sent')
+
+    if (nextStatus) {
+      leadStatusUpdate.status = nextStatus
+      console.log('[PAYMENT REQUEST] Lead status updated via transition helper:', {
+        leadId: lead_id,
+        previousStatus: lead.status,
+        newStatus: nextStatus
+      })
+    } else {
+      console.log('[PAYMENT REQUEST] Status transition not allowed:', {
+        leadId: lead_id,
+        currentStatus: lead.status
+      })
     }
 
     await supabase

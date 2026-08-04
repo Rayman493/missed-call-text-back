@@ -1282,10 +1282,14 @@ export async function POST(request: Request) {
           if (lead) {
             console.log('[PAYMENT WEBHOOK] Found lead:', lead.id, 'current status:', lead.status)
 
-            if (lead.status === 'payment_requested' || lead.status === 'new' || lead.status === 'active') {
+            // Use centralized transition helper for status update
+            const { applyCustomerStatusEvent } = await import('@/lib/customer-status-transitions')
+            const nextStatus = applyCustomerStatusEvent(lead.status, 'payment_succeeded')
+
+            if (nextStatus) {
               const { error: leadUpdateError } = await supabase
                 .from('leads')
-                .update({ status: 'paid' })
+                .update({ status: nextStatus })
                 .eq('id', paymentRequest.lead_id)
 
               if (leadUpdateError) {
@@ -1293,10 +1297,17 @@ export async function POST(request: Request) {
                 console.error('[PAYMENT WEBHOOK] Error code:', leadUpdateError.code)
                 console.error('[PAYMENT WEBHOOK] Error message:', leadUpdateError.message)
               } else {
-                console.log('[PAYMENT WEBHOOK] Successfully updated lead status to paid')
+                console.log('[PAYMENT WEBHOOK] Successfully updated lead status via transition helper:', {
+                  leadId: lead.id,
+                  previousStatus: lead.status,
+                  newStatus: nextStatus
+                })
               }
             } else {
-              console.log('[PAYMENT WEBHOOK] Lead status not eligible for update, skipping')
+              console.log('[PAYMENT WEBHOOK] Status transition not allowed:', {
+                leadId: lead.id,
+                currentStatus: lead.status
+              })
             }
           } else {
             console.log('[PAYMENT WEBHOOK] Lead not found, skipping lead update')
@@ -1541,11 +1552,24 @@ export async function POST(request: Request) {
               .eq('id', paymentRequest.lead_id)
             
             // Update lead status to paid if appropriate
-            if (lead.status === 'payment_requested' || lead.status === 'new' || lead.status === 'active') {
+            const { applyCustomerStatusEvent } = await import('@/lib/customer-status-transitions')
+            const nextStatus = applyCustomerStatusEvent(lead.status, 'payment_succeeded')
+
+            if (nextStatus) {
               await supabase
                 .from('leads')
-                .update({ status: 'paid' })
+                .update({ status: nextStatus })
                 .eq('id', paymentRequest.lead_id)
+              console.log('[TERMINAL PAYMENT] Lead status updated via transition helper:', {
+                leadId: lead.id,
+                previousStatus: lead.status,
+                newStatus: nextStatus
+              })
+            } else {
+              console.log('[TERMINAL PAYMENT] Status transition not allowed:', {
+                leadId: lead.id,
+                currentStatus: lead.status
+              })
             }
           }
         }
