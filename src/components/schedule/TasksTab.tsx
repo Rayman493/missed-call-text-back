@@ -231,15 +231,18 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
 
   const getTaskStatusBadge = (task: Task) => {
     if (task.completed) {
-      return <span className="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 rounded-full">Completed</span>
+      return <span className="px-2 py-0.5 text-[10px] font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 rounded-full">Completed</span>
     }
     if (isOverdue(task.due_date)) {
-      return <span className="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 rounded-full">Overdue</span>
+      return <span className="px-2 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 rounded-full">Overdue</span>
     }
     if (isFuture(task.due_date)) {
-      return <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded-full">Future</span>
+      return <span className="px-2 py-0.5 text-[10px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded-full">Tomorrow</span>
     }
-    return <span className="px-2 py-0.5 text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 rounded-full">Active</span>
+    if (task.due_date === todayStr) {
+      return <span className="px-2 py-0.5 text-[10px] font-semibold bg-blue-600 text-white dark:bg-blue-500 dark:text-white rounded-full">Due Today</span>
+    }
+    return <span className="px-2 py-0.5 text-[10px] font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 rounded-full">Active</span>
   }
 
   const getLeadName = (task: Task) => {
@@ -259,7 +262,7 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground flex items-center gap-2">
+          <h2 className="text-base font-semibold text-slate-900 dark:text-foreground flex items-center gap-2">
             Tasks
             {isLoading && hasLoadedOnceRef.current && (
               <span className="inline-flex items-center justify-center w-4 h-4">
@@ -273,7 +276,7 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
         </div>
         <button
           onClick={() => setIsNewTaskModalOpen(true)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm active:scale-[0.98]"
         >
           <Plus className="w-4 h-4" />
           New Task
@@ -345,20 +348,21 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
         <div className="text-center py-12">
           <CheckCircle2 className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">
-            No tasks found
+            {filter === 'all' ? "You're all caught up." : `No ${filter} tasks.`}
           </h3>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-            {filter === 'active' && 'No active tasks. Great job!'}
-            {filter === 'overdue' && 'No overdue tasks. You\'re on track!'}
-            {filter === 'future' && 'No future tasks scheduled.'}
+            {filter === 'active' && 'No tasks scheduled for today.'}
+            {filter === 'overdue' && 'No overdue tasks. Great job!'}
+            {filter === 'future' && 'No tasks scheduled for later.'}
             {filter === 'completed' && 'No completed tasks yet.'}
             {filter === 'all' && 'Create your first task to get started.'}
           </p>
           <button
             onClick={() => setIsNewTaskModalOpen(true)}
-            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+            className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm active:scale-[0.98]"
           >
-            Create a task
+            <Plus className="w-4 h-4" />
+            New Task
           </button>
         </div>
       ) : (

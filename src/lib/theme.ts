@@ -51,6 +51,14 @@ export const buttonTokens = {
   ghost: 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300',
 }
 
+// Standardized button sizes
+export const buttonSizes = {
+  xs: 'px-2 py-1 text-[11px] rounded-lg',
+  sm: 'px-3 py-1.5 text-xs rounded-lg',
+  md: 'px-4 py-2 text-sm rounded-lg',
+  lg: 'px-5 py-3 text-base rounded-xl',
+}
+
 // Shadow tokens
 export const shadowTokens = {
   card: 'shadow-[0_1px_0_rgba(255,255,255,0.05),0_20px_60px_rgba(2,6,23,0.28)]',
@@ -82,6 +90,12 @@ export const themeClasses = {
   buttonOutline: `${buttonTokens.outline} ${shadowTokens.card}`,
   buttonDanger: `${buttonTokens.danger} ${shadowTokens.card}`,
   buttonGhost: `${buttonTokens.ghost}`,
+  
+  // Standardized button classes with sizes
+  buttonXs: `${buttonSizes.xs} ${buttonTokens.primary} transition-colors disabled:opacity-50 disabled:cursor-not-allowed`,
+  buttonSm: `${buttonSizes.sm} ${buttonTokens.primary} transition-colors disabled:opacity-50 disabled:cursor-not-allowed`,
+  buttonMd: `${buttonSizes.md} ${buttonTokens.primary} transition-colors disabled:opacity-50 disabled:cursor-not-allowed`,
+  buttonLg: `${buttonSizes.lg} ${buttonTokens.primary} transition-colors disabled:opacity-50 disabled:cursor-not-allowed`,
 }
 
 // Helper function to combine theme classes safely

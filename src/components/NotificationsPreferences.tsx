@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Bell } from 'lucide-react'
+import { Bell, ExternalLink } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
+import { Browser } from '@capacitor/browser'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { useNativePermissions } from '@/hooks/useNativePermissions'
 import { pushService } from '@/lib/push-service'
@@ -17,7 +18,7 @@ interface NotificationPreference {
 
 export function NotificationsPreferences() {
   const { business } = useBusiness()
-  const { notifications, checkNotificationPermission } = useNativePermissions()
+  const { notifications, checkNotificationPermission, requestNotificationPermission } = useNativePermissions()
   const [isRequesting, setIsRequesting] = useState(false)
   
   const [preferences, setPreferences] = useState<NotificationPreference[]>([
@@ -67,31 +68,48 @@ export function NotificationsPreferences() {
 
   const [isUpdating, setIsUpdating] = useState(false)
 
-  // Check notification permission on mount (native only)
+  // Check notification permission silently on mount (native only)
+  // This ensures we have current state without prompting
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
-      checkNotificationPermission()
+      checkNotificationPermission(true)
     }
   }, [checkNotificationPermission])
 
-  const handleEnableDeviceNotifications = async () => {
+  const handleDeviceNotificationToggle = async (enabled: boolean) => {
     if (!Capacitor.isNativePlatform()) {
       return
     }
 
-    if (!permissionLock.requestPermission('notification')) {
+    // Only request permission if turning on and status is not already granted
+    if (enabled && notifications.status !== 'granted') {
+      if (!permissionLock.requestPermission('notification')) {
+        return
+      }
+
+      setIsRequesting(true)
+      try {
+        await requestNotificationPermission()
+        // Check status after request to update UI
+        await checkNotificationPermission(true)
+      } catch (error) {
+        console.error('[NOTIFICATIONS] Failed to request permission:', error)
+      } finally {
+        setIsRequesting(false)
+        permissionLock.releasePermission('notification')
+      }
+    }
+  }
+
+  const handleOpenDeviceSettings = async () => {
+    if (!Capacitor.isNativePlatform()) {
       return
     }
 
-    setIsRequesting(true)
     try {
-      await pushService.requestPermission()
-      await checkNotificationPermission()
+      await Browser.open({ url: 'app-settings:' })
     } catch (error) {
-      console.error('[NOTIFICATIONS] Failed to request permission:', error)
-    } finally {
-      setIsRequesting(false)
-      permissionLock.releasePermission('notification')
+      console.error('[NOTIFICATIONS] Failed to open device settings:', error)
     }
   }
 
@@ -129,29 +147,47 @@ export function NotificationsPreferences() {
         </p>
       </div>
 
-      {/* Device Notification Status - Native Only */}
+      {/* Device Notification Toggle - Native Only */}
       {Capacitor.isNativePlatform() && (
-        <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-          {notifications.status === 'granted' && (
-            <div className="flex items-center gap-2 text-sm text-blue-800 dark:text-blue-200">
-              <span className="text-green-600 dark:text-green-400">✓</span>
-              <span>Device notifications enabled</span>
+        <div className="mb-5 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 pr-4">
+              <div className="text-sm font-medium text-foreground mb-0.5">
+                Enable notifications on this device
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Allow ReplyFlow to send push notifications.
+              </div>
+              {(notifications.status === 'denied' || notifications.status === 'blocked') && (
+                <div className="mt-2">
+                  <div className="text-xs text-amber-600 dark:text-amber-400 mb-2">
+                    Notifications are disabled in your device settings.
+                  </div>
+                  <button
+                    onClick={handleOpenDeviceSettings}
+                    className="text-xs flex items-center gap-1.5 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    Open Device Settings
+                  </button>
+                </div>
+              )}
             </div>
-          )}
-          {notifications.status !== 'granted' && notifications.status !== 'denied' && notifications.status !== 'blocked' && (
             <button
-              onClick={handleEnableDeviceNotifications}
-              disabled={isRequesting}
-              className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => handleDeviceNotificationToggle(notifications.status !== 'granted')}
+              disabled={isRequesting || notifications.status === 'denied' || notifications.status === 'blocked'}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-200 flex-shrink-0 ${
+                notifications.status === 'granted' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-slate-600 hover:bg-slate-500'
+              } ${isRequesting || notifications.status === 'denied' || notifications.status === 'blocked' ? 'opacity-50 cursor-not-allowed' : ''}`}
+              aria-label={notifications.status === 'granted' ? 'Disable notifications' : 'Enable notifications'}
             >
-              {isRequesting ? 'Enabling...' : 'Enable Device Notifications'}
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-all duration-200 shadow-sm ${
+                  notifications.status === 'granted' ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
             </button>
-          )}
-          {(notifications.status === 'denied' || notifications.status === 'blocked') && (
-            <p className="text-sm text-blue-800 dark:text-blue-200">
-              Notifications are disabled for ReplyFlow. Enable them from your phone's Settings.
-            </p>
-          )}
+          </div>
         </div>
       )}
 
@@ -160,7 +196,9 @@ export function NotificationsPreferences() {
         {preferences.map((pref) => (
           <div
             key={pref.key}
-            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 border border-border/20 rounded-lg"
+            className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 border border-border/20 rounded-lg ${
+              Capacitor.isNativePlatform() && notifications.status !== 'granted' ? 'opacity-50' : ''
+            }`}
           >
             <div className="flex-1">
               <div className="text-sm font-medium text-foreground mb-0.5">
@@ -172,10 +210,10 @@ export function NotificationsPreferences() {
             </div>
             <button
               onClick={() => handleToggle(pref.key)}
-              disabled={isUpdating}
+              disabled={isUpdating || (Capacitor.isNativePlatform() && notifications.status !== 'granted')}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-200 flex-shrink-0 ${
                 pref.enabled ? 'bg-blue-600 hover:bg-blue-700' : 'bg-slate-600 hover:bg-slate-500'
-              } ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}`}
+              } ${isUpdating || (Capacitor.isNativePlatform() && notifications.status !== 'granted') ? 'opacity-50 cursor-not-allowed' : ''}`}
               aria-label={pref.enabled ? `Disable ${pref.label}` : `Enable ${pref.label}`}
             >
               <span

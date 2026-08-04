@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     
     if (!stripe) {
       console.error('[stripe-checkout] Failed to initialize Stripe client');
-      return NextResponse.json({ error: 'Stripe initialization failed' }, { status: 500 })
+      return NextResponse.json({ error: 'ReplyFlow couldn\'t reach Stripe right now. Please try again in a moment.' }, { status: 500 })
     }
     
     const cookieStore = await cookies()

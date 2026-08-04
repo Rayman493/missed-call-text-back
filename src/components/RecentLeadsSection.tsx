@@ -8,6 +8,7 @@ import DashboardErrorBoundary from './DashboardErrorBoundary'
 import Link from 'next/link'
 import LeadTimeline from '@/components/LeadTimeline'
 import { getCardAccentClasses, getStatusBadgeClasses, getCardGradientClasses, getCardBorderClasses } from '@/lib/lead-status-colors'
+import { getLeadLifecycleStatus } from '@/lib/lead-lifecycle'
 
 interface RecentLeadsSectionProps {
   businessId: string
@@ -242,11 +243,7 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
 
   // Helper functions for lead status and display
   const getLeadStatus = (lead: any) => {
-    if (lead.messages?.length === 0) return 'New'
-    if (lead.messages?.some((m: any) => m.direction === 'inbound')) {
-      return 'Awaiting Response'
-    }
-    return 'Contacted'
+    return getLeadLifecycleStatus(lead)
   }
 
   // Helper to get structured AI data from lead

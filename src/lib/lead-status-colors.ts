@@ -46,7 +46,7 @@ export const statusColorMap: Record<LeadLifecycleStatus, StatusColorConfig> = {
     badgeBorder: 'ring-1 ring-inset ring-blue-500/20 dark:ring-blue-400/20',
     text: 'text-blue-400',
     iconBg: 'bg-blue-500/10 dark:bg-blue-400/10',
-    gradient: 'from-blue-500/10'
+    gradient: 'from-blue-500/5 via-blue-500/5 to-slate-50/50 dark:to-slate-900/50'
   },
   'active': {
     accent: 'bg-emerald-400',
@@ -57,7 +57,7 @@ export const statusColorMap: Record<LeadLifecycleStatus, StatusColorConfig> = {
     badgeBorder: 'ring-1 ring-inset ring-emerald-500/20 dark:ring-emerald-400/20',
     text: 'text-emerald-400',
     iconBg: 'bg-emerald-500/10 dark:bg-emerald-400/10',
-    gradient: 'from-emerald-500/10'
+    gradient: 'from-emerald-500/5 via-emerald-500/5 to-slate-50/50 dark:to-slate-900/50'
   },
   'scheduled': {
     accent: 'bg-violet-400',
@@ -68,7 +68,7 @@ export const statusColorMap: Record<LeadLifecycleStatus, StatusColorConfig> = {
     badgeBorder: 'ring-1 ring-inset ring-violet-500/20 dark:ring-violet-400/20',
     text: 'text-violet-400',
     iconBg: 'bg-violet-500/10 dark:bg-violet-400/10',
-    gradient: 'from-violet-500/10'
+    gradient: 'from-violet-500/5 via-violet-500/5 to-slate-50/50 dark:to-slate-900/50'
   },
   'payment_requested': {
     accent: 'bg-amber-400',
@@ -76,10 +76,10 @@ export const statusColorMap: Record<LeadLifecycleStatus, StatusColorConfig> = {
     accentColor: 'rgb(251 191 36)',
     badgeBg: 'bg-amber-500/10 dark:bg-amber-400/10',
     badgeText: 'text-amber-700 dark:text-amber-300',
-    badgeBorder: 'ring-1 ring-inset ring-amber-500/20 dark:ring-400/20',
+    badgeBorder: 'ring-1 ring-inset ring-amber-500/20 dark:ring-amber-500/20',
     text: 'text-amber-400',
     iconBg: 'bg-amber-500/10 dark:bg-amber-400/10',
-    gradient: 'from-amber-500/10'
+    gradient: 'from-amber-500/5 via-amber-500/10 to-slate-50/50 dark:to-slate-900/50'
   },
   'paid': {
     accent: 'bg-teal-400',
@@ -90,7 +90,7 @@ export const statusColorMap: Record<LeadLifecycleStatus, StatusColorConfig> = {
     badgeBorder: 'ring-1 ring-inset ring-teal-500/20 dark:ring-teal-400/20',
     text: 'text-teal-400',
     iconBg: 'bg-teal-500/10 dark:bg-teal-400/10',
-    gradient: 'from-teal-500/10'
+    gradient: 'from-teal-500/5 via-teal-500/5 to-slate-50/50 dark:to-slate-900/50'
   },
   'completed': {
     accent: 'bg-slate-400',
@@ -101,7 +101,7 @@ export const statusColorMap: Record<LeadLifecycleStatus, StatusColorConfig> = {
     badgeBorder: 'ring-1 ring-inset ring-slate-400/30 dark:ring-slate-400/30',
     text: 'text-slate-300',
     iconBg: 'bg-slate-500/20 dark:bg-slate-400/20',
-    gradient: 'from-slate-500/8'
+    gradient: 'from-slate-500/5 via-slate-500/5 to-slate-50/50 dark:to-slate-900/50'
   },
   'lost': {
     accent: 'bg-red-400',
@@ -112,7 +112,7 @@ export const statusColorMap: Record<LeadLifecycleStatus, StatusColorConfig> = {
     badgeBorder: 'ring-1 ring-inset ring-red-500/20 dark:ring-red-400/20',
     text: 'text-red-400',
     iconBg: 'bg-red-500/10 dark:bg-red-400/10',
-    gradient: 'from-red-500/10'
+    gradient: 'from-red-500/5 via-red-500/5 to-slate-50/50 dark:to-slate-900/50'
   },
   'ignored': {
     accent: 'bg-slate-400',
@@ -123,7 +123,7 @@ export const statusColorMap: Record<LeadLifecycleStatus, StatusColorConfig> = {
     badgeBorder: 'ring-1 ring-inset ring-slate-500/20 dark:ring-slate-400/20',
     text: 'text-slate-400',
     iconBg: 'bg-slate-500/10 dark:bg-slate-400/10',
-    gradient: 'from-slate-500/8'
+    gradient: 'from-slate-500/5 via-slate-500/5 to-slate-50/50 dark:to-slate-900/50'
   }
 }
 
@@ -138,7 +138,7 @@ const legacyStatusMap: Record<string, StatusColorConfig> = {
     badgeBorder: 'ring-1 ring-inset ring-amber-500/20 dark:ring-amber-400/20',
     text: 'text-amber-400',
     iconBg: 'bg-amber-500/10 dark:bg-amber-400/10',
-    gradient: 'from-amber-500/10'
+    gradient: 'from-amber-500/5 via-amber-500/5 to-slate-50/50 dark:to-slate-900/50'
   },
   'Contacted': {
     accent: 'bg-emerald-400',
@@ -149,7 +149,7 @@ const legacyStatusMap: Record<string, StatusColorConfig> = {
     badgeBorder: 'ring-1 ring-inset ring-emerald-500/20 dark:ring-emerald-400/20',
     text: 'text-emerald-400',
     iconBg: 'bg-emerald-500/10 dark:bg-emerald-400/10',
-    gradient: 'from-emerald-500/10'
+    gradient: 'from-emerald-500/5 via-emerald-500/5 to-slate-50/50 dark:to-slate-900/50'
   },
   'Appointment Scheduled': {
     accent: 'bg-violet-400',
@@ -160,7 +160,7 @@ const legacyStatusMap: Record<string, StatusColorConfig> = {
     badgeBorder: 'ring-1 ring-inset ring-violet-500/20 dark:ring-violet-400/20',
     text: 'text-violet-400',
     iconBg: 'bg-violet-500/10 dark:bg-violet-400/10',
-    gradient: 'from-violet-500/10'
+    gradient: 'from-violet-500/5 via-violet-500/5 to-slate-50/50 dark:to-slate-900/50'
   },
   'Archived': {
     accent: 'bg-slate-300',
@@ -171,7 +171,7 @@ const legacyStatusMap: Record<string, StatusColorConfig> = {
     badgeBorder: 'ring-1 ring-inset ring-slate-500/20 dark:ring-slate-400/20',
     text: 'text-slate-400',
     iconBg: 'bg-slate-500/10 dark:bg-slate-400/10',
-    gradient: 'from-slate-500/8'
+    gradient: 'from-slate-500/5 via-slate-500/5 to-slate-50/50 dark:to-slate-900/50'
   }
 }
 

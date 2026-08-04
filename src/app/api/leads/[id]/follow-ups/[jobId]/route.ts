@@ -144,7 +144,7 @@ export async function POST(
 
     if (!messageSid) {
       console.log('[SEND FOLLOWUP NOW ERROR]', { error: 'SMS send failed - no message SID returned', jobId })
-      return NextResponse.json({ error: 'SMS send failed' }, { status: 500 })
+      return NextResponse.json({ error: 'Your message couldn\'t be confirmed as sent. Please try again.' }, { status: 500 })
     }
 
     console.log('[SEND FOLLOWUP NOW SMS SEND SUCCESS]', { jobId, messageSid })

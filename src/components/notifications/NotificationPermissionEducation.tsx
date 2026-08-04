@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Bell } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
-import { pushService } from '@/lib/push-service'
 import { permissionLock } from '@/lib/permission-lock'
 import { useNativePermissions } from '@/hooks/useNativePermissions'
 
@@ -15,7 +14,7 @@ const COOLDOWN_KEY = 'notification_education_cooldown'
 const COOLDOWN_DURATION = 24 * 60 * 60 * 1000 // 24 hours in milliseconds
 
 export function NotificationPermissionEducation({ onComplete }: NotificationPermissionEducationProps) {
-  const { notifications, checkNotificationPermission } = useNativePermissions()
+  const { notifications, checkNotificationPermission, requestNotificationPermission } = useNativePermissions()
   const [show, setShow] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const hasShownRef = useRef(false)
@@ -63,11 +62,9 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
       await checkNotificationPermission()
       console.log('[NOTIFICATION_PERMISSION_CHECK] Current state:', notifications.status)
 
-      // If already granted, register and don't show education
+      // If already granted, don't show education
       if (notifications.status === 'granted') {
         console.log('[NOTIFICATION_EDUCATION_BLOCKED] reason=permission_already_granted')
-        console.log('[NOTIFICATION_PERMISSION_CHECK] Already granted, registering push')
-        await pushService.register()
         setShow(false)
         onComplete?.()
         return
@@ -113,16 +110,20 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
     console.log('[NOTIFICATION_EDUCATION] User clicked Enable Notifications')
 
     try {
-      const granted = await pushService.requestPermission()
-      console.log('[NOTIFICATION_EDUCATION] Permission result:', granted)
+      await requestNotificationPermission()
+      console.log('[NOTIFICATION_EDUCATION] Permission requested')
+      
+      // Check status after request
+      await checkNotificationPermission(true)
+      console.log('[NOTIFICATION_EDUCATION] Current status after request:', notifications.status)
 
-      if (granted) {
+      if (notifications.status === 'granted') {
         console.log('[NOTIFICATION_EDUCATION] Permission granted')
         setShow(false)
         localStorage.removeItem(COOLDOWN_KEY)
         onComplete?.()
       } else {
-        console.log('[NOTIFICATION_EDUCATION] Permission denied')
+        console.log('[NOTIFICATION_EDUCATION] Permission denied or blocked')
       }
     } catch (error) {
       console.error('[NOTIFICATION_EDUCATION] Failed to request permission:', error)

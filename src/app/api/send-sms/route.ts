@@ -197,7 +197,7 @@ export async function POST(request: Request) {
       
       if (!conversation) {
         console.error('[Manual SMS] Failed to create conversation')
-        return NextResponse.json({ error: 'Failed to create conversation' }, { status: 500 })
+        return NextResponse.json({ error: 'Your message couldn\'t be sent. Please try again.' }, { status: 500 })
       }
     }
 

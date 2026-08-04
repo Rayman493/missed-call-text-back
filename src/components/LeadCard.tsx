@@ -13,6 +13,7 @@ import {
 import { formatPhoneNumber, formatRelativeTime, sentenceCase, getLeadDisplayName } from '@/lib/utils'
 import { getLeadAIIntake } from '@/lib/ai-field-mapping'
 import { LeadLifecycleStatus } from '@/lib/lead-lifecycle'
+import { getStatusBadgeClasses } from '@/lib/lead-status-colors'
 
 // Helper to get structured AI data for lead card
 function getAIData(lead: any): { reason: string | null; urgency: string | null; details: string | null } {
@@ -147,12 +148,7 @@ export default function LeadCard({
                 const status = isNewCustomer ? 'new' : getLeadLifecycleStatus(lead)
                 onFilterStatus(statusFilter === status ? 'all' : status)
               }}
-              className={`px-1.5 py-0.5 sm:px-2 sm:py-0.5 text-[9px] sm:text-[10px] sm:text-xs font-medium rounded-full ring-1 ring-inset transition-all duration-200 ${
-                isNewCustomer ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20' :
-                getLeadLifecycleStatus(lead) === 'new' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20' :
-                getLeadLifecycleStatus(lead) === 'active' ? 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20' :
-                'bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20'
-              } hover:opacity-80 cursor-pointer`}
+              className={`${getStatusBadgeClasses(isNewCustomer ? 'new' : getLeadLifecycleStatus(lead))} hover:opacity-80 cursor-pointer`}
               title={`Filter by ${isNewCustomer ? 'New' : getLeadLifecycleStatus(lead)} status`}
               aria-label={`Filter by ${isNewCustomer ? 'New' : getLeadLifecycleStatus(lead)} status`}
             >

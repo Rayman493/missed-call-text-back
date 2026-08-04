@@ -53,6 +53,12 @@ import { launchSMS, copyToClipboard, openBusinessSms } from '@/lib/sms-launch'
 import { useSendingSource } from '@/hooks/useSendingSource'
 import { useSupportsBusinessNumber } from '@/lib/platform-capabilities'
 
+// Helper functions for consistent formatting
+const formatDate = (dateString: string | null | undefined): string => {
+  if (!dateString) return ''
+  return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
 // Helper to get customer name from lead data
 const getCustomerName = (lead: any, leadData: any) => {
   const intake = getLeadAIIntake(leadData || lead)
@@ -2598,7 +2604,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-foreground truncate">{job.title || 'Job'}</p>
                         <p className="text-xs text-muted-foreground/80">
-                          {job.scheduled_date ? new Date(job.scheduled_date).toLocaleDateString() : 'No date'}
+                          {job.scheduled_date ? formatDate(job.scheduled_date) : 'No date'}
                           {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
                         </p>
                       </div>
@@ -2655,7 +2661,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <div key={pr.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-colors duration-200">
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold text-foreground">{formatCurrency(pr.amount_cents / 100)}</p>
-                        <p className="text-xs text-muted-foreground/80">{pr.created_at ? new Date(pr.created_at).toLocaleDateString() : ''}</p>
+                        <p className="text-xs text-muted-foreground/80">{formatDate(pr.created_at)}</p>
                       </div>
                       <span className={`text-xs px-2 py-0.5 rounded-full capitalize whitespace-nowrap ml-2 border ${
                         pr.status === 'paid'
@@ -3807,14 +3813,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
             {/* Desktop Sidebar - Premium Card */}
             <aside className="sticky top-4 h-[calc(100vh-240px)]" data-sidebar>
-              <div className="h-full bg-background rounded-2xl border border-border/50 shadow-sm p-5 overflow-y-auto custom-scrollbar">
+              <div className="h-full bg-background rounded-2xl border border-border/50 shadow-sm p-4 overflow-y-auto custom-scrollbar">
                 {(() => {
                   const paymentRequests = leadData?.paymentRequests || []
                   return (
-                    <div className="space-y-6">
+                    <div className="space-y-5">
                   {/* AI Intake Summary - Hero Card */}
                   {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
-                    <div className="pr-2">
+                    <div className="pr-1">
                       <AICallDetails
                         leadId={params.id}
                         businessId={business.id}
@@ -3835,12 +3841,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   )}
 
                   {/* Activity Timeline - Secondary Card */}
-                  <div className="bg-muted/25 rounded-xl border border-border/20 p-4 shadow-sm">
+                  <div className="bg-muted/30 rounded-xl border border-border/30 p-3 shadow-sm">
                     <button
                       onClick={() => setCollapsedSections((prev: any) => ({ ...prev, activityTimeline: !prev.activityTimeline }))}
-                      className="flex items-center justify-between w-full mb-3 group"
+                      className="flex items-center justify-between w-full mb-2 group"
                     >
-                      <h3 className="text-sm font-semibold text-foreground group-hover:text-foreground transition-colors">Timeline</h3>
+                      <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Timeline</h3>
                     </button>
                     {!collapsedSections.activityTimeline && (
                       <div className="transition-all duration-200">
@@ -3850,9 +3856,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </div>
 
                   {/* Customer Status - Secondary Card */}
-                  <div className="bg-muted/25 rounded-xl border border-border/20 p-4 shadow-sm">
-                    <h3 className="text-xs font-semibold text-muted-foreground/80 mb-3 uppercase tracking-wide">Status</h3>
-                    <div className="space-y-2.5">
+                  <div className="bg-muted/30 rounded-xl border border-border/30 p-3 shadow-sm">
+                    <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider mb-2">Status</h3>
+                    <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-muted-foreground">AI Intake</span>
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${getAIIntakeStatusColor(getAIIntakeStatus(leadData || lead))}`}>
@@ -3907,12 +3913,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </div>
 
                   {/* Jobs - Secondary Card */}
-                  <div className="bg-muted/25 rounded-xl border border-border/20 p-4 shadow-sm">
+                  <div className="bg-muted/30 rounded-xl border border-border/30 p-3 shadow-sm">
                     <button
                       onClick={() => setCollapsedSections((prev: any) => ({ ...prev, jobs: !prev.jobs }))}
-                      className="flex items-center justify-between w-full mb-3 group"
+                      className="flex items-center justify-between w-full mb-2 group"
                     >
-                      <h3 className="text-sm font-semibold text-foreground group-hover:text-foreground transition-colors">Jobs</h3>
+                      <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Jobs</h3>
                       <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.jobs ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
@@ -3920,17 +3926,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     {!collapsedSections.jobs && (
                       <div className="transition-all duration-200">
                         {leadJobs.length === 0 ? (
-                          <div className="text-center py-6">
-                            <p className="text-sm text-muted-foreground mb-3">No jobs have been created yet.</p>
-                            <div className="text-xs text-muted-foreground/70 mb-4 space-y-1">
-                              <p>Create a job to:</p>
-                              <p>• schedule work</p>
-                              <p>• track progress</p>
-                              <p>• request payment</p>
-                            </div>
+                          <div className="text-center py-4">
+                            <p className="text-sm text-muted-foreground mb-2">No jobs created yet</p>
+                            <p className="text-xs text-muted-foreground/70 mb-3">Create a job to schedule work and track progress</p>
                             <button
                               onClick={handleCreateJobClick}
-                              className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors"
+                              className="inline-flex items-center gap-2 px-3 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors"
                             >
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -3945,7 +3946,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                 <div className="min-w-0 flex-1">
                                   <p className="text-sm font-medium text-foreground truncate">{job.title || 'Job'}</p>
                                   <p className="text-xs text-muted-foreground/80">
-                                    {job.scheduled_date ? new Date(job.scheduled_date).toLocaleDateString() : 'No date'}
+                                    {job.scheduled_date ? formatDate(job.scheduled_date) : 'No date'}
                                     {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
                                   </p>
                                 </div>
@@ -3969,12 +3970,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </div>
 
                   {/* Payments - Secondary Card */}
-                  <div className="bg-muted/25 rounded-xl border border-border/20 p-4 shadow-sm">
+                  <div className="bg-muted/30 rounded-xl border border-border/30 p-3 shadow-sm">
                     <button
                       onClick={() => setCollapsedSections((prev: any) => ({ ...prev, payments: !prev.payments }))}
-                      className="flex items-center justify-between w-full mb-3 group"
+                      className="flex items-center justify-between w-full mb-2 group"
                     >
-                      <h3 className="text-sm font-semibold text-foreground group-hover:text-foreground transition-colors">Payments</h3>
+                      <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Payments</h3>
                       <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.payments ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
@@ -3982,15 +3983,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     {!collapsedSections.payments && (
                       <div className="transition-all duration-200">
                         {paymentRequests.length === 0 ? (
-                          <div className="text-center py-6">
-                            <p className="text-sm text-muted-foreground mb-3">No payment requests yet.</p>
-                            <div className="text-xs text-muted-foreground/70 mb-4">
-                              <p>Once work is scheduled you can request payment here.</p>
-                            </div>
+                          <div className="text-center py-4">
+                            <p className="text-sm text-muted-foreground mb-2">No payments recorded</p>
+                            <p className="text-xs text-muted-foreground/70 mb-3">Request payment once work is scheduled</p>
                             <button
                               onClick={() => setShowPaymentModal(true)}
                               disabled={!business || getAvailableProviders(business).length === 0}
-                              className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="inline-flex items-center gap-2 px-3 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -4004,7 +4003,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               <div key={pr.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-all duration-200">
                                 <div className="min-w-0 flex-1">
                                   <p className="text-sm font-semibold text-foreground">{formatCurrency(pr.amount_cents / 100)}</p>
-                                  <p className="text-xs text-muted-foreground/80">{pr.created_at ? new Date(pr.created_at).toLocaleDateString() : ''}</p>
+                                  <p className="text-xs text-muted-foreground/80">{formatDate(pr.created_at)}</p>
                                 </div>
                                 <span className={`text-xs px-2 py-0.5 rounded-full capitalize whitespace-nowrap ml-2 border ${
                                   pr.status === 'paid'
@@ -4024,12 +4023,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </div>
 
                   {/* Internal Notes - Secondary Card */}
-                  <div className="bg-muted/25 rounded-xl border border-border/20 p-4 shadow-sm">
+                  <div className="bg-muted/30 rounded-xl border border-border/30 p-3 shadow-sm">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-sm font-semibold text-foreground">Internal Notes</h3>
-                          <div className="text-[10px] text-muted-foreground/70">Private to your business</div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Internal Notes</h3>
+                          <div className="text-[10px] text-muted-foreground/70">Private</div>
                         </div>
                         {Boolean((leadData?.notes || '').trim()) ? (
                           <div className="mt-2 text-xs text-muted-foreground line-clamp-3 break-words">
@@ -4037,7 +4036,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           </div>
                         ) : (
                           <div className="mt-2 text-xs text-muted-foreground/70">
-                            Private notes only visible to your business.
+                            No notes added yet
                           </div>
                         )}
                       </div>
@@ -4045,9 +4044,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         <button
                           type="button"
                           onClick={() => { setShowCustomerInfoModal(true); setAutoFocusNotes(true) }}
-                          className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                          className="inline-flex items-center gap-2 px-3 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
                         >
-                          {Boolean((leadData?.notes || '').trim()) ? 'Edit' : 'Add Note'}
+                          {Boolean((leadData?.notes || '').trim()) ? 'Edit' : 'Add'}
                         </button>
                       </div>
                     </div>
@@ -4055,8 +4054,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
                   {/* Photos Received - Secondary Card */}
                   {Object.keys(messageMedia).length > 0 && (
-                    <div className="bg-muted/25 rounded-xl border border-border/20 p-4 shadow-sm">
-                      <h3 className="text-xs font-semibold text-muted-foreground/80 mb-3 uppercase tracking-wide">Photos</h3>
+                    <div className="bg-muted/30 rounded-xl border border-border/30 p-3 shadow-sm">
+                      <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider mb-2">Photos</h3>
                       <div className="grid grid-cols-2 gap-2">
                         {Object.entries(messageMedia).slice(0, showAllPhotos ? undefined : 4).map(([messageId, media]: [string, any]) => (
                           media.urls.slice(0, 1).map((url: string, idx: number) => (
@@ -4213,7 +4212,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         aria-label="Add image"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                       </button>
                       <input
@@ -4279,7 +4278,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <div className="bg-muted/30 border border-border/30 rounded-xl p-3 shadow-sm">
               <button
                 onClick={() => setCollapsedSections((prev: any) => ({ ...prev, aiIntake: !prev.aiIntake }))}
-                className="flex items-center justify-between w-full py-2"
+                className="flex items-center justify-between w-full"
               >
                 <div className="flex items-center gap-2.5">
                   <div className="w-6 h-6 flex items-center justify-center">
@@ -4287,7 +4286,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
                   </div>
-                  <span className="text-sm font-semibold text-foreground">AI Intake</span>
+                  <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">AI Intake</span>
                 </div>
                 <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.aiIntake ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -4311,10 +4310,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           )}
 
           {/* Jobs - Collapsible */}
-          <div className="bg-muted/20 border border-border/20 rounded-lg p-2">
+          <div className="bg-muted/30 border border-border/30 rounded-xl p-3 shadow-sm">
             <button
               onClick={() => setCollapsedSections((prev: any) => ({ ...prev, jobs: !prev.jobs }))}
-              className="flex items-center justify-between w-full py-1"
+              className="flex items-center justify-between w-full"
             >
               <div className="flex items-center gap-2">
                 <div className="w-5 h-5 flex items-center justify-center">
@@ -4322,7 +4321,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                   </svg>
                 </div>
-                <span className="text-xs font-medium text-foreground">Jobs</span>
+                <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Jobs</span>
                 {leadJobs.length > 0 && (
                   <span className="text-xs text-muted-foreground">({leadJobs.length})</span>
                 )}
@@ -4332,16 +4331,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </svg>
             </button>
             {!collapsedSections.jobs && (
-              <div className="mt-1">
+              <div className="mt-2">
                 {leadJobs.length === 0 ? (
                   <button
                     onClick={handleCreateJobClick}
-                    className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 border border-border/30 hover:bg-muted/40 text-foreground text-xs font-medium rounded-lg transition-colors"
+                    className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
-                    Add Job
+                    Create Job
                   </button>
                 ) : (
                   <div className="space-y-1">
@@ -4350,7 +4349,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         <div className="min-w-0 flex-1">
                           <p className="text-xs font-medium text-foreground truncate">{job.title || 'Job'}</p>
                           <p className="text-[10px] text-muted-foreground">
-                            {job.scheduled_date ? new Date(job.scheduled_date).toLocaleDateString() : 'No date'}
+                            {job.scheduled_date ? formatDate(job.scheduled_date) : 'No date'}
                             {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
                           </p>
                         </div>
@@ -4366,10 +4365,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Payments - Collapsible */}
-          <div className="bg-muted/20 border border-border/20 rounded-lg p-2">
+          <div className="bg-muted/30 border border-border/30 rounded-xl p-3 shadow-sm">
             <button
               onClick={() => setCollapsedSections((prev: any) => ({ ...prev, payments: !prev.payments }))}
-              className="flex items-center justify-between w-full py-1"
+              className="flex items-center justify-between w-full"
             >
               <div className="flex items-center gap-2">
                 <div className="w-5 h-5 flex items-center justify-center">
@@ -4377,18 +4376,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                   </svg>
                 </div>
-                <span className="text-xs font-medium text-foreground">Payments</span>
+                <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Payments</span>
               </div>
               <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.payments ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
             {!collapsedSections.payments && (
-              <div className="mt-1">
+              <div className="mt-2">
                 {(leadData?.paymentRequests || []).length === 0 ? (
                   <button
                     onClick={() => setShowPaymentModal(true)}
-                    className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 border border-border/30 hover:bg-muted/40 text-foreground text-xs font-medium rounded-lg transition-colors"
+                    className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -4417,10 +4416,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Timeline - Collapsible */}
-          <div className="bg-muted/20 border border-border/20 rounded-lg p-2">
+          <div className="bg-muted/30 border border-border/30 rounded-xl p-3 shadow-sm">
             <button
               onClick={() => setCollapsedSections((prev: any) => ({ ...prev, recentActivity: !prev.recentActivity }))}
-              className="flex items-center justify-between w-full py-1"
+              className="flex items-center justify-between w-full"
             >
               <div className="flex items-center gap-2">
                 <div className="w-5 h-5 flex items-center justify-center">
@@ -4428,14 +4427,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <span className="text-xs font-medium text-foreground">Timeline</span>
+                <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Timeline</span>
               </div>
               <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.recentActivity ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
             {!collapsedSections.recentActivity && (
-              <div className="mt-2 space-y-0.5">
+              <div className="mt-2 space-y-1">
                 {conversationTimeline.slice(-10).reverse().slice(0, 5).map((item: any, index: number) => (
                   <div key={item.id} className="flex items-start gap-2 py-1 border-b border-border/10 last:border-0">
                     <div className="flex-shrink-0 pt-0.5">
@@ -5340,11 +5339,7 @@ If you have questions, reply to this message.`
                     {job.title || 'Appointment'}
                   </div>
                   <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                    {job.scheduled_date && new Date(job.scheduled_date).toLocaleDateString('en-US', {
-                      weekday: 'long',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
+                    {job.scheduled_date && formatDate(job.scheduled_date)}
                     {job.scheduled_time && ` • ${job.scheduled_time}`}
                   </div>
                   {job.confirmation_sms_sent_at && (

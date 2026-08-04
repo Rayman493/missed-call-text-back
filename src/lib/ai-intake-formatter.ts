@@ -809,3 +809,91 @@ export const formatAiIntakeSummaryWithMode = (
   
   return body;
 }
+
+/**
+ * Generate an office-assistant style summary for the AI Intake UI
+ * This is different from the SMS summary - it's designed to feel like a helpful receptionist's note
+ * 
+ * Requirements:
+ * - Lead with the customer
+ * - Describe what happened naturally
+ * - Remove internal implementation language
+ * - Never mention database state
+ * - Never say "AI Intake completed successfully"
+ * - Never sound robotic
+ * - Keep summaries concise (2-4 sentences)
+ * - End with a useful suggested next step when appropriate
+ * 
+ * Example style:
+ * "Amber is a new customer who called about scheduling a Brazilian wax. A follow-up text has already been sent, but she hasn't replied yet. No appointment has been scheduled, so consider following up tomorrow if you don't hear back."
+ */
+export const generateOfficeAssistantSummary = (
+  intakeData: any,
+  outcome?: string,
+  isNewCustomer?: boolean
+): string => {
+  // Read Simple Mode field names first, fall back to canonical aliases
+  const customerName = normalizeCustomerName(
+    intakeData?.customerName ?? intakeData?.callerName
+  );
+  const serviceRequested = normalizeServiceReason(
+    intakeData?.serviceRequested ?? intakeData?.reasonForCalling
+  );
+  const desiredCompletionTime = normalizeTiming(
+    intakeData?.desiredCompletionTime
+  );
+  const callbackTime = normalizeTiming(
+    intakeData?.callbackTime ?? intakeData?.preferredCallbackTime
+  );
+
+  const hasName = customerName && customerName !== 'Not collected';
+  const hasRequest = serviceRequested && serviceRequested !== 'Not collected';
+  const hasCompletionTime = desiredCompletionTime && desiredCompletionTime !== 'Not collected';
+  const hasCallbackTime = callbackTime && callbackTime !== 'Not collected';
+
+  const name = hasName ? customerName : 'This customer';
+  const isNew = isNewCustomer !== false; // Default to true if not specified
+
+  // Build the summary naturally
+  let sentences: string[] = [];
+
+  // Sentence 1: Who they are and why they called
+  if (isNew) {
+    sentences.push(`${name} is a new customer`);
+  } else {
+    sentences.push(`${name} is a returning customer`);
+  }
+
+  if (hasRequest) {
+    sentences[sentences.length - 1] += ` who called about ${serviceRequested.toLowerCase()}`;
+  } else {
+    sentences[sentences.length - 1] += ` who called`;
+  }
+
+  // Sentence 2: Timing information if available
+  if (hasCompletionTime) {
+    sentences.push(`They're looking for completion around ${desiredCompletionTime.toLowerCase()}`);
+  } else if (hasCallbackTime) {
+    sentences.push(`The best time to reach them is ${callbackTime.toLowerCase()}`);
+  }
+
+  // Sentence 3: Suggested next step based on outcome
+  if (outcome === 'early_hangup' || outcome === 'no_speech') {
+    sentences.push('A recovery text was sent automatically, but they haven\'t responded yet');
+  } else if (hasRequest) {
+    sentences.push('Consider following up to schedule an appointment');
+  } else {
+    sentences.push('Consider following up to learn more about their needs');
+  }
+
+  // Combine sentences into a natural paragraph
+  let summary = sentences.join('. ');
+
+  // Ensure proper capitalization and punctuation
+  summary = summary.charAt(0).toUpperCase() + summary.slice(1);
+  if (!summary.endsWith('.')) {
+    summary += '.';
+  }
+
+  return summary;
+}

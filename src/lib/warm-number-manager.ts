@@ -815,7 +815,7 @@ export async function verifyAndHealBusinessTwilioAssignment(businessId: string):
           console.log(`[SELF-HEAL] Invalidated twilio_numbers row for ${business.twilio_phone_number}`);
         }
 
-        // Clear business Twilio assignment
+        // Clear business Twilio assignment with forwarding state reset
         const { error: businessUpdateError } = await supabase
           .from('businesses')
           .update({
@@ -826,6 +826,11 @@ export async function verifyAndHealBusinessTwilioAssignment(businessId: string):
             provisioning_status: null,
             provisioning_error: 'Previous number not owned by Twilio',
             provisioned_at: null,
+            // Reset forwarding state when number is detached
+            forwarding_verified: false,
+            forwarding_verified_at: null,
+            call_forwarding_enabled: false,
+            phone_setup_completed_at: null,
           })
           .eq('id', businessId);
 

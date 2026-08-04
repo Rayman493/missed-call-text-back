@@ -136,10 +136,10 @@ function MeetingsTab({
               </div>
               <div className="grid grid-cols-2 gap-2 flex-shrink-0 sm:flex sm:items-center sm:gap-2" onClick={e => e.stopPropagation()}>
                 {ev.meetingUrl && (
-                  <a href={ev.meetingUrl} target="_blank" rel="noreferrer" className="text-[11px] px-2 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700 text-center sm:px-2 sm:py-1">Join</a>
+                  <a href={ev.meetingUrl} target="_blank" rel="noreferrer" className="text-[11px] px-2 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-center sm:px-2 sm:py-1 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Join</a>
                 )}
                 {rfLead && (
-                  <button className="text-[11px] px-2 py-1.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 text-center sm:px-2 sm:py-1" onClick={() => onViewCustomer(rfLead)}>View Customer</button>
+                  <button className="text-[11px] px-2 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 text-center sm:px-2 sm:py-1 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" onClick={() => onViewCustomer(rfLead)}>View Customer</button>
                 )}
               </div>
             </div>
@@ -162,15 +162,21 @@ function MeetingsTab({
         <h2 className="text-base font-semibold text-foreground">Meetings</h2>
         <button
           onClick={onNewMeeting}
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 text-xs transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+          className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          New Meeting
+          New Appointment
         </button>
       </div>
       {todays.length === 0 && later.length === 0 && recentlyCompleted.length === 0 ? (
         <div className="text-center py-12">
-          <p className="text-sm text-muted-foreground mb-2">No meetings scheduled.</p>
-          <p className="text-xs text-muted-foreground/70">Google Meet appointments will appear here once created.</p>
+          <p className="text-sm text-muted-foreground mb-2">Nothing scheduled today.</p>
+          <p className="text-xs text-muted-foreground/70 mb-4">Enjoy the open calendar or add an appointment.</p>
+          <button
+            onClick={onNewMeeting}
+            className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            New Appointment
+          </button>
         </div>
       ) : (
         <>
@@ -2014,9 +2020,9 @@ function JobsTab({
           <div className="w-11 h-11 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3">
             <Briefcase className="w-5 h-5 text-slate-400" />
           </div>
-          <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-2">No jobs scheduled.</h3>
+          <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-2">No active jobs yet.</h3>
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-5 max-w-xs mx-auto leading-relaxed">
-            Create a job or convert a customer into a scheduled appointment.
+            Create a job to track work for your customers.
           </p>
           <button
             onClick={onNewJob}
@@ -2031,11 +2037,8 @@ function JobsTab({
           {/* Active Jobs */}
           {active.length > 0 && (
             <div>
-              <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+              <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground uppercase tracking-wider mb-3">
                 Active Jobs
-                <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded-full">
-                  {active.length}
-                </span>
               </h3>
               <div className="space-y-3">
                 {active.map(job => <JobCard key={job.id} job={job} variant="active" />)}
@@ -2046,11 +2049,8 @@ function JobsTab({
           {/* Completed Jobs */}
           {completed.length > 0 && (
             <div>
-              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
                 Completed Jobs
-                <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 rounded-full">
-                  {completed.length}
-                </span>
               </h3>
               <div className="space-y-3">
                 {completed.map(job => <JobCard key={job.id} job={job} variant="completed" />)}
@@ -2061,11 +2061,8 @@ function JobsTab({
           {/* Cancelled Jobs */}
           {cancelled.length > 0 && (
             <div>
-              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
                 Cancelled Jobs
-                <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 rounded-full">
-                  {cancelled.length}
-                </span>
               </h3>
               <div className="space-y-3">
                 {cancelled.map(job => <JobCard key={job.id} job={job} variant="cancelled" />)}

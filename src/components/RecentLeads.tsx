@@ -6,6 +6,8 @@ import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatPhoneNumber, formatRelativeTime, getLeadDisplayName } from '@/lib/utils'
 import { Phone, MessageSquare, Clock, AlertCircle, Reply } from 'lucide-react'
+import { getLeadLifecycleStatus, LeadLifecycleStatus } from '@/lib/lead-lifecycle'
+import { getStatusColorConfig } from '@/lib/lead-status-colors'
 
 interface RecentLeadsProps {
   business: Business | null
@@ -66,42 +68,14 @@ export default function RecentLeads({ business }: RecentLeadsProps) {
   }, [business])
 
   const getLeadStatus = (lead: Lead) => {
-    // Check if there are any inbound messages that haven't been replied to
-    const inboundMessages = lead.messages?.filter(m => m.direction === 'inbound') || []
-    const outboundMessages = lead.messages?.filter(m => m.direction === 'outbound') || []
+    const lifecycleStatus = getLeadLifecycleStatus(lead) as LeadLifecycleStatus
+    const config = getStatusColorConfig(lifecycleStatus)
     
-    if (inboundMessages.length === 0) {
-      return {
-        text: 'Awaiting response',
-        color: 'text-amber-600 dark:text-amber-400',
-        bgColor: 'bg-amber-50 dark:bg-amber-900/20',
-        icon: <Clock className="w-4 h-4" />
-      }
-    }
-
-    // Check if the latest inbound message has been replied to
-    const latestInbound = inboundMessages.sort((a, b) => 
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    )[0]
-
-    const hasRepliedAfterLatestInbound = outboundMessages.some(m => 
-      new Date(m.created_at).getTime() > new Date(latestInbound.created_at).getTime()
-    )
-
-    if (hasRepliedAfterLatestInbound) {
-      return {
-        text: 'Conversation active',
-        color: 'text-green-600 dark:text-green-400',
-        bgColor: 'bg-green-50 dark:bg-green-900/20',
-        icon: <MessageSquare className="w-4 h-4" />
-      }
-    }
-
     return {
-      text: 'Needs response',
-      color: 'text-red-600 dark:text-red-400',
-      bgColor: 'bg-red-50 dark:bg-red-900/20',
-      icon: <AlertCircle className="w-4 h-4" />
+      text: lifecycleStatus.charAt(0).toUpperCase() + lifecycleStatus.slice(1),
+      color: config.badgeText,
+      bgColor: config.badgeBg,
+      icon: <Clock className="w-4 h-4" />,
     }
   }
 

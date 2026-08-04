@@ -3,9 +3,9 @@
 import React, { useState, useEffect } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatRelativeTime } from '@/lib/utils'
-import { formatAiIntakeSummary } from '@/lib/ai-intake-formatter'
+import { formatAiIntakeSummary, generateOfficeAssistantSummary } from '@/lib/ai-intake-formatter'
 import { Phone, ChevronDown } from 'lucide-react'
-import { normalizeAITranscript } from '@/lib/transcript-normalization'
+import { normalizeAITranscript, cleanTranscriptText } from '@/lib/transcript-normalization'
 
 interface AICallRecord {
   id: string
@@ -189,15 +189,19 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
     callbackTime: aiCallRecord.extracted_info?.preferredCallbackTime
   }
 
-  // Generate the formatted summary
-  const formattedSummary = formatAiIntakeSummary(intakeData, callerPhone, business?.business_name)
+  // Generate the office-assistant style summary for UI display
+  const officeAssistantSummary = generateOfficeAssistantSummary(
+    intakeData,
+    aiCallRecord.outcome,
+    true // Assume new customer for now - could be determined from lead data
+  )
 
   // Check if outcome is early_hangup or no_speech
   const isNoIntakeOutcome = aiCallRecord.outcome === 'early_hangup' || aiCallRecord.outcome === 'no_speech'
 
   return (
-    <div className="bg-card border border-border rounded-xl p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
-      <div className="flex items-center justify-between mb-6">
+    <div className="bg-card border border-border rounded-xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+      <div className="flex items-center justify-between mb-5">
         <div className="flex items-center space-x-2.5">
           <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
             <Phone className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -211,16 +215,16 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
         )}
       </div>
 
-      <div className="space-y-5">
+      <div className="space-y-4">
         {/* Call Time */}
-        <div className="flex items-center justify-between py-3 border-b border-border/50">
+        <div className="flex items-center justify-between py-2.5 border-b border-border/50">
           <span className="text-xs text-muted-foreground font-medium">Call Time</span>
           <span className="text-sm text-foreground">{formatRelativeTime(aiCallRecord.created_at)}</span>
         </div>
 
         {/* No Intake Information Message for early_hangup and no_speech */}
         {isNoIntakeOutcome && (
-          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3.5">
             <p className="text-sm text-amber-900 dark:text-amber-100 font-medium">
               No intake information captured.
             </p>
@@ -241,20 +245,16 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
 
         {/* Formatted Intake Summary - only show for non-no-intake outcomes */}
         {!isNoIntakeOutcome && !aiCallRecord.extraction_failed && (
-          <div className="space-y-4">
-            {/* Summary Section */}
-            <div className="bg-muted/30 rounded-lg p-4">
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Summary</h4>
-              <pre className="text-sm whitespace-pre-wrap font-sans text-foreground leading-relaxed">
-                {formattedSummary}
-              </pre>
-            </div>
+          <div className="bg-muted/30 rounded-lg p-4">
+            <p className="text-sm font-sans text-foreground leading-relaxed">
+              {officeAssistantSummary}
+            </p>
           </div>
         )}
 
         {/* Collapsible Transcript Section */}
         {aiCallRecord.transcript && aiCallRecord.transcript.length > 0 && (
-          <div className="pt-4 border-t border-border">
+          <div className="pt-3 border-t border-border">
             <button
               onClick={() => setTranscriptExpanded(!transcriptExpanded)}
               className="flex items-center justify-between w-full text-left hover:bg-muted/50 rounded-lg p-2.5 transition-colors"
@@ -266,7 +266,7 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
             </button>
 
             {transcriptExpanded && (
-              <div className="mt-3 space-y-2.5 max-h-60 overflow-y-auto">
+              <div className="mt-3 space-y-3 max-h-60 overflow-y-auto">
                 {(() => {
                   const messages = normalizeAITranscript(aiCallRecord.transcript);
                   if (messages.length === 0) {
@@ -281,7 +281,7 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
                       <span className={`font-medium ${entry.role === 'user' || entry.role === 'caller' ? 'text-blue-600 dark:text-blue-400' : 'text-green-600 dark:text-green-400'}`}>
                         {entry.role === 'user' || entry.role === 'caller' ? 'Caller:' : 'Assistant:'}
                       </span>
-                      <p className="text-foreground mt-1 leading-relaxed">{entry.content}</p>
+                      <p className="text-foreground mt-1 leading-relaxed whitespace-pre-wrap">{cleanTranscriptText(entry.content)}</p>
                     </div>
                   ));
                 })()}
