@@ -1478,7 +1478,7 @@ export default function LeadsPage() {
                       <div
                         key={lead.id}
                         className={cn(
-                          'w-full max-w-2xl h-full flex flex-col relative overflow-hidden border rounded-xl p-3.5 sm:p-4 transition-colors',
+                          'relative overflow-hidden rounded-xl border p-3.5 sm:p-4 transition-colors',
                           statusStyle.cardClass
                         )}
                         onClick={() => handleConversationClick(lead.id)}
@@ -1499,7 +1499,7 @@ export default function LeadsPage() {
                             statusStyle.accentStripClass
                           )}
                         />
-                        <div className="p-4 pl-5 flex-1 flex flex-col">
+                        <div className="flex-1 flex flex-col">
                           {/* Header: Name, Phone, Status */}
                           <div className="flex items-start justify-between gap-3 mb-3">
                             <div className="flex-1 min-w-0">
