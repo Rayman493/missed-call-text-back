@@ -264,15 +264,11 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-slate-800/80 border border-border/50 rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-200">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-semibold text-slate-900 dark:text-foreground">At a Glance</h3>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="bg-card/50 backdrop-blur-sm border border-border/30 rounded-xl p-4 sm:p-5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="animate-pulse">
-              <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-lg mb-2"></div>
-              <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-16 mb-1"></div>
+              <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded w-16 mb-2"></div>
               <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-12"></div>
             </div>
           ))}
@@ -283,16 +279,13 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
 
   if (error) {
     return (
-      <div className="bg-white dark:bg-slate-800/80 border border-border/50 rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-200">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-semibold text-slate-900 dark:text-foreground">At a Glance</h3>
-        </div>
-        <div className="text-center py-6">
-          <AlertCircle className="w-10 h-10 mx-auto text-amber-500 mb-2" />
-          <p className="text-sm text-slate-600 dark:text-slate-400">Unable to load metrics</p>
+      <div className="bg-card/50 backdrop-blur-sm border border-border/30 rounded-xl p-4 sm:p-5">
+        <div className="text-center py-3">
+          <AlertCircle className="w-6 h-6 mx-auto text-amber-500 mb-1" />
+          <p className="text-xs text-slate-500 dark:text-slate-400">Unable to load metrics</p>
           <button
             onClick={fetchMetrics}
-            className="mt-3 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+            className="mt-1 text-xs text-blue-600 dark:text-blue-400 hover:underline"
           >
             Try again
           </button>
@@ -302,34 +295,35 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
   }
 
   return (
-    <div className="bg-white dark:bg-slate-800/80 border border-border/50 rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-200">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base font-semibold text-slate-900 dark:text-foreground">At a Glance</h3>
-      </div>
-      
+    <div className="bg-card/50 backdrop-blur-sm border border-border/30 rounded-xl p-4 sm:p-5">
       {metrics.length === 0 ? (
-        <div className="text-center py-6">
-          <p className="text-sm text-slate-500 dark:text-slate-400">No activity data available yet.</p>
+        <div className="text-center py-3">
+          <p className="text-xs text-slate-500 dark:text-slate-400">No activity data available yet.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
           {metrics.map((metric) => (
-            <MetricCard
+            <button
               key={metric.id}
-              id={metric.id}
-              label={metric.label}
-              value={metric.value}
-              icon={metric.icon}
-              color={metric.color}
-              bgColor={metric.bgColor}
-              href={metric.href}
-              description={metric.description}
               onClick={() => {
                 if (metric.href) {
                   handleMetricClick(metric.href)
                 }
               }}
-            />
+              className="text-left group"
+            >
+              <div className="flex items-center gap-3">
+                <metric.icon className={`w-5 h-5 ${metric.color} flex-shrink-0`} />
+                <div className="flex-1 min-w-0">
+                  <div className="text-3xl sm:text-4xl font-bold text-foreground leading-none tracking-tight">
+                    {metric.value}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {metric.label}
+                  </div>
+                </div>
+              </div>
+            </button>
           ))}
         </div>
       )}

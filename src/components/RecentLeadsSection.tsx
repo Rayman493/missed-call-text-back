@@ -9,6 +9,7 @@ import Link from 'next/link'
 import LeadTimeline from '@/components/LeadTimeline'
 import { getLeadLifecycleStatus } from '@/lib/lead-lifecycle'
 import { getCardAccentClasses, getCardGradientClasses, getCardBorderClasses, getStatusBadgeClasses } from '@/lib/lead-status-colors'
+import { ChevronRight, User } from 'lucide-react'
 
 interface RecentLeadsSectionProps {
   businessId: string
@@ -316,30 +317,22 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
   if (loading) {
     return (
       <DashboardErrorBoundary>
-        <div className="bg-white dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.05)_inset] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset] p-2.5 sm:p-3">
-          <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+        <div className="bg-card/50 backdrop-blur-sm border border-border/30 rounded-xl p-3 sm:p-4">
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center bg-blue-500/15 ring-1 ring-inset ring-blue-600/30">
-                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              </div>
-              <h2 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-foreground leading-tight">Recent Customers</h2>
+              <User className="w-5 h-5 text-muted-foreground" />
+              <h2 className="text-sm font-semibold text-foreground">Recent Customers</h2>
             </div>
           </div>
-          <div className="space-y-1 sm:space-y-1.5">
+          <div className="space-y-2">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-2 sm:p-2.5">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      <div className="h-3.5 sm:h-4 w-20 sm:w-24 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
-                      <div className="h-3 sm:h-3.5 w-12 sm:w-14 bg-slate-200 dark:bg-slate-700 rounded-full animate-pulse"></div>
-                    </div>
-                    <div className="h-2.5 sm:h-3 w-16 sm:w-20 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
-                  </div>
-                  <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
+              <div key={i} className="flex items-center gap-3 p-2 rounded-lg">
+                <div className="w-9 h-9 bg-slate-200 dark:bg-slate-700 rounded-full animate-pulse flex-shrink-0"></div>
+                <div className="flex-1 min-w-0 space-y-1.5">
+                  <div className="h-3.5 bg-slate-200 dark:bg-slate-700 rounded w-24 animate-pulse"></div>
+                  <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-32 animate-pulse"></div>
                 </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
               </div>
             ))}
           </div>
@@ -350,92 +343,58 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
 
   return (
     <DashboardErrorBoundary>
-      {/* Recent Customers List */}
-      <div className="bg-white dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.05)_inset] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset] p-2.5 sm:p-3">
-        <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+      <div className="bg-card/50 backdrop-blur-sm border border-border/30 rounded-xl p-3 sm:p-4">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center bg-blue-500/15 ring-1 ring-inset ring-blue-600/30">
-              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-            </div>
-            <h2 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-foreground leading-tight">Recent Customers</h2>
+            <User className="w-5 h-5 text-muted-foreground" />
+            <h2 className="text-sm font-semibold text-foreground">Recent Customers</h2>
           </div>
-          <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 leading-tight">{leads.length} customer{leads.length !== 1 ? 's' : ''} recovered</p>
+          <p className="text-xs text-muted-foreground">{leads.length} customer{leads.length !== 1 ? 's' : ''} recovered</p>
         </div>
 
         {leads.length === 0 ? (
-          <div className="text-center py-5 sm:py-6 px-4">
-            <div className="space-y-1.5 sm:space-y-2">
-              <p className="text-xs sm:text-sm font-medium text-slate-900 dark:text-foreground">
-                No customers yet
-              </p>
-              <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400">
-                New customers will appear here after your first conversation.
-              </p>
-            </div>
+          <div className="text-center py-3">
+            <p className="text-xs text-muted-foreground">No customers yet</p>
           </div>
         ) : (
-          <>
-            {leads.length > 0 && (
-              <div className="space-y-1 sm:space-y-1.5">
-                {leads.slice(0, 5).map((lead, index) => {
-                  const aiData = getAIData(lead)
-                  const isLatest = index === 0
+          <div className="space-y-1">
+            {leads.slice(0, 5).map((lead, index) => {
+              const aiData = getAIData(lead)
+              const displayName = getLeadDisplayName(lead)
+              const initials = displayName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
 
-                  return (
-                    <div key={lead.id} className="block">
-                      <Link href={`/dashboard/leads/${lead.id}`}>
-                        <div className={`bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl p-2 sm:p-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-sm transition-all duration-200 cursor-pointer relative overflow-hidden ${getCardGradientClasses(getLeadStatus(lead))} ${getCardBorderClasses(getLeadStatus(lead))} ${getCardAccentClasses(getLeadStatus(lead))}`}>
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-1.5 mb-0.5">
-                                <p className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-foreground truncate leading-tight">
-                                  {getLeadDisplayName(lead)}
-                                </p>
-                                <span className={getStatusBadgeClasses(getLeadStatus(lead))}>
-                                  {getLeadStatus(lead)}
-                                </span>
-                                {aiData.urgency && (
-                                  <span className={`inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium flex-shrink-0 ${
-                                    aiData.urgency.toLowerCase() === 'urgent' || aiData.urgency.toLowerCase() === 'high'
-                                      ? 'bg-red-500/10 dark:bg-red-400/10 text-red-700 dark:text-red-300 ring-1 ring-inset ring-red-500/20 dark:ring-red-400/20'
-                                      : 'bg-slate-500/10 dark:bg-slate-400/10 text-slate-700 dark:text-slate-300 ring-1 ring-inset ring-slate-500/20 dark:ring-slate-400/20'
-                                  }`}>
-                                    {aiData.urgency}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2 sm:gap-3">
-                                {aiData.reason && (
-                                  <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 truncate leading-tight">
-                                    {aiData.reason}
-                                  </p>
-                                )}
-                                <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-500 leading-tight flex-shrink-0">
-                                  {formatRelativeTime(lead.created_at)}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-                              {lead.voicemail_recordings && lead.voicemail_recordings.length > 0 && (
-                                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                                </svg>
-                              )}
-                              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 dark:text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                              </svg>
-                            </div>
-                          </div>
-                        </div>
-                      </Link>
+              return (
+                <Link key={lead.id} href={`/dashboard/leads/${lead.id}`}>
+                  <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer group">
+                    <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs font-medium text-primary">{initials}</span>
                     </div>
-                  )
-                })}
-              </div>
-            )}
-          </>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {displayName}
+                        </p>
+                        <span className={getStatusBadgeClasses(getLeadStatus(lead))}>
+                          {getLeadStatus(lead)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {aiData.reason && (
+                          <p className="text-xs text-muted-foreground truncate">
+                            {aiData.reason}
+                          </p>
+                        )}
+                        <span className="text-xs text-muted-foreground/70 flex-shrink-0">
+                          {formatRelativeTime(lead.created_at)}
+                        </span>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0 group-hover:text-foreground transition-colors" />
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
         )}
       </div>
     </DashboardErrorBoundary>
