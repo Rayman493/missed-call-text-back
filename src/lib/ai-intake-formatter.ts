@@ -193,22 +193,23 @@ export const normalizeServiceReason = (text: string | null | undefined): string 
 };
 
 /**
- * Generate a natural work-order style title from the full request text
- * Extracts the core service/issue and creates a concise, human-readable title
- * Reads like a subject line of a work order, not a truncated sentence
+ * Generate a concise professional job title using only the primary service requested.
+ * Keep the title under five words. Do not include customer names, addresses, 
+ * scheduling details, property descriptions, conversational filler, or summaries.
+ * Use common industry terminology that would naturally appear on an invoice or calendar.
  * 
- * Strategy: Identify the primary service or issue, normalize into a concise title
- * Prioritizes clarity and natural reading over arbitrary word limits
+ * Strategy: Extract the core service only, normalize into a 2-5 word professional title
  * 
  * Examples:
- * - "I would like piano lessons. I would just like to learn the basics." → "Piano Lessons"
- * - "My kitchen sink has been leaking underneath the cabinet." → "Kitchen Sink Leak"
- * - "I need someone to mow my lawn every other week." → "Recurring Lawn Mowing"
- * - "The air conditioner stopped blowing cold air yesterday." → "Air Conditioner Repair"
- * - "I need my water heater replaced." → "Water Heater Replacement"
+ * - "I need my grass cut. It's about a quarter acre." → "Lawn Mowing"
+ * - "I need beginner piano lessons." → "Piano Lessons"
+ * - "My AC is blowing warm air upstairs." → "AC Repair"
+ * - "Need a new fence installed." → "Fence Installation"
+ * - "Need my driveway pressure washed." → "Driveway Pressure Washing"
+ * - "Kitchen sink is leaking." → "Kitchen Leak Repair"
  */
 export const generateCanonicalRequestTitle = (text: string | null | undefined): string => {
-  if (!text || text.trim() === '') return 'Not collected';
+  if (!text || text.trim() === '') return 'General Service';
 
   const original = text.trim().toLowerCase();
   let processed = original;
@@ -230,6 +231,15 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
     /^wondering if /i,
     /^i was calling because /i,
     /^i'?m calling because /i,
+    /^i'?m calling for /i,
+    /^i'?m here for /i,
+    /^i'?m looking for /i,
+    /^i need someone to /i,
+    /^i need a /i,
+    /^i need an? /i,
+    /^i'?m calling about /i,
+    /^the reason i'?m calling is /i,
+    /^i'?m interested in /i,
     /^we were hoping /i,
     /^we'd like /i,
     /^we want /i,
@@ -237,6 +247,7 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
     /^my wife and i /i,
     /^my husband and i /i,
     /^someone to /i,
+    /^somebody to /i,
     /^need help with /i,
     /^help with /i,
     /^and /i,
@@ -245,7 +256,6 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
     /^um /i,
     /^uh /i,
     /^yeah /i,
-    /^the reason i'?m calling is /i,
   ];
 
   for (const pattern of conversationalPrefixes) {
@@ -265,115 +275,135 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
   // Remove trailing conversational filler
   processed = processed.replace(/[.!?,]*\s*(please|thanks|thank you|asap|as soon as possible|when possible|at your earliest convenience)?\s*$/i, '');
 
-  // Remove common filler words within the sentence
-  const fillerWords = ['a', 'an', 'the', 'to', 'for', 'with', 'by', 'at', 'on', 'in', 'of', 'just', 'really', 'actually', 'basically', 'basically', 'literally'];
+  // Remove scheduling and timing information
+  processed = processed.replace(/(?:today|tomorrow|this week|next week|this month|next month|as soon as possible|asap|when possible|at your earliest convenience|as soon as you can|whenever|as soon as)\b/gi, '');
+  processed = processed.replace(/(?:morning|afternoon|evening|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/gi, '');
+  processed = processed.replace(/\d{1,2}(?::\d{2})?(?:\s*(?:am|pm|a\.m\.|p\.m\.))?/gi, '');
+
+  // Remove property size and descriptions
+  processed = processed.replace(/(?:quarter|half|full)\s*(?:acre|acres|sq\s*ft|square\s*foot|square\s*feet)\b/gi, '');
+  processed = processed.replace(/\d+\s*(?:bedroom|bath|room|rooms|story|stories|floor|floors)\b/gi, '');
+
+  // Remove common filler words
+  const fillerWords = ['a', 'an', 'the', 'to', 'for', 'with', 'by', 'at', 'on', 'in', 'of', 'just', 'really', 'actually', 'basically', 'literally', 'very', 'some', 'any', 'this', 'that'];
   const words = processed.split(/\s+/).filter(w => w.length > 0 && !fillerWords.includes(w));
 
-  if (words.length === 0) return 'Service Request';
+  if (words.length === 0) return 'General Service';
 
-  // Extract core service/action and object
-  // Look for common service patterns
-  const servicePatterns = {
-    repair: /\b(repair|fix|fixed|fixing|broken|not working|stopped working|won't work|doesn't work|leaking|overflowing|clogged|blocked)\b/i,
-    replacement: /\b(replace|replacement|replacing|new|install|installation|installed)\b/i,
-    cleaning: /\b(clean|cleaning|washed|wash|scrubbed|scrub)\b/i,
-    maintenance: /\b(maintain|maintenance|mow|mowing|trim|trimming|cut|cutting|service|servicing)\b/i,
-    installation: /\b(install|installation|installed|set up|setup|mount|mounted)\b/i,
-    inspection: /\b(check|inspect|inspection|look at|examine|diagnose|diagnosis)\b/i,
-    removal: /\b(remove|removal|removed|take out|haul away|dispose)\b/i,
-    lessons: /\b(lesson|lessons|learn|teaching|taught|training|class|classes)\b/i,
-    remodel: /\b(remodel|remodeling|renovate|renovation|upgrade|upgrading)\b/i,
+  // Define industry-specific service mappings with primary focus
+  const serviceMappings: Record<string, RegExp[]> = {
+    'Lawn Mowing': [/\blawn\s*(?:mow|cut|trim|maintenance|care|service)/i, /\bgrass\s*(?:cut|mow|trim)/i, /\byard\s*(?:mow|cut|trim|work)/i],
+    'Pressure Washing': [/\bpressure\s*(?:wash|wash|clean)/i, /\bdriveway\s*(?:wash|clean)/i],
+    'Piano Lessons': [/\bpiano\s*(?:lesson|learn|teach|class|instruction)/i],
+    'AC Repair': [/\b(?:air\s*conditioner|ac|a\/c|hvac)\s*(?:repair|fix|not working|broken|leaking|stopped)/i, /\bair\s*(?:conditioning|conditioner)\s*(?:problem|issue|trouble)/i],
+    'Fence Installation': [/\bfence\s*(?:install|installation|new|replace|put in|set up)/i],
+    'Kitchen Leak Repair': [/\bkitchen\s*(?:sink|faucet|pipe)\s*(?:leak|drip|leaking|dripping)/i, /\bkitchen\s*(?:plumbing|repair|fix)/i],
+    'Plumbing Repair': [/\bplumbing\s*(?:repair|fix|issue|problem)/i, /\b(?:sink|faucet|pipe|toilet|drain)\s*(?:leak|drip|leaking|dripping|clogged|blocked)/i],
+    'Electrical Repair': [/\belectrical\s*(?:repair|fix|issue|problem|work)/i, /\b(?:outlet|switch|wire|wiring|circuit)\s*(?:repair|fix|broken|not working)/i],
+    'Carpet Cleaning': [/\bcarpet\s*(?:clean|wash|shampoo|steam)/i],
+    'House Cleaning': [/\bhouse\s*(?:clean|cleaning|maid|service)/i, /\bhome\s*(?:clean|cleaning)/i],
+    'Window Cleaning': [/\bwindow\s*(?:clean|wash|cleaning)/i],
+    'Roof Repair': [/\broof\s*(?:repair|fix|leak|replace)/i],
+    'Painting': [/\bpaint(?:ing)?\s*(?:interior|exterior|house|home|room)/i],
+    'Flooring': [/\bfloor(?:ing)?\s*(?:install|installation|repair|replace|refinish)/i],
+    'HVAC Service': [/\bhvac\s*(?:service|maintenance|repair|install)/i, /\b(?:heating|cooling|furnace|boiler)\s*(?:service|repair|install)/i],
+    'Pool Service': [/\bpool\s*(?:clean|cleaning|maintenance|service|repair)/i],
+    'Junk Removal': [/\bjunk\s*(?:remove|removal|haul|pickup)/i],
+    'Moving Service': [/\b(?:move|moving)\s*(?:service|help|company)/i],
+    'Tree Service': [/\btree\s*(?:trim|prune|remove|removal|cut|service)/i],
+    'Landscaping': [/\blandscape\s*(?:design|install|maintenance|service)/i, /\bgarden\s*(?:service|maintenance|design)/i],
+    'Handyman Service': [/\bhandyman\s*(?:service|work|repair)/i],
+    'General Contractor': [/\bgeneral\s*contractor/i, /\b(?:remodel|renovation|renovate|construction)/i],
+    'Appliance Repair': [/\b(?:appliance|refrigerator|dryer|washer|dishwasher|stove|oven)\s*(?:repair|fix|not working|broken)/i],
+    'Auto Repair': [/\b(?:car|auto|vehicle|truck)\s*(?:repair|fix|service|maintenance)/i],
+    'Locksmith': [/\blocksmith\s*(?:service|repair|install)/i, /\b(?:lock|key)\s*(?:change|replace|repair|install)/i],
+    'Pest Control': [/\bpest\s*(?:control|removal|extermination|treatment)/i],
+    'Cleaning Service': [/\bclean(?:ing)?\s*(?:service|company)/i],
+    'Home Inspection': [/\bhome\s*(?:inspect|inspection|check)/i],
+    'Security Systems': [/\bsecurity\s*(?:system|camera|alarm)/i],
+    'Solar Installation': [/\bsolar\s*(?:panel|install|installation)/i],
+    'Towing': [/\btow\s*(?:service|truck)/i],
+    'Photography': [/\bphotograph(?:y|er)\s*(?:service|session)/i],
+    'Lessons': [/\b(?:lesson|learn|teach|train|class|instruction|tutor)/i],
+    'Consulting': [/\bconsult(?:ant|ing)\s*(?:service|advice)/i],
+    'Financial Services': [/\bfinancial\s*(?:service|advice|planning)/i],
+    'Insurance': [/\binsurance\s*(?:service|claim|quote)/i],
+    'Property Management': [/\bproperty\s*(?:manage|management)/i],
+    'Real Estate': [/\breal\s*estate/i],
   };
 
-  let serviceType: string | null = null;
-  for (const [type, pattern] of Object.entries(servicePatterns)) {
-    if (pattern.test(processed)) {
-      serviceType = type;
-      break;
+  // Try to match against service mappings first
+  for (const [serviceTitle, patterns] of Object.entries(serviceMappings)) {
+    for (const pattern of patterns) {
+      if (pattern.test(processed)) {
+        // Ensure the result is 2-5 words
+        const titleWords = serviceTitle.split(' ');
+        if (titleWords.length >= 2 && titleWords.length <= 5) {
+          return serviceTitle;
+        }
+      }
     }
   }
 
-  // Extract key nouns and verbs for the title
-  const keyWords: string[] = [];
-  const usedIndices = new Set<number>();
-
-  // Priority words (nouns that typically identify the service object)
+  // Fallback: Extract key service nouns (2-5 words max)
   const priorityNouns = [
-    'piano', 'guitar', 'violin', 'drums', 'lessons', 'training', 'class',
-    'kitchen', 'bathroom', 'bedroom', 'house', 'home', 'office', 'basement', 'garage',
-    'sink', 'toilet', 'shower', 'tub', 'faucet', 'pipe', 'drain', 'water', 'sewer',
-    'air', 'conditioner', 'heater', 'furnace', 'boiler', 'hvac', 'ac',
-    'lawn', 'yard', 'grass', 'tree', 'trees', 'bush', 'bushes', 'hedge', 'hedges',
-    'brakes', 'truck', 'car', 'vehicle', 'oil', 'tire', 'tires',
-    'carpet', 'floor', 'windows', 'roof', 'gutter', 'gutters', 'paint',
-    'pool', 'spa', 'hot', 'tub',
+    'piano', 'guitar', 'violin', 'drums', 'lesson', 'class', 'training',
+    'kitchen', 'bathroom', 'bedroom', 'sink', 'toilet', 'faucet', 'pipe', 'drain',
+    'ac', 'air', 'conditioner', 'heater', 'furnace', 'boiler', 'hvac',
+    'lawn', 'yard', 'grass', 'tree', 'fence', 'roof', 'gutter',
+    'car', 'truck', 'vehicle', 'brake', 'tire', 'oil',
+    'carpet', 'floor', 'window', 'paint', 'pool',
+    'lock', 'key', 'camera', 'alarm',
+    'solar', 'panel', 'photograph', 'consult',
   ];
 
-  // Find priority nouns first
+  const extractedWords: string[] = [];
+  const usedIndices = new Set<number>();
+
+  // Extract priority nouns
   words.forEach((word, index) => {
-    if (priorityNouns.includes(word) && !usedIndices.has(index)) {
-      keyWords.push(word);
+    if (priorityNouns.includes(word) && !usedIndices.has(index) && extractedWords.length < 5) {
+      extractedWords.push(word);
       usedIndices.add(index);
     }
   });
 
-  // Add remaining meaningful words (verbs, other nouns) up to reasonable limit
-  const meaningfulWords = words.filter((word, index) => 
-    !usedIndices.has(index) && 
-    word.length > 2 &&
-    !fillerWords.includes(word)
-  );
+  // If no priority nouns found, take first 2-3 meaningful words
+  if (extractedWords.length === 0) {
+    for (let i = 0; i < Math.min(words.length, 3); i++) {
+      if (words[i].length > 2) {
+        extractedWords.push(words[i]);
+      }
+    }
+  }
 
-  // Combine priority words with meaningful words, limit to 6 total
-  const titleWords = [...keyWords, ...meaningfulWords].slice(0, 6);
+  if (extractedWords.length === 0) return 'General Service';
 
-  if (titleWords.length === 0) return 'Service Request';
-
-  // Apply service type normalization if detected
-  let finalTitle = titleWords.join(' ');
+  // Ensure 2-5 words
+  const finalWords = extractedWords.slice(0, 5);
   
-  if (serviceType) {
-    // Normalize common service patterns into standard titles
-    // Only add service type if it's not already implied by the words
-    if (serviceType === 'repair') {
-      if (!finalTitle.includes('repair') && !finalTitle.includes('fix') && !finalTitle.includes('leak') && !finalTitle.includes('broken')) {
-        finalTitle = finalTitle + ' Repair';
-      }
-    } else if (serviceType === 'replacement') {
-      if (!finalTitle.includes('replacement') && !finalTitle.includes('replace') && !finalTitle.includes('new')) {
-        finalTitle = finalTitle + ' Replacement';
-      }
-    } else if (serviceType === 'cleaning') {
-      if (!finalTitle.includes('cleaning') && !finalTitle.includes('clean') && !finalTitle.includes('wash')) {
-        finalTitle = finalTitle + ' Cleaning';
-      }
-    } else if (serviceType === 'maintenance') {
-      if (!finalTitle.includes('maintenance') && !finalTitle.includes('service') && !finalTitle.includes('mow') && !finalTitle.includes('trim')) {
-        finalTitle = finalTitle + ' Maintenance';
-      }
-    } else if (serviceType === 'installation') {
-      if (!finalTitle.includes('installation') && !finalTitle.includes('install') && !finalTitle.includes('set')) {
-        finalTitle = finalTitle + ' Installation';
-      }
+  // If only 1 word, add generic suffix
+  if (finalWords.length === 1) {
+    const word = finalWords[0].toLowerCase();
+    if (['piano', 'guitar', 'violin', 'drums'].includes(word)) {
+      return `${word.charAt(0).toUpperCase() + word.slice(1)} Lessons`;
+    } else if (['lawn', 'yard', 'grass', 'tree'].includes(word)) {
+      return `${word.charAt(0).toUpperCase() + word.slice(1)} Service`;
+    } else if (['sink', 'toilet', 'faucet', 'pipe', 'drain'].includes(word)) {
+      return `${word.charAt(0).toUpperCase() + word.slice(1)} Repair`;
+    } else if (['ac', 'air', 'conditioner', 'heater', 'furnace'].includes(word)) {
+      return `${word.charAt(0).toUpperCase() + word.slice(1)} Repair`;
+    } else {
+      return `${word.charAt(0).toUpperCase() + word.slice(1)} Service`;
     }
   }
 
   // Convert to Title Case
-  let titleCased = finalTitle.split(' ').map(word => 
+  const titleCased = finalWords.map(word => 
     word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
   ).join(' ');
 
-  // Final cleanup: ensure title is natural and not truncated
-  // If title ends abruptly, remove the last partial word
-  if (titleCased.length > 3 && !/[.!?,]$/.test(titleCased)) {
-    // Check if the last word seems cut off
-    const lastWord = titleCased.split(' ').pop();
-    if (lastWord && lastWord.length < 3) {
-      titleCased = titleCased.replace(/\s+\w{1,2}$/, '');
-    }
-  }
-
-  return titleCased || 'Service Request';
+  return titleCased || 'General Service';
 };
 
 // Field-specific normalization for addresses
