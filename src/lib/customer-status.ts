@@ -127,7 +127,7 @@ export function normalizeCustomerStatus(rawStatus: string | null | undefined): C
   
   const status = rawStatus.toLowerCase().trim()
   
-  // Direct canonical mappings
+  // Direct canonical mappings only - no legacy translations
   if (status === 'new') return 'new'
   if (status === 'needs_reply') return 'needs_reply'
   if (status === 'active') return 'active'
@@ -137,13 +137,6 @@ export function normalizeCustomerStatus(rawStatus: string | null | undefined): C
   if (status === 'completed') return 'completed'
   if (status === 'ignored') return 'ignored'
   if (status === 'lost') return 'lost'
-  
-  // Legacy mappings from production data
-  if (status === 'awaiting response') return 'needs_reply'
-  if (status === 'contacted') return 'active'
-  if (status === 'appointment scheduled') return 'scheduled'
-  if (status === 'archived') return 'completed'
-  if (status === 'replied') return 'active'
   
   // Log unknown values in development only
   if (process.env.NODE_ENV === 'development') {

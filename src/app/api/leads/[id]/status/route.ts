@@ -19,8 +19,8 @@ export async function PATCH(
     console.log('[API LEADS STATUS PATCH] Lead ID:', id)
     console.log('[API LEADS STATUS PATCH] Requested status:', status)
 
-    // Validate status - include all new business-controlled statuses
-    const validStatuses = ['new', 'active', 'scheduled', 'payment_requested', 'paid', 'completed', 'lost', 'ignored']
+    // Validate status - canonical statuses matching frontend CustomerStatus enum
+    const validStatuses = ['new', 'needs_reply', 'active', 'scheduled', 'payment_requested', 'paid', 'completed', 'ignored', 'lost']
     if (!validStatuses.includes(status)) {
       console.log('[API LEADS STATUS PATCH] Invalid status. Valid statuses:', validStatuses)
       return NextResponse.json(
