@@ -66,7 +66,7 @@ export default function LeadCard({
 
   return (
     <div
-      className={`w-full max-w-2xl h-full flex flex-col relative overflow-hidden rounded-xl p-2 sm:p-3.5 pl-3 sm:pl-4 transition-colors cursor-pointer hover:-translate-y-0.5 ${statusStyle.cardClass} active:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2`}
+      className="relative overflow-hidden rounded-xl border-4 border-red-500 bg-red-500/40 p-2 sm:p-3.5 pl-3 sm:pl-4 shadow-[0_0_40px_rgba(239,68,68,0.8)] hover:bg-red-500/50 transition-all duration-200 cursor-pointer hover:-translate-y-0.5"
       onClick={() => onOpen(lead.id)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -79,6 +79,7 @@ export default function LeadCard({
       aria-label={`Open ${getLeadDisplayName(lead)}`}
       style={{ touchAction: 'pan-y' }}
     >
+      <div className="absolute inset-x-0 top-0 z-50 h-2 bg-red-500"></div>
       {/* Accent strip at the top */}
       <div
         aria-hidden="true"
