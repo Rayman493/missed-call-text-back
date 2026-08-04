@@ -79,6 +79,8 @@ export default function LeadCard({
       aria-label={`Open ${getLeadDisplayName(lead)}`}
       style={{ touchAction: 'pan-y' }}
     >
+      {/* Accent strip at the top */}
+      <div className={`h-[2px] w-full ${statusStyle.accentStripClass}`}></div>
       <div className="p-2 sm:p-3.5 pl-3 sm:pl-4">
         {/* Header: Name, Phone, Status */}
         <div className="flex items-start justify-between gap-2 sm:gap-3 mb-1.5 sm:mb-2">
@@ -139,23 +141,9 @@ export default function LeadCard({
 
         {/* Metadata */}
         <div className="flex items-center justify-between mb-1 sm:mb-2">
-          <div className="flex items-center gap-1 sm:gap-1.5 sm:gap-2">
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                const status = rawStatus
-                onFilterStatus(statusFilter === status ? 'all' : status)
-              }}
-              className={`${statusStyle.badgeClass} hover:opacity-80 cursor-pointer`}
-              title={`Filter by ${statusStyle.label} status`}
-              aria-label={`Filter by ${statusStyle.label} status`}
-            >
-              {statusStyle.label}
-            </button>
-            <span className="text-[10px] sm:text-[11px] text-muted-foreground">
-              {formatRelativeTime(lead.created_at)}
-            </span>
-          </div>
+          <span className="text-[10px] sm:text-[11px] text-muted-foreground">
+            {formatRelativeTime(lead.created_at)}
+          </span>
         </div>
 
         {/* Action Buttons */}
