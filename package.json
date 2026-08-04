@@ -44,6 +44,7 @@
     "openai": "^6.42.0",
     "react": "^18",
     "react-dom": "^18",
+    "recharts": "^3.10.1",
     "replyflow-stripe-terminal": "file:packages/replyflow-stripe-terminal",
     "resend": "^6.12.4",
     "stripe": "^22.1.0",

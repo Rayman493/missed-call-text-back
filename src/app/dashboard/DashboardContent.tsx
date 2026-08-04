@@ -62,12 +62,14 @@ import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
 import NeedsAttentionCard from '@/components/NeedsAttentionCard'
 import FollowUpActivityCard from '@/components/FollowUpActivityCard'
 import LeadEngagementCard from '@/components/LeadEngagementCard'
-import BusinessWinsCard from '@/components/BusinessWinsCard'
 import BusinessSnapshot from '@/components/BusinessSnapshot'
 import DashboardMetrics from '@/components/DashboardMetrics'
 import OperationalStatusCard from '@/components/OperationalStatusCard'
 import RecentActivityCard from '@/components/RecentActivityCard'
-import ReplyFlowPerformanceCard from '@/components/ReplyFlowPerformanceCard'
+import NewCustomersGraph from '@/components/analytics/NewCustomersGraph'
+import RevenueGraph from '@/components/analytics/RevenueGraph'
+import CustomerPipelineGraph from '@/components/analytics/CustomerPipelineGraph'
+import BusinessActivityGraph from '@/components/analytics/BusinessActivityGraph'
 import BetaFeedbackModal from '@/components/BetaFeedbackModal'
 import { reconcileWarmNumbers, getWarmInventoryStats } from '@/app/admin/actions'
 import { getBusinessOnboardingState, getEmptyStateCopy, BusinessData } from '@/lib/onboarding-state'
@@ -1101,9 +1103,22 @@ export default function DashboardContent() {
                       </div>
                     </SectionErrorBoundary>
 
-                    {/* ReplyFlow Performance Card - Trends */}
-                    <SectionErrorBoundary sectionName="ReplyFlowPerformanceCard">
-                      <ReplyFlowPerformanceCard />
+                    {/* Analytics Grid - 2x2 on desktop, stacked on mobile */}
+                    <SectionErrorBoundary sectionName="AnalyticsGrid">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className={`${!business?.forwarding_verified ? 'opacity-40' : ''} transition-opacity duration-300`}>
+                          <NewCustomersGraph />
+                        </div>
+                        <div className={`${!business?.forwarding_verified ? 'opacity-40' : ''} transition-opacity duration-300`}>
+                          <RevenueGraph />
+                        </div>
+                        <div className={`${!business?.forwarding_verified ? 'opacity-40' : ''} transition-opacity duration-300`}>
+                          <CustomerPipelineGraph />
+                        </div>
+                        <div className={`${!business?.forwarding_verified ? 'opacity-40' : ''} transition-opacity duration-300`}>
+                          <BusinessActivityGraph />
+                        </div>
+                      </div>
                     </SectionErrorBoundary>
 
                     {/* Latest Customer Section - Recent Customers - De-emphasize when forwarding is not verified */}
@@ -1127,14 +1142,6 @@ export default function DashboardContent() {
                         <RecentActivityCard business={business} />
                       </div>
                     </SectionErrorBoundary>
-
-                    {/* Business Wins Card - De-emphasize when forwarding is not verified */}
-                    <SectionErrorBoundary sectionName="BusinessWinsCard">
-                      <div className={`${!business?.forwarding_verified ? 'opacity-30 hover:opacity-40' : 'opacity-80 hover:opacity-100'} transition-opacity duration-300`}>
-                        <BusinessWinsCard business={business} />
-                      </div>
-                    </SectionErrorBoundary>
-
 
                     {/* Beta Feedback Card - Simplified with mobile padding */}
                     <SectionErrorBoundary sectionName="BetaFeedbackCard">
