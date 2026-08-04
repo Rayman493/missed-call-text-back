@@ -12,7 +12,7 @@ import {
 } from '@radix-ui/react-dropdown-menu'
 import { formatPhoneNumber, formatRelativeTime, sentenceCase, getLeadDisplayName } from '@/lib/utils'
 import { getLeadAIIntake } from '@/lib/ai-field-mapping'
-import { getCustomerStatusStyle, CustomerStatus } from '@/lib/customer-status'
+import { getCustomerStatusStyle, normalizeCustomerStatus, CustomerStatus } from '@/lib/customer-status'
 
 // Helper to get structured AI data for lead card
 function getAIData(lead: any): { reason: string | null; urgency: string | null; details: string | null } {
@@ -47,9 +47,10 @@ export default function LeadCard({
   getCompactSummary,
   isNewCustomer
 }: LeadCardProps) {
-  // Get status config from canonical system
+  // Get status config from canonical system with normalization
   const rawStatus = lead.status || lead.lead_status || 'new'
-  const statusStyle = getCustomerStatusStyle(rawStatus)
+  const normalizedStatus = normalizeCustomerStatus(rawStatus)
+  const statusStyle = getCustomerStatusStyle(normalizedStatus)
 
   const leadTiming = React.useMemo(() => {
     const { calculateLeadTiming } = require('@/lib/lead-timing')

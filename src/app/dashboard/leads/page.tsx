@@ -294,13 +294,7 @@ export default function LeadsPage() {
         query = query.is('deleted_at', null)
       }
 
-      // Filter out ignored leads (automated robocalls) from normal customer workflow
-      // This prevents spam calls from cluttering the lead list while preserving audit visibility
-      // Only exclude ignored leads when NOT showing deleted and NOT when status filter is 'ignored'
-      if (statusFilter !== 'deleted' && statusFilter !== 'ignored') {
-        query = query.neq('status', 'ignored')
-      }
-
+      
       query = query.order('created_at', { ascending: false })
 
       const { data, error } = await query
@@ -624,11 +618,6 @@ export default function LeadsPage() {
 
     const matchesStatus = statusFilter === 'all' || leadStatus === statusFilter
 
-    // Hide ignored leads from default view (when filter is 'all')
-    const isIgnored = leadStatus === 'ignored'
-    const showIgnored = statusFilter === 'ignored'
-    const shouldShowIgnored = showIgnored
-
     // Hide deleted customers from default view (when filter is not 'deleted')
     const shouldShowDeleted = !isDeleted
 
@@ -641,10 +630,10 @@ export default function LeadsPage() {
     } else if (quickFilter === 'completed') {
       matchesQuickFilter = leadStatus === 'completed'
     } else if (quickFilter === 'ignored') {
-      matchesQuickFilter = isIgnored
+      matchesQuickFilter = leadStatus === 'ignored'
     }
 
-    return matchesSearch && matchesStatus && (shouldShowIgnored || !isIgnored) && shouldShowDeleted && matchesQuickFilter
+    return matchesSearch && matchesStatus && shouldShowDeleted && matchesQuickFilter
   })
 
   
