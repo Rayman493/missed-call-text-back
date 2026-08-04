@@ -42,7 +42,7 @@ These logos are used to identify supported payment providers (Stripe, Venmo, Pay
 - **Source**: [PayPal Brand Identity Quick Guide](https://filecache.mediaroom.com/mr5mr_paypal/184713/download/PP_Brand%20Guidelines_Newsroom_2022.pdf)
 - **Asset Source**: PayPal Newsroom Media Resources (https://newsroom.paypal-corp.com/media-resources)
 - **Asset**: PayPal Primary Logo - White (for dark backgrounds)
-- **Format**: SVG
+- **Format**: PNG
 - **Usage Terms**: PayPal brand guidelines for payment provider identification
   - Permitted use: "to truthfully convey information about your goods or services"
   - Acceptance mark: "Include the PayPal acceptance mark if other payment methods are shown in a similar format"
