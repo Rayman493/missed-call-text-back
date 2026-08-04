@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { X, Briefcase, User, Phone, MapPin, FileText, Calendar, Clock } from 'lucide-react'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { getStatusDisplay } from '@/lib/lead-lifecycle'
 
 export type JobStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled'
 
@@ -52,10 +53,10 @@ interface JobComposerProps {
 }
 
 const STATUS_OPTIONS: { value: JobStatus; label: string }[] = [
-  { value: 'scheduled', label: 'Scheduled' },
-  { value: 'in_progress', label: 'In Progress' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'cancelled', label: 'Cancelled' },
+  { value: 'scheduled', label: getStatusDisplay('scheduled') },
+  { value: 'in_progress', label: getStatusDisplay('in_progress') },
+  { value: 'completed', label: getStatusDisplay('completed') },
+  { value: 'cancelled', label: getStatusDisplay('cancelled') },
 ]
 
 export default function JobComposer({

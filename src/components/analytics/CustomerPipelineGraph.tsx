@@ -6,6 +6,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { Funnel } from 'lucide-react'
 import Card from '@/components/ui/Card'
+import { getStatusDisplay } from '@/lib/lead-lifecycle'
 
 interface PipelineData {
   status: string
@@ -40,21 +41,21 @@ export default function CustomerPipelineGraph() {
           statusCounts[status] = (statusCounts[status] || 0) + 1
         })
 
-        // Define status colors and labels
-        const statusConfig: { [key: string]: { label: string; color: string } } = {
-          new: { label: 'New', color: '#3b82f6' },
-          active: { label: 'Active', color: '#22c55e' },
-          scheduled: { label: 'Scheduled', color: '#8b5cf6' },
-          payment_requested: { label: 'Payment Requested', color: '#f59e0b' },
-          paid: { label: 'Paid', color: '#10b981' },
-          completed: { label: 'Completed', color: '#6b7280' }
+        // Define status colors
+        const statusColors: { [key: string]: string } = {
+          new: '#3b82f6',
+          active: '#22c55e',
+          scheduled: '#8b5cf6',
+          payment_requested: '#f59e0b',
+          paid: '#10b981',
+          completed: '#6b7280'
         }
 
-        // Convert to array with colors
+        // Convert to array with Title Case labels and colors
         const pipelineData = Object.entries(statusCounts).map(([status, count]) => ({
-          status: statusConfig[status]?.label || status,
+          status: getStatusDisplay(status),
           count,
-          color: statusConfig[status]?.color || '#6b7280'
+          color: statusColors[status] || '#6b7280'
         }))
 
         setData(pipelineData)

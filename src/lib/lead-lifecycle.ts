@@ -80,6 +80,47 @@ export function getLeadStatusLabel(status: LeadLifecycleStatus): string {
 }
 
 /**
+ * Generic status formatter - converts any status string to Title Case
+ * This handles snake_case, kebab-case, and lowercase strings
+ * Examples:
+ * - 'payment_requested' -> 'Payment Requested'
+ * - 'active' -> 'Active'
+ * - 'needs_reply' -> 'Needs Reply'
+ * - 'in_progress' -> 'In Progress'
+ * - 'Awaiting Response' -> 'Awaiting Response' (already Title Case)
+ */
+export function formatStatusDisplay(status: string): string {
+  if (!status) return ''
+  
+  // Check if it's already Title Case (contains uppercase letters not at start)
+  if (/[A-Z]/.test(status.slice(1))) {
+    return status
+  }
+  
+  // Convert snake_case or kebab-case to Title Case
+  return status
+    .split(/[_-]/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
+}
+
+/**
+ * Get the display label for any status (centralized formatter)
+ * Uses lead lifecycle config if available, otherwise uses generic formatter
+ */
+export function getStatusDisplay(status: string): string {
+  if (!status) return ''
+  
+  // Check if it's a lead lifecycle status
+  if (status in LEAD_LIFECYCLE_CONFIG) {
+    return getLeadStatusLabel(status as LeadLifecycleStatus)
+  }
+  
+  // Use generic formatter for other statuses
+  return formatStatusDisplay(status)
+}
+
+/**
  * Get the styling classes for a lead status
  */
 export function getLeadStatusClasses(status: LeadLifecycleStatus): string {

@@ -11,6 +11,7 @@ import { formatCurrency, formatPhoneNumber } from '@/lib/utils'
 import { getLeadAIIntake } from '@/lib/ai-field-mapping'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
+import { getStatusDisplay } from '@/lib/lead-lifecycle'
 import LeadPickerModal from '@/components/jobs/LeadPickerModal'
 import AddCustomerModal from '@/components/AddCustomerModal'
 import QuickTapToPayModal from '@/components/payments/QuickTapToPayModal'
@@ -68,20 +69,7 @@ function getStatusColor(status: string): string {
 }
 
 function getStatusLabel(status: string): string {
-  switch (status) {
-    case 'pending':
-      return 'Pending'
-    case 'paid':
-      return 'Paid'
-    case 'cancelled':
-      return 'Cancelled'
-    case 'expired':
-      return 'Expired'
-    case 'failed':
-      return 'Failed'
-    default:
-      return status
-  }
+  return getStatusDisplay(status)
 }
 
 

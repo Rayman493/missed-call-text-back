@@ -12,7 +12,7 @@ import {
 } from '@radix-ui/react-dropdown-menu'
 import { formatPhoneNumber, formatRelativeTime, sentenceCase, getLeadDisplayName } from '@/lib/utils'
 import { getLeadAIIntake } from '@/lib/ai-field-mapping'
-import { LeadLifecycleStatus } from '@/lib/lead-lifecycle'
+import { LeadLifecycleStatus, getStatusDisplay } from '@/lib/lead-lifecycle'
 import { getStatusBadgeClasses } from '@/lib/lead-status-colors'
 
 // Helper to get structured AI data for lead card
@@ -155,10 +155,10 @@ export default function LeadCard({
                 onFilterStatus(statusFilter === status ? 'all' : status)
               }}
               className={`${getStatusBadgeClasses(isNewCustomer ? 'new' : getLeadLifecycleStatus(lead))} hover:opacity-80 cursor-pointer`}
-              title={`Filter by ${isNewCustomer ? 'New' : getLeadLifecycleStatus(lead)} status`}
-              aria-label={`Filter by ${isNewCustomer ? 'New' : getLeadLifecycleStatus(lead)} status`}
+              title={`Filter by ${getStatusDisplay(isNewCustomer ? 'new' : getLeadLifecycleStatus(lead))} status`}
+              aria-label={`Filter by ${getStatusDisplay(isNewCustomer ? 'new' : getLeadLifecycleStatus(lead))} status`}
             >
-              {isNewCustomer ? 'New' : getLeadLifecycleStatus(lead).charAt(0).toUpperCase() + getLeadLifecycleStatus(lead).slice(1)}
+              {getStatusDisplay(isNewCustomer ? 'new' : getLeadLifecycleStatus(lead))}
             </button>
             <span className="text-[10px] sm:text-[11px] text-muted-foreground">
               {formatRelativeTime(lead.created_at)}
