@@ -1589,7 +1589,7 @@ export default function LeadsPage() {
                           </div>
 
                           {/* Action Buttons - Open affordance and overflow menu */}
-                          <div className="flex items-center justify-between border-t border-border/40 pt-3 mt-3">
+                          <div className="mt-3 flex w-full items-center border-t border-border/40 pt-3">
                             <button
                               type="button"
                               onClick={(e) => {
@@ -1599,7 +1599,7 @@ export default function LeadsPage() {
                               onDoubleClick={(e) => {
                                 e.stopPropagation()
                               }}
-                              className="text-xs text-slate-400 dark:text-slate-400 flex items-center gap-1 hover:text-foreground hover:bg-muted/50 active:bg-muted/70 px-2 py-1 rounded transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-card"
+                              className="min-w-0 flex-1 text-left text-xs text-slate-400 dark:text-slate-400 hover:text-foreground hover:bg-muted/50 active:bg-muted/70 px-2 py-1 rounded transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-card"
                               aria-label={`Open ${getLeadDisplayName(lead)}`}
                             >
                               Open customer
@@ -1611,9 +1611,9 @@ export default function LeadsPage() {
                               <DropdownMenuTrigger asChild>
                                 <button
                                   type="button"
-                                  className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+                                  className="ml-auto flex h-11 w-11 shrink-0 items-center justify-center p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
                                   title="More actions"
-                                  aria-label="More actions"
+                                  aria-label="Customer actions"
                                   onClick={(e) => e.stopPropagation()}
                                   onKeyDown={(e) => e.stopPropagation()}
                                 >
