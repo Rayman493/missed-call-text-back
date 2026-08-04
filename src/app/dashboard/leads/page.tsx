@@ -35,6 +35,8 @@ import {
 import { getLeadAIIntake } from '@/lib/ai-field-mapping'
 import { copyToClipboard } from '@/lib/clipboard'
 import { calculateLeadTiming, getCustomerInfoForCopy, getAISummaryForCopy } from '@/lib/lead-timing'
+import { getCustomerStatusStyle, normalizeCustomerStatus } from '@/lib/customer-status'
+import { cn } from '@/lib/theme'
 import { 
   getSubscriptionStatusText, 
   isInTrialPeriod, 
@@ -58,8 +60,7 @@ import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import { useRealtimeLeads } from '@/hooks/useRealtimeLeads'
 import { getLeadLifecycleStatus, calculateLeadStatusCounts } from '@/lib/lead-lifecycle'
-import { CustomerStatus, normalizeCustomerStatus } from '@/lib/customer-status'
-import { getCardAccentClasses, getCardBorderClasses, getCardGradientClasses } from '@/lib/lead-status-colors'
+import { CustomerStatus } from '@/lib/customer-status'
 import StatCard from '@/components/StatCard'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import LeadStatusDropdown from '@/components/LeadStatusDropdown'
@@ -1478,13 +1479,18 @@ export default function LeadsPage() {
                   const leadTiming = calculateLeadTiming(lead)
                   const isNewCustomer = (Date.now() - new Date(lastActivity).getTime()) < 24 * 60 * 60 * 1000
                   const aiData = getAIData(lead)
+                  const normalizedStatus = normalizeCustomerStatus(lead.status || lead.lead_status)
+                  const statusStyle = getCustomerStatusStyle(normalizedStatus)
 
                   return (
                     <div className="flex flex-col items-center">
                       {/* Removed inline count here to avoid duplication and lift the card on mobile */}
                       <div
                         key={lead.id}
-                        className="relative overflow-hidden rounded-xl border-4 border-red-500 bg-red-500/40 p-4 shadow-[0_0_40px_rgba(239,68,68,0.8)]"
+                        className={cn(
+                          'w-full max-w-2xl h-full flex flex-col relative overflow-hidden transition-all duration-200 cursor-pointer rounded-xl p-3.5 sm:p-4',
+                          statusStyle.cardClass
+                        )}
                         onClick={() => handleConversationClick(lead.id)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
@@ -1496,7 +1502,13 @@ export default function LeadsPage() {
                         role="link"
                         aria-label={`Open ${getLeadDisplayName(lead)}`}
                       >
-                        <div className="absolute inset-x-0 top-0 z-50 h-2 bg-red-500"></div>
+                        <div
+                          aria-hidden="true"
+                          className={cn(
+                            'pointer-events-none absolute inset-x-0 top-0 z-10 h-0.5',
+                            statusStyle.accentStripClass
+                          )}
+                        />
                         <div className="p-4 pl-5 flex-1 flex flex-col">
                           {/* Header: Name, Phone, Status */}
                           <div className="flex items-start justify-between gap-3 mb-3">
