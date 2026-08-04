@@ -35,13 +35,13 @@ export default function PaymentHandoff({
       <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6 sm:p-8">
         <div className="text-center mb-6">
           <div className={`inline-flex items-center justify-center w-16 h-16 rounded-full ${providerColor} mb-4`}>
-            <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-              {provider === 'venmo' ? (
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
-              ) : (
+            {provider === 'venmo' ? (
+              <img src="/venmo-logo.svg" alt="Venmo" className="w-8 h-8 text-white" />
+            ) : (
+              <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106z" />
-              )}
-            </svg>
+              </svg>
+            )}
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Pay with {providerName}</h1>
           <p className="text-gray-600">
