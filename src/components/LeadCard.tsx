@@ -66,7 +66,7 @@ export default function LeadCard({
 
   return (
     <div
-      className={`w-full max-w-2xl h-full flex flex-col rounded-xl relative overflow-hidden transition-all duration-200 cursor-pointer hover:-translate-y-0.5 ${statusStyle.cardClass} active:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2`}
+      className={`w-full max-w-2xl h-full flex flex-col relative overflow-hidden rounded-xl p-2 sm:p-3.5 pl-3 sm:pl-4 transition-colors cursor-pointer hover:-translate-y-0.5 ${statusStyle.cardClass} active:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2`}
       onClick={() => onOpen(lead.id)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -80,9 +80,12 @@ export default function LeadCard({
       style={{ touchAction: 'pan-y' }}
     >
       {/* Accent strip at the top */}
-      <div className={`h-[2px] w-full ${statusStyle.accentStripClass}`}></div>
-      <div className="p-2 sm:p-3.5 pl-3 sm:pl-4">
-        {/* Header: Name, Phone, Status */}
+      <div
+        aria-hidden="true"
+        className={`pointer-events-none absolute inset-x-0 top-0 h-0.5 ${statusStyle.accentStripClass}`}
+      ></div>
+      <div>
+      {/* Header: Name, Phone, Status */}
         <div className="flex items-start justify-between gap-2 sm:gap-3 mb-1.5 sm:mb-2">
           <div className="flex-1 min-w-0">
             <h3 className="text-sm sm:text-base font-semibold text-foreground mb-0.5 truncate tracking-tight leading-tight">
