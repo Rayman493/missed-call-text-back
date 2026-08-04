@@ -48,84 +48,84 @@ export interface CustomerStatusStyle {
 export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle> = {
   new: {
     label: 'New',
-    cardClass: 'border-blue-500/35 bg-gradient-to-br from-blue-500/22 via-blue-500/10 to-slate-900/95 shadow-[0_0_18px_rgba(59,130,246,0.10)]',
+    cardClass: 'border-blue-500/40 bg-gradient-to-br from-blue-500/25 via-blue-500/12 to-slate-900/95 shadow-[0_0_20px_rgba(59,130,246,0.10)]',
     accentStripClass: 'bg-blue-500',
-    badgeClass: 'border-blue-500/35 bg-blue-500/12 text-blue-400',
+    badgeClass: 'border-blue-500/40 bg-blue-500/12 text-blue-400',
     iconClass: 'bg-blue-500/15 text-blue-400',
     textClass: 'text-blue-400',
-    selectedClass: 'border-blue-500/35 bg-blue-500/12'
+    selectedClass: 'border-blue-500/40 bg-blue-500/12'
   },
   needs_reply: {
     label: 'Needs Reply',
-    cardClass: 'border-cyan-500/35 bg-gradient-to-br from-cyan-500/22 via-cyan-500/10 to-slate-900/95 shadow-[0_0_18px_rgba(6,182,212,0.10)]',
+    cardClass: 'border-cyan-500/40 bg-gradient-to-br from-cyan-500/25 via-cyan-500/12 to-slate-900/95 shadow-[0_0_20px_rgba(6,182,212,0.10)]',
     accentStripClass: 'bg-cyan-500',
-    badgeClass: 'border-cyan-500/35 bg-cyan-500/12 text-cyan-400',
+    badgeClass: 'border-cyan-500/40 bg-cyan-500/12 text-cyan-400',
     iconClass: 'bg-cyan-500/15 text-cyan-400',
     textClass: 'text-cyan-400',
-    selectedClass: 'border-cyan-500/35 bg-cyan-500/12'
+    selectedClass: 'border-cyan-500/40 bg-cyan-500/12'
   },
   active: {
     label: 'Active',
-    cardClass: 'border-green-500/35 bg-gradient-to-br from-green-500/22 via-green-500/10 to-slate-900/95 shadow-[0_0_18px_rgba(34,197,94,0.10)]',
+    cardClass: 'border-green-500/40 bg-gradient-to-br from-green-500/25 via-green-500/12 to-slate-900/95 shadow-[0_0_20px_rgba(34,197,94,0.10)]',
     accentStripClass: 'bg-green-500',
-    badgeClass: 'border-green-500/35 bg-green-500/12 text-green-400',
+    badgeClass: 'border-green-500/40 bg-green-500/12 text-green-400',
     iconClass: 'bg-green-500/15 text-green-400',
     textClass: 'text-green-400',
-    selectedClass: 'border-green-500/35 bg-green-500/12'
+    selectedClass: 'border-green-500/40 bg-green-500/12'
   },
   scheduled: {
     label: 'Scheduled',
-    cardClass: 'border-purple-500/35 bg-gradient-to-br from-purple-500/22 via-purple-500/10 to-slate-900/95 shadow-[0_0_18px_rgba(168,85,247,0.10)]',
+    cardClass: 'border-purple-500/40 bg-gradient-to-br from-purple-500/25 via-purple-500/12 to-slate-900/95 shadow-[0_0_20px_rgba(168,85,247,0.10)]',
     accentStripClass: 'bg-purple-500',
-    badgeClass: 'border-purple-500/35 bg-purple-500/12 text-purple-400',
+    badgeClass: 'border-purple-500/40 bg-purple-500/12 text-purple-400',
     iconClass: 'bg-purple-500/15 text-purple-400',
     textClass: 'text-purple-400',
-    selectedClass: 'border-purple-500/35 bg-purple-500/12'
+    selectedClass: 'border-purple-500/40 bg-purple-500/12'
   },
   payment_requested: {
     label: 'Payment Requested',
-    cardClass: 'border-amber-500/35 bg-gradient-to-br from-amber-500/22 via-amber-500/10 to-slate-900/95 shadow-[0_0_18px_rgba(245,158,11,0.10)]',
+    cardClass: 'border-amber-500/40 bg-gradient-to-br from-amber-500/25 via-amber-500/12 to-slate-900/95 shadow-[0_0_20px_rgba(245,158,11,0.10)]',
     accentStripClass: 'bg-amber-500',
-    badgeClass: 'border-amber-500/35 bg-amber-500/12 text-amber-400',
+    badgeClass: 'border-amber-500/40 bg-amber-500/12 text-amber-400',
     iconClass: 'bg-amber-500/15 text-amber-400',
     textClass: 'text-amber-400',
-    selectedClass: 'border-amber-500/35 bg-amber-500/12'
+    selectedClass: 'border-amber-500/40 bg-amber-500/12'
   },
   paid: {
     label: 'Paid',
-    cardClass: 'border-emerald-500/35 bg-gradient-to-br from-emerald-500/22 via-emerald-500/10 to-slate-900/95 shadow-[0_0_18px_rgba(16,185,129,0.10)]',
+    cardClass: 'border-emerald-500/40 bg-gradient-to-br from-emerald-500/25 via-emerald-500/12 to-slate-900/95 shadow-[0_0_20px_rgba(16,185,129,0.10)]',
     accentStripClass: 'bg-emerald-500',
-    badgeClass: 'border-emerald-500/35 bg-emerald-500/12 text-emerald-400',
+    badgeClass: 'border-emerald-500/40 bg-emerald-500/12 text-emerald-400',
     iconClass: 'bg-emerald-500/15 text-emerald-400',
     textClass: 'text-emerald-400',
-    selectedClass: 'border-emerald-500/35 bg-emerald-500/12'
+    selectedClass: 'border-emerald-500/40 bg-emerald-500/12'
   },
   completed: {
     label: 'Completed',
-    cardClass: 'border-slate-400/35 bg-gradient-to-br from-slate-400/22 via-slate-400/10 to-slate-900/95 shadow-[0_0_18px_rgba(148,163,184,0.10)]',
+    cardClass: 'border-slate-400/40 bg-gradient-to-br from-slate-400/25 via-slate-400/12 to-slate-900/95 shadow-[0_0_20px_rgba(148,163,184,0.10)]',
     accentStripClass: 'bg-slate-400',
-    badgeClass: 'border-slate-400/35 bg-slate-400/12 text-slate-400',
+    badgeClass: 'border-slate-400/40 bg-slate-400/12 text-slate-400',
     iconClass: 'bg-slate-400/15 text-slate-400',
     textClass: 'text-slate-400',
-    selectedClass: 'border-slate-400/35 bg-slate-400/12'
+    selectedClass: 'border-slate-400/40 bg-slate-400/12'
   },
   ignored: {
     label: 'Ignored',
-    cardClass: 'border-orange-500/35 bg-gradient-to-br from-orange-500/22 via-orange-500/10 to-slate-900/95 shadow-[0_0_18px_rgba(249,115,22,0.10)]',
+    cardClass: 'border-orange-500/40 bg-gradient-to-br from-orange-500/25 via-orange-500/12 to-slate-900/95 shadow-[0_0_20px_rgba(249,115,22,0.10)]',
     accentStripClass: 'bg-orange-500',
-    badgeClass: 'border-orange-500/35 bg-orange-500/12 text-orange-400',
+    badgeClass: 'border-orange-500/40 bg-orange-500/12 text-orange-400',
     iconClass: 'bg-orange-500/15 text-orange-400',
     textClass: 'text-orange-400',
-    selectedClass: 'border-orange-500/35 bg-orange-500/12'
+    selectedClass: 'border-orange-500/40 bg-orange-500/12'
   },
   lost: {
     label: 'Lost',
-    cardClass: 'border-red-500/35 bg-gradient-to-br from-red-500/22 via-red-500/10 to-slate-900/95 shadow-[0_0_18px_rgba(239,68,68,0.10)]',
+    cardClass: 'border-red-500/40 bg-gradient-to-br from-red-500/25 via-red-500/12 to-slate-900/95 shadow-[0_0_20px_rgba(239,68,68,0.10)]',
     accentStripClass: 'bg-red-500',
-    badgeClass: 'border-red-500/35 bg-red-500/12 text-red-400',
+    badgeClass: 'border-red-500/40 bg-red-500/12 text-red-400',
     iconClass: 'bg-red-500/15 text-red-400',
     textClass: 'text-red-400',
-    selectedClass: 'border-red-500/35 bg-red-500/12'
+    selectedClass: 'border-red-500/40 bg-red-500/12'
   }
 }
 
