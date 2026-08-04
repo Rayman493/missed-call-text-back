@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Calendar, Briefcase, CheckCircle2, Clock, Plus, AlertCircle } from 'lucide-react'
+import Link from 'next/link'
 import { createBrowserClient } from '@/lib/supabase/browser'
 
 interface Task {
@@ -24,6 +25,7 @@ interface Job {
   scheduled_time: string | null
   status: string
   google_calendar_event_id: string | null
+  lead_id: string | null
 }
 
 interface CalendarEvent {
@@ -35,17 +37,11 @@ interface CalendarEvent {
 interface TodayCommandCenterProps {
   jobs: Job[]
   calendarEvents: CalendarEvent[]
-  onNewTask: () => void
-  onNewJob: () => void
-  onNewAppointment: () => void
 }
 
 export default function TodayCommandCenter({
   jobs,
   calendarEvents,
-  onNewTask,
-  onNewJob,
-  onNewAppointment,
 }: TodayCommandCenterProps) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [isLoadingTasks, setIsLoadingTasks] = useState(true)
@@ -247,12 +243,12 @@ export default function TodayCommandCenter({
               ({todayTasks.length})
             </span>
           </div>
-          <button
-            onClick={onNewTask}
+          <Link
+            href="/dashboard/tasks"
             className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
           >
-            + Add Task
-          </button>
+            View all
+          </Link>
         </div>
         {isLoadingTasks ? (
           <div className="space-y-2">
@@ -262,19 +258,13 @@ export default function TodayCommandCenter({
           </div>
         ) : todayTasks.length === 0 ? (
           <div className="text-center py-6">
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               No tasks for today
             </p>
-            <button
-              onClick={onNewTask}
-              className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-            >
-              Add your first task
-            </button>
           </div>
         ) : (
           <div className="space-y-2">
-            {todayTasks.map(task => (
+            {todayTasks.slice(0, 5).map(task => (
               <div
                 key={task.id}
                 className="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
@@ -367,30 +357,25 @@ export default function TodayCommandCenter({
               Today's Schedule
             </h3>
           </div>
-          <button
-            onClick={onNewAppointment}
+          <Link
+            href="/dashboard/calendar"
             className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
           >
-            + Add Appointment
-          </button>
+            View calendar
+          </Link>
         </div>
         {todayJobs.length === 0 && todayAppointments.length === 0 ? (
           <div className="text-center py-6">
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               No schedule for today
             </p>
-            <button
-              onClick={onNewAppointment}
-              className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-            >
-              Schedule an appointment
-            </button>
           </div>
         ) : (
           <div className="space-y-2">
-            {todayJobs.map(job => (
-              <div
+            {todayJobs.slice(0, 5).map(job => (
+              <Link
                 key={job.id}
+                href={`/dashboard/leads/${job.lead_id || ''}`}
                 className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
               >
                 <Briefcase className="w-4 h-4 text-slate-400" />
@@ -407,7 +392,7 @@ export default function TodayCommandCenter({
                     {formatTime(job.scheduled_time)}
                   </span>
                 )}
-              </div>
+              </Link>
             ))}
             {todayAppointments.map(event => (
               <div
@@ -430,41 +415,6 @@ export default function TodayCommandCenter({
           </div>
         )}
       </div>
-
-      {/* Upcoming Jobs */}
-      {upcomingJobs.length > 0 && (
-        <div className="bg-card rounded-lg border border-slate-200/70 dark:border-slate-700/50 p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Clock className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">
-              Upcoming Jobs
-            </h3>
-          </div>
-          <div className="space-y-2">
-            {upcomingJobs.map(job => (
-              <div
-                key={job.id}
-                className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-              >
-                <Briefcase className="w-4 h-4 text-slate-400" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-900 dark:text-foreground">
-                    {job.title}
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    {job.customer_name || 'No customer'}
-                  </p>
-                </div>
-                {job.scheduled_date && (
-                  <span className="text-xs text-slate-500 dark:text-slate-400">
-                    {formatDate(job.scheduled_date)}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }

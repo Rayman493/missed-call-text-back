@@ -223,8 +223,7 @@ export default function SchedulePage() {
   const [selectedEventLead, setSelectedEventLead] = useState<{ id: string; name: string | null; caller_phone: string | null } | null>(null)
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
   const [viewMode, setViewMode] = useState<'month' | 'agenda'>('month')
-  const [scheduleTab, setScheduleTab] = useState<'today' | 'calendar' | 'meetings' | 'jobs' | 'tasks'>('today')
-  const [completedMeetingsMap, setCompletedMeetingsMap] = useState<Map<string, { completed_at: string }>>(new Map())
+  const [scheduleTab, setScheduleTab] = useState<'today' | 'calendar'>('today')
 
   // Jobs state
   const [jobs, setJobs] = useState<Job[]>([])
@@ -297,27 +296,7 @@ export default function SchedulePage() {
     if (business) fetchJobs()
   }, [business])
 
-  // Load recent meeting completion records when viewing Meetings tab
-  useEffect(() => {
-    const loadRecent = async () => {
-      try {
-        const res = await fetch('/api/meetings/recent?limit=50')
-        if (!res.ok) return
-        const data = await res.json().catch(() => ({}))
-        const map = new Map<string, { completed_at: string }>()
-        for (const rec of (data?.records || [])) {
-          if (rec.status === 'completed' && rec.google_calendar_event_id && rec.completed_at) {
-            map.set(rec.google_calendar_event_id, { completed_at: rec.completed_at })
-          }
-        }
-        setCompletedMeetingsMap(map)
-      } catch {}
-    }
-    if (scheduleTab === 'meetings') {
-      loadRecent()
-    }
-  }, [scheduleTab])
-
+  
   // Resolve job and customer for selected event
   useEffect(() => {
     const resolve = async () => {
@@ -983,22 +962,10 @@ export default function SchedulePage() {
               ) : (
                 <>
                   {/* Mobile-first: Calendar first, then Today's Schedule. Desktop: Today's Schedule sticky on left */}
-                  <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] xl:grid-cols-[300px_1fr] gap-4 lg:gap-5 items-stretch">
+                  <div className="grid grid-cols-1 gap-4 lg:gap-5 items-stretch">
 
-                  {/* LEFT (desktop): Today's Schedule */}
-                  <div className="hidden lg:block order-2 lg:order-1">
-                    <TodaySchedule
-                      jobs={jobs}
-                      calendarEvents={events}
-                      isLoading={isLoadingJobs}
-                      onJobClick={(job) => { setSelectedJob(job); setIsJobDetailsOpen(true) }}
-                      onNewJob={openNewJob}
-                      onStatusChange={handleJobStatusChange}
-                    />
-                  </div>
-
-                  {/* RIGHT (mobile-first): Tab toggle + Calendar / Jobs content */}
-                  <div className="order-1 lg:order-2 min-w-0">
+                  {/* Tab toggle + Calendar / Today content */}
+                  <div className="min-w-0">
 
                   {/* Schedule Tab Toggle */}
                   <div className="hidden md:flex mb-3">
@@ -1025,52 +992,13 @@ export default function SchedulePage() {
                         <CalendarIcon className={`w-4 h-4 ${scheduleTab === 'calendar' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
                         Calendar
                       </button>
-                      <button
-                        onClick={() => setScheduleTab('meetings')}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ease-out ${
-                          scheduleTab === 'meetings'
-                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50 text-sm'
-                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-sm'
-                        }`}
-                      >
-                        <CalendarIcon className={`w-4 h-4 ${scheduleTab === 'meetings' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
-                        Meetings
-                      </button>
-                      <button
-                        onClick={() => setScheduleTab('jobs')}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ease-out ${
-                          scheduleTab === 'jobs'
-                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50 text-sm'
-                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-sm'
-                        }`}
-                      >
-                        <Briefcase className={`w-4 h-4 ${scheduleTab === 'jobs' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
-                        Jobs
-                        {jobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress').length > 0 && (
-                          <span className="ml-3.5 px-1 py-0.5 text-[9px] font-semibold bg-blue-600/90 text-white rounded-full">
-                            {jobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress').length}
-                          </span>
-                        )}
-                      </button>
-                      <button
-                        onClick={() => setScheduleTab('tasks')}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ease-out ${
-                          scheduleTab === 'tasks'
-                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50 text-sm'
-                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-sm'
-                        }`}
-                      >
-                        <CheckCircle2 className={`w-4 h-4 ${scheduleTab === 'tasks' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
-                        Tasks
-                      </button>
                     </div>
                   </div>
 
                   {/* Mobile tab toggle (responsive grid, no horizontal scrolling) */}
                   <div className="md:hidden mb-4 mt-2">
                     <div className="bg-slate-900/40 dark:bg-slate-800/60 rounded-xl p-0.5 border border-slate-200/50 dark:border-slate-700/50">
-                      {/* First row: 3-column grid */}
-                      <div className="grid grid-cols-3 gap-0.5 mb-0.5">
+                      <div className="grid grid-cols-2 gap-0.5">
                         <button
                           onClick={() => setScheduleTab('today')}
                           className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg font-medium transition-all duration-200 ease-out ${
@@ -1093,47 +1021,6 @@ export default function SchedulePage() {
                           <CalendarIcon className={`w-3.5 h-3.5 ${scheduleTab === 'calendar' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
                           <span>Calendar</span>
                         </button>
-                        <button
-                          onClick={() => setScheduleTab('meetings')}
-                          className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg font-medium transition-all duration-200 ease-out ${
-                            scheduleTab === 'meetings'
-                              ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50'
-                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-xs'
-                          }`}
-                        >
-                          <CalendarIcon className={`w-3.5 h-3.5 ${scheduleTab === 'meetings' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
-                          <span>Meetings</span>
-                        </button>
-                      </div>
-                      {/* Second row: natural width with centering */}
-                      <div className="flex justify-center gap-0.5">
-                        <button
-                          onClick={() => setScheduleTab('jobs')}
-                          className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg font-medium transition-all duration-200 ease-out ${
-                            scheduleTab === 'jobs'
-                              ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50'
-                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-xs'
-                          }`}
-                        >
-                          <Briefcase className={`w-3.5 h-3.5 ${scheduleTab === 'jobs' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
-                          <span>Jobs</span>
-                          {jobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress').length > 0 && (
-                            <span className="ml-2.5 px-1 py-0.5 text-[9px] font-semibold bg-blue-600/90 text-white rounded-full">
-                              {jobs.filter(j => j.status === 'scheduled' || j.status === 'in_progress').length}
-                            </span>
-                          )}
-                        </button>
-                        <button
-                          onClick={() => setScheduleTab('tasks')}
-                          className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg font-medium transition-all duration-200 ease-out ${
-                            scheduleTab === 'tasks'
-                              ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50'
-                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-xs'
-                          }`}
-                        >
-                          <CheckCircle2 className={`w-3.5 h-3.5 ${scheduleTab === 'tasks' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
-                          <span>Tasks</span>
-                        </button>
                       </div>
                     </div>
                   </div>
@@ -1143,44 +1030,6 @@ export default function SchedulePage() {
                     <TodayCommandCenter
                       jobs={jobs}
                       calendarEvents={events}
-                      onNewTask={() => setIsNewTaskModalOpen(true)}
-                      onNewJob={openNewJob}
-                      onNewAppointment={handleNewAppointment}
-                    />
-                  )}
-
-                  {/* Jobs Tab */}
-                  {scheduleTab === 'jobs' && (
-                    <JobsTab
-                      jobs={jobs}
-                      isLoading={isLoadingJobs}
-                      onNewJob={openNewJob}
-                      onJobClick={(job: Job) => { setSelectedJob(job); setIsJobDetailsOpen(true) }}
-                    />
-                  )}
-
-                  {/* Tasks Tab */}
-                  {scheduleTab === 'tasks' && (
-                    <TasksTab onNewJob={openNewJob} />
-                  )}
-
-                  {/* Meetings Tab */}
-                  {scheduleTab === 'meetings' && (
-                    <MeetingsTab
-                      events={events}
-                      jobs={jobs}
-                      onOpenEvent={(event: CalendarEvent) => { setSelectedEvent(event); setIsEventDetailsOpen(true); setSelectedDay(null) }}
-                      onViewCustomer={(leadId: string) => window.location.assign(`/dashboard/leads/${leadId}`)}
-                      onNewMeeting={() => {
-                        setNewAppointmentContext('meetings')
-                        setNewAppointmentPreselectedLeadId(null)
-                        setNewAppointmentPreselectedLeadDisplay(null)
-                        setNewAppointmentRequireCustomer(true)
-                        setNewAppointmentAllowAddCustomer(false)
-                        setNewAppointmentLockCustomer(false)
-                        setIsNewAppointmentModalOpen(true)
-                      }}
-                      completedMap={completedMeetingsMap}
                     />
                   )}
 
@@ -1566,12 +1415,16 @@ export default function SchedulePage() {
                                           : 'No time'
 
                                         return (
-                                          <div key={job.id}>
+                                          <Link
+                                            key={job.id}
+                                            href={`/dashboard/leads/${job.lead_id || ''}`}
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
                                             <p className="text-sm font-semibold text-foreground">{time}</p>
                                             <p className="text-sm text-muted-foreground/80">{job.title}</p>
                                             <p className="text-sm text-foreground">Job: {job.status.replace('_', ' ')}</p>
                                             {index < allItems.length - 1 && <hr className="border-border/40 my-4" />}
-                                          </div>
+                                          </Link>
                                         )
                                       }
                                     })}
@@ -1600,17 +1453,6 @@ export default function SchedulePage() {
                           <Plus className="w-4 h-4" />
                           New Appointment
                         </button>
-                      </div>
-
-                      {/* Mobile: Today's Schedule - appears after calendar */}
-                      <div className="lg:hidden mt-6">
-                        <TodaySchedule
-                          jobs={jobs}
-                          isLoading={isLoadingJobs}
-                          onJobClick={(job) => { setSelectedJob(job); setIsJobDetailsOpen(true) }}
-                          onNewJob={openNewJob}
-                          onStatusChange={handleJobStatusChange}
-                        />
                       </div>
                     </div>
                   )}
