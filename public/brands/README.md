@@ -39,8 +39,12 @@ These logos are used to identify supported payment providers (Stripe, Venmo, Pay
 - **Modification**: Unmodified from official source
 
 ### PayPal Logo
-- PayPal branding is already implemented as an inline SVG in the codebase (src/components/SettingsContent.tsx)
+- **Current Implementation**: Inline SVG P mark in SettingsContent.tsx
 - **Source**: [PayPal Brand Identity Quick Guide](https://filecache.mediaroom.com/mr5mr_paypal/184713/download/PP_Brand%20Guidelines_Newsroom_2022.pdf)
+- **Asset Source**: PayPal Newsroom Media Resources (https://newsroom.paypal-corp.com/media-resources)
+- **Usage Terms**: PayPal brand guidelines for payment provider identification
+- **Note**: Official full PayPal white wordmark not accessible from available CDN URLs. Currently using P mark inline SVG.
+- **Pending**: Need official white wordmark asset for dark backgrounds to match Stripe and Venmo
 - No separate asset file needed in this directory
 
 ## Compliance
