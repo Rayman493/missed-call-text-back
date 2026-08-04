@@ -5253,6 +5253,10 @@ If you have questions, reply to this message.`
                     const secondaryText = customerName
                       ? `${customerName} has been texted a secure payment link.`
                       : 'The customer has been texted a secure payment link.'
+                    // Close modal and reset form after server confirms success
+                    setShowPaymentModal(false)
+                    setPaymentAmount('')
+                    setPaymentDescription('')
                     setSuccessMessage(`Payment request sent\n${secondaryText}`)
                   } else {
                     // Desktop or unsupported platform: send automatically through ReplyFlow
@@ -5260,6 +5264,10 @@ If you have questions, reply to this message.`
                     const secondaryText = customerName
                       ? `${customerName} has been texted a secure payment link.`
                       : 'The customer has been texted a secure payment link.'
+                    // Close modal and reset form after server confirms success
+                    setShowPaymentModal(false)
+                    setPaymentAmount('')
+                    setPaymentDescription('')
                     setSuccessMessage(`Payment request sent\n${secondaryText}`)
                   }
 
