@@ -1478,7 +1478,10 @@ export default function LeadsPage() {
                       <div
                         key={lead.id}
                         className={cn(
-                          'relative overflow-hidden rounded-xl border p-3.5 sm:p-4 transition-colors',
+                          'w-full max-w-2xl h-full flex flex-col',
+                          'relative overflow-hidden rounded-xl border',
+                          'p-3.5 sm:p-4',
+                          'transition-colors',
                           statusStyle.cardClass
                         )}
                         onClick={() => handleConversationClick(lead.id)}
