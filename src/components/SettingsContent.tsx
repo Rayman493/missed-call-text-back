@@ -2223,7 +2223,7 @@ export default function SettingsContent() {
                     <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-4 mb-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                          <img src="/brands/stripe.svg" alt="Stripe" className="w-6 h-6 sm:w-7 sm:h-7 flex-shrink-0" />
+                          <img src="/brands/stripe.svg" alt="Stripe" className="w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0" />
                           <span className="text-[10px] px-2 py-0.5 bg-blue-500/10 text-blue-700 dark:text-blue-300 rounded-full font-medium">
                             Recommended
                           </span>
@@ -2318,7 +2318,7 @@ export default function SettingsContent() {
                   <div className="flex flex-col h-full p-3 sm:p-4 rounded-md border border-border/30">
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <img src="/brands/venmo.png" alt="Venmo" className="w-6 h-6 sm:w-7 sm:h-7 flex-shrink-0" />
+                        <img src="/brands/venmo.png" alt="Venmo" className="w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0" />
                         {formBusiness.venmo_username ? (
                           <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
                             <span className="w-1 h-1 bg-green-500 rounded-full" />
@@ -2351,10 +2351,9 @@ export default function SettingsContent() {
                   <div className="flex flex-col h-full p-3 sm:p-4 rounded-md border border-border/30">
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <svg className="w-6 h-6 sm:w-7 sm:h-7 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                        <svg className="w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                           <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106z"/>
                         </svg>
-                        <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">PayPal</h3>
                         {formBusiness.paypal_payment_link ? (
                           <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
                             <span className="w-1 h-1 bg-green-500 rounded-full" />
