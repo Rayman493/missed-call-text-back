@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
+import { useNotifications } from '@/contexts/NotificationContext'
 import { notificationService, Notification, NotificationCount } from '@/lib/notifications'
 import { Bell, Check, CheckCircle, AlertTriangle, User, MessageSquare, Clock, Settings, CreditCard, ExternalLink, PhoneMissed, Trash2, X } from 'lucide-react'
 import AppHeader from '@/components/AppHeader'
@@ -10,6 +11,7 @@ import AppBackButton from '@/components/AppBackButton'
 
 export default function NotificationsPage() {
   const { business } = useBusiness()
+  const { refreshNotifications } = useNotifications()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [notificationCount, setNotificationCount] = useState<NotificationCount>({ total: 0, unread: 0 })
   const [loading, setLoading] = useState(true)
@@ -83,6 +85,8 @@ export default function NotificationsPage() {
       for (const notification of notifications.filter(n => !n.read)) {
         await notificationService.markAsRead(notification.id)
       }
+      // Refresh notification context to update dashboard bell and dropdown
+      refreshNotifications()
     } catch (error) {
       console.error('[NOTIFICATION MARK ALL READ] Failed to mark all as read:', error)
       // Revert on error - refetch to get accurate state
@@ -90,6 +94,7 @@ export default function NotificationsPage() {
       setNotifications(fetchedNotifications)
       const count = await notificationService.getNotificationCount(business.id)
       setNotificationCount(count)
+      refreshNotifications()
     }
   }
 

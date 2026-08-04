@@ -359,81 +359,90 @@ export default function RequestPaymentModal({
         </div>
 
         {/* Content - single primary scroll container */}
-        <div data-scroll-lock-allow className="flex-1 min-h-0 overflow-y-auto overscroll-contain [touch-action:pan-y] px-4 py-3 md:px-4 md:py-3 space-y-2.5 md:space-y-3 pb-[env(safe-area-inset-bottom)]" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div data-scroll-lock-allow className="flex-1 min-h-0 overflow-y-auto overscroll-contain [touch-action:pan-y] px-4 py-4 md:px-4 md:py-4 space-y-4 pb-[env(safe-area-inset-bottom)]" style={{ WebkitOverflowScrolling: 'touch' }}>
           <div>
-            <label className="block text-sm font-medium text-slate-100 mb-1.5">
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
               Recipient
             </label>
-            <select
-              value={recipientType}
-              onChange={(e) => setRecipientType(e.target.value as 'lead' | 'manual')}
-              disabled={isCreatingPayment}
-              className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              <option value="lead">Select existing lead</option>
-              <option value="manual">Enter phone number</option>
-            </select>
-          </div>
-
-          {recipientType === 'lead' ? (
-            <div>
-              <label className="block text-sm font-medium text-slate-100 mb-1.5">
-                Select Lead
-              </label>
-              <select
-                value={selectedLeadId}
-                onChange={(e) => setSelectedLeadId(e.target.value)}
+            <div className="flex gap-2 mb-3">
+              <button
+                type="button"
+                onClick={() => setRecipientType('lead')}
                 disabled={isCreatingPayment}
-                className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white disabled:opacity-60 disabled:cursor-not-allowed"
+                className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg border transition-all ${
+                  recipientType === 'lead'
+                    ? 'bg-blue-600 border-blue-400 text-white'
+                    : 'bg-background border-border text-muted-foreground hover:border-border/80'
+                }`}
               >
-                <option value="">Select a lead</option>
-                {leads.map((lead) => {
-                  const displayName = (lead.name && lead.name !== 'Not collected') ? lead.name : 'Customer'
-                  return (
-                    <option key={lead.id} value={lead.id}>
-                      {formatPhoneNumber(lead.caller_phone)} - {displayName}
-                    </option>
-                  )
-                })}
-              </select>
+                Existing Lead
+              </button>
+              <button
+                type="button"
+                onClick={() => setRecipientType('manual')}
+                disabled={isCreatingPayment}
+                className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg border transition-all ${
+                  recipientType === 'manual'
+                    ? 'bg-blue-600 border-blue-400 text-white'
+                    : 'bg-background border-border text-muted-foreground hover:border-border/80'
+                }`}
+              >
+                New Number
+              </button>
             </div>
-          ) : (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-slate-100 mb-1.5">
-                  Phone Number
-                </label>
+
+            {recipientType === 'lead' ? (
+              <div className="relative">
+                <select
+                  value={selectedLeadId}
+                  onChange={(e) => setSelectedLeadId(e.target.value)}
+                  disabled={isCreatingPayment}
+                  className="w-full px-3 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-background text-foreground disabled:opacity-60 disabled:cursor-not-allowed appearance-none cursor-pointer"
+                >
+                  <option value="">Select a customer</option>
+                  {leads.map((lead) => {
+                    const displayName = (lead.name && lead.name !== 'Not collected') ? lead.name : 'Customer'
+                    return (
+                      <option key={lead.id} value={lead.id}>
+                        {formatPhoneNumber(lead.caller_phone)} - {displayName}
+                      </option>
+                    )
+                  })}
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
                 <input
                   type="tel"
                   value={manualPhone}
                   onChange={(e) => setManualPhone(formatManualPhoneInput(e.target.value))}
                   placeholder="(555) 123-4567"
                   disabled={isCreatingPayment}
-                  className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full px-3 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-background text-foreground disabled:opacity-60 disabled:cursor-not-allowed"
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-100 mb-1.5">
-                  Customer Name
-                </label>
                 <input
                   type="text"
                   value={manualName}
                   onChange={(e) => setManualName(e.target.value)}
-                  placeholder="Optional"
+                  placeholder="Customer name (optional)"
                   disabled={isCreatingPayment}
-                  className="w-full px-3 py-2 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full px-3 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-background text-foreground disabled:opacity-60 disabled:cursor-not-allowed"
                 />
               </div>
-            </>
-          )}
+            )}
+          </div>
 
           <div>
-            <label className="block text-sm font-medium text-white mb-1.5 md:mb-2">
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
               Amount (USD)
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
               <input
                 type="number"
                 value={paymentAmount}
@@ -447,112 +456,100 @@ export default function RequestPaymentModal({
                 step="0.01"
                 min="0.01"
                 disabled={isCreatingPayment}
-                className={`w-full pl-8 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 bg-[#0f172a] text-white disabled:opacity-60 disabled:cursor-not-allowed ${
-                  error && error.includes('amount') ? 'border-red-500 focus:border-red-500' : 'border-slate-600 focus:border-blue-500'
+                className={`w-full pl-8 pr-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 bg-background text-foreground disabled:opacity-60 disabled:cursor-not-allowed ${
+                  error && error.includes('amount') ? 'border-red-500 focus:border-red-500' : 'border-border focus:border-blue-500'
                 }`}
               />
             </div>
             {error && error.includes('amount') && (
-              <p className="mt-1.5 text-xs text-red-400">{error}</p>
+              <p className="mt-1.5 text-xs text-red-500">{error}</p>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-white mb-1.5 md:mb-2">
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
               Payment Method
             </label>
             {hasAnyPaymentMethod ? (
-              <div className="grid grid-cols-3 gap-2.5 pt-0.5">
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
                   onClick={() => setPaymentProvider('stripe')}
                   disabled={!isStripeConfigured || isCreatingPayment}
-                  className={`min-h-[44px] px-2 py-2 text-xs sm:text-sm font-medium rounded-lg border transition-all ${
+                  className={`px-3 py-2.5 text-sm font-medium rounded-lg border transition-all ${
                     paymentProvider === 'stripe' && isStripeConfigured
-                      ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_0_1px_rgba(96,165,250,0.35),0_8px_24px_rgba(37,99,235,0.25)]'
+                      ? 'bg-blue-600 border-blue-500 text-white shadow-sm'
                       : !isStripeConfigured
-                      ? 'bg-slate-800/60 border-slate-700 text-slate-500 cursor-not-allowed opacity-50'
-                      : 'bg-[#0f172a] border-slate-600 text-gray-300 hover:border-slate-500'
+                      ? 'bg-muted border-border text-muted-foreground cursor-not-allowed opacity-50'
+                      : 'bg-background border-border text-foreground hover:border-border/80'
                   }`}
                 >
                   Stripe
-                  {!isStripeConfigured && (
-                    <div className="text-[10px] md:text-xs text-slate-500 mt-0.5">Configure first</div>
-                  )}
                 </button>
                 <button
                   type="button"
                   onClick={() => setPaymentProvider('venmo')}
                   disabled={!isVenmoConfigured || isCreatingPayment}
-                  className={`min-h-[44px] px-2 py-2 text-xs sm:text-sm font-medium rounded-lg border transition-all ${
+                  className={`px-3 py-2.5 text-sm font-medium rounded-lg border transition-all ${
                     paymentProvider === 'venmo' && isVenmoConfigured
-                      ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_0_1px_rgba(96,165,250,0.35),0_8px_24px_rgba(37,99,235,0.25)]'
+                      ? 'bg-blue-600 border-blue-500 text-white shadow-sm'
                       : !isVenmoConfigured
-                      ? 'bg-slate-800/60 border-slate-700 text-slate-500 cursor-not-allowed opacity-50'
-                      : 'bg-[#0f172a] border-slate-600 text-gray-300 hover:border-slate-500'
+                      ? 'bg-muted border-border text-muted-foreground cursor-not-allowed opacity-50'
+                      : 'bg-background border-border text-foreground hover:border-border/80'
                   }`}
                 >
                   Venmo
-                  {!isVenmoConfigured && (
-                    <div className="text-[10px] md:text-xs text-slate-500 mt-0.5">Configure first</div>
-                  )}
                 </button>
                 <button
                   type="button"
                   onClick={() => setPaymentProvider('paypal')}
                   disabled={!isPaypalConfigured || isCreatingPayment}
-                  className={`min-h-[44px] px-2 py-2 text-xs sm:text-sm font-medium rounded-lg border transition-all ${
+                  className={`px-3 py-2.5 text-sm font-medium rounded-lg border transition-all ${
                     paymentProvider === 'paypal' && isPaypalConfigured
-                      ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_0_1px_rgba(96,165,250,0.35),0_8px_24px_rgba(37,99,235,0.25)]'
+                      ? 'bg-blue-600 border-blue-500 text-white shadow-sm'
                       : !isPaypalConfigured
-                      ? 'bg-slate-800/60 border-slate-700 text-slate-500 cursor-not-allowed opacity-50'
-                      : 'bg-[#0f172a] border-slate-600 text-gray-300 hover:border-slate-500'
+                      ? 'bg-muted border-border text-muted-foreground cursor-not-allowed opacity-50'
+                      : 'bg-background border-border text-foreground hover:border-border/80'
                   }`}
                 >
                   PayPal
-                  {!isPaypalConfigured && (
-                    <div className="text-[10px] md:text-xs text-slate-500 mt-0.5">Configure first</div>
-                  )}
                 </button>
               </div>
             ) : (
-              <div className="p-3 md:p-4 bg-yellow-900/20 border border-yellow-700/50 rounded-lg">
-                <p className="text-sm text-yellow-200 mb-2 md:mb-3">
-                  No payment methods have been configured yet.
-                </p>
-                <p className="text-sm text-yellow-200 mb-2 md:mb-3">
-                  Connect Stripe, Venmo, or PayPal in your account settings to start accepting payments.
+              <div className="p-3 bg-muted/50 border border-border rounded-lg">
+                <p className="text-sm text-foreground mb-2">
+                  No payment methods configured.
                 </p>
                 <button
                   onClick={() => {
                     window.location.href = '/dashboard/settings#payments'
                     onClose()
                   }}
-                  className="px-3 py-1.5 md:px-4 md:py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                  className="text-sm text-blue-600 dark:text-blue-400 hover:underline font-medium"
                 >
-                  Configure Payment Methods
+                  Configure in Settings →
                 </button>
               </div>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-white mb-1.5 md:mb-2">
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">
               Description
             </label>
             <textarea
               value={paymentDescription}
               onChange={(e) => setPaymentDescription(e.target.value)}
-              placeholder="Service payment"
+              placeholder="What is this payment for?"
               rows={2}
               disabled={isCreatingPayment}
-              className="w-full px-3 py-2 min-h-[76px] border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-[#0f172a] text-white resize-none disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2.5 min-h-[60px] border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-background text-foreground resize-none disabled:opacity-60 disabled:cursor-not-allowed"
             />
           </div>
 
           {error && (
-            <div className="p-3 bg-red-900/30 border border-red-700 rounded-lg">
-              <p className="text-sm text-red-200">{error}</p>
+            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
             </div>
           )}
         </div>

@@ -944,8 +944,15 @@ export default function LeadsPage() {
                 icon="👥"
                 iconColor="blue"
                 isInteractive={true}
-                isSelected={quickFilter === 'new'}
-                onClick={() => setQuickFilter('new')}
+                isSelected={quickFilter === 'new' && statusFilter === 'all'}
+                onClick={() => {
+                  if (quickFilter === 'new' && statusFilter === 'all') {
+                    setQuickFilter('all')
+                  } else {
+                    setQuickFilter('new')
+                    setStatusFilter('all')
+                  }
+                }}
                 ariaLabel="Filter customers needing a reply"
               />
               <StatCard
@@ -959,8 +966,15 @@ export default function LeadsPage() {
                 icon="💬"
                 iconColor="green"
                 isInteractive={true}
-                isSelected={quickFilter === 'active'}
-                onClick={() => setQuickFilter('active')}
+                isSelected={quickFilter === 'active' && statusFilter === 'all'}
+                onClick={() => {
+                  if (quickFilter === 'active' && statusFilter === 'all') {
+                    setQuickFilter('all')
+                  } else {
+                    setQuickFilter('active')
+                    setStatusFilter('all')
+                  }
+                }}
                 ariaLabel="Filter active customers"
               />
               <StatCard
@@ -974,8 +988,15 @@ export default function LeadsPage() {
                 icon="📅"
                 iconColor="slate"
                 isInteractive={true}
-                isSelected={quickFilter === 'completed'}
-                onClick={() => setQuickFilter('completed')}
+                isSelected={quickFilter === 'completed' && statusFilter === 'all'}
+                onClick={() => {
+                  if (quickFilter === 'completed' && statusFilter === 'all') {
+                    setQuickFilter('all')
+                  } else {
+                    setQuickFilter('completed')
+                    setStatusFilter('all')
+                  }
+                }}
                 ariaLabel="Filter completed customers"
               />
               <StatCard
@@ -990,7 +1011,13 @@ export default function LeadsPage() {
                 iconColor="orange"
                 isInteractive={true}
                 isSelected={quickFilter === 'ignored'}
-                onClick={() => setQuickFilter('ignored')}
+                onClick={() => {
+                  if (quickFilter === 'ignored') {
+                    setQuickFilter('all')
+                  } else {
+                    setQuickFilter('ignored')
+                  }
+                }}
                 ariaLabel="Filter ignored customers"
               />
             </div>
@@ -1009,73 +1036,35 @@ export default function LeadsPage() {
               </div>
             </div>
 
-            {/* Full-width Search */}
+            {/* Search, Filter, and Overflow - single line layout */}
             <div className="mb-4">
-              <div className="relative">
-                <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search customers..."
-                  className="w-full pl-11 pr-4 py-2.5 bg-background border border-border/50 rounded-lg text-sm text-foreground placeholder:text-muted-foreground/60 focus:ring-2 focus:ring-blue-500/40 focus:border-transparent focus:outline-none transition-all"
-                />
-              </div>
-            </div>
+              <div className="flex items-center gap-2">
+                {/* Search input */}
+                <div className="relative flex-1">
+                  <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search customers..."
+                    className="w-full pl-11 pr-4 py-2.5 bg-background border border-border/50 rounded-lg text-sm text-foreground placeholder:text-muted-foreground/60 focus:ring-2 focus:ring-blue-500/40 focus:border-transparent focus:outline-none transition-all"
+                  />
+                </div>
 
-            {/* Quick Filter Pills - strict mobile layout, horizontal scroll on desktop */}
-            <div className="flex items-center gap-2 mb-4 overflow-hidden sm:overflow-x-auto sm:scrollbar-hide">
-              <button
-                onClick={() => setQuickFilter('all')}
-                className={`
-                  inline-flex items-center gap-2 px-2.5 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap min-w-0
-                  ${quickFilter === 'all'
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'bg-transparent border border-border/40 text-muted-foreground/70 hover:bg-muted/40 hover:border-border/60 hover:text-muted-foreground'
-                  }
-                `}
-              >
-                <span className="truncate">All</span> <span className="opacity-60 text-xs">({leads.filter(l => !l.deleted_at).length})</span>
-              </button>
-              <button
-                onClick={() => setQuickFilter('active')}
-                className={`
-                  inline-flex items-center gap-2 px-2.5 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap min-w-0
-                  ${quickFilter === 'active'
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'bg-transparent border border-border/40 text-muted-foreground/70 hover:bg-muted/40 hover:border-border/60 hover:text-muted-foreground'
-                  }
-                `}
-              >
-                <span className="truncate">Active</span> <span className="opacity-60 text-xs">({leadStatusCounts.active})</span>
-              </button>
-              <button
-                onClick={() => setQuickFilter('new')}
-                className={`
-                  inline-flex items-center gap-2 px-2.5 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap min-w-0
-                  ${quickFilter === 'new'
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'bg-transparent border border-border/40 text-muted-foreground/70 hover:bg-muted/40 hover:border-border/60 hover:text-muted-foreground'
-                  }
-                `}
-              >
-                <span className="truncate">Needs Reply</span> <span className="opacity-60 text-xs">({leadStatusCounts.new})</span>
-              </button>
-
-              {/* Filter dropdown button */}
-              <div className="shrink-0">
+                {/* Filter dropdown button */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      className="h-9 w-9 inline-flex items-center justify-center bg-background border border-border/50 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
-                      title="Filter options"
+                      className="h-10 px-3 inline-flex items-center justify-center gap-2 bg-background border border-border/50 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all whitespace-nowrap"
+                      title="Filter by status"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L15 12.414V19a1 1 0 01-1.447.894l-2-1A1 1 0 0111 18v-5.586L3.293 6.707A1 1 0 013 6V4z" />
                       </svg>
+                      <span className="hidden sm:inline">Filter</span>
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuPortal>
@@ -1083,77 +1072,167 @@ export default function LeadsPage() {
                       align="end"
                       side="bottom"
                       sideOffset={8}
-                      collisionPadding={12}
+                      collisionPadding={{
+                        top: 12,
+                        right: 12,
+                        bottom: 80,
+                        left: 12,
+                      }}
                       avoidCollisions
-                      className="w-[180px] max-w-[calc(100vw-24px)] bg-card border border-border/50 rounded-lg shadow-xl shadow-black/10 dark:shadow-black/30 z-[10000]"
+                      className="w-[200px] max-w-[calc(100vw-24px)] max-h-[min(400px,calc(100dvh-140px))] bg-card border border-border/50 rounded-lg shadow-xl shadow-black/10 dark:shadow-black/30 z-[10000] overflow-y-auto overscroll-contain"
                     >
-                      <DropdownMenuItem
-                        onClick={() => setQuickFilter('all')}
-                        className="w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer"
-                      >
-                        <span className="text-sm text-foreground">All</span>
-                        {quickFilter === 'all' && (
-                          <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => setQuickFilter('active')}
-                        className="w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer"
-                      >
-                        <span className="text-sm text-foreground">Active</span>
-                        {quickFilter === 'active' && (
-                          <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => setQuickFilter('new')}
-                        className="w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer"
-                      >
-                        <span className="text-sm text-foreground">Needs Reply</span>
-                        {quickFilter === 'new' && (
-                          <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => setQuickFilter('completed')}
-                        className="w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer"
-                      >
-                        <span className="text-sm text-foreground">Completed</span>
-                        {quickFilter === 'completed' && (
-                          <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => setQuickFilter('ignored')}
-                        className="w-full px-3 py-2 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer"
-                      >
-                        <span className="text-sm text-foreground">Ignored</span>
-                        {quickFilter === 'ignored' && (
-                          <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        )}
-                      </DropdownMenuItem>
+                      <div className="px-2.5 py-1.5">
+                        <div className="px-0.5 py-0.5 text-[9px] font-medium text-muted-foreground/50 uppercase tracking-[0.12em]">
+                          Filter by Status
+                        </div>
+                      </div>
+                      <div className="px-1 py-1 space-y-0.5">
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setQuickFilter('all')
+                            setStatusFilter('all')
+                          }}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          className="w-full px-2 py-1.5 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer rounded-md min-h-[36px]"
+                        >
+                          <span className="text-sm text-foreground">All</span>
+                          {quickFilter === 'all' && statusFilter === 'all' && (
+                            <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setQuickFilter('active')
+                            setStatusFilter('all')
+                          }}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          className="w-full px-2 py-1.5 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer rounded-md min-h-[36px]"
+                        >
+                          <span className="text-sm text-foreground">Active</span>
+                          {quickFilter === 'active' && statusFilter === 'all' && (
+                            <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setQuickFilter('new')
+                            setStatusFilter('all')
+                          }}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          className="w-full px-2 py-1.5 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer rounded-md min-h-[36px]"
+                        >
+                          <span className="text-sm text-foreground">Needs Reply</span>
+                          {quickFilter === 'new' && statusFilter === 'all' && (
+                            <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setStatusFilter('scheduled')
+                            setQuickFilter('all')
+                          }}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          className="w-full px-2 py-1.5 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer rounded-md min-h-[36px]"
+                        >
+                          <span className="text-sm text-foreground">Scheduled</span>
+                          {statusFilter === 'scheduled' && (
+                            <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setStatusFilter('payment_requested')
+                            setQuickFilter('all')
+                          }}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          className="w-full px-2 py-1.5 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer rounded-md min-h-[36px]"
+                        >
+                          <span className="text-sm text-foreground">Payment Requested</span>
+                          {statusFilter === 'payment_requested' && (
+                            <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setStatusFilter('paid')
+                            setQuickFilter('all')
+                          }}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          className="w-full px-2 py-1.5 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer rounded-md min-h-[36px]"
+                        >
+                          <span className="text-sm text-foreground">Paid</span>
+                          {statusFilter === 'paid' && (
+                            <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setStatusFilter('completed')
+                            setQuickFilter('all')
+                          }}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          className="w-full px-2 py-1.5 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer rounded-md min-h-[36px]"
+                        >
+                          <span className="text-sm text-foreground">Completed</span>
+                          {statusFilter === 'completed' && (
+                            <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setStatusFilter('lost')
+                            setQuickFilter('all')
+                          }}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          className="w-full px-2 py-1.5 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer rounded-md min-h-[36px]"
+                        >
+                          <span className="text-sm text-foreground">Lost</span>
+                          {statusFilter === 'lost' && (
+                            <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setQuickFilter('ignored')
+                            setStatusFilter('all')
+                          }}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          className="w-full px-2 py-1.5 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer rounded-md min-h-[36px]"
+                        >
+                          <span className="text-sm text-foreground">Ignored</span>
+                          {quickFilter === 'ignored' && (
+                            <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </DropdownMenuItem>
+                      </div>
                     </DropdownMenuContent>
                   </DropdownMenuPortal>
                 </DropdownMenu>
-              </div>
 
-              {/* Overflow menu for secondary actions */}
-              <div className="ml-auto shrink-0">
+                {/* Overflow menu for secondary actions */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      className="h-9 w-9 inline-flex items-center justify-center bg-background border border-border/50 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
+                      className="h-10 w-10 inline-flex items-center justify-center bg-background border border-border/50 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
                       title="More options"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

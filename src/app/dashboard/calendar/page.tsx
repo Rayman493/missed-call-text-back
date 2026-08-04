@@ -168,15 +168,14 @@ function MeetingsTab({
         </button>
       </div>
       {todays.length === 0 && later.length === 0 && recentlyCompleted.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-sm text-muted-foreground mb-2">Nothing scheduled today.</p>
-          <p className="text-xs text-muted-foreground/70 mb-4">Enjoy the open calendar or add an appointment.</p>
-          <button
-            onClick={onNewMeeting}
-            className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            New Appointment
-          </button>
+        <div className="bg-muted/30 rounded-xl border border-border/20 p-8 text-center">
+          <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+            <CalendarIcon className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <h3 className="text-sm font-semibold text-foreground mb-2">No meetings scheduled</h3>
+          <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+            Appointments you create or sync from Google Calendar will appear here.
+          </p>
         </div>
       ) : (
         <>
@@ -366,30 +365,14 @@ export default function SchedulePage() {
       const isClickInsideDesktopMenu = desktopCalendarOverflowRef.current?.contains(target)
       const isClickInsideMobileButton = mobileCalendarOverflowButtonRef.current?.contains(target)
       const isClickInsideMobileMenu = mobileCalendarOverflowRef.current?.contains(target)
-      const targetTag = target instanceof HTMLElement ? target.tagName : 'unknown'
-      const targetRole = target instanceof HTMLElement ? target.getAttribute('role') : null
-      
-      console.log('[google_menu_document_mousedown]', {
-        event: 'mousedown',
-        targetTag,
-        targetRole,
-        isClickInsideDesktopButton,
-        isClickInsideDesktopMenu,
-        isClickInsideMobileButton,
-        isClickInsideMobileMenu,
-        menuOpen: isCalendarOverflowOpen,
-        defaultPrevented: event.defaultPrevented
-      })
-      
+
       if (!isClickInsideDesktopButton && !isClickInsideDesktopMenu && !isClickInsideMobileButton && !isClickInsideMobileMenu) {
-        console.log('[google_menu_closed] source: document_mousedown')
         setIsCalendarOverflowOpen(false)
       }
     }
 
     const handleEscapeKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        console.log('[google_menu_closed] source: escape')
         setIsCalendarOverflowOpen(false)
       }
     }
@@ -455,16 +438,13 @@ export default function SchedulePage() {
   }
 
   const handleDisconnectCalendar = async () => {
-    console.log('[google_disconnect_click] Opening confirmation dialog')
     setIsDisconnectConfirmOpen(true)
   }
 
   const confirmDisconnectCalendar = async () => {
-    console.log('[google_disconnect_confirmation_opened] User confirmed disconnect')
     setIsDisconnectConfirmOpen(false)
     setIsDisconnecting(true)
     try {
-      console.log('[google_disconnect_request_started] Calling disconnect API')
       const response = await fetch('/api/google/calendar/disconnect', {
         method: 'POST',
         credentials: 'include',
@@ -472,23 +452,19 @@ export default function SchedulePage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Failed to disconnect calendar' }))
-        console.error('[google_disconnect_request_failed] API error:', errorData)
         throw new Error(errorData.error || 'Failed to disconnect calendar')
       }
 
-      console.log('[google_disconnect_request_succeeded] API call successful')
       setCalendarConnected(false)
       setCalendarEmail(null)
       setEvents([])
       setLastSyncTime(null)
       setTokenExpired(false)
-      console.log('[google_disconnect_state_refreshed] UI state updated')
       showToast('Calendar disconnected successfully', 'success')
-      
+
       // Refresh connection status to ensure consistency
       await fetchCalendarStatus()
     } catch (error) {
-      console.error('[google_disconnect_request_failed] Error:', error)
       showToast('Failed to disconnect calendar', 'error')
     } finally {
       setIsDisconnecting(false)
@@ -502,7 +478,7 @@ export default function SchedulePage() {
     const month = currentMonth.getMonth()
     const clickedDate = new Date(year, month, day)
     setSelectedDay(clickedDate)
-    setIsDayDetailOpen(true)
+    setIsDayDetailOpen(false) // Don't open modal, show events inline instead
   }
 
   const getTodayKey = () => {
@@ -1306,22 +1282,7 @@ export default function SchedulePage() {
                                 >
                                   <button
                                     type="button"
-                                    onPointerDown={(e) => {
-                                      console.log('[google_menu_item_sync_pointerdown]', {
-                                        event: 'pointerdown',
-                                        targetTag: (e.target as HTMLElement).tagName,
-                                        currentTargetTag: (e.currentTarget as HTMLElement).tagName,
-                                        menuOpen: isCalendarOverflowOpen
-                                      })
-                                    }}
                                     onClick={(e) => {
-                                      console.log('[google_menu_item_sync_click]', {
-                                        event: 'click',
-                                        targetTag: (e.target as HTMLElement).tagName,
-                                        currentTargetTag: (e.currentTarget as HTMLElement).tagName,
-                                        menuOpen: isCalendarOverflowOpen,
-                                        defaultPrevented: e.defaultPrevented
-                                      })
                                       setIsCalendarOverflowOpen(false)
                                       handleSync()
                                     }}
@@ -1343,22 +1304,7 @@ export default function SchedulePage() {
                                   <div className="border-t border-border/40 my-1"></div>
                                   <button
                                     type="button"
-                                    onPointerDown={(e) => {
-                                      console.log('[google_menu_item_disconnect_pointerdown]', {
-                                        event: 'pointerdown',
-                                        targetTag: (e.target as HTMLElement).tagName,
-                                        currentTargetTag: (e.currentTarget as HTMLElement).tagName,
-                                        menuOpen: isCalendarOverflowOpen
-                                      })
-                                    }}
                                     onClick={(e) => {
-                                      console.log('[google_menu_item_disconnect_click]', {
-                                        event: 'click',
-                                        targetTag: (e.target as HTMLElement).tagName,
-                                        currentTargetTag: (e.currentTarget as HTMLElement).tagName,
-                                        menuOpen: isCalendarOverflowOpen,
-                                        defaultPrevented: e.defaultPrevented
-                                      })
                                       setIsCalendarOverflowOpen(false)
                                       handleDisconnectCalendar()
                                     }}
@@ -1487,22 +1433,7 @@ export default function SchedulePage() {
                                 >
                                     <button
                                       type="button"
-                                      onPointerDown={(e) => {
-                                        console.log('[google_menu_item_sync_pointerdown]', {
-                                          event: 'pointerdown',
-                                          targetTag: (e.target as HTMLElement).tagName,
-                                          currentTargetTag: (e.currentTarget as HTMLElement).tagName,
-                                          menuOpen: isCalendarOverflowOpen
-                                        })
-                                      }}
                                       onClick={(e) => {
-                                        console.log('[google_menu_item_sync_click]', {
-                                          event: 'click',
-                                          targetTag: (e.target as HTMLElement).tagName,
-                                          currentTargetTag: (e.currentTarget as HTMLElement).tagName,
-                                          menuOpen: isCalendarOverflowOpen,
-                                          defaultPrevented: e.defaultPrevented
-                                        })
                                         setIsCalendarOverflowOpen(false)
                                         handleSync()
                                       }}
@@ -1524,22 +1455,7 @@ export default function SchedulePage() {
                                     <div className="border-t border-border/40 my-1"></div>
                                     <button
                                       type="button"
-                                      onPointerDown={(e) => {
-                                        console.log('[google_menu_item_disconnect_pointerdown]', {
-                                          event: 'pointerdown',
-                                          targetTag: (e.target as HTMLElement).tagName,
-                                          currentTargetTag: (e.currentTarget as HTMLElement).tagName,
-                                          menuOpen: isCalendarOverflowOpen
-                                        })
-                                      }}
                                       onClick={(e) => {
-                                        console.log('[google_menu_item_disconnect_click]', {
-                                          event: 'click',
-                                          targetTag: (e.target as HTMLElement).tagName,
-                                          currentTargetTag: (e.currentTarget as HTMLElement).tagName,
-                                          menuOpen: isCalendarOverflowOpen,
-                                          defaultPrevented: e.defaultPrevented
-                                        })
                                         setIsCalendarOverflowOpen(false)
                                         handleDisconnectCalendar()
                                       }}
@@ -1574,44 +1490,120 @@ export default function SchedulePage() {
                             <CalendarGrid
                               month={currentMonth}
                               events={visibleMonthEvents}
+                              selectedDay={selectedDay}
                               onPreviousMonth={goToPreviousMonth}
                               onNextMonth={goToNextMonth}
                               onToday={goToToday}
                               onAddEvent={handleAddEvent}
                               onDayClick={handleDayClick}
-                              renderEvent={(event, day) => (
-                                <EventPill
-                                  title={event.summary}
-                                  time={isAllDay(event.start) ? undefined : formatDate(event.start.dateTime)}
-                                  endTime={isAllDay(event.start) ? undefined : formatDate(event.end.dateTime)}
-                                  isHoliday={event.isHoliday}
-                                  source={event.source === 'holiday' ? 'holiday' : 'primary'}
-                                  onClick={() => {
-                                    setSelectedEvent(event)
-                                    setSelectedDay(null)
-                                    setIsEventDetailsOpen(true)
-                                  }}
-                                />
-                              )}
-                              renderExtraContent={(date) => {
-                                const dayJobs = getJobsForDay(date)
-                                return dayJobs.length > 0 ? (
-                                  <div className="mt-0.5 space-y-0.5">
-                                    {dayJobs.slice(0, 2).map(job => (
-                                      <JobPill
-                                        key={job.id}
-                                        job={job}
-                                        onClick={(j) => { setSelectedJob(j); setIsJobDetailsOpen(true) }}
-                                      />
-                                    ))}
-                                    {dayJobs.length > 2 && (
-                                      <p className="text-[9px] text-slate-500 dark:text-slate-400 pl-1">+{dayJobs.length - 2} more</p>
-                                    )}
-                                  </div>
-                                ) : null
-                              }}
                             />
                           </div>
+
+                          {/* Selected Day Events - shown inline below calendar */}
+                          {selectedDay && (
+                            <div className="order-2 bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6">
+                              <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-base font-semibold text-foreground">
+                                  {selectedDay.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                                </h3>
+                                <button
+                                  onClick={() => setSelectedDay(null)}
+                                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                  Close
+                                </button>
+                              </div>
+
+                              {/* Events for selected day */}
+                              {(() => {
+                                const dayEvents = getEventsForDay(selectedDay)
+                                const dayJobs = getJobsForDay(selectedDay)
+
+                                if (dayEvents.length === 0 && dayJobs.length === 0) {
+                                  return (
+                                    <div className="text-center py-8">
+                                      <p className="text-sm text-muted-foreground">No events scheduled</p>
+                                      <button
+                                        onClick={() => handleAddEvent(selectedDay)}
+                                        className="mt-3 inline-flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
+                                      >
+                                        <Plus className="w-3.5 h-3.5" />
+                                        Add Appointment
+                                      </button>
+                                    </div>
+                                  )
+                                }
+
+                                return (
+                                  <div className="space-y-3">
+                                    {dayEvents.map(event => (
+                                      <div
+                                        key={event.id}
+                                        className="rounded-lg border border-border/50 bg-card p-3 sm:p-4 flex flex-col gap-2 cursor-pointer hover:bg-muted/50 transition-all duration-200"
+                                        onClick={() => {
+                                          setSelectedEvent(event)
+                                          setSelectedDay(null)
+                                          setIsEventDetailsOpen(true)
+                                        }}
+                                      >
+                                        <div className="flex items-start justify-between gap-2">
+                                          <div className="flex-1 min-w-0">
+                                            <h4 className="text-sm font-semibold text-foreground line-clamp-2">{event.summary}</h4>
+                                            <div className="text-xs text-muted-foreground mt-1">
+                                              {isAllDay(event.start) ? 'All day' : formatDate(event.start.dateTime)}
+                                            </div>
+                                            {event.location && (
+                                              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                                                <MapPin className="w-3 h-3" />
+                                                <span className="line-clamp-1">{event.location}</span>
+                                              </div>
+                                            )}
+                                          </div>
+                                          {event.meetingUrl && (
+                                            <a
+                                              href={event.meetingUrl}
+                                              target="_blank"
+                                              rel="noreferrer"
+                                              onClick={e => e.stopPropagation()}
+                                              className="text-[10px] px-2 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-center transition-colors flex-shrink-0"
+                                            >
+                                              Join
+                                            </a>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ))}
+                                    {dayJobs.map(job => (
+                                      <div
+                                        key={job.id}
+                                        className="rounded-lg border border-border/50 bg-card p-3 sm:p-4 flex flex-col gap-2 cursor-pointer hover:bg-muted/50 transition-all duration-200"
+                                        onClick={() => {
+                                          setSelectedJob(job)
+                                          setIsJobDetailsOpen(true)
+                                        }}
+                                      >
+                                        <div className="flex items-start justify-between gap-2">
+                                          <div className="flex-1 min-w-0">
+                                            <h4 className="text-sm font-semibold text-foreground line-clamp-2">{job.title}</h4>
+                                            <div className="text-xs text-muted-foreground mt-1">
+                                              {job.scheduled_date ? new Date(job.scheduled_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : 'No date'}
+                                            </div>
+                                          </div>
+                                          <span className={`text-[10px] px-2 py-1 rounded-full flex-shrink-0 ${
+                                            job.status === 'completed' ? 'bg-green-600/20 text-green-300' :
+                                            job.status === 'in_progress' ? 'bg-blue-600/20 text-blue-300' :
+                                            'bg-slate-600/20 text-slate-300'
+                                          }`}>
+                                            {job.status.replace('_', ' ')}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )
+                              })()}
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <div>

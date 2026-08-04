@@ -307,18 +307,10 @@ export default function ForwardingHelpCenter({ phoneNumber }: ForwardingHelpCent
           Calls forwarded here are handled by ReplyFlow.
         </p>
         <div className="pl-8.5">
-          <div className="flex items-center gap-2 sm:gap-3 p-4 bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.05)_inset] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset]">
-            <code className="flex-1 text-sm sm:text-base sm:text-lg font-mono font-semibold text-foreground tracking-wide tabular-nums">
+          <div className="p-4 bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.05)_inset] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset]">
+            <code className="text-sm sm:text-base sm:text-lg font-mono font-semibold text-foreground tracking-wide tabular-nums">
               {formattedTwilioNumber}
             </code>
-            <button
-              onClick={handleCopyNumber}
-              className="inline-flex items-center gap-1.5 px-3 py-2.5 sm:px-3 sm:py-2.5 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg text-xs font-medium transition-colors"
-              title="Copy number"
-            >
-              {copiedNumber ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-              {copiedNumber ? 'Copied' : 'Copy'}
-            </button>
           </div>
         </div>
       </section>

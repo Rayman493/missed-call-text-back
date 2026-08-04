@@ -10,7 +10,8 @@ interface CalendarGridProps {
     start: { dateTime?: string; date?: string }
     end?: { dateTime?: string; date?: string }
   }>
-  renderEvent: (event: any, day: Date) => ReactNode
+  selectedDay?: Date | null
+  renderEvent?: (event: any, day: Date) => ReactNode
   renderExtraContent?: (date: Date) => ReactNode
   onPreviousMonth?: () => void
   onNextMonth?: () => void
@@ -19,9 +20,10 @@ interface CalendarGridProps {
   onDayClick?: (day: number, isCurrentMonth: boolean) => void
 }
 
-export default function CalendarGrid({ 
-  month, 
-  events, 
+export default function CalendarGrid({
+  month,
+  events,
+  selectedDay,
   renderEvent,
   renderExtraContent,
   onPreviousMonth,
@@ -95,20 +97,20 @@ export default function CalendarGrid({
   }
 
   const getEventsForDay = (dayNumber: number, isCurrentMonth: boolean) => {
-    if (!isCurrentMonth) return { events: [], overflowCount: 0 }
-    
+    if (!isCurrentMonth) return { eventCount: 0, hasEvents: false }
+
     // Create day key for comparison (YYYY-MM-DD)
     const dayKey = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}`
-    
+
     const allMatchedEvents = events.filter(event => {
       const eventDateRaw = event.start?.dateTime || event.start?.date
       if (!eventDateRaw) return false
-      
+
       // Normalize event start date to YYYY-MM-DD string
       const eventStartDayKey = eventDateRaw.includes('T')
         ? eventDateRaw.split('T')[0]
         : eventDateRaw
-      
+
       // Check if event has an end date (for multi-day events)
       const eventEndRaw = event.end?.dateTime || event.end?.date
       if (eventEndRaw) {
@@ -116,32 +118,27 @@ export default function CalendarGrid({
         const eventEndDayKey = eventEndRaw.includes('T')
           ? eventEndRaw.split('T')[0]
           : eventEndRaw
-        
+
         // For all-day events, Google Calendar uses exclusive end dates
         // Example: June 19-23 comes as start.date = 2026-06-19, end.date = 2026-06-24
         // For timed events, the end date is inclusive
         const isAllDay = !event.start?.dateTime && !!event.start?.date
-        const effectiveEndDate = isAllDay 
+        const effectiveEndDate = isAllDay
           ? new Date(eventEndDayKey).getTime() - 86400000 // Subtract 1 day for exclusive end
           : new Date(eventEndDayKey).getTime()
-        
+
         const dayTimestamp = new Date(dayKey).getTime()
         const startTimestamp = new Date(eventStartDayKey).getTime()
-        
+
         // Check if current day falls within the event's date range
         return dayTimestamp >= startTimestamp && dayTimestamp <= effectiveEndDate
       }
-      
+
       // Single-day event: check if start date matches
       return eventStartDayKey === dayKey
     })
-    
-    // Limit visible events based on screen size
-    // Uses SSR-safe state instead of render-time window access
-    const visibleEvents = allMatchedEvents.slice(0, maxVisible)
-    const overflowCount = Math.max(0, allMatchedEvents.length - maxVisible)
-    
-    return { events: visibleEvents, overflowCount }
+
+    return { eventCount: allMatchedEvents.length, hasEvents: allMatchedEvents.length > 0 }
   }
 
   const formatDate = (dateStr: string | undefined) => {
@@ -155,22 +152,22 @@ export default function CalendarGrid({
   }
 
   return (
-    <div className="w-full bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm overflow-hidden">
+    <div className="w-full bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm overflow-hidden overflow-x-hidden">
       <div className="sticky top-0 z-10 bg-white dark:bg-slate-900/60 backdrop-blur-sm p-1.5 sm:p-3 md:p-4 border-b border-slate-200/70 dark:border-slate-700/50">
         <div className="flex items-center justify-between gap-2">
           <button
             onClick={onPreviousMonth}
-            className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors active:scale-95"
+            className="min-w-[44px] min-h-[44px] w-10 h-10 md:w-11 md:h-11 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors active:scale-95"
             aria-label="Previous month"
           >
             <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-400" />
           </button>
-          <h2 className="text-sm sm:text-xl md:text-2xl font-semibold text-slate-900 dark:text-foreground">
+          <h2 className="text-sm sm:text-xl md:text-2xl font-semibold text-slate-900 dark:text-foreground truncate">
             {month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
           </h2>
           <button
             onClick={onNextMonth}
-            className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors active:scale-95"
+            className="min-w-[44px] min-h-[44px] w-10 h-10 md:w-11 md:h-11 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors active:scale-95"
             aria-label="Next month"
           >
             <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-slate-600 dark:text-slate-400" />
@@ -179,7 +176,7 @@ export default function CalendarGrid({
             {onToday && (
               <button
                 onClick={onToday}
-                className="px-2 py-1 sm:px-3 sm:py-1.5 text-[10px] sm:text-xs md:text-sm font-medium bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-full transition-colors active:scale-95 hidden sm:block"
+                className="min-h-[44px] px-3 py-2 sm:px-3 sm:py-1.5 text-[10px] sm:text-xs md:text-sm font-medium bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-full transition-colors active:scale-95 hidden sm:block"
               >
                 Today
               </button>
@@ -192,7 +189,7 @@ export default function CalendarGrid({
         {/* Day headers */}
         <div className="grid grid-cols-7 gap-0.5 sm:gap-1 md:gap-2 mb-1 md:mb-2">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-            <div key={day} className="text-[10px] sm:text-[11px] md:text-xs font-semibold text-slate-500 dark:text-slate-400 text-center py-1 md:py-2.5">
+            <div key={day} className="text-[10px] sm:text-[11px] md:text-xs font-semibold text-slate-500 dark:text-slate-400 text-center py-1 md:py-2.5 truncate">
               {day}
             </div>
           ))}
@@ -201,16 +198,19 @@ export default function CalendarGrid({
       {/* Calendar grid */}
       <div className="grid grid-cols-7 gap-0.5 sm:gap-1 md:gap-2">
         {days.map((dayInfo, index) => {
-          const { events: dayEvents, overflowCount } = getEventsForDay(dayInfo.day, dayInfo.isCurrentMonth)
+          const { eventCount, hasEvents } = getEventsForDay(dayInfo.day, dayInfo.isCurrentMonth)
           const dayDate = dayInfo.isCurrentMonth ? new Date(year, monthIndex, dayInfo.day) : null
-          
+
           // Calculate if this is a weekend (Saturday or Sunday)
           // Grid starts with Sunday (index 0), so:
           // Sunday: index % 7 === 0
           // Saturday: index % 7 === 6
           const isWeekend = index % 7 === 0 || index % 7 === 6
-          
-          const extraContent = dayDate && renderExtraContent ? renderExtraContent(dayDate) : null
+
+          // Check if this day is selected
+          const isSelected = selectedDay && dayDate
+            ? dayDate.toDateString() === selectedDay.toDateString()
+            : false
 
           return (
             <CalendarDayCell
@@ -218,16 +218,10 @@ export default function CalendarGrid({
               day={dayInfo.day}
               isCurrentMonth={dayInfo.isCurrentMonth}
               isToday={dayInfo.isToday}
+              isSelected={isSelected}
               isWeekend={isWeekend}
-              events={
-                (dayEvents.length > 0 || extraContent) ? (
-                  <>
-                    {dayEvents.map((event: any) => renderEvent(event, dayDate!))}
-                    {extraContent}
-                  </>
-                ) : null
-              }
-              overflowCount={overflowCount}
+              eventCount={eventCount}
+              hasEvents={hasEvents}
               onClick={() => onDayClick?.(dayInfo.day, dayInfo.isCurrentMonth)}
             />
           )

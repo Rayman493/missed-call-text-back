@@ -1094,19 +1094,19 @@ export default function DashboardContent() {
                 {/* Telecom-active sections: only render once the user has started a trial/subscription. */}
                 {hasActiveSubscription(business) ? (
                   <>
-                    {/* ReplyFlow Performance Card */}
-                    <SectionErrorBoundary sectionName="ReplyFlowPerformanceCard">
-                      <ReplyFlowPerformanceCard />
-                    </SectionErrorBoundary>
-
-                    {/* Dashboard Metrics - De-emphasize when forwarding is not verified */}
+                    {/* Dashboard Metrics - Snapshot - De-emphasize when forwarding is not verified */}
                     <SectionErrorBoundary sectionName="DashboardMetrics">
                       <div className={`transition-opacity duration-300 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
                         <DashboardMetrics business={business} />
                       </div>
                     </SectionErrorBoundary>
 
-                    {/* Latest Customer Section - De-emphasize when forwarding is not verified */}
+                    {/* ReplyFlow Performance Card - Trends */}
+                    <SectionErrorBoundary sectionName="ReplyFlowPerformanceCard">
+                      <ReplyFlowPerformanceCard />
+                    </SectionErrorBoundary>
+
+                    {/* Latest Customer Section - Recent Customers - De-emphasize when forwarding is not verified */}
                     <SectionErrorBoundary sectionName="RecentLeadsSection">
                       <div className={`transition-opacity duration-300 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
                         {business?.id && (
@@ -1121,7 +1121,7 @@ export default function DashboardContent() {
                       </div>
                     </SectionErrorBoundary>
 
-                    {/* Recent Activity Card - De-emphasize when forwarding is not verified */}
+                    {/* Recent Activity Card - Upcoming Schedule - De-emphasize when forwarding is not verified */}
                     <SectionErrorBoundary sectionName="RecentActivityCard">
                       <div className={`transition-opacity duration-300 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
                         <RecentActivityCard business={business} />

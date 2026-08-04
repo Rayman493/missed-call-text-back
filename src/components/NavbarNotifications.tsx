@@ -455,11 +455,11 @@ export default function NavbarNotifications() {
                     if (groupNotifications.length === 0) return null
                     
                     return (
-                      <div key={groupName} className="mb-4 last:mb-0">
-                        <div className="px-2 py-1 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      <div key={groupName} className="mb-5 last:mb-0">
+                        <div className="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wide">
                           {groupName}
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                           {groupNotifications.map((notification) => {
                             const displayName = getDisplayName(notification)
                             const displayMessage = getDisplayMessage(notification)
@@ -468,17 +468,17 @@ export default function NavbarNotifications() {
                               <div
                                 key={notification.id}
                                 onClick={() => handleNotificationClick(notification)}
-                                className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-800/50 transition-colors cursor-pointer"
+                                className="flex items-start gap-3 p-3.5 rounded-xl hover:bg-slate-800/50 transition-colors cursor-pointer"
                               >
                                 {/* Icon */}
-                                <div className={`flex-shrink-0 w-8 h-8 rounded-lg ${getNotificationColor(notification.type)} flex items-center justify-center`}>
+                                <div className={`flex-shrink-0 w-9 h-9 rounded-lg ${getNotificationColor(notification.type)} flex items-center justify-center`}>
                                   {getNotificationIcon(notification.type)}
                                 </div>
                                 
                                 {/* Content */}
                                 <div className="flex-1 min-w-0">
                                   {/* Title */}
-                                  <p className="text-sm font-medium text-slate-200 mb-0.5">
+                                  <p className="text-sm font-semibold text-slate-100 mb-0.5">
                                     {notification.title || 'Notification'}
                                   </p>
                                   
@@ -495,15 +495,15 @@ export default function NavbarNotifications() {
                                   </p>
                                   
                                   {/* Time */}
-                                  <p className="text-[10px] sm:text-xs text-slate-500 mt-1">
+                                  <p className="text-[10px] sm:text-xs text-slate-500 mt-1.5">
                                     {formatNotificationTime(notification.created_at)}
                                   </p>
                                 </div>
                                 
                                 {/* Unread indicator dot */}
                                 {!notification.read && (
-                                  <div className="flex-shrink-0 mt-1">
-                                    <div className={`w-2 h-2 rounded-full ${getNotificationDotColor(notification.type)}`}></div>
+                                  <div className="flex-shrink-0 mt-1.5">
+                                    <div className={`w-2.5 h-2.5 rounded-full ${getNotificationDotColor(notification.type)}`}></div>
                                   </div>
                                 )}
                               </div>

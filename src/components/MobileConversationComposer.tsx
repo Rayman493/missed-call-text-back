@@ -256,11 +256,11 @@ export default function MobileConversationComposer({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200 flex-shrink-0 rounded-lg h-11 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2"
+              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200 flex-shrink-0 rounded-lg w-11 h-11 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2"
               disabled={sending}
               aria-label="Add image"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-5 h-5" />
             </button>
             <input
               ref={fileInputRef}
@@ -272,7 +272,7 @@ export default function MobileConversationComposer({
             />
 
             {/* Message Input */}
-            <div className="flex-1 relative min-w-0 overflow-hidden">
+            <div className="flex-1 relative min-w-0 overflow-hidden flex items-center">
               <textarea
                 ref={textareaRef}
                 value={message}
@@ -284,13 +284,13 @@ export default function MobileConversationComposer({
                 autoComplete="on"
                 spellCheck={true}
                 data-testid="composer-textarea-mobile"
-                className={`w-full bg-transparent border-none resize-none focus:outline-none placeholder:text-muted-foreground text-sm leading-relaxed py-2 px-1 max-h-32 text-foreground disabled:opacity-50 disabled:cursor-not-allowed ${
+                className={`w-full bg-transparent border-none resize-none focus:outline-none placeholder:text-muted-foreground text-sm leading-relaxed py-2.5 px-1 max-h-32 text-foreground disabled:opacity-50 disabled:cursor-not-allowed ${
                   isAtMaxHeight ? 'overflow-y-auto' : 'overflow-y-hidden'
                 }`}
                 rows={1}
                 style={{ 
                   fieldSizing: 'content', 
-                  minHeight: '40px',
+                  minHeight: '44px',
                   scrollbarWidth: 'none',
                   msOverflowStyle: 'none'
                 }}
@@ -316,9 +316,9 @@ export default function MobileConversationComposer({
               }`}
             >
               {sending ? (
-                <div className="w-4 h-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></div>
+                <div className="w-5 h-5 animate-spin rounded-full border-2 border-white/30 border-t-white"></div>
               ) : (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                 </svg>
               )}
@@ -334,7 +334,7 @@ export default function MobileConversationComposer({
                     aria-label="Send via alternate method"
                     disabled={sending || !(message.trim() || images.length > 0)}
                   >
-                    <ChevronDown className="w-4 h-4" />
+                    <ChevronDown className="w-5 h-5" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuPortal>

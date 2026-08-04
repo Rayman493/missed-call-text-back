@@ -50,8 +50,7 @@ export default function UpcomingAgenda({ events, maxEvents = 5, onRefresh, calen
   const groupedEvents = {
     today: [] as CalendarEvent[],
     tomorrow: [] as CalendarEvent[],
-    thisWeek: [] as CalendarEvent[],
-    later: [] as CalendarEvent[]
+    upcoming: [] as CalendarEvent[]
   }
 
   upcomingEvents.forEach(event => {
@@ -66,10 +65,8 @@ export default function UpcomingAgenda({ events, maxEvents = 5, onRefresh, calen
       groupedEvents.today.push(event)
     } else if (eventDateOnly.toDateString() === tomorrow.toDateString()) {
       groupedEvents.tomorrow.push(event)
-    } else if (eventDateOnly >= tomorrow && eventDateOnly <= endOfWeek) {
-      groupedEvents.thisWeek.push(event)
     } else {
-      groupedEvents.later.push(event)
+      groupedEvents.upcoming.push(event)
     }
   })
 
@@ -239,8 +236,7 @@ export default function UpcomingAgenda({ events, maxEvents = 5, onRefresh, calen
       </div>
       {renderEventGroup('Today', groupedEvents.today)}
       {renderEventGroup('Tomorrow', groupedEvents.tomorrow)}
-      {renderEventGroup('This Week', groupedEvents.thisWeek)}
-      {renderEventGroup('Later', groupedEvents.later)}
+      {renderEventGroup('Upcoming', groupedEvents.upcoming)}
     </div>
   )
 }

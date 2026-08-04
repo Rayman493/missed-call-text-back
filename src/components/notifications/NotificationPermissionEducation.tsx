@@ -106,8 +106,10 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
       return
     }
 
+    // Immediately dismiss the modal before triggering native prompt
+    setShow(false)
     setIsLoading(true)
-    console.log('[NOTIFICATION_EDUCATION] User clicked Enable Notifications')
+    console.log('[NOTIFICATION_EDUCATION] User clicked Enable Notifications - modal dismissed')
 
     try {
       await requestNotificationPermission()
@@ -119,11 +121,10 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
 
       if (notifications.status === 'granted') {
         console.log('[NOTIFICATION_EDUCATION] Permission granted')
-        setShow(false)
         localStorage.removeItem(COOLDOWN_KEY)
         onComplete?.()
       } else {
-        console.log('[NOTIFICATION_EDUCATION] Permission denied or blocked')
+        console.log('[NOTIFICATION_EDUCATION] Permission denied or blocked - recovery flow will handle')
       }
     } catch (error) {
       console.error('[NOTIFICATION_EDUCATION] Failed to request permission:', error)

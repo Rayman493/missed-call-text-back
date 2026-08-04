@@ -258,7 +258,7 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -284,10 +284,10 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+      <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1 gap-1">
         <button
           onClick={() => setFilter('all')}
-          className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+          className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all text-center ${
             filter === 'all'
               ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground'
@@ -297,7 +297,7 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
         </button>
         <button
           onClick={() => setFilter('active')}
-          className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+          className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all text-center ${
             filter === 'active'
               ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground'
@@ -307,7 +307,7 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
         </button>
         <button
           onClick={() => setFilter('overdue')}
-          className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+          className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all text-center ${
             filter === 'overdue'
               ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground'
@@ -317,7 +317,7 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
         </button>
         <button
           onClick={() => setFilter('future')}
-          className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+          className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all text-center ${
             filter === 'future'
               ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground'
@@ -327,7 +327,7 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
         </button>
         <button
           onClick={() => setFilter('completed')}
-          className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+          className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all text-center ${
             filter === 'completed'
               ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground'
@@ -339,18 +339,20 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
 
       {/* Task List */}
       {isLoading && !hasLoadedOnceRef.current ? (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {[1, 2, 3, 4, 5].map(i => (
             <div key={i} className="h-16 bg-slate-100 dark:bg-slate-800 rounded-lg animate-pulse" />
           ))}
         </div>
       ) : filteredTasks.length === 0 ? (
-        <div className="text-center py-12">
-          <CheckCircle2 className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">
+        <div className="text-center py-16">
+          <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle2 className="w-8 h-8 text-slate-300 dark:text-slate-600" />
+          </div>
+          <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-2">
             {filter === 'all' ? "You're all caught up." : `No ${filter} tasks.`}
           </h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-sm mx-auto">
             {filter === 'active' && 'No tasks scheduled for today.'}
             {filter === 'overdue' && 'No overdue tasks. Great job!'}
             {filter === 'future' && 'No tasks scheduled for later.'}
@@ -366,7 +368,7 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
           </button>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {filteredTasks.map(task => (
             <div
               key={task.id}
@@ -401,7 +403,7 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
                   )}
                 </button>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2 mb-1">
+                  <div className="flex items-start justify-between gap-2 mb-1.5">
                     <p className={`text-sm font-medium ${task.completed ? 'line-through text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-foreground'}`}>
                       {task.title}
                     </p>
