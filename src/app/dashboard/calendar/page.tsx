@@ -11,7 +11,6 @@ import Link from 'next/link'
 import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle, Briefcase, MapPin, MoreVertical, CheckCircle2 } from 'lucide-react'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import EventPill from '@/components/calendar/EventPill'
-import DayDetailModal from '@/components/calendar/DayDetailModal'
 import EventDetailsModal from '@/components/calendar/EventDetailsModal'
 import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
 import UpcomingAgenda from '@/components/calendar/UpcomingAgenda'
@@ -214,7 +213,6 @@ export default function SchedulePage() {
   })
   const [monthLoadError, setMonthLoadError] = useState<string | null>(null)
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
-  const [isDayDetailOpen, setIsDayDetailOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
   const [isEventDetailsOpen, setIsEventDetailsOpen] = useState(false)
   const [selectedEventJob, setSelectedEventJob] = useState<Job | null>(null)
@@ -478,7 +476,6 @@ export default function SchedulePage() {
     const month = currentMonth.getMonth()
     const clickedDate = new Date(year, month, day)
     setSelectedDay(clickedDate)
-    setIsDayDetailOpen(false) // Don't open modal, show events inline instead
   }
 
   const getTodayKey = () => {
@@ -1503,7 +1500,7 @@ export default function SchedulePage() {
                           {selectedDay && (
                             <div className="order-2 bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6">
                               <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-base font-semibold text-foreground">
+                                <h3 className="text-lg font-semibold text-foreground">
                                   {selectedDay.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                                 </h3>
                                 <button
@@ -1522,83 +1519,58 @@ export default function SchedulePage() {
                                 if (dayEvents.length === 0 && dayJobs.length === 0) {
                                   return (
                                     <div className="text-center py-8">
-                                      <p className="text-sm text-muted-foreground">No events scheduled</p>
-                                      <button
-                                        onClick={() => handleAddEvent(selectedDay)}
-                                        className="mt-3 inline-flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
-                                      >
-                                        <Plus className="w-3.5 h-3.5" />
-                                        Add Appointment
-                                      </button>
+                                      <p className="text-sm text-muted-foreground">No appointments scheduled.</p>
                                     </div>
                                   )
                                 }
 
+                                // Combine and sort events and jobs by time
+                                const allItems = [
+                                  ...dayEvents.map(e => ({ type: 'event' as const, data: e, time: e.start.dateTime || e.start.date })),
+                                  ...dayJobs.map(j => ({ type: 'job' as const, data: j, time: j.scheduled_date }))
+                                ].sort((a, b) => {
+                                  const timeA = a.time ? new Date(a.time).getTime() : 0
+                                  const timeB = b.time ? new Date(b.time).getTime() : 0
+                                  return timeA - timeB
+                                })
+
                                 return (
-                                  <div className="space-y-3">
-                                    {dayEvents.map(event => (
-                                      <div
-                                        key={event.id}
-                                        className="rounded-lg border border-border/50 bg-card p-3 sm:p-4 flex flex-col gap-2 cursor-pointer hover:bg-muted/50 transition-all duration-200"
-                                        onClick={() => {
-                                          setSelectedEvent(event)
-                                          setSelectedDay(null)
-                                          setIsEventDetailsOpen(true)
-                                        }}
-                                      >
-                                        <div className="flex items-start justify-between gap-2">
-                                          <div className="flex-1 min-w-0">
-                                            <h4 className="text-sm font-semibold text-foreground line-clamp-2">{event.summary}</h4>
-                                            <div className="text-xs text-muted-foreground mt-1">
-                                              {isAllDay(event.start) ? 'All day' : formatDate(event.start.dateTime)}
-                                            </div>
-                                            {event.location && (
-                                              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                                                <MapPin className="w-3 h-3" />
-                                                <span className="line-clamp-1">{event.location}</span>
-                                              </div>
-                                            )}
+                                  <div className="space-y-4">
+                                    {allItems.map((item, index) => {
+                                      if (item.type === 'event') {
+                                        const event = item.data as CalendarEvent
+                                        const time = event.start.dateTime
+                                          ? new Date(event.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+                                          : 'All day'
+                                        // @ts-ignore
+                                        const rfLead = event?.extendedProperties?.private?.replyflow_lead_id as string | undefined
+                                        const job = jobs.find(j => j.google_calendar_event_id === event.id)
+                                        const customerName = job?.title || (rfLead ? 'Customer' : event.summary)
+
+                                        return (
+                                          <div key={event.id}>
+                                            <p className="text-sm font-semibold text-foreground">{time}</p>
+                                            <p className="text-sm text-muted-foreground/80">{customerName}</p>
+                                            <p className="text-sm text-foreground">{event.summary}</p>
+                                            {index < allItems.length - 1 && <hr className="border-border/40 my-4" />}
                                           </div>
-                                          {event.meetingUrl && (
-                                            <a
-                                              href={event.meetingUrl}
-                                              target="_blank"
-                                              rel="noreferrer"
-                                              onClick={e => e.stopPropagation()}
-                                              className="text-[10px] px-2 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-center transition-colors flex-shrink-0"
-                                            >
-                                              Join
-                                            </a>
-                                          )}
-                                        </div>
-                                      </div>
-                                    ))}
-                                    {dayJobs.map(job => (
-                                      <div
-                                        key={job.id}
-                                        className="rounded-lg border border-border/50 bg-card p-3 sm:p-4 flex flex-col gap-2 cursor-pointer hover:bg-muted/50 transition-all duration-200"
-                                        onClick={() => {
-                                          setSelectedJob(job)
-                                          setIsJobDetailsOpen(true)
-                                        }}
-                                      >
-                                        <div className="flex items-start justify-between gap-2">
-                                          <div className="flex-1 min-w-0">
-                                            <h4 className="text-sm font-semibold text-foreground line-clamp-2">{job.title}</h4>
-                                            <div className="text-xs text-muted-foreground mt-1">
-                                              {job.scheduled_date ? new Date(job.scheduled_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : 'No date'}
-                                            </div>
+                                        )
+                                      } else {
+                                        const job = item.data
+                                        const time = job.scheduled_date
+                                          ? new Date(job.scheduled_date).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+                                          : 'No time'
+
+                                        return (
+                                          <div key={job.id}>
+                                            <p className="text-sm font-semibold text-foreground">{time}</p>
+                                            <p className="text-sm text-muted-foreground/80">{job.title}</p>
+                                            <p className="text-sm text-foreground">Job: {job.status.replace('_', ' ')}</p>
+                                            {index < allItems.length - 1 && <hr className="border-border/40 my-4" />}
                                           </div>
-                                          <span className={`text-[10px] px-2 py-1 rounded-full flex-shrink-0 ${
-                                            job.status === 'completed' ? 'bg-green-600/20 text-green-300' :
-                                            job.status === 'in_progress' ? 'bg-blue-600/20 text-blue-300' :
-                                            'bg-slate-600/20 text-slate-300'
-                                          }`}>
-                                            {job.status.replace('_', ' ')}
-                                          </span>
-                                        </div>
-                                      </div>
-                                    ))}
+                                        )
+                                      }
+                                    })}
                                   </div>
                                 )
                               })()}
@@ -1798,24 +1770,12 @@ export default function SchedulePage() {
                     />
                   )}
 
-                  {/* Day Detail Modal */}
-                  {selectedDay && (
-                    <DayDetailModal
-                      isOpen={isDayDetailOpen}
-                      onClose={() => setIsDayDetailOpen(false)}
-                      date={selectedDay}
-                      events={getEventsForDay(selectedDay)}
-                      onAddEvent={handleAddEvent}
-                    />
-                  )}
-
                   {/* Event Details Modal */}
                   {selectedEvent && (
                     <EventDetailsModal
                       isOpen={isEventDetailsOpen}
                       onClose={() => {
                         setIsEventDetailsOpen(false)
-                        setIsDayDetailOpen(false)
                       }}
                       event={selectedEvent}
                       job={selectedEventJob}
