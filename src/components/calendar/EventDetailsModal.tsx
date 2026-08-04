@@ -47,6 +47,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
   const [completedAt, setCompletedAt] = useState<string | null>(null)
   const [notes, setNotes] = useState<string>('')
   const [isNotesSaving, setIsNotesSaving] = useState(false)
+  const [isNotesOpen, setIsNotesOpen] = useState(false)
   const [isCompleting, setIsCompleting] = useState(false)
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false)
   // Meet artifacts & capability
@@ -456,86 +457,62 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
         </div>
 
         {/* Event Details */}
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4" style={{ WebkitOverflowScrolling: 'touch' }}>
-          <div className="space-y-4">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <div className="space-y-3">
             {/* Title */}
-            <div className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <Calendar className="w-2.5 h-2.5 text-slate-400" />
-              </div>
-              <div className="flex-1">
-                <p className="text-xs text-slate-500 font-medium mb-0.5">Title</p>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={editedSummary}
-                    onChange={(e) => setEditedSummary(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                  />
-                ) : (
-                  <p className="text-sm text-slate-200">{event.summary}</p>
-                )}
-              </div>
+            <div>
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={editedSummary}
+                  onChange={(e) => setEditedSummary(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                />
+              ) : (
+                <h3 className="text-base font-semibold text-foreground">{event.summary}</h3>
+              )}
             </div>
 
-            {/* Date */}
-            <div className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <Calendar className="w-2.5 h-2.5 text-slate-400" />
-              </div>
-              <div className="flex-1">
-                <p className="text-xs text-slate-500 font-medium mb-0.5">Date</p>
+            {/* Compact metadata rows */}
+            <div className="space-y-2">
+              {/* Date & Time */}
+              <div className="flex items-center gap-2 text-sm">
+                <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                 {isEditing ? (
-                  <input
-                    type="date"
-                    value={editedStartDate}
-                    onChange={(e) => setEditedStartDate(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                  />
+                  <div className="flex gap-2 flex-1">
+                    <input
+                      type="date"
+                      value={editedStartDate}
+                      onChange={(e) => setEditedStartDate(e.target.value)}
+                      className="flex-1 px-2 py-1 bg-slate-800 border border-slate-700 rounded text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                    />
+                    {!isAllDay && (
+                      <>
+                        <input
+                          type="time"
+                          value={editedStartTime}
+                          onChange={(e) => setEditedStartTime(e.target.value)}
+                          className="flex-1 px-2 py-1 bg-slate-800 border border-slate-700 rounded text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        />
+                        <span className="text-slate-400 self-center">to</span>
+                        <input
+                          type="time"
+                          value={editedEndTime}
+                          onChange={(e) => setEditedEndTime(e.target.value)}
+                          className="flex-1 px-2 py-1 bg-slate-800 border border-slate-700 rounded text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        />
+                      </>
+                    )}
+                  </div>
                 ) : (
-                  <p className="text-sm text-slate-200">{formatDate(event.start.dateTime, event.start.date)}</p>
+                  <span className="text-foreground">{formatDate(event.start.dateTime, event.start.date)}{!isAllDay && ` • ${formatTimeRange()}`}</span>
                 )}
               </div>
-            </div>
 
-            {/* Time */}
-            {!isAllDay && (
-              <div className="flex items-start gap-3">
-                <div className="w-5 h-5 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Clock className="w-2.5 h-2.5 text-slate-400" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs text-slate-500 font-medium mb-0.5">Time</p>
-                  {isEditing ? (
-                    <div className="flex gap-2">
-                      <input
-                        type="time"
-                        value={editedStartTime}
-                        onChange={(e) => setEditedStartTime(e.target.value)}
-                        className="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                      />
-                      <span className="text-slate-400 self-center">to</span>
-                      <input
-                        type="time"
-                        value={editedEndTime}
-                        onChange={(e) => setEditedEndTime(e.target.value)}
-                        className="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                      />
-                    </div>
-                  ) : (
-                    <p className="text-sm text-slate-200">{formatTimeRange()}</p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* All Day Toggle */}
-            {isEditing && (
-              <div className="flex items-start gap-3">
-                <div className="w-5 h-5 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Clock className="w-2.5 h-2.5 text-slate-400" />
-                </div>
-                <div className="flex-1">
+              {/* All Day Toggle */}
+              {isEditing && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Clock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
@@ -546,145 +523,116 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                     <span className="text-sm text-slate-200">All day event</span>
                   </label>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Duration */}
-            {!isEditing && calculateDuration() && (
-              <div className="flex items-start gap-3">
-                <div className="w-5 h-5 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Clock className="w-2.5 h-2.5 text-slate-400" />
+              {/* Duration (non-editing only) */}
+              {!isEditing && calculateDuration() && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Clock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <span className="text-foreground">{calculateDuration()}</span>
                 </div>
-                <div>
-                  <p className="text-xs text-slate-500 font-medium mb-0.5">Duration</p>
-                  <p className="text-sm text-slate-200">{calculateDuration()}</p>
-                </div>
-              </div>
-            )}
+              )}
 
-            {/* Location */}
-            <div className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <MapPin className="w-2.5 h-2.5 text-slate-400" />
-              </div>
-              <div className="flex-1">
-                <p className="text-xs text-slate-500 font-medium mb-0.5">Location</p>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={editedLocation}
-                    onChange={(e) => setEditedLocation(e.target.value)}
-                    placeholder="Add location"
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                  />
-                ) : event.location ? (
-                  <p className="text-sm text-slate-200 break-words">{event.location}</p>
+              {/* Location */}
+              {event.location && (
+                <div className="flex items-center gap-2 text-sm">
+                  <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editedLocation}
+                      onChange={(e) => setEditedLocation(e.target.value)}
+                      placeholder="Add location"
+                      className="flex-1 px-2 py-1 bg-slate-800 border border-slate-700 rounded text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                    />
+                  ) : (
+                    <span className="text-foreground break-words">{event.location}</span>
+                  )}
+                </div>
+              )}
+
+              {/* Customer */}
+              {(lead?.id || job?.customer_name) && (
+                <div className="flex items-center gap-2 text-sm">
+                  <User className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <span className="text-foreground">{lead?.name || job?.customer_name || 'Customer'}</span>
+                  {lead?.id && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); (onViewCustomer ? onViewCustomer(lead.id) : window.location.assign(`/dashboard/leads/${lead.id}`)) }}
+                      className="text-[10px] px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 ml-auto"
+                    >
+                      View
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Job */}
+              {job?.id && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Briefcase className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <span className="text-foreground">{job.title || 'Job'}</span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onViewJob?.(job.id) }}
+                    className="text-[10px] px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 ml-auto"
+                  >
+                    View
+                  </button>
+                </div>
+              )}
+
+              {/* Status */}
+              <div className="flex items-center gap-2 text-sm">
+                {meetingStatus === 'completed' ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                 ) : (
-                  <p className="text-sm text-slate-500 italic">No location</p>
+                  <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                )}
+                <span className="text-foreground">{meetingStatus === 'completed' ? 'Completed' : 'Scheduled'}</span>
+                {completedAt && meetingStatus === 'completed' && (
+                  <span className="text-xs text-muted-foreground ml-2">
+                    {new Date(completedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </span>
                 )}
               </div>
             </div>
 
-            {/* Calendar Source */}
-            <div className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <Calendar className="w-2.5 h-2.5 text-slate-400" />
-              </div>
-              <div>
-                <p className="text-xs text-slate-500 font-medium mb-0.5">Calendar</p>
-                <p className="text-sm text-slate-200">{event.source === 'holiday' ? 'US Holidays' : 'Google Calendar'}</p>
-              </div>
-            </div>
-
-            {/* Description */}
-            <div className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <FileText className="w-2.5 h-2.5 text-slate-400" />
-              </div>
-              <div className="flex-1">
-                <p className="text-xs text-slate-500 font-medium mb-0.5">Description</p>
+            {/* Description - only show if has content or editing */}
+            {(event.description || isEditing) && (
+              <div className="pt-3 border-t border-border/50">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-muted-foreground">Description</span>
+                </div>
                 {isEditing ? (
                   <textarea
                     value={editedDescription}
                     onChange={(e) => setEditedDescription(e.target.value)}
                     placeholder="Add description"
-                    rows={3}
+                    rows={2}
                     className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
                   />
-                ) : event.description ? (
-                  <p className="text-sm text-slate-200 whitespace-pre-wrap break-words">{event.description}</p>
                 ) : (
-                  <p className="text-sm text-slate-500 italic">No description</p>
+                  <p className="text-sm text-foreground whitespace-pre-wrap break-words">{event.description}</p>
                 )}
               </div>
-            </div>
-
-            {/* Customer (linked) */}
-            {(lead?.id || job?.customer_name) && (
-              <div className="flex items-start gap-3">
-                <div className="w-5 h-5 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <User className="w-2.5 h-2.5 text-slate-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-slate-500 font-medium mb-0.5">Customer</p>
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm text-slate-200 truncate">{lead?.name || job?.customer_name || 'Customer'}</p>
-                    {lead?.id && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); (onViewCustomer ? onViewCustomer(lead.id) : window.location.assign(`/dashboard/leads/${lead.id}`)) }}
-                        className="flex-shrink-0 text-[11px] px-2 py-1 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700"
-                      >
-                        View Customer
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
             )}
 
-            {/* Job (linked) */}
-            {job?.id && (
-              <div className="flex items-start gap-3">
-                <div className="w-5 h-5 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Briefcase className="w-2.5 h-2.5 text-slate-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-slate-500 font-medium mb-0.5">Job</p>
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm text-slate-200 truncate">{job.title || 'Job'}</p>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onViewJob?.(job.id) }}
-                      className="flex-shrink-0 text-[11px] px-2 py-1 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700"
-                    >
-                      View Job
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Meeting Notes (private) */}
+            {/* Meeting Notes - collapsible */}
             {!event.isHoliday && (
-              <div className="pt-2">
-                <div className="flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <FileText className="w-2.5 h-2.5 text-slate-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs text-slate-500 font-medium mb-1">Meeting Notes</p>
-                      {(() => {
-                        const endRaw = event.end?.dateTime || event.end?.date
-                        const isPastDue = endRaw ? new Date(endRaw).getTime() < Date.now() : false
-                        return (meetingStatus !== 'completed' && isPastDue) ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-300">Past due</span>
-                        ) : null
-                      })()}
-                    </div>
+              <div className="pt-3 border-t border-border/50">
+                <button
+                  onClick={() => setIsNotesOpen(!isNotesOpen)}
+                  className="flex items-center justify-between w-full text-left"
+                >
+                  <span className="text-xs font-medium text-muted-foreground">Meeting Notes</span>
+                  <X className={`w-3 h-3 text-muted-foreground transition-transform ${isNotesOpen ? 'rotate-45' : ''}`} />
+                </button>
+                {isNotesOpen && (
+                  <div className="mt-2">
                     <textarea
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
-                      rows={5}
+                      rows={3}
                       className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
                       placeholder="Private notes for your team. Not sent to customer."
                     />
@@ -694,347 +642,137 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                       </button>
                     </div>
                   </div>
-                </div>
-              </div>
-            )}
-
-            {/* Meeting Actions */}
-            {!event.isHoliday && meetingStatus !== 'completed' && (
-              <div className="pt-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <CheckCircle2 className="w-2.5 h-2.5 text-slate-400" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-xs text-slate-500 font-medium mb-2">Meeting Actions</p>
-                    {showCompleteConfirm ? (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">Complete this meeting?</span>
-                        <button onClick={() => setShowCompleteConfirm(false)} disabled={isCompleting} className="px-3 py-1.5 text-xs bg-muted text-foreground rounded-lg">Cancel</button>
-                        <button onClick={markComplete} disabled={isCompleting} className="px-3 py-1.5 text-xs bg-green-600 hover:bg-green-700 text-white rounded-lg">{isCompleting ? 'Completing...' : 'Confirm Complete'}</button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setShowCompleteConfirm(true)}
-                        className="px-3 py-1.5 text-xs font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] inline-flex items-center gap-2"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Mark Meeting Complete</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* AI Meeting Summary & Transcript (Google Meet only) */}
-            {(() => {
-              return !event.isHoliday && (event.meetingUrl?.includes('meet.google.com') || transcriptStatus || aiSummary || aiSummaryStructured)
-            })() && (
-              <div className="pt-2">
-                {meetCapability === 'reauthorization_required' && (
-                  <div className="mb-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
-                    <div className="font-medium mb-1">Reconnect Google to enable automatic meeting summaries.</div>
-                    <div className="opacity-80 mb-2">Your existing calendar connection will continue working.</div>
-                    <a href="/api/google/calendar/connect" className="inline-block px-3 py-1.5 text-xs rounded bg-muted hover:bg-muted/80 text-foreground border border-border/50">Reconnect Google</a>
-                  </div>
                 )}
-                {/* Card */}
-                <div className="p-3 md:p-4 rounded-lg bg-slate-800/50 border border-slate-700/60">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" />
-                      <p className="text-xs text-slate-300 font-semibold">AI Meeting Summary</p>
-                    </div>
-                    {/* Retry: only on explicit failure and when capability allows */}
-                    {meetCapability === 'available' && transcriptStatus === 'failed' && !isRetrying && (
-                      <button
-                        onClick={async () => {
-                          if (!event?.id) return
-                          setIsRetrying(true)
-                          setError(null)
-                          try {
-                            const r = await fetch(`/api/meetings/${encodeURIComponent(event.id)}/retry-artifacts`, { method: 'POST' })
-                            const j = await r.json().catch(() => ({}))
-                            if (!r.ok || j?.success === false) {
-                              onShowToast?.('Retry not allowed yet (cooldown).', 'warning')
-                            } else {
-                              if (j && typeof j.status === 'string') {
-                                setTranscriptStatus((j.status === 'available' || j.status === 'processed' || j.status === 'pending' || j.status === 'permission_required' || j.status === 'failed') ? j.status : null)
-                                setTranscriptError(null)
-                              }
-                              onShowToast?.('Processing started. Refresh to see updates.', 'info')
-                              onRefresh?.()
-                            }
-                          } catch {
-                            onShowToast?.('Retry failed.', 'error')
-                          } finally {
-                            setIsRetrying(false)
-                          }
-                        }}
-                        className="text-[11px] px-2 py-1 rounded bg-muted hover:bg-muted/80 text-foreground border border-border/50"
-                        aria-label="Retry meeting artifacts processing"
-                      >Retry</button>
-                    )}
-                    {meetCapability === 'available' && transcriptStatus === 'failed' && isRetrying && (
-                      <div className="inline-flex items-center gap-2 text-[11px] text-slate-400" role="status" aria-live="polite" aria-busy="true">
-                        <div className="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
-                        <span>Retrying…</span>
+              </div>
+            )}
+
+            {/* AI Meeting Summary - collapsible, show 1 sentence by default */}
+            {(() => {
+              const hasAiContent = event.meetingUrl?.includes('meet.google.com') || transcriptStatus || aiSummary || aiSummaryStructured
+              return hasAiContent && !event.isHoliday
+            })() && (
+              <div className="pt-3 border-t border-border/50">
+                <button
+                  onClick={() => setIsTranscriptOpen(!isTranscriptOpen)}
+                  className="flex items-center justify-between w-full text-left"
+                >
+                  <span className="text-xs font-medium text-muted-foreground">AI Summary</span>
+                  <X className={`w-3 h-3 text-muted-foreground transition-transform ${isTranscriptOpen ? 'rotate-45' : ''}`} />
+                </button>
+                {!isTranscriptOpen && aiSummaryStructured?.overview && (
+                  <p className="text-sm text-foreground mt-2 line-clamp-1">{aiSummaryStructured.overview}</p>
+                )}
+                {!isTranscriptOpen && aiSummary && (
+                  <p className="text-sm text-foreground mt-2 line-clamp-1">{aiSummary}</p>
+                )}
+                {isTranscriptOpen && (
+                  <div className="mt-2">
+                    {meetCapability === 'reauthorization_required' && (
+                      <div className="mb-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
+                        <div className="font-medium mb-1">Reconnect Google to enable automatic meeting summaries.</div>
+                        <div className="opacity-80 mb-2">Your existing calendar connection will continue working.</div>
+                        <a href="/api/google/calendar/connect" className="inline-block px-3 py-1.5 text-xs rounded bg-muted hover:bg-muted/80 text-foreground border border-border/50">Reconnect Google</a>
                       </div>
                     )}
-                  </div>
-                  {/* Completion + Actual Meeting (as part of summary) */}
-                  <div className="space-y-1.5 mb-2">
-                    {meetingStatus === 'completed' && (
-                      <div className="flex items-center gap-2 text-xs text-emerald-300">
-                        <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
-                        <span>Meeting Completed</span>
+                    {/* Summary content */}
+                    {aiSummaryStructured ? (
+                      <div className="space-y-3 text-xs text-foreground">
+                        {aiSummaryStructured.overview && (
+                          <div>
+                            <div className="font-semibold mb-1">Overview</div>
+                            <p className="leading-relaxed">{aiSummaryStructured.overview}</p>
+                          </div>
+                        )}
+                        {Array.isArray(aiSummaryStructured.customerNeeds) && aiSummaryStructured.customerNeeds.length > 0 && (
+                          <div>
+                            <div className="font-semibold mb-1">Customer Needs</div>
+                            <ul className="list-disc list-inside space-y-1 pl-1.5 leading-relaxed">
+                              {aiSummaryStructured.customerNeeds.map((x: string, i: number) => (<li key={i}>{x}</li>))}
+                            </ul>
+                          </div>
+                        )}
+                        {Array.isArray(aiSummaryStructured.keyDiscussionPoints) && aiSummaryStructured.keyDiscussionPoints.length > 0 && (
+                          <div>
+                            <div className="font-semibold mb-1">Key Discussion Points</div>
+                            <ul className="list-disc list-inside space-y-1 pl-1.5 leading-relaxed">
+                              {aiSummaryStructured.keyDiscussionPoints.map((x: string, i: number) => (<li key={i}>{x}</li>))}
+                            </ul>
+                          </div>
+                        )}
+                        {Array.isArray(aiSummaryStructured.followUpItems) && aiSummaryStructured.followUpItems.length > 0 && (
+                          <div>
+                            <div className="font-semibold mb-1">Follow-Up Items</div>
+                            <ul className="list-disc list-inside space-y-1 pl-1.5 leading-relaxed">
+                              {aiSummaryStructured.followUpItems.map((x: string, i: number) => (<li key={i}>{x}</li>))}
+                            </ul>
+                          </div>
+                        )}
                       </div>
+                    ) : aiSummary ? (
+                      <p className="text-xs text-foreground whitespace-pre-wrap">{aiSummary}</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">Summary will be available after the meeting.</p>
                     )}
-                    {(meetingStatus === 'completed' && completedAt) && (
-                      <div className="text-[11px] text-slate-400">
-                        {new Date(completedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                        {' '}•{' '}
-                        {new Date(completedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                      </div>
-                    )}
-                    {(actualStart || actualEnd) && (
-                      <div className="mt-1">
-                        <div className="flex items-center gap-2 text-xs text-slate-300 font-medium mb-0.5">
-                          <Clock className="w-3.5 h-3.5" aria-hidden="true" />
-                          <span>Actual Meeting</span>
-                        </div>
-                        <div className="text-[11px] text-slate-400">
-                          {(() => {
-                            const dateBase = actualStart || event.start?.dateTime || event.start?.date || null
-                            const datePart = dateBase ? new Date(dateBase).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null
-                            const startT = actualStart ? new Date(actualStart).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '—'
-                            const endT = actualEnd ? new Date(actualEnd).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '—'
-                            return (<span>{datePart} • {startT} – {endT}</span>)
-                          })()}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Pending / preparing states */}
-                  {(() => {
-                    // Upcoming meeting, no transcript/summary yet
-                    if (meetingStatus === 'upcoming' && !transcriptStatus && !aiSummary && !aiSummaryStructured) {
-                      return (
-                        <div className="mt-2 mb-2 p-3 rounded-lg bg-slate-700/30 text-slate-300 text-xs" role="status">
-                          <div className="font-medium text-slate-200 mb-1.5">Available after the meeting</div>
-                          <div className="opacity-80 leading-relaxed">Once the meeting is complete, ReplyFlow will automatically retrieve the Google Meet transcript and generate an AI meeting summary with key discussion points and next steps.</div>
-                        </div>
-                      )
-                    }
-                    // Meeting complete, transcript not yet available
-                    if (meetingStatus === 'completed' && (!transcriptStatus || transcriptStatus === 'pending')) {
-                      return (
-                        <div className="mt-2 mb-2 p-3 rounded-lg bg-slate-700/30 text-slate-300 text-xs flex items-start gap-2.5 min-h-[2.5rem]" role="status" aria-live="polite" aria-busy="true">
-                          <div className="w-3 h-3 mt-0.5 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
-                          <div className="space-y-0.5 flex-1">
-                            <div className="font-medium text-slate-200">Waiting for Google Meet transcript</div>
-                            <div className="opacity-80 leading-relaxed">Google may take a few minutes to prepare the transcript after the meeting ends.</div>
-                            <div className="opacity-60 leading-relaxed">ReplyFlow will process it automatically when it becomes available.</div>
-                          </div>
-                        </div>
-                      )
-                    }
-                    // Transcript available, summary generation pending
-                    if (transcriptStatus === 'available' && !aiSummary && !aiSummaryStructured) {
-                      return (
-                        <div className="mt-2 mb-2 p-3 rounded-lg bg-slate-700/30 text-slate-300 text-xs flex items-start gap-2.5 min-h-[2.5rem]" role="status" aria-live="polite" aria-busy="true">
-                          <div className="w-3 h-3 mt-0.5 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
-                          <div className="space-y-0.5 flex-1">
-                            <div className="font-medium text-slate-200">Generating meeting summary</div>
-                            <div className="opacity-80 leading-relaxed">The Google Meet transcript has been imported.</div>
-                            <div className="opacity-60 leading-relaxed">ReplyFlow is preparing the summary and follow-up items.</div>
-                          </div>
-                        </div>
-                      )
-                    }
-                    // Transcript still pending (before meeting complete)
-                    if (transcriptStatus === 'pending') {
-                      return (
-                        <div className="mt-2 mb-2 p-3 rounded-lg bg-slate-700/30 text-slate-300 text-xs flex items-start gap-2.5 min-h-[2.5rem]" role="status" aria-live="polite" aria-busy="true">
-                          <div className="w-3 h-3 mt-0.5 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
-                          <div className="space-y-0.5 flex-1">
-                            <div className="font-medium text-slate-200">Processing transcript…</div>
-                            <div className="opacity-80 leading-relaxed">Google is still preparing the meeting transcript.</div>
-                            <div className="opacity-60 leading-relaxed">ReplyFlow will automatically generate the meeting summary once it becomes available.</div>
-                          </div>
-                        </div>
-                      )
-                    }
-                    // Defensive fallback: if card is rendering but no state matched, show neutral message
-                    if (!aiSummary && !aiSummaryStructured) {
-                      if (process.env.NODE_ENV !== 'production') {
-                        console.warn('[ai_summary_state_fallback] Unexpected state combination:', {
-                          meetingStatus,
-                          transcriptStatus,
-                          aiSummary: aiSummary ? 'present' : 'null',
-                          aiSummaryStructured: aiSummaryStructured ? 'present' : 'null',
-                          meetCapability
-                        })
-                      }
-                      return (
-                        <div className="mt-2 mb-2 p-3 rounded-lg bg-slate-700/30 text-slate-300 text-xs" role="status">
-                          <div className="font-medium text-slate-200 mb-1.5">Meeting summary</div>
-                          <div className="opacity-80 leading-relaxed">Summary will be available after the meeting.</div>
-                        </div>
-                      )
-                    }
-                    return null
-                  })()}
-
-                  {/* Informational and error states */}
-                  {transcriptStatus === 'unavailable' && (
-                    <div className="p-3 rounded-lg bg-slate-700/30 text-slate-300 text-xs">
-                      <div className="font-medium text-slate-200 mb-1">Transcript unavailable</div>
-                      <div className="opacity-80 leading-relaxed">Google did not provide a transcript for this meeting. This can happen when transcription was not enabled or is not available for the meeting.</div>
-                    </div>
-                  )}
-                  {transcriptStatus === 'permission_required' && (
-                    <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
-                      <div className="font-medium mb-1">Google Meet access required</div>
-                      <div className="opacity-80 mb-2 leading-relaxed">Reconnect Google Calendar and approve the requested Google Meet permission to retrieve transcripts.</div>
-                      <a href="/api/google/calendar/connect" className="inline-block px-3 py-1.5 text-xs rounded bg-muted hover:bg-muted/80 text-foreground border border-border/50">Reconnect Google</a>
-                    </div>
-                  )}
-                  {transcriptStatus === 'failed' && (
-                    <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-xs">
-                      <div className="font-medium mb-1">Meeting summary unavailable</div>
-                      <div className="opacity-80 leading-relaxed">ReplyFlow could not retrieve or process the transcript yet.</div>
-                    </div>
-                  )}
-
-                  {/* Summary content */}
-                  {aiSummaryStructured ? (
-                    <div className="space-y-4 text-xs text-slate-300">
-                      {aiSummaryStructured.overview && (
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 text-slate-200 font-semibold">
-                            <FileText className="w-3.5 h-3.5" aria-hidden="true" />
-                            <span>Overview</span>
-                          </div>
-                          <p className="text-slate-300 leading-relaxed">{aiSummaryStructured.overview}</p>
-                        </div>
-                      )}
-                      {Array.isArray(aiSummaryStructured.customerNeeds) && aiSummaryStructured.customerNeeds.length > 0 && (
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 text-slate-200 font-semibold">
-                            <ClipboardList className="w-3.5 h-3.5" aria-hidden="true" />
-                            <span>Customer Needs</span>
-                          </div>
-                          <ul className="list-disc list-inside space-y-1.5 pl-1.5 leading-relaxed">
-                            {aiSummaryStructured.customerNeeds.map((x: string, i: number) => (<li key={i}>{x}</li>))}
-                          </ul>
-                        </div>
-                      )}
-                      {Array.isArray(aiSummaryStructured.keyDiscussionPoints) && aiSummaryStructured.keyDiscussionPoints.length > 0 && (
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 text-slate-200 font-semibold">
-                            <MessageSquareText className="w-3.5 h-3.5" aria-hidden="true" />
-                            <span>Key Discussion Points</span>
-                          </div>
-                          <ul className="list-disc list-inside space-y-1.5 pl-1.5 leading-relaxed">
-                            {aiSummaryStructured.keyDiscussionPoints.map((x: string, i: number) => (<li key={i}>{x}</li>))}
-                          </ul>
-                        </div>
-                      )}
-                      {Array.isArray(aiSummaryStructured.followUpItems) && aiSummaryStructured.followUpItems.length > 0 && (
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 text-slate-200 font-semibold">
-                            <CheckSquare className="w-3.5 h-3.5" aria-hidden="true" />
-                            <span>Follow-Up Items</span>
-                          </div>
-                          <ul className="list-disc list-inside space-y-1.5 pl-1.5 leading-relaxed">
-                            {aiSummaryStructured.followUpItems.map((x: string, i: number) => (<li key={i}>{x}</li>))}
-                          </ul>
-                        </div>
-                      )}
-                      {Array.isArray(aiSummaryStructured.nextSteps) && aiSummaryStructured.nextSteps.length > 0 && (
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 text-slate-200 font-semibold">
-                            <CheckSquare className="w-3.5 h-3.5" aria-hidden="true" />
-                            <span>Next Steps</span>
-                          </div>
-                          <ul className="list-disc list-inside space-y-1.5 pl-1.5 leading-relaxed">
-                            {aiSummaryStructured.nextSteps.map((x: string, i: number) => (<li key={i}>{x}</li>))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  ) : aiSummary ? (
-                    <p className="text-xs text-slate-300 whitespace-pre-wrap">{aiSummary}</p>
-                  ) : null}
-
-                  {/* Transcript controls */}
-                  <div className="mt-3">
+                    {/* Transcript view button */}
                     {((transcriptStatus === 'available' || transcriptStatus === 'processed') || (transcriptText && transcriptText.trim().length > 0)) && (
                       <button
                         onClick={async () => {
-                          if (!isTranscriptOpen) {
-                            // Lazy-load on first open if not loaded yet
-                            if (!transcriptText && event?.id) {
-                              setTranscriptLoading(true)
-                              setTranscriptError(null)
-                              try {
-                                const r = await fetch(`/api/meetings/${encodeURIComponent(event.id)}/transcript`)
-                                const j = await r.json().catch(() => ({}))
-                                if (!r.ok || j?.success === false) {
-                                  const stat = (j && typeof j.status === 'string') ? j.status : null
-                                  if (stat === 'pending' || stat == null) {
-                                    setTranscriptError('Processing… Please try again later.')
-                                  } else {
-                                    setTranscriptError('Transcript unavailable.')
-                                  }
-                                } else {
-                                  setTranscriptText(j?.transcript || '')
-                                }
-                              } catch (e) {
-                                setTranscriptError('Failed to load transcript')
-                              } finally {
-                                setTranscriptLoading(false)
+                          if (!transcriptText && event?.id) {
+                            setTranscriptLoading(true)
+                            setTranscriptError(null)
+                            try {
+                              const r = await fetch(`/api/meetings/${encodeURIComponent(event.id)}/transcript`)
+                              const j = await r.json().catch(() => ({}))
+                              if (!r.ok || j?.success === false) {
+                                setTranscriptError('Transcript unavailable.')
+                              } else {
+                                setTranscriptText(j?.transcript || '')
                               }
-                            } else {
-                              // Transcript already loaded or no event.id
+                            } catch (e) {
+                              setTranscriptError('Failed to load transcript')
+                            } finally {
+                              setTranscriptLoading(false)
                             }
-                          } else {
-                            // Closing transcript (already open)
                           }
-                          setIsTranscriptOpen((o) => !o)
                         }}
-                        className="text-[11px] px-2 py-1 rounded border border-border/50 bg-transparent hover:bg-muted text-slate-200"
-                        aria-expanded={isTranscriptOpen}
-                        aria-controls="meeting-transcript"
-                        aria-label={isTranscriptOpen ? 'Hide transcript' : 'View transcript'}
-                      >{isTranscriptOpen ? 'Hide Transcript' : 'View Transcript'}</button>
+                        className="text-[11px] px-2 py-1 rounded border border-border/50 bg-transparent hover:bg-muted text-foreground mt-3"
+                      >
+                        {transcriptText ? 'Hide Transcript' : 'View Transcript'}
+                      </button>
+                    )}
+                    {transcriptText && (
+                      <div className="mt-2 p-2 rounded bg-slate-900/50 border border-slate-700/50 max-h-48 overflow-y-auto">
+                        <pre className="text-xs text-foreground whitespace-pre-wrap break-words">{transcriptText}</pre>
+                      </div>
                     )}
                   </div>
-                  {isTranscriptOpen && (
-                    <div id="meeting-transcript" className="mt-2 p-2 rounded bg-slate-900/50 border border-slate-700/50 max-h-48 overflow-y-auto">
-                      {transcriptLoading ? (
-                        <p className="text-slate-400 text-xs">Loading…</p>
-                      ) : transcriptError ? (
-                        <p className="text-red-400 text-xs">{transcriptError}</p>
-                      ) : transcriptText ? (
-                        <pre className="text-xs text-slate-200 whitespace-pre-wrap break-words">{transcriptText}</pre>
-                      ) : (
-                        <p className="text-slate-400 text-xs">No transcript content.</p>
-                      )}
-                    </div>
-                  )}
-                </div>
+                )}
+              </div>
+            )}
+
+            {/* Meeting Complete Action */}
+            {!event.isHoliday && meetingStatus !== 'completed' && (
+              <div className="pt-3 border-t border-border/50">
+                <button
+                  onClick={() => setShowCompleteConfirm(true)}
+                  className="w-full px-3 py-2 text-xs font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Mark Complete</span>
+                </button>
+                {showCompleteConfirm && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <button onClick={() => setShowCompleteConfirm(false)} disabled={isCompleting} className="flex-1 px-3 py-1.5 text-xs bg-muted text-foreground rounded-lg">Cancel</button>
+                    <button onClick={markComplete} disabled={isCompleting} className="flex-1 px-3 py-1.5 text-xs bg-green-700 hover:bg-green-800 text-white rounded-lg">{isCompleting ? 'Completing...' : 'Confirm'}</button>
+                  </div>
+                )}
               </div>
             )}
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 border-t border-border/50 bg-card flex-shrink-0 pb-3">
-          {/* Status moved to notes area to avoid duplication */}
+        <div className="px-4 py-3 border-t border-border/50 bg-card flex-shrink-0">
           {error && (
             <div className="mb-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
@@ -1043,75 +781,69 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
           )}
           
           {isEditing ? (
-            <div className="space-y-2">
-              <div className="flex gap-2">
-                <button
-                  onClick={handleCancelEdit}
-                  disabled={isSaving}
-                  className="flex-1 px-4 py-2 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveChanges}
-                  disabled={isSaving}
-                  className="flex-1 px-4 py-2 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {isSaving ? (
-                    <>
-                      <div className="w-3 h-3 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4" />
-                      <span>Save Changes</span>
-                    </>
-                  )}
-                </button>
-              </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleCancelEdit}
+                disabled={isSaving}
+                className="flex-1 px-4 py-2 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveChanges}
+                disabled={isSaving}
+                className="flex-1 px-4 py-2 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isSaving ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    <span>Save</span>
+                  </>
+                )}
+              </button>
             </div>
           ) : (
-            <div className="space-y-3">
-              {/* LEVEL 1: Primary workflow actions */}
+            <div className="space-y-2">
+              {/* Primary actions */}
               {(event.meetingUrl || (!event.isHoliday && (lead?.id && (lead.caller_phone || job?.customer_phone)))) && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   {event.meetingUrl && (
                     <button
                       onClick={openMeetingLink}
-                      className="w-full px-4 py-2.5 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
+                      className="px-3 py-2 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
                     >
-                      <LinkIcon className="w-4 h-4 flex-shrink-0" />
-                      <span>Join Meeting</span>
+                      <LinkIcon className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span>Join</span>
                     </button>
                   )}
                   {!event.isHoliday && (lead?.id && (lead.caller_phone || job?.customer_phone)) && (
                     <button
                       onClick={() => setIsSmsOpen(true)}
-                      className="w-full px-4 py-2.5 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
+                      className="px-3 py-2 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
                     >
-                      <Send className="w-4 h-4 flex-shrink-0" />
-                      <span>Send Details by Text</span>
+                      <Send className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span>Text Details</span>
                     </button>
                   )}
                 </div>
               )}
 
-              {/* LEVEL 2: External calendar action */}
-              <div>
+              {/* Secondary actions */}
+              <div className="flex gap-2">
                 <button
                   onClick={openGoogleCalendar}
-                  className="w-full px-4 py-2 text-sm font-medium bg-slate-800/50 hover:bg-slate-800/70 text-slate-200 rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 border border-slate-700/50"
+                  className="flex-1 px-3 py-2 text-xs font-medium bg-slate-800/50 hover:bg-slate-800/70 text-slate-200 rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 border border-slate-700/50"
                 >
-                  <ExternalLink className="w-4 h-4 flex-shrink-0" />
-                  <span>Open in Google Calendar</span>
+                  <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>Google Calendar</span>
                 </button>
-              </div>
-
-              {/* LEVEL 3: Management actions */}
-              {!event.isHoliday && (
-                <div className="pt-2 border-t border-border/20">
-                  <div className="flex items-center justify-between gap-2">
+                {!event.isHoliday && (
+                  <>
                     <button
                       onClick={handleEditClick}
                       className="px-3 py-2 text-xs font-medium text-slate-300 hover:text-slate-200 hover:bg-slate-800/50 rounded-lg transition-colors flex items-center gap-2"
@@ -1126,9 +858,9 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                       <Trash2 className="w-3.5 h-3.5 flex-shrink-0" />
                       <span>Delete</span>
                     </button>
-                  </div>
-                </div>
-              )}
+                  </>
+                )}
+              </div>
             </div>
           )}
         </div>
