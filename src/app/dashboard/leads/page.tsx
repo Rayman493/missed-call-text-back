@@ -1581,7 +1581,7 @@ export default function LeadsPage() {
                           </div>
 
                           {/* Action Buttons - Open affordance and overflow menu */}
-                          <div className="flex items-center gap-2 pt-2 border-t border-border/40 mt-auto justify-between">
+                          <div className="flex items-center justify-between border-t border-border/40 pt-3 mt-3">
                             <button
                               type="button"
                               onClick={(e) => {
