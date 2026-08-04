@@ -2318,7 +2318,7 @@ export default function SettingsContent() {
                   <div className="flex flex-col h-full p-3 sm:p-4 rounded-md border border-border/30">
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <img src="/brands/venmo.png" alt="Venmo" className="h-4 w-auto object-contain sm:h-5 flex-shrink-0" />
+                        <img src="/brands/venmo.png" alt="Venmo" className="h-[14px] w-auto object-contain sm:h-[18px] flex-shrink-0" />
                         {formBusiness.venmo_username ? (
                           <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
                             <span className="w-1 h-1 bg-green-500 rounded-full" />
@@ -2351,7 +2351,7 @@ export default function SettingsContent() {
                   <div className="flex flex-col h-full p-3 sm:p-4 rounded-md border border-border/30">
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <img src="/brands/paypal.png" alt="PayPal" className="h-5 w-auto object-contain sm:h-6 flex-shrink-0" />
+                        <img src="/brands/paypal.png" alt="PayPal" className="h-[22px] w-auto object-contain sm:h-[27px] flex-shrink-0" />
                         {formBusiness.paypal_payment_link ? (
                           <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
                             <span className="w-1 h-1 bg-green-500 rounded-full" />
