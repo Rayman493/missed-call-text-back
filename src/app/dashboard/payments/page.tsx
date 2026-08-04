@@ -11,7 +11,7 @@ import { formatCurrency, formatPhoneNumber } from '@/lib/utils'
 import { getLeadAIIntake } from '@/lib/ai-field-mapping'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
-import { getCustomerStatusConfig } from '@/lib/customer-status'
+import { getCustomerStatusStyle } from '@/lib/customer-status'
 import LeadPickerModal from '@/components/jobs/LeadPickerModal'
 import AddCustomerModal from '@/components/AddCustomerModal'
 import QuickTapToPayModal from '@/components/payments/QuickTapToPayModal'
@@ -68,8 +68,9 @@ function getStatusColor(status: string): string {
   }
 }
 
-function getStatusLabel(status: string): string {
-  return getCustomerStatusConfig(status).label
+const getStatusLabel = (status: string) => {
+  const style = getCustomerStatusStyle(status)
+  return style.label
 }
 
 

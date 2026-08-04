@@ -12,7 +12,7 @@ import {
 } from '@radix-ui/react-dropdown-menu'
 import { formatPhoneNumber, formatRelativeTime, sentenceCase, getLeadDisplayName } from '@/lib/utils'
 import { getLeadAIIntake } from '@/lib/ai-field-mapping'
-import { getCustomerStatusConfig, CustomerStatus } from '@/lib/customer-status'
+import { getCustomerStatusStyle, CustomerStatus } from '@/lib/customer-status'
 
 // Helper to get structured AI data for lead card
 function getAIData(lead: any): { reason: string | null; urgency: string | null; details: string | null } {
@@ -48,8 +48,8 @@ export default function LeadCard({
   isNewCustomer
 }: LeadCardProps) {
   // Get status config from canonical system
-  const rawStatus = isNewCustomer ? 'new' : (lead.status || lead.lead_status)
-  const statusConfig = getCustomerStatusConfig(rawStatus)
+  const rawStatus = lead.status || lead.lead_status || 'new'
+  const statusStyle = getCustomerStatusStyle(rawStatus)
 
   const leadTiming = React.useMemo(() => {
     const { calculateLeadTiming } = require('@/lib/lead-timing')
@@ -61,24 +61,21 @@ export default function LeadCard({
   // Hook must be called at the top level of the component
   const pressGuard = useMobilePressGuard({
     onActivate: () => onOpen(lead.id),
-    threshold: 10
+    threshold: 5
   })
 
   return (
     <div
-      className={`rounded-xl border border-border/50 relative overflow-hidden transition-all duration-200 cursor-pointer bg-white dark:bg-slate-800/80 shadow-sm hover:shadow-md hover:-translate-y-0.5 ${statusConfig.cardGradientClass} ${statusConfig.cardBorderClass} ${statusConfig.cardAccentClass} ${pressGuard.isPressed ? 'bg-muted/50 scale-[0.98]' : 'active:bg-muted/30'} focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2`}
-      onPointerDown={pressGuard.onPointerDown}
-      onPointerMove={pressGuard.onPointerMove}
-      onPointerUp={pressGuard.onPointerUp}
-      onPointerCancel={pressGuard.onPointerCancel}
+      className={`w-full max-w-2xl h-full flex flex-col rounded-xl border relative overflow-hidden transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 ${statusStyle.cardClass} active:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2`}
+      onClick={() => onOpen(lead.id)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
           onOpen(lead.id)
         }
       }}
+      role="button"
       tabIndex={0}
-      role="link"
       aria-label={`Open ${getLeadDisplayName(lead)}`}
       style={{ touchAction: 'pan-y' }}
     >
@@ -149,11 +146,11 @@ export default function LeadCard({
                 const status = rawStatus
                 onFilterStatus(statusFilter === status ? 'all' : status)
               }}
-              className={`${statusConfig.badgeClass} hover:opacity-80 cursor-pointer`}
-              title={`Filter by ${statusConfig.label} status`}
-              aria-label={`Filter by ${statusConfig.label} status`}
+              className={`${statusStyle.badgeClass} hover:opacity-80 cursor-pointer`}
+              title={`Filter by ${statusStyle.label} status`}
+              aria-label={`Filter by ${statusStyle.label} status`}
             >
-              {statusConfig.label}
+              {statusStyle.label}
             </button>
             <span className="text-[10px] sm:text-[11px] text-muted-foreground">
               {formatRelativeTime(lead.created_at)}

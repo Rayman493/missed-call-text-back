@@ -4,9 +4,10 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { formatPhoneNumber, formatRelativeTime, getLeadDisplayName } from '@/lib/utils'
+import { formatPhoneNumber, getLeadDisplayName, formatRelativeTime } from '@/lib/utils'
+import { getLeadAIIntake } from '@/lib/ai-field-mapping'
+import { getCustomerStatusStyle } from '@/lib/customer-status'
 import { Phone, MessageSquare, Clock, AlertCircle, Reply } from 'lucide-react'
-import { getCustomerStatusConfig } from '@/lib/customer-status'
 
 interface RecentLeadsProps {
   business: Business | null
@@ -68,12 +69,11 @@ export default function RecentLeads({ business }: RecentLeadsProps) {
 
   const getLeadStatus = (lead: Lead) => {
     const rawStatus = lead.status || 'new'
-    const config = getCustomerStatusConfig(rawStatus)
+    const style = getCustomerStatusStyle(rawStatus)
     
     return {
-      text: config.label,
-      color: config.textClass,
-      bgColor: config.badgeClass,
+      text: style.label,
+      bgColor: style.badgeClass,
       icon: <Clock className="w-4 h-4" />,
     }
   }
@@ -193,10 +193,10 @@ export default function RecentLeads({ business }: RecentLeadsProps) {
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`font-medium text-foreground ${status.color}`}>
+                      <span className="font-medium text-foreground">
                         {getLeadDisplayName(lead)}
                       </span>
-                      <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${status.bgColor} ${status.color}`}>
+                      <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${status.bgColor}`}>
                         {status.icon}
                         {status.text}
                       </div>

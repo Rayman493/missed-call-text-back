@@ -6,7 +6,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { Funnel } from 'lucide-react'
 import Card from '@/components/ui/Card'
-import { getCustomerStatusConfig, getAllCustomerStatuses } from '@/lib/customer-status'
+import { getCustomerStatusStyle, getAllCustomerStatuses } from '@/lib/customer-status'
 
 interface PipelineData {
   status: string
@@ -34,32 +34,23 @@ export default function CustomerPipelineGraph() {
           .is('deleted_at', null)
           .is('ignored_at', null)
 
-        // Count by status
+        // Process status data
+        const allStatuses = getAllCustomerStatuses()
         const statusCounts: { [key: string]: number } = {}
+        
         leads?.forEach((lead: any) => {
           const status = lead.status || 'new'
           statusCounts[status] = (statusCounts[status] || 0) + 1
         })
 
-        // Define status colors
-        const statusColors: { [key: string]: string } = {
-          new: '#3b82f6',
-          needs_reply: '#0ea5e9',
-          active: '#10b981',
-          scheduled: '#8b5cf6',
-          payment_requested: '#f59e0b',
-          paid: '#14b8a6',
-          completed: '#64748b',
-          ignored: '#f97316',
-          lost: '#ef4444'
-        }
-
-        // Convert to array with Title Case labels and colors
-        const pipelineData = Object.entries(statusCounts).map(([status, count]) => ({
-          status: getCustomerStatusConfig(status).label,
-          count,
-          color: statusColors[status] || '#6b7280'
-        }))
+        const pipelineData = allStatuses.map((status: string) => {
+          const style = getCustomerStatusStyle(status)
+          return {
+            status: style.label,
+            count: statusCounts[status] || 0,
+            color: style.badgeClass
+          }
+        }).filter((item) => item.count > 0)
 
         setData(pipelineData)
       } catch (error) {

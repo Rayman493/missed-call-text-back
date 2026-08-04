@@ -9,7 +9,7 @@ import {
   DropdownMenuPortal,
 } from '@radix-ui/react-dropdown-menu'
 import { Check } from 'lucide-react'
-import { CustomerStatus, getCustomerStatusConfig, getWorkflowStatuses, getTerminalStatuses } from '@/lib/customer-status'
+import { CustomerStatus, getCustomerStatusStyle, getCustomerStatusIcon, getWorkflowStatuses, getTerminalStatuses } from '@/lib/customer-status'
 
 interface LeadStatusDropdownProps {
   currentStatus: CustomerStatus
@@ -22,11 +22,17 @@ export default function LeadStatusDropdown({
   currentStatus, 
   onStatusChange, 
   disabled = false,
-  size = 'md'
+  size = 'sm'
 }: LeadStatusDropdownProps) {
-  const [isUpdating, setIsUpdating] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
+  const [isChanging, setIsChanging] = useState(false)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+
+  const currentStyle = getCustomerStatusStyle(currentStatus)
+  const StatusIcon = getCustomerStatusIcon(currentStatus)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
   const [shouldPreventClick, setShouldPreventClick] = useState(false)
+  const [isUpdating, setIsUpdating] = useState(false)
 
   const sizeClasses = {
     sm: 'px-2.5 py-1.5 text-xs',
@@ -64,7 +70,6 @@ export default function LeadStatusDropdown({
     const deltaX = Math.abs(currentX - touchStartRef.current.x)
     const deltaY = Math.abs(currentY - touchStartRef.current.y)
     
-    // If touch moved more than 10 pixels, consider it a scroll/swipe, not a tap
     if (deltaX > 10 || deltaY > 10) {
       setShouldPreventClick(true)
     }
@@ -82,8 +87,6 @@ export default function LeadStatusDropdown({
     }
   }
 
-  const config = getCustomerStatusConfig(currentStatus)
-  const StatusIcon = config.icon
   const workflowStatuses = getWorkflowStatuses()
   const terminalStatuses = getTerminalStatuses()
 
@@ -97,10 +100,10 @@ export default function LeadStatusDropdown({
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           onClick={handleClick}
-          className={`${sizeClasses[size]} ${config.iconBgClass} ${config.textClass} border rounded-lg font-medium transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-80 data-[state=open]:ring-2 data-[state=open]:ring-offset-2 data-[state=open]:ring-primary/50`}
+          className={`${sizeClasses[size]} ${currentStyle.iconClass} border rounded-lg font-medium transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-80 data-[state=open]:ring-2 data-[state=open]:ring-offset-2 data-[state=open]:ring-primary/50`}
         >
           <StatusIcon className="w-3.5 h-3.5" />
-          <span>{config.label}</span>
+          <span>{currentStyle.label}</span>
           {isUpdating ? (
             <div className="animate-spin rounded-full h-3 w-3 border-b border-current"></div>
           ) : (
@@ -139,8 +142,8 @@ export default function LeadStatusDropdown({
           {/* Workflow Statuses */}
           <div className="px-1 py-1 space-y-0.5">
             {workflowStatuses.map((status: CustomerStatus) => {
-              const statusConfig = getCustomerStatusConfig(status)
-              const Icon = statusConfig.icon
+              const statusStyle = getCustomerStatusStyle(status)
+              const Icon = getCustomerStatusIcon(status)
               const isSelected = status === currentStatus
 
               return (
@@ -149,17 +152,14 @@ export default function LeadStatusDropdown({
                   onSelect={() => handleStatusSelect(status)}
                   onPointerDown={(e) => e.stopPropagation()}
                   disabled={isUpdating}
-                  className={`w-full px-2 py-1.5 text-left hover:bg-accent/30 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:bg-accent/30 cursor-pointer rounded-md min-h-[36px] group ${isSelected ? statusConfig.selectedClass : ''}`}
+                  className={`w-full px-2 py-1.5 text-left hover:bg-accent/30 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:bg-accent/30 cursor-pointer rounded-md min-h-[36px] group ${isSelected ? statusStyle.selectedClass : ''}`}
                 >
-                  <div className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded ${statusConfig.iconBgClass} group-hover:opacity-80 transition-opacity`}>
-                    <Icon className={`w-3.5 h-3.5 ${statusConfig.textClass}`} />
+                  <div className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded ${statusStyle.iconClass} group-hover:opacity-80 transition-opacity`}>
+                    <Icon className="w-3.5 h-3.5" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className={`text-sm font-medium ${statusConfig.textClass}`}>
-                      {statusConfig.label}
-                    </div>
-                    <div className="text-[10px] text-muted-foreground/60 font-normal leading-tight">
-                      {statusConfig.description}
+                    <div className="text-sm font-medium text-foreground">
+                      {statusStyle.label}
                     </div>
                   </div>
                   {isSelected && (
@@ -180,8 +180,8 @@ export default function LeadStatusDropdown({
           {/* Terminal Statuses */}
           <div className="px-1 py-1">
             {terminalStatuses.map((status: CustomerStatus) => {
-              const statusConfig = getCustomerStatusConfig(status)
-              const Icon = statusConfig.icon
+              const statusStyle = getCustomerStatusStyle(status)
+              const Icon = getCustomerStatusIcon(status)
               const isSelected = status === currentStatus
 
               return (
@@ -190,17 +190,14 @@ export default function LeadStatusDropdown({
                   onSelect={() => handleStatusSelect(status)}
                   onPointerDown={(e) => e.stopPropagation()}
                   disabled={isUpdating}
-                  className={`w-full px-2 py-1.5 text-left hover:bg-red-950/5 dark:hover:bg-red-950/10 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:bg-red-950/5 dark:focus:bg-red-950/10 cursor-pointer rounded-md min-h-[36px] group ${isSelected ? statusConfig.selectedClass : ''}`}
+                  className={`w-full px-2 py-1.5 text-left hover:bg-red-950/5 dark:hover:bg-red-950/10 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:bg-red-950/5 dark:focus:bg-red-950/10 cursor-pointer rounded-md min-h-[36px] group ${isSelected ? statusStyle.selectedClass : ''}`}
                 >
-                  <div className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded ${statusConfig.iconBgClass} group-hover:opacity-80 transition-opacity`}>
-                    <Icon className={`w-3.5 h-3.5 ${statusConfig.textClass}`} />
+                  <div className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded ${statusStyle.iconClass} group-hover:opacity-80 transition-opacity`}>
+                    <Icon className="w-3.5 h-3.5" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className={`text-sm font-medium ${statusConfig.textClass}`}>
-                      {statusConfig.label}
-                    </div>
-                    <div className="text-[10px] text-muted-foreground/60 font-normal leading-tight">
-                      {statusConfig.description}
+                    <div className="text-sm font-medium text-foreground">
+                      {statusStyle.label}
                     </div>
                   </div>
                   {isSelected && (
