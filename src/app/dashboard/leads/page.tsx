@@ -1468,7 +1468,8 @@ export default function LeadsPage() {
                   const leadTiming = calculateLeadTiming(lead)
                   const isNewCustomer = (Date.now() - new Date(lastActivity).getTime()) < 24 * 60 * 60 * 1000
                   const aiData = getAIData(lead)
-                  const normalizedStatus = normalizeCustomerStatus(lead.status || lead.lead_status)
+                  const rawStatus = lead.status ?? lead.lead_status ?? 'new'
+                  const normalizedStatus = normalizeCustomerStatus(rawStatus)
                   const statusStyle = getCustomerStatusStyle(normalizedStatus)
 
                   return (
