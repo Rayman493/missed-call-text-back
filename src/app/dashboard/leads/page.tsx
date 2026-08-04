@@ -1484,7 +1484,7 @@ export default function LeadsPage() {
                       {/* Removed inline count here to avoid duplication and lift the card on mobile */}
                       <div
                         key={lead.id}
-                        className={`w-full max-w-2xl h-full flex flex-col rounded-xl border border-border/50 relative overflow-hidden transition-all duration-200 cursor-pointer bg-white dark:bg-slate-800/80 shadow-sm hover:shadow-md hover:-translate-y-0.5 ${getCardGradientClasses(getLeadLifecycleStatus(lead))} ${getCardBorderClasses(getLeadLifecycleStatus(lead))} ${getCardAccentClasses(getLeadLifecycleStatus(lead))} active:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2`}
+                        className="relative overflow-hidden rounded-xl border-4 border-red-500 bg-red-500/40 p-4 shadow-[0_0_40px_rgba(239,68,68,0.8)]"
                         onClick={() => handleConversationClick(lead.id)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
@@ -1496,6 +1496,7 @@ export default function LeadsPage() {
                         role="link"
                         aria-label={`Open ${getLeadDisplayName(lead)}`}
                       >
+                        <div className="absolute inset-x-0 top-0 z-50 h-2 bg-red-500"></div>
                         <div className="p-4 pl-5 flex-1 flex flex-col">
                           {/* Header: Name, Phone, Status */}
                           <div className="flex items-start justify-between gap-3 mb-3">
