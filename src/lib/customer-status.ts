@@ -95,11 +95,11 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
   },
   completed: {
     label: 'Completed',
-    cardClass: 'border-slate-500/35 bg-gradient-to-br from-slate-500/22 via-slate-500/10 to-slate-900/95 shadow-[0_0_18px_rgba(100,116,139,0.10)]',
-    accentStripClass: 'bg-slate-500',
-    badgeClass: 'border-slate-500/30 bg-slate-500/10 text-slate-300',
-    iconClass: 'bg-slate-500/12 text-slate-300',
-    selectedClass: 'border-slate-400/40 bg-slate-500/10'
+    cardClass: 'border-slate-400/35 bg-gradient-to-br from-slate-400/22 via-slate-400/10 to-slate-900/95 shadow-[0_0_18px_rgba(148,163,184,0.10)]',
+    accentStripClass: 'bg-slate-400',
+    badgeClass: 'border-slate-400/30 bg-slate-400/10 text-slate-300',
+    iconClass: 'bg-slate-400/12 text-slate-300',
+    selectedClass: 'border-slate-300/40 bg-slate-400/10'
   },
   ignored: {
     label: 'Ignored',
