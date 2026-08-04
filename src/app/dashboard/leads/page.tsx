@@ -1504,12 +1504,12 @@ export default function LeadsPage() {
                         />
                         <div className="flex-1 flex flex-col">
                           {/* Header: Name, Phone, Status */}
-                          <div className="flex items-start justify-between gap-3 mb-3">
+                          <div className="flex items-start justify-between gap-3 mb-4">
                             <div className="flex-1 min-w-0">
-                              <h3 className="text-lg font-semibold text-foreground mb-0.5 truncate tracking-tight leading-tight">
+                              <h3 className="text-xl font-semibold text-foreground mb-1 truncate tracking-tight">
                                 <span className="text-foreground">{getLeadDisplayName(lead)}</span>
                               </h3>
-                              <p className="text-xs text-muted-foreground/90">
+                              <p className="text-sm text-muted-foreground">
                                 {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}
                               </p>
                             </div>
@@ -1529,17 +1529,25 @@ export default function LeadsPage() {
                           </div>
 
                           {/* Compact Preview - Simplified Hierarchy */}
-                          <div className="mb-3 space-y-2 flex-1">
+                          <div className="mb-3 flex-1">
                             {aiData.reason && (
-                              <div>
-                                <p className="text-xs text-muted-foreground mb-1 font-medium">Latest Request</p>
-                                <p className="line-clamp-1 text-sm font-semibold text-foreground leading-relaxed">
+                              <>
+                                <p className="line-clamp-2 text-base font-semibold text-foreground leading-relaxed mb-2">
                                   {sentenceCase(aiData.reason)}
                                 </p>
-                              </div>
+                                {aiData.urgency && (
+                                  <p className={`text-sm font-medium ${
+                                    aiData.urgency.toLowerCase() === 'urgent' || aiData.urgency.toLowerCase() === 'high'
+                                      ? 'text-red-500 dark:text-red-400'
+                                      : 'text-muted-foreground'
+                                  }`}>
+                                    {sentenceCase(aiData.urgency)}
+                                  </p>
+                                )}
+                              </>
                             )}
-                            {aiData.urgency && (
-                              <p className={`text-xs font-medium ${
+                            {!aiData.reason && aiData.urgency && (
+                              <p className={`text-sm font-medium ${
                                 aiData.urgency.toLowerCase() === 'urgent' || aiData.urgency.toLowerCase() === 'high'
                                   ? 'text-red-500 dark:text-red-400'
                                   : 'text-muted-foreground'
@@ -1548,14 +1556,14 @@ export default function LeadsPage() {
                               </p>
                             )}
                             {!aiData.reason && !aiData.urgency && (
-                              <p className="line-clamp-2 text-xs text-muted-foreground leading-relaxed">
+                              <p className="line-clamp-2 text-sm text-muted-foreground leading-relaxed">
                                 {getCompactSummary(lead)}
                               </p>
                             )}
                           </div>
 
                           {/* Metadata */}
-                          <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={(e) => {
@@ -1574,7 +1582,7 @@ export default function LeadsPage() {
                               >
                                 {isNewCustomer ? 'New' : getLeadLifecycleStatus(lead).charAt(0).toUpperCase() + getLeadLifecycleStatus(lead).slice(1)}
                               </button>
-                              <span className="text-[11px] text-muted-foreground">
+                              <span className="text-xs text-muted-foreground">
                                 {formatRelativeTime(lead.created_at)}
                               </span>
                             </div>
