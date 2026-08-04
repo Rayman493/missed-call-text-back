@@ -57,14 +57,15 @@ import EmptyState from '@/components/ui/EmptyState'
 import Image from 'next/image'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import { useRealtimeLeads } from '@/hooks/useRealtimeLeads'
-import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel, LeadLifecycleStatus, calculateLeadStatusCounts } from '@/lib/lead-lifecycle'
+import { getLeadLifecycleStatus, calculateLeadStatusCounts } from '@/lib/lead-lifecycle'
+import { CustomerStatus, normalizeCustomerStatus } from '@/lib/customer-status'
+import { getCardAccentClasses, getCardBorderClasses, getCardGradientClasses } from '@/lib/lead-status-colors'
 import StatCard from '@/components/StatCard'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import LeadStatusDropdown from '@/components/LeadStatusDropdown'
 import AddCustomerModal from '@/components/AddCustomerModal'
 import LeadCard from '@/components/LeadCard'
 import { Wrench, FileText, Clock } from 'lucide-react'
-import { getCardAccentClasses, getCardBorderClasses, getCardGradientClasses } from '@/lib/lead-status-colors'
 
 // Helper to get compact summary for lead card
 // [simple_mode_structured_preview_generated]
@@ -343,7 +344,7 @@ export default function LeadsPage() {
   }, [business?.id, supabase, statusFilter])
 
   // Handle lead status change from overview page
-  const handleLeadStatusChange = async (leadId: string, newStatus: LeadLifecycleStatus) => {
+  const handleLeadStatusChange = async (leadId: string, newStatus: CustomerStatus) => {
     // Store old status for revert on error
     const oldStatus = leads.find(lead => lead.id === leadId)?.status
 
@@ -1513,7 +1514,7 @@ export default function LeadsPage() {
                                 </span>
                               ) : (
                                 <LeadStatusDropdown
-                                  currentStatus={getLeadLifecycleStatus(lead)}
+                                  currentStatus={normalizeCustomerStatus(lead.status || lead.lead_status)}
                                   onStatusChange={(newStatus) => handleLeadStatusChange(lead.id, newStatus)}
                                   size="sm"
                                 />
@@ -1681,10 +1682,6 @@ export default function LeadsPage() {
                             onRestore={handleRestoreLead}
                             onFilterStatus={(status) => setStatusFilter(statusFilter === status ? 'all' : status)}
                             statusFilter={statusFilter}
-                            getCardGradientClasses={getCardGradientClasses}
-                            getCardBorderClasses={getCardBorderClasses}
-                            getCardAccentClasses={getCardAccentClasses}
-                            getLeadLifecycleStatus={getLeadLifecycleStatus}
                             getCompactSummary={getCompactSummary}
                             isNewCustomer={isNewCustomer}
                           />

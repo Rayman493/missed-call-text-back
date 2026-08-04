@@ -27,6 +27,7 @@ import { formatPhoneNumber, formatRelativeTime, formatCurrency, getLeadDisplayNa
 import { getLeadAIIntake, getAIIntakeStatus, getAIIntakeStatusLabel, getAIIntakeStatusColor } from '@/lib/ai-field-mapping'
 import { deriveJobSchedulingPrefill } from '@/lib/job-scheduling-prefill'
 import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel, LeadLifecycleStatus } from '@/lib/lead-lifecycle'
+import { CustomerStatus, normalizeCustomerStatus } from '@/lib/customer-status'
 import { calculateLeadTiming, getCustomerInfoForCopy, getAISummaryForCopy } from '@/lib/lead-timing'
 import { isProviderAvailable, getAvailableProviders, PaymentProvider } from '@/lib/payment-links'
 import Link from 'next/link'
@@ -1468,7 +1469,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   }
 
   // Handle status update (unified handler)
-  const handleStatusUpdate = async (newStatus: LeadLifecycleStatus) => {
+  const handleStatusUpdate = async (newStatus: CustomerStatus) => {
     try {
       // Get auth token
       const { data: { session } } = await supabase.auth.getSession()
@@ -1503,8 +1504,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       }))
 
       // Show success message
-      const statusMessages: Record<LeadLifecycleStatus, string> = {
-        new: 'Customer reset to new',
+      const statusMessages: Record<CustomerStatus, string> = {
+        new: 'Customer marked as new',
+        needs_reply: 'Customer marked as needs reply',
         active: 'Customer marked as active',
         scheduled: 'Customer marked as scheduled',
         payment_requested: 'Customer marked as payment requested',
@@ -3544,7 +3546,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         {/* Status Dropdown */}
                         <div className="flex-shrink-0">
                           <LeadStatusDropdown
-                            currentStatus={getLeadLifecycleStatus(leadData || lead)}
+                            currentStatus={normalizeCustomerStatus((leadData || lead).status || (leadData || lead).lead_status)}
                             onStatusChange={handleStatusUpdate}
                             size="sm"
                           />

@@ -12,8 +12,7 @@ import {
 } from '@radix-ui/react-dropdown-menu'
 import { formatPhoneNumber, formatRelativeTime, sentenceCase, getLeadDisplayName } from '@/lib/utils'
 import { getLeadAIIntake } from '@/lib/ai-field-mapping'
-import { LeadLifecycleStatus, getStatusDisplay } from '@/lib/lead-lifecycle'
-import { getStatusBadgeClasses } from '@/lib/lead-status-colors'
+import { getCustomerStatusConfig, CustomerStatus } from '@/lib/customer-status'
 
 // Helper to get structured AI data for lead card
 function getAIData(lead: any): { reason: string | null; urgency: string | null; details: string | null } {
@@ -28,15 +27,11 @@ function getAIData(lead: any): { reason: string | null; urgency: string | null; 
 interface LeadCardProps {
   lead: any
   onOpen: (leadId: string) => void
-  onStatusChange: (leadId: string, newStatus: LeadLifecycleStatus) => void | Promise<void>
+  onStatusChange: (leadId: string, newStatus: CustomerStatus) => void | Promise<void>
   onIgnore: (leadId: string) => void
   onRestore: (leadId: string) => void
   onFilterStatus: (status: string) => void
   statusFilter: string
-  getCardGradientClasses: (status: string) => string
-  getCardBorderClasses: (status: string) => string
-  getCardAccentClasses: (status: string) => string
-  getLeadLifecycleStatus: (lead: any) => string
   getCompactSummary: (lead: any) => string
   isNewCustomer: boolean
 }
@@ -49,13 +44,13 @@ export default function LeadCard({
   onRestore,
   onFilterStatus,
   statusFilter,
-  getCardGradientClasses,
-  getCardBorderClasses,
-  getCardAccentClasses,
-  getLeadLifecycleStatus,
   getCompactSummary,
   isNewCustomer
 }: LeadCardProps) {
+  // Get status config from canonical system
+  const rawStatus = isNewCustomer ? 'new' : (lead.status || lead.lead_status)
+  const statusConfig = getCustomerStatusConfig(rawStatus)
+
   const leadTiming = React.useMemo(() => {
     const { calculateLeadTiming } = require('@/lib/lead-timing')
     return calculateLeadTiming(lead)
@@ -71,7 +66,7 @@ export default function LeadCard({
 
   return (
     <div
-      className={`rounded-xl border border-border/50 relative overflow-hidden transition-all duration-200 cursor-pointer bg-white dark:bg-slate-800/80 shadow-sm hover:shadow-md hover:-translate-y-0.5 ${getCardGradientClasses(getLeadLifecycleStatus(lead))} ${getCardBorderClasses(getLeadLifecycleStatus(lead))} ${getCardAccentClasses(getLeadLifecycleStatus(lead))} ${pressGuard.isPressed ? 'bg-muted/50 scale-[0.98]' : 'active:bg-muted/30'} focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2`}
+      className={`rounded-xl border border-border/50 relative overflow-hidden transition-all duration-200 cursor-pointer bg-white dark:bg-slate-800/80 shadow-sm hover:shadow-md hover:-translate-y-0.5 ${statusConfig.cardGradientClass} ${statusConfig.cardBorderClass} ${statusConfig.cardAccentClass} ${pressGuard.isPressed ? 'bg-muted/50 scale-[0.98]' : 'active:bg-muted/30'} focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2`}
       onPointerDown={pressGuard.onPointerDown}
       onPointerMove={pressGuard.onPointerMove}
       onPointerUp={pressGuard.onPointerUp}
@@ -111,7 +106,7 @@ export default function LeadCard({
               </span>
             ) : (
               <LeadStatusDropdown
-                currentStatus={getLeadLifecycleStatus(lead) as LeadLifecycleStatus}
+                currentStatus={rawStatus as CustomerStatus}
                 onStatusChange={(newStatus) => Promise.resolve(onStatusChange(lead.id, newStatus))}
                 size="sm"
               />
@@ -151,14 +146,14 @@ export default function LeadCard({
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                const status = isNewCustomer ? 'new' : getLeadLifecycleStatus(lead)
+                const status = rawStatus
                 onFilterStatus(statusFilter === status ? 'all' : status)
               }}
-              className={`${getStatusBadgeClasses(isNewCustomer ? 'new' : getLeadLifecycleStatus(lead))} hover:opacity-80 cursor-pointer`}
-              title={`Filter by ${getStatusDisplay(isNewCustomer ? 'new' : getLeadLifecycleStatus(lead))} status`}
-              aria-label={`Filter by ${getStatusDisplay(isNewCustomer ? 'new' : getLeadLifecycleStatus(lead))} status`}
+              className={`${statusConfig.badgeClass} hover:opacity-80 cursor-pointer`}
+              title={`Filter by ${statusConfig.label} status`}
+              aria-label={`Filter by ${statusConfig.label} status`}
             >
-              {getStatusDisplay(isNewCustomer ? 'new' : getLeadLifecycleStatus(lead))}
+              {statusConfig.label}
             </button>
             <span className="text-[10px] sm:text-[11px] text-muted-foreground">
               {formatRelativeTime(lead.created_at)}
@@ -221,7 +216,7 @@ export default function LeadCard({
                     <span>Restore Customer</span>
                   </DropdownMenuItem>
                 )}
-                {!lead.deleted_at && getLeadLifecycleStatus(lead) !== 'ignored' && (
+                {!lead.deleted_at && rawStatus !== 'ignored' && (
                   <DropdownMenuItem
                     onSelect={() => onIgnore(lead.id)}
                     onPointerDown={(e) => e.stopPropagation()}
@@ -234,7 +229,7 @@ export default function LeadCard({
                     <span>Ignore Customer</span>
                   </DropdownMenuItem>
                 )}
-                {!lead.deleted_at && getLeadLifecycleStatus(lead) === 'ignored' && (
+                {!lead.deleted_at && rawStatus === 'ignored' && (
                   <DropdownMenuItem
                     onSelect={() => onStatusChange(lead.id, 'active')}
                     onPointerDown={(e) => e.stopPropagation()}

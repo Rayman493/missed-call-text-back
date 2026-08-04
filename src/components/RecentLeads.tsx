@@ -6,8 +6,7 @@ import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatPhoneNumber, formatRelativeTime, getLeadDisplayName } from '@/lib/utils'
 import { Phone, MessageSquare, Clock, AlertCircle, Reply } from 'lucide-react'
-import { getLeadLifecycleStatus, LeadLifecycleStatus, getStatusDisplay } from '@/lib/lead-lifecycle'
-import { getStatusColorConfig } from '@/lib/lead-status-colors'
+import { getCustomerStatusConfig } from '@/lib/customer-status'
 
 interface RecentLeadsProps {
   business: Business | null
@@ -68,13 +67,13 @@ export default function RecentLeads({ business }: RecentLeadsProps) {
   }, [business])
 
   const getLeadStatus = (lead: Lead) => {
-    const lifecycleStatus = getLeadLifecycleStatus(lead) as LeadLifecycleStatus
-    const config = getStatusColorConfig(lifecycleStatus)
+    const rawStatus = lead.status || 'new'
+    const config = getCustomerStatusConfig(rawStatus)
     
     return {
-      text: getStatusDisplay(lifecycleStatus),
-      color: config.badgeText,
-      bgColor: config.badgeBg,
+      text: config.label,
+      color: config.textClass,
+      bgColor: config.badgeClass,
       icon: <Clock className="w-4 h-4" />,
     }
   }

@@ -7,8 +7,8 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import DashboardErrorBoundary from './DashboardErrorBoundary'
 import Link from 'next/link'
 import LeadTimeline from '@/components/LeadTimeline'
-import { getCardAccentClasses, getStatusBadgeClasses, getCardGradientClasses, getCardBorderClasses } from '@/lib/lead-status-colors'
 import { getLeadLifecycleStatus } from '@/lib/lead-lifecycle'
+import { getCardAccentClasses, getCardGradientClasses, getCardBorderClasses, getStatusBadgeClasses } from '@/lib/lead-status-colors'
 
 interface RecentLeadsSectionProps {
   businessId: string

@@ -8,12 +8,12 @@ import {
   DropdownMenuItem,
   DropdownMenuPortal,
 } from '@radix-ui/react-dropdown-menu'
-import { getLeadStatusLabel, getLeadStatusClasses, getLeadLifecycleConfig, LeadLifecycleStatus } from '@/lib/lead-lifecycle'
-import { Phone, MessageCircle, Calendar, CreditCard, CheckSquare, Check, X } from 'lucide-react'
+import { Check } from 'lucide-react'
+import { CustomerStatus, getCustomerStatusConfig, getWorkflowStatuses, getTerminalStatuses } from '@/lib/customer-status'
 
 interface LeadStatusDropdownProps {
-  currentStatus: LeadLifecycleStatus
-  onStatusChange: (newStatus: LeadLifecycleStatus) => Promise<void>
+  currentStatus: CustomerStatus
+  onStatusChange: (newStatus: CustomerStatus) => Promise<void>
   disabled?: boolean
   size?: 'sm' | 'md' | 'lg'
 }
@@ -34,7 +34,7 @@ export default function LeadStatusDropdown({
     lg: 'px-3.5 py-2 text-sm'
   }
 
-  const handleStatusSelect = async (newStatus: LeadLifecycleStatus) => {
+  const handleStatusSelect = async (newStatus: CustomerStatus) => {
     if (newStatus === currentStatus || isUpdating) return
     
     setIsUpdating(true)
@@ -82,54 +82,10 @@ export default function LeadStatusDropdown({
     }
   }
 
-  const getStatusIcon = (status: LeadLifecycleStatus) => {
-    switch (status) {
-      case 'new':
-        return Phone
-      case 'active':
-        return MessageCircle
-      case 'scheduled':
-        return Calendar
-      case 'payment_requested':
-        return CreditCard
-      case 'paid':
-        return CheckSquare
-      case 'completed':
-        return Check
-      case 'lost':
-        return X
-      default:
-        return Phone
-    }
-  }
-
-  const getStatusDescription = (status: LeadLifecycleStatus) => {
-    switch (status) {
-      case 'new':
-        return 'Recently received'
-      case 'active':
-        return 'Conversation in progress'
-      case 'scheduled':
-        return 'Appointment scheduled'
-      case 'payment_requested':
-        return 'Payment request sent'
-      case 'paid':
-        return 'Payment received'
-      case 'completed':
-        return 'Handled and resolved'
-      case 'lost':
-        return 'Customer lost'
-      default:
-        return ''
-    }
-  }
-
-  const allStatuses: LeadLifecycleStatus[] = ['new', 'active', 'scheduled', 'payment_requested', 'paid', 'completed', 'lost']
-  const workflowStatuses: LeadLifecycleStatus[] = ['new', 'active', 'scheduled', 'payment_requested', 'paid', 'completed']
-  const terminalStatuses: LeadLifecycleStatus[] = ['lost']
-
-  const StatusIcon = getStatusIcon(currentStatus)
-  const config = getLeadLifecycleConfig(currentStatus)
+  const config = getCustomerStatusConfig(currentStatus)
+  const StatusIcon = config.icon
+  const workflowStatuses = getWorkflowStatuses()
+  const terminalStatuses = getTerminalStatuses()
 
   return (
     <DropdownMenu>
@@ -141,10 +97,10 @@ export default function LeadStatusDropdown({
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           onClick={handleClick}
-          className={`${sizeClasses[size]} ${config.bgColor} ${config.color} border rounded-lg font-medium transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-80 data-[state=open]:ring-2 data-[state=open]:ring-offset-2 data-[state=open]:ring-primary/50`}
+          className={`${sizeClasses[size]} ${config.iconBgClass} ${config.textClass} border rounded-lg font-medium transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-80 data-[state=open]:ring-2 data-[state=open]:ring-offset-2 data-[state=open]:ring-primary/50`}
         >
           <StatusIcon className="w-3.5 h-3.5" />
-          <span>{getLeadStatusLabel(currentStatus)}</span>
+          <span>{config.label}</span>
           {isUpdating ? (
             <div className="animate-spin rounded-full h-3 w-3 border-b border-current"></div>
           ) : (
@@ -182,9 +138,9 @@ export default function LeadStatusDropdown({
 
           {/* Workflow Statuses */}
           <div className="px-1 py-1 space-y-0.5">
-            {workflowStatuses.map((status: LeadLifecycleStatus) => {
-              const Icon = getStatusIcon(status)
-              const statusConfig = getLeadLifecycleConfig(status)
+            {workflowStatuses.map((status: CustomerStatus) => {
+              const statusConfig = getCustomerStatusConfig(status)
+              const Icon = statusConfig.icon
               const isSelected = status === currentStatus
 
               return (
@@ -193,17 +149,17 @@ export default function LeadStatusDropdown({
                   onSelect={() => handleStatusSelect(status)}
                   onPointerDown={(e) => e.stopPropagation()}
                   disabled={isUpdating}
-                  className={`w-full px-2 py-1.5 text-left hover:bg-accent/30 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:bg-accent/30 cursor-pointer rounded-md min-h-[36px] group ${isSelected ? 'bg-accent/20' : ''}`}
+                  className={`w-full px-2 py-1.5 text-left hover:bg-accent/30 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:bg-accent/30 cursor-pointer rounded-md min-h-[36px] group ${isSelected ? statusConfig.selectedClass : ''}`}
                 >
-                  <div className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded ${statusConfig.bgColor} group-hover:opacity-80 transition-opacity`}>
-                    <Icon className={`w-3.5 h-3.5 ${statusConfig.color}`} />
+                  <div className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded ${statusConfig.iconBgClass} group-hover:opacity-80 transition-opacity`}>
+                    <Icon className={`w-3.5 h-3.5 ${statusConfig.textClass}`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className={`text-sm font-medium ${statusConfig.color}`}>
-                      {getLeadStatusLabel(status)}
+                    <div className={`text-sm font-medium ${statusConfig.textClass}`}>
+                      {statusConfig.label}
                     </div>
                     <div className="text-[10px] text-muted-foreground/60 font-normal leading-tight">
-                      {getStatusDescription(status)}
+                      {statusConfig.description}
                     </div>
                   </div>
                   {isSelected && (
@@ -223,9 +179,9 @@ export default function LeadStatusDropdown({
 
           {/* Terminal Statuses */}
           <div className="px-1 py-1">
-            {terminalStatuses.map((status: LeadLifecycleStatus) => {
-              const Icon = getStatusIcon(status)
-              const statusConfig = getLeadLifecycleConfig(status)
+            {terminalStatuses.map((status: CustomerStatus) => {
+              const statusConfig = getCustomerStatusConfig(status)
+              const Icon = statusConfig.icon
               const isSelected = status === currentStatus
 
               return (
@@ -234,17 +190,17 @@ export default function LeadStatusDropdown({
                   onSelect={() => handleStatusSelect(status)}
                   onPointerDown={(e) => e.stopPropagation()}
                   disabled={isUpdating}
-                  className={`w-full px-2 py-1.5 text-left hover:bg-red-950/5 dark:hover:bg-red-950/10 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:bg-red-950/5 dark:focus:bg-red-950/10 cursor-pointer rounded-md min-h-[36px] group ${isSelected ? 'bg-red-950/5 dark:bg-red-950/10' : ''}`}
+                  className={`w-full px-2 py-1.5 text-left hover:bg-red-950/5 dark:hover:bg-red-950/10 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed outline-none focus:bg-red-950/5 dark:focus:bg-red-950/10 cursor-pointer rounded-md min-h-[36px] group ${isSelected ? statusConfig.selectedClass : ''}`}
                 >
-                  <div className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded ${statusConfig.bgColor} group-hover:opacity-80 transition-opacity`}>
-                    <Icon className={`w-3.5 h-3.5 ${statusConfig.color}`} />
+                  <div className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded ${statusConfig.iconBgClass} group-hover:opacity-80 transition-opacity`}>
+                    <Icon className={`w-3.5 h-3.5 ${statusConfig.textClass}`} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className={`text-sm font-medium ${statusConfig.color}`}>
-                      {getLeadStatusLabel(status)}
+                    <div className={`text-sm font-medium ${statusConfig.textClass}`}>
+                      {statusConfig.label}
                     </div>
                     <div className="text-[10px] text-muted-foreground/60 font-normal leading-tight">
-                      {getStatusDescription(status)}
+                      {statusConfig.description}
                     </div>
                   </div>
                   {isSelected && (
