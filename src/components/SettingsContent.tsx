@@ -2224,7 +2224,6 @@ export default function SettingsContent() {
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-1.5">
                           <img src="/brands/stripe.svg" alt="Stripe" className="w-6 h-6 sm:w-7 sm:h-7 flex-shrink-0" />
-                          <h3 className="text-sm font-semibold text-foreground">Stripe</h3>
                           <span className="text-[10px] px-2 py-0.5 bg-blue-500/10 text-blue-700 dark:text-blue-300 rounded-full font-medium">
                             Recommended
                           </span>
@@ -2320,7 +2319,6 @@ export default function SettingsContent() {
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
                         <img src="/brands/venmo.png" alt="Venmo" className="w-6 h-6 sm:w-7 sm:h-7 flex-shrink-0" />
-                        <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">Venmo</h3>
                         {formBusiness.venmo_username ? (
                           <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
                             <span className="w-1 h-1 bg-green-500 rounded-full" />

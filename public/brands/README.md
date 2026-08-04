@@ -6,6 +6,14 @@ This directory contains official brand assets for payment providers used in Repl
 
 These logos are used to identify supported payment providers (Stripe, Venmo, PayPal) in the ReplyFlow application's integrations and settings screens. This use is permitted under the providers' brand guidelines as it truthfully conveys information about supported payment methods on portions of the application that directly relate to their services.
 
+## Standalone Brand Marks
+
+**Note:** Official standalone "S" (Stripe) and "V" (Venmo) brand marks are not available from the providers' official branding resources in web-compatible formats:
+- Stripe logo kit only contains wordmarks (full text), not standalone "S" marks
+- Venmo provides a monogram but only in Adobe Illustrator (.ai) format, not suitable for web use
+
+**Fallback approach:** Since standalone marks are unavailable, the full white wordmarks are used without adjacent provider name text to avoid duplication (e.g., "Stripe Stripe" or "Venmo Venmo").
+
 ## Assets
 
 ### Stripe Logo (stripe.svg)
