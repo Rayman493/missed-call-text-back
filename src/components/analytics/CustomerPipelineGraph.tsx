@@ -6,6 +6,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { Funnel } from 'lucide-react'
 import Card from '@/components/ui/Card'
+import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 import { getCustomerStatusStyle, getAllCustomerStatuses } from '@/lib/customer-status'
 
 interface PipelineData {
@@ -78,10 +79,11 @@ export default function CustomerPipelineGraph() {
             <div className="animate-pulse text-muted-foreground text-sm">Loading...</div>
           </div>
         ) : isEmpty ? (
-          <div className="h-[260px] flex flex-col items-center justify-center text-center px-4">
-            <Funnel className="w-8 h-8 text-muted-foreground/30 mb-3" />
-            <p className="text-xs font-medium text-muted-foreground/70">Customers automatically move through your workflow.</p>
-          </div>
+          <PremiumEmptyState
+            icon={Funnel}
+            title="No customers in workflow yet"
+            description="Customers automatically move through your workflow as ReplyFlow captures and processes missed calls."
+          />
         ) : (
           <div className="h-[260px]">
             <ResponsiveContainer width="100%" height="100%">

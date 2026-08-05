@@ -6,6 +6,8 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { Users } from 'lucide-react'
 import Card from '@/components/ui/Card'
+import PremiumSelect from '@/components/ui/PremiumSelect'
+import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 
 type TimeRange = '7d' | '30d' | '90d' | '1y'
 
@@ -13,6 +15,13 @@ interface NewCustomersData {
   date: string
   customers: number
 }
+
+const TIME_RANGE_OPTIONS = [
+  { value: '7d' as TimeRange, label: '7 Days' },
+  { value: '30d' as TimeRange, label: '30 Days' },
+  { value: '90d' as TimeRange, label: '90 Days' },
+  { value: '1y' as TimeRange, label: 'Year' },
+]
 
 export default function NewCustomersGraph() {
   const { business } = useBusiness()
@@ -91,16 +100,11 @@ export default function NewCustomersGraph() {
             <h3 className="text-sm font-semibold text-foreground">New Customers</h3>
             <p className="text-[11px] text-muted-foreground/70 mt-0.5">How many new customers ReplyFlow captured</p>
           </div>
-          <select
+          <PremiumSelect
             value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value as TimeRange)}
-            className="text-[11px] border border-border/40 rounded-lg px-2.5 py-1.5 bg-background text-foreground hover:bg-muted/40 transition-colors"
-          >
-            <option value="7d">7 Days</option>
-            <option value="30d">30 Days</option>
-            <option value="90d">90 Days</option>
-            <option value="1y">Year</option>
-          </select>
+            onChange={setTimeRange}
+            options={TIME_RANGE_OPTIONS}
+          />
         </div>
 
         {loading ? (
@@ -108,10 +112,11 @@ export default function NewCustomersGraph() {
             <div className="animate-pulse text-muted-foreground text-sm">Loading...</div>
           </div>
         ) : isEmpty ? (
-          <div className="h-[260px] flex flex-col items-center justify-center text-center px-4">
-            <Users className="w-8 h-8 text-muted-foreground/30 mb-3" />
-            <p className="text-xs font-medium text-muted-foreground/70">New customers captured by ReplyFlow will appear here.</p>
-          </div>
+          <PremiumEmptyState
+            icon={Users}
+            title="No new customers yet"
+            description="New customers captured by ReplyFlow will appear here as missed calls are converted into leads."
+          />
         ) : (
           <div className="h-[260px]">
             <ResponsiveContainer width="100%" height="100%">

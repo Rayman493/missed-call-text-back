@@ -6,6 +6,8 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { DollarSign } from 'lucide-react'
 import Card from '@/components/ui/Card'
+import PremiumSelect from '@/components/ui/PremiumSelect'
+import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 
 type TimeRange = '7d' | '30d' | '90d' | '1y'
 
@@ -13,6 +15,13 @@ interface RevenueData {
   date: string
   revenue: number
 }
+
+const TIME_RANGE_OPTIONS = [
+  { value: '7d' as TimeRange, label: '7 Days' },
+  { value: '30d' as TimeRange, label: '30 Days' },
+  { value: '90d' as TimeRange, label: '90 Days' },
+  { value: '1y' as TimeRange, label: 'Year' },
+]
 
 export default function RevenueGraph() {
   const { business } = useBusiness()
@@ -97,16 +106,11 @@ export default function RevenueGraph() {
             <h3 className="text-sm font-semibold text-foreground">Payments Received</h3>
             <p className="text-[11px] text-muted-foreground/70 mt-0.5">Payment collection over time</p>
           </div>
-          <select
+          <PremiumSelect
             value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value as TimeRange)}
-            className="text-[11px] border border-border/40 rounded-lg px-2.5 py-1.5 bg-background text-foreground hover:bg-muted/40 transition-colors"
-          >
-            <option value="7d">7 Days</option>
-            <option value="30d">30 Days</option>
-            <option value="90d">90 Days</option>
-            <option value="1y">Year</option>
-          </select>
+            onChange={setTimeRange}
+            options={TIME_RANGE_OPTIONS}
+          />
         </div>
 
         {loading ? (
@@ -114,15 +118,17 @@ export default function RevenueGraph() {
             <div className="animate-pulse text-muted-foreground text-sm">Loading...</div>
           </div>
         ) : !isStripeConnected ? (
-          <div className="h-[260px] flex flex-col items-center justify-center text-center px-4">
-            <DollarSign className="w-8 h-8 text-muted-foreground/30 mb-3" />
-            <p className="text-xs font-medium text-muted-foreground/70">Connect Stripe to track payments.</p>
-          </div>
+          <PremiumEmptyState
+            icon={DollarSign}
+            title="Connect Stripe to track payments"
+            description="Link your Stripe account to automatically track completed payments and revenue over time."
+          />
         ) : isEmpty ? (
-          <div className="h-[260px] flex flex-col items-center justify-center text-center px-4">
-            <DollarSign className="w-8 h-8 text-muted-foreground/30 mb-3" />
-            <p className="text-xs font-medium text-muted-foreground/70">Completed payments will appear automatically.</p>
-          </div>
+          <PremiumEmptyState
+            icon={DollarSign}
+            title="No payments yet"
+            description="Completed payments will appear automatically as customers pay through ReplyFlow."
+          />
         ) : (
           <div className="h-[260px]">
             <ResponsiveContainer width="100%" height="100%">

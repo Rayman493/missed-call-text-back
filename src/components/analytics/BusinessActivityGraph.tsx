@@ -6,8 +6,17 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { Activity } from 'lucide-react'
 import Card from '@/components/ui/Card'
+import PremiumSelect from '@/components/ui/PremiumSelect'
+import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 
 type TimeRange = '7d' | '30d' | '90d' | '1y'
+
+const TIME_RANGE_OPTIONS = [
+  { value: '7d' as TimeRange, label: '7 Days' },
+  { value: '30d' as TimeRange, label: '30 Days' },
+  { value: '90d' as TimeRange, label: '90 Days' },
+  { value: '1y' as TimeRange, label: 'Year' },
+]
 
 interface ActivityData {
   date: string
@@ -146,16 +155,11 @@ export default function BusinessActivityGraph() {
             <p className="text-[11px] text-muted-foreground/70 mt-0.5">Daily customer interactions</p>
           </div>
           <div className="flex items-center gap-2">
-            <select
+            <PremiumSelect
               value={timeRange}
-              onChange={(e) => setTimeRange(e.target.value as TimeRange)}
-              className="text-[11px] border border-border/40 rounded-lg px-2.5 py-1.5 bg-background text-foreground hover:bg-muted/40 transition-colors"
-            >
-              <option value="7d">7 Days</option>
-              <option value="30d">30 Days</option>
-              <option value="90d">90 Days</option>
-              <option value="1y">Year</option>
-            </select>
+              onChange={setTimeRange}
+              options={TIME_RANGE_OPTIONS}
+            />
             <button
               onClick={() => setShowLegend(!showLegend)}
               className="text-[11px] border border-border/40 rounded-lg px-2.5 py-1.5 bg-background text-foreground hover:bg-muted/40 transition-colors"
@@ -170,10 +174,11 @@ export default function BusinessActivityGraph() {
             <div className="animate-pulse text-muted-foreground text-sm">Loading...</div>
           </div>
         ) : isEmpty ? (
-          <div className="h-[260px] flex flex-col items-center justify-center text-center px-4">
-            <Activity className="w-8 h-8 text-muted-foreground/30 mb-3" />
-            <p className="text-xs font-medium text-muted-foreground/70">Customer interactions will appear here.</p>
-          </div>
+          <PremiumEmptyState
+            icon={Activity}
+            title="No customer interactions yet"
+            description="Daily customer interactions will appear here as ReplyFlow captures conversations, appointments, and payments."
+          />
         ) : (
           <div className="h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
