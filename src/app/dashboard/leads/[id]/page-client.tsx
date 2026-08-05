@@ -28,6 +28,7 @@ import { getLeadAIIntake, getAIIntakeStatus, getAIIntakeStatusLabel, getAIIntake
 import { deriveJobSchedulingPrefill } from '@/lib/job-scheduling-prefill'
 import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel, LeadLifecycleStatus } from '@/lib/lead-lifecycle'
 import { CustomerStatus, normalizeCustomerStatus } from '@/lib/customer-status'
+import { formatJobStatus, formatPaymentStatus } from '@/lib/status-formatter'
 import { calculateLeadTiming, getCustomerInfoForCopy, getAISummaryForCopy } from '@/lib/lead-timing'
 import { isProviderAvailable, getAvailableProviders, PaymentProvider } from '@/lib/payment-links'
 import Link from 'next/link'
@@ -2611,7 +2612,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         </p>
                       </div>
                       <span className="text-xs px-2 py-0.5 rounded-full bg-muted/80 text-muted-foreground/90 capitalize whitespace-nowrap ml-2 border border-border/40">
-                        {job.status}
+                        {formatJobStatus(job.status).text}
                       </span>
                     </div>
                   ))}
@@ -2672,7 +2673,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
                           : 'bg-muted/80 text-muted-foreground/90 border-border/40'
                       }`}>
-                        {pr.status === 'paid' ? 'Paid' : pr.status === 'pending' ? 'Awaiting Payment' : pr.status}
+                        {formatPaymentStatus(pr.status).text}
                       </span>
                     </div>
                   ))}
@@ -3956,7 +3957,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                   </p>
                                 </div>
                                 <span className="text-xs px-2 py-0.5 rounded-full bg-muted/80 text-muted-foreground/90 capitalize whitespace-nowrap ml-2 border border-border/40">
-                                  {job.status}
+                                  {formatJobStatus(job.status).text}
                                 </span>
                               </div>
                             ))}
@@ -4017,7 +4018,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                     ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
                                     : 'bg-muted/80 text-muted-foreground/90 border-border/40'
                                 }`}>
-                                  {pr.status === 'paid' ? 'Paid' : pr.status === 'pending' ? 'Awaiting Payment' : pr.status}
+                                  {formatPaymentStatus(pr.status).text}
                                 </span>
                               </div>
                             ))}
@@ -4359,7 +4360,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           </p>
                         </div>
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize whitespace-nowrap ml-2 border border-border/50">
-                          {job.status}
+                          {formatJobStatus(job.status).text}
                         </span>
                       </div>
                     ))}
@@ -4410,7 +4411,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         <span className={`text-[10px] px-2 py-0.5 rounded-full capitalize whitespace-nowrap ml-2 ${
                           pr.status === 'paid' ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300'
                         }`}>
-                          {pr.status}
+                          {formatPaymentStatus(pr.status).text}
                         </span>
                       </div>
                     ))}

@@ -20,6 +20,7 @@ import {
   XCircle,
   RefreshCw
 } from 'lucide-react'
+import { formatLeadStatus } from '@/lib/status-formatter'
 
 interface ActivityEvent {
   id: string
@@ -64,7 +65,7 @@ export default function CustomerActivityTimeline({ leadData, onNavigateToJob, on
         activityEvents.push({
           id: `status-change-${historyItem.id || index}`,
           type: 'status_changed',
-          title: `Status changed to ${historyItem.new_status || historyItem.status}`,
+          title: `Status changed to ${formatLeadStatus(historyItem.new_status || historyItem.status).text}`,
           timestamp: historyItem.changed_at || historyItem.created_at,
         })
       })
