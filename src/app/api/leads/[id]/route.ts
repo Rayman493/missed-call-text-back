@@ -71,7 +71,31 @@ export async function PATCH(
 
     const leadId = id;
     const body = await request.json();
-    const { status, deleted_at, deleted_by, deletion_reason, raw_metadata } = body;
+    const { status, deleted_at, deleted_by, deletion_reason, raw_metadata, contact_name, company_name, tags, notes } = body;
+
+    // Handle customer profile field updates (contact_name, company_name, tags, notes)
+    if (contact_name !== undefined || company_name !== undefined || tags !== undefined || notes !== undefined) {
+      const updateData: Record<string, any> = {};
+      if (contact_name !== undefined) updateData.contact_name = contact_name;
+      if (company_name !== undefined) updateData.company_name = company_name;
+      if (tags !== undefined) updateData.tags = tags;
+      if (notes !== undefined) updateData.notes = notes;
+
+      const { data: updatedLead, error: updateError } = await supabase
+        .from('leads')
+        .update(updateData)
+        .eq('id', leadId)
+        .eq('business_id', business.id!)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('Error updating lead profile fields:', updateError);
+        return NextResponse.json({ error: 'Failed to update lead' }, { status: 500 });
+      }
+
+      return NextResponse.json({ lead: updatedLead });
+    }
 
     // Handle manual field edits (raw_metadata update from AI intake editor)
     if (raw_metadata !== undefined) {

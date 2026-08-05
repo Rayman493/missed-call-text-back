@@ -5105,7 +5105,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
                   try {
                     const response = await fetch(`/api/leads/${lead?.id}`, {
-                      method: 'PUT',
+                      method: 'PATCH',
                       headers,
                       body: JSON.stringify({
                         contact_name: leadData?.contact_name || null,
@@ -5122,9 +5122,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       if (updatedData?.ok && updatedData.lead) {
                         setLeadData({ ...updatedData.lead, messages: updatedData.lead.messages || updatedData.messages || [] })
                       }
+                    } else {
+                      const errorData = await response.json()
+                      setError(errorData.error || 'Failed to save customer information')
                     }
                   } catch (error) {
                     console.error('Error saving customer info:', error)
+                    setError(error instanceof Error ? error.message : 'Failed to save customer information')
                   } finally {
                     setSavingCustomerInfo(false)
                   }
