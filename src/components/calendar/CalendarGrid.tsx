@@ -10,6 +10,16 @@ interface CalendarGridProps {
     start: { dateTime?: string; date?: string }
     end?: { dateTime?: string; date?: string }
   }>
+  jobs?: Array<{
+    id: string
+    title: string
+    customer_name: string | null
+    scheduled_date: string | null
+    scheduled_time: string | null
+    status: string
+    google_calendar_event_id: string | null
+    lead_id: string | null
+  }>
   selectedDay?: Date | null
   renderEvent?: (event: any, day: Date) => ReactNode
   renderExtraContent?: (date: Date) => ReactNode
@@ -23,6 +33,7 @@ interface CalendarGridProps {
 export default function CalendarGrid({
   month,
   events,
+  jobs = [],
   selectedDay,
   renderEvent,
   renderExtraContent,
@@ -97,48 +108,85 @@ export default function CalendarGrid({
   }
 
   const getEventsForDay = (dayNumber: number, isCurrentMonth: boolean) => {
-    if (!isCurrentMonth) return { eventCount: 0, hasEvents: false }
+    if (!isCurrentMonth) return []
 
     // Create day key for comparison (YYYY-MM-DD)
     const dayKey = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}`
 
-    const allMatchedEvents = events.filter(event => {
+    const dayEvents: Array<{
+      id: string
+      summary: string
+      type: 'appointment' | 'job'
+      customer?: string
+      time?: string
+      status?: string
+    }> = []
+
+    // Add calendar events (appointments)
+    events.filter(event => {
       const eventDateRaw = event.start?.dateTime || event.start?.date
       if (!eventDateRaw) return false
 
-      // Normalize event start date to YYYY-MM-DD string
       const eventStartDayKey = eventDateRaw.includes('T')
         ? eventDateRaw.split('T')[0]
         : eventDateRaw
 
-      // Check if event has an end date (for multi-day events)
       const eventEndRaw = event.end?.dateTime || event.end?.date
       if (eventEndRaw) {
-        // Normalize event end date to YYYY-MM-DD string
         const eventEndDayKey = eventEndRaw.includes('T')
           ? eventEndRaw.split('T')[0]
           : eventEndRaw
 
-        // For all-day events, Google Calendar uses exclusive end dates
-        // Example: June 19-23 comes as start.date = 2026-06-19, end.date = 2026-06-24
-        // For timed events, the end date is inclusive
         const isAllDay = !event.start?.dateTime && !!event.start?.date
         const effectiveEndDate = isAllDay
-          ? new Date(eventEndDayKey).getTime() - 86400000 // Subtract 1 day for exclusive end
+          ? new Date(eventEndDayKey).getTime() - 86400000
           : new Date(eventEndDayKey).getTime()
 
         const dayTimestamp = new Date(dayKey).getTime()
         const startTimestamp = new Date(eventStartDayKey).getTime()
 
-        // Check if current day falls within the event's date range
         return dayTimestamp >= startTimestamp && dayTimestamp <= effectiveEndDate
       }
 
-      // Single-day event: check if start date matches
       return eventStartDayKey === dayKey
+    }).forEach(event => {
+      const time = event.start.dateTime
+        ? new Date(event.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+        : undefined
+
+      dayEvents.push({
+        id: event.id,
+        summary: event.summary,
+        type: 'appointment',
+        time
+      })
     })
 
-    return { eventCount: allMatchedEvents.length, hasEvents: allMatchedEvents.length > 0 }
+    // Add jobs (excluding those linked to calendar events)
+    jobs.filter(job => {
+      if (job.scheduled_date !== dayKey) return false
+      if (job.status === 'cancelled') return false
+      // Deduplicate: exclude jobs linked to calendar events
+      const isLinkedToEvent = events.some(e => e.id === job.google_calendar_event_id)
+      return !isLinkedToEvent
+    }).forEach(job => {
+      dayEvents.push({
+        id: job.id,
+        summary: job.title,
+        type: 'job',
+        customer: job.customer_name || undefined,
+        time: job.scheduled_time || undefined,
+        status: job.status.replace('_', ' ')
+      })
+    })
+
+    // Sort by time
+    return dayEvents.sort((a, b) => {
+      if (!a.time && !b.time) return 0
+      if (!a.time) return 1
+      if (!b.time) return -1
+      return a.time.localeCompare(b.time)
+    })
   }
 
   const formatDate = (dateStr: string | undefined) => {
@@ -198,7 +246,7 @@ export default function CalendarGrid({
       {/* Calendar grid */}
       <div className="grid grid-cols-7 gap-0.5 sm:gap-1 md:gap-2">
         {days.map((dayInfo, index) => {
-          const { eventCount, hasEvents } = getEventsForDay(dayInfo.day, dayInfo.isCurrentMonth)
+          const dayEvents = getEventsForDay(dayInfo.day, dayInfo.isCurrentMonth)
           const dayDate = dayInfo.isCurrentMonth ? new Date(year, monthIndex, dayInfo.day) : null
 
           // Calculate if this is a weekend (Saturday or Sunday)
@@ -220,8 +268,7 @@ export default function CalendarGrid({
               isToday={dayInfo.isToday}
               isSelected={isSelected}
               isWeekend={isWeekend}
-              eventCount={eventCount}
-              hasEvents={hasEvents}
+              events={dayEvents}
               onClick={() => onDayClick?.(dayInfo.day, dayInfo.isCurrentMonth)}
             />
           )

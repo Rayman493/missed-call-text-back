@@ -1284,6 +1284,7 @@ export default function SchedulePage() {
                         <CalendarGrid
                           month={currentMonth}
                           events={visibleMonthEvents}
+                          jobs={jobs}
                           selectedDay={selectedDay}
                           onPreviousMonth={goToPreviousMonth}
                           onNextMonth={goToNextMonth}
@@ -1331,8 +1332,8 @@ export default function SchedulePage() {
                               })
 
                               return (
-                                <div className="space-y-4">
-                                  {allItems.map((item, index) => {
+                                <div className="space-y-3">
+                                  {allItems.map((item) => {
                                     if (item.type === 'event') {
                                       const event = item.data as CalendarEvent
                                       const time = event.start.dateTime
@@ -1341,32 +1342,65 @@ export default function SchedulePage() {
                                       // @ts-ignore
                                       const rfLead = event?.extendedProperties?.private?.replyflow_lead_id as string | undefined
                                       const job = jobs.find(j => j.google_calendar_event_id === event.id)
-                                      const customerName = job?.title || (rfLead ? 'Customer' : event.summary)
+                                      const customerName = job?.title || (rfLead ? 'Customer' : null)
 
                                       return (
-                                        <div key={event.id}>
-                                          <p className="text-sm font-semibold text-foreground">{time}</p>
-                                          <p className="text-sm text-muted-foreground/80">{customerName}</p>
-                                          <p className="text-sm text-foreground">{event.summary}</p>
-                                          {index < allItems.length - 1 && <hr className="border-border/40 my-4" />}
+                                        <div
+                                          key={event.id}
+                                          className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/50"
+                                        >
+                                          <div className="flex-shrink-0 mt-0.5">
+                                            <CalendarIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium text-slate-900 dark:text-foreground">
+                                              {event.summary}
+                                            </p>
+                                            {customerName && (
+                                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                                {customerName}
+                                              </p>
+                                            )}
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                              {time}
+                                            </p>
+                                          </div>
                                         </div>
                                       )
                                     } else {
                                       const job = item.data
-                                      const time = job.scheduled_date
-                                        ? new Date(job.scheduled_date).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+                                      const time = job.scheduled_time
+                                        ? new Date(`2000-01-01T${job.scheduled_time}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
                                         : 'No time'
 
                                       return (
                                         <Link
                                           key={job.id}
                                           href={`/dashboard/leads/${job.lead_id || ''}`}
-                                          onClick={(e) => e.stopPropagation()}
+                                          className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                                         >
-                                          <p className="text-sm font-semibold text-foreground">{time}</p>
-                                          <p className="text-sm text-muted-foreground/80">{job.title}</p>
-                                          <p className="text-sm text-foreground">Job: {job.status.replace('_', ' ')}</p>
-                                          {index < allItems.length - 1 && <hr className="border-border/40 my-4" />}
+                                          <div className="flex-shrink-0 mt-0.5">
+                                            <Briefcase className="w-4 h-4 text-green-600 dark:text-green-400" />
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium text-slate-900 dark:text-foreground">
+                                              {job.title}
+                                            </p>
+                                            {job.customer_name && (
+                                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                                {job.customer_name}
+                                              </p>
+                                            )}
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                                {time}
+                                              </p>
+                                              <span className="text-xs text-slate-400 dark:text-slate-500">•</span>
+                                              <p className="text-xs text-slate-600 dark:text-slate-400">
+                                                {job.status.replace('_', ' ')}
+                                              </p>
+                                            </div>
+                                          </div>
                                         </Link>
                                       )
                                     }
