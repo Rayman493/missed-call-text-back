@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatRelativeTime } from '@/lib/utils'
-import { Phone, MessageSquare, Reply, Calendar, Mic, Briefcase, CheckCircle, CreditCard, AlertCircle } from 'lucide-react'
+import { Phone, MessageSquare, Reply, Calendar, Mic, Briefcase, CheckCircle, CreditCard, AlertCircle, Bot, DollarSign, Video } from 'lucide-react'
 import { getLeadAIIntake } from '@/lib/ai-field-mapping'
 
 interface RecentActivityCardProps {
@@ -87,19 +87,22 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
           const conciseTitle = intake.conciseRequestTitle || intake.serviceRequested || ''
           const displayName = lead.caller_phone || 'Unknown Caller'
 
-          events.push({
-            id: `lead-${lead.id}`,
-            type: 'call_captured',
-            title: 'New customer',
-            description: `${customerName}${conciseTitle ? ` - ${conciseTitle}` : ''}`,
-            timestamp: lead.created_at,
-            icon: <Phone className="w-3 h-3" />,
-            color: 'text-blue-600 dark:text-blue-400',
-            customerId: lead.id,
-            customerName,
-            customerPhone: lead.caller_phone,
-            conciseRequestTitle: conciseTitle,
-          })
+          // AI Intake Completed event
+          if (lead.ai_call_records && lead.ai_call_records.length > 0) {
+            events.push({
+              id: `ai-intake-${lead.id}`,
+              type: 'call_captured',
+              title: 'AI Intake Completed',
+              description: customerName,
+              timestamp: lead.created_at,
+              icon: <Bot className="w-3 h-3" />,
+              color: 'text-blue-600 dark:text-blue-400',
+              customerId: lead.id,
+              customerName,
+              customerPhone: lead.caller_phone,
+              conciseRequestTitle: conciseTitle,
+            })
+          }
 
           // Add jobs
           if (lead.jobs && lead.jobs.length > 0) {
@@ -108,8 +111,8 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
                 events.push({
                   id: `job-created-${job.id}`,
                   type: 'job_created',
-                  title: 'Job created',
-                  description: `${job.title || 'New job'} - ${customerName}`,
+                  title: 'Job Scheduled',
+                  description: `${job.title || 'New job'}`,
                   timestamp: job.created_at,
                   icon: <Briefcase className="w-3 h-3" />,
                   color: 'text-teal-600 dark:text-teal-400',
@@ -121,8 +124,8 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
                 events.push({
                   id: `job-completed-${job.id}`,
                   type: 'job_completed',
-                  title: 'Job completed',
-                  description: `${job.title || 'Job'} - ${customerName}`,
+                  title: 'Job Completed',
+                  description: `${job.title || 'Job'}`,
                   timestamp: job.updated_at,
                   icon: <CheckCircle className="w-3 h-3" />,
                   color: 'text-emerald-600 dark:text-emerald-400',
@@ -140,8 +143,8 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
                 events.push({
                   id: `task-completed-${task.id}`,
                   type: 'task_completed',
-                  title: 'Task completed',
-                  description: `${task.title || 'Task'} - ${customerName}`,
+                  title: 'Task Completed',
+                  description: `${task.title || 'Task'}`,
                   timestamp: task.updated_at,
                   icon: <CheckCircle className="w-3 h-3" />,
                   color: 'text-emerald-600 dark:text-emerald-400',
@@ -160,8 +163,8 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
                   events.push({
                     id: `payment-requested-${pr.id}`,
                     type: 'payment_requested',
-                    title: 'Payment requested',
-                    description: `$${(pr.amount_cents / 100).toFixed(2)} - ${customerName}`,
+                    title: 'Payment Request Sent',
+                    description: customerName,
                     timestamp: pr.created_at,
                     icon: <CreditCard className="w-3 h-3" />,
                     color: 'text-amber-600 dark:text-amber-400',
@@ -172,10 +175,10 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
                   events.push({
                     id: `payment-paid-${pr.id}`,
                     type: 'payment_received',
-                    title: 'Payment received',
-                    description: `$${(pr.amount_cents / 100).toFixed(2)} - ${customerName}`,
+                    title: 'Payment Received',
+                    description: `$${(pr.amount_cents / 100).toFixed(2)}`,
                     timestamp: pr.paid_at,
-                    icon: <CreditCard className="w-3 h-3" />,
+                    icon: <DollarSign className="w-3 h-3" />,
                     color: 'text-emerald-600 dark:text-emerald-400',
                     customerId: lead.id,
                     customerName,
@@ -184,8 +187,8 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
                   events.push({
                     id: `payment-failed-${pr.id}`,
                     type: 'payment_failed',
-                    title: 'Payment failed',
-                    description: `$${(pr.amount_cents / 100).toFixed(2)} - ${customerName}`,
+                    title: 'Payment Failed',
+                    description: `$${(pr.amount_cents / 100).toFixed(2)}`,
                     timestamp: pr.updated_at,
                     icon: <AlertCircle className="w-3 h-3" />,
                     color: 'text-red-600 dark:text-red-400',
@@ -205,8 +208,8 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
                 events.push({
                   id: `appointment-${job.id}`,
                   type: 'appointment_scheduled',
-                  title: 'Appointment scheduled',
-                  description: `${appointmentDate} - ${customerName}`,
+                  title: 'Appointment Scheduled',
+                  description: appointmentDate,
                   timestamp: job.created_at,
                   icon: <Calendar className="w-3 h-3" />,
                   color: 'text-violet-600 dark:text-violet-400',
@@ -225,8 +228,8 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
             events.push({
               id: `message-out-${message.id}`,
               type: 'text_sent',
-              title: 'Text sent',
-              description: `Message to ${displayPhone || 'Unknown'}`,
+              title: 'Message Sent',
+              description: `To ${displayPhone || 'Unknown'}`,
               timestamp: message.created_at,
               icon: <MessageSquare className="w-3 h-3" />,
               color: 'text-green-600 dark:text-green-400',
@@ -235,8 +238,8 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
             events.push({
               id: `message-in-${message.id}`,
               type: 'customer_replied',
-              title: 'Customer replied',
-              description: `Response from ${displayPhone || 'Unknown'}`,
+              title: 'Customer Replied',
+              description: `From ${displayPhone || 'Unknown'}`,
               timestamp: message.created_at,
               icon: <Reply className="w-3 h-3" />,
               color: 'text-amber-600 dark:text-amber-400',
@@ -249,8 +252,8 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
           events.push({
             id: `voicemail-${voicemail.id}`,
             type: 'voicemail_received',
-            title: 'Voicemail received',
-            description: `New voicemail received`,
+            title: 'Voicemail Received',
+            description: 'New voicemail',
             timestamp: voicemail.created_at,
             icon: <Mic className="w-3 h-3" />,
             color: 'text-purple-600 dark:text-purple-400',
@@ -307,8 +310,8 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
       </div>
 
       {activities.length === 0 ? (
-        <div className="text-center py-3">
-          <p className="text-xs text-muted-foreground">Activity will appear here after your first missed call.</p>
+        <div className="text-center py-8">
+          <p className="text-sm text-muted-foreground">Business activity will appear here as you work with customers.</p>
         </div>
       ) : (
         <div className="space-y-3">

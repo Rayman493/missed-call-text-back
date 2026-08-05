@@ -9,6 +9,7 @@ import Link from 'next/link'
 import LeadTimeline from '@/components/LeadTimeline'
 import { getLeadLifecycleStatus } from '@/lib/lead-lifecycle'
 import { getCardAccentClasses, getCardGradientClasses, getCardBorderClasses, getStatusBadgeClasses } from '@/lib/lead-status-colors'
+import { formatLeadStatus } from '@/lib/status-formatter'
 import { ChevronRight, User } from 'lucide-react'
 
 interface RecentLeadsSectionProps {
@@ -353,8 +354,8 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
         </div>
 
         {leads.length === 0 ? (
-          <div className="text-center py-3">
-            <p className="text-xs text-muted-foreground">No customers yet</p>
+          <div className="text-center py-8">
+            <p className="text-sm text-muted-foreground">Your first customer will appear here after AI captures a lead.</p>
           </div>
         ) : (
           <div className="space-y-1">
@@ -362,34 +363,33 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
               const aiData = getAIData(lead)
               const displayName = getLeadDisplayName(lead)
               const initials = displayName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+              const statusDisplay = formatLeadStatus(lead.lead_status || lead.status)
 
               return (
                 <Link key={lead.id} href={`/dashboard/leads/${lead.id}`}>
-                  <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer group">
-                    <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <span className="text-xs font-medium text-primary">{initials}</span>
+                  <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group">
+                    <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs font-medium text-slate-600 dark:text-slate-300">{initials}</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <p className="text-sm font-medium text-foreground truncate">
-                          {displayName}
+                      <p className="text-sm font-medium text-slate-900 dark:text-foreground truncate mb-1">
+                        {displayName}
+                      </p>
+                      {aiData.reason && (
+                        <p className="text-xs text-slate-600 dark:text-slate-400 truncate mb-1">
+                          {aiData.reason}
                         </p>
-                        <span className={getStatusBadgeClasses(getLeadStatus(lead))}>
-                          {getLeadStatus(lead)}
-                        </span>
-                      </div>
+                      )}
                       <div className="flex items-center gap-2">
-                        {aiData.reason && (
-                          <p className="text-xs text-muted-foreground truncate">
-                            {aiData.reason}
-                          </p>
-                        )}
-                        <span className="text-xs text-muted-foreground/70 flex-shrink-0">
+                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusDisplay.color === 'blue' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : statusDisplay.color === 'green' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : statusDisplay.color === 'amber' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}`}>
+                          {statusDisplay.text}
+                        </span>
+                        <span className="text-xs text-slate-500 dark:text-slate-500 flex-shrink-0">
                           {formatRelativeTime(lead.created_at)}
                         </span>
                       </div>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0 group-hover:text-foreground transition-colors" />
+                    <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500 flex-shrink-0 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors" />
                   </div>
                 </Link>
               )
