@@ -175,79 +175,28 @@ export default function TodayCommandCenter({
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">
-            Today
-          </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-          </p>
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-            Your daily overview of what needs attention and what's coming up.
-          </p>
-        </div>
-        {/* Removed top-level New Task button to align with section-level actions */}
+      {/* Header with lightweight summary line */}
+      <div>
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">
+          Agenda
+        </h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          {todayTasks.length} Tasks • {todayJobs.length} Jobs • {todayAppointments.length} Appointments
+          {overdueTasks.length > 0 && ` • ${overdueTasks.length} Overdue`}
+        </p>
       </div>
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="bg-card rounded-lg border border-slate-200/70 dark:border-slate-700/50 p-3">
-          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 mb-1">
-            <CheckCircle2 className="w-4 h-4" />
-            <span className="text-xs font-medium">Today's Tasks</span>
-          </div>
-          <p className="text-2xl font-semibold text-slate-900 dark:text-foreground">
-            {todayTasks.length}
-          </p>
-        </div>
-        <div className="bg-card rounded-lg border border-slate-200/70 dark:border-slate-700/50 p-3">
-          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 mb-1">
-            <AlertCircle className="w-4 h-4" />
-            <span className="text-xs font-medium">Overdue</span>
-          </div>
-          <p className="text-2xl font-semibold text-amber-600 dark:text-amber-400">
-            {overdueTasks.length}
-          </p>
-        </div>
-        <div className="bg-card rounded-lg border border-slate-200/70 dark:border-slate-700/50 p-3">
-          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 mb-1">
-            <Briefcase className="w-4 h-4" />
-            <span className="text-xs font-medium">Jobs</span>
-          </div>
-          <p className="text-2xl font-semibold text-slate-900 dark:text-foreground">
-            {todayJobs.length}
-          </p>
-        </div>
-        <div className="bg-card rounded-lg border border-slate-200/70 dark:border-slate-700/50 p-3">
-          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 mb-1">
-            <Calendar className="w-4 h-4" />
-            <span className="text-xs font-medium">Appointments</span>
-          </div>
-          <p className="text-2xl font-semibold text-slate-900 dark:text-foreground">
-            {todayAppointments.length}
-          </p>
-        </div>
-      </div>
-
-      {/* Today's Tasks - Moved to top for higher visual priority */}
-      <div className="bg-card rounded-lg border border-slate-200/70 dark:border-slate-700/50 p-4">
+      {/* Today's Tasks */}
+      <div className="bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 rounded-lg p-4">
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">
-              Today's Tasks
-            </h3>
-            <span className="text-xs text-slate-500 dark:text-slate-400">
-              ({todayTasks.length})
-            </span>
-          </div>
+          <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground uppercase tracking-wider">
+            Today's Tasks
+          </h3>
           <Link
             href="/dashboard/tasks"
             className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
           >
-            View all
+            View all →
           </Link>
         </div>
         {isLoadingTasks ? (
@@ -286,6 +235,11 @@ export default function TodayCommandCenter({
                       {formatTime(task.due_time)}
                     </p>
                   )}
+                  {(task.lead_id || task.job_id) && (
+                    <p className="text-xs text-slate-400 dark:text-slate-500">
+                      Related to {task.job_id ? 'Job' : 'Customer'}
+                    </p>
+                  )}
                 </div>
                 <button
                   onClick={() => deleteTask(task.id)}
@@ -299,75 +253,23 @@ export default function TodayCommandCenter({
         )}
       </div>
 
-      {/* Overdue Tasks - Moved below Today's Tasks */}
-      {overdueTasks.length > 0 && (
-        <div className="bg-card rounded-lg border border-amber-200/70 dark:border-amber-900/30 p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">
-              Overdue Tasks
-            </h3>
-            <span className="text-xs text-amber-600 dark:text-amber-400">
-              ({overdueTasks.length})
-            </span>
-          </div>
-          <div className="space-y-2">
-            {overdueTasks.map(task => (
-              <div
-                key={task.id}
-                className="flex items-start gap-3 p-2 rounded-lg bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/20"
-              >
-                <button
-                  onClick={() => toggleTaskComplete(task.id, task.completed)}
-                  className="mt-0.5 flex-shrink-0 w-5 h-5 rounded border-2 border-amber-400 dark:border-amber-500 hover:bg-amber-200 dark:hover:bg-amber-900/30 transition-colors flex items-center justify-center"
-                >
-                  {task.completed && (
-                    <CheckCircle2 className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-                  )}
-                </button>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-900 dark:text-foreground">
-                    {task.title}
-                  </p>
-                  {task.due_date && (
-                    <p className="text-xs text-amber-600 dark:text-amber-400">
-                      Due {formatDate(task.due_date)}
-                      {task.due_time && ` at ${formatTime(task.due_time)}`}
-                    </p>
-                  )}
-                </div>
-                <button
-                  onClick={() => deleteTask(task.id)}
-                  className="flex-shrink-0 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Today's Schedule */}
-      <div className="bg-card rounded-lg border border-slate-200/70 dark:border-slate-700/50 p-4">
+      {/* Jobs */}
+      <div className="bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 rounded-lg p-4">
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">
-              Today's Schedule
-            </h3>
-          </div>
+          <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground uppercase tracking-wider">
+            Jobs
+          </h3>
           <Link
-            href="/dashboard/calendar"
+            href="/dashboard/leads"
             className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
           >
-            View calendar
+            View all →
           </Link>
         </div>
-        {todayJobs.length === 0 && todayAppointments.length === 0 ? (
+        {todayJobs.length === 0 ? (
           <div className="text-center py-6">
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              No schedule for today
+              No jobs scheduled for today
             </p>
           </div>
         ) : (
@@ -387,13 +289,43 @@ export default function TodayCommandCenter({
                     {job.customer_name || 'No customer'}
                   </p>
                 </div>
-                {job.scheduled_time && (
-                  <span className="text-xs text-slate-500 dark:text-slate-400">
-                    {formatTime(job.scheduled_time)}
+                <div className="flex-shrink-0 text-right">
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                    {job.status.replace('_', ' ')}
                   </span>
-                )}
+                  {job.scheduled_time && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {formatTime(job.scheduled_time)}
+                    </p>
+                  )}
+                </div>
               </Link>
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* Appointments */}
+      <div className="bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 rounded-lg p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground uppercase tracking-wider">
+            Appointments
+          </h3>
+          <Link
+            href="/dashboard/calendar"
+            className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            View calendar →
+          </Link>
+        </div>
+        {todayAppointments.length === 0 ? (
+          <div className="text-center py-6">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              No appointments for today
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
             {todayAppointments.map(event => (
               <div
                 key={event.id}
@@ -415,6 +347,57 @@ export default function TodayCommandCenter({
           </div>
         )}
       </div>
+
+      {/* Overdue - only render if something is overdue */}
+      {overdueTasks.length > 0 && (
+        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground uppercase tracking-wider">
+              Overdue
+            </h3>
+          </div>
+          <div className="space-y-2">
+            {overdueTasks.map(task => (
+              <div
+                key={task.id}
+                className="flex items-start gap-3 p-2 rounded-lg bg-white dark:bg-slate-900/40 border border-amber-200 dark:border-amber-900/20"
+              >
+                <button
+                  onClick={() => toggleTaskComplete(task.id, task.completed)}
+                  className="mt-0.5 flex-shrink-0 w-5 h-5 rounded border-2 border-amber-400 dark:border-amber-500 hover:bg-amber-200 dark:hover:bg-amber-900/30 transition-colors flex items-center justify-center"
+                >
+                  {task.completed && (
+                    <CheckCircle2 className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                  )}
+                </button>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-slate-900 dark:text-foreground">
+                      {task.title}
+                    </p>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 font-medium">
+                      Task
+                    </span>
+                  </div>
+                  {task.due_date && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                      Due {formatDate(task.due_date)}
+                      {task.due_time && ` at ${formatTime(task.due_time)}`}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={() => deleteTask(task.id)}
+                  className="flex-shrink-0 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

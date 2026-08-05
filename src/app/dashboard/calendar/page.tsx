@@ -13,7 +13,6 @@ import CalendarGrid from '@/components/calendar/CalendarGrid'
 import EventPill from '@/components/calendar/EventPill'
 import EventDetailsModal from '@/components/calendar/EventDetailsModal'
 import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
-import UpcomingAgenda from '@/components/calendar/UpcomingAgenda'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { filterEventsByMonth } from '@/lib/calendar-date-utils'
 import { getLeadAIIntake } from '@/lib/ai-field-mapping'
@@ -222,8 +221,7 @@ export default function SchedulePage() {
   const [selectedEventJob, setSelectedEventJob] = useState<Job | null>(null)
   const [selectedEventLead, setSelectedEventLead] = useState<{ id: string; name: string | null; caller_phone: string | null } | null>(null)
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
-  const [viewMode, setViewMode] = useState<'month' | 'agenda'>('month')
-  const [scheduleTab, setScheduleTab] = useState<'today' | 'calendar'>('today')
+  const [scheduleTab, setScheduleTab] = useState<'agenda' | 'calendar'>('agenda')
 
   // Jobs state
   const [jobs, setJobs] = useState<Job[]>([])
@@ -268,7 +266,7 @@ export default function SchedulePage() {
       if (calendarStatus === 'connected') {
         showToast('Google Calendar connected successfully!', 'success')
         setTokenExpired(false)
-        setScheduleTab('calendar') // Switch to Calendar tab after successful connection
+        setScheduleTab('agenda') // Switch to Agenda tab after successful connection
         window.history.replaceState({}, '', '/dashboard/calendar')
       } else if (calendarStatus === 'error') {
         showToast('Failed to connect Google Calendar. Please try again.', 'error')
@@ -971,15 +969,15 @@ export default function SchedulePage() {
                   <div className="hidden md:flex mb-3">
                     <div className="flex bg-slate-900/40 dark:bg-slate-800/60 rounded-xl p-0.5 w-full border border-slate-200/50 dark:border-slate-700/50">
                       <button
-                        onClick={() => setScheduleTab('today')}
+                        onClick={() => setScheduleTab('agenda')}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ease-out ${
-                          scheduleTab === 'today'
+                          scheduleTab === 'agenda'
                             ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50 text-sm'
                             : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-sm'
                         }`}
                       >
-                        <CheckCircle2 className={`w-4 h-4 ${scheduleTab === 'today' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
-                        Today
+                        <CheckCircle2 className={`w-4 h-4 ${scheduleTab === 'agenda' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
+                        Agenda
                       </button>
                       <button
                         onClick={() => setScheduleTab('calendar')}
@@ -1000,15 +998,15 @@ export default function SchedulePage() {
                     <div className="bg-slate-900/40 dark:bg-slate-800/60 rounded-xl p-0.5 border border-slate-200/50 dark:border-slate-700/50">
                       <div className="grid grid-cols-2 gap-0.5">
                         <button
-                          onClick={() => setScheduleTab('today')}
+                          onClick={() => setScheduleTab('agenda')}
                           className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg font-medium transition-all duration-200 ease-out ${
-                            scheduleTab === 'today'
+                            scheduleTab === 'agenda'
                               ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50'
                               : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-xs'
                           }`}
                         >
-                          <CheckCircle2 className={`w-3.5 h-3.5 ${scheduleTab === 'today' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
-                          <span>Today</span>
+                          <CheckCircle2 className={`w-3.5 h-3.5 ${scheduleTab === 'agenda' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
+                          <span>Agenda</span>
                         </button>
                         <button
                           onClick={() => setScheduleTab('calendar')}
@@ -1025,8 +1023,8 @@ export default function SchedulePage() {
                     </div>
                   </div>
 
-                  {/* Today Tab */}
-                  {scheduleTab === 'today' && (
+                  {/* Agenda Tab */}
+                  {scheduleTab === 'agenda' && (
                     <TodayCommandCenter
                       jobs={jobs}
                       calendarEvents={events}
@@ -1181,58 +1179,7 @@ export default function SchedulePage() {
                         </div>
                       </div>
 
-                      {/* View Mode Toggle - Desktop - Simplified */}
-                      <div className="hidden md:block mb-4">
-                        <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-1 w-fit">
-                          <button
-                            onClick={() => setViewMode('month')}
-                            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                              viewMode === 'month'
-                                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
-                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground'
-                            }`}
-                          >
-                            Month
-                          </button>
-                          <button
-                            onClick={() => setViewMode('agenda')}
-                            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                              viewMode === 'agenda'
-                                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
-                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground'
-                            }`}
-                          >
-                            Agenda
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Mobile: View Mode Toggle - Simplified */}
-                      <div className="md:hidden mb-4">
-                        <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
-                          <button
-                            onClick={() => setViewMode('month')}
-                            className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all ${
-                              viewMode === 'month'
-                                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
-                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground'
-                            }`}
-                          >
-                            Month
-                          </button>
-                          <button
-                            onClick={() => setViewMode('agenda')}
-                            className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all ${
-                              viewMode === 'agenda'
-                                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-foreground shadow-sm'
-                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground'
-                            }`}
-                          >
-                            Agenda
-                          </button>
-                        </div>
-                      </div>
-
+                      
                       {/* Mobile: Compact Metrics - single summary */}
                       <div className="md:hidden mb-3">
                         <div className="flex items-center justify-around gap-2 p-2 bg-slate-900/50 border border-slate-700/50 rounded-lg">
@@ -1332,118 +1279,104 @@ export default function SchedulePage() {
                         </div>
                       </div>
 
-                      {/* Conditionally render Month or Agenda view */}
-                      {viewMode === 'month' ? (
-                        <div className="grid grid-cols-1 gap-4">
-                          {/* Calendar Grid */}
-                          <div className="order-1">
-                            <CalendarGrid
-                              month={currentMonth}
-                              events={visibleMonthEvents}
-                              selectedDay={selectedDay}
-                              onPreviousMonth={goToPreviousMonth}
-                              onNextMonth={goToNextMonth}
-                              onToday={goToToday}
-                              onAddEvent={handleAddEvent}
-                              onDayClick={handleDayClick}
-                            />
-                          </div>
+                      {/* Calendar Grid */}
+                      <div className="grid grid-cols-1 gap-4">
+                        <CalendarGrid
+                          month={currentMonth}
+                          events={visibleMonthEvents}
+                          selectedDay={selectedDay}
+                          onPreviousMonth={goToPreviousMonth}
+                          onNextMonth={goToNextMonth}
+                          onToday={goToToday}
+                          onAddEvent={handleAddEvent}
+                          onDayClick={handleDayClick}
+                        />
 
-                          {/* Selected Day Events - shown inline below calendar */}
-                          {selectedDay && (
-                            <div className="order-2 bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6">
-                              <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-lg font-semibold text-foreground">
-                                  {selectedDay.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-                                </h3>
-                                <button
-                                  onClick={() => setSelectedDay(null)}
-                                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                                >
-                                  Close
-                                </button>
-                              </div>
+                        {/* Selected Day Events - shown inline below calendar */}
+                        {selectedDay && (
+                          <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6">
+                            <div className="flex items-center justify-between mb-4">
+                              <h3 className="text-lg font-semibold text-foreground">
+                                {selectedDay.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                              </h3>
+                              <button
+                                onClick={() => setSelectedDay(null)}
+                                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                              >
+                                Close
+                              </button>
+                            </div>
 
-                              {/* Events for selected day */}
-                              {(() => {
-                                const dayEvents = getEventsForDay(selectedDay)
-                                const dayJobs = getJobsForDay(selectedDay)
+                            {/* Events for selected day */}
+                            {(() => {
+                              const dayEvents = getEventsForDay(selectedDay)
+                              const dayJobs = getJobsForDay(selectedDay)
 
-                                if (dayEvents.length === 0 && dayJobs.length === 0) {
-                                  return (
-                                    <div className="text-center py-8">
-                                      <p className="text-sm text-muted-foreground">No appointments scheduled.</p>
-                                    </div>
-                                  )
-                                }
-
-                                // Combine and sort events and jobs by time
-                                const allItems = [
-                                  ...dayEvents.map(e => ({ type: 'event' as const, data: e, time: e.start.dateTime || e.start.date })),
-                                  ...dayJobs.map(j => ({ type: 'job' as const, data: j, time: j.scheduled_date }))
-                                ].sort((a, b) => {
-                                  const timeA = a.time ? new Date(a.time).getTime() : 0
-                                  const timeB = b.time ? new Date(b.time).getTime() : 0
-                                  return timeA - timeB
-                                })
-
+                              if (dayEvents.length === 0 && dayJobs.length === 0) {
                                 return (
-                                  <div className="space-y-4">
-                                    {allItems.map((item, index) => {
-                                      if (item.type === 'event') {
-                                        const event = item.data as CalendarEvent
-                                        const time = event.start.dateTime
-                                          ? new Date(event.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
-                                          : 'All day'
-                                        // @ts-ignore
-                                        const rfLead = event?.extendedProperties?.private?.replyflow_lead_id as string | undefined
-                                        const job = jobs.find(j => j.google_calendar_event_id === event.id)
-                                        const customerName = job?.title || (rfLead ? 'Customer' : event.summary)
-
-                                        return (
-                                          <div key={event.id}>
-                                            <p className="text-sm font-semibold text-foreground">{time}</p>
-                                            <p className="text-sm text-muted-foreground/80">{customerName}</p>
-                                            <p className="text-sm text-foreground">{event.summary}</p>
-                                            {index < allItems.length - 1 && <hr className="border-border/40 my-4" />}
-                                          </div>
-                                        )
-                                      } else {
-                                        const job = item.data
-                                        const time = job.scheduled_date
-                                          ? new Date(job.scheduled_date).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
-                                          : 'No time'
-
-                                        return (
-                                          <Link
-                                            key={job.id}
-                                            href={`/dashboard/leads/${job.lead_id || ''}`}
-                                            onClick={(e) => e.stopPropagation()}
-                                          >
-                                            <p className="text-sm font-semibold text-foreground">{time}</p>
-                                            <p className="text-sm text-muted-foreground/80">{job.title}</p>
-                                            <p className="text-sm text-foreground">Job: {job.status.replace('_', ' ')}</p>
-                                            {index < allItems.length - 1 && <hr className="border-border/40 my-4" />}
-                                          </Link>
-                                        )
-                                      }
-                                    })}
+                                  <div className="text-center py-8">
+                                    <p className="text-sm text-muted-foreground">No appointments scheduled.</p>
                                   </div>
                                 )
-                              })()}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div>
-                          <UpcomingAgenda
-                            events={events}
-                            maxEvents={20}
-                            onRefresh={handleSync}
-                            calendarConnected={calendarConnected}
-                          />
-                        </div>
-                      )}
+                              }
+
+                              // Combine and sort events and jobs by time
+                              const allItems = [
+                                ...dayEvents.map(e => ({ type: 'event' as const, data: e, time: e.start.dateTime || e.start.date })),
+                                ...dayJobs.map(j => ({ type: 'job' as const, data: j, time: j.scheduled_date }))
+                              ].sort((a, b) => {
+                                const timeA = a.time ? new Date(a.time).getTime() : 0
+                                const timeB = b.time ? new Date(b.time).getTime() : 0
+                                return timeA - timeB
+                              })
+
+                              return (
+                                <div className="space-y-4">
+                                  {allItems.map((item, index) => {
+                                    if (item.type === 'event') {
+                                      const event = item.data as CalendarEvent
+                                      const time = event.start.dateTime
+                                        ? new Date(event.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+                                        : 'All day'
+                                      // @ts-ignore
+                                      const rfLead = event?.extendedProperties?.private?.replyflow_lead_id as string | undefined
+                                      const job = jobs.find(j => j.google_calendar_event_id === event.id)
+                                      const customerName = job?.title || (rfLead ? 'Customer' : event.summary)
+
+                                      return (
+                                        <div key={event.id}>
+                                          <p className="text-sm font-semibold text-foreground">{time}</p>
+                                          <p className="text-sm text-muted-foreground/80">{customerName}</p>
+                                          <p className="text-sm text-foreground">{event.summary}</p>
+                                          {index < allItems.length - 1 && <hr className="border-border/40 my-4" />}
+                                        </div>
+                                      )
+                                    } else {
+                                      const job = item.data
+                                      const time = job.scheduled_date
+                                        ? new Date(job.scheduled_date).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+                                        : 'No time'
+
+                                      return (
+                                        <Link
+                                          key={job.id}
+                                          href={`/dashboard/leads/${job.lead_id || ''}`}
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <p className="text-sm font-semibold text-foreground">{time}</p>
+                                          <p className="text-sm text-muted-foreground/80">{job.title}</p>
+                                          <p className="text-sm text-foreground">Job: {job.status.replace('_', ' ')}</p>
+                                          {index < allItems.length - 1 && <hr className="border-border/40 my-4" />}
+                                        </Link>
+                                      )
+                                    }
+                                  })}
+                                </div>
+                              )
+                            })()}
+                          </div>
+                        )}
+                      </div>
 
                       <div className="md:hidden mt-4 pb-2">
                         <button
