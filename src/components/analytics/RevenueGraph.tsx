@@ -99,7 +99,7 @@ export default function RevenueGraph() {
   const isStripeConnected = business?.stripe_connect_account_id
 
   return (
-    <Card className="h-full border-border/30 shadow-none">
+    <Card className="h-full" variant="hero" padding="md">
       <div className="p-4 sm:p-5">
         <div className="flex items-start justify-between mb-4">
           <div>

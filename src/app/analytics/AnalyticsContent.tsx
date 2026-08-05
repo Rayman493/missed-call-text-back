@@ -333,7 +333,7 @@ export default function AnalyticsContent() {
   return (
     <AuthGuard>
       <BusinessGuard>
-        <div className="min-h-screen bg-[#f5f7fb] dark:bg-background flex flex-col">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-50/95 to-slate-100/90 dark:from-background dark:via-background dark:to-slate-950/50 flex flex-col">
           <AppHeader showNavigation={true} />
           
           <div className="flex-1 pt-2.5 sm:pt-3.5 lg:pt-7 px-3 sm:px-4 lg:px-6 pb-20 sm:pb-8 relative z-10" style={{ paddingBottom: 'max(80px, calc(80px + env(safe-area-inset-bottom)))' }}>
@@ -384,7 +384,7 @@ export default function AnalyticsContent() {
               ) : metrics && (
                 <>
                   {/* Business Impact - Top Highlight */}
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200/60 dark:border-blue-800/50 rounded-xl p-4 sm:p-5 mb-3 shadow-sm">
+                  <div className="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 dark:from-blue-900/15 dark:to-indigo-900/15 border border-blue-200/40 dark:border-blue-800/30 rounded-xl p-4 sm:p-5 mb-3 shadow-[0_1px_2px_rgba(0,0,0,0.02),0_4px_8px_rgba(0,0,0,0.02),0_0_0_1px_rgba(255,255,255,0.6)_inset] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2),0_4px_8px_rgba(0,0,0,0.15),0_0_0_1px_rgba(255,255,255,0.05)_inset]">
                     <div className="flex items-start gap-4">
                       <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
                         <TrendingUp className="w-6 h-6 text-blue-600 dark:text-blue-400" />
@@ -401,7 +401,7 @@ export default function AnalyticsContent() {
                   </div>
 
                   {/* Customer Recovery Overview */}
-                  <div className="bg-white dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.05)_inset] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset] p-4 sm:p-5 mb-4">
+                  <div className="bg-gradient-to-b from-white to-white/95 dark:from-slate-800/90 dark:to-slate-800/80 rounded-2xl border border-border/30 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.5)_inset] dark:shadow-[0_1px_3px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset] p-4 sm:p-5 mb-4">
                     <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
                       <Phone className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                       Customer Recovery Overview
@@ -441,7 +441,7 @@ export default function AnalyticsContent() {
                   </div>
 
                   {/* AI Performance */}
-                  <div className="bg-white dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.05)_inset] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset] p-4 sm:p-5 mb-4">
+                  <div className="bg-gradient-to-b from-white to-white/95 dark:from-slate-800/90 dark:to-slate-800/80 rounded-2xl border border-border/30 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.5)_inset] dark:shadow-[0_1px_3px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset] p-4 sm:p-5 mb-4">
                     <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
                       <BarChart3 className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                       AI Performance
@@ -470,7 +470,7 @@ export default function AnalyticsContent() {
                   </div>
 
                   {/* Follow-Up Performance */}
-                  <div className="bg-white dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.05)_inset] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset] p-4 sm:p-5 mb-4">
+                  <div className="bg-gradient-to-b from-white to-white/95 dark:from-slate-800/90 dark:to-slate-800/80 rounded-2xl border border-border/30 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.5)_inset] dark:shadow-[0_1px_3px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset] p-4 sm:p-5 mb-4">
                     <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
                       <Send className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                       Follow-Up Performance
@@ -499,7 +499,7 @@ export default function AnalyticsContent() {
                   </div>
 
                   {/* Customer Engagement */}
-                  <div className="bg-white dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.05)_inset] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset] p-4 sm:p-5 mb-4">
+                  <div className="bg-gradient-to-b from-white to-white/95 dark:from-slate-800/90 dark:to-slate-800/80 rounded-2xl border border-border/30 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.5)_inset] dark:shadow-[0_1px_3px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset] p-4 sm:p-5 mb-4">
                     <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
                       <MessageSquare className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                       Customer Engagement
@@ -531,7 +531,7 @@ export default function AnalyticsContent() {
                   {/* Charts */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {/* Customer Activity Trend */}
-                    <div className="bg-white dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.05)_inset] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset] p-4 sm:p-5">
+                    <div className="bg-gradient-to-b from-white to-white/95 dark:from-slate-800/90 dark:to-slate-800/80 rounded-2xl border border-border/30 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.5)_inset] dark:shadow-[0_1px_3px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset] p-4 sm:p-5">
                       <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
                         <TrendingUp className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                         Customer Activity Trend (7 Days)
@@ -540,7 +540,7 @@ export default function AnalyticsContent() {
                     </div>
 
                     {/* Customer Reply Trend */}
-                    <div className="bg-white dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-[0_1px_2px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.05)_inset] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset] p-4 sm:p-5">
+                    <div className="bg-gradient-to-b from-white to-white/95 dark:from-slate-800/90 dark:to-slate-800/80 rounded-2xl border border-border/30 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_4px_12px_rgba(0,0,0,0.03),0_0_0_1px_rgba(255,255,255,0.5)_inset] dark:shadow-[0_1px_3px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset] p-4 sm:p-5">
                       <h3 className="text-base font-semibold text-slate-900 dark:text-foreground mb-3 flex items-center gap-2">
                         <MessageSquare className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                         Customer Reply Trend (7 Days)
@@ -562,7 +562,7 @@ export default function AnalyticsContent() {
 
 function MetricCard({ label, value, icon: Icon, isDecimal }: { label: string; value: number; icon: any; isDecimal?: boolean }) {
   return (
-    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 sm:p-4 border border-slate-200/60 dark:border-slate-700/50">
+    <div className="bg-gradient-to-b from-slate-50/80 to-slate-50/60 dark:from-slate-800/60 dark:to-slate-800/40 rounded-xl p-3 sm:p-4 border border-border/20 shadow-[0_1px_2px_rgba(0,0,0,0.01),0_2px_6px_rgba(0,0,0,0.02),0_0_0_1px_rgba(255,255,255,0.8)_inset] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2),0_2px_6px_rgba(0,0,0,0.15),0_0_0_1px_rgba(255,255,255,0.05)_inset]">
       <div className="flex items-center gap-2 mb-2">
         <Icon className="w-4 h-4 text-slate-600 dark:text-slate-400" />
         <span className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground">{label}</span>
@@ -576,7 +576,7 @@ function MetricCard({ label, value, icon: Icon, isDecimal }: { label: string; va
 
 function PercentageCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 sm:p-4 border border-slate-200/60 dark:border-slate-700/50">
+    <div className="bg-gradient-to-b from-slate-50/80 to-slate-50/60 dark:from-slate-800/60 dark:to-slate-800/40 rounded-xl p-3 sm:p-4 border border-border/20 shadow-[0_1px_2px_rgba(0,0,0,0.01),0_2px_6px_rgba(0,0,0,0.02),0_0_0_1px_rgba(255,255,255,0.8)_inset] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2),0_2px_6px_rgba(0,0,0,0.15),0_0_0_1px_rgba(255,255,255,0.05)_inset]">
       <div className="flex items-center gap-2 mb-2">
         <TrendingUp className="w-4 h-4 text-slate-600 dark:text-slate-400" />
         <span className="text-xs sm:text-sm text-slate-600 dark:text-muted-foreground">{label}</span>
@@ -625,13 +625,14 @@ function SimpleBarChart({ data, color, label }: { data: TrendData[]; color: 'blu
     : 'bg-green-500 dark:bg-green-400'
 
   return (
-    <div className="flex items-end gap-2 h-32 sm:h-40">
+    <div className="flex items-end gap-2 h-32 sm:h-40 relative">
+      <div className="absolute inset-0 rounded-lg bg-gradient-to-b from-slate-50/50 to-transparent dark:from-slate-800/30 dark:to-transparent pointer-events-none" />
       {data.map((item: TrendData, index: number) => {
         const height = (item.value / maxValue) * 100
         return (
-          <div key={index} className="flex-1 flex flex-col items-center gap-1">
+          <div key={index} className="flex-1 flex flex-col items-center gap-1 relative z-10">
             <div 
-              className={`w-full rounded-t-sm ${colorClass} transition-all duration-300`}
+              className={`w-full rounded-t-sm ${colorClass} transition-all duration-300 shadow-sm`}
               style={{ height: `${Math.max(height, 5)}%` }}
             />
             <span className="text-[9px] sm:text-[10px] text-slate-600 dark:text-muted-foreground text-center">

@@ -87,10 +87,10 @@ export default function PremiumSelect<T extends string>({
         <div
           className={`
             absolute z-50 mt-2 w-full min-w-[140px]
-            bg-background/95 backdrop-blur-sm
-            border border-border/50
+            bg-gradient-to-b from-background to-background/95 backdrop-blur-sm
+            border border-border/30
             rounded-lg
-            shadow-lg shadow-black/5
+            shadow-[0_2px_8px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.06),0_0_0_1px_rgba(255,255,255,0.5)_inset] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3),0_8px_24px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)_inset]
             py-1
             animate-in fade-in slide-in-from-top-1 duration-200
           `}
