@@ -5,6 +5,7 @@ import { DollarSign, FileText, Calendar, MessageCircle, Snowflake } from 'lucide
 import { revenueOpportunitiesService } from '@/lib/revenue-opportunities/revenue-opportunities-service'
 import type { RevenueOpportunity } from '@/lib/revenue-opportunities/revenue-opportunities-types'
 import { useRouter } from 'next/navigation'
+import { formatCurrency } from '@/lib/utils'
 
 interface RevenueOpportunityCardProps {
   businessId: string
@@ -132,13 +133,4 @@ function getOpportunityTypeLabel(type: string): string {
     default:
       return 'Opportunity'
   }
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(amount)
 }

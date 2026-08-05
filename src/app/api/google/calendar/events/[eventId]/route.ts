@@ -303,7 +303,7 @@ export async function DELETE(
       await notificationServiceServer.notifyAppointmentDeleted(business.id, 'Appointment')
       console.log('[Google Calendar Delete] Notification created successfully')
     } catch (notificationError) {
-      console.error('[Google Calendar Delete] Failed to create notification:', notificationError)
+      console.warn('[Google Calendar Delete] Failed to create notification:', notificationError)
       // Non-critical error, continue
     }
 

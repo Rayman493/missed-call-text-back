@@ -6,6 +6,7 @@ import { revenueOpportunitiesService } from '@/lib/revenue-opportunities/revenue
 import type { RevenueOpportunity } from '@/lib/revenue-opportunities/revenue-opportunities-types'
 import { CardSkeleton, ListItemSkeleton } from '@/components/ui/Skeleton'
 import { useRouter } from 'next/navigation'
+import { formatCurrency } from '@/lib/utils'
 
 interface RevenueOpportunitiesProps {
   business: { id: string } | null
@@ -216,13 +217,4 @@ function getActionLabel(action: string): string {
     default:
       return 'View'
   }
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(amount)
 }

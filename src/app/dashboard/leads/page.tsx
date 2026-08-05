@@ -227,6 +227,8 @@ export default function LeadsPage() {
   // Handle query parameters for return flow
   const addCustomer = searchParams?.get('addCustomer')
   const returnTo = searchParams?.get('returnTo')
+  const statusParam = searchParams?.get('status')
+  const dashboardOrigin = searchParams?.get('dashboard-origin')
 
   // Auto-open AddCustomerModal if addCustomer=true
   useEffect(() => {
@@ -234,6 +236,21 @@ export default function LeadsPage() {
       setShowAddCustomerModal(true)
     }
   }, [addCustomer, showAddCustomerModal])
+
+  // Initialize filters from URL parameters
+  useEffect(() => {
+    if (statusParam) {
+      // Map status parameter to quickFilter
+      const validStatuses = ['new', 'active', 'completed', 'ignored']
+      if (validStatuses.includes(statusParam)) {
+        setQuickFilter(statusParam as 'all' | 'active' | 'new' | 'completed' | 'ignored')
+        setStatusFilter('all')
+      } else {
+        setStatusFilter(statusParam)
+        setQuickFilter('all')
+      }
+    }
+  }, [statusParam])
 
   const supabase = createBrowserClient()
 
@@ -943,8 +960,14 @@ export default function LeadsPage() {
                 isInteractive={true}
                 isSelected={quickFilter === 'new' && statusFilter === 'all'}
                 onClick={() => {
-                  if (quickFilter === 'new' && statusFilter === 'all') {
+                  if (quickFilter === 'new') {
                     setQuickFilter('all')
+                    setStatusFilter('all')
+                    // Clear status query parameter
+                    const params = new URLSearchParams(searchParams?.toString())
+                    params.delete('status')
+                    const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
+                    router.replace(newUrl)
                   } else {
                     setQuickFilter('new')
                     setStatusFilter('all')
@@ -965,8 +988,14 @@ export default function LeadsPage() {
                 isInteractive={true}
                 isSelected={quickFilter === 'active' && statusFilter === 'all'}
                 onClick={() => {
-                  if (quickFilter === 'active' && statusFilter === 'all') {
+                  if (quickFilter === 'active') {
                     setQuickFilter('all')
+                    setStatusFilter('all')
+                    // Clear status query parameter
+                    const params = new URLSearchParams(searchParams?.toString())
+                    params.delete('status')
+                    const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
+                    router.replace(newUrl)
                   } else {
                     setQuickFilter('active')
                     setStatusFilter('all')
@@ -987,8 +1016,14 @@ export default function LeadsPage() {
                 isInteractive={true}
                 isSelected={quickFilter === 'completed' && statusFilter === 'all'}
                 onClick={() => {
-                  if (quickFilter === 'completed' && statusFilter === 'all') {
+                  if (quickFilter === 'completed') {
                     setQuickFilter('all')
+                    setStatusFilter('all')
+                    // Clear status query parameter
+                    const params = new URLSearchParams(searchParams?.toString())
+                    params.delete('status')
+                    const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
+                    router.replace(newUrl)
                   } else {
                     setQuickFilter('completed')
                     setStatusFilter('all')
@@ -1011,8 +1046,15 @@ export default function LeadsPage() {
                 onClick={() => {
                   if (quickFilter === 'ignored') {
                     setQuickFilter('all')
+                    setStatusFilter('all')
+                    // Clear status query parameter
+                    const params = new URLSearchParams(searchParams?.toString())
+                    params.delete('status')
+                    const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
+                    router.replace(newUrl)
                   } else {
                     setQuickFilter('ignored')
+                    setStatusFilter('all')
                   }
                 }}
                 ariaLabel="Filter ignored customers"
@@ -1088,6 +1130,11 @@ export default function LeadsPage() {
                           onClick={() => {
                             setQuickFilter('all')
                             setStatusFilter('all')
+                            // Clear status query parameter
+                            const params = new URLSearchParams(searchParams?.toString())
+                            params.delete('status')
+                            const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
+                            router.replace(newUrl)
                           }}
                           onPointerDown={(e) => e.stopPropagation()}
                           className="w-full px-2 py-1.5 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer rounded-md min-h-[36px]"
@@ -1103,6 +1150,11 @@ export default function LeadsPage() {
                           onClick={() => {
                             setQuickFilter('active')
                             setStatusFilter('all')
+                            // Clear status query parameter
+                            const params = new URLSearchParams(searchParams?.toString())
+                            params.delete('status')
+                            const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
+                            router.replace(newUrl)
                           }}
                           onPointerDown={(e) => e.stopPropagation()}
                           className="w-full px-2 py-1.5 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer rounded-md min-h-[36px]"
@@ -1118,6 +1170,11 @@ export default function LeadsPage() {
                           onClick={() => {
                             setQuickFilter('new')
                             setStatusFilter('all')
+                            // Clear status query parameter
+                            const params = new URLSearchParams(searchParams?.toString())
+                            params.delete('status')
+                            const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
+                            router.replace(newUrl)
                           }}
                           onPointerDown={(e) => e.stopPropagation()}
                           className="w-full px-2 py-1.5 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer rounded-md min-h-[36px]"
@@ -1133,6 +1190,10 @@ export default function LeadsPage() {
                           onClick={() => {
                             setStatusFilter('scheduled')
                             setQuickFilter('all')
+                            // Set status query parameter
+                            const params = new URLSearchParams(searchParams?.toString())
+                            params.set('status', 'scheduled')
+                            router.replace(`${pathname}?${params.toString()}`)
                           }}
                           onPointerDown={(e) => e.stopPropagation()}
                           className="w-full px-2 py-1.5 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer rounded-md min-h-[36px]"
@@ -1148,6 +1209,10 @@ export default function LeadsPage() {
                           onClick={() => {
                             setStatusFilter('payment_requested')
                             setQuickFilter('all')
+                            // Set status query parameter
+                            const params = new URLSearchParams(searchParams?.toString())
+                            params.set('status', 'payment_requested')
+                            router.replace(`${pathname}?${params.toString()}`)
                           }}
                           onPointerDown={(e) => e.stopPropagation()}
                           className="w-full px-2 py-1.5 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer rounded-md min-h-[36px]"
@@ -1163,6 +1228,10 @@ export default function LeadsPage() {
                           onClick={() => {
                             setStatusFilter('paid')
                             setQuickFilter('all')
+                            // Set status query parameter
+                            const params = new URLSearchParams(searchParams?.toString())
+                            params.set('status', 'paid')
+                            router.replace(`${pathname}?${params.toString()}`)
                           }}
                           onPointerDown={(e) => e.stopPropagation()}
                           className="w-full px-2 py-1.5 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer rounded-md min-h-[36px]"
@@ -1178,6 +1247,10 @@ export default function LeadsPage() {
                           onClick={() => {
                             setStatusFilter('completed')
                             setQuickFilter('all')
+                            // Set status query parameter
+                            const params = new URLSearchParams(searchParams?.toString())
+                            params.set('status', 'completed')
+                            router.replace(`${pathname}?${params.toString()}`)
                           }}
                           onPointerDown={(e) => e.stopPropagation()}
                           className="w-full px-2 py-1.5 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer rounded-md min-h-[36px]"
@@ -1193,6 +1266,10 @@ export default function LeadsPage() {
                           onClick={() => {
                             setStatusFilter('lost')
                             setQuickFilter('all')
+                            // Set status query parameter
+                            const params = new URLSearchParams(searchParams?.toString())
+                            params.set('status', 'lost')
+                            router.replace(`${pathname}?${params.toString()}`)
                           }}
                           onPointerDown={(e) => e.stopPropagation()}
                           className="w-full px-2 py-1.5 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer rounded-md min-h-[36px]"
@@ -1208,6 +1285,11 @@ export default function LeadsPage() {
                           onClick={() => {
                             setQuickFilter('ignored')
                             setStatusFilter('all')
+                            // Clear status query parameter (ignored uses quickFilter)
+                            const params = new URLSearchParams(searchParams?.toString())
+                            params.delete('status')
+                            const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname
+                            router.replace(newUrl)
                           }}
                           onPointerDown={(e) => e.stopPropagation()}
                           className="w-full px-2 py-1.5 text-left hover:bg-muted/50 transition-colors flex items-center justify-between outline-none focus:bg-muted/50 cursor-pointer rounded-md min-h-[36px]"

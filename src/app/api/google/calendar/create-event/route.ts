@@ -378,7 +378,7 @@ export async function POST(request: NextRequest) {
       )
       console.log('[Calendar Create] Notification created successfully')
     } catch (notificationError) {
-      console.error('[Calendar Create] Failed to create notification:', notificationError)
+      console.warn('[Calendar Create] Failed to create notification:', notificationError)
       // Non-critical error, continue
     }
 

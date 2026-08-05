@@ -139,17 +139,17 @@ export default function BusinessActivityGraph() {
 
   return (
     <Card className="h-full border-border/30 shadow-none">
-      <div className="p-3 sm:p-4">
-        <div className="flex items-start justify-between mb-3">
+      <div className="p-4 sm:p-5">
+        <div className="flex items-start justify-between mb-4">
           <div>
-            <h3 className="text-base font-semibold text-foreground">Customer Engagement</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">Daily customer interactions</p>
+            <h3 className="text-sm font-semibold text-foreground">Customer Engagement</h3>
+            <p className="text-[11px] text-muted-foreground/70 mt-0.5">Daily customer interactions</p>
           </div>
           <div className="flex items-center gap-2">
             <select
               value={timeRange}
               onChange={(e) => setTimeRange(e.target.value as TimeRange)}
-              className="text-xs border border-border rounded-md px-2 py-1 bg-background text-foreground"
+              className="text-[11px] border border-border/50 rounded-md px-2 py-1.5 bg-background text-foreground hover:bg-muted/50 transition-colors"
             >
               <option value="7d">7 Days</option>
               <option value="30d">30 Days</option>
@@ -158,48 +158,58 @@ export default function BusinessActivityGraph() {
             </select>
             <button
               onClick={() => setShowLegend(!showLegend)}
-              className="text-xs border border-border rounded-md px-2 py-1 bg-background text-foreground hover:bg-muted"
+              className="text-[11px] border border-border/50 rounded-md px-2 py-1.5 bg-background text-foreground hover:bg-muted/50 transition-colors"
             >
-              Legend
+              {showLegend ? 'Hide' : 'Show'}
             </button>
           </div>
         </div>
 
         {loading ? (
-          <div className="h-[280px] flex items-center justify-center">
+          <div className="h-[220px] flex items-center justify-center">
             <div className="animate-pulse text-muted-foreground text-sm">Loading...</div>
           </div>
         ) : isEmpty ? (
-          <div className="h-[280px] flex flex-col items-center justify-center text-center px-4">
-            <p className="text-xs font-medium text-muted-foreground/80">No activity in the selected time period.</p>
-            <p className="text-[10px] text-muted-foreground/60 mt-1">Customer interactions will appear here.</p>
+          <div className="h-[220px] flex flex-col items-center justify-center text-center px-4">
+            <Activity className="w-8 h-8 text-muted-foreground/30 mb-3" />
+            <p className="text-xs font-medium text-muted-foreground/70">No activity in the selected time period.</p>
+            <p className="text-[10px] text-muted-foreground/50 mt-1.5">Customer interactions will appear here.</p>
           </div>
         ) : (
-          <div className="h-[280px]">
+          <div className="h-[220px]">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
+              <LineChart data={data} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+                <CartesianGrid strokeDasharray="4 4" className="stroke-border/20" vertical={false} />
                 <XAxis 
                   dataKey="date" 
-                  className="text-[10px] text-muted-foreground"
+                  className="text-[10px] text-muted-foreground/60"
                   tick={{ fontSize: 10 }}
+                  axisLine={false}
+                  tickLine={false}
+                  interval="preserveStartEnd"
                 />
                 <YAxis 
-                  className="text-[10px] text-muted-foreground"
+                  className="text-[10px] text-muted-foreground/60"
                   tick={{ fontSize: 10 }}
+                  axisLine={false}
+                  tickLine={false}
                 />
                 <Tooltip 
                   contentStyle={{ 
                     backgroundColor: 'hsl(var(--card))',
                     border: '1px solid hsl(var(--border))',
-                    borderRadius: '6px'
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    fontSize: '11px'
                   }}
                   itemStyle={{ color: 'hsl(var(--foreground))' }}
                 />
                 {showLegend && (
                   <Legend 
-                    wrapperStyle={{ fontSize: '10px' }}
+                    wrapperStyle={{ fontSize: '10px', paddingTop: '8px' }}
                     iconType="line"
+                    verticalAlign="bottom"
+                    height={24}
                   />
                 )}
                 <Line 
@@ -207,7 +217,8 @@ export default function BusinessActivityGraph() {
                   dataKey="conversations" 
                   stroke="#3b82f6" 
                   strokeWidth={2}
-                  dot={{ fill: '#3b82f6', strokeWidth: 2, r: 2 }}
+                  dot={{ fill: '#3b82f6', strokeWidth: 0, r: 3 }}
+                  activeDot={{ r: 4, fill: '#3b82f6', strokeWidth: 2 }}
                   name="Conversations"
                 />
                 <Line 
@@ -215,7 +226,8 @@ export default function BusinessActivityGraph() {
                   dataKey="appointments" 
                   stroke="#22c55e" 
                   strokeWidth={2}
-                  dot={{ fill: '#22c55e', strokeWidth: 2, r: 2 }}
+                  dot={{ fill: '#22c55e', strokeWidth: 0, r: 3 }}
+                  activeDot={{ r: 4, fill: '#22c55e', strokeWidth: 2 }}
                   name="Appointments"
                 />
                 <Line 
@@ -223,7 +235,8 @@ export default function BusinessActivityGraph() {
                   dataKey="paymentRequests" 
                   stroke="#f59e0b" 
                   strokeWidth={2}
-                  dot={{ fill: '#f59e0b', strokeWidth: 2, r: 2 }}
+                  dot={{ fill: '#f59e0b', strokeWidth: 0, r: 3 }}
+                  activeDot={{ r: 4, fill: '#f59e0b', strokeWidth: 2 }}
                   name="Payment Requests"
                 />
                 <Line 
@@ -231,7 +244,8 @@ export default function BusinessActivityGraph() {
                   dataKey="completedJobs" 
                   stroke="#8b5cf6" 
                   strokeWidth={2}
-                  dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 2 }}
+                  dot={{ fill: '#8b5cf6', strokeWidth: 0, r: 3 }}
+                  activeDot={{ r: 4, fill: '#8b5cf6', strokeWidth: 2 }}
                   name="Completed Jobs"
                 />
               </LineChart>

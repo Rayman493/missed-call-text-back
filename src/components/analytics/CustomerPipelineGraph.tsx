@@ -67,48 +67,55 @@ export default function CustomerPipelineGraph() {
 
   return (
     <Card className="h-full border-border/30 shadow-none">
-      <div className="p-3 sm:p-4">
-        <div className="mb-3">
-          <h3 className="text-base font-semibold text-foreground">Customer Workflow</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Where customers are in your process</p>
+      <div className="p-4 sm:p-5">
+        <div className="mb-4">
+          <h3 className="text-sm font-semibold text-foreground">Customer Workflow</h3>
+          <p className="text-[11px] text-muted-foreground/70 mt-0.5">Where customers are in your process</p>
         </div>
 
         {loading ? (
-          <div className="h-[200px] flex items-center justify-center">
+          <div className="h-[220px] flex items-center justify-center">
             <div className="animate-pulse text-muted-foreground text-sm">Loading...</div>
           </div>
         ) : isEmpty ? (
-          <div className="h-[200px] flex flex-col items-center justify-center text-center px-4">
-            <p className="text-xs font-medium text-muted-foreground/80">No active customers.</p>
-            <p className="text-[10px] text-muted-foreground/60 mt-1">Customers automatically move through your workflow.</p>
+          <div className="h-[220px] flex flex-col items-center justify-center text-center px-4">
+            <Funnel className="w-8 h-8 text-muted-foreground/30 mb-3" />
+            <p className="text-xs font-medium text-muted-foreground/70">No active customers.</p>
+            <p className="text-[10px] text-muted-foreground/50 mt-1.5">Customers will automatically move through your workflow.</p>
           </div>
         ) : (
-          <div className="h-[200px]">
+          <div className="h-[220px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data} layout="horizontal">
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
+              <BarChart data={data} layout="horizontal" margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+                <CartesianGrid strokeDasharray="4 4" className="stroke-border/20" horizontal={false} />
                 <XAxis 
                   type="number" 
-                  className="text-[10px] text-muted-foreground"
+                  className="text-[10px] text-muted-foreground/60"
                   tick={{ fontSize: 10 }}
+                  axisLine={false}
+                  tickLine={false}
                 />
                 <YAxis 
                   type="category" 
                   dataKey="status" 
-                  className="text-[10px] text-muted-foreground"
+                  className="text-[10px] text-muted-foreground/60"
                   tick={{ fontSize: 10 }}
                   width={100}
+                  axisLine={false}
+                  tickLine={false}
                 />
                 <Tooltip 
                   contentStyle={{ 
                     backgroundColor: 'hsl(var(--card))',
                     border: '1px solid hsl(var(--border))',
-                    borderRadius: '6px'
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    fontSize: '11px'
                   }}
                   itemStyle={{ color: 'hsl(var(--foreground))' }}
                   formatter={(value: any, name?: any) => [value, 'Customers']}
                 />
-                <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                <Bar dataKey="count" radius={[0, 3, 3, 0]} className="hover:opacity-80 transition-opacity">
                   {data.map((entry, index) => (
                     <rect key={`cell-${index}`} fill={entry.color} />
                   ))}

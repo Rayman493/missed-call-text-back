@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { RefreshCw, Calendar, TrendingUp, User, Clock } from 'lucide-react'
 import { customerReactivationService } from '@/lib/customer-reactivation/customer-reactivation-service'
 import type { CustomerReactivation } from '@/lib/customer-reactivation/customer-reactivation-types'
+import { formatCurrency } from '@/lib/utils'
 
 interface CustomerReactivationCardProps {
   businessId: string
@@ -123,9 +124,7 @@ function getReactivationIconBg(type: string): string {
 
 function getReactivationTypeLabel(type: string): string {
   switch (type) {
-    case 'due_for_service':
-      return 'Due for Service'
-    case 'seasonal_return':
+    case 'seasonal':
       return 'Seasonal'
     case 'high_lifetime_value':
       return 'High Value'
@@ -136,13 +135,4 @@ function getReactivationTypeLabel(type: string): string {
     default:
       return 'Reactivation'
   }
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(amount)
 }

@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       await notificationServiceServer.notifyCalendarDisconnected(business.id)
       console.log('[CALENDAR DISCONNECT] Notification created successfully')
     } catch (notificationError) {
-      console.error('[CALENDAR DISCONNECT] Failed to create notification:', notificationError)
+      console.warn('[CALENDAR DISCONNECT] Failed to create notification:', notificationError)
       // Non-critical error, continue
     }
 

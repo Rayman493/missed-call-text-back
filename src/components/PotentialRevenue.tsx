@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { DollarSign, FileText, Calendar, User } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { CardSkeleton } from '@/components/ui/Skeleton'
+import { formatCurrency } from '@/lib/utils'
 
 interface PotentialRevenueProps {
   businessId: string
@@ -212,20 +213,4 @@ function ListItemSkeleton() {
       <div className="h-4 w-16 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
     </div>
   )
-}
-
-function formatCurrency(amount: number): string {
-  if (amount === 0) return '$0'
-  
-  // For awaiting estimate, show count instead of currency
-  if (amount < 100) {
-    return `${amount} customers`
-  }
-  
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(amount)
 }

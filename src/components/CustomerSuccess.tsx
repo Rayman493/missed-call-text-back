@@ -5,6 +5,7 @@ import { Heart, ArrowRight, Star, Users, AlertCircle, Calendar } from 'lucide-re
 import { customerSuccessService } from '@/lib/customer-success/customer-success-service'
 import type { CustomerSuccessOpportunity } from '@/lib/customer-success/customer-success-types'
 import { useRouter } from 'next/navigation'
+import { formatCurrency } from '@/lib/utils'
 
 interface CustomerSuccessProps {
   business: { id: string } | null
@@ -175,15 +176,6 @@ function getPriorityColor(priority: string): string {
     default:
       return 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
   }
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(amount)
 }
 
 function capitalizeFirst(str: string): string {

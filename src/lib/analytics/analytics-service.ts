@@ -54,7 +54,7 @@ class AnalyticsService {
         await provider.initialize()
         console.log(`[Analytics] Provider initialized: ${provider.constructor.name}`)
       } catch (error) {
-        console.error(`[Analytics] Failed to initialize provider:`, error)
+        console.warn(`[Analytics] Failed to initialize provider:`, error)
       }
     }
 
@@ -93,7 +93,7 @@ class AnalyticsService {
       try {
         await provider.track(event)
       } catch (error) {
-        console.error(`[Analytics] Provider tracking failed:`, error)
+        console.warn(`[Analytics] Provider tracking failed:`, error)
       }
     }
   }
@@ -112,7 +112,7 @@ class AnalyticsService {
           await provider.identify(userId, traits)
         }
       } catch (error) {
-        console.error(`[Analytics] Provider identify failed:`, error)
+        console.warn(`[Analytics] Provider identify failed:`, error)
       }
     }
   }
@@ -131,7 +131,7 @@ class AnalyticsService {
           await provider.setUserProperties(properties)
         }
       } catch (error) {
-        console.error(`[Analytics] Provider setUserProperties failed:`, error)
+        console.warn(`[Analytics] Provider setUserProperties failed:`, error)
       }
     }
   }
@@ -150,7 +150,7 @@ class AnalyticsService {
           await provider.flush()
         }
       } catch (error) {
-        console.error(`[Analytics] Provider flush failed:`, error)
+        console.warn(`[Analytics] Provider flush failed:`, error)
       }
     }
   }

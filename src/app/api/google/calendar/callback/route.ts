@@ -190,7 +190,7 @@ export async function GET(request: NextRequest) {
       await notificationServiceServer.notifyCalendarConnected(business.id, savedIntegration?.calendar_email)
       console.log('[GOOGLE OAUTH] notification created')
     } catch (notificationError) {
-      console.error('[GOOGLE OAUTH] notification failed:', notificationError)
+      console.warn('[GOOGLE OAUTH] notification failed:', notificationError)
       // Non-critical error, continue
     }
 

@@ -91,16 +91,16 @@ export default function RevenueGraph() {
 
   return (
     <Card className="h-full border-border/30 shadow-none">
-      <div className="p-3 sm:p-4">
-        <div className="flex items-start justify-between mb-3">
+      <div className="p-4 sm:p-5">
+        <div className="flex items-start justify-between mb-4">
           <div>
-            <h3 className="text-base font-semibold text-foreground">Payments Received</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">Payment collection over time</p>
+            <h3 className="text-sm font-semibold text-foreground">Payments Received</h3>
+            <p className="text-[11px] text-muted-foreground/70 mt-0.5">Payment collection over time</p>
           </div>
           <select
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value as TimeRange)}
-            className="text-xs border border-border rounded-md px-2 py-1 bg-background text-foreground"
+            className="text-[11px] border border-border/50 rounded-md px-2 py-1.5 bg-background text-foreground hover:bg-muted/50 transition-colors"
           >
             <option value="7d">7 Days</option>
             <option value="30d">30 Days</option>
@@ -110,38 +110,46 @@ export default function RevenueGraph() {
         </div>
 
         {loading ? (
-          <div className="h-[280px] flex items-center justify-center">
+          <div className="h-[220px] flex items-center justify-center">
             <div className="animate-pulse text-muted-foreground text-sm">Loading...</div>
           </div>
         ) : !isStripeConnected ? (
-          <div className="h-[280px] flex flex-col items-center justify-center text-center px-4">
-            <p className="text-xs font-medium text-muted-foreground/80">Connect Stripe to track payments.</p>
+          <div className="h-[220px] flex flex-col items-center justify-center text-center px-4">
+            <DollarSign className="w-8 h-8 text-muted-foreground/30 mb-3" />
+            <p className="text-xs font-medium text-muted-foreground/70">Connect Stripe to track payments.</p>
           </div>
         ) : isEmpty ? (
-          <div className="h-[280px] flex flex-col items-center justify-center text-center px-4">
-            <p className="text-xs font-medium text-muted-foreground/80">No payments received yet.</p>
-            <p className="text-[10px] text-muted-foreground/60 mt-1">Revenue charts appear after your first completed payment.</p>
+          <div className="h-[220px] flex flex-col items-center justify-center text-center px-4">
+            <DollarSign className="w-8 h-8 text-muted-foreground/30 mb-3" />
+            <p className="text-xs font-medium text-muted-foreground/70">Your first completed payment will appear here.</p>
           </div>
         ) : (
-          <div className="h-[280px]">
+          <div className="h-[220px]">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
+              <LineChart data={data} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+                <CartesianGrid strokeDasharray="4 4" className="stroke-border/20" vertical={false} />
                 <XAxis 
                   dataKey="date" 
-                  className="text-[10px] text-muted-foreground"
+                  className="text-[10px] text-muted-foreground/60"
                   tick={{ fontSize: 10 }}
+                  axisLine={false}
+                  tickLine={false}
+                  interval="preserveStartEnd"
                 />
                 <YAxis 
-                  className="text-[10px] text-muted-foreground"
+                  className="text-[10px] text-muted-foreground/60"
                   tick={{ fontSize: 10 }}
+                  axisLine={false}
+                  tickLine={false}
                   tickFormatter={(value) => `$${value}`}
                 />
                 <Tooltip 
                   contentStyle={{ 
                     backgroundColor: 'hsl(var(--card))',
                     border: '1px solid hsl(var(--border))',
-                    borderRadius: '6px'
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    fontSize: '11px'
                   }}
                   itemStyle={{ color: 'hsl(var(--foreground))' }}
                   formatter={(value: any) => [`$${(value || 0).toFixed(2)}`, 'Revenue']}
@@ -150,9 +158,9 @@ export default function RevenueGraph() {
                   type="monotone" 
                   dataKey="revenue" 
                   stroke="#22c55e" 
-                  strokeWidth={2}
-                  dot={{ fill: '#22c55e', strokeWidth: 2, r: 3 }}
-                  activeDot={{ r: 5 }}
+                  strokeWidth={2.5}
+                  dot={{ fill: '#22c55e', strokeWidth: 0, r: 4 }}
+                  activeDot={{ r: 5, fill: '#22c55e', strokeWidth: 2.5 }}
                 />
               </LineChart>
             </ResponsiveContainer>

@@ -579,7 +579,7 @@ export async function POST(request: NextRequest) {
             type: 'ai_intake_completed'
           })
         } catch (notificationError) {
-          console.error('[AI INTAKE NOTIFICATION CREATE ERROR]', {
+          console.warn('[AI INTAKE NOTIFICATION CREATE ERROR]', {
             businessId,
             leadId,
             error: notificationError

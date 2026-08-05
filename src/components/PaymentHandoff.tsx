@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { formatCurrency } from '@/lib/utils'
 
 interface PaymentHandoffProps {
   provider: 'venmo' | 'paypal'
@@ -28,13 +29,15 @@ export default function PaymentHandoff({
   }
 
   const providerName = provider === 'venmo' ? 'Venmo' : 'PayPal'
+  const amountNumber = parseFloat(amount) || 0
+  const formattedAmount = formatCurrency(amountNumber)
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-6">
       <div className="max-w-md w-full">
         {/* Hero Section */}
         <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold text-gray-900 mb-2">${amount}</h1>
+          <h1 className="text-5xl font-bold text-gray-900 mb-2">{formattedAmount}</h1>
           {description && (
             <p className="text-xl text-gray-700 mb-1">{description}</p>
           )}
@@ -85,7 +88,7 @@ export default function PaymentHandoff({
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-gray-600">Amount</span>
               <div className="flex items-center gap-2">
-                <span className="text-gray-900 font-medium">${amount}</span>
+                <span className="text-gray-900 font-medium">{formattedAmount}</span>
                 <button
                   onClick={() => copyToClipboard(amount, 'amount')}
                   className="p-1.5 hover:bg-gray-100 text-gray-500 rounded transition-colors"
@@ -137,12 +140,12 @@ export default function PaymentHandoff({
             
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Recipient</span>
+                <span className="text-sm font-gray-600">Recipient</span>
                 <span className="text-gray-900 font-medium">@{venmoUsername}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Amount</span>
-                <span className="text-gray-900 font-medium">${amount}</span>
+                <span className="text-sm font-gray-600">Amount</span>
+                <span className="text-gray-900 font-medium">{formattedAmount}</span>
               </div>
               {description && (
                 <div className="flex items-center justify-between">

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { Heart, TrendingUp, Clock, DollarSign, Award, AlertCircle } from 'lucide-react'
 import { customerSuccessService } from '@/lib/customer-success/customer-success-service'
 import type { CustomerSuccessProfile } from '@/lib/customer-success/customer-success-types'
+import { formatCurrency } from '@/lib/utils'
 
 interface CustomerSuccessCardProps {
   businessId: string
@@ -128,15 +129,6 @@ function getHealthColors(health: string): { bg: string; text: string; dotBg: str
     default:
       return { bg: 'bg-slate-100 dark:bg-slate-800', text: 'text-slate-700 dark:text-slate-300', dotBg: 'bg-slate-500' }
   }
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(amount)
 }
 
 function capitalizeFirst(str: string): string {

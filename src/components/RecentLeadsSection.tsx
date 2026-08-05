@@ -54,13 +54,6 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
               created_at,
               conversation_id
             ),
-            conversations!conversation_id (
-              id,
-              status,
-              source,
-              started_at,
-              last_activity_at
-            ),
             voicemail_recordings (
               id,
               recording_url,

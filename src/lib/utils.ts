@@ -1,6 +1,27 @@
 import { z } from 'zod'
 import { getLeadAIIntake } from './ai-field-mapping'
 
+/**
+ * Format a number as USD currency with exactly 2 decimal places.
+ * Examples: $0.00, $2.00, $25.00, $125.50, $1,250.00
+ * 
+ * @param amount - The amount in cents (integer) or dollars (number)
+ * @param inCents - Whether the amount is in cents (default: false)
+ * @returns Formatted currency string
+ */
+export function formatCurrency(amount: number | null | undefined, inCents: boolean = false): string {
+  if (amount === null || amount === undefined) return '$0.00'
+  
+  const dollars = inCents ? amount / 100 : amount
+  
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(dollars)
+}
+
 export function formatDateTime(date: string | null): string {
   if (!date) return 'N/A'
   

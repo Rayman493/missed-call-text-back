@@ -6,6 +6,7 @@ import { customerReactivationService } from '@/lib/customer-reactivation/custome
 import type { CustomerReactivation } from '@/lib/customer-reactivation/customer-reactivation-types'
 import { CardSkeleton, ListItemSkeleton } from '@/components/ui/Skeleton'
 import { useRouter } from 'next/navigation'
+import { formatCurrency } from '@/lib/utils'
 
 interface CustomerReactivationProps {
   business: { id: string } | null
@@ -194,13 +195,4 @@ function getReactivationTypeLabel(type: string): string {
     default:
       return 'Reactivation'
   }
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(amount)
 }

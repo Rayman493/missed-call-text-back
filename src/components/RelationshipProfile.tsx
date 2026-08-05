@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { Heart, Clock, DollarSign, MessageSquare, CreditCard, TrendingUp, Award, Activity, CheckCircle } from 'lucide-react'
 import { relationshipService } from '@/lib/relationship-memory/relationship-memory-service'
 import type { RelationshipProfile } from '@/lib/relationship-memory/relationship-memory-types'
+import { formatCurrency } from '@/lib/utils'
 
 interface RelationshipProfileProps {
   businessId: string
@@ -142,15 +143,6 @@ function getQualityColors(level: string): { bg: string; text: string } {
     default:
       return { bg: 'bg-slate-500', text: 'text-slate-600 dark:text-slate-400' }
   }
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(amount)
 }
 
 function capitalizeFirst(str: string): string {

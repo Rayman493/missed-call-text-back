@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
           leadId
         )
       } catch (error) {
-        console.error('[MANUAL CUSTOMER ENTRY] Failed to create notification:', error)
+        console.warn('[MANUAL CUSTOMER ENTRY] Failed to create notification:', error)
       }
     }
 
