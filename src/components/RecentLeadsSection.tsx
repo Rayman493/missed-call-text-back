@@ -73,7 +73,8 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
             jobs (
               id,
               status,
-              scheduled_for,
+              scheduled_date,
+              scheduled_time,
               created_at
             )
           `)
@@ -286,12 +287,21 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
     const leadFollowUps = followUpJobs.filter((job: any) => job.lead_id === lead.id && job.status === 'pending')
     if (leadFollowUps.length === 0) return null
 
-    const nextJob = leadFollowUps.sort((a: any, b: any) =>
-      new Date(a.scheduled_for).getTime() - new Date(b.scheduled_for).getTime()
-    )[0]
+    // Sort by scheduled_date and scheduled_time
+    const nextJob = leadFollowUps.sort((a: any, b: any) => {
+      const aDate = new Date(a.scheduled_date || '')
+      const bDate = new Date(b.scheduled_date || '')
+      if (aDate.getTime() !== bDate.getTime()) {
+        return aDate.getTime() - bDate.getTime()
+      }
+      // If same date, sort by time
+      const aTime = a.scheduled_time || ''
+      const bTime = b.scheduled_time || ''
+      return aTime.localeCompare(bTime)
+    })[0]
 
     return {
-      time: nextJob.scheduled_for,
+      time: nextJob.scheduled_date,
       step: nextJob.step
     }
   }
