@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
-import { CreditCard, Copy, ExternalLink, User, X, Smartphone, AlertCircle, Info, ChevronDown } from 'lucide-react'
+import { CreditCard, Copy, ExternalLink, User, X, Smartphone, AlertCircle, Info, ChevronDown, MessageSquare, Link } from 'lucide-react'
 import DashboardShell from '@/components/layout/DashboardShell'
 import Button from '@/components/ui/Button'
 import PageHeader from '@/components/ui/PageHeader'
@@ -69,6 +69,30 @@ function getStatusColor(status: string): string {
     default:
       return 'bg-gray-100 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700/50'
   }
+}
+
+function getPaymentMethodBadge(methodType: string | null) {
+  if (methodType === 'card_present') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/50">
+        <Smartphone className="h-3 w-3" />
+        Tap to Pay
+      </span>
+    )
+  }
+  if (methodType === 'card') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/50">
+        <MessageSquare className="h-3 w-3" />
+        SMS Link
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700/50">
+      Unknown
+    </span>
+  )
 }
 
 const getStatusLabel = (status: string) => {
@@ -720,11 +744,7 @@ export default function PaymentsPage() {
                             </span>
                           </div>
                           <div className="flex items-center gap-1.5">
-                            {payment.payment_method_type === 'card_present' && (
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-purple-900/50 text-purple-300 border border-purple-700/50">
-                                Terminal
-                              </span>
-                            )}
+                            {getPaymentMethodBadge(payment.payment_method_type)}
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(payment.status)}`}>
                               {getStatusLabel(payment.status)}
                             </span>
@@ -846,11 +866,7 @@ export default function PaymentsPage() {
                                     </span>
                                   </div>
                                   <div className="flex items-center gap-1.5">
-                                    {payment.payment_method_type === 'card_present' && (
-                                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-purple-900/50 text-purple-300 border border-purple-700/50">
-                                        Terminal
-                                      </span>
-                                    )}
+                                    {getPaymentMethodBadge(payment.payment_method_type)}
                                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(payment.status)}`}>
                                       {getStatusLabel(payment.status)}
                                     </span>
@@ -963,6 +979,9 @@ export default function PaymentsPage() {
                         Amount
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                        Payment Method
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                         Description
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
@@ -982,7 +1001,7 @@ export default function PaymentsPage() {
                   <tbody className="divide-y divide-slate-700 [&_tr:nth-child(even)]:bg-slate-800/20">
                     {paymentRequests.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="px-4 py-12">
+                        <td colSpan={9} className="px-4 py-12">
                           <EmptyState
                             icon={<CreditCard className="w-6 h-6" strokeWidth={1.5} />}
                             title="No payment requests yet"
@@ -1007,11 +1026,6 @@ export default function PaymentsPage() {
                                 <span className="text-white font-medium text-sm">
                                   {getCustomerName(payment)}
                                 </span>
-                                {payment.payment_method_type === 'card_present' && (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-purple-900/50 text-purple-300 border border-purple-700/50">
-                                    Terminal
-                                  </span>
-                                )}
                               </div>
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap text-gray-400 text-sm">
@@ -1019,6 +1033,9 @@ export default function PaymentsPage() {
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap text-white font-semibold text-sm">
                               {formatCurrency(payment.amount_cents / 100)}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              {getPaymentMethodBadge(payment.payment_method_type)}
                             </td>
                             <td className="px-4 py-3 text-gray-400 text-sm max-w-[220px] truncate">
                               {payment.description}
@@ -1096,7 +1113,7 @@ export default function PaymentsPage() {
                         {olderPayments.length > 0 && (
                           <>
                             <tr>
-                              <td colSpan={8} className="px-4 py-0">
+                              <td colSpan={9} className="px-4 py-0">
                                 <button
                                   onClick={() => setShowOlderPayments(!showOlderPayments)}
                                   className="w-full bg-[#0f172a] dark:bg-[#0f172a] rounded-lg p-3 border border-slate-700 flex items-center justify-between gap-3 hover:bg-[#1a2235] transition-colors"
@@ -1123,11 +1140,6 @@ export default function PaymentsPage() {
                                     <span className="text-white font-medium text-sm">
                                       {getCustomerName(payment)}
                                     </span>
-                                    {payment.payment_method_type === 'card_present' && (
-                                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-purple-900/50 text-purple-300 border border-purple-700/50">
-                                        Terminal
-                                      </span>
-                                    )}
                                   </div>
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap text-gray-400 text-sm">
@@ -1135,6 +1147,9 @@ export default function PaymentsPage() {
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap text-white font-semibold text-sm">
                                   {formatCurrency(payment.amount_cents / 100)}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap">
+                                  {getPaymentMethodBadge(payment.payment_method_type)}
                                 </td>
                                 <td className="px-4 py-3 text-gray-400 text-sm max-w-[220px] truncate">
                                   {payment.description}
