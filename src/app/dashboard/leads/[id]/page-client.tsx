@@ -3741,16 +3741,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         {!isMobileView && (
           <div className="grid grid-cols-[minmax(0,2fr)_minmax(320px,360px)] gap-8 items-start">
             {/* Desktop Conversation Section - Primary workspace */}
-            <section className="flex flex-col min-h-0 h-[calc(100vh-260px)] bg-background rounded-2xl border border-border/40 shadow-sm overflow-hidden">
+            <section className="flex flex-col min-h-0 h-[calc(100vh-260px)] bg-background rounded-xl border border-border/50 shadow-sm overflow-hidden">
               {/* Desktop Conversation Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-border/30 bg-muted/50">
+              <div className="flex items-center justify-between px-5 py-3 border-b border-border/30 bg-muted/40">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-sm font-semibold text-foreground">Conversation</h2>
+                  <h2 className="text-sm font-semibold text-foreground/90">Conversation</h2>
                 </div>
               </div>
               
               {/* Desktop Message Thread - Scrollable */}
-              <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-6 py-5 min-h-0 bg-muted/20" style={{ minHeight: '200px' }}>
+              <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-5 py-4 min-h-0" style={{ minHeight: '200px' }}>
                 {loading ? (
                   <div className="flex items-center justify-center py-12">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
