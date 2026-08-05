@@ -192,6 +192,58 @@ export const normalizeServiceReason = (text: string | null | undefined): string 
   return normalized;
 };
 
+// Validate and repair request title to reject conversational filler
+// Returns null if the title is invalid and cannot be repaired
+export const validateRequestTitle = (title: string | null | undefined): string | null => {
+  if (!title || title.trim() === '') return null;
+  
+  const normalized = title.trim().toLowerCase();
+  
+  // List of bad conversational filler to reject
+  const badPatterns = [
+    /^was looking$/i,
+    /^looking for$/i,
+    /^i need$/i,
+    /^i want$/i,
+    /^can you$/i,
+    /^could you$/i,
+    /^i was wondering$/i,
+    /^we need$/i,
+    /^looking$/i,
+    /^get my$/i,
+    /^the customer wants$/i,
+    /^service request$/i,
+    /^general inquiry$/i,
+    /^general service$/i,
+    /^request$/i,
+    /^inquiry$/i,
+  ];
+  
+  // Reject if matches bad pattern
+  for (const pattern of badPatterns) {
+    if (pattern.test(normalized)) {
+      return null;
+    }
+  }
+  
+  // Reject if contains pronouns
+  if (/^(i|we|you|my|your|our)\s/i.test(normalized)) {
+    return null;
+  }
+  
+  // Reject if only 1-2 words and they're vague verbs
+  const words = normalized.split(/\s+/);
+  if (words.length <= 2) {
+    const vagueVerbs = ['was', 'looking', 'need', 'want', 'call', 'get', 'have', 'ask'];
+    if (vagueVerbs.includes(words[0])) {
+      return null;
+    }
+  }
+  
+  // If passes validation, return the original
+  return title.trim();
+};
+
 /**
  * Generate a concise professional job title using only the primary service requested.
  * Keep the title under five words. Do not include customer names, addresses, 

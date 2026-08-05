@@ -499,24 +499,25 @@ INFORMATION TRACKING (SMART SLOT FILLING):
 
 EXTRACTION EXAMPLES:
 - "I'm Sarah." → populate Name = Sarah
-- "My name is Ryan and I'm looking to get my grass cut." → populate Name = Ryan, Reason = Looking to get my grass cut
-- "I need help with my plumbing." → populate Reason = Need help with plumbing
+- "My name is Ryan and I'm looking to get my grass cut." → populate Name = Ryan, Reason = Lawn Mowing
+- "I need help with my plumbing." → populate Reason = Plumbing Repair
 - "It's not urgent." → populate Urgency = Not urgent
-- "This is urgent, I have a leak." → populate Urgency = Urgent, Reason = Have a leak
+- "This is urgent, I have a leak." → populate Urgency = Urgent, Reason = Leak Repair
 - "I'm at 123 Main Street." → populate Address = 123 Main Street
 - "You can call me back tomorrow afternoon." → populate Callback time = Tomorrow afternoon
 - "Anytime after 2pm works." → populate Callback time = Anytime after 2pm
 - "At your location" → populate Address = At business location
 - "I'll come to you" → populate Address = Caller prefers business location
-- "At the business" → populate Address = At business location
 - "Your studio" → populate Address = At business location
 - "Your office" → populate Address = At business location
-- "At your shop" → populate Address = At business location
+- "Your shop" → populate Address = At business location
 - "I'd like lessons at your studio" → populate Address = At business location
 - "Can I come there?" → populate Address = Caller prefers business location
 - "At your location" → populate Address = At business location
 - "I'll come to you" → populate Address = Caller prefers business location
 - "I need to install 4 outlets in my basement." → populate Details = Install 4 outlets in basement
+- "I'd like to schedule a piano lesson." → populate Details = Piano Lesson
+- "I need help with my taxes." → populate Details = Tax Preparation
 - "It's a two-story house with 3 bathrooms." → populate Details = Two-story house with 3 bathrooms
 
 AVOID REDUNDANT QUESTIONS:
@@ -734,7 +735,7 @@ export const EXTRACTION_FUNCTION = {
       },
       reason_for_call: {
         type: 'string',
-        description: "Brief description of why the customer is calling"
+        description: "The specific service, job, repair, appointment, or result the customer wants. Return a concise noun phrase of 2-5 words. Remove conversational framing such as 'I was looking to', 'I need', 'Can you', 'I would like'. Keep the actual service or job. Examples: 'I was looking to get a Brazilian wax' → 'Brazilian Wax', 'I need someone to mow my lawn' → 'Lawn Mowing', 'My AC is not cooling' → 'AC Repair'"
       },
       important_details: {
         type: 'string',

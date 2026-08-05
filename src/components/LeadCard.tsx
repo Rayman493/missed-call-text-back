@@ -11,7 +11,7 @@ import {
   DropdownMenuPortal,
 } from '@radix-ui/react-dropdown-menu'
 import { formatPhoneNumber, formatRelativeTime, sentenceCase, getLeadDisplayName } from '@/lib/utils'
-import { getLeadAIIntake } from '@/lib/ai-field-mapping'
+import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
 import { getCustomerStatusStyle, normalizeCustomerStatus, CustomerStatus } from '@/lib/customer-status'
 import { memoryService } from '@/lib/business-memory/memory-service'
 import { Repeat, TrendingUp, Clock, DollarSign } from 'lucide-react'
@@ -113,6 +113,7 @@ export default function LeadCard({
   }, [lead])
 
   const aiData = React.useMemo(() => getAIData(lead), [lead])
+  const requestTitle = React.useMemo(() => getLeadRequestTitle(lead), [lead])
   const customerIndicators = React.useMemo(() => getCustomerIndicators(lead, businessId), [lead, businessId])
 
   // Hook must be called at the top level of the component
@@ -175,11 +176,11 @@ export default function LeadCard({
 
         {/* Compact Preview */}
         <div className="mb-1 sm:mb-2 space-y-0.5 sm:space-y-1">
-          {aiData.reason && (
+          {requestTitle && (
             <div>
               <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wider mb-1 font-medium hidden sm:block">Latest Request</p>
               <p className="line-clamp-1 text-xs sm:text-sm font-semibold text-foreground leading-relaxed">
-                {sentenceCase(aiData.reason)}
+                {requestTitle}
               </p>
             </div>
           )}

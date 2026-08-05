@@ -4,7 +4,7 @@
  * Provides canonical field names and backward compatibility for reading extracted_info
  */
 
-import { normalizeCustomerName, normalizeServiceReason, normalizeAddress, normalizeTiming, normalizeAdditionalDetails, safeTrimAndCapitalize, generateCanonicalRequestTitle } from './ai-intake-formatter'
+import { normalizeCustomerName, normalizeServiceReason, normalizeAddress, normalizeTiming, normalizeAdditionalDetails, safeTrimAndCapitalize, generateCanonicalRequestTitle, validateRequestTitle } from './ai-intake-formatter'
 import { isCompleteAIIntake } from './ai-intake-completion'
 
 /**
@@ -476,4 +476,60 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
   }
 
   return result
+}
+
+/**
+ * Get canonical request title for a lead.
+ * This is the single source of truth for displaying customer request titles across ReplyFlow.
+ *
+ * Resolution order:
+ * 1. Structured AI Intake conciseRequestTitle (validated to reject conversational filler)
+ * 2. Canonical serviceRequested field on lead (validated, then canonicalized if needed)
+ * 3. Short normalized fallback from metadata
+ * 4. Generic fallback
+ *
+ * @param lead - Lead object with raw_metadata and/or aiCallRecords
+ * @returns Concise request title (e.g., "Lawn Mowing", "Kitchen Sink Repair")
+ */
+export function getLeadRequestTitle(lead: any): string {
+  if (!lead) return ''
+
+  const rawMetadata = lead?.raw_metadata || {}
+
+  // Primary: Use the canonical AI intake concise request title
+  const aiIntake = getLeadAIIntake(lead)
+  if (aiIntake.conciseRequestTitle) {
+    // Validate the title to reject conversational filler
+    const validated = validateRequestTitle(aiIntake.conciseRequestTitle)
+    if (validated) {
+      return validated
+    }
+    // If validation fails, fall through to canonical generation from the raw value
+  }
+
+  // Secondary: Check for explicit request field on lead or raw_metadata
+  const explicitRequest = rawMetadata.request || rawMetadata.serviceRequested || rawMetadata.reason || aiIntake.serviceRequested
+  if (explicitRequest && typeof explicitRequest === 'string' && explicitRequest.trim()) {
+    // Validate first to reject bad patterns
+    const validated = validateRequestTitle(explicitRequest.trim())
+    if (validated) {
+      return validated
+    }
+    // If validation fails, canonicalize the raw value
+    const normalized = generateCanonicalRequestTitle(explicitRequest.trim())
+    if (normalized !== 'Not collected') {
+      return normalized
+    }
+  }
+
+  // Tertiary: Check job titles (for manually created jobs)
+  if (lead.jobs && lead.jobs.length > 0) {
+    const firstJob = lead.jobs[0]
+    if (firstJob.title && typeof firstJob.title === 'string' && firstJob.title.trim()) {
+      return firstJob.title.trim()
+    }
+  }
+
+  // Fallback: Return empty string (UI should handle this gracefully)
+  return ''
 }

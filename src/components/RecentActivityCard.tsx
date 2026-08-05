@@ -6,7 +6,7 @@ import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatRelativeTime } from '@/lib/utils'
 import { Phone, MessageSquare, Reply, Calendar, Mic, Briefcase, CheckCircle, CreditCard, AlertCircle, Bot, DollarSign, Video } from 'lucide-react'
-import { getLeadAIIntake } from '@/lib/ai-field-mapping'
+import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
 
 interface RecentActivityCardProps {
   business: Business | null
@@ -84,7 +84,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
         leads?.forEach((lead: any) => {
           const intake = getLeadAIIntake(lead)
           const customerName = intake.customerName || lead.name || 'Unknown'
-          const conciseTitle = intake.conciseRequestTitle || intake.serviceRequested || ''
+          const conciseTitle = getLeadRequestTitle(lead) || intake.serviceRequested || ''
           const displayName = lead.caller_phone || 'Unknown Caller'
 
           // AI Intake Completed event

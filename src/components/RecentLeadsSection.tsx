@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { formatPhoneNumber, getLeadDisplayName } from '@/lib/utils'
-import { getLeadAIIntake } from '@/lib/ai-field-mapping'
+import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import DashboardErrorBoundary from './DashboardErrorBoundary'
 import Link from 'next/link'
@@ -385,6 +385,7 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
             {leads.slice(0, 5).map((lead, index) => {
               const aiData = getAIData(lead)
               const displayName = getLeadDisplayName(lead)
+              const requestTitle = getLeadRequestTitle(lead)
               const initials = displayName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
               const statusDisplay = formatLeadStatus(lead.status)
               const currentJob = getCurrentJob(lead)
@@ -400,9 +401,9 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
                       <p className="text-sm font-medium text-slate-900 dark:text-foreground truncate mb-0.5">
                         {displayName}
                       </p>
-                      {aiData.reason && (
+                      {requestTitle && (
                         <p className="text-xs text-slate-600 dark:text-slate-400 truncate mb-0.5">
-                          {aiData.reason}
+                          {requestTitle}
                         </p>
                       )}
                       <div className="flex items-center gap-1.5 flex-wrap">

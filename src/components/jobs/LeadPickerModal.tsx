@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { X, Search, User, Phone, Briefcase, MapPin, Loader2, ChevronRight } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { getLeadAIIntake } from '@/lib/ai-field-mapping'
+import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
 import type { JobPrefill } from './JobComposer'
 
 interface LeadRecord {
@@ -203,7 +203,7 @@ export default function LeadPickerModal({ isOpen, onClose, onSelect, onAddNew, t
                 {filtered.map(lead => {
                   const intake = getIntake(lead)
                   const name = intake.customerName || 'Unknown Caller'
-                  const service = intake.serviceRequested
+                  const service = getLeadRequestTitle(lead) || intake.serviceRequested
                   const phone = fmtPhone(intake.customerPhone || lead.caller_phone)
                   const activity = lead.last_activity_at || lead.created_at
 
