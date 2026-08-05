@@ -36,6 +36,8 @@ export default function MetricCard({
     threshold: 10
   })
 
+  const hasValue = value > 0
+
   return (
     <button
       onPointerDown={pressGuard.onPointerDown}
@@ -48,10 +50,10 @@ export default function MetricCard({
       <div className={`w-10 h-10 ${bgColor} rounded-lg flex items-center justify-center mb-2`}>
         <Icon className={`w-5 h-5 ${color}`} />
       </div>
-      <div className="text-2xl font-bold text-slate-900 dark:text-foreground mb-0.5">
+      <div className={`text-2xl font-bold mb-0.5 ${hasValue ? 'text-slate-900 dark:text-foreground' : 'text-slate-400 dark:text-slate-600'}`}>
         {value}
       </div>
-      <div className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-0.5">
+      <div className={`text-xs font-medium mb-0.5 ${hasValue ? 'text-slate-600 dark:text-slate-400' : 'text-slate-400 dark:text-slate-600'}`}>
         {label}
       </div>
       <div className="text-[10px] text-slate-500 dark:text-slate-500">
