@@ -3866,12 +3866,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider mb-3">Status</h3>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">AI Intake</span>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${getAIIntakeStatusColor(getAIIntakeStatus(leadData || lead))}`}>
-                          {getAIIntakeStatusLabel(getAIIntakeStatus(leadData || lead))}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
                         <span className="text-xs text-muted-foreground">Customer Replied</span>
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
                           leadData?.raw_metadata?.customer_replied || leadData?.raw_metadata?.replied_after_ai_call || leadData?.raw_metadata?.last_customer_reply_at || followUpJobs.some((j: any) => j.cancelled_reason === 'customer_replied')
