@@ -304,34 +304,39 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
   }
 
   return (
-    <div className="bg-card/50 backdrop-blur-sm border border-border/30 rounded-xl p-3 sm:p-4">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-foreground">Activity</h3>
+    <div className="bg-card/50 backdrop-blur-sm border border-border/30 rounded-xl p-2.5 sm:p-3">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-xs font-semibold text-foreground">Activity</h3>
       </div>
 
       {activities.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-sm text-muted-foreground">Business activity will appear here as you work with customers.</p>
+        <div className="text-center py-6">
+          <p className="text-xs text-muted-foreground/80">Business activity will appear here as you work with customers.</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {activities.slice(0, 5).map((activity, index) => (
             <div
               key={activity.id}
               onClick={() => handleActivityClick(activity)}
-              className={`flex items-start gap-3 ${activity.customerId ? 'cursor-pointer group' : ''}`}
+              className={`flex items-start gap-2 py-1 ${activity.customerId ? 'cursor-pointer hover:bg-muted/20 -mx-1.5 px-1.5 rounded-md transition-colors' : ''}`}
             >
-              <div className="flex-shrink-0 pt-0.5">
-                <div className={`w-4 h-4 rounded-full flex items-center justify-center ${activity.color}`}>
+              <div className="flex-shrink-0 mt-0.5 w-3.5">
+                <div className={`${activity.color}`}>
                   {activity.icon}
                 </div>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-foreground leading-snug">{activity.title}</p>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <p className="text-[11px] font-medium text-foreground">{activity.title}</p>
+                  {activity.customerName && (
+                    <span className="text-[10px] text-muted-foreground/80">{activity.customerName}</span>
+                  )}
+                </div>
                 {activity.description && (
-                  <p className="text-xs text-muted-foreground leading-snug mt-0.5">{activity.description}</p>
+                  <p className="text-[10px] text-muted-foreground/70 mb-0.5">{activity.description}</p>
                 )}
-                <p className="text-[10px] text-muted-foreground/70 mt-0.5">{formatRelativeTime(activity.timestamp)}</p>
+                <p className="text-[10px] text-muted-foreground/50">{formatRelativeTime(activity.timestamp)}</p>
               </div>
             </div>
           ))}

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { analyticsService } from '@/lib/analytics/analytics-service'
 
 export const dynamic = 'force-dynamic'
 
@@ -191,6 +192,11 @@ export async function POST(request: Request) {
 
       console.log('[complete-signup] Business row created:', business.id)
       console.log('[complete-signup] User must complete Stripe Checkout to activate trial')
+
+      // Track account creation event
+      analyticsService.track('account_created', { signupMethod: 'email' }, business.id).catch(error => {
+        console.error('[Analytics] Failed to track account_created:', error)
+      })
 
       // Return success - client will handle sign-in and redirect to checkout
       console.log('[complete-signup] Account created successfully')

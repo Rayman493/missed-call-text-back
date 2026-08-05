@@ -95,6 +95,13 @@ export default function OnboardingPage() {
       
       setUserId(user.id)
 
+      // Track onboarding started
+      import('@/lib/analytics/analytics-service').then(({ analyticsService }) => {
+        analyticsService.track('onboarding_started', { step: 'profile_setup' }, undefined).catch(error => {
+          console.error('[Analytics] Failed to track onboarding_started:', error)
+        })
+      })
+
       // Check if user already has a business
       const { data: existingBusiness, error: existingError } = await supabase
         .from('businesses')

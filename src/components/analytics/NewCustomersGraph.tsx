@@ -84,9 +84,9 @@ export default function NewCustomersGraph() {
   const isEmpty = data.length === 0
 
   return (
-    <Card className="h-full">
-      <div className="p-4 sm:p-6">
-        <div className="flex items-start justify-between mb-4">
+    <Card className="h-full border-border/30 shadow-none">
+      <div className="p-3 sm:p-4">
+        <div className="flex items-start justify-between mb-3">
           <div>
             <h3 className="text-base font-semibold text-foreground">New Customers</h3>
             <p className="text-xs text-muted-foreground mt-0.5">How many new customers ReplyFlow captured</p>
@@ -108,10 +108,9 @@ export default function NewCustomersGraph() {
             <div className="animate-pulse text-muted-foreground text-sm">Loading...</div>
           </div>
         ) : isEmpty ? (
-          <div className="h-[200px] flex flex-col items-center justify-center text-center">
-            <Users className="w-8 h-8 text-muted-foreground mb-2" />
-            <p className="text-sm font-medium text-foreground">No new customers yet</p>
-            <p className="text-xs text-muted-foreground mt-1">Your customer growth will appear here</p>
+          <div className="h-[200px] flex flex-col items-center justify-center text-center px-4">
+            <p className="text-xs font-medium text-muted-foreground/80">No new customers in the selected time period.</p>
+            <p className="text-[10px] text-muted-foreground/60 mt-1">New AI-captured customers will appear here.</p>
           </div>
         ) : (
           <div className="h-[200px]">

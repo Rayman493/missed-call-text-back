@@ -26,6 +26,7 @@ import AddCustomerModal from '@/components/AddCustomerModal'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import TodayCommandCenter from '@/components/schedule/TodayCommandCenter'
 import NewTaskModal from '@/components/schedule/NewTaskModal'
+import FocusSection from '@/components/FocusSection'
 import Skeleton, { CardSkeleton, ListItemSkeleton } from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
 import TasksTab from '@/components/schedule/TasksTab'
@@ -1025,10 +1026,14 @@ export default function SchedulePage() {
 
                   {/* Agenda Tab */}
                   {scheduleTab === 'agenda' && (
-                    <TodayCommandCenter
-                      jobs={jobs}
-                      calendarEvents={events}
-                    />
+                    <>
+                      {/* Focus - Unified Intelligence for Schedule */}
+                      <FocusSection business={business} view="schedule" title="Schedule Focus" compact />
+                      <TodayCommandCenter
+                        jobs={jobs}
+                        calendarEvents={events}
+                      />
+                    </>
                   )}
 
                   {/* Connected State — Calendar Tab */}

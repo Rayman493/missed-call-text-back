@@ -75,6 +75,12 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
               business_id,
               lead_id,
               created_at
+            ),
+            jobs (
+              id,
+              status,
+              scheduled_for,
+              created_at
             )
           `)
           .eq('business_id', businessId)
@@ -279,15 +285,22 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
   const getNextFollowUp = (lead: any) => {
     const leadFollowUps = followUpJobs.filter((job: any) => job.lead_id === lead.id && job.status === 'pending')
     if (leadFollowUps.length === 0) return null
-    
-    const nextJob = leadFollowUps.sort((a: any, b: any) => 
+
+    const nextJob = leadFollowUps.sort((a: any, b: any) =>
       new Date(a.scheduled_for).getTime() - new Date(b.scheduled_for).getTime()
     )[0]
-    
+
     return {
       time: nextJob.scheduled_for,
       step: nextJob.step
     }
+  }
+
+  const getCurrentJob = (lead: any) => {
+    if (!lead.jobs || lead.jobs.length === 0) return null
+    const activeJobs = lead.jobs.filter((job: any) => job.status !== 'completed' && job.status !== 'cancelled')
+    if (activeJobs.length === 0) return null
+    return activeJobs[0]
   }
 
   const formatRelativeTime = (dateString: string) => {
@@ -364,29 +377,41 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
               const displayName = getLeadDisplayName(lead)
               const initials = displayName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
               const statusDisplay = formatLeadStatus(lead.lead_status || lead.status)
+              const currentJob = getCurrentJob(lead)
+              const nextFollowUp = getNextFollowUp(lead)
 
               return (
                 <Link key={lead.id} href={`/dashboard/leads/${lead.id}`}>
-                  <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group">
-                    <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
+                  <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group">
+                    <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
                       <span className="text-xs font-medium text-slate-600 dark:text-slate-300">{initials}</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-900 dark:text-foreground truncate mb-1">
+                      <p className="text-sm font-medium text-slate-900 dark:text-foreground truncate mb-0.5">
                         {displayName}
                       </p>
                       {aiData.reason && (
-                        <p className="text-xs text-slate-600 dark:text-slate-400 truncate mb-1">
+                        <p className="text-xs text-slate-600 dark:text-slate-400 truncate mb-0.5">
                           {aiData.reason}
                         </p>
                       )}
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${statusDisplay.color === 'blue' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : statusDisplay.color === 'green' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : statusDisplay.color === 'amber' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}`}>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${statusDisplay.color === 'blue' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : statusDisplay.color === 'green' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : statusDisplay.color === 'amber' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}`}>
                           {statusDisplay.text}
                         </span>
-                        <span className="text-xs text-slate-500 dark:text-slate-500 flex-shrink-0">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-500 flex-shrink-0">
                           {formatRelativeTime(lead.created_at)}
                         </span>
+                        {currentJob && (
+                          <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium flex-shrink-0">
+                            • Active Job
+                          </span>
+                        )}
+                        {nextFollowUp && !currentJob && (
+                          <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium flex-shrink-0">
+                            • {formatFollowUpTime(nextFollowUp.time)}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500 flex-shrink-0 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors" />

@@ -19,6 +19,9 @@ import AutomaticFollowUpsControl from '@/components/AutomaticFollowUpsControl'
 import MobileConversationMessageList from '@/components/MobileConversationMessageList'
 import DesktopConversationMessageList from '@/components/DesktopConversationMessageList'
 import AppHeader from '@/components/AppHeader'
+import { memoryService } from '@/lib/business-memory/memory-service'
+import { invalidateIntelligence } from '@/lib/intelligence-invalidation/intelligence-invalidation-service'
+import { analyticsService } from '@/lib/analytics/analytics-service'
 import AppBackButton from '@/components/AppBackButton'
 import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
 import { useRouter } from 'next/navigation'
@@ -38,7 +41,14 @@ import { RealtimeChannel } from '@supabase/supabase-js'
 import LeadStatusDropdown from '@/components/LeadStatusDropdown'
 import AICallDetails from '@/components/AICallDetails'
 import VoicemailSummary from '@/components/VoicemailSummary'
-import AICustomerSummary from '@/components/AICustomerSummary'
+import FocusSection from '@/components/FocusSection'
+import RevenueOpportunityCard from '@/components/RevenueOpportunityCard'
+import CustomerReactivationCard from '@/components/CustomerReactivationCard'
+import WorkflowCard from '@/components/WorkflowCard'
+import DraftCard from '@/components/DraftCard'
+import RelationshipProfile from '@/components/RelationshipProfile'
+import CustomerSuccessCard from '@/components/CustomerSuccessCard'
+import CustomerMilestone from '@/components/CustomerMilestone'
 import CustomerActivityTimeline from '@/components/CustomerActivityTimeline'
 import { ImageMessage } from '@/components/ImageMessage'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
@@ -1517,7 +1527,35 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         ignored: 'Customer marked as ignored'
       }
       setSuccessMessage(statusMessages[newStatus] || `Customer status updated to ${newStatus}`)
-      
+
+      // Invalidate intelligence after successful status change
+      const previousStatus = leadData?.status
+      let mutationType: 'customer_status_changed' | 'job_completed' | 'customer_reactivated' | null = null
+
+      // Detect specific mutations
+      if (newStatus === 'completed') {
+        mutationType = 'job_completed'
+        // Track job completed event
+        analyticsService.track('job_completed', { duration: undefined }, business?.id).catch(error => {
+          console.error('[Analytics] Failed to track job_completed:', error)
+        })
+      } else if ((previousStatus === 'lost' || previousStatus === 'ignored') && newStatus === 'active') {
+        mutationType = 'customer_reactivated'
+      } else {
+        mutationType = 'customer_status_changed'
+      }
+
+      if (mutationType && business?.id) {
+        // Fire and forget - don't await, don't block
+        invalidateIntelligence({
+          businessId: business.id,
+          customerId: params.id,
+          mutation: mutationType
+        }).catch(error => {
+          console.error('[IntelligenceInvalidation] Failed:', error)
+        })
+      }
+
       // Auto-hide success message after 3 seconds
       setTimeout(() => {
         setSuccessMessage('')
@@ -2359,6 +2397,22 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         // The fetchMessageMedia effect will automatically fetch persisted media records
         // once the message is no longer optimistic (isOptimistic becomes false).
         // This prevents scroll position jumps caused by full conversation refetches.
+
+        // Invalidate intelligence after successful message send
+        if (business?.id) {
+          // Track message sent event
+          analyticsService.track('message_sent', { direction: 'outbound', hasMedia: false }, business.id).catch(error => {
+            console.error('[Analytics] Failed to track message_sent:', error)
+          })
+
+          invalidateIntelligence({
+            businessId: business.id,
+            customerId: params.id,
+            mutation: 'message_sent'
+          }).catch(error => {
+            console.error('[IntelligenceInvalidation] Failed:', error)
+          })
+        }
       }
 
       // Scroll to bottom to show the new message
@@ -2914,6 +2968,31 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         await handleSendConfirmation(savedJob.id, 'Appointment saved and confirmation sent.')
       } else {
         setSuccessMessage('Appointment saved.')
+      }
+
+      // Track appointment scheduled event
+      if (business?.id) {
+        const mutationType = selectedAppointmentJob ? 'appointment_updated' : 'appointment_created'
+        if (mutationType === 'appointment_created') {
+          analyticsService.track('appointment_scheduled', { isRecurring: false }, business.id).catch(error => {
+            console.error('[Analytics] Failed to track appointment_scheduled:', error)
+          })
+          analyticsService.track('job_created', { jobType: 'appointment' }, business.id).catch(error => {
+            console.error('[Analytics] Failed to track job_created:', error)
+          })
+        }
+      }
+
+      // Invalidate intelligence after successful appointment save
+      if (business?.id) {
+        const mutationType = selectedAppointmentJob ? 'appointment_updated' : 'appointment_created'
+        invalidateIntelligence({
+          businessId: business.id,
+          customerId: params.id,
+          mutation: mutationType
+        }).catch(error => {
+          console.error('[IntelligenceInvalidation] Failed:', error)
+        })
       }
 
       setIsAppointmentModalOpen(false)
@@ -3535,21 +3614,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       )}
                     </div>
 
-                    {/* Name, Phone, Request Title, Status */}
+                    {/* Name, Request Title, Phone, Status */}
                     <div className="min-w-0 flex-1">
                       <h1 className="text-2xl font-semibold text-foreground tracking-tight leading-tight mb-1">
                         {getLeadDisplayName(leadData || lead)}
                       </h1>
                       <div className="flex items-center gap-3 mb-1">
-                        <p className="text-sm text-slate-400 leading-tight">
-                          {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
-                        </p>
-                        <span className="text-slate-600 dark:text-slate-500">•</span>
                         <p className="text-sm text-slate-400 leading-tight truncate">
-                          {getLeadAIIntake(leadData || lead).conciseRequestTitle || getLeadAIIntake(leadData || lead).serviceRequested || ''}
+                          {getLeadAIIntake(leadData || lead).conciseRequestTitle || getLeadAIIntake(leadData || lead).serviceRequested || 'No request'}
                         </p>
                       </div>
                       <div className="flex items-center gap-3">
+                        <p className="text-sm text-slate-500 leading-tight">
+                          {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
+                        </p>
                         <LeadStatusDropdown
                           currentStatus={normalizeCustomerStatus((leadData || lead).status || (leadData || lead).lead_status)}
                           onStatusChange={handleStatusUpdate}
@@ -3611,15 +3689,31 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         avoidCollisions
                         className="z-[10000] w-[260px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-lg border border-border/40 bg-popover/95 backdrop-blur-sm shadow-[0_2px_12px_rgb(0,0,0,0.08),0_1px_4px_rgb(0,0,0,0.06)]"
                       >
-                        {/* Section Label */}
+                        {/* Customer Section */}
                         <div className="px-3 py-2">
                           <div className="px-0.5 py-1 text-[9px] font-medium text-muted-foreground/60 uppercase tracking-[0.12em]">
-                            Conversation
+                            Customer
                           </div>
                         </div>
 
-                        {/* Internal Notes */}
+                        {/* Edit Customer */}
                         <div className="px-1.5 py-1 space-y-0.5">
+                          <DropdownMenuItem
+                            onSelect={() => setShowCustomerInfoModal(true)}
+                            className="w-full px-2 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer min-h-[44px] group"
+                          >
+                            <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded bg-accent/30 group-hover:bg-accent/40 transition-colors">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                              </svg>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium">Edit Customer</div>
+                              <div className="text-[10px] text-muted-foreground/70 font-normal leading-tight">Update customer information</div>
+                            </div>
+                          </DropdownMenuItem>
+
+                          {/* Internal Notes */}
                           <DropdownMenuItem
                             onSelect={() => {
                               setInternalNotesExpanded(true)
@@ -3642,6 +3736,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         {/* Subtle Divider */}
                         <div className="px-3 py-1">
                           <div className="h-px bg-border/20"></div>
+                        </div>
+
+                        {/* Conversation Section */}
+                        <div className="px-3 py-2">
+                          <div className="px-0.5 py-1 text-[9px] font-medium text-muted-foreground/60 uppercase tracking-[0.12em]">
+                            Conversation
+                          </div>
                         </div>
 
                         {/* Refresh */}
@@ -3668,13 +3769,20 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           </DropdownMenuItem>
                         </div>
 
-                        {/* Subtle Divider for Footer */}
+                        {/* Subtle Divider */}
                         <div className="px-3 py-1">
                           <div className="h-px bg-border/20"></div>
                         </div>
 
-                        {/* Footer Zone - Ignore Customer */}
-                        <div className="px-1.5 py-1">
+                        {/* Workflow Section */}
+                        <div className="px-3 py-2">
+                          <div className="px-0.5 py-1 text-[9px] font-medium text-muted-foreground/60 uppercase tracking-[0.12em]">
+                            Workflow
+                          </div>
+                        </div>
+
+                        {/* Archive/Ignore Customer */}
+                        <div className="px-1.5 py-1 space-y-0.5">
                           {getLeadLifecycleStatus(leadData || lead) !== 'ignored' && (
                             <DropdownMenuItem
                               onSelect={() => handleStatusUpdate('ignored')}
@@ -3708,6 +3816,36 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             </DropdownMenuItem>
                           )}
                         </div>
+
+                        {/* Subtle Divider for Danger Zone */}
+                        <div className="px-3 py-1">
+                          <div className="h-px bg-border/20"></div>
+                        </div>
+
+                        {/* Danger Zone */}
+                        <div className="px-3 py-2">
+                          <div className="px-0.5 py-1 text-[9px] font-medium text-red-600/70 dark:text-red-400/70 uppercase tracking-[0.12em]">
+                            Danger Zone
+                          </div>
+                        </div>
+
+                        {/* Delete Customer */}
+                        <div className="px-1.5 py-1 space-y-0.5">
+                          <DropdownMenuItem
+                            onSelect={() => setShowRemoveModal(true)}
+                            className="w-full px-2 py-1.5 text-left text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-950/10 dark:hover:bg-red-950/15 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-red-950/10 dark:focus:bg-red-950/15 cursor-pointer min-h-[36px] group"
+                          >
+                            <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded bg-red-500/10 dark:bg-red-500/15 group-hover:bg-red-500/15 dark:group-hover:bg-red-500/20 transition-colors">
+                              <svg className="w-3.5 h-3.5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium">Delete Customer</div>
+                              <div className="text-[10px] text-muted-foreground/70 font-normal leading-tight">Permanently remove this customer</div>
+                            </div>
+                          </DropdownMenuItem>
+                        </div>
                       </DropdownMenuContent>
                     </DropdownMenuPortal>
                   </DropdownMenu>
@@ -3740,7 +3878,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
         {/* Desktop Layout - Only render when not mobile view */}
         {!isMobileView && (
-          <div className="grid grid-cols-[minmax(0,2fr)_minmax(320px,360px)] gap-8 items-start">
+          <div className="grid grid-cols-[minmax(0,3fr)_minmax(320px,380px)] gap-8 items-start">
             {/* Desktop Conversation Section - Primary workspace */}
             <section className="flex flex-col min-h-0 h-[calc(100vh-260px)] bg-background rounded-xl border border-border/50 shadow-sm overflow-hidden">
               {/* Desktop Conversation Header */}
@@ -3811,6 +3949,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       onClearImages={(clearFn: () => void) => {
                         clearComposerImagesRef.current = clearFn
                       }}
+                      messagingContext={
+                        business?.id && lead?.id ? (() => {
+                          const memory = memoryService.getCustomerMemory(business.id, lead.id)
+                          if (!memory) return undefined
+                          return {
+                            preferredContactMethod: memory.preferredContactMethod,
+                            averageResponseDelay: memory.averageResponseDelay,
+                            lastFollowUpTime: memory.lastSuccessfulFollowUp
+                          }
+                        })() : undefined
+                      }
                     />
                   )
                 })()}
@@ -3823,271 +3972,344 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 {(() => {
                   const paymentRequests = leadData?.paymentRequests || []
                   return (
-                    <div className="space-y-6">
-                  {/* AI Intake Summary - Hero Card */}
-                  {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
-                    <div>
-                      <AICallDetails
-                        leadId={params.id}
-                        businessId={business.id}
-                        conversationId={leadData?.conversation?.id}
-                        callerPhone={leadData?.phone_number || lead?.phone}
-                        leadData={leadData}
-                        collapsible={false}
-                        onSave={handleRefresh}
-                      />
-                    </div>
-                  )}
-
-                  {/* Customer Summary - Hero Card */}
-                  {!(leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id) && (
-                    <div className="bg-muted/30 rounded-xl border border-border/30 p-4">
-                      <VoicemailSummary leadData={leadData} />
-                    </div>
-                  )}
-
-                  {/* Activity Timeline - Secondary Card */}
-                  <div className="p-1">
-                    <button
-                      onClick={() => setCollapsedSections((prev: any) => ({ ...prev, activityTimeline: !prev.activityTimeline }))}
-                      className="flex items-center justify-between w-full mb-3 group"
-                    >
-                      <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Timeline</h3>
-                    </button>
-                    {!collapsedSections.activityTimeline && (
-                      <div className="transition-all duration-200">
-                        <CustomerActivityTimeline leadData={leadData} />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Customer Status - Secondary Card */}
-                  <div className="p-1">
-                    <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider mb-3">Status</h3>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Customer Replied</span>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                          leadData?.raw_metadata?.customer_replied || leadData?.raw_metadata?.replied_after_ai_call || leadData?.raw_metadata?.last_customer_reply_at || followUpJobs.some((j: any) => j.cancelled_reason === 'customer_replied')
-                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                            : 'bg-muted text-muted-foreground'
-                        }`}>
-                          {leadData?.raw_metadata?.customer_replied || leadData?.raw_metadata?.replied_after_ai_call || leadData?.raw_metadata?.last_customer_reply_at || followUpJobs.some((j: any) => j.cancelled_reason === 'customer_replied') ? 'Yes' : 'No'}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Corrections</span>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                          (leadData?.raw_metadata?.corrected_fields && Object.keys(leadData.raw_metadata.corrected_fields).length > 0)
-                            ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
-                            : 'bg-muted text-muted-foreground'
-                        }`}>
-                          {leadData?.raw_metadata?.corrected_fields ? Object.keys(leadData.raw_metadata.corrected_fields).length : 0}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Follow-Ups</span>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                          !followUpSettings || !followUpSettings.followUps || followUpSettings.followUps.length === 0
-                            ? 'bg-muted text-muted-foreground'
-                            : !followUpSettings.enabled
-                            ? 'bg-muted text-muted-foreground'
-                            : followUpJobs.some((j: any) => j.status === 'pending')
-                            ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
-                            : followUpJobs.some((j: any) => j.status === 'sent')
-                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                            : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
-                        }`}>
-                          {!followUpSettings || !followUpSettings.followUps || followUpSettings.followUps.length === 0
-                            ? 'Not Configured'
-                            : !followUpSettings.enabled
-                            ? 'Disabled'
-                            : followUpJobs.some((j: any) => j.status === 'pending')
-                            ? 'Active'
-                            : followUpJobs.some((j: any) => j.status === 'sent')
-                            ? 'Complete'
-                            : 'Configured'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Jobs - Secondary Card */}
-                  <div className="bg-muted/30 rounded-xl border border-border/30 p-3 shadow-sm">
-                    <button
-                      onClick={() => setCollapsedSections((prev: any) => ({ ...prev, jobs: !prev.jobs }))}
-                      className="flex items-center justify-between w-full mb-2 group"
-                    >
-                      <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Jobs</h3>
-                      <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.jobs ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                    {!collapsedSections.jobs && (
-                      <div className="transition-all duration-200">
-                        {leadJobs.length === 0 ? (
-                          <div className="text-center py-4">
-                            <p className="text-sm text-muted-foreground mb-2">No jobs created yet</p>
-                            <p className="text-xs text-muted-foreground/70 mb-3">Create a job to schedule work and track progress</p>
-                            <button
-                              onClick={handleCreateJobClick}
-                              className="inline-flex items-center gap-2 px-3 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors"
-                            >
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                              </svg>
-                              <span>Create Job</span>
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            {leadJobs.slice(0, 3).map((job: any) => (
-                              <div key={job.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-all duration-200">
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-sm font-medium text-foreground truncate">{job.title || 'Job'}</p>
-                                  <p className="text-xs text-muted-foreground/80">
-                                    {job.scheduled_date ? formatDate(job.scheduled_date) : 'No date'}
-                                    {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
-                                  </p>
-                                </div>
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-muted/80 text-muted-foreground/90 capitalize whitespace-nowrap ml-2 border border-border/40">
-                                  {formatJobStatus(job.status).text}
-                                </span>
-                              </div>
-                            ))}
-                            {leadJobs.length > 3 && (
-                              <button
-                                onClick={handleAppointmentClick}
-                                className="w-full text-center text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-                              >
-                                View all {leadJobs.length} jobs
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Payments - Secondary Card */}
-                  <div className="bg-muted/30 rounded-xl border border-border/30 p-3 shadow-sm">
-                    <button
-                      onClick={() => setCollapsedSections((prev: any) => ({ ...prev, payments: !prev.payments }))}
-                      className="flex items-center justify-between w-full mb-2 group"
-                    >
-                      <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Payments</h3>
-                      <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.payments ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                    {!collapsedSections.payments && (
-                      <div className="transition-all duration-200">
-                        {paymentRequests.length === 0 ? (
-                          <div className="text-center py-4">
-                            <p className="text-sm text-muted-foreground mb-2">No payments recorded</p>
-                            <p className="text-xs text-muted-foreground/70 mb-3">Request payment once work is scheduled</p>
-                            <button
-                              onClick={() => setShowPaymentModal(true)}
-                              disabled={!business || getAvailableProviders(business).length === 0}
-                              className="inline-flex items-center gap-2 px-3 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                              </svg>
-                              <span>Request Payment</span>
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            {paymentRequests.map((pr: any) => (
-                              <div key={pr.id} className="flex items-center justify-between p-2.5 bg-muted/40 hover:bg-muted/60 rounded-lg transition-all duration-200">
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-sm font-semibold text-foreground">{formatCurrency(pr.amount_cents / 100)}</p>
-                                  <p className="text-xs text-muted-foreground/80">{formatDate(pr.created_at)}</p>
-                                </div>
-                                <span className={`text-xs px-2 py-0.5 rounded-full capitalize whitespace-nowrap ml-2 border ${
-                                  pr.status === 'paid'
-                                    ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20'
-                                    : pr.status === 'pending'
-                                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
-                                    : 'bg-muted/80 text-muted-foreground/90 border-border/40'
-                                }`}>
-                                  {formatPaymentStatus(pr.status).text}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Internal Notes - Secondary Card */}
-                  <div className="bg-muted/30 rounded-xl border border-border/30 p-3 shadow-sm">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Internal Notes</h3>
-                          <div className="text-[10px] text-muted-foreground/70">Private</div>
+                    <div className="space-y-8">
+                      {/* Customer Context */}
+                      <div>
+                        <div className="px-1 py-1">
+                          <div className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider mb-3">Customer Context</div>
                         </div>
-                        {Boolean((leadData?.notes || '').trim()) ? (
-                          <div className="mt-2 text-xs text-muted-foreground line-clamp-3 break-words">
-                            {(leadData?.notes || '').trim()}
-                          </div>
-                        ) : (
-                          <div className="mt-2 text-xs text-muted-foreground/70">
-                            No notes added yet
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => { setShowCustomerInfoModal(true); setAutoFocusNotes(true) }}
-                          className="inline-flex items-center gap-2 px-3 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
-                        >
-                          {Boolean((leadData?.notes || '').trim()) ? 'Edit' : 'Add'}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Photos Received - Secondary Card */}
-                  {Object.keys(messageMedia).length > 0 && (
-                    <div className="bg-muted/30 rounded-xl border border-border/30 p-3 shadow-sm">
-                      <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider mb-2">Photos</h3>
-                      <div className="grid grid-cols-2 gap-2">
-                        {Object.entries(messageMedia).slice(0, showAllPhotos ? undefined : 4).map(([messageId, media]: [string, any]) => (
-                          media.urls.slice(0, 1).map((url: string, idx: number) => (
-                            <div
-                              key={`${messageId}-${idx}`}
-                              className="relative group cursor-pointer"
-                              onClick={() => {
-                                setSelectedPhotoUrl(url)
-                                setPhotoModalOpen(true)
-                              }}
-                            >
-                              <img
-                                src={url}
-                                alt="Customer photo"
-                                className="w-full h-24 object-cover rounded-lg hover:opacity-90 transition-opacity"
-                                loading="lazy"
+                        <div className="space-y-4">
+                          {/* AI Intake Summary */}
+                          {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
+                            <div>
+                              <AICallDetails
+                                leadId={params.id}
+                                businessId={business.id}
+                                conversationId={leadData?.conversation?.id}
+                                callerPhone={leadData?.phone_number || lead?.phone}
+                                leadData={leadData}
+                                collapsible={false}
+                                onSave={handleRefresh}
                               />
                             </div>
-                          ))
-                        ))}
+                          )}
+
+                          {/* Customer Summary */}
+                          {!(leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id) && (
+                            <div className="bg-muted/30 rounded-xl border border-border/30 p-4">
+                              <VoicemailSummary leadData={leadData} />
+                            </div>
+                          )}
+
+                          {/* Workflow Card - What happens next */}
+                          {business?.id && (
+                            <WorkflowCard businessId={business.id} customerId={params.id} />
+                          )}
+
+                          {/* Draft Card - Ready to send */}
+                          {business?.id && (
+                            <DraftCard businessId={business.id} customerId={params.id} />
+                          )}
+
+                          {/* Relationship Profile - Who is this */}
+                          {business?.id && (
+                            <RelationshipProfile businessId={business.id} customerId={params.id} />
+                          )}
+
+                          {/* Customer Milestone - Milestone */}
+                          {business?.id && (
+                            <CustomerMilestone businessId={business.id} customerId={params.id} />
+                          )}
+                        </div>
                       </div>
-                      {Object.keys(messageMedia).length > 4 && (
-                        <button
-                          onClick={() => setShowAllPhotos(!showAllPhotos)}
-                          className="w-full mt-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-normal"
-                        >
-                          {showAllPhotos ? 'Show Less' : `View All Photos (${Object.keys(messageMedia).length})`}
-                        </button>
-                      )}
+
+                      {/* Work */}
+                      <div>
+                        <div className="px-1 py-1">
+                          <div className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider mb-3">Work</div>
+                        </div>
+                        <div className="space-y-4">
+                          {/* Jobs */}
+                          <div className="p-3">
+                            <button
+                              onClick={() => setCollapsedSections((prev: any) => ({ ...prev, jobs: !prev.jobs }))}
+                              className="flex items-center justify-between w-full mb-2 group"
+                            >
+                              <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Jobs</h3>
+                              <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.jobs ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </button>
+                            {collapsedSections.jobs && (
+                              <div className="text-sm text-muted-foreground">
+                                {leadJobs.length === 0 ? (
+                                  <span>No jobs created</span>
+                                ) : leadJobs.length === 1 ? (
+                                  <span>
+                                    • {leadJobs[0].title || 'Job'}
+                                    {leadJobs[0].scheduled_date ? ` • ${formatDate(leadJobs[0].scheduled_date)}` : ''}
+                                  </span>
+                                ) : (
+                                  <span>{leadJobs.length} jobs</span>
+                                )}
+                              </div>
+                            )}
+                            {!collapsedSections.jobs && (
+                              <div className="transition-all duration-200">
+                                {leadJobs.length === 0 ? (
+                                  <div className="text-center py-4">
+                                    <p className="text-sm text-muted-foreground mb-2">No jobs created yet</p>
+                                    <p className="text-xs text-muted-foreground/70 mb-3">Create a job to schedule work and track progress</p>
+                                    <button
+                                      onClick={handleCreateJobClick}
+                                      className="inline-flex items-center gap-2 px-3 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                      </svg>
+                                      <span>Create Job</span>
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="space-y-2">
+                                    {leadJobs.slice(0, 3).map((job: any) => (
+                                      <div key={job.id} className="flex items-center justify-between p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg transition-all duration-200">
+                                        <div className="min-w-0 flex-1">
+                                          <p className="text-sm font-medium text-foreground truncate">{job.title || 'Job'}</p>
+                                          <p className="text-xs text-muted-foreground/80">
+                                            {job.scheduled_date ? formatDate(job.scheduled_date) : 'No date'}
+                                            {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
+                                          </p>
+                                        </div>
+                                        <span className="text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground/90 capitalize whitespace-nowrap ml-2 border border-border/30">
+                                          {formatJobStatus(job.status).text}
+                                        </span>
+                                      </div>
+                                    ))}
+                                    {leadJobs.length > 3 && (
+                                      <button
+                                        onClick={handleAppointmentClick}
+                                        className="w-full text-center text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                                      >
+                                        View all {leadJobs.length} jobs
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Payments */}
+                          <div className="p-3">
+                            <button
+                              onClick={() => setCollapsedSections((prev: any) => ({ ...prev, payments: !prev.payments }))}
+                              className="flex items-center justify-between w-full mb-2 group"
+                            >
+                              <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Payments</h3>
+                              <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.payments ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </button>
+                            {collapsedSections.payments && (
+                              <div className="text-sm text-muted-foreground">
+                                {paymentRequests.length === 0 ? (
+                                  <span>No payments requested</span>
+                                ) : paymentRequests.length === 1 ? (
+                                  <span>
+                                    • {paymentRequests[0].status === 'paid' ? 'Paid' : 'Awaiting'} {formatCurrency(paymentRequests[0].amount_cents / 100)}
+                                  </span>
+                                ) : (
+                                  <span>
+                                    • {paymentRequests.filter((pr: any) => pr.status === 'paid').length} paid of {paymentRequests.length} total
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {!collapsedSections.payments && (
+                              <div className="transition-all duration-200">
+                                {paymentRequests.length === 0 ? (
+                                  <div className="text-center py-4">
+                                    <p className="text-sm text-muted-foreground mb-2">No payments recorded</p>
+                                    <p className="text-xs text-muted-foreground/70 mb-3">Request payment once work is scheduled</p>
+                                    <button
+                                      onClick={() => setShowPaymentModal(true)}
+                                      disabled={!business || getAvailableProviders(business).length === 0}
+                                      className="inline-flex items-center gap-2 px-3 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                      </svg>
+                                      <span>Request Payment</span>
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="space-y-2">
+                                    {paymentRequests.map((pr: any) => (
+                                      <div key={pr.id} className="flex items-center justify-between p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg transition-all duration-200">
+                                        <div className="min-w-0 flex-1">
+                                          <p className="text-sm font-semibold text-foreground">{formatCurrency(pr.amount_cents / 100)}</p>
+                                          <p className="text-xs text-muted-foreground/80">{formatDate(pr.created_at)}</p>
+                                        </div>
+                                        <span className={`text-xs px-2 py-0.5 rounded-full capitalize whitespace-nowrap ml-2 border ${
+                                          pr.status === 'paid'
+                                            ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20'
+                                            : pr.status === 'pending'
+                                            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                                            : 'bg-muted/60 text-muted-foreground/90 border-border/30'
+                                        }`}>
+                                          {formatPaymentStatus(pr.status).text}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Status */}
+                          <div className="p-1">
+                            <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider mb-3">Status</h3>
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground">Customer Replied</span>
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                                  leadData?.raw_metadata?.customer_replied || leadData?.raw_metadata?.replied_after_ai_call || leadData?.raw_metadata?.last_customer_reply_at || followUpJobs.some((j: any) => j.cancelled_reason === 'customer_replied')
+                                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                                    : 'bg-muted text-muted-foreground'
+                                }`}>
+                                  {leadData?.raw_metadata?.customer_replied || leadData?.raw_metadata?.replied_after_ai_call || leadData?.raw_metadata?.last_customer_reply_at || followUpJobs.some((j: any) => j.cancelled_reason === 'customer_replied') ? 'Yes' : 'No'}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground">Corrections</span>
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                                  (leadData?.raw_metadata?.corrected_fields && Object.keys(leadData.raw_metadata.corrected_fields).length > 0)
+                                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                                    : 'bg-muted text-muted-foreground'
+                                }`}>
+                                  {leadData?.raw_metadata?.corrected_fields ? Object.keys(leadData.raw_metadata.corrected_fields).length : 0}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground">Follow-Ups</span>
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                                  !followUpSettings || !followUpSettings.followUps || followUpSettings.followUps.length === 0
+                                    ? 'bg-muted text-muted-foreground'
+                                    : !followUpSettings.enabled
+                                    ? 'bg-muted text-muted-foreground'
+                                    : followUpJobs.some((j: any) => j.status === 'pending')
+                                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                                    : followUpJobs.some((j: any) => j.status === 'sent')
+                                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                                    : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                                }`}>
+                                  {!followUpSettings || !followUpSettings.followUps || followUpSettings.followUps.length === 0
+                                    ? 'Not Configured'
+                                    : !followUpSettings.enabled
+                                    ? 'Disabled'
+                                    : followUpJobs.some((j: any) => j.status === 'pending')
+                                    ? 'Active'
+                                    : followUpJobs.some((j: any) => j.status === 'sent')
+                                    ? 'Complete'
+                                    : 'Configured'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* History */}
+                      <div>
+                        <div className="px-1 py-1">
+                          <div className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider mb-3">History</div>
+                        </div>
+                        <div className="space-y-4">
+                          {/* Activity Timeline */}
+                          <div className="p-1">
+                            <button
+                              onClick={() => setCollapsedSections((prev: any) => ({ ...prev, activityTimeline: !prev.activityTimeline }))}
+                              className="flex items-center justify-between w-full mb-3 group"
+                            >
+                              <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Timeline</h3>
+                            </button>
+                            {!collapsedSections.activityTimeline && (
+                              <div className="transition-all duration-200">
+                                <CustomerActivityTimeline leadData={leadData} />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Internal Notes */}
+                          <div className="p-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Internal Notes</h3>
+                                  <div className="text-[10px] text-muted-foreground/70">Private</div>
+                                </div>
+                                {Boolean((leadData?.notes || '').trim()) ? (
+                                  <div className="mt-2 text-xs text-muted-foreground line-clamp-3 break-words">
+                                    {(leadData?.notes || '').trim()}
+                                  </div>
+                                ) : (
+                                  <div className="mt-2 text-xs text-muted-foreground/70">
+                                    No notes added yet
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => { setShowCustomerInfoModal(true); setAutoFocusNotes(true) }}
+                                  className="inline-flex items-center gap-2 px-3 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                                >
+                                  {Boolean((leadData?.notes || '').trim()) ? 'Edit' : 'Add'}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Photos */}
+                          {Object.keys(messageMedia).length > 0 && (
+                            <div className="p-3">
+                              <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider mb-2">Photos</h3>
+                              <div className="grid grid-cols-2 gap-2">
+                                {Object.entries(messageMedia).slice(0, showAllPhotos ? undefined : 4).map(([messageId, media]: [string, any]) => (
+                                  media.urls.slice(0, 1).map((url: string, idx: number) => (
+                                    <div
+                                      key={`${messageId}-${idx}`}
+                                      className="relative group cursor-pointer"
+                                      onClick={() => {
+                                        setSelectedPhotoUrl(url)
+                                        setPhotoModalOpen(true)
+                                      }}
+                                    >
+                                      <img
+                                        src={url}
+                                        alt="Customer photo"
+                                        className="w-full h-24 object-cover rounded-lg hover:opacity-90 transition-opacity"
+                                        loading="lazy"
+                                      />
+                                    </div>
+                                  ))
+                                ))}
+                              </div>
+                              {Object.keys(messageMedia).length > 4 && (
+                                <button
+                                  onClick={() => setShowAllPhotos(!showAllPhotos)}
+                                  className="w-full mt-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-normal"
+                                >
+                                  {showAllPhotos ? 'Show Less' : `View All Photos (${Object.keys(messageMedia).length})`}
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  )}
-                  </div>
                   )
                 })()}
               </div>

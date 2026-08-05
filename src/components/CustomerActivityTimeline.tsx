@@ -496,40 +496,39 @@ export default function CustomerActivityTimeline({ leadData, onNavigateToJob, on
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {Object.entries(groupedEvents).map(([dateLabel, dateEvents]) => (
         <div key={dateLabel}>
-          <div className="text-xs font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+          <div className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider mb-2.5">
             {dateLabel}
-            <div className="flex-1 h-px bg-border/30" />
           </div>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {dateEvents.map((event) => (
               <div
                 key={event.id}
-                className={`flex items-start gap-3 ${event.navigable ? 'cursor-pointer hover:bg-muted/30 -mx-2 px-2 py-1 rounded-lg transition-colors' : ''}`}
+                className={`flex items-start gap-2.5 py-1 ${event.navigable ? 'cursor-pointer hover:bg-muted/20 -mx-1.5 px-1.5 rounded-md transition-colors' : ''}`}
                 onClick={event.onClick}
               >
-                <div className="flex-shrink-0 mt-0.5">
+                <div className="flex-shrink-0 mt-0.5 w-4">
                   {getIcon(event.type)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                    <p className="text-sm font-medium text-foreground">{event.title}</p>
+                  <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                    <p className="text-xs font-medium text-foreground">{event.title}</p>
                     {event.detail && (
-                      <span className="text-xs text-muted-foreground">{event.detail}</span>
+                      <span className="text-[10px] text-muted-foreground/80">{event.detail}</span>
                     )}
                     {event.navigable && (
-                      <ArrowRight className="w-3 h-3 text-muted-foreground/50" />
+                      <ArrowRight className="w-2.5 h-2.5 text-muted-foreground/40" />
                     )}
                   </div>
                   {event.subtitle && (
-                    <p className="text-xs text-muted-foreground mb-1">{event.subtitle}</p>
+                    <p className="text-[10px] text-muted-foreground/70 mb-0.5">{event.subtitle}</p>
                   )}
                   {event.preview && (
-                    <p className="text-xs text-muted-foreground mb-1 line-clamp-2 whitespace-pre-wrap">{event.preview}</p>
+                    <p className="text-[10px] text-muted-foreground/70 mb-0.5 line-clamp-2 whitespace-pre-wrap">{event.preview}</p>
                   )}
-                  <p className="text-xs text-muted-foreground/70">{getRelativeTime(event.timestamp)}</p>
+                  <p className="text-[10px] text-muted-foreground/50">{getRelativeTime(event.timestamp)}</p>
                 </div>
               </div>
             ))}

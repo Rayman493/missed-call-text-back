@@ -1,6 +1,8 @@
-import React, { useState, useRef } from 'react'
-import { Plus, X } from 'lucide-react'
+import React, { useState, useRef, useEffect } from 'react'
+import { Plus, X, MessageSquare, Clock, Lightbulb } from 'lucide-react'
 import { supportsBusinessNumber } from '@/lib/platform-capabilities'
+import { focusService } from '@/lib/focus/focus-service'
+import type { FocusItem } from '@/lib/focus/focus-types'
 
 interface ConversationComposerProps {
   message: string
@@ -10,6 +12,15 @@ interface ConversationComposerProps {
   onClearImages?: (clearFn: () => void) => void
   sendingSource?: 'replyflow' | 'business'
   isNativeMobilePlatform?: boolean
+  // Business Memory context for messaging hints
+  messagingContext?: {
+    preferredContactMethod?: string
+    averageResponseDelay?: number
+    lastFollowUpTime?: string
+  }
+  // Focus context
+  business?: { id: string } | null
+  customerId?: string
 }
 
 interface ImagePreview {
@@ -18,24 +29,49 @@ interface ImagePreview {
   id: string
 }
 
-export default function ConversationComposer({ 
-  message, 
-  setMessage, 
-  handleSendMessage, 
+export default function ConversationComposer({
+  message,
+  setMessage,
+  handleSendMessage,
   sending,
   onClearImages,
   sendingSource = 'replyflow',
-  isNativeMobilePlatform = false
+  isNativeMobilePlatform = false,
+  messagingContext,
+  business,
+  customerId
 }: ConversationComposerProps) {
   const [images, setImages] = useState<ImagePreview[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isAtMaxHeight, setIsAtMaxHeight] = useState(false)
+  const [focusItem, setFocusItem] = useState<FocusItem | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dropZoneRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const sendButtonRef = useRef<HTMLButtonElement>(null)
 
   const isNativeMobile = supportsBusinessNumber()
+
+  // Fetch subtle Focus hint for messaging
+  useEffect(() => {
+    if (business && customerId) {
+      focusService.getFocusItems({
+        businessId: business.id,
+        customerId,
+        view: 'messaging'
+      }).then(items => {
+        // Show only the highest priority item, if any
+        if (items.length > 0) {
+          setFocusItem(items[0])
+        } else {
+          setFocusItem(null)
+        }
+      }).catch(err => {
+        console.error('[Focus] Failed to fetch focus hint:', err)
+        setFocusItem(null)
+      })
+    }
+  }, [business, customerId])
 
   // Clear images when onClearImages is called
   React.useEffect(() => {
@@ -44,6 +80,35 @@ export default function ConversationComposer({
       onClearImages(() => setImages([]))
     }
   }, [onClearImages])
+
+  // Generate messaging hints from Business Memory context
+  const getMessagingHints = (): string[] => {
+    const hints: string[] = []
+    if (!messagingContext) return hints
+
+    if (messagingContext.preferredContactMethod && messagingContext.preferredContactMethod !== 'any') {
+      const methodMap: Record<string, string> = {
+        sms: 'SMS',
+        call: 'Call',
+        email: 'Email'
+      }
+      hints.push(`Prefers ${methodMap[messagingContext.preferredContactMethod]}`)
+    }
+
+    if (messagingContext.averageResponseDelay !== undefined) {
+      const hours = messagingContext.averageResponseDelay.toFixed(1)
+      if (messagingContext.averageResponseDelay < 24) {
+        hints.push(`Usually responds within ${hours} hours`)
+      } else {
+        const days = (messagingContext.averageResponseDelay / 24).toFixed(1)
+        hints.push(`Usually responds within ${days} days`)
+      }
+    }
+
+    return hints
+  }
+
+  const messagingHints = getMessagingHints()
 
   const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
   const MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5MB
@@ -194,6 +259,30 @@ export default function ConversationComposer({
   return (
     <div className="p-2 bg-transparent">
       <div className="flex flex-col gap-2">
+        {/* Business Memory Context Hints */}
+        {messagingHints.length > 0 && (
+          <div className="flex items-center gap-1.5 px-2 py-1.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+            <MessageSquare className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+            <div className="flex flex-wrap gap-2">
+              {messagingHints.map((hint, index) => (
+                <span key={index} className="text-[10px] text-blue-700 dark:text-blue-300">
+                  {hint}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Subtle Focus Hint */}
+        {focusItem && (
+          <div className="flex items-center gap-1.5 px-2 py-1.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md">
+            <Lightbulb className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+            <span className="text-[10px] text-amber-700 dark:text-amber-300">
+              {focusItem.summary}
+            </span>
+          </div>
+        )}
+
         {/* Image Previews */}
         {images.length > 0 && (
           <div className="flex flex-wrap gap-2">

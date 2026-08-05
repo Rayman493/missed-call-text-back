@@ -66,11 +66,11 @@ export default function CustomerPipelineGraph() {
   const isEmpty = data.length === 0
 
   return (
-    <Card className="h-full">
-      <div className="p-4 sm:p-6">
-        <div className="mb-4">
-          <h3 className="text-base font-semibold text-foreground">Customer Pipeline</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Where customers currently are</p>
+    <Card className="h-full border-border/30 shadow-none">
+      <div className="p-3 sm:p-4">
+        <div className="mb-3">
+          <h3 className="text-base font-semibold text-foreground">Customer Workflow</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Where customers are in your process</p>
         </div>
 
         {loading ? (
@@ -78,10 +78,9 @@ export default function CustomerPipelineGraph() {
             <div className="animate-pulse text-muted-foreground text-sm">Loading...</div>
           </div>
         ) : isEmpty ? (
-          <div className="h-[200px] flex flex-col items-center justify-center text-center">
-            <Funnel className="w-8 h-8 text-muted-foreground mb-2" />
-            <p className="text-sm font-medium text-foreground">No customers yet</p>
-            <p className="text-xs text-muted-foreground mt-1">Your pipeline will appear here</p>
+          <div className="h-[200px] flex flex-col items-center justify-center text-center px-4">
+            <p className="text-xs font-medium text-muted-foreground/80">No active customers.</p>
+            <p className="text-[10px] text-muted-foreground/60 mt-1">Customers automatically move through your workflow.</p>
           </div>
         ) : (
           <div className="h-[200px]">

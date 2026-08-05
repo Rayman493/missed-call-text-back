@@ -66,6 +66,15 @@ import BusinessSnapshot from '@/components/BusinessSnapshot'
 import DashboardMetrics from '@/components/DashboardMetrics'
 import OperationalStatusCard from '@/components/OperationalStatusCard'
 import RecentActivityCard from '@/components/RecentActivityCard'
+import TodaySnapshot from '@/components/TodaySnapshot'
+import FocusSection from '@/components/FocusSection'
+import DailyBrief from '@/components/DailyBrief'
+import PotentialRevenue from '@/components/PotentialRevenue'
+import RevenueOpportunities from '@/components/RevenueOpportunities'
+import CustomerReactivation from '@/components/CustomerReactivation'
+// import DraftSummaries from '@/components/DraftSummaries' // TODO: Missing component - needs to be created
+import CustomerSuccess from '@/components/CustomerSuccess'
+import RecentWins from '@/components/RecentWins'
 import NewCustomersGraph from '@/components/analytics/NewCustomersGraph'
 import RevenueGraph from '@/components/analytics/RevenueGraph'
 import CustomerPipelineGraph from '@/components/analytics/CustomerPipelineGraph'
@@ -1096,52 +1105,91 @@ export default function DashboardContent() {
                 {/* Telecom-active sections: only render once the user has started a trial/subscription. */}
                 {hasActiveSubscription(business) ? (
                   <>
-                    {/* Dashboard Metrics - Snapshot - De-emphasize when forwarding is not verified */}
+                    {/* Daily Brief - Intelligence surface */}
+                    <SectionErrorBoundary sectionName="DailyBrief">
+                      <div className={`transition-opacity duration-200 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
+                        <DailyBrief business={business} />
+                      </div>
+                    </SectionErrorBoundary>
+
+                    {/* Revenue Opportunities - Where money is waiting */}
+                    <SectionErrorBoundary sectionName="RevenueOpportunities">
+                      <div className={`transition-opacity duration-200 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
+                        <RevenueOpportunities business={business} />
+                      </div>
+                    </SectionErrorBoundary>
+
+                    {/* Draft Summaries - Ready to send */}
+                    {/* TODO: DraftSummaries component missing - commented out */}
+                    {/* <SectionErrorBoundary sectionName="DraftSummaries">
+                      <div className={`transition-opacity duration-200 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
+                        <DraftSummaries business={business} />
+                      </div>
+                    </SectionErrorBoundary> */}
+
+                    {/* Customer Success - Relationship opportunities */}
+                    <SectionErrorBoundary sectionName="CustomerSuccess">
+                      <div className={`transition-opacity duration-200 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
+                        <CustomerSuccess business={business} />
+                      </div>
+                    </SectionErrorBoundary>
+
+                    {/* Recent Wins - Milestones */}
+                    <SectionErrorBoundary sectionName="RecentWins">
+                      <div className={`transition-opacity duration-200 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
+                        <RecentWins business={business} />
+                      </div>
+                    </SectionErrorBoundary>
+
+                    {/* Metrics Strip - How am I doing */}
                     <SectionErrorBoundary sectionName="DashboardMetrics">
-                      <div className={`transition-opacity duration-300 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
+                      <div className={`transition-opacity duration-200 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
                         <DashboardMetrics business={business} />
                       </div>
                     </SectionErrorBoundary>
 
-                    {/* Analytics Grid - 2x2 on desktop, stacked on mobile */}
-                    <SectionErrorBoundary sectionName="AnalyticsGrid">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className={`${!business?.forwarding_verified ? 'opacity-40' : ''} transition-opacity duration-300`}>
-                          <NewCustomersGraph />
+                    {/* What's Happening Section */}
+                    <div className="space-y-4">
+                      <SectionErrorBoundary sectionName="RecentLeadsSection">
+                        <div className={`transition-opacity duration-200 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
+                          {business?.id && (
+                            <RecentLeadsSection
+                              businessId={business.id}
+                              isOnboardingComplete={isOnboardingComplete}
+                              provisioningStatus={business?.provisioning_status || 'pending'}
+                              forwardingVerified={business?.forwarding_verified || false}
+                              isOnboardingExpanded={isOnboardingExpanded}
+                            />
+                          )}
                         </div>
-                        <div className={`${!business?.forwarding_verified ? 'opacity-40' : ''} transition-opacity duration-300`}>
-                          <RevenueGraph />
-                        </div>
-                        <div className={`${!business?.forwarding_verified ? 'opacity-40' : ''} transition-opacity duration-300`}>
-                          <CustomerPipelineGraph />
-                        </div>
-                        <div className={`${!business?.forwarding_verified ? 'opacity-40' : ''} transition-opacity duration-300`}>
-                          <BusinessActivityGraph />
-                        </div>
-                      </div>
-                    </SectionErrorBoundary>
+                      </SectionErrorBoundary>
 
-                    {/* Latest Customer Section - Recent Customers - De-emphasize when forwarding is not verified */}
-                    <SectionErrorBoundary sectionName="RecentLeadsSection">
-                      <div className={`transition-opacity duration-300 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
-                        {business?.id && (
-                          <RecentLeadsSection
-                            businessId={business.id}
-                            isOnboardingComplete={isOnboardingComplete}
-                            provisioningStatus={business?.provisioning_status || 'pending'}
-                            forwardingVerified={business?.forwarding_verified || false}
-                            isOnboardingExpanded={isOnboardingExpanded}
-                          />
-                        )}
-                      </div>
-                    </SectionErrorBoundary>
+                      <SectionErrorBoundary sectionName="RecentActivityCard">
+                        <div className={`transition-opacity duration-200 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
+                          <RecentActivityCard business={business} />
+                        </div>
+                      </SectionErrorBoundary>
+                    </div>
 
-                    {/* Recent Activity Card - Upcoming Schedule - De-emphasize when forwarding is not verified */}
-                    <SectionErrorBoundary sectionName="RecentActivityCard">
-                      <div className={`transition-opacity duration-300 ${!business?.forwarding_verified ? 'opacity-40' : ''}`}>
-                        <RecentActivityCard business={business} />
-                      </div>
-                    </SectionErrorBoundary>
+                    {/* Business Performance Section */}
+                    <div className="space-y-4">
+                      <SectionErrorBoundary sectionName="AnalyticsGrid">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className={`${!business?.forwarding_verified ? 'opacity-40' : ''} transition-opacity duration-200`}>
+                            <RevenueGraph />
+                          </div>
+                          <div className={`${!business?.forwarding_verified ? 'opacity-40' : ''} transition-opacity duration-200`}>
+                            <BusinessActivityGraph />
+                          </div>
+                          <div className={`${!business?.forwarding_verified ? 'opacity-40' : ''} transition-opacity duration-200`}>
+                            <CustomerPipelineGraph />
+                          </div>
+                          <div className={`${!business?.forwarding_verified ? 'opacity-40' : ''} transition-opacity duration-200`}>
+                            <NewCustomersGraph />
+                          </div>
+                        </div>
+                      </SectionErrorBoundary>
+                    </div>
 
                     {/* Beta Feedback Card - Simplified with mobile padding */}
                     <SectionErrorBoundary sectionName="BetaFeedbackCard">

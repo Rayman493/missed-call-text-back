@@ -15,8 +15,11 @@ import { getCustomerStatusStyle } from '@/lib/customer-status'
 import LeadPickerModal from '@/components/jobs/LeadPickerModal'
 import AddCustomerModal from '@/components/AddCustomerModal'
 import QuickTapToPayModal from '@/components/payments/QuickTapToPayModal'
+import FocusSection from '@/components/FocusSection'
 import TapToPaySetupModal from '@/components/payments/TapToPaySetupModal'
 import { isNativeCapacitor } from '@/lib/terminal'
+import { invalidateIntelligence } from '@/lib/intelligence-invalidation/intelligence-invalidation-service'
+import { analyticsService } from '@/lib/analytics/analytics-service'
 import type { JobPrefill } from '@/components/jobs/JobComposer'
 import EmptyState from '@/components/ui/EmptyState'
 import { CardSkeleton } from '@/components/ui/Skeleton'
@@ -350,7 +353,28 @@ export default function PaymentsPage() {
       setPaymentDescription('')
       setPaymentProvider('stripe')
       setSuccessMessage('Payment request sent successfully')
-      
+
+      // Track payment requested event
+      if (business?.id) {
+        analyticsService.track('payment_requested', { 
+          amount: paymentAmount ? parseFloat(paymentAmount) : undefined,
+          provider: 'stripe'
+        }, business.id).catch(error => {
+          console.error('[Analytics] Failed to track payment_requested:', error)
+        })
+      }
+
+      // Invalidate intelligence after successful payment request
+      if (business?.id && paymentPrefill.lead_id) {
+        invalidateIntelligence({
+          businessId: business.id,
+          customerId: paymentPrefill.lead_id,
+          mutation: 'payment_requested'
+        }).catch(error => {
+          console.error('[IntelligenceInvalidation] Failed:', error)
+        })
+      }
+
       // Refresh payments
       await fetchPayments()
     } catch (err) {
@@ -450,7 +474,18 @@ export default function PaymentsPage() {
       }
 
       setSuccessMessage('Payment marked as paid successfully')
-      
+
+      // Invalidate intelligence after successful payment received
+      if (business?.id && payment.leads?.id) {
+        invalidateIntelligence({
+          businessId: business.id,
+          customerId: payment.leads.id,
+          mutation: 'payment_received'
+        }).catch(error => {
+          console.error('[IntelligenceInvalidation] Failed:', error)
+        })
+      }
+
       // Refresh payments
       await fetchPayments()
     } catch (err) {
@@ -473,6 +508,9 @@ export default function PaymentsPage() {
           title="Payments"
           description="Request and track customer payments."
         />
+
+        {/* Focus - Unified Intelligence for Payments */}
+        <FocusSection business={business} view="payments" title="Collection Priorities" compact />
 
         {/* Action Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">

@@ -13,6 +13,8 @@ import {
 import { formatPhoneNumber, formatRelativeTime, sentenceCase, getLeadDisplayName } from '@/lib/utils'
 import { getLeadAIIntake } from '@/lib/ai-field-mapping'
 import { getCustomerStatusStyle, normalizeCustomerStatus, CustomerStatus } from '@/lib/customer-status'
+import { memoryService } from '@/lib/business-memory/memory-service'
+import { Repeat, TrendingUp, Clock, DollarSign } from 'lucide-react'
 
 // Helper to get structured AI data for lead card
 function getAIData(lead: any): { reason: string | null; urgency: string | null; details: string | null } {
@@ -22,6 +24,57 @@ function getAIData(lead: any): { reason: string | null; urgency: string | null; 
     urgency: intake.desiredCompletion,
     details: intake.additionalDetails,
   }
+}
+
+// Helper to get lightweight customer indicators from Business Memory
+function getCustomerIndicators(lead: any, businessId: string | null): Array<{ label: string; icon: React.ReactNode; color: string }> {
+  if (!businessId || !lead.id) return []
+
+  const indicators: Array<{ label: string; icon: React.ReactNode; color: string }> = []
+  const memory = memoryService.getCustomerMemory(businessId, lead.id)
+
+  if (!memory) return indicators
+
+  // Only show indicators when confidence is high (>= 70)
+  const confidenceThreshold = 70
+
+  // Repeat Customer
+  if (memory.repeatCustomer && memory.repeatCustomerProvenance?.confidence && memory.repeatCustomerProvenance.confidence >= confidenceThreshold) {
+    indicators.push({
+      label: 'Repeat',
+      icon: <Repeat className="w-2.5 h-2.5" />,
+      color: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800'
+    })
+  }
+
+  // High Lifetime Value (above $1000)
+  if (memory.lifetimeRevenue !== undefined && memory.lifetimeRevenue > 1000 && memory.lifetimeRevenueProvenance?.confidence && memory.lifetimeRevenueProvenance.confidence >= confidenceThreshold) {
+    indicators.push({
+      label: 'High Value',
+      icon: <DollarSign className="w-2.5 h-2.5" />,
+      color: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+    })
+  }
+
+  // Slow Responder (response time > 48 hours)
+  if (memory.averageResponseDelay !== undefined && memory.averageResponseDelay > 48 && memory.averageResponseDelayProvenance?.confidence && memory.averageResponseDelayProvenance.confidence >= confidenceThreshold) {
+    indicators.push({
+      label: 'Slow Responder',
+      icon: <Clock className="w-2.5 h-2.5" />,
+      color: 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800'
+    })
+  }
+
+  // Quick Payer (payment delay < 2 days)
+  if (memory.averagePaymentDelay !== undefined && memory.averagePaymentDelay < 2 && memory.averagePaymentDelayProvenance?.confidence && memory.averagePaymentDelayProvenance.confidence >= confidenceThreshold) {
+    indicators.push({
+      label: 'Quick Payer',
+      icon: <DollarSign className="w-2.5 h-2.5" />,
+      color: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+    })
+  }
+
+  return indicators
 }
 
 interface LeadCardProps {
@@ -34,6 +87,7 @@ interface LeadCardProps {
   statusFilter: string
   getCompactSummary: (lead: any) => string
   isNewCustomer: boolean
+  businessId: string | null
 }
 
 export default function LeadCard({
@@ -45,7 +99,8 @@ export default function LeadCard({
   onFilterStatus,
   statusFilter,
   getCompactSummary,
-  isNewCustomer
+  isNewCustomer,
+  businessId
 }: LeadCardProps) {
   // Get status config from canonical system with normalization
   const rawStatus = lead.status || lead.lead_status || 'new'
@@ -58,6 +113,7 @@ export default function LeadCard({
   }, [lead])
 
   const aiData = React.useMemo(() => getAIData(lead), [lead])
+  const customerIndicators = React.useMemo(() => getCustomerIndicators(lead, businessId), [lead, businessId])
 
   // Hook must be called at the top level of the component
   const pressGuard = useMobilePressGuard({
@@ -140,6 +196,20 @@ export default function LeadCard({
             <p className="line-clamp-1 sm:line-clamp-2 text-[11px] sm:text-xs text-muted-foreground leading-relaxed">
               {getCompactSummary(lead)}
             </p>
+          )}
+          {/* Lightweight customer indicators */}
+          {customerIndicators.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {customerIndicators.slice(0, 3).map((indicator, index) => (
+                <span
+                  key={index}
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium border ${indicator.color}`}
+                >
+                  {indicator.icon}
+                  {indicator.label}
+                </span>
+              ))}
+            </div>
           )}
         </div>
 

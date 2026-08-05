@@ -113,6 +113,17 @@ export default function CompleteSetupPage() {
       if (subscriptionActive) {
         await refreshBusiness(true)
 
+        // Track onboarding completion
+        if (freshBusiness) {
+          // Calculate onboarding duration (rough estimate from signup to now)
+          const durationMs = Date.now() - new Date(freshBusiness.created_at || Date.now()).getTime()
+          import('@/lib/analytics/analytics-service').then(({ analyticsService }) => {
+            analyticsService.track('onboarding_completed', { durationMs }, freshBusiness.id).catch(error => {
+              console.error('[Analytics] Failed to track onboarding_completed:', error)
+            })
+          })
+        }
+
         const provisioningPending = freshBusiness.provisioning_status === 'pending' || freshBusiness.provisioning_status === 'provisioning'
         router.replace(provisioningPending ? '/dashboard?setup=1' : '/dashboard')
         return

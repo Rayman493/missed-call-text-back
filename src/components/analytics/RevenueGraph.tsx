@@ -90,12 +90,12 @@ export default function RevenueGraph() {
   const isStripeConnected = business?.stripe_connect_account_id
 
   return (
-    <Card className="h-full">
-      <div className="p-4 sm:p-6">
-        <div className="flex items-start justify-between mb-4">
+    <Card className="h-full border-border/30 shadow-none">
+      <div className="p-3 sm:p-4">
+        <div className="flex items-start justify-between mb-3">
           <div>
-            <h3 className="text-base font-semibold text-foreground">Revenue</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">Payments received over time</p>
+            <h3 className="text-base font-semibold text-foreground">Payments Received</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">Payment collection over time</p>
           </div>
           <select
             value={timeRange}
@@ -110,22 +110,20 @@ export default function RevenueGraph() {
         </div>
 
         {loading ? (
-          <div className="h-[200px] flex items-center justify-center">
+          <div className="h-[280px] flex items-center justify-center">
             <div className="animate-pulse text-muted-foreground text-sm">Loading...</div>
           </div>
         ) : !isStripeConnected ? (
-          <div className="h-[200px] flex flex-col items-center justify-center text-center">
-            <DollarSign className="w-8 h-8 text-muted-foreground mb-2" />
-            <p className="text-sm font-medium text-foreground">Revenue data will appear once payments are collected</p>
+          <div className="h-[280px] flex flex-col items-center justify-center text-center px-4">
+            <p className="text-xs font-medium text-muted-foreground/80">Connect Stripe to track payments.</p>
           </div>
         ) : isEmpty ? (
-          <div className="h-[200px] flex flex-col items-center justify-center text-center">
-            <DollarSign className="w-8 h-8 text-muted-foreground mb-2" />
-            <p className="text-sm font-medium text-foreground">No revenue yet</p>
-            <p className="text-xs text-muted-foreground mt-1">Your revenue trend will appear after your first payment</p>
+          <div className="h-[280px] flex flex-col items-center justify-center text-center px-4">
+            <p className="text-xs font-medium text-muted-foreground/80">No payments received yet.</p>
+            <p className="text-[10px] text-muted-foreground/60 mt-1">Revenue charts appear after your first completed payment.</p>
           </div>
         ) : (
-          <div className="h-[200px]">
+          <div className="h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />

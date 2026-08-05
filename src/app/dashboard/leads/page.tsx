@@ -66,6 +66,7 @@ import FloatingHelpButton from '@/components/FloatingHelpButton'
 import LeadStatusDropdown from '@/components/LeadStatusDropdown'
 import AddCustomerModal from '@/components/AddCustomerModal'
 import LeadCard from '@/components/LeadCard'
+import FocusSection from '@/components/FocusSection'
 import { Wrench, FileText, Clock } from 'lucide-react'
 
 // Helper to get compact summary for lead card
@@ -751,10 +752,15 @@ export default function LeadsPage() {
             {/* Offboarding Banner - only for FULLY canceled/unpaid/expired subscriptions */}
             {/* Do NOT show when just scheduled to cancel (cancel_at_period_end) */}
             {(business?.subscription_status === 'canceled' || business?.subscription_status === 'unpaid' || business?.subscription_status === 'past_due') && business?.stripe_subscription_id && (
-              <OffboardingBanner 
+              <OffboardingBanner
                 business={business}
                 subscriptionStatus={business?.subscription_status || 'inactive'}
               />
+            )}
+
+            {/* Focus - Lightweight Customer Context */}
+            {hasActiveAccess(business) && (
+              <FocusSection business={business} view="customers" title="Customer Focus" compact />
             )}
 
 
@@ -1700,6 +1706,7 @@ export default function LeadsPage() {
                             statusFilter={statusFilter}
                             getCompactSummary={getCompactSummary}
                             isNewCustomer={isNewCustomer}
+                            businessId={business?.id || null}
                           />
                         )
                       })}

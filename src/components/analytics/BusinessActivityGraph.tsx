@@ -138,11 +138,11 @@ export default function BusinessActivityGraph() {
   const isEmpty = data.length === 0
 
   return (
-    <Card className="h-full">
-      <div className="p-4 sm:p-6">
-        <div className="flex items-start justify-between mb-4">
+    <Card className="h-full border-border/30 shadow-none">
+      <div className="p-3 sm:p-4">
+        <div className="flex items-start justify-between mb-3">
           <div>
-            <h3 className="text-base font-semibold text-foreground">Business Activity</h3>
+            <h3 className="text-base font-semibold text-foreground">Customer Engagement</h3>
             <p className="text-xs text-muted-foreground mt-0.5">Daily customer interactions</p>
           </div>
           <div className="flex items-center gap-2">
@@ -166,17 +166,16 @@ export default function BusinessActivityGraph() {
         </div>
 
         {loading ? (
-          <div className="h-[200px] flex items-center justify-center">
+          <div className="h-[280px] flex items-center justify-center">
             <div className="animate-pulse text-muted-foreground text-sm">Loading...</div>
           </div>
         ) : isEmpty ? (
-          <div className="h-[200px] flex flex-col items-center justify-center text-center">
-            <Activity className="w-8 h-8 text-muted-foreground mb-2" />
-            <p className="text-sm font-medium text-foreground">No activity yet</p>
-            <p className="text-xs text-muted-foreground mt-1">Your business activity will appear here</p>
+          <div className="h-[280px] flex flex-col items-center justify-center text-center px-4">
+            <p className="text-xs font-medium text-muted-foreground/80">No activity in the selected time period.</p>
+            <p className="text-[10px] text-muted-foreground/60 mt-1">Customer interactions will appear here.</p>
           </div>
         ) : (
-          <div className="h-[200px]">
+          <div className="h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />

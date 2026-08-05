@@ -190,14 +190,6 @@ export default function AnalyticsContent() {
         const customerReplyRate = totalMessages > 0 ? (inboundMessages / totalMessages) * 100 : 0
         const averageMessagesPerConversation = totalConversations > 0 ? totalMessages / totalConversations : 0
 
-        console.log('[Analytics] FINAL METRICS CALCULATION:', {
-          totalConversations,
-          totalMessages,
-          averageMessagesPerConversation,
-          activeLeads,
-          inboundMessages
-        })
-
         // Calculate Recovery Rate to match Dashboard: leads with customer replies / total leads
         // A lead is recovered if it has at least one inbound customer message
         const recoveredLeadsSet = new Set(inboundMessagesArray.map((m: any) => m.lead_id))

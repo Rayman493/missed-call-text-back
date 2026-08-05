@@ -4,6 +4,7 @@ import { db } from '@/lib/supabase/admin';
 import { LeadService } from '@/lib/services/LeadService';
 import { ConversationService } from '@/lib/services/ConversationService';
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard';
+import { analyticsService } from '@/lib/analytics/analytics-service';
 
 export async function GET(request: NextRequest) {
   console.log('[API LEADS GET] ========== ROUTE ENTERED ==========')
@@ -278,6 +279,11 @@ export async function POST(request: NextRequest) {
 
       console.log('[API LEADS POST] Lead created:', newLead.id)
       lead = newLead;
+
+      // Track customer creation event
+      analyticsService.track('customer_created', { source: 'manual' }, business.id).catch(error => {
+        console.error('[Analytics] Failed to track customer_created:', error)
+      })
 
       // Get or create conversation using canonical ConversationService
       console.log('[API LEADS POST] Getting or creating conversation for new lead:', lead.id)
