@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { useNotifications } from '@/contexts/NotificationContext'
 import { Notification } from '@/lib/notifications'
-import { generateCanonicalRequestTitle } from '@/lib/ai-intake-formatter'
+import { generateCanonicalRequestTitle, validateRequestTitle } from '@/lib/ai-intake-formatter'
 import { Bell, Check, MessageCircle, PhoneMissed, Send, Calendar, Info, CheckCircle, AlertTriangle, User, MessageSquare, Clock, CreditCard, Trash2, X } from 'lucide-react'
 
 // Hook to detect mobile breakpoint
@@ -325,16 +325,34 @@ export default function NavbarNotifications() {
   const getDisplayMessage = (notification: Notification): string => {
     if (notification.type === 'ai_intake_completed') {
       // Extract the service request from notification data, not the full message
-      const serviceRequested = notification.data?.serviceRequested || 
-                              notification.data?.request || 
+      const serviceRequested = notification.data?.serviceRequested ||
+                              notification.data?.request ||
                               notification.data?.reasonForCalling ||
                               null
-      
+      const additionalDetails = notification.data?.additionalDetails ||
+                               notification.data?.importantDetails ||
+                               null
+
       if (serviceRequested) {
+        // Validate the stored request to reject conversational filler
+        const validated = validateRequestTitle(serviceRequested)
+        if (validated) {
+          return validated
+        }
+        // If invalid, regenerate from additionalDetails
+        if (additionalDetails) {
+          const regenerated = generateCanonicalRequestTitle(additionalDetails)
+          if (regenerated !== 'Not collected') {
+            return regenerated
+          }
+        }
+        // Fallback to canonicalizing the raw value
         const canonicalTitle = generateCanonicalRequestTitle(serviceRequested)
-        return canonicalTitle
+        if (canonicalTitle !== 'Not collected') {
+          return canonicalTitle
+        }
       }
-      
+
       // Fallback to message if no service request in data
       return notification.message || 'No message'
     }

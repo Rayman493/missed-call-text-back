@@ -32,7 +32,7 @@ import {
   sentenceCase,
   getLeadDisplayName
 } from '@/lib/utils'
-import { getLeadAIIntake } from '@/lib/ai-field-mapping'
+import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
 import { copyToClipboard } from '@/lib/clipboard'
 import { calculateLeadTiming, getCustomerInfoForCopy, getAISummaryForCopy } from '@/lib/lead-timing'
 import { getCustomerStatusStyle, normalizeCustomerStatus } from '@/lib/customer-status'
@@ -75,7 +75,7 @@ function getCompactSummary(lead: any): string {
   // Prefer structured AI intake fields over raw SMS body
   const intake = getLeadAIIntake(lead)
   const name = intake.customerName
-  const service = intake.serviceRequested
+  const service = getLeadRequestTitle(lead) || intake.serviceRequested
   if (name && service) { return truncateText(`${name} • ${service}`, 80); }
   if (service) return truncateText(service, 80)
   if (name) return truncateText(name, 80)
@@ -129,7 +129,7 @@ function getStatusFilterLabel(filter: string): string {
 function getAIData(lead: any): { reason: string | null; urgency: string | null; details: string | null } {
   const intake = getLeadAIIntake(lead)
   return {
-    reason: intake.serviceRequested,
+    reason: getLeadRequestTitle(lead) || intake.serviceRequested,
     urgency: intake.desiredCompletion,
     details: intake.additionalDetails,
   }

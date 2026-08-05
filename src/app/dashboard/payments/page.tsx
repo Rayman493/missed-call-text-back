@@ -8,7 +8,7 @@ import DashboardShell from '@/components/layout/DashboardShell'
 import Button from '@/components/ui/Button'
 import PageHeader from '@/components/ui/PageHeader'
 import { formatCurrency, formatPhoneNumber } from '@/lib/utils'
-import { getLeadAIIntake } from '@/lib/ai-field-mapping'
+import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { getCustomerStatusStyle } from '@/lib/customer-status'
@@ -266,7 +266,7 @@ export default function PaymentsPage() {
         customer_name: intake.customerName || undefined,
         customer_phone: intake.customerPhone || lead.caller_phone || undefined,
         service_address: intake.serviceAddress || undefined,
-        title: intake.serviceRequested || undefined,
+        title: getLeadRequestTitle(lead) || intake.serviceRequested || undefined,
         notes: noteParts.length > 0 ? noteParts.join('\n\n') : undefined,
         lead_id: lead.id,
         conversation_id: conversationId || undefined,

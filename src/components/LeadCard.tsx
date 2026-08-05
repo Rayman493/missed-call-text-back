@@ -20,7 +20,7 @@ import { Repeat, TrendingUp, Clock, DollarSign } from 'lucide-react'
 function getAIData(lead: any): { reason: string | null; urgency: string | null; details: string | null } {
   const intake = getLeadAIIntake(lead)
   return {
-    reason: intake.serviceRequested,
+    reason: getLeadRequestTitle(lead) || intake.serviceRequested,
     urgency: intake.desiredCompletion,
     details: intake.additionalDetails,
   }

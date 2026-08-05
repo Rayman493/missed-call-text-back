@@ -27,7 +27,7 @@ import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber, formatRelativeTime, formatCurrency, getLeadDisplayName } from '@/lib/utils'
-import { getLeadAIIntake, getAIIntakeStatus, getAIIntakeStatusLabel, getAIIntakeStatusColor } from '@/lib/ai-field-mapping'
+import { getLeadAIIntake, getLeadRequestTitle, getAIIntakeStatus, getAIIntakeStatusLabel, getAIIntakeStatusColor } from '@/lib/ai-field-mapping'
 import { deriveJobSchedulingPrefill } from '@/lib/job-scheduling-prefill'
 import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel, LeadLifecycleStatus } from '@/lib/lead-lifecycle'
 import { CustomerStatus, normalizeCustomerStatus } from '@/lib/customer-status'
@@ -776,7 +776,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       leadData.aiCallRecords.forEach((aiCall: any) => {
         const outcome = aiCall.outcome
         const intakeStatus = getAIIntakeStatus({ aiCallRecords: [aiCall] })
-        const serviceRequested = aiCall.extracted_info?.reasonForCalling || aiCall.extracted_info?.serviceRequested || aiCall.extracted_info?.request || 'Unknown request'
+        const serviceRequested = getLeadRequestTitle(leadData) || 'Unknown request'
         
         // Determine message based on actual outcome
         let intakeMessage = ''
@@ -2572,7 +2572,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const intake = getLeadAIIntake(leadData)
     const leadName = intake.customerName || leadData?.name || ''
     const leadPhone = intake.customerPhone || leadData?.caller_phone || ''
-    const leadReason = intake.serviceRequested
+    const leadReason = getLeadRequestTitle(leadData) || intake.serviceRequested
     const leadAddress = intake.serviceAddress
 
     if (process.env.NODE_ENV !== 'production') {
@@ -2602,8 +2602,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     )
 
     return {
-      // Use canonical AI request title first, fall back to service requested, then fallback
-      title: intake.conciseRequestTitle || intake.serviceRequested || `Job for ${leadName || 'Customer'}`,
+      // Use canonical request title helper
+      title: getLeadRequestTitle(leadData) || intake.serviceRequested || `Job for ${leadName || 'Customer'}`,
       customer_name: leadName || undefined,
       customer_phone: leadPhone || undefined,
       service_address: leadAddress || undefined,
@@ -3014,7 +3014,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     const intake = getLeadAIIntake(leadData)
     const leadName = intake.customerName || leadData?.name || 'Customer'
     const leadPhone = formatPhoneNumber(intake.customerPhone || leadData?.caller_phone || '')
-    const leadReason = intake.serviceRequested || leadData?.company_name || ''
+    const leadReason = getLeadRequestTitle(leadData) || intake.serviceRequested || leadData?.company_name || ''
     const leadDetails = intake.additionalDetails || ''
     const leadUrgency = intake.desiredCompletion || ''
     const leadLocation = intake.serviceAddress || ''
@@ -3621,7 +3621,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       </h1>
                       <div className="flex items-center gap-3 mb-1">
                         <p className="text-sm text-slate-400 leading-tight truncate">
-                          {getLeadAIIntake(leadData || lead).conciseRequestTitle || getLeadAIIntake(leadData || lead).serviceRequested || 'No request'}
+                          {getLeadRequestTitle(leadData || lead) || getLeadAIIntake(leadData || lead).serviceRequested || 'No request'}
                         </p>
                       </div>
                       <div className="flex items-center gap-3">

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatRelativeTime, formatPhoneNumber, sentenceCase } from '@/lib/utils'
 import { MessageCircle, ChevronDown, ChevronUp, Pencil, X, Check, Loader2, User, FileText, MapPin, Calendar, Phone, Sparkles, RefreshCw, Clock, Info } from 'lucide-react'
-import { normalizeExtractedInfo, getLeadAIIntake, getAIIntakeStatus } from '@/lib/ai-field-mapping'
+import { normalizeExtractedInfo, getLeadAIIntake, getLeadRequestTitle, getAIIntakeStatus } from '@/lib/ai-field-mapping'
 import { normalizeAITranscript } from '@/lib/transcript-normalization'
 import { normalizeAICallRecord, getHistoryCardTitle, getOutcomeColor as getRecordOutcomeColor, getIntakeBadgeLabel, type NormalizedIntake } from '@/lib/ai-call-record-normalizer'
 import { normalizeCustomerName, normalizeServiceReason, normalizeAdditionalDetails, normalizeAddress, normalizeTiming, generateCanonicalRequestTitle } from '@/lib/ai-intake-formatter'
@@ -223,7 +223,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
   // Unified intake field rendering for both desktop and mobile
   const renderIntakeFields = () => {
     const intake = getLeadAIIntake(leadData || {})
-    const conciseTitle = intake.conciseRequestTitle || intake.serviceRequested || ''
+    const conciseTitle = getLeadRequestTitle(leadData || {}) || intake.serviceRequested || ''
 
     return (
       <div className="space-y-4">

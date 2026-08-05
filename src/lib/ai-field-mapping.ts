@@ -484,9 +484,10 @@ export function getLeadAIIntake(lead: any): LeadAIIntake {
  *
  * Resolution order:
  * 1. Structured AI Intake conciseRequestTitle (validated to reject conversational filler)
- * 2. Canonical serviceRequested field on lead (validated, then canonicalized if needed)
- * 3. Short normalized fallback from metadata
- * 4. Generic fallback
+ * 2. If invalid, regenerate from additionalDetails (full customer sentence)
+ * 3. Canonical serviceRequested field on lead (validated, then regenerated from details if invalid)
+ * 4. Job titles (for manually created jobs)
+ * 5. Generic fallback
  *
  * @param lead - Lead object with raw_metadata and/or aiCallRecords
  * @returns Concise request title (e.g., "Lawn Mowing", "Kitchen Sink Repair")
@@ -504,7 +505,13 @@ export function getLeadRequestTitle(lead: any): string {
     if (validated) {
       return validated
     }
-    // If validation fails, fall through to canonical generation from the raw value
+    // If validation fails, regenerate from additionalDetails (full customer sentence)
+    if (aiIntake.additionalDetails) {
+      const regenerated = generateCanonicalRequestTitle(aiIntake.additionalDetails)
+      if (regenerated !== 'Not collected') {
+        return regenerated
+      }
+    }
   }
 
   // Secondary: Check for explicit request field on lead or raw_metadata
@@ -515,7 +522,14 @@ export function getLeadRequestTitle(lead: any): string {
     if (validated) {
       return validated
     }
-    // If validation fails, canonicalize the raw value
+    // If validation fails, regenerate from additionalDetails instead of canonicalizing the invalid value
+    if (aiIntake.additionalDetails) {
+      const regenerated = generateCanonicalRequestTitle(aiIntake.additionalDetails)
+      if (regenerated !== 'Not collected') {
+        return regenerated
+      }
+    }
+    // Fallback: canonicalize the raw value if additionalDetails is not available
     const normalized = generateCanonicalRequestTitle(explicitRequest.trim())
     if (normalized !== 'Not collected') {
       return normalized

@@ -94,7 +94,7 @@ export default function NewCustomersGraph() {
           <select
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value as TimeRange)}
-            className="text-[11px] border border-border/50 rounded-md px-2 py-1.5 bg-background text-foreground hover:bg-muted/50 transition-colors"
+            className="text-[11px] border border-border/40 rounded-lg px-2.5 py-1.5 bg-background text-foreground hover:bg-muted/40 transition-colors"
           >
             <option value="7d">7 Days</option>
             <option value="30d">30 Days</option>
@@ -104,20 +104,19 @@ export default function NewCustomersGraph() {
         </div>
 
         {loading ? (
-          <div className="h-[220px] flex items-center justify-center">
+          <div className="h-[260px] flex items-center justify-center">
             <div className="animate-pulse text-muted-foreground text-sm">Loading...</div>
           </div>
         ) : isEmpty ? (
-          <div className="h-[220px] flex flex-col items-center justify-center text-center px-4">
+          <div className="h-[260px] flex flex-col items-center justify-center text-center px-4">
             <Users className="w-8 h-8 text-muted-foreground/30 mb-3" />
-            <p className="text-xs font-medium text-muted-foreground/70">Your first customer will appear here.</p>
-            <p className="text-[10px] text-muted-foreground/50 mt-1.5">ReplyFlow will automatically track new customers.</p>
+            <p className="text-xs font-medium text-muted-foreground/70">New customers captured by ReplyFlow will appear here.</p>
           </div>
         ) : (
-          <div className="h-[220px]">
+          <div className="h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-                <CartesianGrid strokeDasharray="4 4" className="stroke-border/20" vertical={false} />
+              <BarChart data={data} margin={{ top: 16, right: 8, bottom: 8, left: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border/10" vertical={false} />
                 <XAxis 
                   dataKey="date" 
                   className="text-[10px] text-muted-foreground/60"
@@ -145,8 +144,9 @@ export default function NewCustomersGraph() {
                 <Bar 
                   dataKey="customers" 
                   fill="hsl(var(--primary))" 
+                  fillOpacity={0.8}
                   radius={[3, 3, 0, 0]}
-                  className="hover:opacity-80 transition-opacity"
+                  className="hover:fill-opacity-100 transition-all"
                 />
               </BarChart>
             </ResponsiveContainer>

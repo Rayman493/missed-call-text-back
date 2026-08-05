@@ -74,20 +74,19 @@ export default function CustomerPipelineGraph() {
         </div>
 
         {loading ? (
-          <div className="h-[220px] flex items-center justify-center">
+          <div className="h-[260px] flex items-center justify-center">
             <div className="animate-pulse text-muted-foreground text-sm">Loading...</div>
           </div>
         ) : isEmpty ? (
-          <div className="h-[220px] flex flex-col items-center justify-center text-center px-4">
+          <div className="h-[260px] flex flex-col items-center justify-center text-center px-4">
             <Funnel className="w-8 h-8 text-muted-foreground/30 mb-3" />
-            <p className="text-xs font-medium text-muted-foreground/70">No active customers.</p>
-            <p className="text-[10px] text-muted-foreground/50 mt-1.5">Customers will automatically move through your workflow.</p>
+            <p className="text-xs font-medium text-muted-foreground/70">Customers automatically move through your workflow.</p>
           </div>
         ) : (
-          <div className="h-[220px]">
+          <div className="h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data} layout="horizontal" margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-                <CartesianGrid strokeDasharray="4 4" className="stroke-border/20" horizontal={false} />
+              <BarChart data={data} layout="horizontal" margin={{ top: 16, right: 8, bottom: 8, left: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border/10" horizontal={false} />
                 <XAxis 
                   type="number" 
                   className="text-[10px] text-muted-foreground/60"
@@ -115,9 +114,9 @@ export default function CustomerPipelineGraph() {
                   itemStyle={{ color: 'hsl(var(--foreground))' }}
                   formatter={(value: any, name?: any) => [value, 'Customers']}
                 />
-                <Bar dataKey="count" radius={[0, 3, 3, 0]} className="hover:opacity-80 transition-opacity">
+                <Bar dataKey="count" radius={[0, 3, 3, 0]} className="hover:opacity-80 transition-all">
                   {data.map((entry, index) => (
-                    <rect key={`cell-${index}`} fill={entry.color} />
+                    <rect key={`cell-${index}`} fill={entry.color} fillOpacity={0.8} />
                   ))}
                 </Bar>
               </BarChart>

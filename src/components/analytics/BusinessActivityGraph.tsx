@@ -149,7 +149,7 @@ export default function BusinessActivityGraph() {
             <select
               value={timeRange}
               onChange={(e) => setTimeRange(e.target.value as TimeRange)}
-              className="text-[11px] border border-border/50 rounded-md px-2 py-1.5 bg-background text-foreground hover:bg-muted/50 transition-colors"
+              className="text-[11px] border border-border/40 rounded-lg px-2.5 py-1.5 bg-background text-foreground hover:bg-muted/40 transition-colors"
             >
               <option value="7d">7 Days</option>
               <option value="30d">30 Days</option>
@@ -158,7 +158,7 @@ export default function BusinessActivityGraph() {
             </select>
             <button
               onClick={() => setShowLegend(!showLegend)}
-              className="text-[11px] border border-border/50 rounded-md px-2 py-1.5 bg-background text-foreground hover:bg-muted/50 transition-colors"
+              className="text-[11px] border border-border/40 rounded-lg px-2.5 py-1.5 bg-background text-foreground hover:bg-muted/40 transition-colors"
             >
               {showLegend ? 'Hide' : 'Show'}
             </button>
@@ -166,20 +166,19 @@ export default function BusinessActivityGraph() {
         </div>
 
         {loading ? (
-          <div className="h-[220px] flex items-center justify-center">
+          <div className="h-[260px] flex items-center justify-center">
             <div className="animate-pulse text-muted-foreground text-sm">Loading...</div>
           </div>
         ) : isEmpty ? (
-          <div className="h-[220px] flex flex-col items-center justify-center text-center px-4">
+          <div className="h-[260px] flex flex-col items-center justify-center text-center px-4">
             <Activity className="w-8 h-8 text-muted-foreground/30 mb-3" />
-            <p className="text-xs font-medium text-muted-foreground/70">No activity in the selected time period.</p>
-            <p className="text-[10px] text-muted-foreground/50 mt-1.5">Customer interactions will appear here.</p>
+            <p className="text-xs font-medium text-muted-foreground/70">Customer interactions will appear here.</p>
           </div>
         ) : (
-          <div className="h-[220px]">
+          <div className="h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data} margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-                <CartesianGrid strokeDasharray="4 4" className="stroke-border/20" vertical={false} />
+              <LineChart data={data} margin={{ top: 16, right: 8, bottom: 8, left: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border/10" vertical={false} />
                 <XAxis 
                   dataKey="date" 
                   className="text-[10px] text-muted-foreground/60"
@@ -206,10 +205,11 @@ export default function BusinessActivityGraph() {
                 />
                 {showLegend && (
                   <Legend 
-                    wrapperStyle={{ fontSize: '10px', paddingTop: '8px' }}
-                    iconType="line"
+                    wrapperStyle={{ fontSize: '10px', paddingTop: '12px', color: 'hsl(var(--muted-foreground))' }}
+                    iconType="circle"
+                    iconSize={6}
                     verticalAlign="bottom"
-                    height={24}
+                    height={28}
                   />
                 )}
                 <Line 
@@ -217,7 +217,7 @@ export default function BusinessActivityGraph() {
                   dataKey="conversations" 
                   stroke="#3b82f6" 
                   strokeWidth={2}
-                  dot={{ fill: '#3b82f6', strokeWidth: 0, r: 3 }}
+                  dot={false}
                   activeDot={{ r: 4, fill: '#3b82f6', strokeWidth: 2 }}
                   name="Conversations"
                 />
@@ -226,7 +226,7 @@ export default function BusinessActivityGraph() {
                   dataKey="appointments" 
                   stroke="#22c55e" 
                   strokeWidth={2}
-                  dot={{ fill: '#22c55e', strokeWidth: 0, r: 3 }}
+                  dot={false}
                   activeDot={{ r: 4, fill: '#22c55e', strokeWidth: 2 }}
                   name="Appointments"
                 />
@@ -235,7 +235,7 @@ export default function BusinessActivityGraph() {
                   dataKey="paymentRequests" 
                   stroke="#f59e0b" 
                   strokeWidth={2}
-                  dot={{ fill: '#f59e0b', strokeWidth: 0, r: 3 }}
+                  dot={false}
                   activeDot={{ r: 4, fill: '#f59e0b', strokeWidth: 2 }}
                   name="Payment Requests"
                 />
@@ -244,7 +244,7 @@ export default function BusinessActivityGraph() {
                   dataKey="completedJobs" 
                   stroke="#8b5cf6" 
                   strokeWidth={2}
-                  dot={{ fill: '#8b5cf6', strokeWidth: 0, r: 3 }}
+                  dot={false}
                   activeDot={{ r: 4, fill: '#8b5cf6', strokeWidth: 2 }}
                   name="Completed Jobs"
                 />

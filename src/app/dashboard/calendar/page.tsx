@@ -15,7 +15,7 @@ import EventDetailsModal from '@/components/calendar/EventDetailsModal'
 import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
 import { filterEventsByMonth } from '@/lib/calendar-date-utils'
-import { getLeadAIIntake } from '@/lib/ai-field-mapping'
+import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
 import JobComposer from '@/components/jobs/JobComposer'
 import JobPill from '@/components/jobs/JobPill'
 import JobDetailsModal from '@/components/jobs/JobDetailsModal'
@@ -1521,7 +1521,7 @@ export default function SchedulePage() {
                         customerName = intake.customerName || undefined
                         customerPhone = intake.customerPhone || undefined
                         serviceAddress = intake.serviceAddress || undefined
-                        title = intake.serviceRequested || undefined
+                        title = getLeadRequestTitle(leadData) || intake.serviceRequested || undefined
                         
                         const noteParts = [
                           intake.additionalDetails,

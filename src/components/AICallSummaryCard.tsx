@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatRelativeTime } from '@/lib/utils'
 import { formatAiIntakeSummary, generateOfficeAssistantSummary } from '@/lib/ai-intake-formatter'
+import { getLeadRequestTitle } from '@/lib/ai-field-mapping'
 import { Phone, ChevronDown } from 'lucide-react'
 import { normalizeAITranscript, cleanTranscriptText } from '@/lib/transcript-normalization'
 
@@ -182,7 +183,7 @@ export default function AICallSummaryCard({ leadId, businessId, conversationId, 
   // Map extracted_info to the format expected by formatAiIntakeSummary
   const intakeData = {
     customerName: aiCallRecord.extracted_info?.callerName,
-    serviceRequested: aiCallRecord.extracted_info?.reasonForCalling,
+    serviceRequested: getLeadRequestTitle({ raw_metadata: { extracted_info: aiCallRecord.extracted_info } }) || aiCallRecord.extracted_info?.reasonForCalling,
     issueDescription: aiCallRecord.extracted_info?.importantDetails,
     serviceAddress: aiCallRecord.extracted_info?.addressOrLocation,
     desiredCompletionTime: aiCallRecord.extracted_info?.desiredCompletionTime,
