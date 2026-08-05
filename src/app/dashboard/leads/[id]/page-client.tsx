@@ -3818,14 +3818,14 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
             {/* Desktop Sidebar - Premium Card */}
             <aside className="sticky top-4 h-[calc(100vh-240px)]" data-sidebar>
-              <div className="h-full bg-background rounded-2xl border border-border/50 shadow-sm p-4 overflow-y-auto custom-scrollbar">
+              <div className="h-full bg-background rounded-2xl border border-border/40 shadow-sm p-5 overflow-y-auto custom-scrollbar">
                 {(() => {
                   const paymentRequests = leadData?.paymentRequests || []
                   return (
-                    <div className="space-y-5">
+                    <div className="space-y-6">
                   {/* AI Intake Summary - Hero Card */}
                   {leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id && (
-                    <div className="pr-1">
+                    <div>
                       <AICallDetails
                         leadId={params.id}
                         businessId={business.id}
@@ -3840,16 +3840,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
                   {/* Customer Summary - Hero Card */}
                   {!(leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id) && (
-                    <div className="bg-muted/70 rounded-xl border border-border/60 shadow-xl relative overflow-hidden">
+                    <div className="bg-muted/30 rounded-xl border border-border/30 p-4">
                       <VoicemailSummary leadData={leadData} />
                     </div>
                   )}
 
                   {/* Activity Timeline - Secondary Card */}
-                  <div className="bg-muted/30 rounded-xl border border-border/30 p-3 shadow-sm">
+                  <div className="p-1">
                     <button
                       onClick={() => setCollapsedSections((prev: any) => ({ ...prev, activityTimeline: !prev.activityTimeline }))}
-                      className="flex items-center justify-between w-full mb-2 group"
+                      className="flex items-center justify-between w-full mb-3 group"
                     >
                       <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Timeline</h3>
                     </button>
@@ -3861,8 +3861,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </div>
 
                   {/* Customer Status - Secondary Card */}
-                  <div className="bg-muted/30 rounded-xl border border-border/30 p-3 shadow-sm">
-                    <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider mb-2">Status</h3>
+                  <div className="p-1">
+                    <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider mb-3">Status</h3>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-muted-foreground">AI Intake</span>
