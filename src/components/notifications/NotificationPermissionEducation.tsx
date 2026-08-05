@@ -3,22 +3,20 @@
 import { useState, useEffect, useRef } from 'react'
 import { Bell } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
-import { Preferences } from '@capacitor/preferences'
 import { permissionLock } from '@/lib/permission-lock'
 import { useNativePermissions } from '@/hooks/useNativePermissions'
+import {
+  shouldShowNotificationEducation,
+  markSessionChecked,
+  recordModalShown,
+  recordModalDismissed,
+  recordPermissionGranted,
+  recordPermissionDenied
+} from '@/lib/notification-education-eligibility'
 
 interface NotificationPermissionEducationProps {
   onComplete?: () => void
 }
-
-const STORAGE_KEYS = {
-  LAST_SHOWN_AT: 'notification_permission_modal_last_shown_at',
-  HAS_SHOWN: 'notification_permission_modal_has_shown',
-  LAST_KNOWN_STATUS: 'notification_permission_last_known_status',
-  DISMISSED_AT: 'notification_permission_modal_dismissed_at'
-}
-
-const COOLDOWN_DURATION = 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
 
 let isCheckingEligibility = false // Single-flight guard for the entire app
 
@@ -34,8 +32,6 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
 
   const checkEligibility = async () => {
     console.log('[NOTIFICATION_EDUCATION] ===== STARTING ELIGIBILITY CHECK =====')
-    console.log('[NOTIFICATION_EDUCATION] Platform:', Capacitor.getPlatform())
-    console.log('[NOTIFICATION_EDUCATION] Is Native:', Capacitor.isNativePlatform())
     
     // Single-flight guard - prevent multiple checks across app
     if (isCheckingEligibility) {
@@ -45,98 +41,41 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
     isCheckingEligibility = true
 
     try {
-      // Only on native platforms (Android and iOS)
-      if (!Capacitor.isNativePlatform()) {
-        console.log('[NOTIFICATION_EDUCATION_BLOCKED] reason=not_native')
-        return
-      }
-
-      // Check if permission is currently active (Tap to Pay, etc.)
-      if (permissionLock.isAnyPermissionActive()) {
-        console.log('[NOTIFICATION_EDUCATION_BLOCKED] reason=another_permission_active')
-        return
-      }
-
-      // Check native permission state
+      // Check native permission state first
       console.log('[NOTIFICATION_PERMISSION_CHECK] Checking permission state via shared hook')
       await checkNotificationPermission()
       console.log('[NOTIFICATION_PERMISSION_CHECK] Current state:', notifications.status)
 
-      // If already granted, never show again
-      if (notifications.status === 'granted') {
-        console.log('[NOTIFICATION_EDUCATION_BLOCKED] reason=permission_already_granted')
-        await Preferences.set({ key: STORAGE_KEYS.LAST_KNOWN_STATUS, value: 'granted' })
-        const { value: verifyWrite } = await Preferences.get({ key: STORAGE_KEYS.LAST_KNOWN_STATUS })
-        console.log('[NOTIFICATION_EDUCATION] Verify LAST_KNOWN_STATUS write:', verifyWrite)
+      // Use centralized eligibility function
+      const eligibility = await shouldShowNotificationEducation({
+        platform: Capacitor.getPlatform(),
+        isNative: Capacitor.isNativePlatform(),
+        nativePermissionStatus: notifications.status,
+        permissionLockActive: permissionLock.isAnyPermissionActive()
+      })
+
+      console.log('[NOTIFICATION_EDUCATION] Eligibility result:', {
+        eligible: eligibility.eligible,
+        reason: eligibility.reason,
+        diagnostic: eligibility.diagnostic
+      })
+
+      if (eligibility.eligible) {
+        console.log('[NOTIFICATION_EDUCATION_SHOWN] Showing education modal')
+        hasShownRef.current = true
+        await recordModalShown()
+        setShow(true)
+      } else {
+        console.log('[NOTIFICATION_EDUCATION_BLOCKED] reason=', eligibility.reason)
         setShow(false)
+        // Mark session as checked to prevent re-checking
+        await markSessionChecked()
         onComplete?.()
-        return
       }
-
-      // Check persistent storage - READ ALL KEYS FOR DIAGNOSTICS
-      const { value: lastKnownStatus } = await Preferences.get({ key: STORAGE_KEYS.LAST_KNOWN_STATUS })
-      const { value: hasShown } = await Preferences.get({ key: STORAGE_KEYS.HAS_SHOWN })
-      const { value: lastShownAt } = await Preferences.get({ key: STORAGE_KEYS.LAST_SHOWN_AT })
-      const { value: dismissedAt } = await Preferences.get({ key: STORAGE_KEYS.DISMISSED_AT })
-      
-      console.log('[NOTIFICATION_EDUCATION] Storage values:')
-      console.log('  - LAST_KNOWN_STATUS:', lastKnownStatus)
-      console.log('  - HAS_SHOWN:', hasShown)
-      console.log('  - LAST_SHOWN_AT:', lastShownAt)
-      console.log('  - DISMISSED_AT:', dismissedAt)
-      
-      if (lastKnownStatus === 'granted') {
-        console.log('[NOTIFICATION_EDUCATION_BLOCKED] reason=permission_granted_in_storage')
-        setShow(false)
-        onComplete?.()
-        return
-      }
-
-      // Check if already shown in this session
-      if (hasShownRef.current) {
-        console.log('[NOTIFICATION_EDUCATION_BLOCKED] reason=already_shown_this_session')
-        return
-      }
-
-      // Check if already shown historically
-      if (hasShown === 'true') {
-        console.log('[NOTIFICATION_EDUCATION_BLOCKED] reason=already_shown_historically')
-        return
-      }
-
-      // Check cooldown from dismissal
-      if (dismissedAt) {
-        const now = Date.now()
-        const dismissedTime = parseInt(dismissedAt, 10)
-        const timeSinceDismissal = now - dismissedTime
-        const cooldownRemaining = COOLDOWN_DURATION - timeSinceDismissal
-        console.log('[NOTIFICATION_EDUCATION] Cooldown check:')
-        console.log('  - Dismissed at:', new Date(dismissedTime).toISOString())
-        console.log('  - Time since dismissal:', timeSinceDismissal, 'ms')
-        console.log('  - Cooldown duration:', COOLDOWN_DURATION, 'ms')
-        console.log('  - Cooldown remaining:', cooldownRemaining, 'ms')
-        if (timeSinceDismissal < COOLDOWN_DURATION) {
-          console.log('[NOTIFICATION_EDUCATION_BLOCKED] reason=cooldown_active')
-          return
-        }
-      }
-
-      // Show education
-      console.log('[NOTIFICATION_EDUCATION_SHOWN] Showing education modal')
-      hasShownRef.current = true
-      await Preferences.set({ key: STORAGE_KEYS.HAS_SHOWN, value: 'true' })
-      await Preferences.set({ key: STORAGE_KEYS.LAST_SHOWN_AT, value: Date.now().toString() })
-      
-      // Verify writes
-      const { value: verifyHasShown } = await Preferences.get({ key: STORAGE_KEYS.HAS_SHOWN })
-      const { value: verifyLastShownAt } = await Preferences.get({ key: STORAGE_KEYS.LAST_SHOWN_AT })
-      console.log('[NOTIFICATION_EDUCATION] Verify writes after showing:')
-      console.log('  - HAS_SHOWN written:', verifyHasShown)
-      console.log('  - LAST_SHOWN_AT written:', verifyLastShownAt)
-      
-      setShow(true)
     } catch (error) {
       console.error('[NOTIFICATION_EDUCATION] Failed to check eligibility:', error)
+      // On error, mark session as checked to prevent infinite retry loops
+      await markSessionChecked()
     } finally {
       isCheckingEligibility = false
     }
@@ -168,12 +107,11 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
 
       if (notifications.status === 'granted') {
         console.log('[NOTIFICATION_EDUCATION] Permission granted')
-        await Preferences.set({ key: STORAGE_KEYS.LAST_KNOWN_STATUS, value: 'granted' })
-        await Preferences.remove({ key: STORAGE_KEYS.DISMISSED_AT })
+        await recordPermissionGranted()
         onComplete?.()
       } else {
         console.log('[NOTIFICATION_EDUCATION] Permission denied or blocked')
-        await Preferences.set({ key: STORAGE_KEYS.LAST_KNOWN_STATUS, value: notifications.status })
+        await recordPermissionDenied(notifications.status)
       }
     } catch (error) {
       console.error('[NOTIFICATION_EDUCATION] Failed to request permission:', error)
@@ -185,15 +123,7 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
 
   const handleNotNow = async () => {
     console.log('[NOTIFICATION_EDUCATION_DISMISSED] User clicked Not Now')
-    // Set cooldown for 7 days
-    const dismissedAt = Date.now()
-    await Preferences.set({ key: STORAGE_KEYS.DISMISSED_AT, value: dismissedAt.toString() })
-    
-    // Verify write
-    const { value: verifyDismissedAt } = await Preferences.get({ key: STORAGE_KEYS.DISMISSED_AT })
-    console.log('[NOTIFICATION_EDUCATION] Verify DISMISSED_AT write:', verifyDismissedAt)
-    console.log(`[NOTIFICATION_EDUCATION] Cooldown set until ${new Date(dismissedAt + COOLDOWN_DURATION).toISOString()}`)
-    
+    await recordModalDismissed()
     setShow(false)
     onComplete?.()
   }
