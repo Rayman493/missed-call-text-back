@@ -25,37 +25,36 @@ export default function CalendarDayCell({
     <div
       onClick={onClick}
       className={`
-        min-h-[48px] sm:min-h-[64px] md:min-h-[86px] p-1 sm:p-1.5 md:p-2.5 rounded-lg border transition-all duration-150 cursor-pointer active:scale-95 flex flex-col items-center justify-center
+        min-h-[48px] sm:min-h-[64px] md:min-h-[86px] p-1 sm:p-1.5 md:p-2.5 rounded-lg border transition-all duration-200 cursor-pointer active:scale-95 flex flex-col items-center justify-center
         ${isCurrentMonth
           ? isWeekend
             ? 'bg-slate-50 dark:bg-slate-900/50 border-slate-200/70 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800/70'
             : 'bg-white dark:bg-slate-900/35 border-slate-200/70 dark:border-slate-800/70 hover:bg-slate-50 dark:hover:bg-slate-800/60'
           : 'bg-slate-50/70 dark:bg-slate-950/30 border-slate-100 dark:border-slate-900 opacity-45'
         }
-        ${isToday
-          ? 'ring-1 ring-blue-500/80 ring-offset-1 ring-offset-background dark:ring-offset-slate-900'
-          : ''
-        }
         ${isSelected
-          ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 dark:border-blue-400 shadow-md shadow-blue-500/10'
+          ? 'ring-2 ring-blue-500/70 ring-offset-1 ring-offset-background dark:ring-offset-slate-900 bg-blue-50/80 dark:bg-blue-900/25 shadow-md shadow-blue-500/10'
           : ''
         }
       `}
     >
       <span
         className={`
-          text-[10px] md:text-sm font-medium mb-1
+          text-[10px] md:text-sm font-medium mb-1 relative z-10
           ${isCurrentMonth
             ? 'text-slate-900 dark:text-foreground'
             : 'text-slate-400 dark:text-slate-600'
           }
           ${isToday
-            ? 'bg-blue-500 text-white w-5 h-5 md:w-7 md:h-7 rounded-full flex items-center justify-center'
+            ? 'text-white'
             : ''
           }
         `}
       >
         {day}
+        {isToday && (
+          <span className="absolute inset-0 -z-10 w-5 h-5 md:w-7 md:h-7 rounded-full bg-blue-500" />
+        )}
       </span>
       {hasEvents && (
         <div className="flex items-center gap-1">
