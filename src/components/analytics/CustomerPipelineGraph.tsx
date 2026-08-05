@@ -66,13 +66,30 @@ export default function CustomerPipelineGraph() {
 
   const isEmpty = data.length === 0
 
+  // Calculate summary KPIs
+  const totalCustomers = data.reduce((sum, item) => sum + item.count, 0)
+  const largestGroup = data.length > 0 ? data.reduce((max, item) => item.count > max.count ? item : max, data[0]) : null
+
   return (
     <Card className="h-full" variant="hero" padding="md">
       <div className="p-4 sm:p-5">
-        <div className="mb-4">
+        <div className="mb-3">
           <h3 className="text-sm font-semibold text-foreground">Customer Workflow</h3>
-          <p className="text-[11px] text-muted-foreground/70 mt-0.5">Where customers are in your process</p>
         </div>
+
+        {!isEmpty && (
+          <div className="mb-4">
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-semibold text-foreground">{totalCustomers.toLocaleString()}</span>
+              <span className="text-xs text-muted-foreground">total customers</span>
+            </div>
+            {largestGroup && (
+              <div className="text-[11px] text-muted-foreground/70 mt-1">
+                Most common: {largestGroup.status} ({largestGroup.count})
+              </div>
+            )}
+          </div>
+        )}
 
         {loading ? (
           <div className="h-[260px] flex items-center justify-center">

@@ -232,11 +232,11 @@ export default function LeadCard({
             onDoubleClick={(e) => {
               e.stopPropagation()
             }}
-            className="hidden sm:inline text-xs text-slate-400 dark:text-slate-400 flex items-center gap-1 hover:text-foreground hover:bg-muted/50 active:bg-muted/70 px-2 py-1 rounded transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-card"
+            className="hidden sm:inline-flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-400 hover:text-foreground hover:bg-muted/50 active:bg-muted/70 px-2 py-1.5 rounded transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-card group"
             aria-label={`Open ${getLeadDisplayName(lead)}`}
           >
-            Open customer
-            <svg className="w-3 h-3 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <span className="whitespace-nowrap">Open customer</span>
+            <svg className="w-3 h-3 transition-transform duration-200 group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>

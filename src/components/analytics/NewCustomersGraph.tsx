@@ -17,10 +17,10 @@ interface NewCustomersData {
 }
 
 const TIME_RANGE_OPTIONS = [
-  { value: '7d' as TimeRange, label: '7 Days' },
-  { value: '30d' as TimeRange, label: '30 Days' },
-  { value: '90d' as TimeRange, label: '90 Days' },
-  { value: '1y' as TimeRange, label: 'Year' },
+  { value: '7d' as TimeRange, label: 'Last 7 Days' },
+  { value: '30d' as TimeRange, label: 'Last 30 Days' },
+  { value: '90d' as TimeRange, label: 'Last 90 Days' },
+  { value: '1y' as TimeRange, label: 'This Year' },
 ]
 
 export default function NewCustomersGraph() {
@@ -92,13 +92,17 @@ export default function NewCustomersGraph() {
 
   const isEmpty = data.length === 0
 
+  // Calculate summary KPIs
+  const totalCustomers = data.reduce((sum, day) => sum + day.customers, 0)
+  const peakDay = data.length > 0 ? data.reduce((max, day) => day.customers > max.customers ? day : max, data[0]) : null
+  const averageDaily = data.length > 0 ? Math.round(totalCustomers / data.length) : 0
+
   return (
     <Card className="h-full" variant="hero" padding="md">
       <div className="p-4 sm:p-5">
-        <div className="flex items-start justify-between mb-4">
+        <div className="flex items-start justify-between mb-3">
           <div>
             <h3 className="text-sm font-semibold text-foreground">New Customers</h3>
-            <p className="text-[11px] text-muted-foreground/70 mt-0.5">How many new customers ReplyFlow captured</p>
           </div>
           <PremiumSelect
             value={timeRange}
@@ -106,6 +110,19 @@ export default function NewCustomersGraph() {
             options={TIME_RANGE_OPTIONS}
           />
         </div>
+
+        {!isEmpty && (
+          <div className="mb-4">
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-semibold text-foreground">{totalCustomers.toLocaleString()}</span>
+              <span className="text-xs text-muted-foreground">new customers</span>
+            </div>
+            <div className="text-[11px] text-muted-foreground/70 mt-1">
+              {averageDaily > 0 ? `${averageDaily} per day average` : 'No data yet'}
+              {peakDay && ` • Peak: ${peakDay.date} (${peakDay.customers})`}
+            </div>
+          </div>
+        )}
 
         {loading ? (
           <div className="h-[260px] flex items-center justify-center">

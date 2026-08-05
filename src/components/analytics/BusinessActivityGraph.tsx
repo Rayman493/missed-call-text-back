@@ -12,10 +12,10 @@ import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
 type TimeRange = '7d' | '30d' | '90d' | '1y'
 
 const TIME_RANGE_OPTIONS = [
-  { value: '7d' as TimeRange, label: '7 Days' },
-  { value: '30d' as TimeRange, label: '30 Days' },
-  { value: '90d' as TimeRange, label: '90 Days' },
-  { value: '1y' as TimeRange, label: 'Year' },
+  { value: '7d' as TimeRange, label: 'Last 7 Days' },
+  { value: '30d' as TimeRange, label: 'Last 30 Days' },
+  { value: '90d' as TimeRange, label: 'Last 90 Days' },
+  { value: '1y' as TimeRange, label: 'This Year' },
 ]
 
 interface ActivityData {
@@ -146,13 +146,22 @@ export default function BusinessActivityGraph() {
 
   const isEmpty = data.length === 0
 
+  // Calculate summary KPIs
+  const totalInteractions = data.reduce((sum, day) => 
+    sum + day.conversations + day.appointments + day.paymentRequests + day.completedJobs, 0
+  )
+  const peakDay = data.length > 0 ? data.reduce((max, day) => {
+    const dayTotal = day.conversations + day.appointments + day.paymentRequests + day.completedJobs
+    return dayTotal > (max.conversations + max.appointments + max.paymentRequests + max.completedJobs) ? day : max
+  }, data[0]) : null
+  const averageDaily = data.length > 0 ? Math.round(totalInteractions / data.length) : 0
+
   return (
     <Card className="h-full" variant="hero" padding="md">
       <div className="p-4 sm:p-5">
-        <div className="flex items-start justify-between mb-4">
+        <div className="flex items-start justify-between mb-3">
           <div>
             <h3 className="text-sm font-semibold text-foreground">Customer Engagement</h3>
-            <p className="text-[11px] text-muted-foreground/70 mt-0.5">Daily customer interactions</p>
           </div>
           <div className="flex items-center gap-2">
             <PremiumSelect
@@ -168,6 +177,20 @@ export default function BusinessActivityGraph() {
             </button>
           </div>
         </div>
+
+        {!isEmpty && (
+          <div className="mb-4">
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-semibold text-foreground">{totalInteractions.toLocaleString()}</span>
+              <span className="text-xs text-muted-foreground">total interactions</span>
+            </div>
+            {peakDay && (
+              <div className="text-[11px] text-muted-foreground/70 mt-1">
+                Peak: {peakDay.date} ({(peakDay.conversations + peakDay.appointments + peakDay.paymentRequests + peakDay.completedJobs).toLocaleString()})
+              </div>
+            )}
+          </div>
+        )}
 
         {loading ? (
           <div className="h-[260px] flex items-center justify-center">
@@ -210,7 +233,29 @@ export default function BusinessActivityGraph() {
                 />
                 {showLegend && (
                   <Legend 
-                    wrapperStyle={{ fontSize: '10px', paddingTop: '12px', color: 'hsl(var(--muted-foreground))' }}
+                    content={({ payload }: any) => (
+                      <div className="flex flex-wrap gap-3 justify-center pt-2">
+                        {payload.map((entry: any, index: number) => {
+                          const key = entry.dataKey as keyof ActivityData
+                          const total = data.reduce((sum, day) => {
+                            const value = day[key]
+                            return sum + (typeof value === 'number' ? value : 0)
+                          }, 0)
+                          return (
+                            <div key={index} className="flex items-center gap-1.5">
+                              <div 
+                                className="w-2.5 h-2.5 rounded-full" 
+                                style={{ backgroundColor: entry.color }}
+                              />
+                              <span className="text-[10px] text-muted-foreground">
+                                {entry.name}: <span className="font-medium text-foreground">{total}</span>
+                              </span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                    wrapperStyle={{ paddingTop: '12px' }}
                     iconType="circle"
                     iconSize={6}
                     verticalAlign="bottom"
