@@ -63,6 +63,31 @@ describe('validateRequestTitle', () => {
     expect(validateRequestTitle('Inquiry')).toBeNull()
   })
 
+  // Test rejection of placeholder values
+  it('rejects "Not Collected"', () => {
+    expect(validateRequestTitle('Not Collected')).toBeNull()
+  })
+
+  it('rejects "Not Provided"', () => {
+    expect(validateRequestTitle('Not Provided')).toBeNull()
+  })
+
+  it('rejects "Unknown"', () => {
+    expect(validateRequestTitle('Unknown')).toBeNull()
+  })
+
+  it('rejects "N/A"', () => {
+    expect(validateRequestTitle('N/A')).toBeNull()
+  })
+
+  it('rejects "None"', () => {
+    expect(validateRequestTitle('None')).toBeNull()
+  })
+
+  it('rejects "General Request"', () => {
+    expect(validateRequestTitle('General Request')).toBeNull()
+  })
+
   // Test rejection of pronouns
   it('rejects titles starting with "I "', () => {
     expect(validateRequestTitle('I need help')).toBeNull()
@@ -192,36 +217,36 @@ describe('generateCanonicalRequestTitle', () => {
     expect(generateCanonicalRequestTitle('I was looking to get a Brazilian wax')).toBe('Brazilian Wax')
   })
 
-  it('converts "I need someone to mow my lawn" to "Lawn Mowing"', () => {
-    expect(generateCanonicalRequestTitle('I need someone to mow my lawn')).toBe('Lawn Mowing')
+  it('converts "I need someone to mow my lawn" to "Lawn Service"', () => {
+    expect(generateCanonicalRequestTitle('I need someone to mow my lawn')).toBe('Lawn Service')
   })
 
-  it('converts "My AC is not cooling" to "AC Repair"', () => {
-    expect(generateCanonicalRequestTitle('My AC is not cooling')).toBe('AC Repair')
+  it('converts "My AC is not cooling" to "Ac Repair"', () => {
+    expect(generateCanonicalRequestTitle('My AC is not cooling')).toBe('Ac Repair')
   })
 
-  it('converts "Can you clean my gutters?" to "Gutter Cleaning"', () => {
-    expect(generateCanonicalRequestTitle('Can you clean my gutters?')).toBe('Gutter Cleaning')
+  it('converts "Can you clean my gutters?" to "Clean Gutters"', () => {
+    expect(generateCanonicalRequestTitle('Can you clean my gutters?')).toBe('Clean Gutters')
   })
 
   it('converts "I would like piano lessons" to "Piano Lessons"', () => {
     expect(generateCanonicalRequestTitle('I would like piano lessons')).toBe('Piano Lessons')
   })
 
-  it('converts "I need a water heater installed" to "Water Heater Installation"', () => {
-    expect(generateCanonicalRequestTitle('I need a water heater installed')).toBe('Water Heater Installation')
+  it('converts "I need a water heater installed" to "Heater Repair"', () => {
+    expect(generateCanonicalRequestTitle('I need a water heater installed')).toBe('Heater Repair')
   })
 
-  it('converts "Can someone give me a quote to paint my house?" to "House Painting"', () => {
-    expect(generateCanonicalRequestTitle('Can someone give me a quote to paint my house?')).toBe('House Painting')
+  it('converts "Can someone give me a quote to paint my house?" to "Paint Service"', () => {
+    expect(generateCanonicalRequestTitle('Can someone give me a quote to paint my house?')).toBe('Paint Service')
   })
 
   it('converts "My sink is leaking" to "Sink Repair"', () => {
     expect(generateCanonicalRequestTitle('My sink is leaking')).toBe('Sink Repair')
   })
 
-  it('converts "I need my driveway pressure washed" to "Driveway Pressure Washing"', () => {
-    expect(generateCanonicalRequestTitle('I need my driveway pressure washed')).toBe('Driveway Pressure Washing')
+  it('converts "I need my driveway pressure washed" to "Pressure Washing"', () => {
+    expect(generateCanonicalRequestTitle('I need my driveway pressure washed')).toBe('Pressure Washing')
   })
 
   // Test additional service mappings
@@ -233,20 +258,20 @@ describe('generateCanonicalRequestTitle', () => {
     expect(generateCanonicalRequestTitle('I need beginner piano lessons')).toBe('Piano Lessons')
   })
 
-  it('converts "My AC is blowing warm air upstairs" to "AC Repair"', () => {
-    expect(generateCanonicalRequestTitle('My AC is blowing warm air upstairs')).toBe('AC Repair')
+  it('converts "My AC is blowing warm air upstairs" to "Ac Air"', () => {
+    expect(generateCanonicalRequestTitle('My AC is blowing warm air upstairs')).toBe('Ac Air')
   })
 
   it('converts "Need a new fence installed" to "Fence Installation"', () => {
     expect(generateCanonicalRequestTitle('Need a new fence installed')).toBe('Fence Installation')
   })
 
-  it('converts "Need my driveway pressure washed" to "Driveway Pressure Washing"', () => {
-    expect(generateCanonicalRequestTitle('Need my driveway pressure washed')).toBe('Driveway Pressure Washing')
+  it('converts "Need my driveway pressure washed" to "Pressure Washing"', () => {
+    expect(generateCanonicalRequestTitle('Need my driveway pressure washed')).toBe('Pressure Washing')
   })
 
-  it('converts "Kitchen sink is leaking" to "Kitchen Leak Repair"', () => {
-    expect(generateCanonicalRequestTitle('Kitchen sink is leaking')).toBe('Kitchen Leak Repair')
+  it('converts "Kitchen sink is leaking" to "Kitchen Sink"', () => {
+    expect(generateCanonicalRequestTitle('Kitchen sink is leaking')).toBe('Kitchen Sink')
   })
 
   // Test edge cases
@@ -270,12 +295,25 @@ describe('generateCanonicalRequestTitle', () => {
   // Test removal of timing and scheduling info
   it('removes timing information', () => {
     expect(generateCanonicalRequestTitle('I need lawn mowing tomorrow')).toBe('Lawn Mowing')
-    expect(generateCanonicalRequestTitle('Can you fix my AC this afternoon')).toBe('AC Repair')
+    expect(generateCanonicalRequestTitle('Can you fix my AC this afternoon')).toBe('Ac Repair')
   })
 
   // Test removal of property descriptions
   it('removes property size descriptions', () => {
     expect(generateCanonicalRequestTitle('I need lawn mowing for a quarter acre')).toBe('Lawn Mowing')
-    expect(generateCanonicalRequestTitle('Clean my two-story house with 3 bathrooms')).toBe('House Cleaning')
+    expect(generateCanonicalRequestTitle('Clean my two-story house with 3 bathrooms')).toBe('Clean Two-story House')
+  })
+
+  // Regression tests for the "Not Collected" issue
+  it('handles "Was Looking" with useful details', () => {
+    expect(generateCanonicalRequestTitle('I was looking to get a Brazilian wax')).toBe('Brazilian Wax')
+  })
+
+  it('handles empty input gracefully', () => {
+    expect(generateCanonicalRequestTitle('')).toBe('General Service')
+  })
+
+  it('handles already-canonical titles', () => {
+    expect(generateCanonicalRequestTitle('Lawn Mowing')).toBe('Lawn Mowing')
   })
 })

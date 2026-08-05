@@ -508,7 +508,7 @@ export function getLeadRequestTitle(lead: any): string {
     // If validation fails, regenerate from additionalDetails (full customer sentence)
     if (aiIntake.additionalDetails) {
       const regenerated = generateCanonicalRequestTitle(aiIntake.additionalDetails)
-      if (regenerated !== 'Not collected') {
+      if (regenerated !== 'Not collected' && regenerated !== 'General Service') {
         return regenerated
       }
     }
@@ -525,18 +525,26 @@ export function getLeadRequestTitle(lead: any): string {
     // If validation fails, regenerate from additionalDetails instead of canonicalizing the invalid value
     if (aiIntake.additionalDetails) {
       const regenerated = generateCanonicalRequestTitle(aiIntake.additionalDetails)
-      if (regenerated !== 'Not collected') {
+      if (regenerated !== 'Not collected' && regenerated !== 'General Service') {
         return regenerated
       }
     }
     // Fallback: canonicalize the raw value if additionalDetails is not available
     const normalized = generateCanonicalRequestTitle(explicitRequest.trim())
-    if (normalized !== 'Not collected') {
+    if (normalized !== 'Not collected' && normalized !== 'General Service') {
       return normalized
     }
   }
 
-  // Tertiary: Check job titles (for manually created jobs)
+  // Tertiary: Check for additionalDetails directly if no explicit request was found
+  if (aiIntake.additionalDetails) {
+    const regenerated = generateCanonicalRequestTitle(aiIntake.additionalDetails)
+    if (regenerated !== 'Not collected' && regenerated !== 'General Service') {
+      return regenerated
+    }
+  }
+
+  // Quaternary: Check job titles (for manually created jobs)
   if (lead.jobs && lead.jobs.length > 0) {
     const firstJob = lead.jobs[0]
     if (firstJob.title && typeof firstJob.title === 'string' && firstJob.title.trim()) {

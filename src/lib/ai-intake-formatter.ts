@@ -196,10 +196,10 @@ export const normalizeServiceReason = (text: string | null | undefined): string 
 // Returns null if the title is invalid and cannot be repaired
 export const validateRequestTitle = (title: string | null | undefined): string | null => {
   if (!title || title.trim() === '') return null;
-  
+
   const normalized = title.trim().toLowerCase();
-  
-  // List of bad conversational filler to reject
+
+  // List of bad conversational filler and placeholders to reject
   const badPatterns = [
     /^was looking$/i,
     /^looking for$/i,
@@ -217,20 +217,26 @@ export const validateRequestTitle = (title: string | null | undefined): string |
     /^general service$/i,
     /^request$/i,
     /^inquiry$/i,
+    /^not collected$/i,
+    /^not provided$/i,
+    /^unknown$/i,
+    /^n\/a$/i,
+    /^none$/i,
+    /^general request$/i,
   ];
-  
+
   // Reject if matches bad pattern
   for (const pattern of badPatterns) {
     if (pattern.test(normalized)) {
       return null;
     }
   }
-  
+
   // Reject if contains pronouns
   if (/^(i|we|you|my|your|our)\s/i.test(normalized)) {
     return null;
   }
-  
+
   // Reject if only 1-2 words and they're vague verbs
   const words = normalized.split(/\s+/);
   if (words.length <= 2) {
@@ -239,7 +245,7 @@ export const validateRequestTitle = (title: string | null | undefined): string |
       return null;
     }
   }
-  
+
   // If passes validation, return the original
   return title.trim();
 };
@@ -286,6 +292,8 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
     /^i'?m calling for /i,
     /^i'?m here for /i,
     /^i'?m looking for /i,
+    /^i was looking to /i,
+    /^i was looking for /i,
     /^i need someone to /i,
     /^i need a /i,
     /^i need an? /i,
@@ -407,6 +415,7 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
     'carpet', 'floor', 'window', 'paint', 'pool',
     'lock', 'key', 'camera', 'alarm',
     'solar', 'panel', 'photograph', 'consult',
+    'wax', 'brazilian', 'hair', 'nail', 'facial', 'massage', 'spa',
   ];
 
   const extractedWords: string[] = [];
