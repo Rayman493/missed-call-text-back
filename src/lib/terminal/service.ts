@@ -105,6 +105,11 @@ export class TerminalBridgeService {
 
   // Storage schema migration
   private migrateStorage() {
+    // Guard against SSR - localStorage is browser-only
+    if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
+      return
+    }
+
     try {
       const currentVersion = localStorage.getItem(STORAGE_SCHEMA_KEY)
       if (currentVersion === STORAGE_SCHEMA_VERSION) {
@@ -180,7 +185,12 @@ export class TerminalBridgeService {
   }
 
   // Use singleton pattern to prevent multiple instances
-  static getInstance(): TerminalBridgeService {
+  static getInstance(): TerminalBridgeService | null {
+    // Guard against SSR - terminal service is browser/native only
+    if (typeof window === 'undefined') {
+      return null
+    }
+
     if (!singletonInstance) {
       singletonInstance = new TerminalBridgeService()
     }
@@ -1317,5 +1327,5 @@ export class TerminalBridgeService {
   }
 }
 
-// Export singleton instance for backward compatibility
-export const terminalBridge = TerminalBridgeService.getInstance()
+// Eager singleton export removed to prevent SSR initialization
+// Use TerminalBridgeService.getInstance() instead, which now returns null on server

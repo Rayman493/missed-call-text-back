@@ -153,6 +153,15 @@ export async function checkLocationPermissionNative(
 
   try {
     const terminalService = TerminalBridgeService.getInstance()
+    if (!terminalService) {
+      return {
+        status: 'denied' as PermissionStatus,
+        canAskAgain: false,
+        servicesEnabled: false,
+        error: 'Terminal service not available on server',
+        timestamp: Date.now(),
+      }
+    }
     const result = await terminalService.checkLocationPermission()
 
     const { status, canAskAgain } = normalizeLocationStatus(
@@ -225,6 +234,15 @@ export async function requestLocationPermissionNative(
 
   try {
     const terminalService = TerminalBridgeService.getInstance()
+    if (!terminalService) {
+      return {
+        status: 'denied' as PermissionStatus,
+        canAskAgain: false,
+        servicesEnabled: false,
+        error: 'Terminal service not available on server',
+        timestamp: Date.now(),
+      }
+    }
     const result = await terminalService.requestLocationPermission()
 
     // After requesting, check location services

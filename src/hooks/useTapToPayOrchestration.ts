@@ -97,6 +97,34 @@ export function useTapToPayOrchestration({
   const [lastResetReason, setLastResetReason] = useState<string>('none')
 
   const terminalService = TerminalBridgeService.getInstance()
+  
+  // Terminal service is browser/native only - return empty hooks on server
+  if (!terminalService) {
+    return {
+      paymentState,
+      error: '',
+      structuredError: null,
+      mappedError: null,
+      isPaymentInProgress: false,
+      platform: 'web',
+      isNativeSupported: false,
+      lastSuccessfulStage: 'none',
+      lastResetReason: 'none',
+      locationPermissionGranted: null,
+      locationServicesEnabled: null,
+      locationPermissionState: 'unknown',
+      startPayment: async () => {},
+      cancelPayment: () => {},
+      retryPayment: async () => {},
+      retryAfterCancellation: async () => {},
+      resetTapToPayUiState: () => {},
+      resetToSetup: () => {},
+      checkPlatformSupport: async () => ({ platform: 'web', isNativeSupported: false }),
+      checkLocationPermission: async () => ({ granted: false, locationEnabled: false, canAskAgain: false }),
+      requestLocationPermission: async () => ({ granted: false, locationEnabled: false, canAskAgain: false }),
+    }
+  }
+  
   const paymentStateRef = useRef<PaymentState>(paymentState)
   const autoRetryInProgress = useRef(false)
   const startInFlight = useRef(false)

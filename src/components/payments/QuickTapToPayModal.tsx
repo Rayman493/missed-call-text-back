@@ -411,7 +411,9 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
       })()
 
       // Diagnostics: modal opened
-      logTapToPayEvent('MODAL_OPENED', { phase: 'startup', sessionId: terminalService.getSessionId(), meta: { modal: 'QuickTapToPay' } }).catch(() => {})
+      if (terminalService) {
+        logTapToPayEvent('MODAL_OPENED', { phase: 'startup', sessionId: terminalService.getSessionId(), meta: { modal: 'QuickTapToPay' } }).catch(() => {})
+      }
 
       // Reset state only on actual modal open, not on dependency changes
       setAmountCents(0)
@@ -431,7 +433,9 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
     }
     return () => {
       if (isOpen) {
+        if (terminalService) {
         logTapToPayEvent('MODAL_CLOSED', { phase: 'startup', sessionId: terminalService.getSessionId(), meta: { modal: 'QuickTapToPay' } }).catch(() => {})
+      }
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -512,8 +516,10 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
     const dollars = parseFloat(newValue) || 0
     setAmountCents(Math.round(dollars * 100))
     const hasAmount = Math.round(dollars * 100) > 0
-    logTapToPayEvent('AMOUNT_CHANGED', { phase: 'payment_intent', sessionId: terminalService.getSessionId(), meta: { amountCents: Math.round(dollars * 100) } }).catch(() => {})
-    if (hasAmount && !prevHadAmountRef.current) {
+    if (terminalService) {
+      logTapToPayEvent('AMOUNT_CHANGED', { phase: 'payment_intent', sessionId: terminalService.getSessionId(), meta: { amountCents: Math.round(dollars * 100) } }).catch(() => {})
+    }
+    if (dollars > 0 && terminalService) {
       logTapToPayEvent('AMOUNT_ENTERED', { phase: 'payment_intent', sessionId: terminalService.getSessionId(), meta: { amountCents: Math.round(dollars * 100) } }).catch(() => {})
     }
     prevHadAmountRef.current = hasAmount
@@ -522,7 +528,9 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
   const handleQuickAmount = (dollars: number) => {
     setAmountDisplay(dollars.toString())
     setAmountCents(dollars * 100)
-    logTapToPayEvent('AMOUNT_ENTERED', { phase: 'payment_intent', sessionId: terminalService.getSessionId(), meta: { amountCents: dollars * 100 } }).catch(() => {})
+    if (terminalService) {
+      logTapToPayEvent('AMOUNT_ENTERED', { phase: 'payment_intent', sessionId: terminalService.getSessionId(), meta: { amountCents: dollars * 100 } }).catch(() => {})
+    }
   }
 
   const handleStartPayment = async () => {
@@ -531,7 +539,9 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
       console.log('[QuickTTP UI] INVALID_PAYMENT_AMOUNT_BLOCKED', { amountCents, minimumAmountCents: MINIMUM_AMOUNT_CENTS })
       return
     }
-    logTapToPayEvent('PAY_BUTTON_PRESSED', { phase: 'payment_intent', sessionId: terminalService.getSessionId(), meta: { amountCents } }).catch(() => {})
+    if (terminalService) {
+      logTapToPayEvent('PAY_BUTTON_PRESSED', { phase: 'payment_intent', sessionId: terminalService.getSessionId(), meta: { amountCents } }).catch(() => {})
+    }
     
     // Check location permission first for Android
     if (platform === 'android') {
@@ -590,7 +600,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
     closeHandledRef.current = true
 
     // Dispatch event for Recent Payments refresh before closing modal
-    const paymentIntentId = terminalService.getPaymentIntentId()
+    const paymentIntentId = terminalService?.getPaymentIntentId()
     if (paymentIntentId) {
       window.dispatchEvent(new CustomEvent('replyflow:payment-completed', {
         detail: { paymentIntentId }

@@ -608,22 +608,8 @@ If you have questions, reply to this message.`
       console.log('[PAYMENT REQUEST] Skipping SMS send due to skip_sms parameter')
     }
 
-    // Create timeline event for payment request
-    try {
-      console.log('[PAYMENT REQUEST TIMELINE] Creating timeline event with:', {
-        business_id,
-        lead_id,
-        conversation_id: finalConversationId,
-        payment_request_id: paymentRequest.id,
-        amount_cents,
-        description: paymentDescription
-      })
-      await timelineEvents.paymentRequestCreated(business_id, lead_id, finalConversationId, paymentRequest.id, amount_cents, paymentDescription)
-      console.log('[PAYMENT REQUEST TIMELINE] Timeline event created successfully')
-    } catch (timelineError) {
-      console.error('[PAYMENT REQUEST TIMELINE] Failed to create timeline event:', timelineError)
-      // Non-critical error, continue
-    }
+    // Timeline events are now constructed client-side from payment_requests table
+    // to avoid duplicate activity entries. No server-side timeline event creation needed.
 
     // Create notification for payment request
     try {

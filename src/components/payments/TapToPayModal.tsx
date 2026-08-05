@@ -44,7 +44,13 @@ export default function TapToPayModal({
   const [structuredError, setStructuredError] = useState<TerminalError | null>(null)
   const [jsError, setJsError] = useState<{ code: string; message: string; stage?: string; clientSecretPresent?: boolean } | null>(null)
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false)
-  const [terminalService] = useState(() => TerminalBridgeService.getInstance())
+  const [terminalService] = useState(() => TerminalBridgeService.getInstance() ?? null)
+  
+  // Terminal service is browser/native only - return null on server
+  if (!terminalService) {
+    return null
+  }
+  
   const [isNativeSupported, setIsNativeSupported] = useState(false)
   const [lastSuccessfulStage, setLastSuccessfulStage] = useState<string>('none')
   const [isPaymentInProgress, setIsPaymentInProgress] = useState(false)
