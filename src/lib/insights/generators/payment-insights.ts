@@ -122,7 +122,7 @@ export const paymentInsightsGenerator: InsightGenerator = {
     if (!customerId) {
       const { data: outstandingPayments } = await supabase
         .from('payment_requests')
-        .select('id, amount_cents, created_at, leads!inner(name, caller_phone)')
+        .select('id, amount_cents, created_at, lead_id, leads!inner(raw_metadata, caller_phone)')
         .eq('business_id', businessId)
         .eq('status', 'pending')
         .gte('created_at', sevenDaysAgo)
@@ -135,7 +135,15 @@ export const paymentInsightsGenerator: InsightGenerator = {
         const daysSinceRequest = Math.floor(
           (Date.now() - new Date(payment.created_at).getTime()) / (1000 * 60 * 60 * 24)
         )
-        const customerName = payment.leads?.name || payment.leads?.caller_phone || 'A customer'
+        // Use getLeadAIIntake for canonical name resolution
+        const customerName = (() => {
+          if (!payment.leads) return 'A customer'
+          const aiIntake = payment.leads.raw_metadata?.extracted_info
+          if (aiIntake?.customerName && aiIntake.customerName !== 'Not collected') {
+            return aiIntake.customerName
+          }
+          return payment.leads.caller_phone || 'A customer'
+        })()
         const amount = (payment.amount_cents / 100).toFixed(2)
 
         let priority: InsightPriority = 'medium'

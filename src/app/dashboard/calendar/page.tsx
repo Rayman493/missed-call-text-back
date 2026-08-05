@@ -1032,6 +1032,9 @@ export default function SchedulePage() {
                       <TodayCommandCenter
                         jobs={jobs}
                         calendarEvents={events}
+                        onAddTask={() => setIsNewTaskModalOpen(true)}
+                        onAddJob={openNewJob}
+                        onAddAppointment={handleNewAppointment}
                       />
                     </>
                   )}

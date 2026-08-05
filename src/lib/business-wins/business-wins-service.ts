@@ -6,6 +6,7 @@
  */
 
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { getLeadDisplayName } from '@/lib/utils'
 import type {
   BusinessWin,
   CustomerMilestone,
@@ -206,6 +207,7 @@ class BusinessWinsService implements BusinessWinsServiceInterface {
     // First paying customer
     if (paidPayments.length === 1) {
       const firstPayment = paidPayments[0]
+      const lead = leads.find(l => l.id === firstPayment.customer_id)
       wins.push({
         id: `first-paying-customer-${firstPayment.id}`,
         category: 'customer',
@@ -213,7 +215,7 @@ class BusinessWinsService implements BusinessWinsServiceInterface {
         description: 'Your first customer has made a payment',
         achievedAt: firstPayment.created_at,
         customerId: firstPayment.customer_id,
-        customerName: leads.find(l => l.id === firstPayment.customer_id)?.name,
+        customerName: lead ? getLeadDisplayName(lead) : 'A customer',
         metadata: {}
       })
     }
@@ -231,6 +233,7 @@ class BusinessWinsService implements BusinessWinsServiceInterface {
       const [customerId] = firstRepeatCustomer
       const customerJobs = completedJobs.filter(j => j.lead_id === customerId)
       const secondJob = customerJobs[1]
+      const lead = leads.find(l => l.id === customerId)
       wins.push({
         id: `first-repeat-customer-${customerId}`,
         category: 'customer',
@@ -238,7 +241,7 @@ class BusinessWinsService implements BusinessWinsServiceInterface {
         description: 'Your first customer has returned for a second job',
         achievedAt: secondJob.created_at,
         customerId,
-        customerName: leads.find(l => l.id === customerId)?.name,
+        customerName: lead ? getLeadDisplayName(lead) : 'A customer',
         metadata: {}
       })
     }
@@ -246,6 +249,7 @@ class BusinessWinsService implements BusinessWinsServiceInterface {
     // 10th customer
     if (paidPayments.length === 10) {
       const tenthPayment = paidPayments[0]
+      const lead = leads.find(l => l.id === tenthPayment.customer_id)
       wins.push({
         id: `10th-customer-${tenthPayment.id}`,
         category: 'customer',
@@ -253,7 +257,7 @@ class BusinessWinsService implements BusinessWinsServiceInterface {
         description: 'You now have 10 paying customers',
         achievedAt: tenthPayment.created_at,
         customerId: tenthPayment.customer_id,
-        customerName: leads.find(l => l.id === tenthPayment.customer_id)?.name,
+        customerName: lead ? getLeadDisplayName(lead) : 'A customer',
         metadata: {}
       })
     }
@@ -261,6 +265,7 @@ class BusinessWinsService implements BusinessWinsServiceInterface {
     // 100th customer
     if (paidPayments.length === 100) {
       const hundredthPayment = paidPayments[0]
+      const lead = leads.find(l => l.id === hundredthPayment.customer_id)
       wins.push({
         id: `100th-customer-${hundredthPayment.id}`,
         category: 'customer',
@@ -268,7 +273,7 @@ class BusinessWinsService implements BusinessWinsServiceInterface {
         description: 'You now have 100 paying customers',
         achievedAt: hundredthPayment.created_at,
         customerId: hundredthPayment.customer_id,
-        customerName: leads.find(l => l.id === hundredthPayment.customer_id)?.name,
+        customerName: lead ? getLeadDisplayName(lead) : 'A customer',
         metadata: {}
       })
     }
@@ -287,22 +292,19 @@ class BusinessWinsService implements BusinessWinsServiceInterface {
       }
     })
 
-    const maxRevenueCustomer = Object.entries(customerRevenue).reduce((max, [customerId, revenue]) => {
-      return revenue > max.revenue ? { customerId, revenue } : max
-    }, { customerId: '', revenue: 0 })
-
-    if (maxRevenueCustomer.customerId && maxRevenueCustomer.revenue > 0) {
-      const customerPayments = paidPayments.filter(p => p.customer_id === maxRevenueCustomer.customerId)
-      const lastPayment = customerPayments[0]
+    const maxRevenueCustomer = Object.entries(customerRevenue).sort((a, b) => b[1] - a[1])[0]
+    if (maxRevenueCustomer) {
+      const [customerId] = maxRevenueCustomer
+      const lead = leads.find(l => l.id === customerId)
       wins.push({
-        id: `highest-ltv-customer-${maxRevenueCustomer.customerId}`,
+        id: `highest-ltv-customer-${customerId}`,
         category: 'customer',
         title: 'Highest Lifetime Value Customer',
-        description: `Your highest-value customer at ${formatCurrency(maxRevenueCustomer.revenue)}`,
-        achievedAt: lastPayment?.created_at || new Date().toISOString(),
-        customerId: maxRevenueCustomer.customerId,
-        customerName: leads.find(l => l.id === maxRevenueCustomer.customerId)?.name,
-        metadata: { value: maxRevenueCustomer.revenue }
+        description: `Customer with ${maxRevenueCustomer[1].toFixed(2)} in total revenue`,
+        achievedAt: paidPayments[paidPayments.length - 1]?.created_at || new Date().toISOString(),
+        customerId: customerId,
+        customerName: lead ? getLeadDisplayName(lead) : 'A customer',
+        metadata: { value: maxRevenueCustomer[1] }
       })
     }
 

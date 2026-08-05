@@ -19,7 +19,7 @@ export const schedulingInsightsGenerator: InsightGenerator = {
     if (!customerId) {
       const { data: jobsTomorrow } = await supabase
         .from('jobs')
-        .select('id, scheduled_date, scheduled_time, leads!inner(name, caller_phone)')
+        .select('id, scheduled_date, scheduled_time')
         .eq('business_id', businessId)
         .eq('scheduled_date', tomorrowStr)
         .neq('status', 'cancelled')

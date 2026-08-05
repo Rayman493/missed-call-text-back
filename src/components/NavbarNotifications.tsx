@@ -459,16 +459,17 @@ export default function NavbarNotifications() {
                         <div className="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wide">
                           {groupName}
                         </div>
-                        <div className="space-y-2">
-                          {groupNotifications.map((notification) => {
+                        <div className="divide-y divide-slate-700/30">
+                          {groupNotifications.map((notification, index) => {
                             const displayName = getDisplayName(notification)
                             const displayMessage = getDisplayMessage(notification)
-                            
+                            const isLast = index === groupNotifications.length - 1
+
                             return (
                               <div
                                 key={notification.id}
                                 onClick={() => handleNotificationClick(notification)}
-                                className="flex items-start gap-3 p-3.5 rounded-xl hover:bg-slate-800/50 transition-colors cursor-pointer"
+                                className={`flex items-start gap-3 py-3 px-4 hover:bg-slate-800/20 transition-colors duration-150 cursor-pointer ${isLast ? '' : 'border-b border-slate-700/30'}`}
                               >
                                 {/* Icon */}
                                 <div className={`flex-shrink-0 w-9 h-9 rounded-lg ${getNotificationColor(notification.type)} flex items-center justify-center`}>

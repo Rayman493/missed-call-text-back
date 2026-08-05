@@ -37,11 +37,17 @@ interface CalendarEvent {
 interface TodayCommandCenterProps {
   jobs: Job[]
   calendarEvents: CalendarEvent[]
+  onAddTask?: () => void
+  onAddJob?: () => void
+  onAddAppointment?: () => void
 }
 
 export default function TodayCommandCenter({
   jobs,
   calendarEvents,
+  onAddTask,
+  onAddJob,
+  onAddAppointment,
 }: TodayCommandCenterProps) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [isLoadingTasks, setIsLoadingTasks] = useState(true)
@@ -320,9 +326,35 @@ export default function TodayCommandCenter({
           </div>
         ) : sortedWorkItems.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
               No work scheduled for today
             </p>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {onAddTask && (
+                <button
+                  onClick={onAddTask}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-[0.98]"
+                >
+                  Create Task
+                </button>
+              )}
+              {onAddJob && (
+                <button
+                  onClick={onAddJob}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-lg transition-colors active:scale-[0.98]"
+                >
+                  Create Job
+                </button>
+              )}
+              {onAddAppointment && (
+                <button
+                  onClick={onAddAppointment}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-lg transition-colors active:scale-[0.98]"
+                >
+                  Schedule Appointment
+                </button>
+              )}
+            </div>
           </div>
         ) : (
           <div className="space-y-1">
@@ -409,18 +441,36 @@ export default function TodayCommandCenter({
             <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground uppercase tracking-wider">
               Tasks
             </h3>
-            <Link
-              href="/dashboard/tasks"
-              className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-            >
-              View all →
-            </Link>
+            <div className="flex items-center gap-2">
+              {todayTasks.length > 0 && onAddTask && (
+                <button
+                  onClick={onAddTask}
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  + Task
+                </button>
+              )}
+              <Link
+                href="/dashboard/tasks"
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                View all →
+              </Link>
+            </div>
           </div>
           {todayTasks.length === 0 ? (
             <div className="text-center py-4">
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
                 No tasks for today
               </p>
+              {onAddTask && (
+                <button
+                  onClick={onAddTask}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-[0.98]"
+                >
+                  + Add Task
+                </button>
+              )}
             </div>
           ) : (
             <div className="space-y-2">
@@ -465,18 +515,36 @@ export default function TodayCommandCenter({
             <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground uppercase tracking-wider">
               Jobs
             </h3>
-            <Link
-              href="/dashboard/leads"
-              className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-            >
-              View all →
-            </Link>
+            <div className="flex items-center gap-2">
+              {todayJobs.length > 0 && onAddJob && (
+                <button
+                  onClick={onAddJob}
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  + Job
+                </button>
+              )}
+              <Link
+                href="/dashboard/leads"
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                View all →
+              </Link>
+            </div>
           </div>
           {todayJobs.length === 0 ? (
             <div className="text-center py-4">
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
                 No jobs scheduled for today
               </p>
+              {onAddJob && (
+                <button
+                  onClick={onAddJob}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-[0.98]"
+                >
+                  + Create Job
+                </button>
+              )}
             </div>
           ) : (
             <div className="space-y-2">
@@ -514,18 +582,36 @@ export default function TodayCommandCenter({
             <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground uppercase tracking-wider">
               Appointments
             </h3>
-            <Link
-              href="/dashboard/calendar"
-              className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-            >
-              View calendar →
-            </Link>
+            <div className="flex items-center gap-2">
+              {todayAppointments.length > 0 && onAddAppointment && (
+                <button
+                  onClick={onAddAppointment}
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  + Appointment
+                </button>
+              )}
+              <Link
+                href="/dashboard/calendar"
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                Calendar →
+              </Link>
+            </div>
           </div>
           {todayAppointments.length === 0 ? (
             <div className="text-center py-4">
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
                 No appointments for today
               </p>
+              {onAddAppointment && (
+                <button
+                  onClick={onAddAppointment}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-[0.98]"
+                >
+                  + Schedule Appointment
+                </button>
+              )}
             </div>
           ) : (
             <div className="space-y-2">

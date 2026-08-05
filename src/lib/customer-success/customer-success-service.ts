@@ -1,11 +1,12 @@
 /**
  * Customer Success Service
- * 
+ *
  * Helps customers become lifelong customers through customer success.
  * Detects opportunities for review requests, referrals, maintenance, and loyalty milestones.
  */
 
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { getLeadDisplayName } from '@/lib/utils'
 import type {
   CustomerSuccessProfile,
   CustomerSuccessOpportunity,
@@ -89,7 +90,7 @@ class CustomerSuccessService implements CustomerSuccessServiceInterface {
     // Fetch all customers with completed jobs
     const { data: customers } = await supabase
       .from('leads')
-      .select('id, name')
+      .select('id, raw_metadata, caller_phone')
       .eq('business_id', businessId)
 
     if (!customers) return []
@@ -360,7 +361,7 @@ class CustomerSuccessService implements CustomerSuccessServiceInterface {
     return {
       id: `review-${customer.id}`,
       customerId: customer.id,
-      customerName: customer.name || 'Customer',
+      customerName: getLeadDisplayName(customer),
       type: 'review_request',
       title: 'Ready for Review',
       description: 'Customer completed work and paid successfully',
@@ -392,7 +393,7 @@ class CustomerSuccessService implements CustomerSuccessServiceInterface {
     return {
       id: `referral-${customer.id}`,
       customerId: customer.id,
-      customerName: customer.name || 'Customer',
+      customerName: getLeadDisplayName(customer),
       type: 'referral',
       title: 'Good Referral Candidate',
       description: 'Repeat customer with positive relationship',
@@ -428,7 +429,7 @@ class CustomerSuccessService implements CustomerSuccessServiceInterface {
     return {
       id: `maintenance-${customer.id}`,
       customerId: customer.id,
-      customerName: customer.name || 'Customer',
+      customerName: getLeadDisplayName(customer),
       type: 'maintenance',
       title: 'Maintenance Due',
       description: `Next ${lastJob.service_name} recommended`,
@@ -472,7 +473,7 @@ class CustomerSuccessService implements CustomerSuccessServiceInterface {
     return {
       id: `loyalty-${customer.id}`,
       customerId: customer.id,
-      customerName: customer.name || 'Customer',
+      customerName: getLeadDisplayName(customer),
       type: 'loyalty_milestone',
       title: 'Loyalty Milestone',
       description: milestone,
