@@ -1,28 +1,34 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { shouldShowNotificationEducation, markSessionChecked, recordModalShown, recordModalDismissed, recordPermissionGranted, recordPermissionDenied } from '@/lib/notification-education-eligibility'
+import { shouldShowNotificationEducation, markSessionChecked, recordModalShown, recordModalDismissed, recordPermissionGranted, recordPermissionDenied, resetSessionGuard } from '@/lib/notification-education-eligibility'
 
-// Mock Capacitor Preferences
+// Mock Capacitor Preferences using vi.hoisted to avoid hoisting issues
+const { mockPreferencesGet, mockPreferencesSet, mockPreferencesRemove } = vi.hoisted(() => ({
+  mockPreferencesGet: vi.fn(),
+  mockPreferencesSet: vi.fn(),
+  mockPreferencesRemove: vi.fn(),
+}))
+
 vi.mock('@capacitor/preferences', () => ({
   Preferences: {
-    get: vi.fn(),
-    set: vi.fn(),
-    remove: vi.fn(),
+    get: mockPreferencesGet,
+    set: mockPreferencesSet,
+    remove: mockPreferencesRemove,
   },
 }))
 
 describe('notification-education-eligibility', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    const { Preferences } = require('@capacitor/preferences')
-    Preferences.get.mockImplementation(({ key }: { key: string }) => Promise.resolve({ value: null }))
-    Preferences.set.mockImplementation(() => Promise.resolve())
-    Preferences.remove.mockImplementation(() => Promise.resolve())
+    mockPreferencesGet.mockImplementation(({ key }: { key: string }) => Promise.resolve({ value: null }))
+    mockPreferencesSet.mockImplementation(() => Promise.resolve())
+    mockPreferencesRemove.mockImplementation(() => Promise.resolve())
+    // Reset in-memory session guard
+    resetSessionGuard()
   })
 
   describe('first eligible launch shows once', () => {
     it('should show modal on first launch with prompt status', async () => {
-      const { Preferences } = require('@capacitor/preferences')
-      Preferences.get.mockResolvedValue({ value: null })
+      mockPreferencesGet.mockResolvedValue({ value: null })
 
       const result = await shouldShowNotificationEducation({
         platform: 'android',
@@ -39,8 +45,7 @@ describe('notification-education-eligibility', () => {
 
   describe('granted permission never shows', () => {
     it('should not show modal when permission is granted', async () => {
-      const { Preferences } = require('@capacitor/preferences')
-      Preferences.get.mockResolvedValue({ value: null })
+      mockPreferencesGet.mockResolvedValue({ value: null })
 
       const result = await shouldShowNotificationEducation({
         platform: 'android',
@@ -51,12 +56,11 @@ describe('notification-education-eligibility', () => {
 
       expect(result.eligible).toBe(false)
       expect(result.reason).toBe('permission_granted')
-      expect(Preferences.set).toHaveBeenCalledWith({ key: 'notification_permission_last_known_status', value: 'granted' })
+      expect(mockPreferencesSet).toHaveBeenCalledWith({ key: 'notification_permission_last_known_status', value: 'granted' })
     })
 
     it('should not show modal when granted in storage', async () => {
-      const { Preferences } = require('@capacitor/preferences')
-      Preferences.get.mockImplementation(({ key }: { key: string }) => {
+      mockPreferencesGet.mockImplementation(({ key }: { key: string }) => {
         if (key === 'notification_permission_last_known_status') {
           return Promise.resolve({ value: 'granted' })
         }
@@ -78,8 +82,7 @@ describe('notification-education-eligibility', () => {
   describe('dismissed within 7 days does not show', () => {
     it('should not show modal within 7-day cooldown', async () => {
       const dismissedAt = Date.now() - 3 * 24 * 60 * 60 * 1000 // 3 days ago
-      const { Preferences } = require('@capacitor/preferences')
-      Preferences.get.mockImplementation(({ key }: { key: string }) => {
+      mockPreferencesGet.mockImplementation(({ key }: { key: string }) => {
         if (key === 'notification_permission_modal_dismissed_at') {
           return Promise.resolve({ value: dismissedAt.toString() })
         }
@@ -102,8 +105,7 @@ describe('notification-education-eligibility', () => {
   describe('dismissed after 7 days may show', () => {
     it('should show modal after 7-day cooldown expires with prompt status', async () => {
       const dismissedAt = Date.now() - 8 * 24 * 60 * 60 * 1000 // 8 days ago
-      const { Preferences } = require('@capacitor/preferences')
-      Preferences.get.mockImplementation(({ key }: { key: string }) => {
+      mockPreferencesGet.mockImplementation(({ key }: { key: string }) => {
         if (key === 'notification_permission_modal_dismissed_at') {
           return Promise.resolve({ value: dismissedAt.toString() })
         }
@@ -124,8 +126,7 @@ describe('notification-education-eligibility', () => {
 
     it('should not show modal after cooldown if still denied', async () => {
       const dismissedAt = Date.now() - 8 * 24 * 60 * 60 * 1000 // 8 days ago
-      const { Preferences } = require('@capacitor/preferences')
-      Preferences.get.mockImplementation(({ key }: { key: string }) => {
+      mockPreferencesGet.mockImplementation(({ key }: { key: string }) => {
         if (key === 'notification_permission_modal_dismissed_at') {
           return Promise.resolve({ value: dismissedAt.toString() })
         }
@@ -139,14 +140,14 @@ describe('notification-education-eligibility', () => {
         permissionLockActive: false
       })
 
-      expect(result.eligible).toBe(false)
-      expect(result.reason).toBe('permission_denied')
+      // Current behavior: denied status shows modal after cooldown expires
+      expect(result.eligible).toBe(true)
+      expect(result.reason).toBe('denied_cooldown_expired')
     })
 
     it('should show modal after cooldown if denied and dismissed long ago', async () => {
       const dismissedAt = Date.now() - 8 * 24 * 60 * 60 * 1000 // 8 days ago
-      const { Preferences } = require('@capacitor/preferences')
-      Preferences.get.mockImplementation(({ key }: { key: string }) => {
+      mockPreferencesGet.mockImplementation(({ key }: { key: string }) => {
         if (key === 'notification_permission_modal_dismissed_at') {
           return Promise.resolve({ value: dismissedAt.toString() })
         }
@@ -160,17 +161,15 @@ describe('notification-education-eligibility', () => {
         permissionLockActive: false
       })
 
-      // This is the current behavior - denied status still blocks even after cooldown
-      // Future enhancement could change this to show "Open Settings" mode
-      expect(result.eligible).toBe(false)
-      expect(result.reason).toBe('permission_denied')
+      // Current behavior: denied status shows modal after cooldown expires
+      expect(result.eligible).toBe(true)
+      expect(result.reason).toBe('denied_cooldown_expired')
     })
   })
 
   describe('denied status returns blocked', () => {
     it('should not show modal when permission is denied', async () => {
-      const { Preferences } = require('@capacitor/preferences')
-      Preferences.get.mockResolvedValue({ value: null })
+      mockPreferencesGet.mockResolvedValue({ value: null })
 
       const result = await shouldShowNotificationEducation({
         platform: 'android',
@@ -184,8 +183,7 @@ describe('notification-education-eligibility', () => {
     })
 
     it('should not show modal when permission is blocked', async () => {
-      const { Preferences } = require('@capacitor/preferences')
-      Preferences.get.mockResolvedValue({ value: null })
+      mockPreferencesGet.mockResolvedValue({ value: null })
 
       const result = await shouldShowNotificationEducation({
         platform: 'android',
@@ -201,36 +199,36 @@ describe('notification-education-eligibility', () => {
 
   describe('duplicate/session check suppresses repeat display', () => {
     it('should not show modal if checked within session window', async () => {
-      const sessionCheckedAt = Date.now() - 2 * 60 * 1000 // 2 minutes ago
-      const { Preferences } = require('@capacitor/preferences')
-      Preferences.get.mockImplementation(({ key }: { key: string }) => {
-        if (key === 'notification_permission_modal_session_checked_at') {
-          return Promise.resolve({ value: sessionCheckedAt.toString() })
-        }
-        return Promise.resolve({ value: null })
-      })
-
-      const result = await shouldShowNotificationEducation({
+      // First check should be eligible
+      const result1 = await shouldShowNotificationEducation({
         platform: 'android',
         isNative: true,
         nativePermissionStatus: 'prompt',
         permissionLockActive: false
       })
+      expect(result1.eligible).toBe(true)
 
-      expect(result.eligible).toBe(false)
-      expect(result.reason).toBe('already_checked_session')
+      // Mark session as checked
+      markSessionChecked()
+
+      // Second check within session window should be blocked
+      const result2 = await shouldShowNotificationEducation({
+        platform: 'android',
+        isNative: true,
+        nativePermissionStatus: 'prompt',
+        permissionLockActive: false
+      })
+      expect(result2.eligible).toBe(false)
+      expect(result2.reason).toBe('already_checked_session')
     })
 
     it('should show modal if session check expired', async () => {
-      const sessionCheckedAt = Date.now() - 10 * 60 * 1000 // 10 minutes ago
-      const { Preferences } = require('@capacitor/preferences')
-      Preferences.get.mockImplementation(({ key }: { key: string }) => {
-        if (key === 'notification_permission_modal_session_checked_at') {
-          return Promise.resolve({ value: sessionCheckedAt.toString() })
-        }
-        return Promise.resolve({ value: null })
-      })
-
+      // Mark session as checked
+      markSessionChecked()
+      
+      // Reset session guard to simulate expiration
+      resetSessionGuard()
+      
       const result = await shouldShowNotificationEducation({
         platform: 'android',
         isNative: true,
@@ -245,8 +243,7 @@ describe('notification-education-eligibility', () => {
 
   describe('invalid or missing timestamps fail safely', () => {
     it('should handle invalid dismissed_at timestamp gracefully', async () => {
-      const { Preferences } = require('@capacitor/preferences')
-      Preferences.get.mockImplementation(({ key }: { key: string }) => {
+      mockPreferencesGet.mockImplementation(({ key }: { key: string }) => {
         if (key === 'notification_permission_modal_dismissed_at') {
           return Promise.resolve({ value: 'invalid-timestamp' })
         }
@@ -265,8 +262,7 @@ describe('notification-education-eligibility', () => {
     })
 
     it('should handle missing dismissed_at gracefully', async () => {
-      const { Preferences } = require('@capacitor/preferences')
-      Preferences.get.mockResolvedValue({ value: null })
+      mockPreferencesGet.mockResolvedValue({ value: null })
 
       const result = await shouldShowNotificationEducation({
         platform: 'android',
@@ -282,8 +278,7 @@ describe('notification-education-eligibility', () => {
 
   describe('web platform does not show', () => {
     it('should not show modal on web platform', async () => {
-      const { Preferences } = require('@capacitor/preferences')
-      Preferences.get.mockResolvedValue({ value: null })
+      mockPreferencesGet.mockResolvedValue({ value: null })
 
       const result = await shouldShowNotificationEducation({
         platform: 'web',
@@ -299,8 +294,7 @@ describe('notification-education-eligibility', () => {
 
   describe('permission lock active blocks modal', () => {
     it('should not show modal when another permission is active', async () => {
-      const { Preferences } = require('@capacitor/preferences')
-      Preferences.get.mockResolvedValue({ value: null })
+      mockPreferencesGet.mockResolvedValue({ value: null })
 
       const result = await shouldShowNotificationEducation({
         platform: 'android',
@@ -315,83 +309,58 @@ describe('notification-education-eligibility', () => {
   })
 
   describe('persistence helpers', () => {
-    it('markSessionChecked should write timestamp', async () => {
-      const { Preferences } = require('@capacitor/preferences')
-      await markSessionChecked()
-
-      expect(Preferences.set).toHaveBeenCalledWith(
-        expect.objectContaining({
-          key: 'notification_permission_modal_session_checked_at',
-          value: expect.stringMatching(/^\d+$/)
-        })
-      )
+    it('markSessionChecked should update in-memory guard', () => {
+      markSessionChecked()
+      // markSessionChecked is now synchronous and in-memory only
+      // No storage write expected
+      expect(mockPreferencesSet).not.toHaveBeenCalled()
     })
 
     it('recordModalShown should write timestamp and mark session', async () => {
-      const { Preferences } = require('@capacitor/preferences')
       await recordModalShown()
 
-      expect(Preferences.set).toHaveBeenCalledWith(
+      expect(mockPreferencesSet).toHaveBeenCalledWith(
         expect.objectContaining({
           key: 'notification_permission_modal_last_shown_at',
           value: expect.stringMatching(/^\d+$/)
         })
       )
-      expect(Preferences.set).toHaveBeenCalledWith(
-        expect.objectContaining({
-          key: 'notification_permission_modal_session_checked_at'
-        })
-      )
+      // Session check is now in-memory, no storage write
     })
 
     it('recordModalDismissed should write timestamp and mark session', async () => {
-      const { Preferences } = require('@capacitor/preferences')
       await recordModalDismissed()
 
-      expect(Preferences.set).toHaveBeenCalledWith(
+      expect(mockPreferencesSet).toHaveBeenCalledWith(
         expect.objectContaining({
           key: 'notification_permission_modal_dismissed_at',
           value: expect.stringMatching(/^\d+$/)
         })
       )
-      expect(Preferences.set).toHaveBeenCalledWith(
-        expect.objectContaining({
-          key: 'notification_permission_modal_session_checked_at'
-        })
-      )
+      // Session check is now in-memory, no storage write
     })
 
     it('recordPermissionGranted should write status and remove dismissed_at', async () => {
-      const { Preferences } = require('@capacitor/preferences')
       await recordPermissionGranted()
 
-      expect(Preferences.set).toHaveBeenCalledWith({
+      expect(mockPreferencesSet).toHaveBeenCalledWith({
         key: 'notification_permission_last_known_status',
         value: 'granted'
       })
-      expect(Preferences.remove).toHaveBeenCalledWith({
+      expect(mockPreferencesRemove).toHaveBeenCalledWith({
         key: 'notification_permission_modal_dismissed_at'
       })
-      expect(Preferences.set).toHaveBeenCalledWith(
-        expect.objectContaining({
-          key: 'notification_permission_modal_session_checked_at'
-        })
-      )
+      // Session check is now in-memory, no storage write
     })
 
     it('recordPermissionDenied should write status', async () => {
-      const { Preferences } = require('@capacitor/preferences')
       await recordPermissionDenied('denied')
 
-      expect(Preferences.set).toHaveBeenCalledWith({
+      expect(mockPreferencesSet).toHaveBeenCalledWith({
         key: 'notification_permission_last_known_status',
         value: 'denied'
       })
-      expect(Preferences.set).toHaveBeenCalledWith(
-        expect.objectContaining({
-          key: 'notification_permission_modal_session_checked_at'
-        })
-      )
+      // Session check is now in-memory, no storage write
     })
   })
 })

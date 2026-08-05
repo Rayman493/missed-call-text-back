@@ -3,12 +3,21 @@ import { Preferences } from '@capacitor/preferences'
 const STORAGE_KEYS = {
   LAST_SHOWN_AT: 'notification_permission_modal_last_shown_at',
   LAST_KNOWN_STATUS: 'notification_permission_last_known_status',
-  DISMISSED_AT: 'notification_permission_modal_dismissed_at',
-  SESSION_CHECKED_AT: 'notification_permission_modal_session_checked_at'
+  DISMISSED_AT: 'notification_permission_modal_dismissed_at'
 } as const
 
 const COOLDOWN_DURATION = 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
 const SESSION_DURATION = 5 * 60 * 1000 // 5 minutes - consider same session if within this window
+
+// In-memory session guard for duplicate mounts (e.g., React Strict Mode)
+let lastSessionCheckTime: number | null = null
+
+/**
+ * Reset the in-memory session guard (for testing only).
+ */
+export function resetSessionGuard(): void {
+  lastSessionCheckTime = null
+}
 
 export interface EligibilityResult {
   eligible: boolean
@@ -20,7 +29,6 @@ export interface EligibilityResult {
     lastKnownStatus: string | null
     lastShownAt: string | null
     dismissedAt: string | null
-    sessionCheckedAt: string | null
     cooldownRemaining: number | null
     now: number
   }
@@ -48,7 +56,6 @@ export async function shouldShowNotificationEducation(input: EligibilityInput): 
     lastKnownStatus: null,
     lastShownAt: null,
     dismissedAt: null,
-    sessionCheckedAt: null,
     cooldownRemaining: null,
     now
   }
@@ -83,18 +90,15 @@ export async function shouldShowNotificationEducation(input: EligibilityInput): 
   const { value: lastKnownStatus } = await Preferences.get({ key: STORAGE_KEYS.LAST_KNOWN_STATUS })
   const { value: lastShownAt } = await Preferences.get({ key: STORAGE_KEYS.LAST_SHOWN_AT })
   const { value: dismissedAt } = await Preferences.get({ key: STORAGE_KEYS.DISMISSED_AT })
-  const { value: sessionCheckedAt } = await Preferences.get({ key: STORAGE_KEYS.SESSION_CHECKED_AT })
 
   diagnostic.lastKnownStatus = lastKnownStatus
   diagnostic.lastShownAt = lastShownAt
   diagnostic.dismissedAt = dismissedAt
-  diagnostic.sessionCheckedAt = sessionCheckedAt
 
   console.log('[NOTIFICATION_EDUCATION_ELIGIBILITY] Storage values:', {
     lastKnownStatus,
     lastShownAt,
-    dismissedAt,
-    sessionCheckedAt
+    dismissedAt
   })
 
   // Rule 4: If granted in storage, never show
@@ -103,10 +107,9 @@ export async function shouldShowNotificationEducation(input: EligibilityInput): 
     return { eligible: false, reason: 'permission_granted_storage', diagnostic }
   }
 
-  // Rule 5: Check if already checked in this session (within 5 minutes)
-  if (sessionCheckedAt) {
-    const sessionTime = parseInt(sessionCheckedAt, 10)
-    const timeSinceSessionCheck = now - sessionTime
+  // Rule 5: Check if already checked in this session (within 5 minutes) - in-memory guard
+  if (lastSessionCheckTime) {
+    const timeSinceSessionCheck = now - lastSessionCheckTime
     if (timeSinceSessionCheck < SESSION_DURATION) {
       console.log('[NOTIFICATION_EDUCATION_ELIGIBILITY] BLOCKED: already checked this session')
       console.log(`[NOTIFICATION_EDUCATION_ELIGIBILITY] Session checked ${timeSinceSessionCheck}ms ago (< ${SESSION_DURATION}ms)`)
@@ -117,6 +120,10 @@ export async function shouldShowNotificationEducation(input: EligibilityInput): 
   // Rule 6: Check cooldown from dismissal
   if (dismissedAt) {
     const dismissedTime = parseInt(dismissedAt, 10)
+    if (isNaN(dismissedTime)) {
+      console.log('[NOTIFICATION_EDUCATION_ELIGIBILITY] Invalid dismissed_at timestamp, failing closed')
+      return { eligible: false, reason: 'invalid_timestamp', diagnostic }
+    }
     const timeSinceDismissal = now - dismissedTime
     const cooldownRemaining = COOLDOWN_DURATION - timeSinceDismissal
     diagnostic.cooldownRemaining = cooldownRemaining
@@ -160,12 +167,11 @@ export async function shouldShowNotificationEducation(input: EligibilityInput): 
 }
 
 /**
- * Mark the current session as checked to prevent duplicate checks.
+ * Mark the current session as checked to prevent duplicate checks (in-memory guard).
  */
-export async function markSessionChecked(): Promise<void> {
-  const now = Date.now()
-  await Preferences.set({ key: STORAGE_KEYS.SESSION_CHECKED_AT, value: now.toString() })
-  console.log('[NOTIFICATION_EDUCATION_ELIGIBILITY] Session marked as checked:', new Date(now).toISOString())
+export function markSessionChecked(): void {
+  lastSessionCheckTime = Date.now()
+  console.log('[NOTIFICATION_EDUCATION_ELIGIBILITY] Session marked as checked (in-memory):', new Date(lastSessionCheckTime).toISOString())
 }
 
 /**
@@ -174,7 +180,7 @@ export async function markSessionChecked(): Promise<void> {
 export async function recordModalShown(): Promise<void> {
   const now = Date.now()
   await Preferences.set({ key: STORAGE_KEYS.LAST_SHOWN_AT, value: now.toString() })
-  await markSessionChecked()
+  markSessionChecked()
   console.log('[NOTIFICATION_EDUCATION_ELIGIBILITY] Modal shown recorded:', new Date(now).toISOString())
 }
 
@@ -184,7 +190,7 @@ export async function recordModalShown(): Promise<void> {
 export async function recordModalDismissed(): Promise<void> {
   const now = Date.now()
   await Preferences.set({ key: STORAGE_KEYS.DISMISSED_AT, value: now.toString() })
-  await markSessionChecked()
+  markSessionChecked()
   console.log('[NOTIFICATION_EDUCATION_ELIGIBILITY] Modal dismissed recorded:', new Date(now).toISOString())
   console.log(`[NOTIFICATION_EDUCATION_ELIGIBILITY] Cooldown set until ${new Date(now + COOLDOWN_DURATION).toISOString()}`)
 }
@@ -195,7 +201,7 @@ export async function recordModalDismissed(): Promise<void> {
 export async function recordPermissionGranted(): Promise<void> {
   await Preferences.set({ key: STORAGE_KEYS.LAST_KNOWN_STATUS, value: 'granted' })
   await Preferences.remove({ key: STORAGE_KEYS.DISMISSED_AT })
-  await markSessionChecked()
+  markSessionChecked()
   console.log('[NOTIFICATION_EDUCATION_ELIGIBILITY] Permission granted recorded')
 }
 
@@ -204,6 +210,6 @@ export async function recordPermissionGranted(): Promise<void> {
  */
 export async function recordPermissionDenied(status: string): Promise<void> {
   await Preferences.set({ key: STORAGE_KEYS.LAST_KNOWN_STATUS, value: status })
-  await markSessionChecked()
+  markSessionChecked()
   console.log('[NOTIFICATION_EDUCATION_ELIGIBILITY] Permission denied recorded:', status)
 }

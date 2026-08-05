@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Bell } from 'lucide-react'
+import { Bell, Settings } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { permissionLock } from '@/lib/permission-lock'
 import { useNativePermissions } from '@/hooks/useNativePermissions'
@@ -25,10 +25,24 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
   const [show, setShow] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const hasShownRef = useRef(false)
+  const modalRef = useRef<HTMLDivElement>(null)
+  const firstButtonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     checkEligibility()
   }, [])
+
+  useEffect(() => {
+    if (show && firstButtonRef.current) {
+      firstButtonRef.current.focus()
+    }
+  }, [show])
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      handleDismiss()
+    }
+  }
 
   const checkEligibility = async () => {
     console.log('[NOTIFICATION_EDUCATION] ===== STARTING ELIGIBILITY CHECK =====')
@@ -121,46 +135,91 @@ export function NotificationPermissionEducation({ onComplete }: NotificationPerm
     }
   }
 
-  const handleNotNow = async () => {
-    console.log('[NOTIFICATION_EDUCATION_DISMISSED] User clicked Not Now')
+  const handleDismiss = async () => {
+    console.log('[NOTIFICATION_EDUCATION_DISMISSED] User dismissed modal')
     await recordModalDismissed()
     setShow(false)
     onComplete?.()
+  }
+
+  const handleOpenSettings = async () => {
+    console.log('[NOTIFICATION_EDUCATION] User clicked Open Settings')
+    await handleDismiss()
+    // Note: Opening device settings is platform-specific and may require additional implementation
+    // For now, just dismiss the modal
   }
 
   if (!show) {
     return null
   }
 
+  const isDenied = notifications.status === 'denied' || notifications.status === 'blocked'
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-5">
-        <div className="flex items-center gap-2.5 mb-3">
-          <div className="w-9 h-9 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center shrink-0">
-            <Bell className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400" />
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 safe-area-inset-bottom"
+      onClick={handleDismiss}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="notification-modal-title"
+      aria-describedby="notification-modal-description"
+    >
+      <div 
+        ref={modalRef}
+        className="bg-white dark:bg-slate-800/95 rounded-2xl shadow-2xl border border-white/10 dark:border-slate-700/50 max-w-md w-full p-6 transition-all duration-200 ease-out"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={handleKeyDown}
+      >
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/20">
+            <Bell className="w-5 h-5 text-white" />
           </div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Stay Updated</h2>
+          <h2 
+            id="notification-modal-title"
+            className="text-lg font-semibold text-gray-900 dark:text-white"
+          >
+            {isDenied ? 'Notifications are turned off' : 'Stay on top of new customers'}
+          </h2>
         </div>
 
-        <p className="text-sm text-gray-600 dark:text-gray-300 mb-5 leading-relaxed">
-          Get notified about new calls, customer replies, appointments, and payments.
+        <p 
+          id="notification-modal-description"
+          className="text-sm text-gray-600 dark:text-gray-300 mb-6 leading-relaxed"
+        >
+          {isDenied 
+            ? 'To receive notifications about new calls, customer replies, appointments, and payments, enable notifications in your device settings.'
+            : 'Get notified about new calls, customer replies, appointments, and payments so you never miss an opportunity.'
+          }
         </p>
 
-        <div className="flex gap-2.5">
-          <button
-            onClick={handleNotNow}
-            disabled={isLoading}
-            className="flex-1 h-11 px-4 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
-          >
-            Not Now
-          </button>
-          <button
-            onClick={handleEnable}
-            disabled={isLoading}
-            className="flex-1 h-11 px-4 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50"
-          >
-            {isLoading ? 'Enabling...' : 'Enable Notifications'}
-          </button>
+        <div className="flex gap-3">
+          {isDenied ? (
+            <button
+              ref={firstButtonRef}
+              onClick={handleOpenSettings}
+              className="flex-1 h-11 px-4 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800"
+            >
+              Open Settings
+            </button>
+          ) : (
+            <>
+              <button
+                ref={firstButtonRef}
+                onClick={handleDismiss}
+                disabled={isLoading}
+                className="flex-1 h-11 px-4 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Not Now
+              </button>
+              <button
+                onClick={handleEnable}
+                disabled={isLoading}
+                className="flex-1 h-11 px-4 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? 'Enabling...' : 'Enable Notifications'}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
