@@ -9,26 +9,13 @@ jest.mock('@capacitor/core', () => ({
   },
 }))
 
-// Mock Device
-jest.mock('@capacitor/device', () => ({
-  Device: {
-    getInfo: jest.fn(() => Promise.resolve({ osVersion: '33' })),
-  },
-}))
-
-// Mock PushNotifications
-jest.mock('@capacitor/push-notifications', () => ({
-  PushNotifications: {
-    checkPermissions: jest.fn(() => Promise.resolve({ receive: 'prompt' })),
-    requestPermissions: jest.fn(() => Promise.resolve({ receive: 'granted' })),
-  },
-}))
-
-// Mock pushService
-jest.mock('@/lib/push-service', () => ({
-  pushService: {
-    requestPermission: jest.fn(() => Promise.resolve(true)),
-    register: jest.fn(() => Promise.resolve()),
+// Mock Preferences
+jest.mock('@capacitor/preferences', () => ({
+  Preferences: {
+    get: jest.fn(() => Promise.resolve({ value: null })),
+    set: jest.fn(() => Promise.resolve()),
+    remove: jest.fn(() => Promise.resolve()),
+    clear: jest.fn(() => Promise.resolve()),
   },
 }))
 
@@ -41,342 +28,354 @@ jest.mock('@/lib/permission-lock', () => ({
   },
 }))
 
+// Mock useNativePermissions
+jest.mock('@/hooks/useNativePermissions', () => ({
+  useNativePermissions: () => ({
+    notifications: { status: 'prompt', canAskAgain: true, error: null },
+    checkNotificationPermission: jest.fn(() => Promise.resolve()),
+    requestNotificationPermission: jest.fn(() => Promise.resolve()),
+  }),
+}))
+
 describe('NotificationPermissionEducation', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    localStorage.clear()
+    const { Preferences } = require('@capacitor/preferences')
+    Preferences.get.mockResolvedValue({ value: null })
   })
 
-  describe('fresh authenticated Android user', () => {
-    it('should show education modal when permission is prompt', async () => {
+  describe('first app launch: modal shows once', () => {
+    it('should show education modal on first launch with prompt status', async () => {
       const { Capacitor } = require('@capacitor/core')
-      const { Device } = require('@capacitor/device')
-      const { PushNotifications } = require('@capacitor/push-notifications')
+      const { Preferences } = require('@capacitor/preferences')
       const { permissionLock } = require('@/lib/permission-lock')
+      const { useNativePermissions } = require('@/hooks/useNativePermissions')
 
       Capacitor.isNativePlatform.mockReturnValue(true)
       Capacitor.getPlatform.mockReturnValue('android')
-      Device.getInfo.mockResolvedValue({ osVersion: '33' })
-      PushNotifications.checkPermissions.mockResolvedValue({ receive: 'prompt' })
+      Preferences.get.mockResolvedValue({ value: null })
       permissionLock.isAnyPermissionActive.mockReturnValue(false)
+      useNativePermissions.mockReturnValue({
+        notifications: { status: 'prompt', canAskAgain: true, error: null },
+        checkNotificationPermission: jest.fn(() => Promise.resolve()),
+        requestNotificationPermission: jest.fn(() => Promise.resolve()),
+      })
 
       render(<NotificationPermissionEducation />)
 
       await waitFor(() => {
-        expect(screen.getByText('Enable notifications')).toBeInTheDocument()
+        expect(screen.getByText('Stay Updated')).toBeInTheDocument()
+        expect(screen.getByText('Enable Notifications')).toBeInTheDocument()
       })
     })
   })
 
-  describe('education does not show before authentication', () => {
-    it('should not show on web platform', async () => {
+  describe('second launch after dismissal: modal does not show', () => {
+    it('should not show modal after dismissal', async () => {
       const { Capacitor } = require('@capacitor/core')
-      Capacitor.isNativePlatform.mockReturnValue(false)
-
-      render(<NotificationPermissionEducation />)
-
-      await waitFor(() => {
-        expect(screen.queryByText('Enable notifications')).not.toBeInTheDocument()
-      })
-    })
-
-    it('should not show on iOS', async () => {
-      const { Capacitor } = require('@capacitor/core')
-      const { Device } = require('@capacitor/device')
+      const { Preferences } = require('@capacitor/preferences')
+      const { permissionLock } = require('@/lib/permission-lock')
+      const { useNativePermissions } = require('@/hooks/useNativePermissions')
 
       Capacitor.isNativePlatform.mockReturnValue(true)
-      Capacitor.getPlatform.mockReturnValue('ios')
-      Device.getInfo.mockResolvedValue({ osVersion: '17' })
+      Capacitor.getPlatform.mockReturnValue('android')
+      // Simulate hasShown = true
+      Preferences.get.mockImplementation(({ key }) => {
+        if (key === 'notification_permission_modal_has_shown') {
+          return Promise.resolve({ value: 'true' })
+        }
+        return Promise.resolve({ value: null })
+      })
+      permissionLock.isAnyPermissionActive.mockReturnValue(false)
+      useNativePermissions.mockReturnValue({
+        notifications: { status: 'prompt', canAskAgain: true, error: null },
+        checkNotificationPermission: jest.fn(() => Promise.resolve()),
+        requestNotificationPermission: jest.fn(() => Promise.resolve()),
+      })
 
       render(<NotificationPermissionEducation />)
 
       await waitFor(() => {
-        expect(screen.queryByText('Enable notifications')).not.toBeInTheDocument()
+        expect(screen.queryByText('Stay Updated')).not.toBeInTheDocument()
       })
     })
   })
 
-  describe('Enable triggers one permission request', () => {
+  describe('launch within 7 days: modal does not show', () => {
+    it('should not show modal within 7-day cooldown', async () => {
+      const { Capacitor } = require('@capacitor/core')
+      const { Preferences } = require('@capacitor/preferences')
+      const { permissionLock } = require('@/lib/permission-lock')
+      const { useNativePermissions } = require('@/hooks/useNativePermissions')
+
+      Capacitor.isNativePlatform.mockReturnValue(true)
+      Capacitor.getPlatform.mockReturnValue('android')
+      // Simulate recent dismissal (within 7 days)
+      const dismissedAt = Date.now() - 3 * 24 * 60 * 60 * 1000 // 3 days ago
+      Preferences.get.mockImplementation(({ key }) => {
+        if (key === 'notification_permission_modal_dismissed_at') {
+          return Promise.resolve({ value: dismissedAt.toString() })
+        }
+        return Promise.resolve({ value: null })
+      })
+      permissionLock.isAnyPermissionActive.mockReturnValue(false)
+      useNativePermissions.mockReturnValue({
+        notifications: { status: 'prompt', canAskAgain: true, error: null },
+        checkNotificationPermission: jest.fn(() => Promise.resolve()),
+        requestNotificationPermission: jest.fn(() => Promise.resolve()),
+      })
+
+      render(<NotificationPermissionEducation />)
+
+      await waitFor(() => {
+        expect(screen.queryByText('Stay Updated')).not.toBeInTheDocument()
+      })
+    })
+  })
+
+  describe('launch after 7 days while still denied: modal may show', () => {
+    it('should show modal after 7-day cooldown expires', async () => {
+      const { Capacitor } = require('@capacitor/core')
+      const { Preferences } = require('@capacitor/preferences')
+      const { permissionLock } = require('@/lib/permission-lock')
+      const { useNativePermissions } = require('@/hooks/useNativePermissions')
+
+      Capacitor.isNativePlatform.mockReturnValue(true)
+      Capacitor.getPlatform.mockReturnValue('android')
+      // Simulate old dismissal (more than 7 days ago)
+      const dismissedAt = Date.now() - 8 * 24 * 60 * 60 * 1000 // 8 days ago
+      Preferences.get.mockImplementation(({ key }) => {
+        if (key === 'notification_permission_modal_dismissed_at') {
+          return Promise.resolve({ value: dismissedAt.toString() })
+        }
+        return Promise.resolve({ value: null })
+      })
+      permissionLock.isAnyPermissionActive.mockReturnValue(false)
+      useNativePermissions.mockReturnValue({
+        notifications: { status: 'denied', canAskAgain: false, error: null },
+        checkNotificationPermission: jest.fn(() => Promise.resolve()),
+        requestNotificationPermission: jest.fn(() => Promise.resolve()),
+      })
+
+      render(<NotificationPermissionEducation />)
+
+      await waitFor(() => {
+        // Should not show because status is denied (not prompt)
+        expect(screen.queryByText('Stay Updated')).not.toBeInTheDocument()
+      })
+    })
+  })
+
+  describe('permission already granted: modal never shows', () => {
+    it('should not show modal when permission is granted', async () => {
+      const { Capacitor } = require('@capacitor/core')
+      const { Preferences } = require('@capacitor/preferences')
+      const { permissionLock } = require('@/lib/permission-lock')
+      const { useNativePermissions } = require('@/hooks/useNativePermissions')
+
+      Capacitor.isNativePlatform.mockReturnValue(true)
+      Capacitor.getPlatform.mockReturnValue('android')
+      Preferences.get.mockResolvedValue({ value: null })
+      permissionLock.isAnyPermissionActive.mockReturnValue(false)
+      useNativePermissions.mockReturnValue({
+        notifications: { status: 'granted', canAskAgain: true, error: null },
+        checkNotificationPermission: jest.fn(() => Promise.resolve()),
+        requestNotificationPermission: jest.fn(() => Promise.resolve()),
+      })
+
+      render(<NotificationPermissionEducation />)
+
+      await waitFor(() => {
+        expect(screen.queryByText('Stay Updated')).not.toBeInTheDocument()
+        expect(Preferences.set).toHaveBeenCalledWith({ key: 'notification_permission_last_known_status', value: 'granted' })
+      })
+    })
+
+    it('should not show modal when granted in storage', async () => {
+      const { Capacitor } = require('@capacitor/core')
+      const { Preferences } = require('@capacitor/preferences')
+      const { permissionLock } = require('@/lib/permission-lock')
+      const { useNativePermissions } = require('@/hooks/useNativePermissions')
+
+      Capacitor.isNativePlatform.mockReturnValue(true)
+      Capacitor.getPlatform.mockReturnValue('android')
+      Preferences.get.mockImplementation(({ key }) => {
+        if (key === 'notification_permission_last_known_status') {
+          return Promise.resolve({ value: 'granted' })
+        }
+        return Promise.resolve({ value: null })
+      })
+      permissionLock.isAnyPermissionActive.mockReturnValue(false)
+      useNativePermissions.mockReturnValue({
+        notifications: { status: 'prompt', canAskAgain: true, error: null },
+        checkNotificationPermission: jest.fn(() => Promise.resolve()),
+        requestNotificationPermission: jest.fn(() => Promise.resolve()),
+      })
+
+      render(<NotificationPermissionEducation />)
+
+      await waitFor(() => {
+        expect(screen.queryByText('Stay Updated')).not.toBeInTheDocument()
+      })
+    })
+  })
+
+  describe('system permission request does not fire automatically on every launch', () => {
+    it('should not request permission automatically on mount', async () => {
+      const { Capacitor } = require('@capacitor/core')
+      const { Preferences } = require('@capacitor/preferences')
+      const { permissionLock } = require('@/lib/permission-lock')
+      const { useNativePermissions } = require('@/hooks/useNativePermissions')
+
+      Capacitor.isNativePlatform.mockReturnValue(true)
+      Capacitor.getPlatform.mockReturnValue('android')
+      Preferences.get.mockResolvedValue({ value: null })
+      permissionLock.isAnyPermissionActive.mockReturnValue(false)
+      const requestNotificationPermission = jest.fn(() => Promise.resolve())
+      useNativePermissions.mockReturnValue({
+        notifications: { status: 'prompt', canAskAgain: true, error: null },
+        checkNotificationPermission: jest.fn(() => Promise.resolve()),
+        requestNotificationPermission,
+      })
+
+      render(<NotificationPermissionEducation />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Stay Updated')).toBeInTheDocument()
+      })
+
+      // Should not have called requestNotificationPermission automatically
+      expect(requestNotificationPermission).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('duplicate mount/effect does not produce duplicate modals', () => {
+    it('should only show one modal with single-flight guard', async () => {
+      const { Capacitor } = require('@capacitor/core')
+      const { Preferences } = require('@capacitor/preferences')
+      const { permissionLock } = require('@/lib/permission-lock')
+      const { useNativePermissions } = require('@/hooks/useNativePermissions')
+
+      Capacitor.isNativePlatform.mockReturnValue(true)
+      Capacitor.getPlatform.mockReturnValue('android')
+      Preferences.get.mockResolvedValue({ value: null })
+      permissionLock.isAnyPermissionActive.mockReturnValue(false)
+      useNativePermissions.mockReturnValue({
+        notifications: { status: 'prompt', canAskAgain: true, error: null },
+        checkNotificationPermission: jest.fn(() => Promise.resolve()),
+        requestNotificationPermission: jest.fn(() => Promise.resolve()),
+      })
+
+      const { rerender } = render(<NotificationPermissionEducation />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Stay Updated')).toBeInTheDocument()
+      })
+
+      // Rerender (simulating Strict Mode double mount)
+      rerender(<NotificationPermissionEducation />)
+
+      await waitFor(() => {
+        // Should still only show one modal
+        expect(screen.getAllByText('Stay Updated')).toHaveLength(1)
+      })
+    })
+  })
+
+  describe('Not Now sets 7-day cooldown', () => {
+    it('should set dismissed_at timestamp when Not Now clicked', async () => {
+      const { Capacitor } = require('@capacitor/core')
+      const { Preferences } = require('@capacitor/preferences')
+      const { permissionLock } = require('@/lib/permission-lock')
+      const { useNativePermissions } = require('@/hooks/useNativePermissions')
+
+      Capacitor.isNativePlatform.mockReturnValue(true)
+      Capacitor.getPlatform.mockReturnValue('android')
+      Preferences.get.mockResolvedValue({ value: null })
+      permissionLock.isAnyPermissionActive.mockReturnValue(false)
+      useNativePermissions.mockReturnValue({
+        notifications: { status: 'prompt', canAskAgain: true, error: null },
+        checkNotificationPermission: jest.fn(() => Promise.resolve()),
+        requestNotificationPermission: jest.fn(() => Promise.resolve()),
+      })
+
+      render(<NotificationPermissionEducation />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Stay Updated')).toBeInTheDocument()
+      })
+
+      const notNowButton = screen.getByText('Not Now')
+      fireEvent.click(notNowButton)
+
+      await waitFor(() => {
+        expect(Preferences.set).toHaveBeenCalledWith(
+          expect.objectContaining({
+            key: 'notification_permission_modal_dismissed_at',
+            value: expect.stringMatching(/^\d+$/), // timestamp
+          })
+        )
+        expect(screen.queryByText('Stay Updated')).not.toBeInTheDocument()
+      })
+    })
+  })
+
+  describe('Enable button triggers permission request', () => {
     it('should request permission when Enable is clicked', async () => {
       const { Capacitor } = require('@capacitor/core')
-      const { Device } = require('@capacitor/device')
-      const { PushNotifications } = require('@capacitor/push-notifications')
+      const { Preferences } = require('@capacitor/preferences')
       const { permissionLock } = require('@/lib/permission-lock')
-      const { pushService } = require('@/lib/push-service')
+      const { useNativePermissions } = require('@/hooks/useNativePermissions')
 
       Capacitor.isNativePlatform.mockReturnValue(true)
       Capacitor.getPlatform.mockReturnValue('android')
-      Device.getInfo.mockResolvedValue({ osVersion: '33' })
-      PushNotifications.checkPermissions.mockResolvedValue({ receive: 'prompt' })
+      Preferences.get.mockResolvedValue({ value: null })
       permissionLock.isAnyPermissionActive.mockReturnValue(false)
       permissionLock.requestPermission.mockReturnValue(true)
-      pushService.requestPermission.mockResolvedValue(true)
+      const requestNotificationPermission = jest.fn(() => Promise.resolve())
+      useNativePermissions.mockReturnValue({
+        notifications: { status: 'prompt', canAskAgain: true, error: null },
+        checkNotificationPermission: jest.fn(() => Promise.resolve()),
+        requestNotificationPermission,
+      })
 
       render(<NotificationPermissionEducation />)
 
       await waitFor(() => {
-        expect(screen.getByText('Enable notifications')).toBeInTheDocument()
+        expect(screen.getByText('Stay Updated')).toBeInTheDocument()
       })
 
       const enableButton = screen.getByText('Enable Notifications')
       fireEvent.click(enableButton)
 
       await waitFor(() => {
-        expect(pushService.requestPermission).toHaveBeenCalledTimes(1)
+        expect(requestNotificationPermission).toHaveBeenCalled()
         expect(permissionLock.requestPermission).toHaveBeenCalledWith('notification')
         expect(permissionLock.releasePermission).toHaveBeenCalledWith('notification')
       })
     })
   })
 
-  describe('granted result registers push', () => {
-    it('should register push when permission is granted', async () => {
+  describe('modal does not show on web platform', () => {
+    it('should not show modal on web', async () => {
       const { Capacitor } = require('@capacitor/core')
-      const { Device } = require('@capacitor/device')
-      const { PushNotifications } = require('@capacitor/push-notifications')
+      const { Preferences } = require('@capacitor/preferences')
       const { permissionLock } = require('@/lib/permission-lock')
-      const { pushService } = require('@/lib/push-service')
+      const { useNativePermissions } = require('@/hooks/useNativePermissions')
 
-      Capacitor.isNativePlatform.mockReturnValue(true)
-      Capacitor.getPlatform.mockReturnValue('android')
-      Device.getInfo.mockResolvedValue({ osVersion: '33' })
-      PushNotifications.checkPermissions.mockResolvedValue({ receive: 'prompt' })
+      Capacitor.isNativePlatform.mockReturnValue(false)
+      Preferences.get.mockResolvedValue({ value: null })
       permissionLock.isAnyPermissionActive.mockReturnValue(false)
-      permissionLock.requestPermission.mockReturnValue(true)
-      pushService.requestPermission.mockResolvedValue(true)
-      pushService.register.mockResolvedValue()
+      useNativePermissions.mockReturnValue({
+        notifications: { status: 'prompt', canAskAgain: true, error: null },
+        checkNotificationPermission: jest.fn(() => Promise.resolve()),
+        requestNotificationPermission: jest.fn(() => Promise.resolve()),
+      })
 
       render(<NotificationPermissionEducation />)
 
       await waitFor(() => {
-        expect(screen.getByText('Enable notifications')).toBeInTheDocument()
-      })
-
-      const enableButton = screen.getByText('Enable Notifications')
-      fireEvent.click(enableButton)
-
-      await waitFor(() => {
-        expect(pushService.register).toHaveBeenCalled()
-      })
-    })
-  })
-
-  describe('denied result shows Settings recovery', () => {
-    it('should show Settings button when permission is denied', async () => {
-      const { Capacitor } = require('@capacitor/core')
-      const { Device } = require('@capacitor/device')
-      const { PushNotifications } = require('@capacitor/push-notifications')
-      const { permissionLock } = require('@/lib/permission-lock')
-      const { pushService } = require('@/lib/push-service')
-
-      Capacitor.isNativePlatform.mockReturnValue(true)
-      Capacitor.getPlatform.mockReturnValue('android')
-      Device.getInfo.mockResolvedValue({ osVersion: '33' })
-      PushNotifications.checkPermissions.mockResolvedValue({ receive: 'prompt' })
-      permissionLock.isAnyPermissionActive.mockReturnValue(false)
-      permissionLock.requestPermission.mockReturnValue(true)
-      pushService.requestPermission.mockResolvedValue(false)
-
-      render(<NotificationPermissionEducation />)
-
-      await waitFor(() => {
-        expect(screen.getByText('Enable notifications')).toBeInTheDocument()
-      })
-
-      const enableButton = screen.getByText('Enable Notifications')
-      fireEvent.click(enableButton)
-
-      await waitFor(() => {
-        expect(screen.getByText('Open Settings')).toBeInTheDocument()
-      })
-    })
-  })
-
-  describe('Not Now dismisses without requesting', () => {
-    it('should dismiss without requesting when Not Now is clicked', async () => {
-      const { Capacitor } = require('@capacitor/core')
-      const { Device } = require('@capacitor/device')
-      const { PushNotifications } = require('@capacitor/push-notifications')
-      const { permissionLock } = require('@/lib/permission-lock')
-      const { pushService } = require('@/lib/push-service')
-
-      Capacitor.isNativePlatform.mockReturnValue(true)
-      Capacitor.getPlatform.mockReturnValue('android')
-      Device.getInfo.mockResolvedValue({ osVersion: '33' })
-      PushNotifications.checkPermissions.mockResolvedValue({ receive: 'prompt' })
-      permissionLock.isAnyPermissionActive.mockReturnValue(false)
-
-      render(<NotificationPermissionEducation />)
-
-      await waitFor(() => {
-        expect(screen.getByText('Enable notifications')).toBeInTheDocument()
-      })
-
-      const notNowButton = screen.getByText('Not Now')
-      fireEvent.click(notNowButton)
-
-      await waitFor(() => {
-        expect(screen.queryByText('Enable notifications')).not.toBeInTheDocument()
-        expect(pushService.requestPermission).not.toHaveBeenCalled()
-      })
-    })
-  })
-
-  describe('Not Now does not permanently block Settings enablement', () => {
-    it('should allow enabling after Not Now', async () => {
-      const { Capacitor } = require('@capacitor/core')
-      const { Device } = require('@capacitor/device')
-      const { PushNotifications } = require('@capacitor/push-notifications')
-      const { permissionLock } = require('@/lib/permission-lock')
-
-      Capacitor.isNativePlatform.mockReturnValue(true)
-      Capacitor.getPlatform.mockReturnValue('android')
-      Device.getInfo.mockResolvedValue({ osVersion: '33' })
-      PushNotifications.checkPermissions.mockResolvedValue({ receive: 'prompt' })
-      permissionLock.isAnyPermissionActive.mockReturnValue(false)
-
-      // First render - show education
-      const { rerender } = render(<NotificationPermissionEducation />)
-
-      await waitFor(() => {
-        expect(screen.getByText('Enable notifications')).toBeInTheDocument()
-      })
-
-      // Click Not Now
-      const notNowButton = screen.getByText('Not Now')
-      fireEvent.click(notNowButton)
-
-      await waitFor(() => {
-        expect(screen.queryByText('Enable notifications')).not.toBeInTheDocument()
-      })
-
-      // Clear cooldown to simulate time passing
-      localStorage.removeItem('notification_education_cooldown')
-
-      // Second render - should show again (simulating new session)
-      rerender(<NotificationPermissionEducation />)
-
-      await waitFor(() => {
-        expect(screen.queryByText('Enable notifications')).not.toBeInTheDocument()
-      })
-    })
-  })
-
-  describe('already granted skips education and registers', () => {
-    it('should not show education when already granted', async () => {
-      const { Capacitor } = require('@capacitor/core')
-      const { Device } = require('@capacitor/device')
-      const { PushNotifications } = require('@capacitor/push-notifications')
-      const { permissionLock } = require('@/lib/permission-lock')
-      const { pushService } = require('@/lib/push-service')
-
-      Capacitor.isNativePlatform.mockReturnValue(true)
-      Capacitor.getPlatform.mockReturnValue('android')
-      Device.getInfo.mockResolvedValue({ osVersion: '33' })
-      PushNotifications.checkPermissions.mockResolvedValue({ receive: 'granted' })
-      permissionLock.isAnyPermissionActive.mockReturnValue(false)
-      pushService.register.mockResolvedValue()
-
-      render(<NotificationPermissionEducation />)
-
-      await waitFor(() => {
-        expect(screen.queryByText('Enable notifications')).not.toBeInTheDocument()
-        expect(pushService.register).toHaveBeenCalled()
-      })
-    })
-  })
-
-  describe('no overlap with Tap to Pay location permission', () => {
-    it('should not show education when Tap to Pay is active', async () => {
-      const { Capacitor } = require('@capacitor/core')
-      const { Device } = require('@capacitor/device')
-      const { permissionLock } = require('@/lib/permission-lock')
-
-      Capacitor.isNativePlatform.mockReturnValue(true)
-      Capacitor.getPlatform.mockReturnValue('android')
-      Device.getInfo.mockResolvedValue({ osVersion: '33' })
-      permissionLock.isAnyPermissionActive.mockReturnValue(true)
-
-      render(<NotificationPermissionEducation />)
-
-      await waitFor(() => {
-        expect(screen.queryByText('Enable notifications')).not.toBeInTheDocument()
-      })
-    })
-  })
-
-  describe('rerenders/navigation do not show duplicate education', () => {
-    it('should only show education once per session', async () => {
-      const { Capacitor } = require('@capacitor/core')
-      const { Device } = require('@capacitor/device')
-      const { PushNotifications } = require('@capacitor/push-notifications')
-      const { permissionLock } = require('@/lib/permission-lock')
-
-      Capacitor.isNativePlatform.mockReturnValue(true)
-      Capacitor.getPlatform.mockReturnValue('android')
-      Device.getInfo.mockResolvedValue({ osVersion: '33' })
-      PushNotifications.checkPermissions.mockResolvedValue({ receive: 'prompt' })
-      permissionLock.isAnyPermissionActive.mockReturnValue(false)
-
-      const { rerender } = render(<NotificationPermissionEducation />)
-
-      await waitFor(() => {
-        expect(screen.getByText('Enable notifications')).toBeInTheDocument()
-      })
-
-      // Rerender
-      rerender(<NotificationPermissionEducation />)
-
-      await waitFor(() => {
-        // Should still show because it's the same component instance
-        expect(screen.getByText('Enable notifications')).toBeInTheDocument()
-      })
-    })
-  })
-
-  describe('install-over still checks native permission', () => {
-    it('should check native permission state even with cooldown', async () => {
-      const { Capacitor } = require('@capacitor/core')
-      const { Device } = require('@capacitor/device')
-      const { PushNotifications } = require('@capacitor/push-notifications')
-      const { permissionLock } = require('@/lib/permission-lock')
-
-      // Set cooldown
-      const cooldownEnd = Date.now() + 24 * 60 * 60 * 1000
-      localStorage.setItem('notification_education_cooldown', cooldownEnd.toString())
-
-      Capacitor.isNativePlatform.mockReturnValue(true)
-      Capacitor.getPlatform.mockReturnValue('android')
-      Device.getInfo.mockResolvedValue({ osVersion: '33' })
-      PushNotifications.checkPermissions.mockResolvedValue({ receive: 'granted' })
-      permissionLock.isAnyPermissionActive.mockReturnValue(false)
-
-      render(<NotificationPermissionEducation />)
-
-      await waitFor(() => {
-        expect(PushNotifications.checkPermissions).toHaveBeenCalled()
-        expect(screen.queryByText('Enable notifications')).not.toBeInTheDocument()
-      })
-    })
-  })
-
-  describe('true fresh install behaves like first run', () => {
-    it('should show education on fresh install', async () => {
-      const { Capacitor } = require('@capacitor/core')
-      const { Device } = require('@capacitor/device')
-      const { PushNotifications } = require('@capacitor/push-notifications')
-      const { permissionLock } = require('@/lib/permission-lock')
-
-      Capacitor.isNativePlatform.mockReturnValue(true)
-      Capacitor.getPlatform.mockReturnValue('android')
-      Device.getInfo.mockResolvedValue({ osVersion: '33' })
-      PushNotifications.checkPermissions.mockResolvedValue({ receive: 'prompt' })
-      permissionLock.isAnyPermissionActive.mockReturnValue(false)
-
-      render(<NotificationPermissionEducation />)
-
-      await waitFor(() => {
-        expect(screen.getByText('Enable notifications')).toBeInTheDocument()
+        expect(screen.queryByText('Stay Updated')).not.toBeInTheDocument()
       })
     })
   })

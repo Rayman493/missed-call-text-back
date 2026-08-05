@@ -32,11 +32,11 @@ export default function CalendarDayCell({
   const getEventIcon = (type: string) => {
     switch (type) {
       case 'appointment':
-        return <Calendar className="w-2.5 h-2.5 md:w-3 md:h-3" />
+        return <Calendar className="w-3 h-3 flex-none" />
       case 'job':
-        return <Briefcase className="w-2.5 h-2.5 md:w-3 md:h-3" />
+        return <Briefcase className="w-3 h-3 flex-none" />
       case 'task':
-        return <CheckCircle2 className="w-2.5 h-2.5 md:w-3 md:h-3" />
+        return <CheckCircle2 className="w-3 h-3 flex-none" />
       default:
         return null
     }
@@ -76,37 +76,46 @@ export default function CalendarDayCell({
         }
       `}
     >
-      <span
+      <div
         className={`
-          text-[10px] md:text-sm font-medium relative z-10 self-center
-          ${isCurrentMonth
-            ? 'text-slate-900 dark:text-foreground'
-            : 'text-slate-400 dark:text-slate-600'
-          }
+          flex items-center justify-center w-5 h-5 md:w-7 md:h-7 flex-none leading-none p-0
           ${isToday
-            ? 'text-white'
+            ? 'bg-blue-500 rounded-full'
             : ''
           }
         `}
       >
-        {day}
-        {isToday && (
-          <span className="absolute inset-0 -z-10 w-5 h-5 md:w-7 md:h-7 rounded-full bg-blue-500" />
-        )}
-      </span>
+        <span
+          className={`
+            text-[10px] md:text-sm font-medium leading-none
+            ${isCurrentMonth
+              ? 'text-slate-900 dark:text-foreground'
+              : 'text-slate-400 dark:text-slate-600'
+            }
+            ${isToday
+              ? 'text-white'
+              : ''
+            }
+          `}
+        >
+          {day}
+        </span>
+      </div>
       <div className="w-full flex flex-col gap-0.5">
         {visibleEvents.map((event, index) => (
           <div
             key={`${event.id}-${index}`}
-            className={`flex items-center gap-1 text-[8px] md:text-[9px] truncate ${getEventColor(event.type)}`}
+            className={`flex items-center gap-1 text-[9px] leading-none truncate ${getEventColor(event.type)}`}
             title={event.summary}
           >
-            {getEventIcon(event.type)}
+            <div className="flex items-center justify-center w-4 h-4 flex-none shrink-0">
+              {getEventIcon(event.type)}
+            </div>
             <span className="truncate font-medium">{event.summary}</span>
           </div>
         ))}
         {overflowCount > 0 && (
-          <span className={`text-[8px] md:text-[9px] ${overflowCount > 3 ? 'font-semibold' : 'font-normal'} text-slate-500 dark:text-slate-400`}>
+          <span className={`text-[9px] leading-none ${overflowCount > 3 ? 'font-semibold' : 'font-normal'} text-slate-500 dark:text-slate-400`}>
             +{overflowCount} more
           </span>
         )}
