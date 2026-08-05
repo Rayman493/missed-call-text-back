@@ -3534,54 +3534,57 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       )}
                     </div>
 
-                    {/* Name and Phone */}
+                    {/* Name, Phone, Request Title, Status */}
                     <div className="min-w-0 flex-1">
                       <h1 className="text-2xl font-semibold text-foreground tracking-tight leading-tight mb-1">
                         {getLeadDisplayName(leadData || lead)}
                       </h1>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 mb-1">
                         <p className="text-sm text-slate-400 leading-tight">
                           {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
                         </p>
-                        {/* Status Dropdown */}
-                        <div className="flex-shrink-0">
-                          <LeadStatusDropdown
-                            currentStatus={normalizeCustomerStatus((leadData || lead).status || (leadData || lead).lead_status)}
-                            onStatusChange={handleStatusUpdate}
-                            size="sm"
-                          />
-                        </div>
+                        <span className="text-slate-600 dark:text-slate-500">•</span>
+                        <p className="text-sm text-slate-400 leading-tight truncate">
+                          {getLeadAIIntake(leadData || lead).conciseRequestTitle || getLeadAIIntake(leadData || lead).serviceRequested || ''}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <LeadStatusDropdown
+                          currentStatus={normalizeCustomerStatus((leadData || lead).status || (leadData || lead).lead_status)}
+                          onStatusChange={handleStatusUpdate}
+                          size="sm"
+                        />
                       </div>
                     </div>
 
-                  {/* Actions - Quick Actions */}
-                  <div className="flex items-center gap-3 flex-shrink-0">
+                  {/* Quick Actions - Lightweight */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     {/* Job */}
                     <button
                       onClick={handleCreateJobClick}
-                      className="inline-flex h-9 items-center gap-2 px-3 rounded-md text-foreground hover:bg-slate-800 transition-colors text-sm font-medium"
+                      className="inline-flex h-8 items-center gap-1.5 px-2.5 rounded-md text-foreground hover:bg-slate-800 transition-colors text-xs font-medium"
                       title="Create job"
                     >
-                      <ClipboardPlus className="w-4 h-4 stroke-[1.8]" />
+                      <ClipboardPlus className="w-3.5 h-3.5 stroke-[1.8]" />
                       <span className="leading-none">Job</span>
                     </button>
                     {/* Schedule */}
                     <button
                       onClick={handleAppointmentClick}
-                      className="inline-flex h-9 items-center gap-2 px-3 rounded-md text-foreground hover:bg-slate-800 transition-colors text-sm font-medium"
+                      className="inline-flex h-8 items-center gap-1.5 px-2.5 rounded-md text-foreground hover:bg-slate-800 transition-colors text-xs font-medium"
                       title="Schedule appointment"
                     >
-                      <CalendarDays className="w-4 h-4 stroke-[1.8]" />
+                      <CalendarDays className="w-3.5 h-3.5 stroke-[1.8]" />
                       <span className="leading-none">Schedule</span>
                     </button>
                     {/* Payment */}
                     <button
                       onClick={() => setShowPaymentModal(true)}
                       disabled={!business || getAvailableProviders(business).length === 0}
-                      className="inline-flex h-9 items-center gap-2 px-3 rounded-md text-foreground hover:bg-slate-800 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="inline-flex h-8 items-center gap-1.5 px-2.5 rounded-md text-foreground hover:bg-slate-800 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                       title={!business || getAvailableProviders(business).length === 0 ? 'Configure a payment method in Settings to request payments' : 'Request payment'}
                     >
-                      <CreditCard className="w-4 h-4 stroke-[1.8]" />
+                      <CreditCard className="w-3.5 h-3.5 stroke-[1.8]" />
                       <span className="leading-none">Payment</span>
                     </button>
 
@@ -3736,7 +3739,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
         {/* Desktop Layout - Only render when not mobile view */}
         {!isMobileView && (
-          <div className="grid grid-cols-[minmax(0,1fr)_minmax(360px,400px)] gap-8 items-start">
+          <div className="grid grid-cols-[minmax(0,2fr)_minmax(320px,360px)] gap-8 items-start">
             {/* Desktop Conversation Section - Primary workspace */}
             <section className="flex flex-col min-h-0 h-[calc(100vh-260px)] bg-background rounded-2xl border border-border/40 shadow-sm overflow-hidden">
               {/* Desktop Conversation Header */}
