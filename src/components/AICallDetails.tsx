@@ -540,6 +540,8 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
   const correctedFields = leadData?.raw_metadata?.corrected_fields
   const effectiveOutcome = selectedRecord?.outcome || aiCallRecord?.outcome || ''
   const intakeBadgeLabel = selectedRecord ? getIntakeBadgeLabel(selectedRecord, isLatest) : 'Request'
+  const intake = getLeadAIIntake(leadData || {})
+  const conciseTitle = intake.conciseRequestTitle || intake.serviceRequested || ''
   
   // Determine service location type with fallback chain
   const serviceLocationType = 
@@ -557,42 +559,61 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
       {collapsible ? (
         <div className="bg-muted/45 rounded-xl border border-border/45 shadow-md overflow-hidden relative">
           {/* Header Region */}
-          <div className="px-5 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {/* Blue check icon container - 36-40px */}
-                <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center relative">
-                  {/* Blue accent bar - contained within header */}
-                  <div className="absolute left-0 top-1 bottom-1 w-0.5 bg-blue-500 rounded-l"></div>
-                  <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 relative z-10 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="px-4 py-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3 flex-1 min-w-0">
+                {/* Completed indicator */}
+                <div className="w-7 h-7 rounded-lg bg-green-100 dark:bg-green-900/40 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                {/* Title and subtitle */}
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-sm font-semibold text-foreground leading-tight">
-                    AI Intake
-                  </span>
-                  <span className="text-[11px] text-muted-foreground font-normal leading-tight">
-                    Captured from AI Voice
-                  </span>
+                {/* Title and key info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-semibold text-foreground leading-tight">
+                      AI Intake Complete
+                    </span>
+                  </div>
+                  {summaryExpanded ? (
+                    <span className="text-[11px] text-muted-foreground font-normal leading-tight">
+                      Captured from AI Voice
+                    </span>
+                  ) : (
+                    <div className="space-y-1">
+                      {conciseTitle && (
+                        <p className="text-sm font-medium text-foreground leading-tight truncate">
+                          {conciseTitle}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        {(extractedInfo?.desiredCompletionTime || extractedInfo?.preferredCallbackTime) && (
+                          <>
+                            <span>{extractedInfo?.desiredCompletionTime || extractedInfo?.preferredCallbackTime}</span>
+                            <span>•</span>
+                          </>
+                        )}
+                        <span>{formatRelativeTime(aiCallRecord.created_at)}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 flex-shrink-0">
                 {isEditMode ? (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
                     <button
                       onClick={handleCancel}
                       disabled={isSaving}
-                      className="text-xs text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-medium disabled:opacity-50"
+                      className="text-xs text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-medium disabled:opacity-50 px-2 py-1"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleSave}
                       disabled={isSaving}
-                      className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium disabled:opacity-50 flex items-center gap-1"
+                      className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium disabled:opacity-50 flex items-center gap-1 px-2 py-1"
                     >
                       {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                       Save
@@ -612,19 +633,19 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                         desiredCompletionTime: extractedInfo?.desiredCompletionTime || ''
                       })
                     }}
-                    className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
+                    className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
                     title="Edit customer information"
                     aria-label="Edit customer information"
                   >
-                    <Pencil className="w-4 h-4" />
+                    <Pencil className="w-3.5 h-3.5" />
                   </button>
                 )}
                 <button
                   onClick={() => setSummaryExpanded(!summaryExpanded)}
-                  className="p-2 text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
+                  className="p-1.5 text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
                   aria-label={summaryExpanded ? 'Collapse' : 'Expand'}
                 >
-                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${summaryExpanded ? 'rotate-180' : 'rotate-0'}`} />
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${summaryExpanded ? 'rotate-180' : 'rotate-0'}`} />
                 </button>
               </div>
             </div>
@@ -651,22 +672,22 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
       ) : (
         <div className="bg-muted/45 rounded-xl border border-border/45 shadow-md overflow-hidden">
           {/* Header Region */}
-          <div className="px-5 py-4 border-b border-border/30">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {/* Blue check icon container - 36-40px */}
-                <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center relative">
-                  {/* Blue accent bar - contained within header */}
-                  <div className="absolute left-0 top-1 bottom-1 w-0.5 bg-blue-500 rounded-l"></div>
-                  <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 relative z-10 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="px-4 py-3 border-b border-border/30">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3 flex-1 min-w-0">
+                {/* Completed indicator */}
+                <div className="w-7 h-7 rounded-lg bg-green-100 dark:bg-green-900/40 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                {/* Title and subtitle */}
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-sm font-semibold text-foreground leading-tight">
-                    AI Intake
-                  </span>
+                {/* Title and key info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-semibold text-foreground leading-tight">
+                      AI Intake Complete
+                    </span>
+                  </div>
                   <span className="text-[11px] text-muted-foreground font-normal leading-tight">
                     Captured from AI Voice
                   </span>
@@ -674,20 +695,20 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               </div>
 
               {/* Edit Controls */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 flex-shrink-0">
                 {isEditMode ? (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
                     <button
                       onClick={handleCancel}
                       disabled={isSaving}
-                      className="text-xs text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-medium disabled:opacity-50"
+                      className="text-xs text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-medium disabled:opacity-50 px-2 py-1"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleSave}
                       disabled={isSaving}
-                      className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium disabled:opacity-50 flex items-center gap-1"
+                      className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium disabled:opacity-50 flex items-center gap-1 px-2 py-1"
                     >
                       {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                       Save
@@ -706,11 +727,11 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                         desiredCompletionTime: extractedInfo?.desiredCompletionTime || ''
                       })
                     }}
-                    className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
+                    className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
                     title="Edit customer information"
                     aria-label="Edit customer information"
                   >
-                    <Pencil className="w-4 h-4" />
+                    <Pencil className="w-3.5 h-3.5" />
                   </button>
                 )}
               </div>
@@ -831,35 +852,31 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
               </div>
             ) : aiSummary ? (
               <div className="space-y-3">
-                {/* Key Points */}
+                {/* Executive Summary - Bullet Points */}
                 {(() => {
                   const keyPoints = extractKeyPoints(aiSummary);
                   return keyPoints.length > 0 ? (
-                    <div>
-                      <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Key Points</h4>
-                      <ul className="space-y-1.5">
-                        {keyPoints.map((point, index) => (
-                          <li key={index} className="text-xs text-foreground flex items-start gap-2">
-                            <span className="text-muted-foreground mt-0.5">•</span>
-                            <span>{point}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null;
+                    <ul className="space-y-2">
+                      {keyPoints.map((point, index) => (
+                        <li key={index} className="text-xs text-foreground flex items-start gap-2 leading-relaxed">
+                          <span className="text-muted-foreground mt-0.5 flex-shrink-0">•</span>
+                          <span className="flex-1">{point}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-xs text-foreground leading-relaxed">
+                      {aiSummary}
+                    </p>
+                  );
                 })()}
-                
-                {/* Summary Paragraph */}
-                <p className="text-sm text-foreground leading-relaxed">
-                  {aiSummary}
-                </p>
                 <button
                   onClick={handleGenerateSummary}
                   disabled={isGeneratingSummary}
-                  className="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-1.5 h-7 px-2.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <RefreshCw className={`w-3 h-3 ${isGeneratingSummary ? 'animate-spin' : ''}`} />
-                  Refresh Summary
+                  Refresh
                 </button>
               </div>
             ) : (
