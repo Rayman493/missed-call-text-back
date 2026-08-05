@@ -37,6 +37,7 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
     const fetchLeads = async () => {
       setLoading(true)
       try {
+        console.log('[RecentLeadsSection] Fetching leads for businessId:', businessId)
         const { data, error } = await supabase
           .from('leads')
           .select(`
@@ -81,7 +82,11 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
           .order('last_message_at', { ascending: false, nullsFirst: false })
           .order('first_contact_at', { ascending: false, nullsFirst: false })
           .order('created_at', { ascending: false })
-          .or('status.is.null,status.neq.ignored')
+          .not('status', 'eq', 'ignored')
+
+        console.log('[RecentLeadsSection] Query error:', error)
+        console.log('[RecentLeadsSection] Query data length:', data?.length)
+        console.log('[RecentLeadsSection] Query data:', data)
 
         if (error) {
           console.error('[RecentLeadsSection] Query error:', error)
@@ -94,6 +99,8 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
           ...lead,
           aiCallRecords: lead.ai_call_records || []
         }))
+        console.log('[RecentLeadsSection] Normalized leads length:', normalizedLeads.length)
+        console.log('[RecentLeadsSection] Setting leads state with', normalizedLeads.length, 'items')
         setLeads(normalizedLeads)
       } catch (error) {
         console.error('[RecentLeadsSection] Error fetching leads:', error)
@@ -369,7 +376,7 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
               const aiData = getAIData(lead)
               const displayName = getLeadDisplayName(lead)
               const initials = displayName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
-              const statusDisplay = formatLeadStatus(lead.lead_status || lead.status)
+              const statusDisplay = formatLeadStatus(lead.status)
               const currentJob = getCurrentJob(lead)
               const nextFollowUp = getNextFollowUp(lead)
 
