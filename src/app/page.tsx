@@ -120,10 +120,10 @@ export default async function Home() {
             <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8 md:space-y-10 lg:space-y-12 relative z-10">
               <div className="flex flex-col items-center text-center gap-y-6 sm:gap-y-8 md:gap-y-10">
                 <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight tracking-[-0.03em] leading-[1.1] sm:leading-[1.15] text-slate-900 dark:text-foreground">
-                  Never Miss a Lead Again
+                  Never Lose a Customer to a Missed Call
                 </h1>
                 <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-slate-700 dark:text-slate-300 max-w-2xl sm:max-w-3xl leading-relaxed sm:leading-relaxed md:leading-relaxed lg:leading-relaxed">
-                  Capture every missed call automatically, and manage every customer, job, appointment, and payment from one place.
+                  Automatically text back missed callers, manage customers and jobs, schedule, and get paid — all in one place.
                 </p>
 
                 <div className="flex flex-col items-center gap-y-3 sm:gap-y-4">
@@ -302,10 +302,10 @@ export default async function Home() {
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center mb-6">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4">
-                How ReplyFlow Works
+                How ReplyFlow Turns Calls Into Jobs
               </h2>
               <p className="text-sm sm:text-base md:text-lg text-slate-700 dark:text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-                Turn forwarded missed calls into conversations in five simple steps.
+                Turn missed calls into booked jobs in five simple steps.
               </p>
             </div>
             
@@ -505,10 +505,10 @@ export default async function Home() {
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center mb-10">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4">
-                Capture Every Missed Call. Book More Jobs.
+                Capture Missed Calls. Book More Jobs.
               </h2>
               <p className="text-sm sm:text-base md:text-lg text-slate-700 dark:text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-                AI Voice answers missed calls, captures new customers, books appointments, and helps you get paid with Tap to Pay or branded SMS payment requests—all in one place.
+                When you can’t answer, ReplyFlow responds, captures new customers, books appointments, and helps you get paid with Tap to Pay or SMS payment requests — all in one place.
               </p>
             </div>
 
@@ -523,7 +523,7 @@ export default async function Home() {
                 </div>
                 <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-2 sm:mb-3">Keep Your Existing Number</h3>
                 <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 leading-relaxed max-w-[18rem]">
-                  No need to change your business phone number. Simply forward missed calls to ReplyFlow and continue using your existing workflow.
+                  Keep your current business number. Just forward missed calls to ReplyFlow and keep your workflow.
                 </p>
               </div>
 
@@ -549,7 +549,7 @@ export default async function Home() {
                 </div>
                 <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-2 sm:mb-3">Get Paid Anywhere</h3>
                 <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-400 leading-relaxed max-w-[18rem]">
-                  Accept contactless payments with Tap to Pay on iPhone or Android, or send branded SMS payment requests—all from ReplyFlow. No extra hardware required.
+                  Accept contactless payments on iPhone or Android, or send branded SMS payment requests — no extra hardware required.
                 </p>
               </div>
 
@@ -579,10 +579,10 @@ export default async function Home() {
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center mb-12">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-foreground mb-4">
-                Why Local Businesses Choose ReplyFlow
+                Why Businesses Choose ReplyFlow
               </h2>
               <p className="text-sm sm:text-base md:text-lg text-slate-700 dark:text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-                Built for businesses that need to respond quickly to every opportunity.
+                Built for teams that need to respond fast and turn more calls into jobs.
               </p>
             </div>
 
@@ -762,7 +762,7 @@ export default async function Home() {
           <div className="max-w-7xl mx-auto px-6 lg:px-8 text-center relative z-10">
             <div>
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 dark:text-foreground mb-8">
-                Ready to Grow Your Business with ReplyFlow
+                Grow Your Business with ReplyFlow
               </h2>
               <p className="text-base sm:text-lg md:text-xl text-slate-700 dark:text-muted-foreground mb-12 leading-relaxed">
                 Capture missed calls automatically, manage every customer, schedule appointments, and get paid—all from one place.
