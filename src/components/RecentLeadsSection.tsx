@@ -10,7 +10,8 @@ import LeadTimeline from '@/components/LeadTimeline'
 import { getLeadLifecycleStatus } from '@/lib/lead-lifecycle'
 import { getCardAccentClasses, getCardGradientClasses, getCardBorderClasses, getStatusBadgeClasses } from '@/lib/lead-status-colors'
 import { formatLeadStatus } from '@/lib/status-formatter'
-import { ChevronRight, User } from 'lucide-react'
+import { ChevronRight, User, Phone as PhoneIcon } from 'lucide-react'
+import { useBusiness } from '@/contexts/BusinessContext'
 
 interface RecentLeadsSectionProps {
   businessId: string
@@ -29,6 +30,16 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
   const [loading, setLoading] = useState(true)
   const supabase = createBrowserClient()
   const realtimeChannelRef = useRef<any>(null)
+  const { business } = useBusiness()
+
+  // Mobile detection (match app convention: md breakpoint)
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const check = () => setIsMobile(typeof window !== 'undefined' && window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   // Fetch leads, follow-up jobs, and call events
   useEffect(() => {
@@ -382,11 +393,47 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
           </div>
         ) : (
           <div className="space-y-1">
-            {leads.slice(0, 5).map((lead, index) => {
+            {leads.slice(0, isMobile ? 4 : 5).map((lead, index) => {
               const aiData = getAIData(lead)
               const displayName = getLeadDisplayName(lead)
               const requestTitle = getLeadRequestTitle(lead)
-              const initials = displayName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+              
+              // Determine avatar content per priority
+              const hasCustomerName = (() => {
+                const intake = getLeadAIIntake(lead)
+                if (intake.customerName && intake.customerName !== 'Not collected') return true
+                if (lead?.name && lead.name !== 'Not collected') return true
+                return false
+              })()
+
+              const businessInitials = (() => {
+                const anyBiz = business as any
+                const name = business?.name || anyBiz?.legal_name || ''
+                if (!name) return ''
+                const parts = name.trim().split(/\s+/)
+                const first = parts[0]?.[0] || ''
+                const last = parts.length > 1 ? parts[parts.length - 1][0] : ''
+                const letters = `${first}${last}`.replace(/[^A-Za-z]/g, '')
+                return letters.slice(0, 2).toUpperCase()
+              })()
+
+              const isPhoneOnly = !hasCustomerName && ['phone', 'caller_phone', 'phone_number'].some(f => !!lead?.[f])
+              const isUnknown = !hasCustomerName && !isPhoneOnly
+
+              const customerInitials = (() => {
+                if (!hasCustomerName) return ''
+                const name = (lead?.name && lead.name !== 'Not collected') ? lead.name : getLeadAIIntake(lead).customerName
+                const clean = (name || '').trim()
+                if (!clean) return ''
+                const parts = clean.split(/\s+/).filter((p: string) => /[A-Za-z]/.test(p))
+                const first = parts[0]?.[0] || ''
+                const last = parts.length > 1 ? parts[parts.length - 1][0] : ''
+                const letters = `${first}${last}`.replace(/[^A-Za-z]/g, '')
+                return letters.slice(0, 2).toUpperCase()
+              })()
+
+              const showInitials = !!customerInitials || (!!businessInitials && !hasCustomerName && !isPhoneOnly)
+              const initialsToShow = customerInitials || businessInitials
               const statusDisplay = formatLeadStatus(lead.status)
               const currentJob = getCurrentJob(lead)
               const nextFollowUp = getNextFollowUp(lead)
@@ -395,15 +442,21 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
                 <Link key={lead.id} href={`/dashboard/leads/${lead.id}`}>
                   <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group">
                     <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
-                      <span className="text-xs font-medium text-slate-600 dark:text-slate-300">{initials}</span>
+                      {showInitials ? (
+                        <span className="text-xs font-medium text-slate-600 dark:text-slate-300">{initialsToShow}</span>
+                      ) : isPhoneOnly ? (
+                        <PhoneIcon className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+                      ) : (
+                        <User className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-slate-900 dark:text-foreground truncate mb-0.5">
                         {displayName}
                       </p>
-                      {requestTitle && (
+                      {(isPhoneOnly ? true : !!requestTitle) && (
                         <p className="text-xs text-slate-600 dark:text-slate-400 truncate mb-0.5">
-                          {requestTitle}
+                          {isPhoneOnly ? 'Not Collected' : requestTitle}
                         </p>
                       )}
                       <div className="flex items-center gap-1.5 flex-wrap">
@@ -430,6 +483,12 @@ export default function RecentLeadsSection({ businessId, isOnboardingComplete = 
                 </Link>
               )
             })}
+            {/* Footer link */}
+            <div className="pt-1.5">
+              <Link href="/dashboard/leads" className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300">
+                View all customers
+              </Link>
+            </div>
           </div>
         )}
       </div>
