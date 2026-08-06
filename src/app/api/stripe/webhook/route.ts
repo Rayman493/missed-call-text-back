@@ -12,56 +12,159 @@ import { notificationServiceServer } from '@/lib/notifications-server'
 
 export const dynamic = 'force-dynamic'
 
-/**
- * Check if a Stripe webhook event has already been processed
- * Uses database-backed idempotency to work across server instances and deployments
- */
-async function isEventProcessed(supabase: any, eventId: string): Promise<boolean> {
-  try {
-    const { data, error } = await supabase
-      .from('stripe_webhook_events')
-      .select('id')
-      .eq('event_id', eventId)
-      .single()
-    
-    if (error && error.code !== 'PGRST116') {
-      // PGRST116 = not found, which is expected for new events
-      console.error('[STRIPE WEBHOOK] Error checking event processing status:', error)
-    }
-    
-    return !!data
-  } catch (error) {
-    console.error('[STRIPE WEBHOOK] Exception checking event processing status:', error)
-    return false
-  }
-}
+// Lease duration for processing claims (5 minutes)
+const PROCESSING_LEASE_MS = 5 * 60 * 1000
 
 /**
- * Mark a Stripe webhook event as processed
- * Returns true if successfully marked, false if already exists
+ * Claim a Stripe webhook event for processing using atomic operations
+ * This ensures only one delivery can successfully claim an event
+ * 
+ * Uses the UNIQUE constraint on event_id to atomically claim events:
+ * - First successful insert claims the event (status: 'processing')
+ * - Concurrent duplicates get unique constraint violation (23505)
+ * - Event is marked 'processed' only after side effects complete
+ * - Failed processing can be retried by updating status from 'failed' to 'processing'
+ * - Stale processing claims can be reclaimed after lease expires
+ * 
+ * Returns:
+ * - { claimed: true, isNew: true } - Successfully claimed new event
+ * - { claimed: true, isNew: false, reclaimed: true } - Reclaimed failed or stale event
+ * - { claimed: false, isNew: false, status: 'processed' } - Already processed
+ * - { claimed: false, isNew: false, status: 'processing', leaseValid: true } - Currently being processed (lease valid)
+ * - { claimed: false, isNew: false, status: 'processing', leaseValid: false } - Stale processing claim (lease expired)
+ * - { claimed: false, isNew: false, status: 'failed' } - Previously failed, can retry
  */
-async function markEventProcessed(
+async function claimEvent(
   supabase: any,
   eventId: string,
   eventType: string,
   businessId?: string | null
-): Promise<boolean> {
+): Promise<{ 
+  claimed: boolean; 
+  isNew: boolean; 
+  reclaimed?: boolean; 
+  status?: string; 
+  leaseValid?: boolean 
+}> {
   try {
+    // Try to insert with 'processing' status to claim the event
     const { error } = await supabase
       .from('stripe_webhook_events')
       .insert({
         event_id: eventId,
         event_type: eventType,
         business_id: businessId || null,
-        status: 'processed'
+        status: 'processing',
+        processing_started_at: new Date().toISOString(),
+        attempt_count: 1
       })
     
     if (error) {
       if (error.code === '23505') {
-        // Unique constraint violation - event already processed
-        console.log('[STRIPE WEBHOOK] Event already processed (unique constraint):', eventId)
-        return false
+        // Unique constraint violation - event already exists
+        // Check its current status and lease validity
+        const { data: existing } = await supabase
+          .from('stripe_webhook_events')
+          .select('status, processing_started_at, attempt_count')
+          .eq('event_id', eventId)
+          .single()
+        
+        if (existing) {
+          console.log('[STRIPE WEBHOOK] Event already exists with status:', existing.status, eventId)
+          
+          // Case 2: Already processed - return idempotent success
+          if (existing.status === 'processed') {
+            return { claimed: false, isNew: false, status: 'processed' }
+          }
+          
+          // Case 3: Failed event - attempt to reclaim with conditional UPDATE
+          if (existing.status === 'failed') {
+            const { data: reclaimed, error: reclaimError } = await supabase
+              .from('stripe_webhook_events')
+              .update({ 
+                status: 'processing',
+                processing_started_at: new Date().toISOString(),
+                attempt_count: (existing.attempt_count || 0) + 1,
+                error_message: null
+              })
+              .eq('event_id', eventId)
+              .eq('status', 'failed')
+              .select('id')
+              .single()
+            
+            if (reclaimError) {
+              console.log('[STRIPE WEBHOOK] Failed to reclaim failed event (concurrent retry):', eventId)
+              return { claimed: false, isNew: false, status: 'failed' }
+            }
+            
+            console.log('[STRIPE WEBHOOK] Reclaimed failed event:', eventId, 'attempt:', existing.attempt_count + 1)
+            return { claimed: true, isNew: false, reclaimed: true }
+          }
+          
+          // Case 4 & 5: Processing event - check lease validity
+          if (existing.status === 'processing') {
+            const processingStarted = existing.processing_started_at 
+              ? new Date(existing.processing_started_at).getTime() 
+              : 0
+            const now = Date.now()
+            const leaseExpired = (now - processingStarted) > PROCESSING_LEASE_MS
+            
+            if (leaseExpired) {
+              // Case 4: Stale processing claim - attempt to reclaim
+              const { data: reclaimed, error: reclaimError } = await supabase
+                .from('stripe_webhook_events')
+                .update({ 
+                  processing_started_at: new Date().toISOString(),
+                  attempt_count: (existing.attempt_count || 0) + 1
+                })
+                .eq('event_id', eventId)
+                .eq('status', 'processing')
+                .select('id')
+                .single()
+              
+              if (reclaimError) {
+                console.log('[STRIPE WEBHOOK] Failed to reclaim stale processing (concurrent retry):', eventId)
+                return { claimed: false, isNew: false, status: 'processing', leaseValid: false }
+              }
+              
+              console.log('[STRIPE WEBHOOK] Reclaimed stale processing claim:', eventId)
+              return { claimed: true, isNew: false, reclaimed: true }
+            } else {
+              // Case 5: Active processing claim - lease still valid
+              console.log('[STRIPE WEBHOOK] Event currently being processed (lease valid):', eventId)
+              return { claimed: false, isNew: false, status: 'processing', leaseValid: true }
+            }
+          }
+        }
       }
+      console.error('[STRIPE WEBHOOK] Error claiming event:', error)
+      return { claimed: false, isNew: false }
+    }
+    
+    console.log('[STRIPE WEBHOOK] Event claimed for processing:', eventId)
+    return { claimed: true, isNew: true }
+  } catch (error) {
+    console.error('[STRIPE WEBHOOK] Exception claiming event:', error)
+    return { claimed: false, isNew: false }
+  }
+}
+
+/**
+ * Mark a claimed Stripe webhook event as successfully processed
+ * Called only after all side effects complete successfully
+ */
+async function markEventProcessed(
+  supabase: any,
+  eventId: string
+): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('stripe_webhook_events')
+      .update({ status: 'processed' })
+      .eq('event_id', eventId)
+      .eq('status', 'processing')
+    
+    if (error) {
       console.error('[STRIPE WEBHOOK] Error marking event as processed:', error)
       return false
     }
@@ -70,6 +173,38 @@ async function markEventProcessed(
     return true
   } catch (error) {
     console.error('[STRIPE WEBHOOK] Exception marking event as processed:', error)
+    return false
+  }
+}
+
+/**
+ * Mark a claimed Stripe webhook event as failed
+ * Allows retry if the event is still valid
+ */
+async function markEventFailed(
+  supabase: any,
+  eventId: string,
+  errorMessage: string
+): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('stripe_webhook_events')
+      .update({ 
+        status: 'failed',
+        error_message: errorMessage
+      })
+      .eq('event_id', eventId)
+      .eq('status', 'processing')
+    
+    if (error) {
+      console.error('[STRIPE WEBHOOK] Error marking event as failed:', error)
+      return false
+    }
+    
+    console.log('[STRIPE WEBHOOK] Event marked as failed:', eventId)
+    return true
+  } catch (error) {
+    console.error('[STRIPE WEBHOOK] Exception marking event as failed:', error)
     return false
   }
 }
@@ -201,14 +336,33 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    // Idempotency check - prevent duplicate processing using database
-    const alreadyProcessed = await isEventProcessed(supabase, event.id)
-    if (alreadyProcessed) {
-      console.log('[STRIPE WEBHOOK] Event already processed, skipping:', event.id)
-      return NextResponse.json({ received: true, idempotent: true })
+    // Atomic event claim - prevent duplicate processing using database
+    const claim = await claimEvent(supabase, event.id, event.type)
+    
+    if (!claim.claimed) {
+      if (claim.status === 'processed') {
+        console.log('[STRIPE WEBHOOK] Event already processed, skipping:', event.id)
+        return NextResponse.json({ received: true, idempotent: true })
+      } else if (claim.status === 'processing' && claim.leaseValid === true) {
+        // Case 5: Active processing claim - lease still valid
+        // Return 202 Accepted to tell Stripe we received it but haven't processed it yet
+        // Stripe will retry if the original process crashes before marking processed
+        console.log('[STRIPE WEBHOOK] Event currently being processed (lease valid), returning 202:', event.id)
+        return NextResponse.json({ 
+          received: true, 
+          status: 'processing',
+          message: 'Event is currently being processed by another instance'
+        }, { status: 202 })
+      } else if (claim.status === 'failed') {
+        console.log('[STRIPE WEBHOOK] Event previously failed, retrying:', event.id)
+        // Continue processing to retry
+      } else {
+        console.log('[STRIPE WEBHOOK] Event claim failed, skipping:', event.id)
+        return NextResponse.json({ received: true, warning: 'Event claim failed' })
+      }
     }
     
-    console.log('[STRIPE WEBHOOK] Processing new event:', event.id)
+    console.log('[STRIPE WEBHOOK] Processing event:', event.id, claim.reclaimed ? '(reclaimed)' : '(new)')
 
     console.log('[Stripe Webhook] Received event:', event.type)
     console.log('[STRIPE WEBHOOK] ========== EVENT DISPATCH ==========')
@@ -428,7 +582,7 @@ export async function POST(request: Request) {
           console.log('[STRIPE WEBHOOK] Fields updated:', Object.keys(updateData).join(', '))
           
           // Mark event as processed only after successful DB update
-          await markEventProcessed(supabase, event.id, event.type, businessId)
+          await markEventProcessed(supabase, event.id)
           
           // Fetch updated business state after update
           console.log('[ProvisioningState] Fetching business state after update')
@@ -618,7 +772,7 @@ export async function POST(request: Request) {
             .update(metadataOnlyPayload)
             .eq('id', business.id)
 
-          await markEventProcessed(supabase, event.id, event.type, business.id)
+          await markEventProcessed(supabase, event.id)
           return NextResponse.json({ received: true, info: 'Subscription event ignored until checkout completion' })
         }
 
@@ -665,7 +819,7 @@ export async function POST(request: Request) {
           await cancelTwilioRelease(business.id)
 
           // Mark event as processed
-          await markEventProcessed(supabase, event.id, event.type, business.id)
+          await markEventProcessed(supabase, event.id)
 
           console.log('[Stripe Webhook] subscription status updated:', subscription.status)
           console.log('[Stripe Webhook] triggering provisioning check for business:', business.id)
@@ -884,7 +1038,7 @@ export async function POST(request: Request) {
               .update(metadataOnlyPayload)
               .eq('id', business.id)
 
-            await markEventProcessed(supabase, event.id, event.type, business.id)
+            await markEventProcessed(supabase, event.id)
             return NextResponse.json({ received: true, info: 'Subscription event ignored until checkout completion' })
           }
 
@@ -929,7 +1083,7 @@ export async function POST(request: Request) {
             console.log('[stripe-webhook] subscription.updated: DB update success for business:', business.id)
           }
 
-          await markEventProcessed(supabase, event.id, event.type, business.id)
+          await markEventProcessed(supabase, event.id)
         } else {
           logOrphanedSubscriptionWarning(subscription.id, customerId, subscription.metadata)
           return NextResponse.json({ received: true, warning: 'No matching business found' }, { status: 200 })
@@ -951,13 +1105,50 @@ export async function POST(request: Request) {
         // Find business by stripe_subscription_id
         const { data: business } = await supabase
           .from('businesses')
-          .select('id, user_id, carrier')
+          .select('id, user_id, carrier, stripe_subscription_id, subscription_status')
           .eq('stripe_subscription_id', subscription.id)
           .limit(1)
           .single()
 
         if (business) {
           console.log('[STRIPE CANCEL] Business found:', business.id)
+          
+          // OUT-OF-ORDER PROTECTION: Verify this is still the business's current subscription
+          // If the business has been reactivated with a new subscription, don't clear fields
+          if (business.stripe_subscription_id !== subscription.id) {
+            console.log('[STRIPE CANCEL] Business has a different subscription ID, skipping deletion')
+            console.log('[STRIPE CANCEL] Business subscription_id:', business.stripe_subscription_id)
+            console.log('[STRIPE CANCEL] Event subscription_id:', subscription.id)
+            console.log('[STRIPE CANCEL] This is an out-of-order deletion event, ignoring')
+            await markEventProcessed(supabase, event.id)
+            break
+          }
+
+          // Additional protection: Try to retrieve the subscription from Stripe to verify it's actually deleted
+          // If Stripe returns the subscription, it might have been reactivated
+          try {
+            const stripe = getStripe()
+            if (!stripe) {
+              console.warn('[STRIPE CANCEL] Stripe client not available, proceeding with deletion')
+            } else {
+              const currentSubscription = await stripe.subscriptions.retrieve(subscription.id)
+              
+              if (currentSubscription && currentSubscription.status !== 'canceled') {
+                console.log('[STRIPE CANCEL] Subscription still active in Stripe, skipping deletion')
+                console.log('[STRIPE CANCEL] Stripe status:', currentSubscription.status)
+                console.log('[STRIPE CANCEL] This is likely a reactivation, ignoring deletion event')
+                await markEventProcessed(supabase, event.id)
+                break
+              }
+            }
+          } catch (stripeError) {
+            // If Stripe returns 404, the subscription is truly deleted, which is expected
+            // If Stripe returns another error, log it but proceed with deletion
+            if ((stripeError as any).code !== 'resource_missing') {
+              console.warn('[STRIPE CANCEL] Error verifying subscription in Stripe:', stripeError)
+              // Continue with deletion anyway - the webhook is authoritative
+            }
+          }
           
           const updateData = {
             stripe_subscription_id: null,
@@ -979,6 +1170,9 @@ export async function POST(request: Request) {
           if (updateError) {
             console.error('[STRIPE CANCEL] ========== UPDATE ERROR ==========')
             console.error('[STRIPE CANCEL] Supabase error:', updateError)
+            // Mark as failed to allow retry
+            await markEventFailed(supabase, event.id, updateError.message)
+            return NextResponse.json({ error: 'Database update failed' }, { status: 500 })
           } else {
             console.log('[STRIPE CANCEL] ========== UPDATE SUCCESS ==========')
             console.log('[STRIPE CANCEL] Subscription marked as CANCELED for business:', business.id)
@@ -993,7 +1187,7 @@ export async function POST(request: Request) {
           // Webhook only updates subscription status in database
 
           // Mark event as processed
-          await markEventProcessed(supabase, event.id, event.type, business.id)
+          await markEventProcessed(supabase, event.id)
         } else {
           logOrphanedSubscriptionWarning(subscription.id, customerId, subscription.metadata)
           return NextResponse.json({ received: true, warning: 'No matching business found' }, { status: 200 })
@@ -1070,7 +1264,7 @@ export async function POST(request: Request) {
           }
 
           // Mark event as processed
-          await markEventProcessed(supabase, event.id, event.type, business.id)
+          await markEventProcessed(supabase, event.id)
         }
         
         console.log('[STRIPE PAYMENT FAILED] ========== INVOICE.PAYMENT.FAILED END ==========')
@@ -1104,19 +1298,73 @@ export async function POST(request: Request) {
           console.log('[STRIPE PAYMENT RECOVERY] Business found:', business.id)
           console.log('[STRIPE PAYMENT RECOVERY] Current subscription status:', business.subscription_status)
           
-          // Recover from past_due status
-          if (business.subscription_status === 'past_due') {
-            console.log('[STRIPE PAYMENT RECOVERY] Recovering from past_due status')
-            const { error: updateError } = await supabase
-              .from('businesses')
-              .update({ subscription_status: 'active' })
-              .eq('id', business.id)
+          // CRITICAL: Retrieve full subscription from Stripe to get current_period_end
+          // This is needed for trial conversions and renewals where current_period_end changes
+          let subscription: Stripe.Subscription | null = null
+          try {
+            subscription = await stripe.subscriptions.retrieve(subscriptionId)
+            console.log('[STRIPE PAYMENT RECOVERY] Retrieved subscription from Stripe:', subscriptionId)
+            console.log('[STRIPE PAYMENT RECOVERY] Subscription status:', subscription.status)
+            console.log('[STRIPE PAYMENT RECOVERY] current_period_end:', (subscription as any).current_period_end)
+          } catch (retrieveError) {
+            console.error('[STRIPE PAYMENT RECOVERY] Failed to retrieve subscription from Stripe:', retrieveError)
+          }
 
-            if (updateError) {
-              console.error('[STRIPE PAYMENT RECOVERY] Failed to update subscription status:', updateError)
-            } else {
-              console.log('[STRIPE PAYMENT RECOVERY] Updated subscription status to active for business:', business.id)
-            }
+          // Calculate current_period_end from subscription
+          const currentPeriodEnd = subscription && (subscription as any).current_period_end
+            ? new Date((subscription as any).current_period_end * 1000).toISOString()
+            : null
+
+          const trialEndsAt = subscription && (subscription as any).trial_end
+            ? new Date((subscription as any).trial_end * 1000).toISOString()
+            : null
+
+          const cancelAtIso = subscription?.cancel_at
+            ? new Date(subscription.cancel_at * 1000).toISOString()
+            : null
+
+          console.log('[STRIPE PAYMENT RECOVERY] Calculated dates:', {
+            current_period_end: currentPeriodEnd,
+            trial_ends_at: trialEndsAt,
+            cancel_at: cancelAtIso
+          })
+
+          // Build update payload with current_period_end
+          const updatePayload: any = {
+            subscription_status: subscription?.status || 'active',
+          }
+
+          // Only update current_period_end if we successfully retrieved it from Stripe
+          if (currentPeriodEnd) {
+            updatePayload.current_period_end = currentPeriodEnd
+          }
+
+          if (trialEndsAt) {
+            updatePayload.trial_ends_at = trialEndsAt
+          }
+
+          if (cancelAtIso !== null) {
+            updatePayload.cancel_at = cancelAtIso
+          }
+
+          if (subscription) {
+            updatePayload.cancel_at_period_end = subscription.cancel_at_period_end ?? false
+          }
+
+          console.log('[STRIPE PAYMENT RECOVERY] Update payload:', updatePayload)
+          
+          // Recover from past_due status and update current_period_end
+          const { error: updateError } = await supabase
+            .from('businesses')
+            .update(updatePayload)
+            .eq('id', business.id)
+
+          if (updateError) {
+            console.error('[STRIPE PAYMENT RECOVERY] Failed to update subscription:', updateError)
+          } else {
+            console.log('[STRIPE PAYMENT RECOVERY] Updated subscription for business:', business.id)
+            console.log('[STRIPE PAYMENT RECOVERY] New status:', updatePayload.subscription_status)
+            console.log('[STRIPE PAYMENT RECOVERY] New current_period_end:', updatePayload.current_period_end)
           }
           
           // Cancel any scheduled Twilio release since payment succeeded
@@ -1165,7 +1413,7 @@ export async function POST(request: Request) {
           }
 
           // Mark event as processed
-          await markEventProcessed(supabase, event.id, event.type, business.id)
+          await markEventProcessed(supabase, event.id)
         } else {
           console.error('[STRIPE PAYMENT RECOVERY] Business not found for subscription:', subscriptionId)
         }
@@ -1362,7 +1610,7 @@ export async function POST(request: Request) {
         }
 
         // Mark event as processed
-        await markEventProcessed(supabase, event.id, event.type, paymentRequest.business_id)
+        await markEventProcessed(supabase, event.id)
 
         console.log('[PAYMENT WEBHOOK] ========== CHECKOUT.SESSION.COMPLETED END ==========')
         break
@@ -1430,7 +1678,7 @@ export async function POST(request: Request) {
           }
 
           // Mark event as processed
-          await markEventProcessed(supabase, event.id, event.type, paymentRequest.business_id)
+          await markEventProcessed(supabase, event.id)
         }
 
         console.log('[PAYMENT WEBHOOK] ========== CHECKOUT.SESSION.EXPIRED END ==========')
@@ -1480,7 +1728,7 @@ export async function POST(request: Request) {
         if (paymentRequestError || !paymentRequest) {
           console.error('[TERMINAL PAYMENT] Payment request not found:', paymentRequestError)
           // Still mark event as processed to avoid retries
-          await markEventProcessed(supabase, event.id, event.type, businessId)
+          await markEventProcessed(supabase, event.id)
           break
         }
 
@@ -1497,21 +1745,21 @@ export async function POST(request: Request) {
             console.error('[TERMINAL PAYMENT] PaymentIntent ID:', paymentIntentId)
             console.error('[TERMINAL PAYMENT] Rejecting webhook to prevent cross-tenant payment mutation')
             // Mark as processed to prevent retry but do NOT update payment
-            await markEventProcessed(supabase, event.id, event.type, businessId)
+            await markEventProcessed(supabase, event.id)
             break
           }
           console.log('[TERMINAL PAYMENT] Connect account verified:', eventConnectedAccountId)
         } else if (expectedConnectedAccountId && !eventConnectedAccountId) {
           // Payment has connected account but event is from platform account
           console.warn('[TERMINAL PAYMENT] Platform event for connected account payment - ignoring')
-          await markEventProcessed(supabase, event.id, event.type, businessId)
+          await markEventProcessed(supabase, event.id)
           break
         }
         
         // If already paid, no need to update
         if (paymentRequest.status === 'paid') {
           console.log('[TERMINAL PAYMENT] Payment request already paid')
-          await markEventProcessed(supabase, event.id, event.type, businessId)
+          await markEventProcessed(supabase, event.id)
           break
         }
         
@@ -1600,7 +1848,7 @@ export async function POST(request: Request) {
           console.error('[TERMINAL PAYMENT] Failed to create notification:', notificationError)
         }
         
-        await markEventProcessed(supabase, event.id, event.type, businessId)
+        await markEventProcessed(supabase, event.id)
         console.log('[TERMINAL PAYMENT] ========== PAYMENT_INTENT.SUCCEEDED END ==========')
         break
       }
@@ -1631,7 +1879,7 @@ export async function POST(request: Request) {
         
         if (!businessId) {
           console.error('[TERMINAL PAYMENT] Missing business_id in metadata')
-          await markEventProcessed(supabase, event.id, event.type, null)
+          await markEventProcessed(supabase, event.id)
           break
         }
         
@@ -1654,12 +1902,12 @@ export async function POST(request: Request) {
               console.error('[TERMINAL PAYMENT] Event account:', eventConnectedAccountId)
               console.error('[TERMINAL PAYMENT] PaymentIntent ID:', paymentIntentId)
               console.error('[TERMINAL PAYMENT] Rejecting webhook to prevent cross-tenant payment mutation')
-              await markEventProcessed(supabase, event.id, event.type, businessId)
+              await markEventProcessed(supabase, event.id)
               break
             }
           } else if (expectedConnectedAccountId && !eventConnectedAccountId) {
             console.warn('[TERMINAL PAYMENT] Platform event for connected account payment - ignoring')
-            await markEventProcessed(supabase, event.id, event.type, businessId)
+            await markEventProcessed(supabase, event.id)
             break
           }
 
@@ -1674,7 +1922,7 @@ export async function POST(request: Request) {
           console.log('[TERMINAL PAYMENT] Payment request updated to failed:', paymentRequest.id)
         }
         
-        await markEventProcessed(supabase, event.id, event.type, businessId)
+        await markEventProcessed(supabase, event.id)
         console.log('[TERMINAL PAYMENT] ========== PAYMENT_INTENT.PAYMENT_FAILED END ==========')
         break
       }
@@ -1696,7 +1944,7 @@ export async function POST(request: Request) {
         
         if (!businessId) {
           console.error('[TERMINAL PAYMENT] Missing business_id in metadata')
-          await markEventProcessed(supabase, event.id, event.type, null)
+          await markEventProcessed(supabase, event.id)
           break
         }
         
@@ -1719,12 +1967,12 @@ export async function POST(request: Request) {
               console.error('[TERMINAL PAYMENT] Event account:', eventConnectedAccountId)
               console.error('[TERMINAL PAYMENT] PaymentIntent ID:', paymentIntentId)
               console.error('[TERMINAL PAYMENT] Rejecting webhook to prevent cross-tenant payment mutation')
-              await markEventProcessed(supabase, event.id, event.type, businessId)
+              await markEventProcessed(supabase, event.id)
               break
             }
           } else if (expectedConnectedAccountId && !eventConnectedAccountId) {
             console.warn('[TERMINAL PAYMENT] Platform event for connected account payment - ignoring')
-            await markEventProcessed(supabase, event.id, event.type, businessId)
+            await markEventProcessed(supabase, event.id)
             break
           }
 
@@ -1739,7 +1987,7 @@ export async function POST(request: Request) {
           console.log('[TERMINAL PAYMENT] Payment request updated to cancelled:', paymentRequest.id)
         }
         
-        await markEventProcessed(supabase, event.id, event.type, businessId)
+        await markEventProcessed(supabase, event.id)
         console.log('[TERMINAL PAYMENT] ========== PAYMENT_INTENT.CANCELED END ==========')
         break
       }
@@ -1791,7 +2039,7 @@ export async function POST(request: Request) {
         }
 
         // Mark event as processed
-        await markEventProcessed(supabase, event.id, event.type, businessId)
+        await markEventProcessed(supabase, event.id)
 
         console.log('[STRIPE CONNECT] ========== ACCOUNT.UPDATED END ==========')
         break

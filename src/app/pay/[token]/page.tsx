@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@supabase/supabase-js'
 import PaymentHandoff from '@/components/PaymentHandoff'
 
 interface PayPageProps {
@@ -14,20 +13,30 @@ export const revalidate = 0
 export default async function PayPage({ params }: PayPageProps) {
   const { token } = await params
 
-  // Create Supabase client with service role key for public access
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+  // Use server-only lookup endpoint to avoid exposing service role key
+  // This endpoint uses service role key on the server but never exposes it to client
+  const lookupUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/payment/lookup/${token}`
+  
+  let paymentRequest: any = null
+  
+  try {
+    const response = await fetch(lookupUrl, {
+      cache: 'no-store',
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json()
+      console.error('[PAYMENT PAGE] Lookup failed:', errorData)
+      paymentRequest = null
+    } else {
+      paymentRequest = await response.json()
+    }
+  } catch (error) {
+    console.error('[PAYMENT PAGE] Lookup error:', error)
+    paymentRequest = null
+  }
 
-  // Look up payment request by token with business name
-  const { data: paymentRequest, error } = await supabase
-    .from('payment_requests')
-    .select('id, status, checkout_url, expires_at, amount_cents, description, payment_provider, cancelled_at, businesses!inner(name)')
-    .eq('token', token)
-    .single()
-
-  if (error || !paymentRequest) {
+  if (!paymentRequest) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8 text-center">
