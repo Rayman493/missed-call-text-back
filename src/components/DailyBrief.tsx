@@ -112,6 +112,9 @@ interface BriefSectionItemProps {
 function BriefSectionItem({ section, isExpanded, onToggle }: BriefSectionItemProps) {
   const icon = getSectionIcon(section.type)
   const isHealthSection = section.type === 'health'
+  const realItems = section.items.filter(i => !i.isPlaceholder)
+  const realCount = realItems.length
+  const hasOnlyPlaceholder = realCount === 0 && section.items.length > 0
 
   return (
     <div className="px-5 py-3">
@@ -129,9 +132,11 @@ function BriefSectionItem({ section, isExpanded, onToggle }: BriefSectionItemPro
         </div>
         {!isHealthSection && (
           <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500 dark:text-slate-400">
-              {section.items.length}
-            </span>
+            {!hasOnlyPlaceholder && (
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                {realCount}
+              </span>
+            )}
             {isExpanded ? (
               <ChevronUp className="w-4 h-4 text-slate-400" />
             ) : (

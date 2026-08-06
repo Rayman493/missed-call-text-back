@@ -12,6 +12,8 @@ export interface BriefItem {
   summary: string
   priority: 'urgent' | 'high' | 'medium' | 'low'
   category: 'money' | 'customers' | 'growth' | 'scheduling' | 'communication' | 'efficiency'
+  // Optional: marks UI placeholder/empty-state rows that should not count toward badges
+  isPlaceholder?: boolean
 }
 
 export interface BriefSection {

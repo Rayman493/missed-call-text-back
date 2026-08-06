@@ -91,28 +91,34 @@ class DailyBriefService implements DailyBriefServiceInterface {
   private buildSections(focusItems: FocusItem[]): BriefSection[] {
     const sections: BriefSection[] = []
 
-    // Today's Priorities (max 3, highest urgency)
+    // Today's Priorities (max 3, highest urgency, exclude generic schedule)
     const priorities = this.buildPrioritiesSection(focusItems)
-    if (priorities.items.length > 0) {
-      sections.push(priorities)
-    }
+    sections.push(priorities)
 
-    // Money section
-    const money = this.buildMoneySection(focusItems)
+    // Track item IDs already surfaced to avoid cross-section duplication
+    const usedIds = new Set<string>(
+      priorities.items
+        .filter(i => !i.id.startsWith('placeholder-'))
+        .map(i => i.id)
+    )
+
+    // Money section (exclude anything already shown in priorities)
+    const money = this.buildMoneySection(focusItems, usedIds)
     if (money.items.length > 0) {
       sections.push(money)
+      money.items.forEach(i => { if (!i.id.startsWith('placeholder-')) usedIds.add(i.id) })
     }
 
-    // Schedule section
-    const schedule = this.buildScheduleSection(focusItems)
-    if (schedule.items.length > 0) {
-      sections.push(schedule)
-    }
+    // Schedule section (exclude duplicates; include explicit empty-state message when none)
+    const schedule = this.buildScheduleSection(focusItems, usedIds)
+    sections.push(schedule)
+    schedule.items.forEach(i => { if (!i.id.startsWith('placeholder-')) usedIds.add(i.id) })
 
-    // Customers section
-    const customers = this.buildCustomersSection(focusItems)
+    // Customers section (exclude anything already shown)
+    const customers = this.buildCustomersSection(focusItems, usedIds)
     if (customers.items.length > 0) {
       sections.push(customers)
+      customers.items.forEach(i => { if (!i.id.startsWith('placeholder-')) usedIds.add(i.id) })
     }
 
     // Business Health section (always include if we have items)
@@ -128,27 +134,37 @@ class DailyBriefService implements DailyBriefServiceInterface {
    * Build Today's Priorities section (max 3 items)
    */
   private buildPrioritiesSection(focusItems: FocusItem[]): BriefSection {
-    // Filter for urgent and high priority items
-    const urgentItems = focusItems.filter(item => 
-      item.priority === 'urgent' || item.priority === 'high'
-    )
+    // Filter for urgent/high priority items that are actionable
+    // Exclude generic scheduling notices from priorities unless explicitly urgent (e.g., starts soon/overdue)
+    const urgentItems = focusItems.filter(item => item.priority === 'urgent' || item.priority === 'high')
+    const actionable = urgentItems.filter(item => {
+      const isScheduling = item.category === 'scheduling'
+      if (!isScheduling) return true
+      const text = `${item.title} ${item.summary}`.toLowerCase()
+      const looksUrgent = /(overdue|late|starting soon|starts in|due now|in \d+\s?(min|minute))/i.test(text)
+      const isGenericSchedule = /scheduled work today/i.test(text)
+      return looksUrgent && !isGenericSchedule
+    })
 
-    // Take top 3
-    const topPriorities = urgentItems.slice(0, 3)
+    const topPriorities = actionable.slice(0, 3)
+
+    // If no actionable priorities, surface explicit empty state per spec
+    const items: BriefItem[] = topPriorities.length > 0
+      ? topPriorities.map(item => this.mapFocusToBriefItem(item))
+      : [{ id: 'placeholder-priorities', summary: 'Nothing urgent today.', priority: 'low' as const, category: 'efficiency' as const, isPlaceholder: true } as BriefItem]
 
     return {
       type: 'priorities',
       title: "Today's Priorities",
-      items: topPriorities.map(item => this.mapFocusToBriefItem(item))
+      items,
     }
   }
 
   /**
    * Build Money section
    */
-  private buildMoneySection(focusItems: FocusItem[]): BriefSection {
-    const moneyItems = focusItems.filter(item => item.category === 'money')
-    
+  private buildMoneySection(focusItems: FocusItem[], excludeIds?: Set<string>): BriefSection {
+    const moneyItems = focusItems.filter(item => item.category === 'money' && !(excludeIds && excludeIds.has(item.id)))
     return {
       type: 'money',
       title: 'Money',
@@ -159,22 +175,33 @@ class DailyBriefService implements DailyBriefServiceInterface {
   /**
    * Build Schedule section
    */
-  private buildScheduleSection(focusItems: FocusItem[]): BriefSection {
-    const scheduleItems = focusItems.filter(item => item.category === 'scheduling')
-    
+  private buildScheduleSection(focusItems: FocusItem[], excludeIds?: Set<string>): BriefSection {
+    // Only show actual appointment/event-derived items; exclude generic duplicate notices
+    const scheduleItems = focusItems.filter(item => item.category === 'scheduling' && !(excludeIds && excludeIds.has(item.id)))
+    const filtered = scheduleItems.filter(item => {
+      const text = `${item.title} ${item.summary}`.toLowerCase()
+      // Exclude generic duplicates like "You have scheduled work today"
+      const isGeneric = /scheduled work today/i.test(text)
+      return !isGeneric
+    })
+
+    const mapped = filtered.slice(0, 3).map(item => this.mapFocusToBriefItem(item))
+    const items: BriefItem[] = mapped.length > 0
+      ? mapped
+      : [{ id: 'placeholder-schedule', summary: 'No appointments scheduled today.', priority: 'low' as const, category: 'efficiency' as const, isPlaceholder: true } as BriefItem]
+
     return {
       type: 'schedule',
       title: 'Schedule',
-      items: scheduleItems.slice(0, 3).map(item => this.mapFocusToBriefItem(item))
+      items,
     }
   }
 
   /**
    * Build Customers section
    */
-  private buildCustomersSection(focusItems: FocusItem[]): BriefSection {
-    const customerItems = focusItems.filter(item => item.category === 'customers')
-    
+  private buildCustomersSection(focusItems: FocusItem[], excludeIds?: Set<string>): BriefSection {
+    const customerItems = focusItems.filter(item => item.category === 'customers' && !(excludeIds && excludeIds.has(item.id)))
     return {
       type: 'customers',
       title: 'Customers',
