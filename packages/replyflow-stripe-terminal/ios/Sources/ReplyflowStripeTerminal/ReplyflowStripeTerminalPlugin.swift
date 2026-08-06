@@ -9,6 +9,10 @@ import UIKit
 import StripeTerminal
 #endif
 
+#if canImport(ProximityReader)
+import ProximityReader
+#endif
+
 @objc(ReplyflowStripeTerminalPlugin)
 public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
   private let eventNameDiagnostics = "tpDiagnostics"
@@ -184,16 +188,30 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
         }
       } else {
         // iOS 15.4-15.x: PaymentCardReader.isSupported is not available
-        // Fall back to Stripe Terminal SDK's supportsReaders method
+        // Perform a safe Tap to Pay discovery to determine capability
+        // This uses TapToPayDiscoveryConfigurationBuilder which is available in Stripe Terminal SDK 5.0.0+
         do {
+          let discoveryConfig = try TapToPayDiscoveryConfigurationBuilder().setSimulated(false).build()
           let terminal = SCPTerminal.shared
-          let supported = try terminal.supportsReaders(
-            of: .appleBuiltIn,
-            discoveryMethod: .tapToPay,
-            simulated: false
-          )
+          var discoverySupported = false
+          let semaphore = DispatchSemaphore(value: 0)
           
-          if supported {
+          let discoveryCancelable = terminal.discoverReaders(discoveryConfig, delegate: self) { error in
+            if error == nil {
+              // Discovery started successfully - indicates Tap to Pay is supported
+              discoverySupported = true
+            }
+            semaphore.signal()
+          }
+          
+          // Wait for discovery to start or fail (with short timeout)
+          let timeout = DispatchTime.now() + .seconds(2)
+          let result = semaphore.wait(timeout: timeout)
+          
+          // Cancel discovery immediately after check
+          discoveryCancelable?.cancel()
+          
+          if result == .success && discoverySupported {
             call.resolve([
               "status": "supported",
               "supported": true,
@@ -201,7 +219,7 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
               "deviceInfo": [
                 "deviceModel": device.model,
                 "systemVersion": device.systemVersion,
-                "checkMethod": "SCPTerminal.supportsReaders"
+                "checkMethod": "TapToPayDiscoveryConfigurationBuilder"
               ]
             ])
           } else {
@@ -213,12 +231,12 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
               "deviceInfo": [
                 "deviceModel": device.model,
                 "systemVersion": device.systemVersion,
-                "checkMethod": "SCPTerminal.supportsReaders"
+                "checkMethod": "TapToPayDiscoveryConfigurationBuilder"
               ]
             ])
           }
         } catch {
-          // Stripe SDK error - could be OS version or hardware issue
+          // Stripe SDK error - likely indicates Tap to Pay is not supported
           call.resolve([
             "status": "unsupported_device",
             "supported": false,
@@ -227,7 +245,7 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
             "deviceInfo": [
               "deviceModel": device.model,
               "systemVersion": device.systemVersion,
-              "checkMethod": "SCPTerminal.supportsReaders",
+              "checkMethod": "TapToPayDiscoveryConfigurationBuilder",
               "error": error.localizedDescription
             ]
           ])
@@ -283,16 +301,30 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
           return
         }
         
-        // Use Stripe Terminal SDK's supportsReaders method
+        // Use TapToPayDiscoveryConfigurationBuilder to determine capability
+        // This is the correct Stripe Terminal SDK 5.0.0+ API for Tap to Pay
         do {
+          let discoveryConfig = try TapToPayDiscoveryConfigurationBuilder().setSimulated(false).build()
           let terminal = SCPTerminal.shared
-          let supported = try terminal.supportsReaders(
-            of: .appleBuiltIn,
-            discoveryMethod: .tapToPay,
-            simulated: false
-          )
+          var discoverySupported = false
+          let semaphore = DispatchSemaphore(value: 0)
           
-          if supported {
+          let discoveryCancelable = terminal.discoverReaders(discoveryConfig, delegate: self) { error in
+            if error == nil {
+              // Discovery started successfully - indicates Tap to Pay is supported
+              discoverySupported = true
+            }
+            semaphore.signal()
+          }
+          
+          // Wait for discovery to start or fail (with short timeout)
+          let timeout = DispatchTime.now() + .seconds(2)
+          let result = semaphore.wait(timeout: timeout)
+          
+          // Cancel discovery immediately after check
+          discoveryCancelable?.cancel()
+          
+          if result == .success && discoverySupported {
             call.resolve([
               "status": "supported",
               "supported": true,
@@ -300,7 +332,7 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
               "deviceInfo": [
                 "deviceModel": device.model,
                 "systemVersion": device.systemVersion,
-                "checkMethod": "SCPTerminal.supportsReaders"
+                "checkMethod": "TapToPayDiscoveryConfigurationBuilder"
               ]
             ])
           } else {
@@ -312,11 +344,12 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
               "deviceInfo": [
                 "deviceModel": device.model,
                 "systemVersion": device.systemVersion,
-                "checkMethod": "SCPTerminal.supportsReaders"
+                "checkMethod": "TapToPayDiscoveryConfigurationBuilder"
               ]
             ])
           }
         } catch {
+          // Stripe SDK error - likely indicates Tap to Pay is not supported
           call.resolve([
             "status": "unsupported_device",
             "supported": false,
@@ -325,7 +358,7 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
             "deviceInfo": [
               "deviceModel": device.model,
               "systemVersion": device.systemVersion,
-              "checkMethod": "SCPTerminal.supportsReaders",
+              "checkMethod": "TapToPayDiscoveryConfigurationBuilder",
               "error": error.localizedDescription
             ]
           ])

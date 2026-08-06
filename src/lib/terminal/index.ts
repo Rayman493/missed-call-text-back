@@ -94,7 +94,7 @@ export interface TerminalPlugin {
       deviceType?: string
       systemVersion?: string
       requiredVersion?: string
-      checkMethod?: 'PaymentCardReader.isSupported' | 'SCPTerminal.supportsReaders'
+      checkMethod?: 'PaymentCardReader.isSupported' | 'SCPTerminal.supportsReaders' | 'TapToPayDiscoveryConfigurationBuilder'
       error?: string
       isiOSAppOnMac?: boolean
     }
