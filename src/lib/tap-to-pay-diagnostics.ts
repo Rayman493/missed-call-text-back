@@ -1,6 +1,9 @@
 import { Capacitor } from '@capacitor/core'
 import { Preferences } from '@capacitor/preferences'
 
+// Diagnostic build marker
+export const TTP_DIAGNOSTIC_BUILD_MARKER = 'TTP_DIAGNOSTIC_BUILD_2026_08_06'
+
 export type TapToPayPhase =
   | 'startup'
   | 'initialize'
@@ -17,12 +20,94 @@ export type TapToPayPhase =
   | 'cleanup'
   | 'app_state'
 
+// Error classification categories
+export type TTPErrorCategory =
+  | 'unsupported_device'
+  | 'initialization_failed'
+  | 'location_failed'
+  | 'connection_token_failed'
+  | 'discovery_failed'
+  | 'reader_not_found'
+  | 'reader_connection_failed'
+  | 'reader_connection_timeout'
+  | 'account_link_required'
+  | 'terms_not_accepted'
+  | 'education_failed'
+  | 'education_canceled'
+  | 'payment_intent_failed'
+  | 'card_collection_failed'
+  | 'card_collection_canceled'
+  | 'processing_failed'
+  | 'declined'
+  | 'reconciliation_failed'
+  | 'receipt_failed'
+  | 'network_failed'
+  | 'recovery_failed'
+  | 'stale_result'
+  | 'unknown'
+
+// Development-only error codes
+export const TTP_ERROR_CODES: Record<TTPErrorCategory, string> = {
+  unsupported_device: 'TTP-DEV-001',
+  initialization_failed: 'TTP-INIT-001',
+  location_failed: 'TTP-LOC-001',
+  connection_token_failed: 'TTP-TOKEN-001',
+  discovery_failed: 'TTP-DISC-001',
+  reader_not_found: 'TTP-RDR-001',
+  reader_connection_failed: 'TTP-CONN-001',
+  reader_connection_timeout: 'TTP-CONN-002',
+  account_link_required: 'TTP-ACCT-001',
+  terms_not_accepted: 'TTP-TERM-001',
+  education_failed: 'TTP-EDU-001',
+  education_canceled: 'TTP-EDU-002',
+  payment_intent_failed: 'TTP-PI-001',
+  card_collection_failed: 'TTP-COLL-001',
+  card_collection_canceled: 'TTP-COLL-002',
+  processing_failed: 'TTP-PROC-001',
+  declined: 'TTP-DECL-001',
+  reconciliation_failed: 'TTP-RECON-001',
+  receipt_failed: 'TTP-RECEIPT-001',
+  network_failed: 'TTP-NET-001',
+  recovery_failed: 'TTP-RECOV-001',
+  stale_result: 'TTP-STALE-001',
+  unknown: 'TTP-UNK-001',
+}
+
+// Diagnostic source types
+export type TTPDiagnosticSource =
+  | 'ui'
+  | 'orchestration'
+  | 'terminal_service'
+  | 'native'
+  | 'api'
+  | 'receipt'
+  | 'recovery'
+
+// Apple requirement checklist status
+export type ChecklistStatus = 'shown' | 'skipped' | 'failed' | 'not_reached'
+
+export interface AppleRequirementChecklist {
+  tapToPayButtonVisible: ChecklistStatus
+  firstTimeAwarenessShown: ChecklistStatus
+  permanentSettingsPathAvailable: ChecklistStatus
+  preparingUiShown: ChecklistStatus
+  merchantEducationShown: ChecklistStatus
+  nativeIos18EducationAttempted: ChecklistStatus
+  fallbackEducationShown: ChecklistStatus
+  paymentHeldUntilEducationCompleted: ChecklistStatus
+  approvedDeclinedFinalStateShown: ChecklistStatus
+  receiptOptionShown: ChecklistStatus
+  retryPathAvailable: ChecklistStatus
+  recoveryPathTested: ChecklistStatus
+}
+
 export interface TapToPayDiagnosticEvent {
   ts: string // ISO timestamp
   name: string
   phase?: TapToPayPhase
   sessionId?: string
   attemptId?: string
+  correlationId?: string
   connectionStatus?: string
   readerStatus?: string
   readerIdShort?: string
@@ -30,11 +115,145 @@ export interface TapToPayDiagnosticEvent {
   durationMs?: number
   code?: string
   message?: string
+  normalizedErrorCode?: string
+  normalizedErrorMessage?: string
+  nativeErrorCode?: string
+  nativeErrorDomain?: string
+  source?: TTPDiagnosticSource
+  paymentState?: string
+  stage?: string
   meta?: Record<string, any>
 }
 
 const STORAGE_KEY = 'rf_ttp_diag_buffer_v1'
 const MAX_EVENTS = 200
+
+// Correlation ID management
+let currentCorrelationId: string | null = null
+
+// Apple requirement checklist
+let appleChecklist: AppleRequirementChecklist = {
+  tapToPayButtonVisible: 'not_reached',
+  firstTimeAwarenessShown: 'not_reached',
+  permanentSettingsPathAvailable: 'not_reached',
+  preparingUiShown: 'not_reached',
+  merchantEducationShown: 'not_reached',
+  nativeIos18EducationAttempted: 'not_reached',
+  fallbackEducationShown: 'not_reached',
+  paymentHeldUntilEducationCompleted: 'not_reached',
+  approvedDeclinedFinalStateShown: 'not_reached',
+  receiptOptionShown: 'not_reached',
+  retryPathAvailable: 'not_reached',
+  recoveryPathTested: 'not_reached',
+}
+
+// Production safety check
+function isDiagnosticsEnabled(): boolean {
+  if (typeof window === 'undefined') return false
+  return process.env.NODE_ENV !== 'production'
+}
+
+// Generate short correlation ID (ttp_7k3m2a format)
+export function generateCorrelationId(): string {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
+  let result = 'ttp_'
+  for (let i = 0; i < 6; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return result
+}
+
+// Set current correlation ID
+export function setCorrelationId(id: string): void {
+  currentCorrelationId = id
+}
+
+// Get current correlation ID
+export function getCorrelationId(): string | null {
+  return currentCorrelationId
+}
+
+// Update Apple requirement checklist
+export function updateAppleChecklist(
+  requirement: keyof AppleRequirementChecklist,
+  status: ChecklistStatus
+): void {
+  if (!isDiagnosticsEnabled()) return
+  appleChecklist[requirement] = status
+}
+
+// Reset Apple checklist
+export function resetAppleChecklist(): void {
+  appleChecklist = {
+    tapToPayButtonVisible: 'not_reached',
+    firstTimeAwarenessShown: 'not_reached',
+    permanentSettingsPathAvailable: 'not_reached',
+    preparingUiShown: 'not_reached',
+    merchantEducationShown: 'not_reached',
+    nativeIos18EducationAttempted: 'not_reached',
+    fallbackEducationShown: 'not_reached',
+    paymentHeldUntilEducationCompleted: 'not_reached',
+    approvedDeclinedFinalStateShown: 'not_reached',
+    receiptOptionShown: 'not_reached',
+    retryPathAvailable: 'not_reached',
+    recoveryPathTested: 'not_reached',
+  }
+}
+
+// Get Apple checklist
+export function getAppleChecklist(): AppleRequirementChecklist {
+  return { ...appleChecklist }
+}
+
+// Normalize error to category
+export function normalizeError(error: any): {
+  category: TTPErrorCategory
+  code: string
+  message: string
+} {
+  const message = error?.message || error?.localizedDescription || 'Unknown error'
+  
+  let category: TTPErrorCategory = 'unknown'
+  
+  if (message.includes('unsupported') || message.includes('not supported')) {
+    category = 'unsupported_device'
+  } else if (message.includes('location')) {
+    category = 'location_failed'
+  } else if (message.includes('connection token') || message.includes('token')) {
+    category = 'connection_token_failed'
+  } else if (message.includes('discovery')) {
+    category = 'discovery_failed'
+  } else if (message.includes('reader') || message.includes('connect')) {
+    category = 'reader_connection_failed'
+  } else if (message.includes('education')) {
+    category = 'education_failed'
+  } else if (message.includes('payment intent') || message.includes('PaymentIntent')) {
+    category = 'payment_intent_failed'
+  } else if (message.includes('card') || message.includes('collect')) {
+    category = 'card_collection_failed'
+  } else if (message.includes('processing') || message.includes('process')) {
+    category = 'processing_failed'
+  } else if (message.includes('declined')) {
+    category = 'declined'
+  } else if (message.includes('network') || message.includes('fetch')) {
+    category = 'network_failed'
+  }
+  
+  return {
+    category,
+    code: TTP_ERROR_CODES[category],
+    message,
+  }
+}
+
+// Get request header for API calls
+export function getDiagnosticHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {}
+  if (currentCorrelationId) {
+    headers['x-tap-to-pay-attempt-id'] = currentCorrelationId
+  }
+  return headers
+}
 
 // Serialize writes to avoid races (read-modify-write) between concurrent events
 let writeQueue: Promise<void> = Promise.resolve()
@@ -134,6 +353,7 @@ export async function logTapToPayEvent(
     phase?: TapToPayPhase
     sessionId?: string
     attemptId?: string
+    correlationId?: string
     connectionStatus?: string
     readerStatus?: string
     readerId?: string
@@ -141,16 +361,26 @@ export async function logTapToPayEvent(
     durationMs?: number
     code?: string
     message?: string
+    normalizedErrorCode?: string
+    normalizedErrorMessage?: string
+    nativeErrorCode?: string
+    nativeErrorDomain?: string
+    source?: TTPDiagnosticSource
+    paymentState?: string
+    stage?: string
     meta?: Record<string, any>
   } = {}
 ) {
   try {
+    if (!isDiagnosticsEnabled()) return
+
     const event: TapToPayDiagnosticEvent = {
       ts: new Date().toISOString(),
       name,
       phase: metadata.phase,
       sessionId: metadata.sessionId,
       attemptId: metadata.attemptId,
+      correlationId: metadata.correlationId || currentCorrelationId || undefined,
       connectionStatus: metadata.connectionStatus,
       readerStatus: metadata.readerStatus,
       readerIdShort: shortId(metadata.readerId),
@@ -158,8 +388,18 @@ export async function logTapToPayEvent(
       durationMs: metadata.durationMs,
       code: metadata.code,
       message: metadata.message,
+      normalizedErrorCode: metadata.normalizedErrorCode,
+      normalizedErrorMessage: metadata.normalizedErrorMessage,
+      nativeErrorCode: metadata.nativeErrorCode,
+      nativeErrorDomain: metadata.nativeErrorDomain,
+      source: metadata.source,
+      paymentState: metadata.paymentState,
+      stage: metadata.stage,
       meta: metadata.meta ? redact(metadata.meta) : undefined,
     }
+
+    // Console log with prefix for development
+    console.log('[TTP-DIAG]', JSON.stringify(event))
 
     const writeGen = generation
     await enqueue(async () => {
@@ -191,17 +431,6 @@ export async function getTapToPayDiagnostics(): Promise<TapToPayDiagnosticEvent[
   return await getStore()
 }
 
-export async function clearTapToPayDiagnostics() {
-  try {
-    await enqueue(async () => {
-      generation++
-      await setStore([])
-    })
-  } catch {
-    // swallow
-  }
-}
-
 export async function getFormattedTapToPayDiagnostics(header?: {
   appVersion?: string
   androidVersion?: string
@@ -211,12 +440,20 @@ export async function getFormattedTapToPayDiagnostics(header?: {
   const lines: string[] = []
   const now = new Date().toISOString()
   lines.push('ReplyFlow Tap to Pay Diagnostics')
+  lines.push(`Build marker: ${TTP_DIAGNOSTIC_BUILD_MARKER}`)
   lines.push(`App version: ${header?.appVersion ?? ''}`)
   lines.push(`Android version: ${header?.androidVersion ?? ''}`)
   lines.push(`Device model: ${header?.deviceModel ?? ''}`)
   lines.push(`Generated at: ${now}`)
+  lines.push(`Correlation ID: ${currentCorrelationId || 'none'}`)
   lines.push(`Event count: ${events.length}`)
   lines.push('')
+  lines.push('--- Apple Requirement Checklist ---')
+  for (const [key, value] of Object.entries(appleChecklist)) {
+    lines.push(`${key}: ${value}`)
+  }
+  lines.push('')
+  lines.push('--- Event Timeline ---')
   for (const e of events) {
     const parts: string[] = []
     parts.push(e.ts)
@@ -224,15 +461,50 @@ export async function getFormattedTapToPayDiagnostics(header?: {
     if (e.phase) parts.push(`phase=${e.phase}`)
     parts.push((e.name || '').toString().toUpperCase())
     if (e.attemptId) parts.push(`attempt=${e.attemptId}`)
+    if (e.correlationId) parts.push(`correlation=${e.correlationId}`)
     if (e.connectionStatus) parts.push(`connectionStatus=${e.connectionStatus}`)
     if (e.readerStatus) parts.push(`readerStatus=${e.readerStatus}`)
     if (typeof e.durationMs === 'number') parts.push(`durationMs=${e.durationMs}`)
     if (e.code) parts.push(`code=${e.code}`)
+    if (e.normalizedErrorCode) parts.push(`normalizedCode=${e.normalizedErrorCode}`)
     if (e.message) parts.push(`message="${e.message}"`)
+    if (e.source) parts.push(`source=${e.source}`)
+    if (e.paymentState) parts.push(`paymentState=${e.paymentState}`)
+    if (e.stage) parts.push(`stage=${e.stage}`)
     // Remaining safe meta fields
     if (e.readerIdShort) parts.push(`reader=${e.readerIdShort}`)
     if (e.paymentIntentIdShort) parts.push(`pi=${e.paymentIntentIdShort}`)
     lines.push(parts.join(' | '))
   }
   return lines.join('\n')
+}
+
+// Get diagnostics as JSON for copying (includes Apple checklist)
+export async function getDiagnosticsAsJSON(): Promise<string> {
+  const events = await getStore()
+  const diagnostics = {
+    buildMarker: TTP_DIAGNOSTIC_BUILD_MARKER,
+    platform: typeof window !== 'undefined' ? (window as any).Capacitor?.getPlatform() : 'unknown',
+    appVersion: process.env.NEXT_PUBLIC_APP_VERSION || 'unknown',
+    buildNumber: process.env.NEXT_PUBLIC_BUILD_NUMBER || 'unknown',
+    correlationId: currentCorrelationId,
+    eventCount: events.length,
+    events: events,
+    appleRequirementChecklist: appleChecklist,
+  }
+  return JSON.stringify(diagnostics, null, 2)
+}
+
+// Clear correlation ID when clearing diagnostics
+export async function clearTapToPayDiagnostics() {
+  try {
+    await enqueue(async () => {
+      generation++
+      currentCorrelationId = null
+      resetAppleChecklist()
+      await setStore([])
+    })
+  } catch {
+    // swallow
+  }
 }

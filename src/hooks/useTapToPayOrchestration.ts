@@ -1,7 +1,14 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
-import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
+import { 
+  logTapToPayEvent, 
+  generateCorrelationId, 
+  setCorrelationId, 
+  getCorrelationId,
+  normalizeError,
+  updateAppleChecklist
+} from '@/lib/tap-to-pay-diagnostics'
 import { TerminalBridgeService } from '@/lib/terminal/service'
 import { useBusiness } from '@/contexts/BusinessContext'
 import ReplyflowStripeTerminal from '@/lib/terminal'
@@ -917,7 +924,12 @@ export function useTapToPayOrchestration({
 
   // Main payment orchestration function
   const startPayment = useCallback(async () => {
+    // Generate correlation ID for this attempt
+    const correlationId = generateCorrelationId()
+    setCorrelationId(correlationId)
+    
     console.log('[TTP Hook] START_PAYMENT_ENTERED', {
+      correlationId,
       isNativeSupported,
       platform,
       amountCents,
@@ -926,21 +938,57 @@ export function useTapToPayOrchestration({
       previousState: paymentState
     })
 
+    // Log payment attempt started
+    await logTapToPayEvent('PAYMENT_ATTEMPT_STARTED', {
+      correlationId,
+      source: 'orchestration',
+      paymentState,
+      meta: {
+        platform,
+        amountCents,
+        leadId,
+        jobId,
+        isNativeSupported
+      }
+    })
+
     // Guard: Prevent duplicate start calls when attempt is already in flight
     if (startInFlight.current || activeAttemptRef.current) {
       console.log('[TTP Hook] START_IGNORED_ALREADY_IN_FLIGHT', {
+        correlationId,
         startInFlight: startInFlight.current,
         activeAttempt: activeAttemptRef.current,
       })
       dispatchTTPEvent('START_IGNORED_ALREADY_IN_FLIGHT', terminalService.getSessionId(), terminalService.getCurrentAttemptId())
+      await logTapToPayEvent('DUPLICATE_ATTEMPT_IGNORED', {
+        correlationId,
+        source: 'orchestration',
+        paymentState,
+        meta: {
+          startInFlight: startInFlight.current,
+          activeAttempt: activeAttemptRef.current
+        }
+      })
       return
     }
 
     if (!isNativeSupported) {
       console.log('[TTP Hook] VALIDATION_FAILED: Native support check failed', {
+        correlationId,
         platform,
         isNativeSupported,
         nextState: 'ready'
+      })
+      await logTapToPayEvent('PLATFORM_VALIDATION_FAILED', {
+        correlationId,
+        source: 'orchestration',
+        paymentState,
+        normalizedErrorCode: 'unsupported_device',
+        normalizedErrorMessage: 'Tap to Pay is only available on the mobile app',
+        meta: {
+          platform,
+          isNativeSupported
+        }
       })
       if (platform === 'web') {
         const errorMsg = 'Tap to Pay is only available on the mobile app'
@@ -949,28 +997,50 @@ export function useTapToPayOrchestration({
       }
       return
     }
-    console.log('[TTP Hook] VALIDATION_PASSED: Native support', { platform })
+    console.log('[TTP Hook] VALIDATION_PASSED: Native support', { correlationId, platform })
 
     // Minimum amount validation
     if (typeof amountCents !== 'number' || !Number.isFinite(amountCents) || Math.floor(amountCents) !== amountCents) {
-      console.log('[TTP Hook] VALIDATION_FAILED: Invalid amount format', { amountCents })
+      console.log('[TTP Hook] VALIDATION_FAILED: Invalid amount format', { correlationId, amountCents })
+      await logTapToPayEvent('AMOUNT_VALIDATION_FAILED', {
+        correlationId,
+        source: 'orchestration',
+        paymentState,
+        normalizedErrorCode: 'unknown',
+        normalizedErrorMessage: 'Invalid amount format',
+        meta: { amountCents }
+      })
       const errorMsg = 'Invalid amount. Please enter a valid amount.'
       setError(errorMsg)
       onPaymentError?.(errorMsg)
       return
     }
     if (amountCents < 50) {
-      console.log('[TTP Hook] VALIDATION_FAILED: Amount below minimum', { amountCents })
+      console.log('[TTP Hook] VALIDATION_FAILED: Amount below minimum', { correlationId, amountCents })
+      await logTapToPayEvent('AMOUNT_VALIDATION_FAILED', {
+        correlationId,
+        source: 'orchestration',
+        paymentState,
+        normalizedErrorCode: 'unknown',
+        normalizedErrorMessage: 'Amount must be at least $0.50',
+        meta: { amountCents }
+      })
       const errorMsg = 'Amount must be at least $0.50.'
       setError(errorMsg)
       onPaymentError?.(errorMsg)
       return
     }
-    console.log('[TTP Hook] VALIDATION_PASSED: Amount', { amountCents })
+    console.log('[TTP Hook] VALIDATION_PASSED: Amount', { correlationId, amountCents })
 
     // Double-tap protection
     if (isPaymentInProgress) {
       console.log('[TTP Hook] Payment already in progress, ignoring')
+      await logTapToPayEvent('DUPLICATE_ATTEMPT_IGNORED', {
+        correlationId,
+        source: 'orchestration',
+        paymentState,
+        normalizedErrorMessage: 'Payment already in progress'
+      })
       return
     }
 
@@ -979,8 +1049,15 @@ export function useTapToPayOrchestration({
     // Check for unresolved attempt
     const unresolvedAttemptId = terminalService.getUnresolvedAttempt()
     if (unresolvedAttemptId) {
-      console.log('[TTP Hook] Unresolved attempt found:', unresolvedAttemptId)
+      console.log('[TTP Hook] Unresolved attempt found:', { correlationId, unresolvedAttemptId })
       updatePaymentStateRef('ambiguous', 'unresolved_attempt_found')
+      await logTapToPayEvent('UNRESOLVED_ATTEMPT_DETECTED', {
+        correlationId,
+        source: 'orchestration',
+        paymentState: 'ambiguous',
+        normalizedErrorMessage: 'Please resolve the previous payment status first',
+        meta: { unresolvedAttemptId }
+      })
       const errorMsg = 'Please resolve the previous payment status first'
       setError(errorMsg)
       onPaymentError?.(errorMsg)
@@ -990,6 +1067,12 @@ export function useTapToPayOrchestration({
     // In-flight guard to prevent repeated starts
     if (startInFlight.current) {
       console.log('[QuickTTP UI] START_IGNORED_ALREADY_IN_FLIGHT')
+      await logTapToPayEvent('DUPLICATE_ATTEMPT_IGNORED', {
+        correlationId,
+        source: 'orchestration',
+        paymentState,
+        normalizedErrorMessage: 'Start already in flight'
+      })
       return
     }
     startInFlight.current = true
@@ -1000,11 +1083,21 @@ export function useTapToPayOrchestration({
     activeAttemptTokenRef.current = attemptToken
     console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_SET')
     console.log('[TTP Hook] ATTEMPT_STARTED', {
+      correlationId,
       sessionId: terminalService.getSessionId(),
       attemptId: currentAttemptId,
       attemptToken
     })
     dispatchTTPEvent('ATTEMPT_STARTED', terminalService.getSessionId(), currentAttemptId)
+    await logTapToPayEvent('ATTEMPT_STARTED', {
+      correlationId,
+      attemptId: currentAttemptId || undefined,
+      sessionId: terminalService.getSessionId(),
+      source: 'orchestration',
+      paymentState: 'preparing',
+      stage: 'start_payment',
+      meta: { attemptToken }
+    })
 
     setIsPaymentInProgress(true)
     permissionLock.setTapToPayActive(true)

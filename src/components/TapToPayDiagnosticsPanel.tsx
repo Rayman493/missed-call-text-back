@@ -1,7 +1,14 @@
 "use client"
 
 import { useEffect, useMemo, useState } from 'react'
-import { getTapToPayDiagnostics, getFormattedTapToPayDiagnostics, clearTapToPayDiagnostics } from '@/lib/tap-to-pay-diagnostics'
+import { 
+  getTapToPayDiagnostics, 
+  getFormattedTapToPayDiagnostics, 
+  getDiagnosticsAsJSON,
+  clearTapToPayDiagnostics,
+  TTP_DIAGNOSTIC_BUILD_MARKER,
+  getAppleChecklist
+} from '@/lib/tap-to-pay-diagnostics'
 import { Capacitor } from '@capacitor/core'
 import { TerminalBridgeService } from '@/lib/terminal/service'
 
@@ -28,6 +35,7 @@ export default function TapToPayDiagnosticsPanel({ context }: { context?: any } 
   const [copyStatus, setCopyStatus] = useState<string>('')
   const [clearing, setClearing] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [appleChecklist, setAppleChecklist] = useState<any>(null)
 
   const newestTs = useMemo(() => (events.length ? events[events.length - 1].ts : null), [events])
 
@@ -36,6 +44,7 @@ export default function TapToPayDiagnosticsPanel({ context }: { context?: any } 
     try {
       const ev = await getTapToPayDiagnostics()
       setEvents(ev)
+      setAppleChecklist(getAppleChecklist())
     } finally {
       setLoading(false)
     }
@@ -71,7 +80,14 @@ export default function TapToPayDiagnosticsPanel({ context }: { context?: any } 
     } catch {}
     const text = await getFormattedTapToPayDiagnostics(header)
     const ok = await writeClipboard(text)
-    setCopyStatus(ok ? '✓ Copied to clipboard' : '✗ Copy failed. Long-press to select and copy manually.')
+    setCopyStatus(ok ? '✓ Formatted logs copied' : '✗ Copy failed. Long-press to select and copy manually.')
+    setTimeout(() => setCopyStatus(''), 3000)
+  }
+
+  const handleCopyJSON = async () => {
+    const json = await getDiagnosticsAsJSON()
+    const ok = await writeClipboard(json)
+    setCopyStatus(ok ? '✓ JSON copied to clipboard' : '✗ Copy failed. Long-press to select and copy manually.')
     setTimeout(() => setCopyStatus(''), 3000)
   }
 
@@ -91,11 +107,14 @@ export default function TapToPayDiagnosticsPanel({ context }: { context?: any } 
       <div className="px-4 py-3 bg-muted/40 flex items-center justify-between">
         <div>
           <div className="text-sm font-medium">Tap to Pay Diagnostics</div>
-          <div className="text-xs text-muted-foreground">Events: {events.length}{newestTs ? ` · Newest: ${newestTs}` : ''}</div>
+          <div className="text-xs text-muted-foreground">
+            Build: {TTP_DIAGNOSTIC_BUILD_MARKER} · Events: {events.length}{newestTs ? ` · Newest: ${newestTs}` : ''}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={refresh} className="text-xs px-2 py-1 rounded-md bg-muted hover:bg-muted/70">Refresh</button>
           <button onClick={handleCopy} className="text-xs px-2 py-1 rounded-md bg-primary text-primary-foreground hover:bg-primary/90">Copy Logs</button>
+          <button onClick={handleCopyJSON} className="text-xs px-2 py-1 rounded-md bg-blue-600 text-white hover:bg-blue-700">Copy JSON</button>
           <button onClick={handleClear} className={`text-xs px-2 py-1 rounded-md ${clearing ? 'bg-red-600 text-white' : 'bg-muted hover:bg-muted/70'}`}>{clearing ? 'Tap to confirm' : 'Clear Logs'}</button>
         </div>
       </div>
@@ -170,6 +189,35 @@ export default function TapToPayDiagnosticsPanel({ context }: { context?: any } 
       </div>
       {copyStatus && (
         <div className={`px-4 py-2 text-xs font-medium ${copyStatus.startsWith('✓') ? 'text-green-600 dark:text-green-400 bg-green-950/30' : 'text-red-600 dark:text-red-400 bg-red-950/30'}`}>{copyStatus}</div>
+      )}
+      {/* Apple Requirement Checklist */}
+      {appleChecklist && (
+        <div className="px-4 py-3 border-b border-border/50 bg-muted/20">
+          <div className="text-sm font-medium mb-2 text-foreground">Apple Requirement Checklist</div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 text-xs">
+            {Object.entries(appleChecklist).map(([key, value]) => (
+              <div key={key} className="flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full ${
+                  value === 'shown' ? 'bg-green-500' :
+                  value === 'skipped' ? 'bg-yellow-500' :
+                  value === 'failed' ? 'bg-red-500' :
+                  'bg-gray-400'
+                }`} />
+                <span className="text-muted-foreground truncate" title={key}>
+                  {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
+                </span>
+                <span className={`text-xs font-medium ${
+                  value === 'shown' ? 'text-green-600 dark:text-green-400' :
+                  value === 'skipped' ? 'text-yellow-600 dark:text-yellow-400' :
+                  value === 'failed' ? 'text-red-600 dark:text-red-400' :
+                  'text-gray-500'
+                }`}>
+                  {String(value)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
       <div className="p-4">
         {loading ? (
