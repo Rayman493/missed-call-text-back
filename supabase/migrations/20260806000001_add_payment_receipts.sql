@@ -1,5 +1,5 @@
 -- Create payment_receipts table for Tap to Pay digital receipts
--- Migration: 20260806000000_add_payment_receipts.sql
+-- Migration: 20260806000001_add_payment_receipts.sql
 -- Purpose: Store digital receipts sent after Tap to Pay transactions
 
 CREATE TABLE IF NOT EXISTS payment_receipts (
