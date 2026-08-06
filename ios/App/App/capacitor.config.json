@@ -33,11 +33,15 @@
 		},
 		"Keyboard": {
 			"resizeOnFullScreen": false
+		},
+		"ReplyflowStripeTerminal": {
+			"debug": true
 		}
 	},
 	"packageClassList": [
 		"AppPlugin",
 		"CAPBrowserPlugin",
+		"DevicePlugin",
 		"HapticsPlugin",
 		"KeyboardPlugin",
 		"CAPNetworkPlugin",

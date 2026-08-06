@@ -15,7 +15,10 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [notificationCount, setNotificationCount] = useState<NotificationCount>({ total: 0, unread: 0 })
   const [loading, setLoading] = useState(true)
-
+  
+  // Track press state per notification to prevent visual feedback during scroll
+  const [pressedNotificationId, setPressedNotificationId] = useState<string | null>(null)
+  
   // Track pointer movement to distinguish taps from scrolls
   const pointerStateRef = useRef<{
     x: number
@@ -23,7 +26,7 @@ export default function NotificationsPage() {
     pointerId: number
     isTap: boolean
   } | null>(null)
-  const MOVE_THRESHOLD = 8 // pixels
+  const MOVE_THRESHOLD = 10 // pixels (increased for better scroll detection)
 
   useEffect(() => {
     if (!business?.id) return
@@ -212,17 +215,18 @@ export default function NotificationsPage() {
     return dx <= MOVE_THRESHOLD && dy <= MOVE_THRESHOLD
   }
 
-  // Handle pointer down to track start position
-  const handlePointerDown = (e: React.PointerEvent) => {
+  // Handle pointer down to track start position and show press state
+  const handlePointerDown = (e: React.PointerEvent, notificationId: string) => {
     pointerStateRef.current = {
       x: e.clientX,
       y: e.clientY,
       pointerId: e.pointerId,
       isTap: true
     }
+    setPressedNotificationId(notificationId)
   }
 
-  // Handle pointer move to detect scrolling
+  // Handle pointer move to detect scrolling and cancel press state
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!pointerStateRef.current) return
     if (pointerStateRef.current.pointerId !== e.pointerId) return
@@ -230,8 +234,15 @@ export default function NotificationsPage() {
     const dx = Math.abs(e.clientX - pointerStateRef.current.x)
     const dy = Math.abs(e.clientY - pointerStateRef.current.y)
     
-    if (dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD) {
+    // Cancel press state immediately on vertical movement (scroll)
+    if (dy > MOVE_THRESHOLD) {
       pointerStateRef.current.isTap = false
+      setPressedNotificationId(null)
+    }
+    // Also cancel on significant horizontal movement
+    else if (dx > MOVE_THRESHOLD) {
+      pointerStateRef.current.isTap = false
+      setPressedNotificationId(null)
     }
   }
 
@@ -246,6 +257,9 @@ export default function NotificationsPage() {
     if (dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD) {
       pointerStateRef.current.isTap = false
     }
+    
+    // Clear press state after a short delay to allow click processing
+    setTimeout(() => setPressedNotificationId(null), 50)
   }
 
   // Handle pointer cancel to treat as scroll
@@ -254,6 +268,7 @@ export default function NotificationsPage() {
     if (pointerStateRef.current.pointerId !== e.pointerId) return
     
     pointerStateRef.current.isTap = false
+    setPressedNotificationId(null)
   }
 
   if (loading) {
@@ -321,7 +336,7 @@ export default function NotificationsPage() {
                 key={notification.id}
                 role="button"
                 tabIndex={0}
-                onPointerDown={handlePointerDown}
+                onPointerDown={(e) => handlePointerDown(e, notification.id)}
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
                 onPointerCancel={handlePointerCancel}
@@ -347,7 +362,7 @@ export default function NotificationsPage() {
                   notification.read
                     ? ''
                     : 'bg-slate-50/50 dark:bg-slate-800/50'
-                }`}
+                } ${pressedNotificationId === notification.id ? 'bg-slate-100 dark:bg-slate-700/50' : ''}`}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="shrink-0">

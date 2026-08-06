@@ -127,6 +127,12 @@ export interface Business {
   // Default sending source for outbound SMS actions
   default_sending_source?: 'replyflow' | 'business' | string | null;
 
+  // Tap to Pay on iPhone awareness
+  tap_to_pay_awareness_acknowledged_at?: string | null;
+
+  // Tap to Pay on iPhone merchant education
+  tap_to_pay_education_completed_at?: string | null;
+
   created_at: string;
   updated_at?: string;
 }

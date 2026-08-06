@@ -12,6 +12,7 @@ import { Preferences } from '@capacitor/preferences';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { Capacitor } from '@capacitor/core';
 import { pushService } from '@/lib/push-service';
+import { TerminalBridgeService } from '@/lib/terminal/service';
 
 /**
  * Validate critical production configuration
@@ -83,7 +84,10 @@ export async function initializeCapacitor() {
     // Set up app state listeners
     App.addListener('appStateChange', ({ isActive }) => {
       console.log('[Capacitor] App state changed:', isActive ? 'active' : 'inactive');
-      // Could be used for session restoration, pause/resume logic, etc.
+      // Warm up Tap to Pay when app returns to foreground
+      if (isActive) {
+        warmUpTapToPay();
+      }
     });
 
     // Set up URL/open URL listeners for deep links
@@ -115,8 +119,50 @@ export async function initializeCapacitor() {
     // Initialize push notification service
     console.log('[Capacitor] Initializing push notification service');
     await pushService.initialize();
+
+    // Opportunistic Tap to Pay warm-up
+    console.log('[Capacitor] Opportunistic Tap to Pay warm-up');
+    warmUpTapToPay();
   } catch (error) {
     console.error('[Capacitor] Error initializing native plugins:', error);
+  }
+}
+
+/**
+ * Opportunistic Tap to Pay warm-up
+ * Initializes TerminalBridgeService in the background to reduce latency when payment modal opens
+ * Completely idempotent - safe to call repeatedly
+ * Never reconnects readers, never creates PaymentIntents, never shows UI
+ * Failures are silent - payment flow will initialize normally when modal opens
+ */
+let warmUpInFlight = false;
+async function warmUpTapToPay() {
+  // Guard against concurrent warm-up calls
+  if (warmUpInFlight) {
+    console.log('[Capacitor] Tap to Pay warm-up skipped (already in progress)');
+    return;
+  }
+
+  warmUpInFlight = true;
+  try {
+    const terminalService = TerminalBridgeService.getInstance();
+    if (!terminalService) {
+      console.log('[Capacitor] Tap to Pay warm-up skipped (not available on this platform)');
+      return;
+    }
+    const t0 = Date.now();
+    await terminalService.initialize();
+    const durationMs = Date.now() - t0;
+    console.log('[Capacitor] Tap to Pay warm-up completed in', durationMs, 'ms');
+    if (durationMs > 300) {
+      console.log('[Capacitor] Tap to Pay initialization exceeded 300ms threshold:', durationMs, 'ms');
+    }
+  } catch (error) {
+    // Warm-up is opportunistic - failures are silent
+    // Payment flow will initialize normally when modal opens
+    console.log('[Capacitor] Tap to Pay warm-up failed (opportunistic, will retry on modal open):', error);
+  } finally {
+    warmUpInFlight = false;
   }
 }
 

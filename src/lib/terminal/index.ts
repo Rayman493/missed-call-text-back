@@ -82,6 +82,23 @@ export interface TerminalPlugin {
   ping(): Promise<{ available: boolean; platform: string; buildMarker?: string }>
   initialize(options?: InitializeOptions): Promise<{ status: TerminalStatus }>
   isSupported(): Promise<{ supported: boolean; platform: 'ios' | 'android' | 'web'; unsupportedReason?: string }>
+  getTapToPaySupportStatus(): Promise<{
+    status: 'supported' | 'unsupported_device' | 'unsupported_ios_version' | 'unavailable' | 'unknown'
+    supported: boolean
+    platform: string
+    unsupportedReason?: string
+    deviceInfo?: {
+      isSimulator?: boolean
+      deviceModel?: string
+      deviceIdentifier?: string
+      deviceType?: string
+      systemVersion?: string
+      requiredVersion?: string
+      checkMethod?: 'PaymentCardReader.isSupported' | 'SCPTerminal.supportsReaders'
+      error?: string
+      isiOSAppOnMac?: boolean
+    }
+  }>
   checkLocationPermission(): Promise<{ granted: boolean; precise: boolean; canAskAgain: boolean; locationEnabled: boolean }>
   requestLocationPermission(): Promise<{ granted: boolean; precise: boolean; canAskAgain: boolean; locationEnabled: boolean }>
   openLocationSettings(): Promise<{ opened: boolean }>
@@ -98,6 +115,14 @@ export interface TerminalPlugin {
   disconnect(): Promise<{ status: TerminalStatus }>
   teardown(): Promise<{ status: TerminalStatus }>
   isTapToPayAccountLinked(options?: IsTapToPayAccountLinkedOptions): Promise<{ isLinked: boolean }>
+  presentMerchantEducation(): Promise<{
+    presented: boolean
+    method: 'native_ios18' | 'fallback'
+    reason?: string
+    requiredVersion?: string
+    completionStatus?: 'presented_awaiting_confirmation' | 'completed' | 'dismissed' | 'failed'
+    requiresConfirmation?: boolean
+  }>
   addListener(
     eventName: 'statusChanged' | 'paymentSucceeded' | 'paymentFailed' | 'error' | 'connectionTokenRequested' | 'readerConnected' | 'paymentStatusChanged' | 'locationPermissionResult',
     listenerFunc: (data: any) => void,

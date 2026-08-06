@@ -46,10 +46,13 @@ export class TerminalBridgeService {
   private totalActiveListeners = 0
   private listenerIdsByType: Record<string, Set<string>> = {}
   private appStateListener: { remove: () => void; id: string } | null = null
+  private connectionStatusSubscribers: Set<(status: string) => void> = new Set()
+  private lastEmittedConnectionStatus?: string
   private attemptInitialConnectionStatus?: string
   private sessionTimings: { initializeMs?: number; discoveryStart?: number; discoveryEnd?: number; discoveryMs?: number; connectStart?: number; connectEnd?: number; connectMs?: number } = {}
   private connectInFlight: Promise<{ status: 'connected' | string }> | null = null
   private connectionOperationId: string | null = null
+  private initializeInFlight: Promise<{ status: string }> | null = null
   private isFirstConnectionOnDevice: boolean = true
   private firstConnectionMarkerLoaded: boolean = false
   private connectionAttemptCount: number = 0
@@ -224,6 +227,33 @@ export class TerminalBridgeService {
     }).catch(() => {})
   }
 
+  // Connection status subscription API for UI progress tracking
+  subscribeToConnectionStatus(callback: (status: string) => void): () => void {
+    this.connectionStatusSubscribers.add(callback)
+    // Immediately notify with current status if available
+    if (this.connectionStatus !== undefined) {
+      callback(this.connectionStatus)
+    }
+    // Return unsubscribe function
+    return () => {
+      this.connectionStatusSubscribers.delete(callback)
+    }
+  }
+
+  private notifyConnectionStatusSubscribers(status: string) {
+    // Deduplicate: only notify if status changed
+    if (this.lastEmittedConnectionStatus === status) return
+    this.lastEmittedConnectionStatus = status
+    this.connectionStatusSubscribers.forEach(callback => {
+      try {
+        callback(status)
+      } catch (error) {
+        // Subscriber error should not break other subscribers
+        console.error('[TTP Service] Connection status subscriber error:', error)
+      }
+    })
+  }
+
   // Use singleton pattern to prevent multiple instances
   static getInstance(): TerminalBridgeService | null {
     // Guard against SSR - terminal service is browser/native only
@@ -291,30 +321,36 @@ export class TerminalBridgeService {
   }
 
   async initialize(options?: InitializeOptions) {
-    const platform = Capacitor.getPlatform()
-    console.log('[TTP NATIVE] Plugin initialization started')
-    console.log('[TTP NATIVE] Platform detected:', platform)
-    // Comprehensive diagnostics before any plugin operations
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[TTP NATIVE] === STARTUP DIAGNOSTICS ===')
-      console.log('[TTP NATIVE] Capacitor.isNativePlatform():', Capacitor.isNativePlatform())
-      console.log('[TTP NATIVE] Capacitor.getPlatform():', Capacitor.getPlatform())
-      console.log('[TTP NATIVE] Capacitor.isPluginAvailable("ReplyflowStripeTerminal"):', Capacitor.isPluginAvailable('ReplyflowStripeTerminal'))
-      console.log('[TTP NATIVE] Plugin instance exists:', this.plugin !== null)
+    // Concurrency guard: share in-flight initialize promise
+    if (this.initializeInFlight) {
+      return this.initializeInFlight
     }
 
-    if (!this.plugin) {
-      console.log('[TTP ERROR] Plugin not available - platform unsupported')
-      logTapToPayEvent('platform_unsupported', { phase: 'startup', sessionId: this.sessionId, meta: { platform: Capacitor.getPlatform?.() } }).catch(() => {})
-      const error = new Error('Tap to Pay is not available on this device')
-      // Log technical error in development
+    this.initializeInFlight = (async () => {
+      const platform = Capacitor.getPlatform()
+      console.log('[TTP NATIVE] Plugin initialization started')
+      console.log('[TTP NATIVE] Platform detected:', platform)
+      // Comprehensive diagnostics before any plugin operations
       if (process.env.NODE_ENV === 'development') {
-        console.error('[TTP ERROR] Plugin not available:', error)
+        console.log('[TTP NATIVE] === STARTUP DIAGNOSTICS ===')
+        console.log('[TTP NATIVE] Capacitor.isNativePlatform():', Capacitor.isNativePlatform())
+        console.log('[TTP NATIVE] Capacitor.getPlatform():', Capacitor.getPlatform())
+        console.log('[TTP NATIVE] Capacitor.isPluginAvailable("ReplyflowStripeTerminal"):', Capacitor.isPluginAvailable('ReplyflowStripeTerminal'))
+        console.log('[TTP NATIVE] Plugin instance exists:', this.plugin !== null)
       }
-      throw this.mapErrorToFriendlyMessage(error)
-    }
 
-    try {
+      if (!this.plugin) {
+        console.log('[TTP ERROR] Plugin not available - platform unsupported')
+        logTapToPayEvent('platform_unsupported', { phase: 'startup', sessionId: this.sessionId, meta: { platform: Capacitor.getPlatform?.() } }).catch(() => {})
+        const error = new Error('Tap to Pay is not available on this device')
+        // Log technical error in development
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[TTP ERROR] Plugin not available:', error)
+        }
+        throw this.mapErrorToFriendlyMessage(error)
+      }
+
+      try {
       console.log('[TTP NATIVE] Setting up token request listener')
       // Set up token request listener BEFORE initialization
       // Stripe Terminal may request a connection token during initialization
@@ -330,6 +366,9 @@ export class TerminalBridgeService {
             this.connectionStatus = data?.status
             logTapToPayEvent('connection_status_changed', { phase: 'connection_status', sessionId: this.sessionId, connectionStatus: data?.status }).catch(() => {})
             this.emitStateChanged('connectionStatus', prev, this.connectionStatus)
+            if (this.connectionStatus !== undefined) {
+              this.notifyConnectionStatusSubscribers(this.connectionStatus)
+            }
           })
           const c1 = this.bumpListener(l1Type, 1); this.addListenerId(l1Type, l1Id); this.diagListeners.push({ remove: l1.remove, __type: l1Type, __id: l1Id })
           logTapToPayEvent('APP_LISTENER_REGISTERED', { phase: 'app_state', sessionId: this.sessionId, meta: { listenerType: l1Type, listenerId: l1Id, scope: 'persistent', activeListenerCount: c1.next, totalActiveListenerCount: this.totalActiveListeners, activeListenerIds: this.getActiveListenerIds(l1Type) } }).catch(() => {})
@@ -500,7 +539,12 @@ export class TerminalBridgeService {
         console.error('[TTP ERROR] Initialize failed:', error)
       }
       throw this.mapErrorToFriendlyMessage(error)
+    } finally {
+      this.initializeInFlight = null
     }
+    })()
+
+    return this.initializeInFlight
   }
 
   // Map technical errors to user-friendly messages

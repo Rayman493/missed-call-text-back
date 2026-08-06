@@ -12,6 +12,8 @@ import SettingsActionBar from '@/components/SettingsActionBar'
 import Toast, { ToastContainer } from '@/components/Toast'
 import PasswordInput from '@/components/PasswordInput'
 import { useSettingsFormState } from '@/hooks/useSettingsFormState'
+import { useTapToPayAwareness } from '@/hooks/useTapToPayAwareness'
+import { TapToPayEducationModal } from '@/components/TapToPayEducationModal'
 import Link from 'next/link'
 import { formatPhoneNumber } from '@/lib/utils'
 import Navigation from '@/components/Navigation'
@@ -40,7 +42,7 @@ import FollowUpSettings from '@/components/FollowUpSettings'
 import { getDefaultOutOfOfficeTemplate, getDefaultAfterHoursTemplate } from '@/lib/out-of-office'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useSendingSource, SendingSource } from '@/hooks/useSendingSource'
-import { CreditCard, Mail, MessageSquare, Trash2, AlertTriangle, FileText, Clock, CheckCircle, Smartphone, Eye, EyeOff } from 'lucide-react'
+import { CreditCard, Mail, MessageSquare, Trash2, AlertTriangle, FileText, Clock, CheckCircle, Smartphone, Eye, EyeOff, RefreshCw } from 'lucide-react'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import Skeleton, { CardSkeleton, ListItemSkeleton } from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
@@ -61,6 +63,7 @@ export default function SettingsContent() {
   const { business, setBusiness, refreshBusiness } = useBusiness()
   const { user, signOut } = useAuth()
   const { sendingSource, isLoading: sendingSourceLoading, updateSendingSource } = useSendingSource()
+  const tapToPayAwareness = useTapToPayAwareness(business)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
@@ -97,6 +100,46 @@ export default function SettingsContent() {
 
   // Import contacts modal state
   const [showImportModal, setShowImportModal] = useState(false)
+  
+  // Tap to Pay education modal state
+  const [showEducationModal, setShowEducationModal] = useState(false)
+  const [educationOfferedThisSession, setEducationOfferedThisSession] = useState(false)
+
+  // Trigger education after first successful reader connection
+  useEffect(() => {
+    if (!business?.stripe_charges_enabled) return
+    if (business?.tap_to_pay_education_completed_at) return
+    if (educationOfferedThisSession) return
+
+    // Education is triggered by payment orchestration after first successful reader connection
+    // This component only handles Settings guide entry, not auto-trigger
+    // The trigger should be implemented in the payment flow using readerConnected event
+  }, [business, educationOfferedThisSession])
+  
+  const handleEducationComplete = async () => {
+    try {
+      const response = await fetch('/api/business/tap-to-pay-education', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to complete education')
+      }
+
+      const result = await response.json()
+      setBusiness(result.business)
+      setShowEducationModal(false)
+      showToast('Tap to Pay guide completed', 'success')
+    } catch (error) {
+      console.error('[SettingsContent] Error completing education:', error)
+      showToast('Failed to complete education', 'error')
+    }
+  }
+  
   const handleImportSuccess = (message: string) => {
     fetchIgnoredContacts()
     showToast(message, 'success')
@@ -2218,7 +2261,216 @@ export default function SettingsContent() {
                   </p>
                 </div>
                 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
+                  {/* Tap to Pay on iPhone */}
+                  <div className="flex flex-col h-full border border-border/30 rounded-lg p-4">
+                    <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-4 mb-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                          <Smartphone className="h-5 w-auto text-slate-700 dark:text-slate-300 flex-shrink-0" />
+                          <span className="text-xs px-2.5 py-0.5 bg-slate-200/70 dark:bg-slate-700/70 text-slate-600 dark:text-slate-300 rounded-full font-medium">
+                            Tap to Pay
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                          Accept contactless payments directly on iPhone.
+                        </p>
+                      </div>
+                      {tapToPayAwareness.state.isLoading ? (
+                        <div className="flex-shrink-0 px-3 py-1.5">
+                          <Skeleton className="h-8 w-20 rounded-md" />
+                        </div>
+                      ) : (
+                        (() => {
+                          const status = tapToPayAwareness.state.tapToPaySupportStatus?.status
+                          const platform = tapToPayAwareness.state.tapToPaySupportStatus?.platform
+                          const isUnsupported = status === 'unsupported_device' || status === 'unsupported_ios_version'
+                          const isUnavailable = status === 'unavailable' || status === 'unknown'
+                          const isWebOrAndroid = platform === 'web' || platform === 'android'
+                          
+                          // Hide setup action for web/Android
+                          if (isWebOrAndroid) {
+                            return null
+                          }
+                          
+                          // Show disabled action for unsupported/unavailable
+                          if (isUnsupported || isUnavailable) {
+                            return (
+                              <button
+                                disabled
+                                className="flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-md bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed"
+                                aria-label={`Tap to Pay is ${status === 'unsupported_device' ? 'not supported on this device' : status === 'unsupported_ios_version' ? 'not available on this iOS version' : 'currently unavailable'}`}
+                              >
+                                {business?.stripe_charges_enabled ? 'Manage' : 'Set Up'}
+                              </button>
+                            )
+                          }
+                          
+                          // Show active action for supported
+                          if (status === 'supported' && isNativeMobile()) {
+                            return (
+                              <button
+                                onClick={() => router.push('/dashboard/settings#payments')}
+                                className="flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-150"
+                                aria-label={business?.stripe_charges_enabled ? 'Manage Tap to Pay settings' : 'Set up Tap to Pay'}
+                              >
+                                {business?.stripe_charges_enabled ? 'Manage' : 'Set Up'}
+                              </button>
+                            )
+                          }
+                          
+                          // Fallback for native mobile without capability status
+                          if (isNativeMobile()) {
+                            return (
+                              <button
+                                onClick={() => router.push('/dashboard/settings#payments')}
+                                className="flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-150"
+                                aria-label={business?.stripe_charges_enabled ? 'Manage Tap to Pay settings' : 'Set up Tap to Pay'}
+                              >
+                                {business?.stripe_charges_enabled ? 'Manage' : 'Set Up'}
+                              </button>
+                            )
+                          }
+                          
+                          return null
+                        })()
+                      )}
+                    </div>
+                    <div className="mt-auto">
+                      {tapToPayAwareness.state.isLoading ? (
+                        <div className="p-2.5 sm:p-3">
+                          <Skeleton className="h-12 w-full rounded-lg" />
+                        </div>
+                      ) : (
+                        (() => {
+                          const status = tapToPayAwareness.state.tapToPaySupportStatus?.status
+                          const platform = tapToPayAwareness.state.tapToPaySupportStatus?.platform
+                          const unsupportedReason = tapToPayAwareness.state.tapToPaySupportStatus?.unsupportedReason
+                          
+                          // Web/Android: hide setup action
+                          if (platform === 'web' || platform === 'android') {
+                            return (
+                              <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-lg">
+                                <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-300">
+                                  Tap to Pay is available on compatible iPhone devices.
+                                </p>
+                              </div>
+                            )
+                          }
+                          
+                          // Stripe not connected
+                          if (!business?.stripe_charges_enabled) {
+                            return (
+                              <div className="p-2.5 sm:p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                                <p className="text-[10px] sm:text-xs text-amber-700 dark:text-amber-300">
+                                  <span className="font-semibold">Requires Stripe:</span> Connect Stripe to enable Tap to Pay.
+                                </p>
+                              </div>
+                            )
+                          }
+                          
+                          // Unsupported device (hardware)
+                          if (status === 'unsupported_device' && unsupportedReason === 'unsupported_device_type') {
+                            const deviceType = tapToPayAwareness.state.tapToPaySupportStatus?.deviceInfo?.deviceType
+                            if (deviceType === 'ipad') {
+                              return (
+                                <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-lg">
+                                  <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-300">
+                                    Use a compatible iPhone to accept contactless payments.
+                                  </p>
+                                </div>
+                              )
+                            }
+                            return (
+                              <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-lg">
+                                <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-300">
+                                  Tap to Pay requires a compatible iPhone.
+                                </p>
+                              </div>
+                            )
+                          }
+                          
+                          // Unsupported iOS version
+                          if (status === 'unsupported_ios_version') {
+                            return (
+                              <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-lg">
+                                <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-300">
+                                  Update iOS to use Tap to Pay on iPhone.
+                                </p>
+                              </div>
+                            )
+                          }
+                          
+                          // Unavailable
+                          if (status === 'unavailable') {
+                            return (
+                              <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-lg">
+                                <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-300">
+                                  Tap to Pay is currently unavailable on this device.
+                                </p>
+                              </div>
+                            )
+                          }
+                          
+                          // Unknown status with retry
+                          if (status === 'unknown') {
+                            return (
+                              <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-lg">
+                                <p className="text-[10px] sm:text-xs text-slate-700 dark:text-slate-300 mb-2">
+                                  Unable to verify Tap to Pay availability right now.
+                                </p>
+                                <button
+                                  onClick={() => tapToPayAwareness.checkCapability()}
+                                  className="text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                                  aria-label="Retry checking Tap to Pay availability"
+                                >
+                                  <RefreshCw className="w-3 h-3" />
+                                  Retry
+                                </button>
+                              </div>
+                            )
+                          }
+                          
+                          // Supported but not acknowledged
+                          if (status === 'supported' && !business?.tap_to_pay_awareness_acknowledged_at) {
+                            return (
+                              <div className="p-2.5 sm:p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                <p className="text-[10px] sm:text-xs text-blue-700 dark:text-blue-300">
+                                  <span className="font-semibold">New feature available:</span> Set up Tap to Pay to accept contactless payments.
+                                </p>
+                              </div>
+                            )
+                          }
+                          
+                          // Default: no message for supported and acknowledged
+                          return null
+                        })()
+                      )}
+                      
+                      {/* Tap to Pay Guide link */}
+                      {(() => {
+                        const status = tapToPayAwareness.state.tapToPaySupportStatus?.status
+                        const platform = tapToPayAwareness.state.tapToPaySupportStatus?.platform
+                        
+                        // Show guide for supported iOS devices with Stripe connected
+                        if (platform === 'ios' && status === 'supported' && business?.stripe_charges_enabled) {
+                          return (
+                            <button
+                              onClick={() => setShowEducationModal(true)}
+                              className="mt-2 text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                              aria-label="Open Tap to Pay on iPhone guide"
+                            >
+                              Tap to Pay on iPhone Guide
+                            </button>
+                          )
+                        }
+                        
+                        // Do not show guide for unsupported devices or non-iOS platforms
+                        return null
+                      })()}
+                    </div>
+                  </div>
+
                   <div className="flex flex-col h-full border border-border/30 rounded-lg p-4">
                     <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-4 mb-3">
                       <div className="flex-1 min-w-0">
@@ -3350,6 +3602,14 @@ export default function SettingsContent() {
             onSave={() => {
               showToast('Settings saved', 'success')
             }}
+          />
+
+          {/* Tap to Pay Education Modal */}
+          <TapToPayEducationModal
+            isOpen={showEducationModal}
+            onComplete={handleEducationComplete}
+            onDismiss={() => setShowEducationModal(false)}
+            showTryButton={false}
           />
 
           {/* Business Number Confirmation Modal */}

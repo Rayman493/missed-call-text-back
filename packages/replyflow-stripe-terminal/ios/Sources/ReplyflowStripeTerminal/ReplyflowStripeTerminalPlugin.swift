@@ -23,6 +23,7 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
   public let pluginMethods: [CAPPluginMethod] = [
     CAPPluginMethod(name: "ping", returnType: CAPPluginReturnPromise),
     CAPPluginMethod(name: "isSupported", returnType: CAPPluginReturnPromise),
+    CAPPluginMethod(name: "getTapToPaySupportStatus", returnType: CAPPluginReturnPromise),
     CAPPluginMethod(name: "initialize", returnType: CAPPluginReturnPromise),
     CAPPluginMethod(name: "requestConnectionToken", returnType: CAPPluginReturnPromise),
     CAPPluginMethod(name: "supplyConnectionToken", returnType: CAPPluginReturnPromise),
@@ -33,7 +34,8 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
     CAPPluginMethod(name: "cancel", returnType: CAPPluginReturnPromise),
     CAPPluginMethod(name: "disconnect", returnType: CAPPluginReturnPromise),
     CAPPluginMethod(name: "teardown", returnType: CAPPluginReturnPromise),
-    CAPPluginMethod(name: "isTapToPayAccountLinked", returnType: CAPPluginReturnPromise)
+    CAPPluginMethod(name: "isTapToPayAccountLinked", returnType: CAPPluginReturnPromise),
+    CAPPluginMethod(name: "presentMerchantEducation", returnType: CAPPluginReturnPromise)
   ]
 
   private var initialized = false
@@ -86,6 +88,287 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
     #endif
     #else
     call.resolve(["supported": false, "platform": "web"])
+    #endif
+  }
+
+  @objc public func getTapToPaySupportStatus(_ call: CAPPluginCall) {
+    #if os(iOS)
+    #if canImport(StripeTerminal)
+    #if canImport(ProximityReader)
+    #if targetEnvironment(simulator)
+    call.resolve([
+      "status": "unsupported_device",
+      "supported": false,
+      "platform": "ios",
+      "unsupportedReason": "simulator_not_supported",
+      "deviceInfo": [
+        "isSimulator": true,
+        "deviceModel": UIDevice.current.model
+      ]
+    ])
+    #else
+    // Check if device is iPhone (not iPad or iPod touch)
+    let device = UIDevice.current
+    let deviceModel = device.model.lowercased()
+    
+    // iPad and iPod touch do not support Tap to Pay
+    if deviceModel.contains("ipad") || deviceModel.contains("ipod") {
+      call.resolve([
+        "status": "unsupported_device",
+        "supported": false,
+        "platform": "ios",
+        "unsupportedReason": "unsupported_device_type",
+        "deviceInfo": [
+          "deviceModel": device.model,
+          "deviceType": UIDevice.current.userInterfaceIdiom == .pad ? "ipad" : "other"
+        ]
+      ])
+      return
+    }
+    
+    // Check if device is iOS on Mac
+    if ProcessInfo.processInfo.isiOSAppOnMac {
+      call.resolve([
+        "status": "unsupported_device",
+        "supported": false,
+        "platform": "ios",
+        "unsupportedReason": "ios_on_mac_not_supported",
+        "deviceInfo": [
+          "isiOSAppOnMac": true
+        ]
+      ])
+      return
+    }
+    
+    // Check iOS version (Tap to Pay requires iOS 15.4+, Stripe Terminal SDK requires iOS 15.0+)
+    if #available(iOS 15.4, *) {
+      // Use Apple's native PaymentCardReader.isSupported API
+      // This is the canonical hardware capability check
+      if #available(iOS 16.0, *) {
+        let isSupported = ProximityReader.PaymentCardReader.isSupported
+        
+        // Optional: include device identifier as diagnostics only (not source of truth)
+        var systemInfo = utsname()
+        uname(&systemInfo)
+        let machineMirror = Mirror(reflecting: systemInfo.machine)
+        let deviceIdentifier = machineMirror.children.reduce("") { identifier, element in
+          guard let value = element.value as? Int8, value != 0 else { return identifier }
+          return identifier + String(UnicodeScalar(UInt8(value)))
+        }
+        
+        if isSupported {
+          call.resolve([
+            "status": "supported",
+            "supported": true,
+            "platform": "ios",
+            "deviceInfo": [
+              "deviceModel": device.model,
+              "deviceIdentifier": deviceIdentifier,
+              "systemVersion": device.systemVersion,
+              "isiOSAppOnMac": false
+            ]
+          ])
+        } else {
+          call.resolve([
+            "status": "unsupported_device",
+            "supported": false,
+            "platform": "ios",
+            "unsupportedReason": "unsupported_device_type",
+            "deviceInfo": [
+              "deviceModel": device.model,
+              "deviceIdentifier": deviceIdentifier,
+              "systemVersion": device.systemVersion,
+              "checkMethod": "PaymentCardReader.isSupported"
+            ]
+          ])
+        }
+      } else {
+        // iOS 15.4-15.x: PaymentCardReader.isSupported is not available
+        // Fall back to Stripe Terminal SDK's supportsReaders method
+        do {
+          let terminal = SCPTerminal.shared
+          let supported = try terminal.supportsReaders(
+            of: .appleBuiltIn,
+            discoveryMethod: .tapToPay,
+            simulated: false
+          )
+          
+          if supported {
+            call.resolve([
+              "status": "supported",
+              "supported": true,
+              "platform": "ios",
+              "deviceInfo": [
+                "deviceModel": device.model,
+                "systemVersion": device.systemVersion,
+                "checkMethod": "SCPTerminal.supportsReaders"
+              ]
+            ])
+          } else {
+            call.resolve([
+              "status": "unsupported_device",
+              "supported": false,
+              "platform": "ios",
+              "unsupportedReason": "unsupported_device_type",
+              "deviceInfo": [
+                "deviceModel": device.model,
+                "systemVersion": device.systemVersion,
+                "checkMethod": "SCPTerminal.supportsReaders"
+              ]
+            ])
+          }
+        } catch {
+          // Stripe SDK error - could be OS version or hardware issue
+          call.resolve([
+            "status": "unsupported_device",
+            "supported": false,
+            "platform": "ios",
+            "unsupportedReason": "unsupported_device_type",
+            "deviceInfo": [
+              "deviceModel": device.model,
+              "systemVersion": device.systemVersion,
+              "checkMethod": "SCPTerminal.supportsReaders",
+              "error": error.localizedDescription
+            ]
+          ])
+        }
+      }
+    } else {
+      call.resolve([
+        "status": "unsupported_ios_version",
+        "supported": false,
+        "platform": "ios",
+        "unsupportedReason": "ios_version_too_old",
+        "deviceInfo": [
+          "systemVersion": device.systemVersion,
+          "requiredVersion": "15.4"
+        ]
+      ])
+    }
+    #endif
+    #else
+    // ProximityReader not available (iOS < 16.0 or missing framework)
+    // Fall back to Stripe Terminal SDK check
+    if #available(iOS 15.0, *) {
+      if #available(iOS 15.4, *) {
+        let device = UIDevice.current
+        let deviceModel = device.model.lowercased()
+        
+        // iPad and iPod touch do not support Tap to Pay
+        if deviceModel.contains("ipad") || deviceModel.contains("ipod") {
+          call.resolve([
+            "status": "unsupported_device",
+            "supported": false,
+            "platform": "ios",
+            "unsupportedReason": "unsupported_device_type",
+            "deviceInfo": [
+              "deviceModel": device.model,
+              "deviceType": UIDevice.current.userInterfaceIdiom == .pad ? "ipad" : "other"
+            ]
+          ])
+          return
+        }
+        
+        // Check if device is iOS on Mac
+        if ProcessInfo.processInfo.isiOSAppOnMac {
+          call.resolve([
+            "status": "unsupported_device",
+            "supported": false,
+            "platform": "ios",
+            "unsupportedReason": "ios_on_mac_not_supported",
+            "deviceInfo": [
+              "isiOSAppOnMac": true
+            ]
+          ])
+          return
+        }
+        
+        // Use Stripe Terminal SDK's supportsReaders method
+        do {
+          let terminal = SCPTerminal.shared
+          let supported = try terminal.supportsReaders(
+            of: .appleBuiltIn,
+            discoveryMethod: .tapToPay,
+            simulated: false
+          )
+          
+          if supported {
+            call.resolve([
+              "status": "supported",
+              "supported": true,
+              "platform": "ios",
+              "deviceInfo": [
+                "deviceModel": device.model,
+                "systemVersion": device.systemVersion,
+                "checkMethod": "SCPTerminal.supportsReaders"
+              ]
+            ])
+          } else {
+            call.resolve([
+              "status": "unsupported_device",
+              "supported": false,
+              "platform": "ios",
+              "unsupportedReason": "unsupported_device_type",
+              "deviceInfo": [
+                "deviceModel": device.model,
+                "systemVersion": device.systemVersion,
+                "checkMethod": "SCPTerminal.supportsReaders"
+              ]
+            ])
+          }
+        } catch {
+          call.resolve([
+            "status": "unsupported_device",
+            "supported": false,
+            "platform": "ios",
+            "unsupportedReason": "unsupported_device_type",
+            "deviceInfo": [
+              "deviceModel": device.model,
+              "systemVersion": device.systemVersion,
+              "checkMethod": "SCPTerminal.supportsReaders",
+              "error": error.localizedDescription
+            ]
+          ])
+        }
+      } else {
+        call.resolve([
+          "status": "unsupported_ios_version",
+          "supported": false,
+          "platform": "ios",
+          "unsupportedReason": "ios_version_too_old",
+          "deviceInfo": [
+            "systemVersion": device.systemVersion,
+            "requiredVersion": "15.4"
+          ]
+        ])
+      }
+    } else {
+      call.resolve([
+        "status": "unsupported_ios_version",
+        "supported": false,
+        "platform": "ios",
+        "unsupportedReason": "ios_version_too_old",
+        "deviceInfo": [
+          "systemVersion": device.systemVersion,
+          "requiredVersion": "15.0"
+        ]
+      ])
+    }
+    #endif
+    #else
+    call.resolve([
+      "status": "unavailable",
+      "supported": false,
+      "platform": "ios",
+      "unsupportedReason": "sdk_missing"
+    ])
+    #endif
+    #else
+    call.resolve([
+      "status": "unavailable",
+      "supported": false,
+      "platform": "web"
+    ])
     #endif
   }
 
@@ -390,6 +673,69 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
     }
     #else
     call.reject("Stripe Terminal SDK not available")
+    #endif
+  }
+
+  @objc public func presentMerchantEducation(_ call: CAPPluginCall) {
+    #if os(iOS)
+    #if canImport(ProximityReader)
+    if #available(iOS 18.0, *) {
+      Task { @MainActor in
+        do {
+          let discovery = ProximityReaderDiscovery()
+          let content = try await discovery.content(for: .payment(.howToTap))
+          
+          // Walk the presentedViewController chain to find the topmost view controller
+          guard let rootViewController = self.bridge?.viewController else {
+            call.reject("Unable to find root view controller")
+            return
+          }
+          
+          var topVC = rootViewController
+          while let presented = topVC.presentedViewController {
+            topVC = presented
+          }
+          
+          // Apple's presentContent does not await dismissal
+          // We present it and immediately return 'presented'
+          // The caller must handle completion detection via UI confirmation
+          discovery.presentContent(content, from: topVC)
+          
+          // Return presented but indicate completion status is unknown
+          // The caller must show a confirmation step to verify user actually completed it
+          call.resolve([
+            "presented": true,
+            "method": "native_ios18",
+            "completionStatus": "presented_awaiting_confirmation",
+            "requiresConfirmation": true
+          ])
+        } catch {
+          call.reject("Failed to present merchant education: \(error.localizedDescription)")
+        }
+      }
+    } else {
+      // iOS < 18.0: Return that native education is not available
+      call.resolve([
+        "presented": false,
+        "method": "fallback",
+        "reason": "ios_version_too_old",
+        "requiredVersion": "18.0"
+      ])
+    }
+    #else
+    // ProximityReader not available
+    call.resolve([
+      "presented": false,
+      "method": "fallback",
+      "reason": "proximity_reader_unavailable"
+    ])
+    #endif
+    #else
+    call.resolve([
+      "presented": false,
+      "method": "fallback",
+      "reason": "platform_not_ios"
+    ])
     #endif
   }
 }

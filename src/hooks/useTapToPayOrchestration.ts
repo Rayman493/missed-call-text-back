@@ -1,16 +1,19 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
-import { TerminalBridgeService } from '@/lib/terminal/service'
-import { isNativeCapacitor } from '@/lib/terminal'
-import type { TerminalError } from '@/lib/terminal'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
+import { TerminalBridgeService } from '@/lib/terminal/service'
+import { useBusiness } from '@/contexts/BusinessContext'
+import ReplyflowStripeTerminal from '@/lib/terminal'
 import { Capacitor } from '@capacitor/core'
+import type { TerminalError } from '@/lib/terminal'
 import { mapTapToPayError } from '@/lib/terminal/error-mapper'
 import { permissionLock } from '@/lib/permission-lock'
 import { nativePermissionsStore } from '@/lib/native-permissions/native-permissions-store'
+import { isNativeCapacitor } from '@/lib/terminal'
+import { createEducationPromise, resolveEducation, hasPendingEducationPromise, resetEducationPromise } from '@/lib/education-promise-bridge'
 
-type PaymentState = 'ready' | 'preparing' | 'connecting_reader' | 'creating_payment_intent' | 'waiting_for_card' | 'processing' | 'success' | 'failure' | 'canceled' | 'pending' | 'ambiguous'
+type PaymentState = 'ready' | 'preparing' | 'connecting_reader' | 'education_pending' | 'creating_payment_intent' | 'waiting_for_card' | 'processing' | 'success' | 'failure' | 'canceled' | 'pending' | 'ambiguous'
 
 // Runtime state validation helper
 function isValidPaymentState(value: string): value is PaymentState {
@@ -18,6 +21,7 @@ function isValidPaymentState(value: string): value is PaymentState {
     'ready',
     'preparing',
     'connecting_reader',
+    'education_pending',
     'creating_payment_intent',
     'waiting_for_card',
     'processing',
@@ -82,6 +86,7 @@ export function useTapToPayOrchestration({
   onPaymentComplete,
   onPaymentError,
 }: UseTapToPayOrchestrationOptions): UseTapToPayOrchestrationReturn {
+  const { business } = useBusiness()
   const [paymentState, setPaymentState] = useState<PaymentState>('ready')
   const [error, setError] = useState<string>('')
   const [structuredError, setStructuredError] = useState<TerminalError | null>(null)
@@ -95,6 +100,9 @@ export function useTapToPayOrchestration({
   const [locationPermissionState, setLocationPermissionState] = useState<'granted' | 'denied' | 'permanently_denied' | 'unknown'>('unknown')
   const [showLocationPermissionDialog, setShowLocationPermissionDialog] = useState(false)
   const [lastResetReason, setLastResetReason] = useState<string>('none')
+  const [initializationStartTime, setInitializationStartTime] = useState<number | null>(null)
+  const isInitializationPendingRef = useRef(false)
+  const preparingTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   const terminalService = TerminalBridgeService.getInstance()
   
@@ -213,6 +221,60 @@ export function useTapToPayOrchestration({
     }
   }, [])
 
+  // Subscribe to connection status for progress tracking
+  useEffect(() => {
+    const unsubscribe = terminalService.subscribeToConnectionStatus((status) => {
+      console.log('[TTP Hook] Connection status changed:', status)
+      
+      // Map connection status to payment states
+      if (status === 'connecting' && paymentStateRef.current === 'ready') {
+        // Show preparing state if initialization takes >300ms
+        if (initializationStartTime) {
+          const elapsed = Date.now() - initializationStartTime
+          if (elapsed > 300) {
+            updatePaymentStateRef('preparing', 'connection_progress')
+          }
+        }
+      } else if (status === 'connected') {
+        // Connection complete, proceed with payment flow
+        if (paymentStateRef.current === 'preparing' || paymentStateRef.current === 'connecting_reader') {
+          setLastSuccessfulStage('connected')
+        }
+      }
+    })
+
+    return () => {
+      unsubscribe()
+    }
+  }, [initializationStartTime])
+
+  // Independent 300ms timer for preparing UI
+  useEffect(() => {
+    // Clear any existing timer
+    if (preparingTimerRef.current) {
+      clearTimeout(preparingTimerRef.current)
+      preparingTimerRef.current = null
+    }
+    
+    if (isInitializationPendingRef.current && initializationStartTime && paymentStateRef.current === 'ready') {
+      preparingTimerRef.current = setTimeout(() => {
+        const elapsed = Date.now() - initializationStartTime
+        // Check ref (not state) to avoid stale closure
+        if (elapsed >= 300 && isInitializationPendingRef.current && paymentStateRef.current === 'ready') {
+          updatePaymentStateRef('preparing', 'initialization_timeout')
+        }
+        preparingTimerRef.current = null
+      }, 300)
+    }
+    
+    return () => {
+      if (preparingTimerRef.current) {
+        clearTimeout(preparingTimerRef.current)
+        preparingTimerRef.current = null
+      }
+    }
+  }, [initializationStartTime])
+
   // Check platform and native support
   const checkPlatformSupport = useCallback(async () => {
     console.log('[QuickTTP UI] NATIVE_DETECTION_STARTED')
@@ -324,6 +386,119 @@ export function useTapToPayOrchestration({
       return { granted: false, locationEnabled: false, canAskAgain: false }
     }
   }, [platform])
+
+  // Education check function for first-time Tap to Pay users
+  const checkAndPresentEducation = useCallback(async (): Promise<{ completed: boolean; method: string; reason?: string }> => {
+    console.log('[TTP Hook] checkAndPresentEducation called')
+    
+    try {
+      // Try native ProximityReaderDiscovery on iOS 18+
+      const result = await ReplyflowStripeTerminal.presentMerchantEducation()
+      
+      if (result.presented && result.method === 'native_ios18') {
+        console.log('[TTP Hook] Native education presented, completionStatus:', result.completionStatus)
+        
+        // Apple's presentContent does not await dismissal
+        // We need explicit confirmation from the user
+        if (result.requiresConfirmation) {
+          console.log('[TTP Hook] Native education requires explicit confirmation')
+          
+          // Create and await promise bridge for UI confirmation
+          const educationPromise = createEducationPromise()
+          const resolution = await educationPromise
+          
+          console.log('[TTP Hook] Education resolution:', resolution)
+          
+          if (resolution === 'canceled') {
+            console.log('[TTP Hook] Education canceled by user')
+            return { completed: false, method: 'native_ios18', reason: 'user_canceled' }
+          }
+          
+          // User confirmed completion, persist it
+          try {
+            const response = await fetch('/api/business/tap-to-pay-education', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+            })
+            if (response.ok) {
+              console.log('[TTP Hook] Education completion persisted after confirmation')
+              // Update local business state immediately to avoid stale state
+              if (business) {
+                business.tap_to_pay_education_completed_at = new Date().toISOString()
+              }
+              return { completed: true, method: 'native_ios18' }
+            } else {
+              console.error('[TTP Hook] Failed to persist education completion')
+              return { completed: false, method: 'native_ios18', reason: 'persistence_failed' }
+            }
+          } catch (error) {
+            console.error('[TTP Hook] Error persisting education completion:', error)
+            return { completed: false, method: 'native_ios18', reason: 'persistence_error' }
+          }
+        }
+        
+        // If confirmation not required, persist completion immediately
+        try {
+          const response = await fetch('/api/business/tap-to-pay-education', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          })
+          if (response.ok) {
+            console.log('[TTP Hook] Education completion persisted')
+            // Update local business state immediately to avoid stale state
+            if (business) {
+              business.tap_to_pay_education_completed_at = new Date().toISOString()
+            }
+            return { completed: true, method: 'native_ios18' }
+          } else {
+            console.error('[TTP Hook] Failed to persist education completion')
+            return { completed: false, method: 'native_ios18', reason: 'persistence_failed' }
+          }
+        } catch (error) {
+          console.error('[TTP Hook] Error persisting education completion:', error)
+          return { completed: false, method: 'native_ios18', reason: 'persistence_error' }
+        }
+      } else {
+        console.log('[TTP Hook] Native education not available, using custom modal:', result.reason)
+        
+        // For iOS < 18 or when native fails, use custom modal with promise bridge
+        const educationPromise = createEducationPromise()
+        const resolution = await educationPromise
+        
+        console.log('[TTP Hook] Custom education resolution:', resolution)
+        
+        if (resolution === 'canceled') {
+          console.log('[TTP Hook] Custom education canceled by user')
+          return { completed: false, method: 'fallback', reason: 'user_canceled' }
+        }
+        
+        // User completed custom education, persist it
+        try {
+          const response = await fetch('/api/business/tap-to-pay-education', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          })
+          if (response.ok) {
+            console.log('[TTP Hook] Custom education completion persisted')
+            // Update local business state immediately to avoid stale state
+            if (business) {
+              business.tap_to_pay_education_completed_at = new Date().toISOString()
+            }
+            return { completed: true, method: 'fallback' }
+          } else {
+            console.error('[TTP Hook] Failed to persist education completion')
+            return { completed: false, method: 'fallback', reason: 'persistence_failed' }
+          }
+        } catch (error) {
+          console.error('[TTP Hook] Error persisting education completion:', error)
+          return { completed: false, method: 'fallback', reason: 'persistence_error' }
+        }
+      }
+    } catch (error) {
+      console.error('[TTP Hook] Failed to present education:', error)
+      return { completed: false, method: 'fallback', reason: 'presentation_error' }
+    }
+  }, [business])
 
   // Check for unresolved previous attempts on mount
   useEffect(() => {
@@ -930,19 +1105,38 @@ export function useTapToPayOrchestration({
       console.log('[QuickTTP UI] ABOUT_TO_INITIALIZE_TERMINAL')
       console.log('[TTP Hook] INITIALIZE_STARTED')
       setLastSuccessfulStage('initializing_terminal')
-      const initResult = await withTimeout(
-        terminalService.initialize(),
-        'TERMINAL_INITIALIZATION',
-        TIMEOUTS.TERMINAL_INIT,
-        terminalService.getSessionId() || 'unknown',
-        terminalService.getCurrentAttemptId() || 'unknown'
-      )
-      console.log('[TTP Hook] INITIALIZE_COMPLETED', { status: initResult.status })
-      if (initResult.status !== 'ready' && initResult.status !== 'connected') {
-        console.log('[TTP Hook] INITIALIZE_FAILED', { status: initResult.status })
-        throw new Error('Failed to initialize payment terminal')
+      setInitializationStartTime(Date.now())
+      isInitializationPendingRef.current = true
+      let initResult: { status: string }
+      try {
+        initResult = await withTimeout(
+          terminalService.initialize(),
+          'TERMINAL_INITIALIZATION',
+          TIMEOUTS.TERMINAL_INIT,
+          terminalService.getSessionId() || 'unknown',
+          terminalService.getCurrentAttemptId() || 'unknown'
+        )
+        isInitializationPendingRef.current = false
+        // Synchronously clear timer
+        if (preparingTimerRef.current) {
+          clearTimeout(preparingTimerRef.current)
+          preparingTimerRef.current = null
+        }
+        console.log('[TTP Hook] INITIALIZE_COMPLETED', { status: initResult.status })
+        if (initResult.status !== 'ready' && initResult.status !== 'connected') {
+          console.log('[TTP Hook] INITIALIZE_FAILED', { status: initResult.status })
+          throw new Error('Failed to initialize payment terminal')
+        }
+        setLastSuccessfulStage('initialized')
+      } catch (error) {
+        isInitializationPendingRef.current = false
+        // Synchronously clear timer
+        if (preparingTimerRef.current) {
+          clearTimeout(preparingTimerRef.current)
+          preparingTimerRef.current = null
+        }
+        throw error
       }
-      setLastSuccessfulStage('initialized')
 
       // Connect if needed
       if (initResult.status === 'connected') {
@@ -1001,6 +1195,30 @@ export function useTapToPayOrchestration({
             throw new Error('Failed to connect to payment terminal')
           }
           setLastSuccessfulStage('connected')
+          
+          // Enforce education check after successful reader connection
+          // This pauses orchestration until education completes
+          if (!business?.tap_to_pay_education_completed_at) {
+            const isIOS = Capacitor.getPlatform() === 'ios'
+            if (isIOS) {
+              console.log('[TTP Hook] EDUCATION_REQUIRED: Checking education status')
+              updatePaymentStateRef('education_pending', 'education_check_started')
+              dispatchTTPEvent('EDUCATION_CHECK_STARTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'education_pending')
+              
+              const educationResult = await checkAndPresentEducation()
+              
+              if (!educationResult.completed) {
+                // Education was canceled or failed - do not proceed to payment
+                console.log('[TTP Hook] EDUCATION_NOT_COMPLETED: Canceling payment flow', educationResult)
+                dispatchTTPEvent('EDUCATION_CANCELED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'education_pending', JSON.stringify(educationResult))
+                updatePaymentStateRef('canceled', 'education_canceled')
+                throw new Error('Education required before payment. Please complete the Tap to Pay education guide.')
+              }
+              
+              console.log('[TTP Hook] EDUCATION_COMPLETED: Continuing to payment flow')
+              dispatchTTPEvent('EDUCATION_COMPLETED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'education_pending')
+            }
+          }
         } catch (connectError: any) {
           const durationMs = Date.now() - connectStartTime
           const isTimeout = connectError?.message?.includes('Timeout') || connectError?.name === 'Error'

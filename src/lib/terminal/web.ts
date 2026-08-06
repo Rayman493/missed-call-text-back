@@ -17,6 +17,31 @@ export class TerminalWeb extends WebPlugin implements TerminalPlugin {
     return { supported: false, platform: 'web' }
   }
 
+  async getTapToPaySupportStatus(): Promise<{
+    status: 'supported' | 'unsupported_device' | 'unsupported_ios_version' | 'unavailable' | 'unknown'
+    supported: boolean
+    platform: string
+    unsupportedReason?: string
+    deviceInfo?: {
+      isSimulator?: boolean
+      deviceModel?: string
+      deviceIdentifier?: string
+      deviceType?: string
+      systemVersion?: string
+      requiredVersion?: string
+      checkMethod?: 'PaymentCardReader.isSupported' | 'SCPTerminal.supportsReaders'
+      error?: string
+      isiOSAppOnMac?: boolean
+    }
+  }> {
+    return {
+      status: 'unavailable',
+      supported: false,
+      platform: 'web',
+      unsupportedReason: 'web_not_supported',
+    }
+  }
+
   async checkLocationPermission(): Promise<{ granted: boolean; precise: boolean; canAskAgain: boolean; locationEnabled: boolean }> {
     // Web doesn't require location permission for Tap to Pay
     return { granted: true, precise: false, canAskAgain: true, locationEnabled: true }
@@ -71,6 +96,22 @@ export class TerminalWeb extends WebPlugin implements TerminalPlugin {
 
   async isTapToPayAccountLinked(_options?: IsTapToPayAccountLinkedOptions): Promise<{ isLinked: boolean }> {
     throw this.unavailable('Stripe Terminal is not supported on web')
+  }
+
+  async presentMerchantEducation(): Promise<{
+    presented: boolean
+    method: 'native_ios18' | 'fallback'
+    reason?: string
+    requiredVersion?: string
+    completionStatus?: 'presented_awaiting_confirmation' | 'completed' | 'dismissed' | 'failed'
+    requiresConfirmation?: boolean
+  }> {
+    return {
+      presented: false,
+      method: 'fallback',
+      reason: 'platform_not_ios',
+      requiresConfirmation: false
+    }
   }
 
   async addListener(
