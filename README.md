@@ -34,7 +34,7 @@ A production-minded MVP for a missed-call text-back SaaS for local businesses.
 
 4. Configure Supabase:
    - Create a new Supabase project
-   - Run the SQL setup script from `supabase-setup.sql`
+   - Run the SQL setup script from `docs/supabase-setup.sql`
    - Add your Supabase URL and anon key to `.env.local`
 
 5. Configure Twilio:
@@ -135,7 +135,7 @@ The app uses four main tables:
 - `messages`: SMS conversation history
 - `call_events`: Call event logs from Twilio
 
-See `supabase-setup.sql` for the complete schema.
+See `docs/supabase-setup.sql` for the complete schema.
 
 ## Deployment
 
