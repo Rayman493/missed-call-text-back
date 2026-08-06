@@ -13,6 +13,7 @@ import { useTapToPayOrchestration } from '@/hooks/useTapToPayOrchestration'
 import { Capacitor } from '@capacitor/core'
 import { TapToPayEducationModal } from '@/components/TapToPayEducationModal'
 import { hasPendingEducationPromise, resolveEducation } from '@/lib/education-promise-bridge'
+import TapToPayDiagnosticsPanel from '@/components/TapToPayDiagnosticsPanel'
 
 interface QuickTapToPayModalProps {
   isOpen: boolean
@@ -114,6 +115,12 @@ const handleSendReceipt = () => {
   setShowReceiptModal(true)
   setReceiptSent(false)
   setReceiptError('')
+  // Update Apple checklist
+  if (terminalService) {
+    import('@/lib/tap-to-pay-diagnostics').then(({ updateAppleChecklist }) => {
+      updateAppleChecklist('receiptOptionShown', 'shown')
+    }).catch(() => {})
+  }
 }
 
 const handleSendReceiptSubmit = async () => {
@@ -1416,6 +1423,25 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                 </>
               )}
             </div>
+
+            {/* Diagnostics Panel - Development Only */}
+            {process.env.NODE_ENV !== 'production' && (
+              <TapToPayDiagnosticsPanel context={{
+                terminalService,
+                paymentState,
+                error,
+                structuredError,
+                mappedError,
+                lastSuccessfulStage,
+                lastResetReason,
+                isPaymentInProgress,
+                platform,
+                isNativeSupported,
+                amountCents,
+                selectedLeadId,
+                selectedJobId
+              }} />
+            )}
           </div>
         </div>,
         document.body

@@ -193,7 +193,23 @@ export function useTapToPayOrchestration({
       timestamp: new Date().toISOString()
     })
 
-    // Dispatch event for timeline
+    // Log state transition to diagnostic timeline
+    const correlationId = getCorrelationId() ?? undefined
+    logTapToPayEvent('STATE_TRANSITION', {
+      correlationId,
+      attemptId: terminalService.getCurrentAttemptId() ?? undefined,
+      sessionId: terminalService.getSessionId(),
+      source: 'orchestration',
+      paymentState: newState,
+      stage: 'state_transition',
+      meta: {
+        from: previousState,
+        to: newState,
+        reason
+      }
+    }).catch(() => {})
+
+    // Dispatch event for timeline (for window event listeners)
     dispatchTTPEvent(
       `STATE_TRANSITION: ${previousState} -> ${newState}`,
       terminalService.getSessionId(),
@@ -1102,6 +1118,7 @@ export function useTapToPayOrchestration({
     setIsPaymentInProgress(true)
     permissionLock.setTapToPayActive(true)
     updatePaymentStateRef('preparing', 'start_payment_called')
+    updateAppleChecklist('tapToPayButtonVisible', 'shown')
     setError('')
     setStructuredError(null)
     setMappedError(null)
@@ -1531,6 +1548,22 @@ export function useTapToPayOrchestration({
         sessionId: terminalService.getSessionId()
       })
       dispatchTTPEvent('PAYMENT_INTENT_CREATION_STARTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'creating_payment_intent')
+
+      // Emit EDUCATION_GATE_VERIFIED before PaymentIntent creation
+      const educationCompleted = business?.tap_to_pay_education_completed_at != null
+      await logTapToPayEvent('EDUCATION_GATE_VERIFIED', {
+        correlationId: getCorrelationId() ?? undefined,
+        attemptId: terminalService.getCurrentAttemptId() ?? undefined,
+        sessionId: terminalService.getSessionId(),
+        source: 'orchestration',
+        paymentState: 'creating_payment_intent',
+        stage: 'education_gate',
+        meta: {
+          educationCompleted,
+          educationCompletedAt: business?.tap_to_pay_education_completed_at
+        }
+      }).catch(() => {})
+      updateAppleChecklist('paymentHeldUntilEducationCompleted', educationCompleted ? 'shown' : 'skipped')
       
       // Yield two frames to allow React to paint the creating_payment_intent state
       await new Promise<void>(resolve => {
@@ -1573,6 +1606,7 @@ export function useTapToPayOrchestration({
         })
         dispatchTTPEvent('PAYMENT_INTENT_CREATED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'waiting_for_card', 'payment_intent_created')
         updatePaymentStateRef('waiting_for_card')
+        updateAppleChecklist('preparingUiShown', 'shown')
         setLastSuccessfulStage('payment_intent_created')
       }
 
@@ -1742,6 +1776,24 @@ export function useTapToPayOrchestration({
           
           // Only show success if reconciliation confirms payment is paid
           if (reconcileData.status === 'paid') {
+            // Emit SUCCESS_GATE_VERIFIED before success UI
+            await logTapToPayEvent('SUCCESS_GATE_VERIFIED', {
+              correlationId: getCorrelationId() ?? undefined,
+              attemptId: terminalService.getCurrentAttemptId() ?? undefined,
+              sessionId: terminalService.getSessionId(),
+              source: 'orchestration',
+              paymentState: 'processing',
+              stage: 'success_gate',
+              meta: {
+                reconciliationStatus: reconcileData.status,
+                reconciliationEvidence: {
+                  paymentIntentId,
+                  reconcileData
+                }
+              }
+            }).catch(() => {})
+            updateAppleChecklist('approvedDeclinedFinalStateShown', 'shown')
+
             // Now commit success
             updatePaymentStateRef('success', 'payment_completed')
             console.log('[TTP Hook] SUCCESS_STATE_ENTERED', {

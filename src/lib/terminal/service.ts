@@ -970,7 +970,24 @@ export class TerminalBridgeService {
     }
 
     const t0 = Date.now()
-    try { await logTapToPayEvent('payment_intent_create_started', { phase: 'payment_intent', sessionId: this.sessionId, meta: { amountCents: options.amountCents } }) } catch {}
+    const correlationId = await (async () => {
+      try {
+        const { getCorrelationId } = await import('@/lib/tap-to-pay-diagnostics')
+        return getCorrelationId() ?? undefined
+      } catch {
+        return undefined
+      }
+    })()
+    try { await logTapToPayEvent('PAYMENT_INTENT_API_STARTED', {
+      correlationId,
+      phase: 'payment_intent',
+      sessionId: this.sessionId,
+      attemptId: this.currentAttemptId ?? undefined,
+      source: 'terminal_service',
+      paymentState: 'creating_payment_intent',
+      stage: 'payment_intent_api',
+      meta: { amountCents: options.amountCents }
+    }) } catch {}
     let response: Response
     try {
       response = await fetch('/api/terminal/payment-intent', {
@@ -981,12 +998,16 @@ export class TerminalBridgeService {
     } catch (e: any) {
       // Network/transport failure
       try {
-        await logTapToPayEvent('payment_intent_create_failed', {
+        await logTapToPayEvent('PAYMENT_INTENT_API_FAILED', {
+          correlationId,
           phase: 'payment_intent',
           sessionId: this.sessionId,
-          attemptId: this.currentAttemptId || undefined,
+          attemptId: this.currentAttemptId ?? undefined,
           readerId: this.lastReaderId,
-          message: e?.message || 'Network failure',
+          source: 'terminal_service',
+          paymentState: 'creating_payment_intent',
+          stage: 'payment_intent_api',
+          normalizedErrorMessage: e?.message || 'Network failure',
           meta: { errorType: 'network', httpStatus: null, event: 'PAYMENT_INTENT_CREATE_FAILED' },
         })
       } catch {}
@@ -1016,19 +1037,18 @@ export class TerminalBridgeService {
 
       // Diagnostics for failure before throwing
       try {
-        await logTapToPayEvent('payment_intent_create_failed', {
+        await logTapToPayEvent('PAYMENT_INTENT_API_FAILED', {
+          correlationId,
           phase: 'payment_intent',
           sessionId: this.sessionId,
-          attemptId: this.currentAttemptId || undefined,
+          attemptId: this.currentAttemptId ?? undefined,
           readerId: this.lastReaderId,
-          message: errorMessage,
-          code: errorCode,
-          meta: {
-            errorType,
-            declineCode,
-            httpStatus,
-            event: 'PAYMENT_INTENT_CREATE_FAILED',
-          },
+          source: 'terminal_service',
+          paymentState: 'creating_payment_intent',
+          stage: 'payment_intent_api',
+          normalizedErrorMessage: errorMessage,
+          normalizedErrorCode: errorCode,
+          meta: { errorType, httpStatus, declineCode, event: 'PAYMENT_INTENT_CREATE_FAILED' },
         })
       } catch {}
 
@@ -1054,7 +1074,17 @@ export class TerminalBridgeService {
       throw new Error('Invalid PaymentIntent response: missing paymentIntentId or clientSecret')
     }
 
-    try { await logTapToPayEvent('payment_intent_create_completed', { phase: 'payment_intent', sessionId: this.sessionId, paymentIntentId: data.paymentIntentId, durationMs: Date.now() - t0 }) } catch {}
+    try { await logTapToPayEvent('PAYMENT_INTENT_API_COMPLETED', {
+      correlationId,
+      phase: 'payment_intent',
+      sessionId: this.sessionId,
+      attemptId: this.currentAttemptId ?? undefined,
+      paymentIntentId: data.paymentIntentId,
+      source: 'terminal_service',
+      paymentState: 'creating_payment_intent',
+      stage: 'payment_intent_api',
+      meta: { durationMs: Date.now() - t0 }
+    }) } catch {}
     return {
       paymentIntentId: data.paymentIntentId,
       clientSecret: data.clientSecret,
