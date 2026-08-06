@@ -2,6 +2,8 @@
 -- Migration: 20260806000001_add_payment_receipts.sql
 -- Purpose: Store digital receipts sent after Tap to Pay transactions
 
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS payment_receipts (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     business_id uuid NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
@@ -24,7 +26,7 @@ CREATE TABLE IF NOT EXISTS payment_receipts (
     
     -- Metadata
     sent_at timestamptz DEFAULT now() NOT NULL,
-    sent_by uuid NOT NULL REFERENCES auth.users(id) ON DELETE SET NULL,
+    sent_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
     idempotency_key TEXT UNIQUE,
     
     created_at timestamptz DEFAULT now() NOT NULL,
@@ -51,7 +53,7 @@ CREATE POLICY "Users can view receipts for their businesses"
     FOR SELECT
     USING (
         business_id IN (
-            SELECT id FROM businesses WHERE owner_id = auth.uid()
+            SELECT id FROM businesses WHERE user_id = auth.uid()
         )
     );
 
@@ -61,7 +63,7 @@ CREATE POLICY "Users can create receipts for their businesses"
     FOR INSERT
     WITH CHECK (
         business_id IN (
-            SELECT id FROM businesses WHERE owner_id = auth.uid()
+            SELECT id FROM businesses WHERE user_id = auth.uid()
         )
     );
 
@@ -78,3 +80,5 @@ COMMENT ON COLUMN payment_receipts.card_brand IS 'Card brand from Stripe (e.g., 
 COMMENT ON COLUMN payment_receipts.card_last4 IS 'Last 4 digits of card from Stripe';
 COMMENT ON COLUMN payment_receipts.receipt_number IS 'Stripe receipt/reference number';
 COMMENT ON COLUMN payment_receipts.idempotency_key IS 'Idempotency key to prevent duplicate sends from repeated UI taps';
+
+COMMIT;
