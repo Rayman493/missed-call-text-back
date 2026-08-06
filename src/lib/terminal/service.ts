@@ -1,5 +1,6 @@
 import Terminal, { TerminalPlugin, InitializeOptions, CollectPaymentOptions, CreateTerminalPaymentOptions, isNativeCapacitor } from './index'
 import { Capacitor } from '@capacitor/core'
+import { Preferences } from '@capacitor/preferences'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
 
@@ -7,6 +8,9 @@ import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
 const STORAGE_SCHEMA_VERSION = 'v1'
 const STORAGE_SCHEMA_KEY = 'terminal_storage_schema_version'
 const WEB_BUILD_MARKER = 'TTP_2026_08_03_ORCHESTRATION_FIX'
+
+// First-ever connection marker key for Capacitor Preferences
+const FIRST_CONNECTION_COMPLETED_KEY = 'ttp_first_connection_completed'
 
 interface TokenRequest {
   requestId: string
@@ -46,6 +50,9 @@ export class TerminalBridgeService {
   private sessionTimings: { initializeMs?: number; discoveryStart?: number; discoveryEnd?: number; discoveryMs?: number; connectStart?: number; connectEnd?: number; connectMs?: number } = {}
   private connectInFlight: Promise<{ status: 'connected' | string }> | null = null
   private connectionOperationId: string | null = null
+  private isFirstConnectionOnDevice: boolean = true
+  private firstConnectionMarkerLoaded: boolean = false
+  private connectionAttemptCount: number = 0
   // Attempt-scoped flags/timings and app state
   private attemptSummaryEmitted = false
   private attemptFlags = {
@@ -101,6 +108,36 @@ export class TerminalBridgeService {
     console.log('[TERMINAL_INSTANCE_TRACE] service_instance_id=' + this.instanceId + ' created')
     console.log('[TERMINAL_BUILD_MARKER] Web TTP Build: ' + WEB_BUILD_MARKER)
     this.migrateStorage()
+    this.loadFirstConnectionMarker()
+  }
+
+  // Load first-connection marker from Capacitor Preferences
+  private async loadFirstConnectionMarker() {
+    if (this.firstConnectionMarkerLoaded) {
+      return
+    }
+
+    if (!Capacitor.isNativePlatform()) {
+      // Web platform - always treat as first connection (no persistence needed)
+      this.isFirstConnectionOnDevice = true
+      this.firstConnectionMarkerLoaded = true
+      return
+    }
+
+    try {
+      const { value } = await Preferences.get({ key: FIRST_CONNECTION_COMPLETED_KEY })
+      this.isFirstConnectionOnDevice = value !== 'true'
+      this.firstConnectionMarkerLoaded = true
+      console.log('[TTP Service] First connection marker loaded:', {
+        isFirstConnectionOnDevice: this.isFirstConnectionOnDevice,
+        hasMarker: value === 'true'
+      })
+    } catch (error) {
+      console.warn('[TTP Service] Failed to load first connection marker:', error)
+      // On error, assume first connection to be safe
+      this.isFirstConnectionOnDevice = true
+      this.firstConnectionMarkerLoaded = true
+    }
   }
 
   // Storage schema migration
@@ -147,6 +184,9 @@ export class TerminalBridgeService {
   getListenerStats(): { counts: Record<string, number>; total: number } { return { counts: { ...this.listenerCounts }, total: this.totalActiveListeners } }
   getAppActive(): boolean | undefined { return this.lastAppIsActive }
   getAttemptFlags() { return { ...this.attemptFlags } }
+  getConnectionAttemptCount(): number { return this.connectionAttemptCount }
+  getIsFirstConnectionOnDevice(): boolean { return this.isFirstConnectionOnDevice }
+  isConnectionInFlight(): boolean { return this.connectInFlight !== null }
   getTimings() { return { ...this.timings } }
 
   private bumpListener(type: string, delta: 1 | -1) {
@@ -660,6 +700,11 @@ export class TerminalBridgeService {
   async connectTapToPay(options?: { simulated?: boolean }) {
     if (!this.plugin) throw new Error('Stripe Terminal is not available on web')
 
+    // Ensure first-connection marker is loaded before connecting
+    if (!this.firstConnectionMarkerLoaded) {
+      await this.loadFirstConnectionMarker()
+    }
+
     const connectionOperationId = this.connectionOperationId = `conn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     const attemptId = this.currentAttemptId
     const sessionId = this.sessionId
@@ -695,7 +740,10 @@ export class TerminalBridgeService {
     }
 
     // Log connect_started AFTER dedup check to prevent duplicate events from concurrent calls
-    logTapToPayEvent('connect_started', { phase: 'connect_reader', sessionId: this.sessionId, meta: { reason: __connectReason } }).catch(() => {})
+    logTapToPayEvent('connect_started', { phase: 'connect_reader', sessionId: this.sessionId, meta: { reason: __connectReason, isFirstConnectionOnDevice: this.isFirstConnectionOnDevice, attemptCount: this.connectionAttemptCount } }).catch(() => {})
+
+    // Increment connection attempt count
+    this.connectionAttemptCount++
 
     // Wrap full connect into a single in-flight promise to dedupe callers
     this.connectInFlight = (async () => {
@@ -812,6 +860,18 @@ export class TerminalBridgeService {
             return { status: 'connected' as const }
           }
           this.sessionTimings.connectEnd = Date.now(); if (this.sessionTimings.connectStart) this.sessionTimings.connectMs = this.sessionTimings.connectEnd - this.sessionTimings.connectStart
+          
+          // Mark first-ever connection as complete and persist to Capacitor Preferences
+          if (this.isFirstConnectionOnDevice) {
+            this.isFirstConnectionOnDevice = false
+            try {
+              await Preferences.set({ key: FIRST_CONNECTION_COMPLETED_KEY, value: 'true' })
+            } catch (prefError) {
+              console.warn('[TTP Service] Failed to persist first connection marker:', prefError)
+            }
+            try { await logTapToPayEvent('first_connection_on_device_completed', { phase: 'connect_reader', sessionId: this.sessionId, connectionStatus: 'connected', durationMs: this.sessionTimings.connectMs }) } catch {}
+          }
+          
           return result
         } finally {
           // Cleanup listeners
@@ -830,9 +890,11 @@ export class TerminalBridgeService {
           attemptId,
           connectionOperationId,
           sessionId,
+          isFirstConnectionOnDevice: this.isFirstConnectionOnDevice,
+          attemptCount: this.connectionAttemptCount,
           timestamp: new Date().toISOString()
         })
-        try { await logTapToPayEvent('connect_promise_rejected', { phase: 'connect_reader', sessionId: this.sessionId, meta: { error: connectError?.message, code: connectError?.code, nativeCode: connectError?.nativeCode, durationMs } }) } catch {}
+        try { await logTapToPayEvent('connect_promise_rejected', { phase: 'connect_reader', sessionId: this.sessionId, meta: { error: connectError?.message, code: connectError?.code, nativeCode: connectError?.nativeCode, durationMs, isFirstConnectionOnDevice: this.isFirstConnectionOnDevice, attemptCount: this.connectionAttemptCount } }) } catch {}
         throw connectError
       }
     })()

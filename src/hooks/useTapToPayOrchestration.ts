@@ -127,6 +127,7 @@ export function useTapToPayOrchestration({
   
   const paymentStateRef = useRef<PaymentState>(paymentState)
   const autoRetryInProgress = useRef(false)
+  const connectionRetryAttempted = useRef(false)
   const startInFlight = useRef(false)
   const activeAttemptRef = useRef(false)
   const recoveryRunRef = useRef(false)
@@ -967,11 +968,22 @@ export function useTapToPayOrchestration({
         const connectStartTime = Date.now()
         dispatchTTPEvent('CONNECT_CALL_ENTERED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'connecting_reader')
 
+        // Determine timeout based on whether this is first-ever connection
+        const isFirstConnectionOnDevice = terminalService.getIsFirstConnectionOnDevice()
+        const connectionTimeout = isFirstConnectionOnDevice ? TIMEOUTS.READER_DISCOVERY_COLD : TIMEOUTS.READER_DISCOVERY_WARM
+        
+        console.log('[TTP Hook] CONNECTION_TIMEOUT_SELECTED', {
+          isFirstConnectionOnDevice,
+          timeoutMs: connectionTimeout,
+          sessionId: terminalService.getSessionId(),
+          attemptId: terminalService.getCurrentAttemptId()
+        })
+
         try {
           const connectResult = await withTimeout(
             terminalService.connectTapToPay(),
             'READER_CONNECTION',
-            TIMEOUTS.READER_DISCOVERY,
+            connectionTimeout,
             terminalService.getSessionId() || 'unknown',
             terminalService.getCurrentAttemptId() || 'unknown'
           )
@@ -991,6 +1003,8 @@ export function useTapToPayOrchestration({
           setLastSuccessfulStage('connected')
         } catch (connectError: any) {
           const durationMs = Date.now() - connectStartTime
+          const isTimeout = connectError?.message?.includes('Timeout') || connectError?.name === 'Error'
+          
           console.log('[TTP Hook] CONNECT_ERROR_CAUGHT', {
             errorName: connectError?.name,
             errorMessage: connectError?.message,
@@ -999,29 +1013,204 @@ export function useTapToPayOrchestration({
             technicalCode: connectError?.technicalCode,
             technicalMessage: connectError?.technicalMessage,
             durationMs,
+            isTimeout,
             attemptToken: localAttemptToken,
             terminalSessionId: terminalService.getSessionId(),
             paymentState: paymentStateRef.current,
             timestamp: new Date().toISOString()
           })
 
-          // Dispatch structured rejection diagnostics
-          dispatchTTPEvent('CONNECT_PROMISE_REJECTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'connecting_reader', JSON.stringify({
-            errorName: connectError?.name,
-            errorMessage: connectError?.message,
-            errorCode: connectError?.code,
-            nativeCode: connectError?.nativeCode,
-            technicalCode: connectError?.technicalCode,
-            technicalMessage: connectError?.technicalMessage,
-            durationMs,
-            attemptToken: localAttemptToken,
-            terminalSessionId: terminalService.getSessionId(),
-            paymentState: paymentStateRef.current,
-            timestamp: new Date().toISOString()
-          }))
-
-          // Preserve structured error for outer catch
-          throw connectError
+          // On timeout, check if native connection actually succeeded concurrently
+          if (isTimeout) {
+            const nativeStatus = terminalService.getConnectionStatus()
+            console.log('[TTP Hook] TIMEOUT_NATIVE_STATUS_CHECK', {
+              nativeStatus,
+              readerId: terminalService.getReaderId(),
+              sessionId: terminalService.getSessionId()
+            })
+            
+            // If reader is actually connected, continue instead of failing
+            if (nativeStatus === 'connected' && terminalService.getReaderId()) {
+              console.log('[TTP Hook] TIMEOUT_NATIVE_CONNECTED', {
+                nativeStatus,
+                readerId: terminalService.getReaderId(),
+                durationMs
+              })
+              dispatchTTPEvent('TIMEOUT_NATIVE_CONNECTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'connecting_reader', JSON.stringify({
+                nativeStatus,
+                readerId: terminalService.getReaderId(),
+                durationMs
+              }))
+              setLastSuccessfulStage('connected')
+              // Continue to payment intent creation
+            } else {
+              // Native is not connected - attempt one automatic retry if not already tried
+              if (!connectionRetryAttempted.current) {
+                // Check if native connection is still in-flight before retrying
+                const isNativeInFlight = terminalService.isConnectionInFlight()
+                const nativeStatus = terminalService.getConnectionStatus()
+                
+                console.log('[TTP Hook] CONNECTION_RETRY_PRE_CHECK', {
+                  isFirstConnectionOnDevice,
+                  durationMs,
+                  isNativeInFlight,
+                  nativeStatus,
+                  sessionId: terminalService.getSessionId()
+                })
+                
+                // If native is still actively connecting, wait and poll status instead of starting competing call
+                if (isNativeInFlight && nativeStatus === 'connecting') {
+                  console.log('[TTP Hook] NATIVE_STILL_CONNECTING - waiting for completion')
+                  dispatchTTPEvent('CONNECTION_RETRY_NATIVE_STILL_ACTIVE', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'connecting_reader', JSON.stringify({
+                    isFirstConnectionOnDevice,
+                    durationMs,
+                    nativeStatus
+                  }))
+                  
+                  // Mark retry as attempted to prevent duplicate retry after poll
+                  connectionRetryAttempted.current = true
+                  
+                  // Poll native status for up to 30 seconds
+                  const pollStartTime = Date.now()
+                  const maxPollTime = 30000
+                  let pollInterval: NodeJS.Timeout | null = null
+                  
+                  try {
+                    await new Promise<void>((resolve, reject) => {
+                      pollInterval = setInterval(() => {
+                        const currentStatus = terminalService.getConnectionStatus()
+                        const elapsed = Date.now() - pollStartTime
+                        
+                        if (currentStatus === 'connected' && terminalService.getReaderId()) {
+                          console.log('[TTP Hook] NATIVE_POLL_SUCCESS', { elapsed })
+                          dispatchTTPEvent('CONNECTION_RETRY_POLL_SUCCESS', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'connecting_reader', JSON.stringify({
+                            elapsed
+                          }))
+                          if (pollInterval) clearInterval(pollInterval)
+                          setLastSuccessfulStage('connected')
+                          resolve()
+                        } else if (elapsed >= maxPollTime) {
+                          console.log('[TTP Hook] NATIVE_POLL_TIMEOUT', { elapsed })
+                          if (pollInterval) clearInterval(pollInterval)
+                          reject(new Error('Native connection poll timeout'))
+                        }
+                      }, 500)
+                    })
+                    // Continue to payment intent creation after successful poll
+                  } catch (pollError: any) {
+                    console.log('[TTP Hook] NATIVE_POLL_FAILED', { error: String(pollError) })
+                    dispatchTTPEvent('CONNECTION_RETRY_POLL_FAILED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'connecting_reader', JSON.stringify({
+                      error: String(pollError)
+                    }))
+                    // Poll failed - throw original timeout error since retry already marked as attempted
+                    throw connectError
+                  }
+                } else {
+                  // Native is not still connecting - attempt retry
+                  console.log('[TTP Hook] CONNECTION_RETRY_ATTEMPT', {
+                    isFirstConnectionOnDevice,
+                    durationMs,
+                    sessionId: terminalService.getSessionId()
+                  })
+                  dispatchTTPEvent('CONNECTION_RETRY_ATTEMPT', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'connecting_reader', JSON.stringify({
+                    isFirstConnectionOnDevice,
+                    durationMs
+                  }))
+                  connectionRetryAttempted.current = true
+                
+                  // Wait a brief moment before retry
+                  await new Promise(resolve => setTimeout(resolve, 1000))
+                
+                  // Retry connection with same timeout
+                  try {
+                    const retryResult = await withTimeout(
+                      terminalService.connectTapToPay(),
+                      'READER_CONNECTION_RETRY',
+                      connectionTimeout,
+                      terminalService.getSessionId() || 'unknown',
+                      terminalService.getCurrentAttemptId() || 'unknown'
+                    )
+                  
+                    console.log('[TTP Hook] CONNECTION_RETRY_SUCCESS', {
+                      status: retryResult.status,
+                      durationMs: Date.now() - connectStartTime
+                    })
+                    dispatchTTPEvent('CONNECTION_RETRY_SUCCESS', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'connecting_reader', retryResult.status)
+                  
+                    if (retryResult.status !== 'connected') {
+                      throw new Error('Retry connection failed')
+                    }
+                    setLastSuccessfulStage('connected')
+                    // Continue to payment intent creation
+                  } catch (retryError: any) {
+                    console.log('[TTP Hook] CONNECTION_RETRY_FAILED', {
+                      error: retryError?.message,
+                      durationMs: Date.now() - connectStartTime
+                    })
+                    dispatchTTPEvent('CONNECTION_RETRY_FAILED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'connecting_reader', JSON.stringify({
+                      error: retryError?.message,
+                      durationMs: Date.now() - connectStartTime
+                    }))
+                    // Throw original timeout error
+                    dispatchTTPEvent('CONNECT_PROMISE_REJECTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'connecting_reader', JSON.stringify({
+                      errorName: connectError?.name,
+                      errorMessage: connectError?.message,
+                      errorCode: connectError?.code,
+                      nativeCode: connectError?.nativeCode,
+                      technicalCode: connectError?.technicalCode,
+                      technicalMessage: connectError?.technicalMessage,
+                      durationMs,
+                      isTimeout,
+                      nativeStatus,
+                      attemptToken: localAttemptToken,
+                      terminalSessionId: terminalService.getSessionId(),
+                      paymentState: paymentStateRef.current,
+                      timestamp: new Date().toISOString(),
+                      retryAttempted: true,
+                      retryFailed: true
+                    }))
+                    throw connectError
+                  }
+                }
+              } else {
+                // Already retried - dispatch timeout diagnostics and throw
+                dispatchTTPEvent('CONNECT_PROMISE_REJECTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'connecting_reader', JSON.stringify({
+                  errorName: connectError?.name,
+                  errorMessage: connectError?.message,
+                  errorCode: connectError?.code,
+                  nativeCode: connectError?.nativeCode,
+                  technicalCode: connectError?.technicalCode,
+                  technicalMessage: connectError?.technicalMessage,
+                  durationMs,
+                  isTimeout,
+                  nativeStatus,
+                  attemptToken: localAttemptToken,
+                  terminalSessionId: terminalService.getSessionId(),
+                  paymentState: paymentStateRef.current,
+                  timestamp: new Date().toISOString(),
+                  retryAttempted: true
+                }))
+                throw connectError
+              }
+            }
+          } else {
+            // Non-timeout error - dispatch diagnostics and throw
+            dispatchTTPEvent('CONNECT_PROMISE_REJECTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'connecting_reader', JSON.stringify({
+              errorName: connectError?.name,
+              errorMessage: connectError?.message,
+              errorCode: connectError?.code,
+              nativeCode: connectError?.nativeCode,
+              technicalCode: connectError?.technicalCode,
+              technicalMessage: connectError?.technicalMessage,
+              durationMs,
+              isTimeout,
+              attemptToken: localAttemptToken,
+              terminalSessionId: terminalService.getSessionId(),
+              paymentState: paymentStateRef.current,
+              timestamp: new Date().toISOString()
+            }))
+            throw connectError
+          }
         }
       }
 
@@ -1353,7 +1542,8 @@ export function useTapToPayOrchestration({
 const TIMEOUTS = {
   PERMISSION_REQUEST: 30000,
   TERMINAL_INIT: 30000,
-  READER_DISCOVERY: 45000,
+  READER_DISCOVERY_WARM: 45000,    // Normal warm connections
+  READER_DISCOVERY_COLD: 90000,    // First-ever or cold initialization
   PAYMENT_INTENT: 30000,
   COLLECT_PAYMENT: 60000,
   CONFIRM_PAYMENT: 45000,
