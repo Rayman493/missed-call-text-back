@@ -12,6 +12,7 @@ import { permissionLock } from '@/lib/permission-lock'
 import { nativePermissionsStore } from '@/lib/native-permissions/native-permissions-store'
 import { isNativeCapacitor } from '@/lib/terminal'
 import { createEducationPromise, resolveEducation, hasPendingEducationPromise, resetEducationPromise } from '@/lib/education-promise-bridge'
+import { maskPhoneNumber } from '@/lib/phone-masking'
 
 type PaymentState = 'ready' | 'preparing' | 'connecting_reader' | 'education_pending' | 'creating_payment_intent' | 'waiting_for_card' | 'processing' | 'success' | 'failure' | 'canceled' | 'pending' | 'ambiguous'
 

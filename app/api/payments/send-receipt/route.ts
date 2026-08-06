@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { sendSms } from '@/lib/twilio'
 import { normalizeUSPhoneNumber } from '@/lib/phone-normalization'
+import { maskPhoneNumber } from '@/lib/phone-masking'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -47,6 +48,9 @@ export async function POST(request: NextRequest) {
     if (!validatedPhone) {
       return NextResponse.json({ error: 'Invalid phone number format' }, { status: 400 })
     }
+
+    // Log masked phone number for operational debugging
+    console.log('[Receipt] Sending receipt to masked phone:', maskPhoneNumber(validatedPhone))
 
     // Fetch business for the user
     const { data: business, error: businessError } = await supabase
@@ -106,6 +110,52 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         error: 'No charge was made - cannot send receipt for user cancellation' 
       }, { status: 400 })
+    }
+
+    // For declined transactions, require canonical Stripe evidence of a real payment attempt
+    if (paymentIntent.status === 'requires_payment_method') {
+      const firstCharge = paymentIntent.charges?.data[0]
+      
+      // Must have at least one charge attempt to represent a real declined transaction
+      if (!firstCharge) {
+        return NextResponse.json({ 
+          error: 'No charge attempt found - cannot send receipt for payment that never attempted to charge' 
+        }, { status: 400 })
+      }
+
+      // Charge must have failed (not just pending)
+      if (firstCharge.status === 'pending') {
+        return NextResponse.json({ 
+          error: 'Charge is still pending - cannot send receipt for uncompleted transaction' 
+        }, { status: 400 })
+      }
+
+      // Charge must represent a real decline or failure (not a cancellation)
+      if (firstCharge.status === 'succeeded') {
+        return NextResponse.json({ 
+          error: 'Charge succeeded but PaymentIntent status is requires_payment_method - inconsistent state' 
+        }, { status: 400 })
+      }
+
+      // For card present transactions, verify the failure represents a real card decline
+      // This excludes scenarios where the card was never actually presented/collected
+      if (paymentIntent.payment_method_types.includes('card_present')) {
+        const cardPresentDetails = firstCharge.payment_method_details?.card_present
+        
+        // Must have card present details to prove a real card collection attempt
+        if (!cardPresentDetails) {
+          return NextResponse.json({ 
+            error: 'No card present details found - cannot verify real card collection attempt' 
+          }, { status: 400 })
+        }
+
+        // Must have a decline reason or failure code
+        if (!firstCharge.failure_code && !firstCharge.failure_message) {
+          return NextResponse.json({ 
+            error: 'No decline evidence found - cannot send receipt for non-declined transaction' 
+          }, { status: 400 })
+        }
+      }
     }
 
     // Extract card details if available
