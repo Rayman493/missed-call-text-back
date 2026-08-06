@@ -45,6 +45,7 @@ CREATE INDEX IF NOT EXISTS idx_payment_receipts_sent_at ON payment_receipts(sent
 -- RLS (Row Level Security) Policies
 ALTER TABLE payment_receipts ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view receipts for their businesses" ON payment_receipts;
 CREATE POLICY "Users can view receipts for their businesses"
     ON payment_receipts
     FOR SELECT
@@ -54,6 +55,7 @@ CREATE POLICY "Users can view receipts for their businesses"
         )
     );
 
+DROP POLICY IF EXISTS "Users can create receipts for their businesses" ON payment_receipts;
 CREATE POLICY "Users can create receipts for their businesses"
     ON payment_receipts
     FOR INSERT
@@ -64,6 +66,7 @@ CREATE POLICY "Users can create receipts for their businesses"
     );
 
 -- Trigger to update updated_at timestamp
+DROP TRIGGER IF EXISTS update_payment_receipts_updated_at ON payment_receipts;
 CREATE TRIGGER update_payment_receipts_updated_at
     BEFORE UPDATE ON payment_receipts
     FOR EACH ROW
