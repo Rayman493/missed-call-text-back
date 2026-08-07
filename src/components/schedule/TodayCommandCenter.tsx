@@ -40,6 +40,7 @@ interface TodayCommandCenterProps {
   onAddTask?: () => void
   onAddJob?: () => void
   onAddAppointment?: () => void
+  onJobClick?: (job: Job) => void
 }
 
 export default function TodayCommandCenter({
@@ -48,6 +49,7 @@ export default function TodayCommandCenter({
   onAddTask,
   onAddJob,
   onAddAppointment,
+  onJobClick,
 }: TodayCommandCenterProps) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [isLoadingTasks, setIsLoadingTasks] = useState(true)
@@ -549,10 +551,10 @@ export default function TodayCommandCenter({
           ) : (
             <div className="space-y-2">
               {todayJobs.slice(0, 3).map(job => (
-                <Link
+                <button
                   key={job.id}
-                  href={`/dashboard/leads/${job.lead_id || ''}`}
-                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                  onClick={() => onJobClick?.(job)}
+                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors w-full text-left"
                 >
                   <Briefcase className="w-4 h-4 text-slate-400" />
                   <div className="flex-1 min-w-0">
@@ -570,7 +572,7 @@ export default function TodayCommandCenter({
                       </span>
                     )}
                   </div>
-                </Link>
+                </button>
               ))}
             </div>
           )}

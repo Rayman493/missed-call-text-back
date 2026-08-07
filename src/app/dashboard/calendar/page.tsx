@@ -928,8 +928,9 @@ export default function SchedulePage() {
 
   const handleMapViewJob = (jobId: string) => {
     const job = jobs.find(j => j.id === jobId)
-    if (job?.lead_id) {
-      handleMapViewCustomer(job.lead_id)
+    if (job) {
+      setSelectedJob(job)
+      setIsJobDetailsOpen(true)
     }
   }
 
@@ -1093,6 +1094,10 @@ export default function SchedulePage() {
                         onAddTask={() => setIsNewTaskModalOpen(true)}
                         onAddJob={openNewJob}
                         onAddAppointment={handleNewAppointment}
+                        onJobClick={(job) => {
+                          setSelectedJob(job as Job)
+                          setIsJobDetailsOpen(true)
+                        }}
                       />
                     </>
                   )}
@@ -1440,10 +1445,13 @@ export default function SchedulePage() {
                                         : 'No time'
 
                                       return (
-                                        <Link
+                                        <button
                                           key={job.id}
-                                          href={`/dashboard/leads/${job.lead_id || ''}`}
-                                          className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                          onClick={() => {
+                                            setSelectedJob(job as Job)
+                                            setIsJobDetailsOpen(true)
+                                          }}
+                                          className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors w-full text-left"
                                         >
                                           <div className="flex-shrink-0 mt-0.5">
                                             <Briefcase className="w-4 h-4 text-green-600 dark:text-green-400" />
@@ -1467,7 +1475,7 @@ export default function SchedulePage() {
                                               </p>
                                             </div>
                                           </div>
-                                        </Link>
+                                        </button>
                                       )
                                     }
                                   })}
