@@ -61,33 +61,70 @@ export async function POST(request: NextRequest) {
 
     // Use provided address or fall back to job's service_address
     const addressToGeocode = address || job.service_address
+    const normalizedAddress = addressToGeocode?.trim()
 
     // Check if address exists
-    if (!addressToGeocode || addressToGeocode.trim().length === 0) {
+    if (!normalizedAddress || normalizedAddress.length === 0) {
       return NextResponse.json(
         { error: 'Address is empty' },
         { status: 400 }
       )
     }
 
-    // Check if already geocoded and not stale (only if using job's service_address)
-    if (!address && 
-        isValidCoordinate(job.latitude, job.longitude) && 
+    // Check if already geocoded and not stale
+    // Use geocoded_address as cache key regardless of address source
+    if (isValidCoordinate(job.latitude, job.longitude) && 
         !isGeocodingStale(job.geocoded_at) &&
-        job.geocoded_address === job.service_address.trim()) {
+        job.geocoded_address === normalizedAddress) {
+      // Cache hit
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[GEOCODE_CACHE_HIT]', {
+          jobId,
+          cachedAddress: job.geocoded_address,
+          requestedAddress: normalizedAddress,
+          cachedAt: job.geocoded_at
+        })
+      }
       return NextResponse.json({
         success: true,
         latitude: job.latitude,
         longitude: job.longitude,
-        formattedAddress: job.geocoded_address || job.service_address,
+        formattedAddress: job.geocoded_address || normalizedAddress,
         cached: true
       })
     }
 
+    // Cache miss - check if address changed
+    const addressChanged = job.geocoded_address && job.geocoded_address !== normalizedAddress
+    if (addressChanged && process.env.NODE_ENV === 'development') {
+      console.log('[GEOCODE_ADDRESS_CHANGED]', {
+        jobId,
+        oldAddress: job.geocoded_address,
+        newAddress: normalizedAddress
+      })
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[GEOCODE_CACHE_MISS]', {
+        jobId,
+        address: normalizedAddress,
+        hasCoordinates: isValidCoordinate(job.latitude, job.longitude),
+        isStale: isGeocodingStale(job.geocoded_at),
+        cachedAddress: job.geocoded_address
+      })
+    }
+
     // Geocode the address
-    const result = await geocodeAddress(addressToGeocode)
+    const result = await geocodeAddress(normalizedAddress)
 
     if (!result.success) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[GEOCODE_FAILED]', {
+          jobId,
+          address: normalizedAddress,
+          error: result.error
+        })
+      }
       return NextResponse.json(
         { error: result.error },
         { status: 500 }
@@ -111,6 +148,16 @@ export async function POST(request: NextRequest) {
         { error: 'Failed to save geocoded coordinates' },
         { status: 500 }
       )
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[GEOCODE_COMPLETED]', {
+        jobId,
+        address: normalizedAddress,
+        formattedAddress: result.formattedAddress,
+        latitude: result.latitude,
+        longitude: result.longitude
+      })
     }
 
     return NextResponse.json({
