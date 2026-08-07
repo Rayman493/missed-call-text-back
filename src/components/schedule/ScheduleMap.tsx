@@ -509,6 +509,7 @@ export default function ScheduleMap({
     map.addListener('zoom_changed', () => setUserInteracted(true))
 
     googleMapRef.current = map
+    console.log('[ScheduleMap] MAP_INSTANCE_CREATED')
   }, [isMapLoaded])
 
   // Save per-date state before date change
@@ -669,10 +670,40 @@ export default function ScheduleMap({
       filteredItemCount: filteredItems.length
     })
 
-    // Trigger map resize to ensure proper rendering
-    if (googleMapRef.current) {
-      googleMapRef.current.triggerResize()
-      console.log('[ScheduleMap] MAP_RESIZE_TRIGGERED')
+    // Check map container status and trigger resize if needed
+    const container = mapRef.current
+    if (googleMapRef.current && container) {
+      const containerWidth = container.offsetWidth
+      const containerHeight = container.offsetHeight
+      console.log('[ScheduleMap] MAP_CONTAINER_STATUS', {
+        containerWidth,
+        containerHeight,
+        mapInstanceExists: !!googleMapRef.current
+      })
+      
+      if (containerWidth > 0 && containerHeight > 0) {
+        // Trigger Google Maps resize event to ensure proper rendering
+        (window as any).google.maps.event.trigger(googleMapRef.current, 'resize')
+        console.log('[ScheduleMap] MAP_RESIZE_TRIGGERED')
+      } else {
+        console.log('[ScheduleMap] MAP_CONTAINER_HAS_ZERO_DIMENSIONS')
+        // Schedule a retry after a short delay
+        setTimeout(() => {
+          if (googleMapRef.current && mapRef.current) {
+            const retryWidth = mapRef.current.offsetWidth
+            const retryHeight = mapRef.current.offsetHeight
+            if (retryWidth > 0 && retryHeight > 0) {
+              (window as any).google.maps.event.trigger(googleMapRef.current, 'resize')
+              console.log('[ScheduleMap] MAP_RESIZE_RETRIED', { retryWidth, retryHeight })
+            }
+          }
+        }, 200)
+      }
+    } else {
+      console.log('[ScheduleMap] MAP_RECOVERY_NEEDED', {
+        mapInstanceExists: !!googleMapRef.current,
+        containerExists: !!container
+      })
     }
 
     // Fit bounds to show all markers (only if not user interacted and in show all mode)
