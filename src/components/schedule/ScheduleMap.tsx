@@ -18,6 +18,7 @@ interface Job {
   lead_id: string | null
   latitude?: number | null
   longitude?: number | null
+  geocoded_address?: string | null
   leads?: {
     id: string
     raw_metadata: any
@@ -156,16 +157,53 @@ export default function ScheduleMap({
 
     // Process jobs
     for (const job of filteredJobs) {
+      // Extract fallback address from lead metadata
+      const fallbackAddress = getCustomerAddressFromLead(job)
+      
       // Use service_address, or fall back to customer address from lead metadata
-      const serviceAddress = job.service_address || getCustomerAddressFromLead(job)
+      const serviceAddress = job.service_address || fallbackAddress
+
+      // Log detailed diagnostics for each job
+      const hasRawMetadata = !!job.leads?.raw_metadata
+      const rawMetadataKeys = hasRawMetadata ? Object.keys(job.leads!.raw_metadata) : []
+      const hasCoordinates = job.latitude !== null && job.latitude !== undefined && job.longitude !== null && job.longitude !== undefined
+
+      console.log('[SCHEDULE_MAP_JOB_PROCESSING]', {
+        jobId: job.id,
+        customerName: job.customer_name,
+        service_address: job.service_address,
+        hasRawMetadata,
+        rawMetadataKeys,
+        extractedFallbackAddress: fallbackAddress,
+        finalAddressSelected: serviceAddress,
+        hasCoordinates,
+        latitude: job.latitude,
+        longitude: job.longitude,
+        geocoded_address: job.geocoded_address
+      })
       
       if (!serviceAddress) {
+        console.log('[MAP_ITEM_SKIPPED]', {
+          jobId: job.id,
+          reason: 'no_address_available',
+          serviceAddress: job.service_address,
+          fallbackAddress: fallbackAddress,
+          hasCoordinates,
+          geocodedAddress: job.geocoded_address
+        })
         withoutAddressCount++
         continue
       }
 
       // Check if already geocoded
-      if (job.latitude !== null && job.latitude !== undefined && job.longitude !== null && job.longitude !== undefined) {
+      if (hasCoordinates) {
+        console.log('[SCHEDULE_MAP_USING_CACHED_COORDINATES]', {
+          jobId: job.id,
+          address: serviceAddress,
+          latitude: job.latitude,
+          longitude: job.longitude,
+          geocoded_address: job.geocoded_address
+        })
         items.push({
           id: job.id,
           type: 'job',
@@ -178,11 +216,15 @@ export default function ScheduleMap({
           status: job.status,
           leadId: job.lead_id,
           jobId: job.id,
-          latitude: job.latitude,
-          longitude: job.longitude
+          latitude: job.latitude!,
+          longitude: job.longitude!
         })
       } else {
         // Trigger geocoding
+        console.log('[SCHEDULE_MAP_ATTEMPTING_GEOCODING]', {
+          jobId: job.id,
+          address: serviceAddress
+        })
         try {
           const response = await fetch('/api/geocode', {
             method: 'POST',
@@ -190,6 +232,13 @@ export default function ScheduleMap({
             body: JSON.stringify({ jobId: job.id, address: serviceAddress })
           })
           const result = await response.json()
+          console.log('[SCHEDULE_MAP_GEOCODING_RESULT]', {
+            jobId: job.id,
+            success: result.success,
+            error: result.error,
+            latitude: result.latitude,
+            longitude: result.longitude
+          })
           if (result.success) {
             items.push({
               id: job.id,
@@ -207,10 +256,28 @@ export default function ScheduleMap({
               longitude: result.longitude
             })
           } else {
+            console.log('[MAP_ITEM_SKIPPED]', {
+              jobId: job.id,
+              reason: 'geocoding_failed',
+              serviceAddress: job.service_address,
+              fallbackAddress: fallbackAddress,
+              hasCoordinates,
+              geocodedAddress: job.geocoded_address,
+              geocodingError: result.error
+            })
             withoutAddressCount++
           }
         } catch (error) {
           console.error('[ScheduleMap] Geocoding failed for job:', job.id, error)
+          console.log('[MAP_ITEM_SKIPPED]', {
+            jobId: job.id,
+            reason: 'geocoding_exception',
+            serviceAddress: job.service_address,
+            fallbackAddress: fallbackAddress,
+            hasCoordinates,
+            geocodedAddress: job.geocoded_address,
+            error: error instanceof Error ? error.message : String(error)
+          })
           withoutAddressCount++
         }
       }
