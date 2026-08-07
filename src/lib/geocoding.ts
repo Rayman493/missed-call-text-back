@@ -18,7 +18,13 @@ export interface GeocodeResult {
  */
 export async function geocodeAddress(address: string): Promise<GeocodeResult> {
   const apiKey = process.env.GOOGLE_MAPS_GEOCODING_API_KEY
-  
+  const normalizedAddress = address?.trim() || ''
+
+  console.log('[GEOCODE_GOOGLE_REQUEST_STARTED]', {
+    normalizedAddress,
+    apiKeyConfigured: !!apiKey
+  })
+
   if (!apiKey) {
     console.error('[Geocoding] GOOGLE_MAPS_GEOCODING_API_KEY not configured')
     return {
@@ -30,7 +36,11 @@ export async function geocodeAddress(address: string): Promise<GeocodeResult> {
     }
   }
 
-  if (!address || address.trim().length === 0) {
+  if (!normalizedAddress || normalizedAddress.length === 0) {
+    console.error('[GEOCODE_GOOGLE_REQUEST_FAILED]', {
+      error: 'Address is empty',
+      normalizedAddress
+    })
     return {
       success: false,
       error: 'Address is empty',
@@ -42,7 +52,7 @@ export async function geocodeAddress(address: string): Promise<GeocodeResult> {
 
   try {
     const url = new URL('https://maps.googleapis.com/maps/api/geocode/json')
-    url.searchParams.append('address', address)
+    url.searchParams.append('address', normalizedAddress)
     url.searchParams.append('key', apiKey)
 
     const response = await fetch(url.toString(), {
@@ -52,9 +62,17 @@ export async function geocodeAddress(address: string): Promise<GeocodeResult> {
       }
     })
 
+    console.log('[GEOCODE_GOOGLE_RESPONSE]', {
+      httpStatus: response.status,
+      httpOk: response.ok
+    })
+
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('[Geocoding] API error:', response.status, errorText)
+      console.error('[GEOCODE_GOOGLE_REQUEST_FAILED]', {
+        httpStatus: response.status,
+        errorText
+      })
       return {
         success: false,
         error: `Geocoding API error: ${response.status}`,
@@ -66,8 +84,17 @@ export async function geocodeAddress(address: string): Promise<GeocodeResult> {
 
     const data = await response.json()
 
+    console.log('[GEOCODE_GOOGLE_RESPONSE]', {
+      googleStatus: data.status,
+      googleErrorMessage: data.error_message,
+      resultsCount: data.results?.length || 0
+    })
+
     if (data.status !== 'OK') {
-      console.error('[Geocoding] Geocoding failed:', data.status, data.error_message)
+      console.error('[GEOCODE_GOOGLE_REQUEST_FAILED]', {
+        googleStatus: data.status,
+        googleErrorMessage: data.error_message
+      })
       return {
         success: false,
         error: data.error_message || `Geocoding failed: ${data.status}`,
@@ -78,6 +105,10 @@ export async function geocodeAddress(address: string): Promise<GeocodeResult> {
     }
 
     if (!data.results || data.results.length === 0) {
+      console.error('[GEOCODE_GOOGLE_REQUEST_FAILED]', {
+        googleStatus: data.status,
+        error: 'No results found for address'
+      })
       return {
         success: false,
         error: 'No results found for address',
@@ -90,6 +121,14 @@ export async function geocodeAddress(address: string): Promise<GeocodeResult> {
     const result = data.results[0]
     const { lat, lng } = result.geometry.location
 
+    console.log('[GEOCODE_GOOGLE_RESPONSE]', {
+      googleStatus: data.status,
+      resultsCount: data.results.length,
+      formattedAddress: result.formatted_address,
+      latitude: lat,
+      longitude: lng
+    })
+
     return {
       success: true,
       latitude: lat,
@@ -97,7 +136,10 @@ export async function geocodeAddress(address: string): Promise<GeocodeResult> {
       formattedAddress: result.formatted_address
     }
   } catch (error) {
-    console.error('[Geocoding] Unexpected error:', error)
+    console.error('[GEOCODE_GOOGLE_REQUEST_FAILED]', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      errorType: error instanceof Error ? error.constructor.name : typeof error
+    })
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

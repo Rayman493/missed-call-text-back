@@ -151,9 +151,9 @@ export async function POST(request: NextRequest) {
           serviceError: serviceError?.message,
           jobErrorCode: jobError?.code,
           serviceErrorCode: serviceError?.code,
-          businessIdMatch: job?.business_id === business.id,
+          businessIdMatch: (job as any)?.business_id === business.id,
           serviceBusinessIdMatch: serviceJob?.business_id === business.id,
-          authenticatedBusinessId: job?.business_id,
+          authenticatedBusinessId: (job as any)?.business_id,
           serviceBusinessId: serviceJob?.business_id,
           expectedBusinessId: business.id
         })
@@ -199,10 +199,21 @@ export async function POST(request: NextRequest) {
       const result = await geocodeAddress(normalizedAddress)
 
       if (!result.success) {
+        console.log('[GEOCODE_API_FINAL_RESPONSE]', {
+          success: false,
+          error: result.error
+        })
         return NextResponse.json({ error: result.error }, { status: 500 })
       }
 
       // Update the job with geocoded coordinates
+      console.log('[GEOCODE_DATABASE_UPDATE_STARTED]', {
+        jobId,
+        latitude: result.latitude,
+        longitude: result.longitude,
+        normalizedAddress
+      })
+
       const { error: updateError } = await supabase
         .from('jobs')
         .update({
@@ -213,10 +224,29 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', jobId)
 
+      console.log('[GEOCODE_DATABASE_UPDATE_RESULT]', {
+        success: !updateError,
+        errorCode: updateError?.code,
+        errorMessage: updateError?.message,
+        errorDetails: updateError?.details,
+        jobId
+      })
+
       if (updateError) {
         console.error('[Geocode API] Failed to update job:', updateError)
+        console.log('[GEOCODE_API_FINAL_RESPONSE]', {
+          success: false,
+          error: 'Failed to save geocoded coordinates',
+          dbError: updateError.message
+        })
         return NextResponse.json({ error: 'Failed to save geocoded coordinates' }, { status: 500 })
       }
+
+      console.log('[GEOCODE_API_FINAL_RESPONSE]', {
+        success: true,
+        latitude: result.latitude,
+        longitude: result.longitude
+      })
 
       return NextResponse.json({
         success: true,
