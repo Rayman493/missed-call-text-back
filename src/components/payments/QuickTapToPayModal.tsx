@@ -63,13 +63,6 @@ const [isSendingReceipt, setIsSendingReceipt] = useState(false)
 const [receiptSent, setReceiptSent] = useState(false)
 const [receiptError, setReceiptError] = useState('')
 
-// Check for pending education promise on mount
-useEffect(() => {
-  if (hasPendingEducationPromise()) {
-    setShowEducationConfirmation(true)
-  }
-}, [])
-
 const handleEducationComplete = async () => {
   try {
     const response = await fetch('/api/business/tap-to-pay-education', {
@@ -94,12 +87,26 @@ const handleEducationCancel = () => {
   setShowEducationConfirmation(false)
 }
 
-const handleConfirmationContinue = () => {
+const handleConfirmationContinue = async () => {
+  await logTapToPayEvent('EDUCATION_CONFIRMATION_PRIMARY_PRESSED', {
+    phase: 'education',
+    sessionId: terminalService?.getSessionId() || undefined,
+    attemptId: terminalService?.getCurrentAttemptId() || undefined,
+    paymentState: 'education_waiting_for_confirmation',
+    meta: { action: 'yes_continue' }
+  })
   resolveEducation('completed')
   setShowEducationConfirmation(false)
 }
 
-const handleConfirmationCancel = () => {
+const handleConfirmationCancel = async () => {
+  await logTapToPayEvent('EDUCATION_CONFIRMATION_SECONDARY_PRESSED', {
+    phase: 'education',
+    sessionId: terminalService?.getSessionId() || undefined,
+    attemptId: terminalService?.getCurrentAttemptId() || undefined,
+    paymentState: 'education_waiting_for_confirmation',
+    meta: { action: 'not_yet' }
+  })
   resolveEducation('canceled')
   setShowEducationConfirmation(false)
 }
@@ -267,6 +274,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
     checkPlatformSupport,
     requestLocationPermission,
     checkLocationPermission,
+    educationWaitingForConfirmation,
   } = useTapToPayOrchestration({
     amountCents,
     leadId: selectedLeadId || undefined,
@@ -282,6 +290,22 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
   // Ref to store resetToSetup for modal-open effect (avoid unstable dependency)
   const resetToSetupRef = useRef(resetToSetup)
   resetToSetupRef.current = resetToSetup
+
+  // Show confirmation UI when hook indicates waiting for confirmation
+  useEffect(() => {
+    if (educationWaitingForConfirmation && !showEducationConfirmation) {
+      logTapToPayEvent('EDUCATION_CONFIRMATION_UI_SHOWN', {
+        phase: 'education',
+        sessionId: terminalService?.getSessionId() || undefined,
+        attemptId: terminalService?.getCurrentAttemptId() || undefined,
+        paymentState: 'education_waiting_for_confirmation',
+        meta: { correlationId: undefined }
+      }).catch(() => {})
+      setShowEducationConfirmation(true)
+    } else if (!educationWaitingForConfirmation && showEducationConfirmation) {
+      setShowEducationConfirmation(false)
+    }
+  }, [educationWaitingForConfirmation, showEducationConfirmation])
 
   // Ref to track previous payment state for accurate reset reasons
   const prevPaymentStateRef = useRef<string>('ready')
@@ -1573,7 +1597,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
       )}
       
       {/* Education Confirmation UI (iOS 18+ after native education) */}
-      {showEducationConfirmation && createPortal(
+      {educationWaitingForConfirmation && createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50">
           <div className="bg-background rounded-xl shadow-xl max-w-md w-full p-6 space-y-4">
             <div className="flex items-center gap-3">

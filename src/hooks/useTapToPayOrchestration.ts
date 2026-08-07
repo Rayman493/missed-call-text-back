@@ -21,7 +21,7 @@ import { isNativeCapacitor } from '@/lib/terminal'
 import { createEducationPromise, resolveEducation, hasPendingEducationPromise, resetEducationPromise, classifyNativeEducationReturn, type EducationResolution } from '@/lib/education-promise-bridge'
 import { maskPhoneNumber } from '@/lib/phone-masking'
 
-type PaymentState = 'ready' | 'preparing' | 'connecting_reader' | 'education_pending' | 'creating_payment_intent' | 'waiting_for_card' | 'processing' | 'success' | 'failure' | 'canceled' | 'pending' | 'ambiguous'
+type PaymentState = 'ready' | 'preparing' | 'connecting_reader' | 'education_pending' | 'education_waiting_for_confirmation' | 'creating_payment_intent' | 'waiting_for_card' | 'processing' | 'success' | 'failure' | 'canceled' | 'pending' | 'ambiguous'
 
 // Runtime state validation helper
 function isValidPaymentState(value: string): value is PaymentState {
@@ -30,6 +30,7 @@ function isValidPaymentState(value: string): value is PaymentState {
     'preparing',
     'connecting_reader',
     'education_pending',
+    'education_waiting_for_confirmation',
     'creating_payment_intent',
     'waiting_for_card',
     'processing',
@@ -74,6 +75,7 @@ export interface UseTapToPayOrchestrationReturn {
   locationPermissionGranted: boolean | null
   locationServicesEnabled: boolean | null
   locationPermissionState: 'granted' | 'denied' | 'permanently_denied' | 'unknown'
+  educationWaitingForConfirmation: boolean
   startPayment: () => Promise<void>
   cancelPayment: (reason?: string) => void
   retryPayment: () => Promise<void>
@@ -107,6 +109,7 @@ export function useTapToPayOrchestration({
   const [locationServicesEnabled, setLocationServicesEnabled] = useState<boolean | null>(null)
   const [locationPermissionState, setLocationPermissionState] = useState<'granted' | 'denied' | 'permanently_denied' | 'unknown'>('unknown')
   const [showLocationPermissionDialog, setShowLocationPermissionDialog] = useState(false)
+  const [educationWaitingForConfirmation, setEducationWaitingForConfirmation] = useState(false)
   const [lastResetReason, setLastResetReason] = useState<string>('none')
   const [initializationStartTime, setInitializationStartTime] = useState<number | null>(null)
   const isInitializationPendingRef = useRef(false)
@@ -129,6 +132,7 @@ export function useTapToPayOrchestration({
       locationPermissionGranted: null,
       locationServicesEnabled: null,
       locationPermissionState: 'unknown',
+      educationWaitingForConfirmation: false,
       startPayment: async () => {},
       cancelPayment: () => {},
       retryPayment: async () => {},
@@ -436,7 +440,8 @@ export function useTapToPayOrchestration({
         paymentState: 'education',
         meta: { method: 'native_ios18' }
       })
-      
+      updateAppleChecklist('nativeIos18EducationAttempted', 'shown')
+
       const result = await ReplyflowStripeTerminal.presentMerchantEducation()
       
       const nativeCallDurationMs = Date.now() - nativeCallStartTime
@@ -470,6 +475,7 @@ export function useTapToPayOrchestration({
           paymentState: 'education',
           meta: { method: 'native_ios18', classifiedStatus }
         })
+        updateAppleChecklist('merchantEducationShown', 'shown')
         
         // Apple's presentContent does not await dismissal
         // We need explicit confirmation from the user
@@ -483,18 +489,43 @@ export function useTapToPayOrchestration({
             paymentState: 'education',
             meta: { requiresConfirmation: true }
           })
-          
-          // Create and await promise bridge for UI confirmation with 5-minute timeout
+
+          // Create promise bridge for UI confirmation with 5-minute timeout
           const educationPromise = createEducationPromise(5 * 60 * 1000) // 5 minutes
+          await logTapToPayEvent('EDUCATION_PROMISE_CREATED', {
+            phase: 'education',
+            sessionId: terminalService.getSessionId() || undefined,
+            attemptId: terminalService.getCurrentAttemptId() || undefined,
+            paymentState: 'education',
+            meta: { correlationId: getCorrelationId(), timeoutMs: 5 * 60 * 1000 }
+          })
+
+          // Set state to indicate waiting for confirmation
+          setEducationWaitingForConfirmation(true)
+          updatePaymentStateRef('education_waiting_for_confirmation', 'education_awaiting_confirmation')
+          setLastSuccessfulStage('education_presented')
+
+          // Await user confirmation
           const resolution = await educationPromise
-          
+
+          // Clear waiting state
+          setEducationWaitingForConfirmation(false)
+
           console.log('[TTP Hook] Education resolution:', resolution)
+          await logTapToPayEvent('EDUCATION_PROMISE_RESOLVED', {
+            phase: 'education',
+            sessionId: terminalService.getSessionId() || undefined,
+            attemptId: terminalService.getCurrentAttemptId() || undefined,
+            paymentState: 'education_waiting_for_confirmation',
+            meta: { resolution, correlationId: getCorrelationId() }
+          })
+
           dispatchTTPEvent('EDUCATION_DISMISSED', terminalService.getSessionId() || undefined, terminalService.getCurrentAttemptId() || undefined, 'education', String(resolution))
           await logTapToPayEvent('EDUCATION_DISMISSED', {
             phase: 'education',
             sessionId: terminalService.getSessionId() || undefined,
             attemptId: terminalService.getCurrentAttemptId() || undefined,
-            paymentState: 'education',
+            paymentState: 'education_waiting_for_confirmation',
             meta: { resolution }
           })
           
@@ -551,7 +582,8 @@ export function useTapToPayOrchestration({
             attemptId: terminalService.getCurrentAttemptId() || undefined,
             paymentState: 'education'
           })
-          
+          updateAppleChecklist('paymentHeldUntilEducationCompleted', 'shown')
+
           // User confirmed completion, persist it
           try {
             const persistenceStartTime = Date.now()
@@ -2360,6 +2392,7 @@ async function withTimeout<T>(
     locationPermissionGranted,
     locationServicesEnabled,
     locationPermissionState,
+    educationWaitingForConfirmation,
     startPayment,
     cancelPayment,
     retryPayment,
