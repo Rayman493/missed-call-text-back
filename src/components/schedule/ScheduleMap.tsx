@@ -48,6 +48,8 @@ type MapItemType = 'job' | 'appointment'
 
 type MapFilter = 'all' | 'jobs' | 'appointments'
 
+type MapType = 'roadmap' | 'satellite'
+
 interface MapDateState {
   selectedMapItemId: string | null
   filter: MapFilter
@@ -99,9 +101,34 @@ export default function ScheduleMap({
   const [itemsWithoutAddress, setItemsWithoutAddress] = useState<number>(0)
   const [geocodingFailed, setGeocodingFailed] = useState(false)
   const [mapFilter, setMapFilter] = useState<MapFilter>('all')
+  const [mapType, setMapType] = useState<MapType>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('replyflow_schedule_map_type')
+      if (saved === 'satellite' || saved === 'roadmap') {
+        return saved
+      }
+    }
+    return 'roadmap'
+  })
   const [userInteracted, setUserInteracted] = useState(false)
   const [showAllMode, setShowAllMode] = useState(true)
   const [previousDateKey, setPreviousDateKey] = useState<string | null>(null)
+
+  // Persist map type preference
+  useEffect(() => {
+    localStorage.setItem('replyflow_schedule_map_type', mapType)
+  }, [mapType])
+
+  // Update map type when state changes
+  useEffect(() => {
+    if (googleMapRef.current) {
+      const mapTypeId = mapType === 'satellite' 
+        ? (window as any).google.maps.MapTypeId.HYBRID 
+        : (window as any).google.maps.MapTypeId.ROADMAP
+      googleMapRef.current.setMapTypeId(mapTypeId)
+      console.log('[ScheduleMap] MAP_TYPE_CHANGED', { mapType, mapTypeId })
+    }
+  }, [mapType])
 
   // Format date for display
   const formatDate = (date: Date) => {
@@ -486,10 +513,14 @@ export default function ScheduleMap({
   useEffect(() => {
     if (!isMapLoaded || !mapRef.current || googleMapRef.current) return
 
+    const initialMapTypeId = mapType === 'satellite' 
+      ? (window as any).google.maps.MapTypeId.HYBRID 
+      : (window as any).google.maps.MapTypeId.ROADMAP
+    
     const map = new (window as any).google.maps.Map(mapRef.current, {
       center: { lat: 39.8283, lng: -98.5795 }, // Default to US center
       zoom: 4,
-      mapTypeId: (window as any).google.maps.MapTypeId.ROADMAP,
+      mapTypeId: initialMapTypeId,
       disableDefaultUI: false,
       zoomControl: true,
       mapTypeControl: false,
@@ -1041,6 +1072,32 @@ export default function ScheduleMap({
       {/* Map Container */}
       <div className="flex-1 relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
         <div ref={mapRef} className="w-full h-full" />
+        
+        {/* Map Type Toggle */}
+        <div className="absolute top-3 right-3 z-10">
+          <div className="flex bg-white dark:bg-slate-800 rounded-lg shadow-md border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <button
+              onClick={() => setMapType('roadmap')}
+              className={`px-3 py-2 text-xs font-medium transition-colors min-w-[60px] ${
+                mapType === 'roadmap'
+                  ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+              }`}
+            >
+              Map
+            </button>
+            <button
+              onClick={() => setMapType('satellite')}
+              className={`px-3 py-2 text-xs font-medium transition-colors min-w-[60px] ${
+                mapType === 'satellite'
+                  ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+              }`}
+            >
+              Satellite
+            </button>
+          </div>
+        </div>
         
         {/* Selected Item Info Card */}
         {selectedItem && (
