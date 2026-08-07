@@ -18,6 +18,10 @@ interface Job {
   lead_id: string | null
   latitude?: number | null
   longitude?: number | null
+  leads?: {
+    id: string
+    raw_metadata: any
+  } | null
 }
 
 interface CalendarEvent {
@@ -115,6 +119,35 @@ export default function ScheduleMap({
     return { filteredJobs, filteredEvents }
   }, [jobs, calendarEvents, selectedDate])
 
+  // Helper function to extract customer address from lead metadata
+  const getCustomerAddressFromLead = (job: Job): string | null => {
+    if (!job.leads?.raw_metadata) return null
+    
+    const rawMetadata = job.leads.raw_metadata
+    
+    // Check for various address field names in raw_metadata
+    const addressFields = [
+      rawMetadata.addressOrLocation,
+      rawMetadata.serviceAddress,
+      rawMetadata.address,
+      rawMetadata.location,
+      rawMetadata.extracted_info?.addressOrLocation,
+      rawMetadata.extracted_info?.serviceAddress,
+      rawMetadata.extracted_info?.address,
+      rawMetadata.ai_extracted_info?.addressOrLocation,
+      rawMetadata.ai_extracted_info?.serviceAddress,
+      rawMetadata.ai_extracted_info?.address,
+    ]
+    
+    for (const field of addressFields) {
+      if (field && typeof field === 'string' && field.trim().length > 0) {
+        return field.trim()
+      }
+    }
+    
+    return null
+  }
+
   // Geocode addresses and prepare map items
   const prepareMapItems = useCallback(async () => {
     const { filteredJobs, filteredEvents } = getItemsForDate()
@@ -123,7 +156,10 @@ export default function ScheduleMap({
 
     // Process jobs
     for (const job of filteredJobs) {
-      if (!job.service_address) {
+      // Use service_address, or fall back to customer address from lead metadata
+      const serviceAddress = job.service_address || getCustomerAddressFromLead(job)
+      
+      if (!serviceAddress) {
         withoutAddressCount++
         continue
       }
@@ -136,7 +172,7 @@ export default function ScheduleMap({
           title: job.title,
           customerName: job.customer_name,
           customerPhone: job.customer_phone,
-          address: job.service_address,
+          address: serviceAddress,
           scheduledDate: job.scheduled_date,
           scheduledTime: job.scheduled_time,
           status: job.status,
@@ -151,7 +187,7 @@ export default function ScheduleMap({
           const response = await fetch('/api/geocode', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ jobId: job.id })
+            body: JSON.stringify({ jobId: job.id, address: serviceAddress })
           })
           const result = await response.json()
           if (result.success) {
@@ -161,7 +197,7 @@ export default function ScheduleMap({
               title: job.title,
               customerName: job.customer_name,
               customerPhone: job.customer_phone,
-              address: job.service_address,
+              address: serviceAddress,
               scheduledDate: job.scheduled_date,
               scheduledTime: job.scheduled_time,
               status: job.status,

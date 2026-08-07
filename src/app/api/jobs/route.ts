@@ -27,7 +27,13 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('jobs')
-      .select('*')
+      .select(`
+        *,
+        leads (
+          id,
+          raw_metadata
+        )
+      `)
       .eq('business_id', business.id!)
       .order('scheduled_date', { ascending: true })
       .order('scheduled_time', { ascending: true })

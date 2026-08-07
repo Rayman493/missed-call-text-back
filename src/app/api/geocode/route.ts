@@ -4,13 +4,13 @@ import { geocodeAddress, isValidCoordinate, isGeocodingStale } from '@/lib/geoco
 
 /**
  * POST /api/geocode
- * Geocode a job's service address
- * Body: { jobId: string }
+ * Geocode a job's service address or customer address from lead metadata
+ * Body: { jobId: string, address?: string }
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { jobId } = body
+    const { jobId, address } = body
 
     if (!jobId) {
       return NextResponse.json(
@@ -59,16 +59,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Use provided address or fall back to job's service_address
+    const addressToGeocode = address || job.service_address
+
     // Check if address exists
-    if (!job.service_address || job.service_address.trim().length === 0) {
+    if (!addressToGeocode || addressToGeocode.trim().length === 0) {
       return NextResponse.json(
-        { error: 'Service address is empty' },
+        { error: 'Address is empty' },
         { status: 400 }
       )
     }
 
-    // Check if already geocoded and not stale
-    if (isValidCoordinate(job.latitude, job.longitude) && 
+    // Check if already geocoded and not stale (only if using job's service_address)
+    if (!address && 
+        isValidCoordinate(job.latitude, job.longitude) && 
         !isGeocodingStale(job.geocoded_at) &&
         job.geocoded_address === job.service_address.trim()) {
       return NextResponse.json({
@@ -81,7 +85,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Geocode the address
-    const result = await geocodeAddress(job.service_address)
+    const result = await geocodeAddress(addressToGeocode)
 
     if (!result.success) {
       return NextResponse.json(
