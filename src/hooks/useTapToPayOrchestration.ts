@@ -18,7 +18,7 @@ import { mapTapToPayError } from '@/lib/terminal/error-mapper'
 import { permissionLock } from '@/lib/permission-lock'
 import { nativePermissionsStore } from '@/lib/native-permissions/native-permissions-store'
 import { isNativeCapacitor } from '@/lib/terminal'
-import { createEducationPromise, resolveEducation, hasPendingEducationPromise, resetEducationPromise } from '@/lib/education-promise-bridge'
+import { createEducationPromise, resolveEducation, hasPendingEducationPromise, resetEducationPromise, classifyNativeEducationReturn, type EducationResolution } from '@/lib/education-promise-bridge'
 import { maskPhoneNumber } from '@/lib/phone-masking'
 
 type PaymentState = 'ready' | 'preparing' | 'connecting_reader' | 'education_pending' | 'creating_payment_intent' | 'waiting_for_card' | 'processing' | 'success' | 'failure' | 'canceled' | 'pending' | 'ambiguous'
@@ -456,6 +456,10 @@ export function useTapToPayOrchestration({
         }
       })
       
+      // Classify the native return value
+      const classifiedStatus = classifyNativeEducationReturn(result.presented, result.completionStatus, result.requiresConfirmation)
+      console.log('[TTP Hook] Native education classified as:', classifiedStatus)
+      
       if (result.presented && result.method === 'native_ios18') {
         console.log('[TTP Hook] Native education presented, completionStatus:', result.completionStatus)
         dispatchTTPEvent('EDUCATION_PRESENTED', terminalService.getSessionId() || undefined, terminalService.getCurrentAttemptId() || undefined, 'education', 'native_ios18')
@@ -464,7 +468,7 @@ export function useTapToPayOrchestration({
           sessionId: terminalService.getSessionId() || undefined,
           attemptId: terminalService.getCurrentAttemptId() || undefined,
           paymentState: 'education',
-          meta: { method: 'native_ios18' }
+          meta: { method: 'native_ios18', classifiedStatus }
         })
         
         // Apple's presentContent does not await dismissal
@@ -480,8 +484,8 @@ export function useTapToPayOrchestration({
             meta: { requiresConfirmation: true }
           })
           
-          // Create and await promise bridge for UI confirmation
-          const educationPromise = createEducationPromise()
+          // Create and await promise bridge for UI confirmation with 5-minute timeout
+          const educationPromise = createEducationPromise(5 * 60 * 1000) // 5 minutes
           const resolution = await educationPromise
           
           console.log('[TTP Hook] Education resolution:', resolution)
@@ -494,8 +498,23 @@ export function useTapToPayOrchestration({
             meta: { resolution }
           })
           
-          if (resolution === 'canceled') {
-            console.log('[TTP Hook] Education canceled by user')
+          if (resolution === 'timeout') {
+            console.log('[TTP Hook] Education timed out')
+            const educationDurationMs = Date.now() - educationStartTime
+            dispatchTTPEvent('EDUCATION_TIMEOUT', terminalService.getSessionId() || undefined, terminalService.getCurrentAttemptId() || undefined, 'education', 'timeout')
+            await logTapToPayEvent('EDUCATION_TIMEOUT', {
+              phase: 'education',
+              sessionId: terminalService.getSessionId() || undefined,
+              attemptId: terminalService.getCurrentAttemptId() || undefined,
+              paymentState: 'education',
+              durationMs: educationDurationMs,
+              meta: { reason: 'timeout' }
+            })
+            return { completed: false, method: 'native_ios18', reason: 'timeout' }
+          }
+          
+          if (resolution === 'canceled' || resolution === 'dismissed') {
+            console.log('[TTP Hook] Education canceled/dismissed by user')
             const educationDurationMs = Date.now() - educationStartTime
             dispatchTTPEvent('EDUCATION_CANCELED', terminalService.getSessionId() || undefined, terminalService.getCurrentAttemptId() || undefined, 'education', 'user_canceled')
             await logTapToPayEvent('EDUCATION_CANCELED', {
@@ -504,9 +523,24 @@ export function useTapToPayOrchestration({
               attemptId: terminalService.getCurrentAttemptId() || undefined,
               paymentState: 'education',
               durationMs: educationDurationMs,
-              meta: { reason: 'user_canceled' }
+              meta: { reason: resolution }
             })
-            return { completed: false, method: 'native_ios18', reason: 'user_canceled' }
+            return { completed: false, method: 'native_ios18', reason: resolution }
+          }
+          
+          if (resolution === 'failed') {
+            console.log('[TTP Hook] Education failed')
+            const educationDurationMs = Date.now() - educationStartTime
+            dispatchTTPEvent('EDUCATION_FAILED', terminalService.getSessionId() || undefined, terminalService.getCurrentAttemptId() || undefined, 'education', 'failed')
+            await logTapToPayEvent('EDUCATION_FAILED', {
+              phase: 'education',
+              sessionId: terminalService.getSessionId() || undefined,
+              attemptId: terminalService.getCurrentAttemptId() || undefined,
+              paymentState: 'education',
+              durationMs: educationDurationMs,
+              meta: { reason: 'failed' }
+            })
+            return { completed: false, method: 'native_ios18', reason: 'failed' }
           }
           
           console.log('[TTP Hook] Education confirmed by user')
@@ -654,7 +688,7 @@ export function useTapToPayOrchestration({
         })
         
         // For iOS < 18 or when native fails, use custom modal with promise bridge
-        const educationPromise = createEducationPromise()
+        const educationPromise = createEducationPromise(5 * 60 * 1000) // 5 minutes
         const resolution = await educationPromise
         
         console.log('[TTP Hook] Custom education resolution:', resolution)
@@ -667,9 +701,19 @@ export function useTapToPayOrchestration({
           meta: { resolution, method: 'fallback' }
         })
         
-        if (resolution === 'canceled') {
-          console.log('[TTP Hook] Custom education canceled by user')
-          return { completed: false, method: 'fallback', reason: 'user_canceled' }
+        if (resolution === 'timeout') {
+          console.log('[TTP Hook] Custom education timed out')
+          return { completed: false, method: 'fallback', reason: 'timeout' }
+        }
+        
+        if (resolution === 'canceled' || resolution === 'dismissed') {
+          console.log('[TTP Hook] Custom education canceled/dismissed by user')
+          return { completed: false, method: 'fallback', reason: resolution }
+        }
+        
+        if (resolution === 'failed') {
+          console.log('[TTP Hook] Custom education failed')
+          return { completed: false, method: 'fallback', reason: 'failed' }
         }
         
         // User completed custom education, persist it
@@ -1423,6 +1467,30 @@ export function useTapToPayOrchestration({
         throw error
       }
 
+      // Enforce education check BEFORE reader connection (iOS only)
+      // This prevents the Swift education presentation from interfering with active discovery
+      if (!business?.tap_to_pay_education_completed_at) {
+        const isIOS = Capacitor.getPlatform() === 'ios'
+        if (isIOS) {
+          console.log('[TTP Hook] EDUCATION_REQUIRED: Checking education status before connection')
+          updatePaymentStateRef('education_pending', 'education_check_started')
+          dispatchTTPEvent('EDUCATION_CHECK_STARTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'education_pending')
+          
+          const educationResult = await checkAndPresentEducation()
+          
+          if (!educationResult.completed) {
+            // Education was canceled or failed - do not proceed to payment
+            console.log('[TTP Hook] EDUCATION_NOT_COMPLETED: Canceling payment flow', educationResult)
+            dispatchTTPEvent('EDUCATION_CANCELED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'education_pending', JSON.stringify(educationResult))
+            updatePaymentStateRef('canceled', 'education_canceled')
+            throw new Error('Education required before payment. Please complete the Tap to Pay education guide.')
+          }
+          
+          console.log('[TTP Hook] EDUCATION_COMPLETED: Proceeding to reader connection')
+          dispatchTTPEvent('EDUCATION_COMPLETED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'education_pending')
+        }
+      }
+
       // Connect if needed
       if (initResult.status === 'connected') {
         setLastSuccessfulStage('connected')
@@ -1480,30 +1548,6 @@ export function useTapToPayOrchestration({
             throw new Error('Failed to connect to payment terminal')
           }
           setLastSuccessfulStage('connected')
-          
-          // Enforce education check after successful reader connection
-          // This pauses orchestration until education completes
-          if (!business?.tap_to_pay_education_completed_at) {
-            const isIOS = Capacitor.getPlatform() === 'ios'
-            if (isIOS) {
-              console.log('[TTP Hook] EDUCATION_REQUIRED: Checking education status')
-              updatePaymentStateRef('education_pending', 'education_check_started')
-              dispatchTTPEvent('EDUCATION_CHECK_STARTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'education_pending')
-              
-              const educationResult = await checkAndPresentEducation()
-              
-              if (!educationResult.completed) {
-                // Education was canceled or failed - do not proceed to payment
-                console.log('[TTP Hook] EDUCATION_NOT_COMPLETED: Canceling payment flow', educationResult)
-                dispatchTTPEvent('EDUCATION_CANCELED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'education_pending', JSON.stringify(educationResult))
-                updatePaymentStateRef('canceled', 'education_canceled')
-                throw new Error('Education required before payment. Please complete the Tap to Pay education guide.')
-              }
-              
-              console.log('[TTP Hook] EDUCATION_COMPLETED: Continuing to payment flow')
-              dispatchTTPEvent('EDUCATION_COMPLETED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'education_pending')
-            }
-          }
         } catch (connectError: any) {
           const durationMs = Date.now() - connectStartTime
           const isTimeout = connectError?.message?.includes('Timeout') || connectError?.name === 'Error'
