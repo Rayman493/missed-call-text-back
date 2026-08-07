@@ -80,18 +80,47 @@ export async function POST(request: NextRequest) {
 
     // Handle geocoding action
     if (action === 'geocode') {
+      console.log('[GEOCODE_API] Incoming geocoding request', {
+        jobId,
+        jobIdType: typeof jobId,
+        address,
+        businessId: business.id
+      })
+
       if (!jobId) {
         return NextResponse.json({ error: 'jobId is required' }, { status: 400 })
       }
 
       // Get the job with business_id for security
+      console.log('[GEOCODE_API] Executing Supabase query', {
+        table: 'jobs',
+        select: 'id, business_id, service_address, latitude, longitude, geocoded_at, geocoded_address',
+        filter: { id: jobId }
+      })
+
       const { data: job, error: jobError } = await supabase
         .from('jobs')
         .select('id, business_id, service_address, latitude, longitude, geocoded_at, geocoded_address')
         .eq('id', jobId)
         .single()
 
+      console.log('[GEOCODE_API] Query result', {
+        jobError: jobError ? jobError.message : null,
+        jobErrorCode: jobError?.code,
+        jobErrorHint: jobError?.hint,
+        jobErrorDetails: jobError?.details,
+        jobFound: !!job,
+        jobId: job?.id,
+        jobBusinessId: job?.business_id
+      })
+
       if (jobError || !job) {
+        console.error('[GEOCODE_API] Job lookup failed', {
+          jobId,
+          jobError: jobError?.message,
+          jobErrorCode: jobError?.code,
+          jobExists: !!job
+        })
         return NextResponse.json({ error: 'Job not found' }, { status: 404 })
       }
 
