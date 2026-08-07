@@ -2267,13 +2267,68 @@ export default function SettingsContent() {
                     <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-4 mb-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                          <Smartphone className="h-5 w-auto text-slate-700 dark:text-slate-300 flex-shrink-0" />
-                          <span className="text-xs px-2.5 py-0.5 bg-slate-200/70 dark:bg-slate-700/70 text-slate-600 dark:text-slate-300 rounded-full font-medium">
-                            Tap to Pay
+                          <Smartphone className="h-5 w-auto text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                          <span className="text-[10px] px-2 py-0.5 bg-blue-500/10 text-blue-700 dark:text-blue-300 rounded-full font-medium">
+                            iOS Only
                           </span>
+                          {(() => {
+                            const status = tapToPayAwareness.state.tapToPaySupportStatus?.status
+                            const platform = tapToPayAwareness.state.tapToPaySupportStatus?.platform
+                            const isUnsupported = status === 'unsupported_device' || status === 'unsupported_ios_version'
+                            const isUnavailable = status === 'unavailable'
+                            
+                            if (platform === 'web' || platform === 'android') {
+                              return (
+                                <span className="text-xs px-2.5 py-0.5 bg-slate-200/70 dark:bg-slate-700/70 text-slate-600 dark:text-slate-300 rounded-full font-medium">
+                                  Not Available
+                                </span>
+                              )
+                            }
+                            
+                            if (isUnsupported) {
+                              return (
+                                <span className="text-xs px-2.5 py-0.5 bg-slate-200/70 dark:bg-slate-700/70 text-slate-600 dark:text-slate-300 rounded-full font-medium">
+                                  Unsupported Device
+                                </span>
+                              )
+                            }
+                            
+                            if (isUnavailable) {
+                              return (
+                                <span className="text-xs px-2.5 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full font-medium flex items-center gap-1.5">
+                                  <span className="w-1 h-1 bg-amber-500 rounded-full" />
+                                  Requires Attention
+                                </span>
+                              )
+                            }
+                            
+                            if (status === 'supported' && business?.stripe_charges_enabled && business?.tap_to_pay_education_completed_at) {
+                              return (
+                                <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
+                                  <span className="w-1 h-1 bg-green-500 rounded-full" />
+                                  Ready
+                                </span>
+                              )
+                            }
+                            
+                            if (status === 'supported' && business?.stripe_charges_enabled) {
+                              return (
+                                <span className="text-xs px-2.5 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full font-medium flex items-center gap-1.5">
+                                  <span className="w-1 h-1 bg-blue-500 rounded-full" />
+                                  Not Configured
+                                </span>
+                              )
+                            }
+                            
+                            return (
+                              <span className="text-xs px-2.5 py-0.5 bg-slate-200/70 dark:bg-slate-700/70 text-slate-600 dark:text-slate-300 rounded-full font-medium">
+                                Checking...
+                              </span>
+                            )
+                          })()}
                         </div>
                         <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                          Accept contactless payments directly on iPhone.
+                          Accept contactless cards directly on your iPhone.
                         </p>
                       </div>
                       {tapToPayAwareness.state.isLoading ? (
@@ -2284,8 +2339,9 @@ export default function SettingsContent() {
                         (() => {
                           const status = tapToPayAwareness.state.tapToPaySupportStatus?.status
                           const platform = tapToPayAwareness.state.tapToPaySupportStatus?.platform
+                          const unsupportedReason = tapToPayAwareness.state.tapToPaySupportStatus?.unsupportedReason
                           const isUnsupported = status === 'unsupported_device' || status === 'unsupported_ios_version'
-                          const isUnavailable = status === 'unavailable' || status === 'unknown'
+                          const isUnavailable = status === 'unavailable'
                           const isWebOrAndroid = platform === 'web' || platform === 'android'
                           
                           // Hide setup action for web/Android
@@ -2336,7 +2392,7 @@ export default function SettingsContent() {
                         })()
                       )}
                     </div>
-                    <div className="mt-auto">
+                    <div className="mt-auto space-y-2">
                       {tapToPayAwareness.state.isLoading ? (
                         <div className="p-2.5 sm:p-3">
                           <Skeleton className="h-12 w-full rounded-lg" />
@@ -2347,7 +2403,7 @@ export default function SettingsContent() {
                           const platform = tapToPayAwareness.state.tapToPaySupportStatus?.platform
                           const unsupportedReason = tapToPayAwareness.state.tapToPaySupportStatus?.unsupportedReason
                           
-                          // Web/Android: hide setup action
+                          // Web/Android: show informational message
                           if (platform === 'web' || platform === 'android') {
                             return (
                               <div className="p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-lg">
@@ -2442,7 +2498,34 @@ export default function SettingsContent() {
                             )
                           }
                           
-                          // Default: no message for supported and acknowledged
+                          // Supported - show useful information
+                          if (status === 'supported' && business?.stripe_charges_enabled) {
+                            return (
+                              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-500">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                                  Device Supported
+                                </div>
+                                {business?.tap_to_pay_education_completed_at ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                                    Education Completed
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+                                    <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+                                    Education Required
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-1.5">
+                                  <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                                  Connected Reader: iPhone
+                                </div>
+                              </div>
+                            )
+                          }
+                          
+                          // Default: no message
                           return null
                         })()
                       )}

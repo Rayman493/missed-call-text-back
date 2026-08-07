@@ -1194,12 +1194,16 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                 /* Payment Progress Screen */
                 <div className="flex flex-col items-center justify-center py-8 space-y-4">
                   {paymentState === 'education_pending' && (
-                    <div className="flex flex-col items-center justify-center space-y-4 text-center px-4" role="status" aria-live="polite">
-                      <BookOpen className="w-12 h-12 text-green-600 dark:text-green-400" />
-                      <h2 className="text-lg font-semibold text-foreground">Tap to Pay Guide</h2>
-                      <p className="text-sm text-muted-foreground max-w-sm">
-                        Before your first payment, please complete the quick setup guide to learn how to use Tap to Pay on your iPhone.
-                      </p>
+                    <div className="flex flex-col items-center justify-center space-y-5 text-center px-6" role="status" aria-live="polite">
+                      <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
+                        <BookOpen className="w-8 h-8 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div className="space-y-2">
+                        <h2 className="text-lg font-semibold text-foreground">Tap to Pay Guide</h2>
+                        <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
+                          Before your first payment, please complete the quick setup guide to learn how to use Tap to Pay on your iPhone.
+                        </p>
+                      </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Loader2 className="w-4 h-4 animate-spin" />
                         <span>Opening guide…</span>
@@ -1207,25 +1211,29 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                     </div>
                   )}
                   {paymentState === 'preparing' && (
-                    <>
-                      <Loader2 className="w-12 h-12 animate-spin text-green-600 dark:text-green-400" />
-                      <p className="text-sm text-muted-foreground text-center">
-                        {lastSuccessfulStage === 'checking_previous_payment' 
-                          ? 'Checking previous payment…' 
-                          : 'Initializing payment terminal…'}
-                      </p>
-                      <p className="text-xs text-muted-foreground/60 text-center">{formatCurrency(amountCents / 100)}</p>
-                    </>
+                    <div className="flex flex-col items-center justify-center space-y-5 text-center px-6">
+                      <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
+                        <Loader2 className="w-8 h-8 animate-spin text-green-600 dark:text-green-400" />
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-foreground">
+                          {lastSuccessfulStage === 'checking_previous_payment' 
+                            ? 'Checking previous payment…' 
+                            : 'Initializing payment terminal…'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{formatCurrency(amountCents / 100)}</p>
+                      </div>
+                    </div>
                   )}
 
                   {paymentState === 'connecting_reader' && (
-                    <>
+                    <div className="flex flex-col items-center justify-center space-y-5 text-center px-6">
                       <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center animate-pulse">
                         <Smartphone className="w-8 h-8 text-green-600 dark:text-green-400" />
                       </div>
-                      <div role="status" aria-live="polite" aria-atomic="true">
-                        <p className="text-sm font-medium text-foreground text-center">Connecting to Tap to Pay…</p>
-                        <p className="text-sm text-muted-foreground text-center px-4">
+                      <div className="space-y-2" role="status" aria-live="polite" aria-atomic="true">
+                        <p className="text-sm font-medium text-foreground">Connecting to Tap to Pay…</p>
+                        <p className="text-xs text-muted-foreground max-w-xs leading-relaxed px-4">
                           {connectingElapsedTime >= 15
                             ? 'Finishing Tap to Pay setup. This may take a moment the first time.'
                             : connectingElapsedTime >= 5
@@ -1234,70 +1242,84 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                         </p>
                       </div>
                       <p className="text-lg font-bold text-foreground">{formatCurrency(amountCents / 100)}</p>
-                    </>
+                    </div>
                   )}
 
                   {paymentState === 'creating_payment_intent' && (
-                    <>
-                      <Loader2 className="w-12 h-12 animate-spin text-green-600 dark:text-green-400" />
-                      <p className="text-sm text-muted-foreground text-center">Preparing payment…</p>
-                      <p className="text-xs text-muted-foreground/60 text-center">{formatCurrency(amountCents / 100)}</p>
-                    </>
+                    <div className="flex flex-col items-center justify-center space-y-5 text-center px-6">
+                      <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
+                        <Loader2 className="w-8 h-8 animate-spin text-green-600 dark:text-green-400" />
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-foreground">Preparing payment…</p>
+                        <p className="text-xs text-muted-foreground">{formatCurrency(amountCents / 100)}</p>
+                      </div>
+                    </div>
                   )}
 
                   {paymentState === 'waiting_for_card' && (
-                    <>
+                    <div className="flex flex-col items-center justify-center space-y-5 text-center px-6">
                       <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center animate-pulse">
                         <Smartphone className="w-8 h-8 text-green-600 dark:text-green-400" />
                       </div>
-                      <p className="text-sm font-medium text-foreground text-center">Ready for card</p>
-                      <p className="text-xs text-muted-foreground text-center">Tap or insert card</p>
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-foreground">Ready for card</p>
+                        <p className="text-xs text-muted-foreground">Tap or insert card</p>
+                      </div>
                       <p className="text-lg font-bold text-foreground">{formatCurrency(amountCents / 100)}</p>
-                    </>
+                    </div>
                   )}
 
                   {paymentState === 'processing' && (
-                    <>
-                      <Loader2 className="w-12 h-12 animate-spin text-green-600 dark:text-green-400" />
-                      <p className="text-sm text-muted-foreground text-center">Processing payment…</p>
-                    </>
+                    <div className="flex flex-col items-center justify-center space-y-5 text-center px-6">
+                      <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
+                        <Loader2 className="w-8 h-8 animate-spin text-green-600 dark:text-green-400" />
+                      </div>
+                      <p className="text-sm font-medium text-foreground">Processing payment…</p>
+                    </div>
                   )}
 
                   {paymentState === 'success' && (
-                    <>
-                      <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
-                        <CheckCircle2 className="w-8 h-8 text-green-600 dark:text-green-400" />
+                    <div className="flex flex-col items-center justify-center space-y-5 text-center px-6">
+                      <div className="w-20 h-20 rounded-full bg-green-500/10 flex items-center justify-center animate-in zoom-in duration-300">
+                        <CheckCircle2 className="w-10 h-10 text-green-600 dark:text-green-400" />
                       </div>
-                      <p className="text-sm font-medium text-foreground text-center">Payment successful!</p>
-                      <p className="text-lg font-bold text-green-600 dark:text-green-400">{formatCurrency(amountCents / 100)}</p>
+                      <div className="space-y-2">
+                        <p className="text-lg font-semibold text-foreground">Payment Successful!</p>
+                        <p className="text-2xl font-bold text-green-600 dark:text-green-400">{formatCurrency(amountCents / 100)}</p>
+                      </div>
                       <button
                         onClick={handleSendReceipt}
-                        className="mt-4 px-6 py-3 h-11 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors"
+                        className="mt-4 px-6 py-3 h-11 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors active:scale-95"
                         aria-label="Send receipt to customer"
                       >
                         Send Receipt
                       </button>
-                    </>
+                    </div>
                   )}
 
                   {paymentState === 'canceled' && (
-                    <>
+                    <div className="flex flex-col items-center justify-center space-y-5 text-center px-6">
                       <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center">
                         <XCircle className="w-8 h-8 text-amber-600 dark:text-amber-400" />
                       </div>
-                      <p className="text-sm font-medium text-foreground text-center">Payment canceled</p>
-                      <p className="text-sm text-muted-foreground text-center">No charge was made. You can try again whenever you're ready.</p>
-                    </>
+                      <div className="space-y-2">
+                        <p className="text-lg font-semibold text-foreground">Payment Canceled</p>
+                        <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">No charge was made. You can try again whenever you're ready.</p>
+                      </div>
+                    </div>
                   )}
 
                   {paymentState === 'failure' && (
-                    <>
+                    <div className="flex flex-col items-center justify-center space-y-5 text-center px-6">
                       <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center">
                         <XCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
                       </div>
-                      <p className="text-sm font-medium text-foreground text-center">{mappedError?.title || 'Payment Failed'}</p>
-                      <p className="text-sm text-red-500 text-center">{mappedError?.message || error || 'An error occurred'}</p>
-                    </>
+                      <div className="space-y-2">
+                        <p className="text-lg font-semibold text-foreground">{mappedError?.title || 'Payment Failed'}</p>
+                        <p className="text-sm text-red-600 dark:text-red-400 max-w-xs leading-relaxed">{mappedError?.message || error || 'An error occurred'}</p>
+                      </div>
+                    </div>
                   )}
                   {/* Defensive fallback for unhandled states */}
                   {(!['ready', 'preparing', 'connecting_reader', 'creating_payment_intent', 'waiting_for_card', 'processing', 'success', 'failure', 'canceled', 'pending', 'ambiguous'].includes(paymentState)) && (
@@ -1598,27 +1620,29 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
       
       {/* Education Confirmation UI (iOS 18+ after native education) */}
       {educationWaitingForConfirmation && createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-background rounded-xl shadow-xl max-w-md w-full p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <BookOpen className="w-8 h-8 text-green-600 dark:text-green-400" />
-              <h2 className="text-lg font-semibold text-foreground">Tap to Pay Guide</h2>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 animate-in fade-in duration-200">
+          <div className="bg-background rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-6 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                <BookOpen className="w-6 h-6 text-green-600 dark:text-green-400" />
+              </div>
+              <h2 className="text-xl font-semibold text-foreground">Tap to Pay Guide</h2>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground leading-relaxed">
               Have you completed the Tap to Pay setup guide? You can continue to payment once you've reviewed the instructions.
             </p>
             <div className="flex gap-3 pt-2">
               <button
                 onClick={handleConfirmationCancel}
-                className="flex-1 px-4 py-3 h-11 rounded-lg border border-border text-foreground font-medium hover:bg-muted transition-colors"
+                className="flex-1 px-4 py-3 h-12 rounded-xl border border-border text-foreground font-medium hover:bg-muted transition-colors active:scale-[0.98] duration-150"
               >
                 Not Yet
               </button>
               <button
                 onClick={handleConfirmationContinue}
-                className="flex-1 px-4 py-3 h-11 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-colors"
+                className="flex-1 px-4 py-3 h-12 rounded-xl bg-green-600 text-white font-medium hover:bg-green-700 transition-colors active:scale-[0.98] duration-150"
               >
-                Continue to Payment
+                Yes, Continue
               </button>
             </div>
           </div>
