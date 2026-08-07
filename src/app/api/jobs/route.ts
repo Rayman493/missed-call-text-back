@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
+import { geocodeAddress, isValidCoordinate, isGeocodingStale } from '@/lib/geocoding'
 
 export async function GET(request: NextRequest) {
   try {
@@ -75,6 +76,84 @@ export async function POST(request: NextRequest) {
     const business = authResult.business;
 
     const body = await request.json()
+    const { action, jobId, address } = body
+
+    // Handle geocoding action
+    if (action === 'geocode') {
+      if (!jobId) {
+        return NextResponse.json({ error: 'jobId is required' }, { status: 400 })
+      }
+
+      // Get the job with business_id for security
+      const { data: job, error: jobError } = await supabase
+        .from('jobs')
+        .select('id, business_id, service_address, latitude, longitude, geocoded_at, geocoded_address')
+        .eq('id', jobId)
+        .single()
+
+      if (jobError || !job) {
+        return NextResponse.json({ error: 'Job not found' }, { status: 404 })
+      }
+
+      // Verify business ownership
+      if (job.business_id !== business.id) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+      }
+
+      // Use provided address or fall back to job's service_address
+      const addressToGeocode = address || job.service_address
+      const normalizedAddress = addressToGeocode?.trim()
+
+      if (!normalizedAddress || normalizedAddress.length === 0) {
+        return NextResponse.json({ error: 'Address is empty' }, { status: 400 })
+      }
+
+      // Check if already geocoded and not stale
+      if (isValidCoordinate(job.latitude, job.longitude) && 
+          !isGeocodingStale(job.geocoded_at) &&
+          job.geocoded_address === normalizedAddress) {
+        return NextResponse.json({
+          success: true,
+          latitude: job.latitude,
+          longitude: job.longitude,
+          formattedAddress: job.geocoded_address || normalizedAddress,
+          cached: true
+        })
+      }
+
+      // Geocode the address
+      const result = await geocodeAddress(normalizedAddress)
+
+      if (!result.success) {
+        return NextResponse.json({ error: result.error }, { status: 500 })
+      }
+
+      // Update the job with geocoded coordinates
+      const { error: updateError } = await supabase
+        .from('jobs')
+        .update({
+          latitude: result.latitude,
+          longitude: result.longitude,
+          geocoded_at: new Date().toISOString(),
+          geocoded_address: result.formattedAddress
+        })
+        .eq('id', jobId)
+
+      if (updateError) {
+        console.error('[Geocode API] Failed to update job:', updateError)
+        return NextResponse.json({ error: 'Failed to save geocoded coordinates' }, { status: 500 })
+      }
+
+      return NextResponse.json({
+        success: true,
+        latitude: result.latitude,
+        longitude: result.longitude,
+        formattedAddress: result.formattedAddress,
+        cached: false
+      })
+    }
+
+    // Original job creation logic
     const {
       title,
       customer_name,

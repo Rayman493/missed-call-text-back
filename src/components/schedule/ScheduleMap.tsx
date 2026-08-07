@@ -226,10 +226,10 @@ export default function ScheduleMap({
           address: serviceAddress
         })
         try {
-          const response = await fetch(`/api/jobs/${job.id}/geocode`, {
+          const response = await fetch('/api/jobs', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ address: serviceAddress })
+            body: JSON.stringify({ action: 'geocode', jobId: job.id, address: serviceAddress })
           })
           const result = await response.json()
           console.log('[SCHEDULE_MAP_GEOCODING_RESULT]', {
