@@ -8,7 +8,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import DashboardShell from '@/components/layout/DashboardShell'
 import Toast, { ToastContainer } from '@/components/Toast'
 import Link from 'next/link'
-import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle, Briefcase, MapPin, MoreVertical, CheckCircle2 } from 'lucide-react'
+import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle, Briefcase, MapPin, MoreVertical, CheckCircle2, Map as MapIcon } from 'lucide-react'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import EventPill from '@/components/calendar/EventPill'
 import EventDetailsModal from '@/components/calendar/EventDetailsModal'
@@ -26,6 +26,7 @@ import AddCustomerModal from '@/components/AddCustomerModal'
 import ConfirmModal from '@/components/ui/ConfirmModal'
 import TodayCommandCenter from '@/components/schedule/TodayCommandCenter'
 import NewTaskModal from '@/components/schedule/NewTaskModal'
+import ScheduleMap from '@/components/schedule/ScheduleMap'
 import FocusSection from '@/components/FocusSection'
 import Skeleton, { CardSkeleton, ListItemSkeleton } from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
@@ -222,7 +223,7 @@ export default function SchedulePage() {
   const [selectedEventJob, setSelectedEventJob] = useState<Job | null>(null)
   const [selectedEventLead, setSelectedEventLead] = useState<{ id: string; name: string | null; caller_phone: string | null } | null>(null)
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
-  const [scheduleTab, setScheduleTab] = useState<'agenda' | 'calendar'>('agenda')
+  const [scheduleTab, setScheduleTab] = useState<'agenda' | 'calendar' | 'map'>('agenda')
 
   // Jobs state
   const [jobs, setJobs] = useState<Job[]>([])
@@ -259,6 +260,9 @@ export default function SchedulePage() {
   
   // Disconnect confirmation state
   const [isDisconnectConfirmOpen, setIsDisconnectConfirmOpen] = useState(false)
+
+  // Map date navigation state
+  const [mapSelectedDate, setMapSelectedDate] = useState<Date>(() => new Date())
 
   // Check for OAuth success/error redirect
   useEffect(() => {
@@ -883,7 +887,7 @@ export default function SchedulePage() {
   const goToToday = () => {
     const now = new Date()
     const newMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-    const newMonthKey = `${newMonth.getFullYear()}-${newMonth.getMonth()}`
+    const newMonthKey = `${now.getFullYear()}-${now.getMonth()}`
     
     setCurrentMonth(newMonth)
     setCurrentMonthKey(newMonthKey)
@@ -894,6 +898,38 @@ export default function SchedulePage() {
       setEvents(cachedEvents)
     } else {
       fetchEvents(newMonthKey)
+    }
+  }
+
+  const handleMapPreviousDay = () => {
+    setMapSelectedDate(prev => {
+      const newDate = new Date(prev)
+      newDate.setDate(newDate.getDate() - 1)
+      return newDate
+    })
+  }
+
+  const handleMapNextDay = () => {
+    setMapSelectedDate(prev => {
+      const newDate = new Date(prev)
+      newDate.setDate(newDate.getDate() + 1)
+      return newDate
+    })
+  }
+
+  const handleMapGoToToday = () => {
+    setMapSelectedDate(new Date())
+  }
+
+  const handleMapViewCustomer = (leadId: string) => {
+    // Navigate to lead detail page
+    window.location.href = `/dashboard/leads/${leadId}`
+  }
+
+  const handleMapViewJob = (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId)
+    if (job?.lead_id) {
+      handleMapViewCustomer(job.lead_id)
     }
   }
 
@@ -991,16 +1027,27 @@ export default function SchedulePage() {
                         <CalendarIcon className={`w-4 h-4 ${scheduleTab === 'calendar' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
                         Calendar
                       </button>
+                      <button
+                        onClick={() => setScheduleTab('map')}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ease-out ${
+                          scheduleTab === 'map'
+                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50 text-sm'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-sm'
+                        }`}
+                      >
+                        <MapIcon className={`w-4 h-4 ${scheduleTab === 'map' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
+                        Map
+                      </button>
                     </div>
                   </div>
 
                   {/* Mobile tab toggle (responsive grid, no horizontal scrolling) */}
                   <div className="md:hidden mb-4 mt-2">
                     <div className="bg-slate-900/40 dark:bg-slate-800/60 rounded-xl p-0.5 border border-slate-200/50 dark:border-slate-700/50">
-                      <div className="grid grid-cols-2 gap-0.5">
+                      <div className="grid grid-cols-3 gap-0.5">
                         <button
                           onClick={() => setScheduleTab('agenda')}
-                          className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg font-medium transition-all duration-200 ease-out ${
+                          className={`flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg font-medium transition-all duration-200 ease-out ${
                             scheduleTab === 'agenda'
                               ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50'
                               : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-xs'
@@ -1011,7 +1058,7 @@ export default function SchedulePage() {
                         </button>
                         <button
                           onClick={() => setScheduleTab('calendar')}
-                          className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg font-medium transition-all duration-200 ease-out ${
+                          className={`flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg font-medium transition-all duration-200 ease-out ${
                             scheduleTab === 'calendar'
                               ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50'
                               : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-xs'
@@ -1019,6 +1066,17 @@ export default function SchedulePage() {
                         >
                           <CalendarIcon className={`w-3.5 h-3.5 ${scheduleTab === 'calendar' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
                           <span>Calendar</span>
+                        </button>
+                        <button
+                          onClick={() => setScheduleTab('map')}
+                          className={`flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg font-medium transition-all duration-200 ease-out ${
+                            scheduleTab === 'map'
+                              ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50'
+                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-xs'
+                          }`}
+                        >
+                          <MapIcon className={`w-3.5 h-3.5 ${scheduleTab === 'map' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
+                          <span>Map</span>
                         </button>
                       </div>
                     </div>
@@ -1461,6 +1519,22 @@ export default function SchedulePage() {
                           </>
                         )}
                       </button>
+                    </div>
+                  )}
+
+                  {/* Map Tab */}
+                  {scheduleTab === 'map' && (
+                    <div className="h-[calc(100vh-200px)] min-h-[500px]">
+                      <ScheduleMap
+                        jobs={jobs}
+                        calendarEvents={events}
+                        selectedDate={mapSelectedDate}
+                        onPreviousDay={handleMapPreviousDay}
+                        onNextDay={handleMapNextDay}
+                        onGoToToday={handleMapGoToToday}
+                        onViewCustomer={handleMapViewCustomer}
+                        onViewJob={handleMapViewJob}
+                      />
                     </div>
                   )}
 
