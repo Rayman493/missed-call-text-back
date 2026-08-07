@@ -423,8 +423,8 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
   }
 
   return (
-    <div 
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-hidden px-4 pt-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 md:items-center md:p-4" 
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden px-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 md:p-4"
       style={{ paddingBottom: 'calc(var(--bottom-nav-height, 80px) + 16px)' }}
       role="dialog" 
       aria-modal="true" 
