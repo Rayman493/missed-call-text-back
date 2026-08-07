@@ -411,6 +411,11 @@ export default function ScheduleMap({
       withoutAddressCount++
     }
 
+    console.log('[ScheduleMap] MAP_ITEMS_RECOMPUTED', {
+      itemCount: items.length,
+      withoutAddressCount,
+      selectedDate: selectedDate.toISOString().split('T')[0]
+    })
     setMapItems(items)
     setItemsWithoutAddress(withoutAddressCount)
     setGeocodingFailed(withoutAddressCount > 0 && items.length === 0)
@@ -496,18 +501,45 @@ export default function ScheduleMap({
     googleMapRef.current = map
   }, [isMapLoaded])
 
+  // Reset state when selectedDate changes
+  useEffect(() => {
+    console.log('[ScheduleMap] MAP_DATE_CHANGED', {
+      selectedDate: selectedDate.toISOString().split('T')[0],
+      previousSelectedMapItemId: selectedMapItemId
+    })
+    setSelectedMapItemId(null)
+    setShowAllMode(true)
+    setUserInteracted(false)
+    setSelectedMarker(null)
+  }, [selectedDate])
+
   // Prepare map items when date changes
   useEffect(() => {
+    console.log('[ScheduleMap] MAP_ITEMS_PREPARING', {
+      selectedDate: selectedDate.toISOString().split('T')[0]
+    })
     prepareMapItems()
   }, [prepareMapItems])
 
   // Update markers when map items change
   useEffect(() => {
-    if (!googleMapRef.current || mapItems.length === 0) return
+    console.log('[ScheduleMap] MAP_MARKERS_UPDATING', {
+      mapItemsCount: mapItems.length,
+      selectedMapItemId,
+      showAllMode,
+      userInteracted,
+      selectedDate: selectedDate.toISOString().split('T')[0]
+    })
+
+    if (!googleMapRef.current || mapItems.length === 0) {
+      console.log('[ScheduleMap] MAP_MARKERS_SKIPPED - no map or no items')
+      return
+    }
 
     const filteredItems = getFilteredMapItems(mapItems)
     
     // Clear existing markers
+    console.log('[ScheduleMap] MAP_MARKERS_CLEARED', { clearedCount: markersRef.current.length })
     markersRef.current.forEach(marker => marker.setMap(null))
     markersRef.current = []
 
@@ -538,13 +570,25 @@ export default function ScheduleMap({
       markersRef.current.push(marker)
     })
 
+    console.log('[ScheduleMap] MAP_MARKERS_RENDERED', {
+      markerCount: markersRef.current.length,
+      filteredItemCount: filteredItems.length
+    })
+
     // Fit bounds to show all markers (only if not user interacted and in show all mode)
     if (markersRef.current.length > 0 && showAllMode && !userInteracted) {
+      console.log('[ScheduleMap] MAP_BOUNDS_UPDATING', { markerCount: markersRef.current.length })
       const bounds = new (window as any).google.maps.LatLngBounds()
       markersRef.current.forEach(marker => {
         bounds.extend(marker.getPosition()!)
       })
       fitBoundsWithMaxZoom(bounds)
+    } else {
+      console.log('[ScheduleMap] MAP_BOUNDS_SKIPPED', {
+        markerCount: markersRef.current.length,
+        showAllMode,
+        userInteracted
+      })
     }
 
     return () => {
