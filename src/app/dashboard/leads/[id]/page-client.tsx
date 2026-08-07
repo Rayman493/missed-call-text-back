@@ -5850,26 +5850,24 @@ If you have questions, reply to this message.`
     {/* Full-screen Conversation Overlay */}
     {isFullScreen && typeof document !== 'undefined' && createPortal(
       <div className="fixed inset-0 z-[999] bg-background flex flex-col" role="dialog" aria-modal="true" aria-label="Full screen conversation">
-        {/* Dedicated Conversation Container - Centered with proper elevation */}
-        <div className="flex flex-col h-full max-w-4xl mx-auto w-full bg-background shadow-2xl">
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-border/30 bg-background flex-shrink-0" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-foreground">Conversation</h2>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsFullScreen(false)}
-              className="p-1.5 rounded-md hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary/20"
-              aria-label="Exit full screen"
-            >
-              <Minimize2 className="w-4 h-4 text-muted-foreground" />
-            </button>
+        {/* Header - Full width */}
+        <div className="flex items-center justify-between px-4 sm:px-8 py-3 border-b border-border/30 bg-background flex-shrink-0" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-foreground">Conversation</h2>
           </div>
+          <button
+            type="button"
+            onClick={() => setIsFullScreen(false)}
+            className="p-1.5 rounded-md hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary/20"
+            aria-label="Exit full screen"
+          >
+            <Minimize2 className="w-4 h-4 text-muted-foreground" />
+          </button>
+        </div>
 
-          {/* Scrollable thread - Dedicated background */}
-          <div ref={fullScreenScrollRef} tabIndex={-1} className="flex-1 overflow-y-auto min-h-0 outline-none bg-background">
-            <div className="px-3 sm:px-5 py-3 sm:py-4">
+        {/* Scrollable thread - Full width with content max-width */}
+        <div ref={fullScreenScrollRef} tabIndex={-1} className="flex-1 overflow-y-auto min-h-0 outline-none bg-background">
+          <div className="max-w-7xl mx-auto px-3 sm:px-8 py-3 sm:py-4">
             {isMobileView ? (
               loading ? (
                 <div className="flex items-center justify-center py-8">
@@ -5935,46 +5933,43 @@ If you have questions, reply to this message.`
           </div>
         </div>
 
-        {/* Composer pinned bottom - Solid background */}
-        <div className="shrink-0 border-t border-border/30 bg-background px-3 sm:px-6 py-3 sm:py-4" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        {/* Composer pinned bottom - Full width with content max-width */}
+        <div className="shrink-0 border-t border-border/30 bg-background px-3 sm:px-8 py-3 sm:py-4" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+          <div className="max-w-7xl mx-auto">
           {(() => {
             const effectiveSource = (sendingSource === 'business' && supportsBusiness) ? 'business' : 'replyflow'
             if (effectiveSource === 'business') {
               const customerName = getCustomerName(lead, leadData)
               const dialNumber = leadData?.caller_phone || lead?.caller_phone || ''
               return (
-                <div className="max-w-3xl mx-auto">
-                  <BusinessNumberPanel recipient={dialNumber} recipientName={customerName} />
-                </div>
+                <BusinessNumberPanel recipient={dialNumber} recipientName={customerName} />
               )
             }
             return (
-              <div className="max-w-3xl mx-auto">
-                <ConversationComposer
-                  message={message}
-                  setMessage={setMessage}
-                  handleSendMessage={handleSendMessage}
-                  sending={sending}
-                  sendingSource={sendingSource}
-                  isNativeMobilePlatform={supportsBusiness}
-                  onClearImages={(clearFn: () => void) => { clearComposerImagesRef.current = clearFn }}
-                  messagingContext={
-                    business?.id && lead?.id ? (() => {
-                      const memory = memoryService.getCustomerMemory(business.id, lead.id)
-                      if (!memory) return undefined
-                      return {
-                        preferredContactMethod: memory.preferredContactMethod,
-                        averageResponseDelay: memory.averageResponseDelay,
-                        lastFollowUpTime: memory.lastSuccessfulFollowUp
-                      }
-                    })() : undefined
-                  }
-                />
-              </div>
+              <ConversationComposer
+                message={message}
+                setMessage={setMessage}
+                handleSendMessage={handleSendMessage}
+                sending={sending}
+                sendingSource={sendingSource}
+                isNativeMobilePlatform={supportsBusiness}
+                onClearImages={(clearFn: () => void) => { clearComposerImagesRef.current = clearFn }}
+                messagingContext={
+                  business?.id && lead?.id ? (() => {
+                    const memory = memoryService.getCustomerMemory(business.id, lead.id)
+                    if (!memory) return undefined
+                    return {
+                      preferredContactMethod: memory.preferredContactMethod,
+                      averageResponseDelay: memory.averageResponseDelay,
+                      lastFollowUpTime: memory.lastSuccessfulFollowUp
+                    }
+                  })() : undefined
+                }
+              />
             )
           })()}
+          </div>
         </div>
-      </div>
       </div>,
       document.body
     )}
