@@ -13,7 +13,7 @@ import { useTapToPayOrchestration } from '@/hooks/useTapToPayOrchestration'
 import { Capacitor } from '@capacitor/core'
 import { TapToPayEducationModal } from '@/components/TapToPayEducationModal'
 import { hasPendingEducationPromise, resolveEducation } from '@/lib/education-promise-bridge'
-import TapToPayDiagnosticsPanel from '@/components/TapToPayDiagnosticsPanel'
+import QuickTapToPayDiagnostics from './QuickTapToPayDiagnostics'
 
 interface QuickTapToPayModalProps {
   isOpen: boolean
@@ -1424,24 +1424,149 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
               )}
             </div>
 
-            {/* Diagnostics Panel - Development Only */}
-            {process.env.NODE_ENV !== 'production' && (
-              <TapToPayDiagnosticsPanel context={{
-                terminalService,
-                paymentState,
-                error,
-                structuredError,
-                mappedError,
-                lastSuccessfulStage,
-                lastResetReason,
-                isPaymentInProgress,
-                platform,
-                isNativeSupported,
-                amountCents,
-                selectedLeadId,
-                selectedJobId
-              }} />
-            )}
+            {/* Embedded Diagnostics - Debug builds only */}
+            <QuickTapToPayDiagnostics 
+              paymentState={paymentState}
+              lastSuccessfulStage={lastSuccessfulStage}
+              mappedError={mappedError || undefined}
+            />
+
+            {/* Footer */}
+            <div className="px-4 py-3 border-t border-border/50 flex gap-3 shrink-0" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
+              {showPaymentSetup ? (
+                <>
+                  {disabledReason && (
+                    <div className="col-span-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg mb-2">
+                      <p className="text-xs text-amber-800 dark:text-amber-200">{disabledReason}</p>
+                    </div>
+                  )}
+                  <button
+                    onClick={onClose}
+                    className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleStartPayment}
+                    disabled={amountCents <= 0 || !isAmountValid || !isNativeSupported || isPaymentInProgress || showLocationPermissionCard || showLocationServicesCard || showLocationBlockedCard}
+                    className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-green-600 flex items-center justify-center gap-2 active:scale-95"
+                  >
+                    <Smartphone className="w-4 h-4" />
+                    {showLocationPermissionCard || showLocationServicesCard || showLocationBlockedCard ? 'Complete Location Setup' : isAmountBelowMinimum ? 'Minimum $0.50 Required' : 'Start Tap to Pay'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  {paymentState === 'canceled' ? (
+                    <>
+                      <button
+                        onClick={() => {
+                          onClose()
+                        }}
+                        className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
+                        style={{ minHeight: '44px' }}
+                      >
+                        Done
+                      </button>
+                      <button
+                        onClick={retryAfterCancellation}
+                        className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 active:scale-95"
+                        style={{ minHeight: '44px' }}
+                      >
+                        <Smartphone className="w-4 h-4" />
+                        Try Again
+                      </button>
+                    </>
+                  ) : paymentState === 'failure' ? (
+                    <>
+                      {mappedError?.action === 'open_app_settings' ? (
+                        <button
+                          onClick={() => cancelPayment('user_back')}
+                          className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
+                        >
+                          Back
+                        </button>
+                      ) : mappedError?.action === 'open_location_settings' ? (
+                        <button
+                          onClick={() => cancelPayment('user_back')}
+                          className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
+                        >
+                          Back
+                        </button>
+                      ) : mappedError?.action === 'back' ? (
+                        <button
+                          onClick={() => cancelPayment('user_back')}
+                          className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
+                        >
+                          Back
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => cancelPayment('user_back')}
+                            className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
+                          >
+                            Back
+                          </button>
+                          <button
+                            onClick={retryPayment}
+                            disabled={isPaymentInProgress}
+                            className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-95"
+                          >
+                            <Loader2 className={`w-4 h-4 ${isPaymentInProgress ? 'animate-spin' : ''}`} />
+                            Try Again
+                          </button>
+                        </>
+                      )}
+                      {/* Reset button for unknown states */}
+                      {(!['preparing', 'connecting_reader', 'creating_payment_intent', 'waiting_for_card', 'processing', 'success', 'failure', 'canceled', 'pending', 'ambiguous'].includes(paymentState)) && (
+                        <>
+                          <button
+                            onClick={onClose}
+                            className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors active:scale-95"
+                          >
+                            Close
+                          </button>
+                          <button
+                            onClick={() => {
+                              emergencyCleanup()
+                            }}
+                            className="flex-1 px-4 py-3 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors active:scale-95"
+                          >
+                            Reset
+                          </button>
+                        </>
+                      )}
+                    </>
+                  ) : paymentState === 'success' ? (
+                    <button
+                      onClick={handlePaymentComplete}
+                      className="flex-1 px-4 py-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors active:scale-95"
+                    >
+                      Done
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        // Hide location cards if visible, otherwise cancel payment
+                        const locationCardVisible = showLocationPermissionCard || showLocationServicesCard || showLocationBlockedCard
+                        if (locationCardVisible) {
+                          setShowLocationPermissionCard(false)
+                          setShowLocationServicesCard(false)
+                          setShowLocationBlockedCard(false)
+                        } else {
+                          cancelPayment('user_canceled')
+                        }
+                      }}
+                      disabled={isPaymentInProgress}
+                      className="flex-1 px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>,
         document.body
