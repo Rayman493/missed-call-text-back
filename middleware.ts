@@ -243,15 +243,15 @@ export async function middleware(req: NextRequest) {
   res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   res.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
   
-  // Content Security Policy (basic CSP that doesn't break Stripe, Supabase, Twilio, or Vercel)
+  // Content Security Policy (basic CSP that doesn't break Stripe, Supabase, Twilio, Vercel, or Google Maps)
   const csp = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://checkout.stripe.com https://cdn.twilio.com",
-    "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: https: blob:",
-    "font-src 'self' data:",
-    "connect-src 'self' https://*.supabase.co https://*.stripe.com https://checkout.stripe.com https://api.twilio.com",
-    "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://checkout.stripe.com",
+    "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://checkout.stripe.com https://cdn.twilio.com https://maps.googleapis.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://maps.googleapis.com",
+    "img-src 'self' data: https: blob: https://maps.gstatic.com https://maps.googleapis.com",
+    "font-src 'self' data: https://fonts.gstatic.com",
+    "connect-src 'self' https://*.supabase.co https://*.stripe.com https://checkout.stripe.com https://api.twilio.com https://maps.googleapis.com https://*.googleapis.com",
+    "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://checkout.stripe.com https://www.google.com",
   ].join('; ')
   
   res.headers.set('Content-Security-Policy', csp)
