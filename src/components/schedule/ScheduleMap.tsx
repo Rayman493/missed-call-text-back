@@ -94,6 +94,7 @@ export default function ScheduleMap({
   const markersRef = useRef<any[]>([])
   const perDateStateRef = useRef<Map<string, MapDateState>>(new Map())
   const [isMapLoaded, setIsMapLoaded] = useState(false)
+  const [mapReady, setMapReady] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [selectedMarker, setSelectedMarker] = useState<MarkerInfo | null>(null)
   const [selectedMapItemId, setSelectedMapItemId] = useState<string | null>(null)
@@ -119,16 +120,16 @@ export default function ScheduleMap({
     localStorage.setItem('replyflow_schedule_map_type', mapType)
   }, [mapType])
 
-  // Update map type when state changes
+  // Update map type when state changes (only after map is ready)
   useEffect(() => {
-    if (googleMapRef.current) {
+    if (mapReady && googleMapRef.current) {
       const mapTypeId = mapType === 'satellite' 
         ? (window as any).google.maps.MapTypeId.HYBRID 
         : (window as any).google.maps.MapTypeId.ROADMAP
       googleMapRef.current.setMapTypeId(mapTypeId)
-      console.log('[ScheduleMap] MAP_TYPE_CHANGED', { mapType, mapTypeId })
+      console.log('[ScheduleMap] MAP_TYPE_APPLIED', { mapType, mapTypeId })
     }
-  }, [mapType])
+  }, [mapType, mapReady])
 
   // Format date for display
   const formatDate = (date: Date) => {
@@ -511,6 +512,12 @@ export default function ScheduleMap({
 
   // Initialize map
   useEffect(() => {
+    console.log('[ScheduleMap] MAP_INSTANCE_INITIALIZING', {
+      isMapLoaded,
+      containerExists: !!mapRef.current,
+      mapInstanceExists: !!googleMapRef.current
+    })
+    
     if (!isMapLoaded || !mapRef.current || googleMapRef.current) return
 
     const initialMapTypeId = mapType === 'satellite' 
@@ -540,8 +547,9 @@ export default function ScheduleMap({
     map.addListener('zoom_changed', () => setUserInteracted(true))
 
     googleMapRef.current = map
-    console.log('[ScheduleMap] MAP_INSTANCE_CREATED')
-  }, [isMapLoaded])
+    setMapReady(true)
+    console.log('[ScheduleMap] MAP_INSTANCE_READY', { mapReady: true })
+  }, [isMapLoaded, mapType])
 
   // Save per-date state before date change
   useEffect(() => {
@@ -647,9 +655,10 @@ export default function ScheduleMap({
     }
   }, [prepareMapItems, selectedDate])
 
-  // Update markers when map items change
+  // Update markers when map items change or map becomes ready
   useEffect(() => {
-    console.log('[ScheduleMap] MAP_MARKERS_UPDATING', {
+    console.log('[ScheduleMap] MAP_MARKER_EFFECT_TRIGGERED', {
+      mapReady,
       mapItemsCount: mapItems.length,
       selectedMapItemId,
       showAllMode,
@@ -657,8 +666,13 @@ export default function ScheduleMap({
       selectedDate: selectedDate.toISOString().split('T')[0]
     })
 
-    if (!googleMapRef.current || mapItems.length === 0) {
-      console.log('[ScheduleMap] MAP_MARKERS_SKIPPED - no map or no items')
+    if (!mapReady || !googleMapRef.current) {
+      console.log('[ScheduleMap] MAP_MARKERS_WAITING_FOR_MAP', { mapReady, mapExists: !!googleMapRef.current })
+      return
+    }
+
+    if (mapItems.length === 0) {
+      console.log('[ScheduleMap] MAP_MARKERS_SKIPPED - no items')
       return
     }
 
@@ -757,7 +771,7 @@ export default function ScheduleMap({
       markersRef.current.forEach(marker => marker.setMap(null))
       markersRef.current = []
     }
-  }, [mapItems, groupItemsByLocation, isMapLoaded, selectedMapItemId, getFilteredMapItems, showAllMode, userInteracted, fitBoundsWithMaxZoom, selectMapItem])
+  }, [mapItems, groupItemsByLocation, mapReady, selectedMapItemId, getFilteredMapItems, showAllMode, userInteracted, fitBoundsWithMaxZoom, selectMapItem])
 
   // Create marker icon based on type and selection state
   const createMarkerIcon = (type: MapItemType, count: number, isSelected: boolean = false): any => {
@@ -1073,8 +1087,9 @@ export default function ScheduleMap({
       <div className="flex-1 relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
         <div ref={mapRef} className="w-full h-full" />
         
-        {/* Map Type Toggle */}
-        <div className="absolute top-3 right-3 z-10">
+        {/* Map Controls Stack */}
+        <div className="absolute top-3 right-3 z-10 flex flex-col gap-2">
+          {/* Map Type Toggle */}
           <div className="flex bg-white dark:bg-slate-800 rounded-lg shadow-md border border-slate-200 dark:border-slate-700 overflow-hidden">
             <button
               onClick={() => setMapType('roadmap')}
@@ -1097,6 +1112,16 @@ export default function ScheduleMap({
               Satellite
             </button>
           </div>
+          
+          {/* Missing Location Warning */}
+          {itemsWithoutAddress > 0 && (
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2 flex items-center gap-2">
+              <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+              <span className="text-xs text-amber-800 dark:text-amber-200">
+                {itemsWithoutAddress} stop{itemsWithoutAddress > 1 ? 's' : ''} need location{itemsWithoutAddress > 1 ? 's' : ''}
+              </span>
+            </div>
+          )}
         </div>
         
         {/* Selected Item Info Card */}
