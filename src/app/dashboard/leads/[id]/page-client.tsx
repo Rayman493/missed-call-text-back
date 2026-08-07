@@ -5849,7 +5849,7 @@ If you have questions, reply to this message.`
 
     {/* Full-screen Conversation Overlay */}
     {isFullScreen && typeof document !== 'undefined' && createPortal(
-      <div className="fixed inset-0 z-[999] flex flex-col bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 animate-in fade-in duration-200" role="dialog" aria-modal="true" aria-label="Full screen conversation">
+      <div className="fixed inset-0 z-[999] flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 animate-in fade-in duration-200 p-4 sm:p-8" role="dialog" aria-modal="true" aria-label="Full screen conversation">
         {/* Side depth layer - radial gradients for environmental depth */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute top-0 left-0 w-1/2 h-full bg-gradient-to-r from-blue-950/20 via-transparent to-transparent"></div>
@@ -5857,24 +5857,26 @@ If you have questions, reply to this message.`
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-radial-gradient from-transparent via-slate-900/30 to-slate-950/50"></div>
         </div>
 
-        {/* Header - Substantial elevated surface */}
-        <div className="relative flex items-center justify-between px-6 sm:px-12 py-5 sm:py-6 border-b border-border/50 bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-900/90 flex-shrink-0 shadow-md z-10 animate-in slide-in-from-top duration-200 ease-out" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1.25rem)' }}>
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-foreground">Conversation</h2>
+        {/* Unified workspace container with subtle boundary */}
+        <div className="relative flex flex-col w-full max-w-6xl h-full bg-slate-900/60 border border-border/30 shadow-2xl animate-in zoom-in-95 duration-200 ease-out">
+          {/* Header - Substantial elevated surface */}
+          <div className="flex items-center justify-between px-6 sm:px-8 py-4 sm:py-5 border-b border-border/40 bg-gradient-to-b from-slate-900 to-slate-900/95 flex-shrink-0 shadow-sm" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1rem)' }}>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold text-foreground">Conversation</h2>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsFullScreen(false)}
+              className="p-2 rounded-md hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors"
+              aria-label="Exit full screen"
+            >
+              <Minimize2 className="w-4 h-4 text-muted-foreground" />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => setIsFullScreen(false)}
-            className="p-2 rounded-md hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors"
-            aria-label="Exit full screen"
-          >
-            <Minimize2 className="w-4 h-4 text-muted-foreground" />
-          </button>
-        </div>
 
-        {/* Scrollable thread - Conversation stage with dedicated surface */}
-        <div ref={fullScreenScrollRef} tabIndex={-1} className="relative flex-1 overflow-y-auto min-h-0 outline-none bg-slate-900/40 animate-in zoom-in-95 duration-200 ease-out">
-          <div className="max-w-6xl mx-auto px-6 sm:px-12 py-8 sm:py-10">
+          {/* Scrollable thread - Conversation stage with dedicated surface */}
+          <div ref={fullScreenScrollRef} tabIndex={-1} className="flex-1 overflow-y-auto min-h-0 outline-none bg-slate-900/40">
+            <div className="max-w-full px-6 sm:px-8 py-6 sm:py-8">
             {isMobileView ? (
               loading ? (
                 <div className="flex items-center justify-center py-8">
@@ -5941,8 +5943,7 @@ If you have questions, reply to this message.`
         </div>
 
         {/* Composer pinned bottom - Elevated surface with stronger separation */}
-        <div className="relative shrink-0 border-t border-border/50 bg-gradient-to-b from-slate-900/80 via-slate-900/70 to-slate-900/60 px-6 sm:px-12 py-5 sm:py-6 shadow-[0_-4px_24px_-4px_rgba(0,0,0,0.08)] z-10" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}>
-          <div className="max-w-6xl mx-auto">
+        <div className="shrink-0 border-t border-border/40 bg-gradient-to-b from-slate-900/80 via-slate-900/70 to-slate-900/60 px-6 sm:px-8 py-4 sm:py-5 shadow-[0_-4px_24px_-4px_rgba(0,0,0,0.08)]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.5rem)' }}>
           {(() => {
             const effectiveSource = (sendingSource === 'business' && supportsBusiness) ? 'business' : 'replyflow'
             if (effectiveSource === 'business') {
@@ -5975,7 +5976,7 @@ If you have questions, reply to this message.`
               />
             )
           })()}
-          </div>
+        </div>
         </div>
       </div>,
       document.body
