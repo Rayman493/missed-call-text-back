@@ -127,7 +127,8 @@ export default function RecentActivityTimeline({ business }: RecentActivityTimel
       case 'lead_created':
         return <Users className="w-4 h-4 text-green-600" />
       case 'sms_sent':
-        return <MessageSquare className="w-4 h-4 text-purple-600" />
+        // Premium treatment uses emerald accent for message sent
+        return <MessageSquare className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
       case 'follow_up_scheduled':
         return <Clock className="w-4 h-4 text-amber-600" />
       default:
@@ -142,7 +143,8 @@ export default function RecentActivityTimeline({ business }: RecentActivityTimel
       case 'lead_created':
         return 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20'
       case 'sms_sent':
-        return 'border-purple-200 bg-purple-50 dark:border-purple-800 dark:bg-purple-900/20'
+        // Emerald-toned container for Message Sent
+        return 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20'
       case 'follow_up_scheduled':
         return 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20'
       default:
@@ -178,17 +180,25 @@ export default function RecentActivityTimeline({ business }: RecentActivityTimel
       ) : (
         <div className="space-y-3">
           {activities.map((activity, index) => (
-            <div key={activity.id} className="flex items-start gap-3">
-              {/* Timeline line */}
+            <div key={activity.id} className="relative flex items-start gap-3 group">
+              {/* Timeline line - aligned to icon center with a subtle gradient */}
               {index < activities.length - 1 && (
-                <div className="absolute left-5 top-8 w-0.5 h-full bg-border" />
+                <div className="absolute left-4 top-4 w-0.5 h-[calc(100%-1rem)] bg-gradient-to-b from-slate-300/60 via-slate-300/30 to-slate-300/10 dark:from-slate-600/60 dark:via-slate-600/30 dark:to-slate-600/10" />
               )}
-              
+
               {/* Activity icon */}
-              <div className={`relative z-10 w-8 h-8 rounded-full border-2 flex items-center justify-center ${getActivityColor(activity.type)}`}>
+              <div
+                className={
+                  `relative z-10 w-8 h-8 rounded-full border-2 flex items-center justify-center ${getActivityColor(activity.type)} ` +
+                  // Subtle premium glow and hover only for Message Sent
+                  (activity.type === 'sms_sent'
+                    ? ' ring-1 ring-emerald-500/15 shadow-[0_0_0_3px_rgba(16,185,129,0.08)] dark:shadow-[0_0_0_3px_rgba(16,185,129,0.15)] transition-shadow duration-150 group-hover:shadow-[0_0_0_4px_rgba(16,185,129,0.12)] group-hover:ring-emerald-400/25'
+                    : '')
+                }
+              >
                 {getActivityIcon(activity.type)}
               </div>
-              
+
               {/* Activity content */}
               <div className="flex-1 min-w-0 pb-3">
                 <div className="flex items-start justify-between gap-2 mb-1">
