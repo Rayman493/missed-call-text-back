@@ -414,82 +414,258 @@ export function useTapToPayOrchestration({
   // Education check function for first-time Tap to Pay users
   const checkAndPresentEducation = useCallback(async (): Promise<{ completed: boolean; method: string; reason?: string }> => {
     console.log('[TTP Hook] checkAndPresentEducation called')
+    const educationStartTime = Date.now()
     
     try {
+      dispatchTTPEvent('EDUCATION_REQUIRED', terminalService.getSessionId() || undefined, terminalService.getCurrentAttemptId() || undefined, 'education')
+      dispatchTTPEvent('EDUCATION_ELIGIBILITY_CHECK_STARTED', terminalService.getSessionId() || undefined, terminalService.getCurrentAttemptId() || undefined, 'education')
+      await logTapToPayEvent('EDUCATION_ELIGIBILITY_CHECK_STARTED', {
+        phase: 'education',
+        sessionId: terminalService.getSessionId() || undefined,
+        attemptId: terminalService.getCurrentAttemptId() || undefined,
+        paymentState: 'education'
+      })
+      
       // Try native ProximityReaderDiscovery on iOS 18+
+      const nativeCallStartTime = Date.now()
+      dispatchTTPEvent('EDUCATION_NATIVE_CALL_STARTED', terminalService.getSessionId() || undefined, terminalService.getCurrentAttemptId() || undefined, 'education', 'native_ios18')
+      await logTapToPayEvent('EDUCATION_NATIVE_CALL_STARTED', {
+        phase: 'education',
+        sessionId: terminalService.getSessionId() || undefined,
+        attemptId: terminalService.getCurrentAttemptId() || undefined,
+        paymentState: 'education',
+        meta: { method: 'native_ios18' }
+      })
+      
       const result = await ReplyflowStripeTerminal.presentMerchantEducation()
+      
+      const nativeCallDurationMs = Date.now() - nativeCallStartTime
+      dispatchTTPEvent('EDUCATION_NATIVE_CALL_RETURNED', terminalService.getSessionId() || undefined, terminalService.getCurrentAttemptId() || undefined, 'education', result.completionStatus || 'unknown')
+      await logTapToPayEvent('EDUCATION_NATIVE_CALL_RETURNED', {
+        phase: 'education',
+        sessionId: terminalService.getSessionId() || undefined,
+        attemptId: terminalService.getCurrentAttemptId() || undefined,
+        paymentState: 'education',
+        durationMs: nativeCallDurationMs,
+        meta: { 
+          method: result.method, 
+          presented: result.presented, 
+          completionStatus: result.completionStatus, 
+          requiresConfirmation: result.requiresConfirmation,
+          reason: result.reason 
+        }
+      })
       
       if (result.presented && result.method === 'native_ios18') {
         console.log('[TTP Hook] Native education presented, completionStatus:', result.completionStatus)
+        dispatchTTPEvent('EDUCATION_PRESENTED', terminalService.getSessionId() || undefined, terminalService.getCurrentAttemptId() || undefined, 'education', 'native_ios18')
+        await logTapToPayEvent('EDUCATION_PRESENTED', {
+          phase: 'education',
+          sessionId: terminalService.getSessionId() || undefined,
+          attemptId: terminalService.getCurrentAttemptId() || undefined,
+          paymentState: 'education',
+          meta: { method: 'native_ios18' }
+        })
         
         // Apple's presentContent does not await dismissal
         // We need explicit confirmation from the user
         if (result.requiresConfirmation) {
           console.log('[TTP Hook] Native education requires explicit confirmation')
+          dispatchTTPEvent('EDUCATION_COMPLETION_CALLBACK', terminalService.getSessionId() || undefined, terminalService.getCurrentAttemptId() || undefined, 'education', 'confirmation_required')
+          await logTapToPayEvent('EDUCATION_COMPLETION_CALLBACK', {
+            phase: 'education',
+            sessionId: terminalService.getSessionId() || undefined,
+            attemptId: terminalService.getCurrentAttemptId() || undefined,
+            paymentState: 'education',
+            meta: { requiresConfirmation: true }
+          })
           
           // Create and await promise bridge for UI confirmation
           const educationPromise = createEducationPromise()
           const resolution = await educationPromise
           
           console.log('[TTP Hook] Education resolution:', resolution)
+          dispatchTTPEvent('EDUCATION_DISMISSED', terminalService.getSessionId() || undefined, terminalService.getCurrentAttemptId() || undefined, 'education', String(resolution))
+          await logTapToPayEvent('EDUCATION_DISMISSED', {
+            phase: 'education',
+            sessionId: terminalService.getSessionId() || undefined,
+            attemptId: terminalService.getCurrentAttemptId() || undefined,
+            paymentState: 'education',
+            meta: { resolution }
+          })
           
           if (resolution === 'canceled') {
             console.log('[TTP Hook] Education canceled by user')
+            const educationDurationMs = Date.now() - educationStartTime
+            dispatchTTPEvent('EDUCATION_CANCELED', terminalService.getSessionId() || undefined, terminalService.getCurrentAttemptId() || undefined, 'education', 'user_canceled')
+            await logTapToPayEvent('EDUCATION_CANCELED', {
+              phase: 'education',
+              sessionId: terminalService.getSessionId() || undefined,
+              attemptId: terminalService.getCurrentAttemptId() || undefined,
+              paymentState: 'education',
+              durationMs: educationDurationMs,
+              meta: { reason: 'user_canceled' }
+            })
             return { completed: false, method: 'native_ios18', reason: 'user_canceled' }
           }
           
+          console.log('[TTP Hook] Education confirmed by user')
+          dispatchTTPEvent('EDUCATION_CONFIRMED', terminalService.getSessionId() || undefined, terminalService.getCurrentAttemptId() || undefined, 'education', 'confirmed')
+          await logTapToPayEvent('EDUCATION_CONFIRMED', {
+            phase: 'education',
+            sessionId: terminalService.getSessionId() || undefined,
+            attemptId: terminalService.getCurrentAttemptId() || undefined,
+            paymentState: 'education'
+          })
+          
           // User confirmed completion, persist it
           try {
+            const persistenceStartTime = Date.now()
             const response = await fetch('/api/business/tap-to-pay-education', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
             })
+            const persistenceDurationMs = Date.now() - persistenceStartTime
+            
             if (response.ok) {
               console.log('[TTP Hook] Education completion persisted after confirmation')
+              dispatchTTPEvent('EDUCATION_GATE_VERIFIED', terminalService.getSessionId() || undefined, terminalService.getCurrentAttemptId() || undefined, 'education', 'persisted')
+              await logTapToPayEvent('EDUCATION_GATE_VERIFIED', {
+                phase: 'education',
+                sessionId: terminalService.getSessionId() || undefined,
+                attemptId: terminalService.getCurrentAttemptId() || undefined,
+                paymentState: 'education',
+                durationMs: persistenceDurationMs
+              })
               // Update local business state immediately to avoid stale state
               if (business) {
                 business.tap_to_pay_education_completed_at = new Date().toISOString()
               }
+              const educationDurationMs = Date.now() - educationStartTime
+              dispatchTTPEvent('PAYMENT_FLOW_RESUMED_AFTER_EDUCATION', terminalService.getSessionId() || undefined, terminalService.getCurrentAttemptId() || undefined, 'education', 'resumed')
+              await logTapToPayEvent('PAYMENT_FLOW_RESUMED_AFTER_EDUCATION', {
+                phase: 'education',
+                sessionId: terminalService.getSessionId() || undefined,
+                attemptId: terminalService.getCurrentAttemptId() || undefined,
+                paymentState: 'education',
+                durationMs: educationDurationMs
+              })
               return { completed: true, method: 'native_ios18' }
             } else {
               console.error('[TTP Hook] Failed to persist education completion')
+              dispatchTTPEvent('EDUCATION_FAILED', terminalService.getSessionId() || undefined, terminalService.getCurrentAttemptId() || undefined, 'education', 'persistence_failed')
+              await logTapToPayEvent('EDUCATION_FAILED', {
+                phase: 'education',
+                sessionId: terminalService.getSessionId() || undefined,
+                attemptId: terminalService.getCurrentAttemptId() || undefined,
+                paymentState: 'education',
+                durationMs: Date.now() - educationStartTime,
+                meta: { reason: 'persistence_failed', httpStatus: response.status }
+              })
               return { completed: false, method: 'native_ios18', reason: 'persistence_failed' }
             }
           } catch (error) {
             console.error('[TTP Hook] Error persisting education completion:', error)
+            const errorObj = error as Error
+            dispatchTTPEvent('EDUCATION_FAILED', terminalService.getSessionId() || undefined, terminalService.getCurrentAttemptId() || undefined, 'education', 'persistence_error')
+            await logTapToPayEvent('EDUCATION_FAILED', {
+              phase: 'education',
+              sessionId: terminalService.getSessionId() || undefined,
+              attemptId: terminalService.getCurrentAttemptId() || undefined,
+              paymentState: 'education',
+              durationMs: Date.now() - educationStartTime,
+              normalizedErrorMessage: errorObj.message,
+              meta: { reason: 'persistence_error' }
+            })
             return { completed: false, method: 'native_ios18', reason: 'persistence_error' }
           }
         }
         
         // If confirmation not required, persist completion immediately
         try {
+          const persistenceStartTime = Date.now()
           const response = await fetch('/api/business/tap-to-pay-education', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
           })
+          const persistenceDurationMs = Date.now() - persistenceStartTime
+          
           if (response.ok) {
             console.log('[TTP Hook] Education completion persisted')
+            dispatchTTPEvent('EDUCATION_GATE_VERIFIED', terminalService.getSessionId() || undefined, terminalService.getCurrentAttemptId() || undefined, 'education', 'persisted')
+            await logTapToPayEvent('EDUCATION_GATE_VERIFIED', {
+              phase: 'education',
+              sessionId: terminalService.getSessionId() || undefined,
+              attemptId: terminalService.getCurrentAttemptId() || undefined,
+              paymentState: 'education',
+              durationMs: persistenceDurationMs
+            })
             // Update local business state immediately to avoid stale state
             if (business) {
               business.tap_to_pay_education_completed_at = new Date().toISOString()
             }
+            const educationDurationMs = Date.now() - educationStartTime
+            dispatchTTPEvent('PAYMENT_FLOW_RESUMED_AFTER_EDUCATION', terminalService.getSessionId() || undefined, terminalService.getCurrentAttemptId() || undefined, 'education', 'resumed')
+            await logTapToPayEvent('PAYMENT_FLOW_RESUMED_AFTER_EDUCATION', {
+              phase: 'education',
+              sessionId: terminalService.getSessionId() || undefined,
+              attemptId: terminalService.getCurrentAttemptId() || undefined,
+              paymentState: 'education',
+              durationMs: educationDurationMs
+            })
             return { completed: true, method: 'native_ios18' }
           } else {
             console.error('[TTP Hook] Failed to persist education completion')
+            dispatchTTPEvent('EDUCATION_FAILED', terminalService.getSessionId() || undefined, terminalService.getCurrentAttemptId() || undefined, 'education', 'persistence_failed')
+            await logTapToPayEvent('EDUCATION_FAILED', {
+              phase: 'education',
+              sessionId: terminalService.getSessionId() || undefined,
+              attemptId: terminalService.getCurrentAttemptId() || undefined,
+              paymentState: 'education',
+              durationMs: Date.now() - educationStartTime,
+              meta: { reason: 'persistence_failed', httpStatus: response.status }
+            })
             return { completed: false, method: 'native_ios18', reason: 'persistence_failed' }
           }
         } catch (error) {
           console.error('[TTP Hook] Error persisting education completion:', error)
+          const errorObj = error as Error
+          dispatchTTPEvent('EDUCATION_FAILED', terminalService.getSessionId() || undefined, terminalService.getCurrentAttemptId() || undefined, 'education', 'persistence_error')
+          await logTapToPayEvent('EDUCATION_FAILED', {
+            phase: 'education',
+            sessionId: terminalService.getSessionId() || undefined,
+            attemptId: terminalService.getCurrentAttemptId() || undefined,
+            paymentState: 'education',
+            durationMs: Date.now() - educationStartTime,
+            normalizedErrorMessage: errorObj.message,
+            meta: { reason: 'persistence_error' }
+          })
           return { completed: false, method: 'native_ios18', reason: 'persistence_error' }
         }
       } else {
         console.log('[TTP Hook] Native education not available, using custom modal:', result.reason)
+        dispatchTTPEvent('EDUCATION_PRESENTATION_STARTED', terminalService.getSessionId() || undefined, terminalService.getCurrentAttemptId() || undefined, 'education', 'fallback')
+        await logTapToPayEvent('EDUCATION_PRESENTATION_STARTED', {
+          phase: 'education',
+          sessionId: terminalService.getSessionId() || undefined,
+          attemptId: terminalService.getCurrentAttemptId() || undefined,
+          paymentState: 'education',
+          meta: { method: 'fallback', reason: result.reason }
+        })
         
         // For iOS < 18 or when native fails, use custom modal with promise bridge
         const educationPromise = createEducationPromise()
         const resolution = await educationPromise
         
         console.log('[TTP Hook] Custom education resolution:', resolution)
+        dispatchTTPEvent('EDUCATION_DISMISSED', terminalService.getSessionId() || undefined, terminalService.getCurrentAttemptId() || undefined, 'education', String(resolution))
+        await logTapToPayEvent('EDUCATION_DISMISSED', {
+          phase: 'education',
+          sessionId: terminalService.getSessionId() || undefined,
+          attemptId: terminalService.getCurrentAttemptId() || undefined,
+          paymentState: 'education',
+          meta: { resolution, method: 'fallback' }
+        })
         
         if (resolution === 'canceled') {
           console.log('[TTP Hook] Custom education canceled by user')

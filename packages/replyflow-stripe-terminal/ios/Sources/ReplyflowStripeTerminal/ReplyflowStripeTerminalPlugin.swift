@@ -28,6 +28,7 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
     CAPPluginMethod(name: "ping", returnType: CAPPluginReturnPromise),
     CAPPluginMethod(name: "isSupported", returnType: CAPPluginReturnPromise),
     CAPPluginMethod(name: "getTapToPaySupportStatus", returnType: CAPPluginReturnPromise),
+    CAPPluginMethod(name: "getDiagnosticEnvironment", returnType: CAPPluginReturnPromise),
     CAPPluginMethod(name: "initialize", returnType: CAPPluginReturnPromise),
     CAPPluginMethod(name: "requestConnectionToken", returnType: CAPPluginReturnPromise),
     CAPPluginMethod(name: "supplyConnectionToken", returnType: CAPPluginReturnPromise),
@@ -707,6 +708,44 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
     #else
     call.reject("Stripe Terminal SDK not available")
     #endif
+  }
+
+  @objc public func getDiagnosticEnvironment(_ call: CAPPluginCall) {
+    #if DEBUG
+    let isNativeDebugBuild = true
+    let buildConfiguration = "DEBUG"
+    #else
+    let isNativeDebugBuild = false
+    let buildConfiguration = "RELEASE"
+    #endif
+
+    #if os(iOS)
+    let platform = "ios"
+    #elseif os(Android)
+    let platform = "android"
+    #else
+    let platform = "unknown"
+    #endif
+
+    let bundleIdentifier = Bundle.main.bundleIdentifier ?? "unknown"
+    let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
+    let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown"
+
+    #if DEBUG
+    let nativeBuildMarker = "ios_debug_\(Date().timeIntervalSince1970)"
+    #else
+    let nativeBuildMarker = "ios_release"
+    #endif
+
+    call.resolve([
+      "isNativeDebugBuild": isNativeDebugBuild,
+      "buildConfiguration": buildConfiguration,
+      "nativeBuildMarker": nativeBuildMarker,
+      "bundleIdentifier": bundleIdentifier,
+      "appVersion": appVersion,
+      "buildNumber": buildNumber,
+      "platform": platform
+    ])
   }
 
   @objc public func presentMerchantEducation(_ call: CAPPluginCall) {

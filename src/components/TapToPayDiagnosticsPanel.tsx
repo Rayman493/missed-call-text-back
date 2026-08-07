@@ -36,6 +36,7 @@ export default function TapToPayDiagnosticsPanel({ context }: { context?: any } 
   const [clearing, setClearing] = useState(false)
   const [loading, setLoading] = useState(true)
   const [appleChecklist, setAppleChecklist] = useState<any>(null)
+  const [isDiagnosticsEnabled, setIsDiagnosticsEnabled] = useState(false)
 
   const newestTs = useMemo(() => (events.length ? events[events.length - 1].ts : null), [events])
 
@@ -51,7 +52,33 @@ export default function TapToPayDiagnosticsPanel({ context }: { context?: any } 
   }
 
   useEffect(() => {
-    refresh()
+    // Check if diagnostics are enabled (web dev OR native debug build)
+    const checkDiagnosticsEnabled = async () => {
+      let enabled = false
+      
+      // Web development check
+      if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'production') {
+        enabled = true
+      } else if (Capacitor.isNativePlatform()) {
+        // Native debug build check
+        try {
+          const TerminalBridge = (await import('@/lib/terminal')).default
+          const result = await TerminalBridge.getDiagnosticEnvironment()
+          enabled = result.isNativeDebugBuild === true
+        } catch {
+          enabled = false
+        }
+      }
+      
+      setIsDiagnosticsEnabled(enabled)
+      if (enabled) {
+        refresh()
+      } else {
+        setLoading(false)
+      }
+    }
+    
+    checkDiagnosticsEnabled()
   }, [])
 
   const handleCopy = async () => {
@@ -100,6 +127,11 @@ export default function TapToPayDiagnosticsPanel({ context }: { context?: any } 
     await clearTapToPayDiagnostics()
     setClearing(false)
     refresh()
+  }
+
+  // Don't render if diagnostics are not enabled
+  if (!isDiagnosticsEnabled) {
+    return null
   }
 
   return (

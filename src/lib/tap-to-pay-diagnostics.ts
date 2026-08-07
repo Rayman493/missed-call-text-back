@@ -11,6 +11,7 @@ export type TapToPayPhase =
   | 'discover'
   | 'connect_reader'
   | 'connection_status'
+  | 'education'
   | 'payment_intent'
   | 'collect_payment'
   | 'confirm_payment'
@@ -147,8 +148,49 @@ let appleChecklist: AppleRequirementChecklist = {
   recoveryPathTested: 'not_reached',
 }
 
+// Native debug environment cache
+let nativeDebugEnvironment: { isNativeDebugBuild: boolean } | null = null
+let nativeDebugCheckPromise: Promise<{ isNativeDebugBuild: boolean }> | null = null
+
 // Production safety check
-function isDiagnosticsEnabled(): boolean {
+async function isDiagnosticsEnabled(): Promise<boolean> {
+  if (typeof window === 'undefined') return false
+
+  // Web development: always enable
+  if (process.env.NODE_ENV !== 'production') return true
+
+  // Native debug build check
+  if (!Capacitor.isNativePlatform()) return false
+
+  // Return cached result if available
+  if (nativeDebugEnvironment !== null) {
+    return nativeDebugEnvironment.isNativeDebugBuild
+  }
+
+  // Check native debug environment if not already checked
+  if (nativeDebugCheckPromise === null) {
+    nativeDebugCheckPromise = (async () => {
+      try {
+        const ReplyflowStripeTerminal = (await import('../lib/terminal')).default
+        const result = await ReplyflowStripeTerminal.getDiagnosticEnvironment()
+        nativeDebugEnvironment = { isNativeDebugBuild: result.isNativeDebugBuild === true }
+        return nativeDebugEnvironment
+      } catch {
+        // If plugin call fails, assume not a debug build
+        nativeDebugEnvironment = { isNativeDebugBuild: false }
+        return nativeDebugEnvironment
+      }
+    })()
+  }
+
+  const env = await nativeDebugCheckPromise
+  return env.isNativeDebugBuild
+}
+
+// Synchronous version for use in contexts where async is not available
+// This returns true only for web development (NODE_ENV !== 'production')
+// Native debug builds require async check via isDiagnosticsEnabled()
+function isDiagnosticsEnabledSync(): boolean {
   if (typeof window === 'undefined') return false
   return process.env.NODE_ENV !== 'production'
 }
@@ -174,11 +216,11 @@ export function getCorrelationId(): string | null {
 }
 
 // Update Apple requirement checklist
-export function updateAppleChecklist(
+export async function updateAppleChecklist(
   requirement: keyof AppleRequirementChecklist,
   status: ChecklistStatus
-): void {
-  if (!isDiagnosticsEnabled()) return
+): Promise<void> {
+  if (!(await isDiagnosticsEnabled())) return
   appleChecklist[requirement] = status
 }
 
@@ -372,7 +414,7 @@ export async function logTapToPayEvent(
   } = {}
 ) {
   try {
-    if (!isDiagnosticsEnabled()) return
+    if (!(await isDiagnosticsEnabled())) return
 
     const event: TapToPayDiagnosticEvent = {
       ts: new Date().toISOString(),

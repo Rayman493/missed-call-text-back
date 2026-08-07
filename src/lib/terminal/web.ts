@@ -29,7 +29,7 @@ export class TerminalWeb extends WebPlugin implements TerminalPlugin {
       deviceType?: string
       systemVersion?: string
       requiredVersion?: string
-      checkMethod?: 'PaymentCardReader.isSupported' | 'SCPTerminal.supportsReaders'
+      checkMethod?: 'PaymentCardReader.isSupported' | 'SCPTerminal.supportsReaders' | 'TapToPayDiscoveryConfigurationBuilder'
       error?: string
       isiOSAppOnMac?: boolean
     }
@@ -39,6 +39,26 @@ export class TerminalWeb extends WebPlugin implements TerminalPlugin {
       supported: false,
       platform: 'web',
       unsupportedReason: 'web_not_supported',
+    }
+  }
+
+  async getDiagnosticEnvironment(): Promise<{
+    isNativeDebugBuild: boolean
+    buildConfiguration: 'DEBUG' | 'RELEASE'
+    nativeBuildMarker: string
+    bundleIdentifier: string
+    appVersion: string
+    buildNumber: string
+    platform: string
+  }> {
+    return {
+      isNativeDebugBuild: false,
+      buildConfiguration: 'RELEASE',
+      nativeBuildMarker: 'web_release',
+      bundleIdentifier: 'web',
+      appVersion: 'web',
+      buildNumber: 'web',
+      platform: 'web'
     }
   }
 

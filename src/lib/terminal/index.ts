@@ -99,6 +99,15 @@ export interface TerminalPlugin {
       isiOSAppOnMac?: boolean
     }
   }>
+  getDiagnosticEnvironment(): Promise<{
+    isNativeDebugBuild: boolean
+    buildConfiguration: 'DEBUG' | 'RELEASE'
+    nativeBuildMarker: string
+    bundleIdentifier: string
+    appVersion: string
+    buildNumber: string
+    platform: string
+  }>
   checkLocationPermission(): Promise<{ granted: boolean; precise: boolean; canAskAgain: boolean; locationEnabled: boolean }>
   requestLocationPermission(): Promise<{ granted: boolean; precise: boolean; canAskAgain: boolean; locationEnabled: boolean }>
   openLocationSettings(): Promise<{ opened: boolean }>
