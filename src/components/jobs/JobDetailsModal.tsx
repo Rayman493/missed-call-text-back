@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { X, Briefcase, User, Phone, MapPin, FileText, Calendar, Clock, Pencil, Trash2, Link as LinkIcon, MessageSquare, CheckCircle2, AlertCircle, CreditCard, Copy, ExternalLink, Smartphone } from 'lucide-react'
+import { X, Briefcase, User, Phone, MapPin, FileText, Calendar, Clock, Pencil, Trash2, Link as LinkIcon, MessageSquare, CheckCircle2, AlertCircle, CreditCard, Copy, ExternalLink, Smartphone, MessageSquareText, Navigation, Share2 } from 'lucide-react'
 import type { Job, JobStatus } from './JobComposer'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatCurrency } from '@/lib/utils'
@@ -69,6 +69,13 @@ interface PaymentRequest {
   payment_provider: string | null
 }
 
+interface Lead {
+  id: string
+  caller_phone: string
+  raw_metadata: any
+  name?: string
+}
+
 const STATUS_OPTIONS: { value: JobStatus; label: string; color: string }[] = [
   { value: 'scheduled', label: 'Scheduled', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800' },
   { value: 'in_progress', label: 'In Progress', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border-amber-200 dark:border-amber-800' },
@@ -117,6 +124,7 @@ export default function JobDetailsModal({
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const [isCancellingPayment, setIsCancellingPayment] = useState(false)
   const [isNativeSupported, setIsNativeSupported] = useState(false)
+  const [lead, setLead] = useState<Lead | null>(null)
 
   // Lock background scroll when main modal is open
   useBodyScrollLock(isOpen)
@@ -158,8 +166,32 @@ export default function JobDetailsModal({
   useEffect(() => {
     if (isOpen) {
       setIsNativeSupported(isNativeCapacitor())
+      if (job.lead_id) {
+        fetchLead()
+      }
+    } else {
+      setLead(null)
     }
-  }, [isOpen])
+  }, [isOpen, job.lead_id])
+
+  const fetchLead = async () => {
+    if (!job.lead_id) return
+    try {
+      const supabase = createBrowserClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const headers: HeadersInit = { 'Content-Type': 'application/json' }
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`
+      }
+      const response = await fetch(`/api/leads/${job.lead_id}`, { headers })
+      if (response.ok) {
+        const data = await response.json()
+        setLead(data)
+      }
+    } catch (err) {
+      console.error('Error fetching lead:', err)
+    }
+  }
 
   const fetchPaymentRequest = async () => {
     if (!job.lead_id) return
@@ -314,6 +346,58 @@ export default function JobDetailsModal({
 
   const currentStatusOption = STATUS_OPTIONS.find(s => s.value === job.status)
 
+  // Title logic with priority: job.request > lead.request > AI extracted request > first sentence of transcript > job.title
+  const getRequestTitle = (): string => {
+    // Priority 1: job.request (if field exists)
+    if ((job as any).request) {
+      return (job as any).request
+    }
+    // Priority 2: lead.request from raw_metadata
+    if (lead?.raw_metadata?.request) {
+      return lead.raw_metadata.request
+    }
+    // Priority 3: AI extracted request from lead raw_metadata
+    if (lead?.raw_metadata?.extracted_info?.reasonForCalling) {
+      return lead.raw_metadata.extracted_info.reasonForCalling
+    }
+    if (lead?.raw_metadata?.extracted_info?.serviceRequested) {
+      return lead.raw_metadata.extracted_info.serviceRequested
+    }
+    // Priority 4: First sentence of transcript (if available)
+    if (lead?.raw_metadata?.transcript) {
+      const transcript = lead.raw_metadata.transcript
+      const firstSentence = transcript.split(/[.!?]/)[0]
+      if (firstSentence && firstSentence.trim().length > 10) {
+        return firstSentence.trim()
+      }
+    }
+    // Fallback to job.title
+    return job.title
+  }
+
+  const displayTitle = getRequestTitle()
+
+  const copyAddress = async (address: string) => {
+    try {
+      await navigator.clipboard.writeText(address)
+      const toast = document.createElement('div')
+      toast.className = 'fixed bottom-4 right-4 bg-slate-900 text-white px-4 py-2 rounded-lg shadow-lg text-sm z-50 animate-in fade-in slide-in-from-bottom-2 duration-300'
+      toast.textContent = 'Address copied to clipboard'
+      document.body.appendChild(toast)
+      setTimeout(() => {
+        toast.classList.add('animate-out', 'fade-out', 'slide-out-to-bottom-2')
+        setTimeout(() => toast.remove(), 300)
+      }, 2000)
+    } catch (err) {
+      console.error('Failed to copy address:', err)
+    }
+  }
+
+  const openInMaps = (address: string) => {
+    const encodedAddress = encodeURIComponent(address)
+    window.open(`https://www.google.com/maps/search/?api=1&query=${encodedAddress}`, '_blank')
+  }
+
   return (
     <>
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] animate-in fade-in duration-200" onClick={onClose} />
@@ -326,7 +410,7 @@ export default function JobDetailsModal({
                 <Briefcase className="w-4 h-4 text-primary" />
               </div>
               <div className="min-w-0">
-                <h2 className="text-base font-semibold text-foreground leading-snug break-words">{job.title}</h2>
+                <h2 className="text-lg font-semibold text-foreground leading-snug break-words">{displayTitle}</h2>
                 <div className="flex items-center gap-2 mt-1">
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${STATUS_BADGE[job.status]}`}>
                     {currentStatusOption?.label}
@@ -346,78 +430,97 @@ export default function JobDetailsModal({
           </div>
 
           {/* Details */}
-          <div data-scroll-lock-allow className="p-5 space-y-5 overflow-y-auto flex-1 min-h-0" style={{ WebkitOverflowScrolling: 'touch' }}>
-            {/* Customer */}
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Customer</p>
-              <div className="space-y-2">
-                {job.customer_name && (
-                  <div className="flex items-center gap-3 text-sm text-slate-800 dark:text-slate-200">
-                    <User className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                    <span className="font-medium">{job.customer_name}</span>
-                  </div>
-                )}
+          <div data-scroll-lock-allow className="p-5 space-y-6 overflow-y-auto flex-1 min-h-0" style={{ WebkitOverflowScrolling: 'touch' }}>
+            {/* Customer - using EventDetailsModal pattern */}
+            {(job.customer_name || job.customer_phone || lead?.id) && (
+              <div className="flex items-center gap-2 text-sm">
+                <User className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span className="text-foreground font-medium">{job.customer_name || lead?.name || 'Customer'}</span>
                 {job.customer_phone && (
-                  <div className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300">
-                    <Phone className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                    <a href={`tel:${job.customer_phone}`} className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                      {job.customer_phone}
-                    </a>
+                  <a href={`tel:${job.customer_phone}`} className="text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                    {job.customer_phone}
+                  </a>
+                )}
+                {lead?.id && (
+                  <div className="flex gap-1 ml-auto">
+                    <button
+                      onClick={() => window.location.assign(`/dashboard/leads/${lead.id}`)}
+                      className="text-[10px] px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700"
+                    >
+                      View
+                    </button>
+                    <button
+                      onClick={() => window.location.assign(`/dashboard/leads/${lead.id}`)}
+                      className="text-[10px] px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 flex items-center gap-1"
+                    >
+                      <MessageSquareText className="w-3 h-3" />
+                      Conversation
+                    </button>
+                    {job.customer_phone && (
+                      <a
+                        href={`tel:${job.customer_phone}`}
+                        className="text-[10px] px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 flex items-center gap-1"
+                      >
+                        <Phone className="w-3 h-3" />
+                        Call
+                      </a>
+                    )}
                   </div>
                 )}
-                {!job.customer_name && !job.customer_phone && (
-                  <p className="text-sm text-slate-500 dark:text-slate-400 italic">No customer information</p>
-                )}
               </div>
-            </div>
+            )}
 
-            {/* Schedule */}
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Schedule</p>
-              <div className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300">
-                <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                <span>
-                  {job.scheduled_date ? formatDate(job.scheduled_date) : 'No date set'}
-                  {job.scheduled_time && ` at ${formatTime(job.scheduled_time)}`}
-                </span>
-              </div>
-            </div>
-
-            {/* Address */}
+            {/* Location - using EventDetailsModal pattern */}
             {job.service_address && (
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Address</p>
-                <div className="flex items-start gap-3 text-sm text-slate-700 dark:text-slate-300">
-                  <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
-                  <span>{job.service_address}</span>
+              <div className="flex items-center gap-2 text-sm">
+                <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span className="text-foreground break-words flex-1">{job.service_address}</span>
+                <div className="flex gap-1 flex-shrink-0">
+                  <button
+                    onClick={() => openInMaps(job.service_address!)}
+                    className="text-[10px] px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 flex items-center gap-1"
+                    title="Open in Maps"
+                  >
+                    <Navigation className="w-3 h-3" />
+                    Maps
+                  </button>
+                  <button
+                    onClick={() => copyAddress(job.service_address!)}
+                    className="text-[10px] px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 flex items-center gap-1"
+                    title="Copy Address"
+                  >
+                    <Copy className="w-3 h-3" />
+                    Copy
+                  </button>
                 </div>
               </div>
             )}
 
-            {/* Notes */}
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Notes</p>
-              {job.notes ? (
-                <div className="flex items-start gap-3 text-sm text-slate-700 dark:text-slate-300">
-                  <FileText className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
-                  <span className="whitespace-pre-line">{job.notes}</span>
-                </div>
-              ) : (
-                <p className="text-sm text-slate-500 dark:text-slate-400 italic">No notes added</p>
-              )}
+            {/* Schedule */}
+            <div className="flex items-center gap-2 text-sm">
+              <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              <span className="text-foreground">
+                {job.scheduled_date ? formatDate(job.scheduled_date) : 'No date set'}
+                {job.scheduled_time && ` at ${formatTime(job.scheduled_time)}`}
+              </span>
             </div>
+
+            {/* Job Notes - structured info first, fallback to transcript */}
+            {job.notes && (
+              <div className="flex items-start gap-3 text-sm">
+                <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                <span className="text-foreground whitespace-pre-line">{job.notes}</span>
+              </div>
+            )}
 
             {/* Payment */}
             <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Payment</p>
-              
-              {isLoadingPayment ? (
-                <p className="text-sm text-slate-500 dark:text-slate-400">Loading...</p>
-              ) : !job.lead_id ? (
+              {!job.lead_id ? (
                 <p className="text-sm text-slate-500 dark:text-slate-400 italic">No lead associated with this job</p>
               ) : !paymentRequest ? (
                 <div className="space-y-2">
-                  <p className="text-sm text-slate-600 dark:text-slate-300">Not requested</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-300">No payment requested</p>
                   <div className="flex flex-col gap-2">
                     <button
                       onClick={() => setShowPaymentModal(true)}
@@ -508,30 +611,6 @@ export default function JobDetailsModal({
               )}
             </div>
 
-            {/* Confirmation SMS section */}
-            <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Appointment Confirmation</p>
-              {job.confirmation_sms_sent_at ? (
-                <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-400">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Confirmation sent</span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400">
-                    {new Date(job.confirmation_sms_sent_at).toLocaleDateString()}
-                  </span>
-                </div>
-              ) : (
-                <p className="text-sm text-slate-600 dark:text-slate-300">No confirmation sent</p>
-              )}
-              {job.lead_id && (
-                <Link
-                  href={`/dashboard/leads/${job.lead_id}`}
-                  className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 mt-2 transition-colors"
-                >
-                  <LinkIcon className="w-3 h-3" />
-                  View Conversation
-                </Link>
-              )}
-            </div>
 
             {/* Status Change */}
             <div>
