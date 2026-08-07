@@ -473,8 +473,8 @@ export default function NavbarNotifications() {
                     if (groupNotifications.length === 0) return null
                     
                     return (
-                      <div key={groupName} className="mb-3 sm:mb-5 last:mb-0">
-                        <div className="px-3 py-1.5 sm:py-2 text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                      <div key={groupName} className="mb-2 sm:mb-3 last:mb-0">
+                        <div className="px-3 py-1 text-xs font-semibold text-slate-400 uppercase tracking-wide">
                           {groupName}
                         </div>
                         <div className="divide-y divide-slate-700/30">
@@ -487,7 +487,7 @@ export default function NavbarNotifications() {
                               <div
                                 key={notification.id}
                                 onClick={() => handleNotificationClick(notification)}
-                                className={`flex items-start gap-3 py-1.5 sm:py-3 px-4 hover:bg-slate-800/20 transition-colors duration-150 cursor-pointer ${isLast ? '' : 'border-b border-slate-700/30'}`}
+                                className={`flex items-start gap-3 py-1 sm:py-2 px-4 hover:bg-slate-800/20 transition-colors duration-150 cursor-pointer ${isLast ? '' : 'border-b border-slate-700/30'}`}
                               >
                                 {/* Icon */}
                                 <div className={`flex-shrink-0 w-9 h-9 rounded-lg ${getNotificationColor(notification.type)} flex items-center justify-center`}>
@@ -497,31 +497,31 @@ export default function NavbarNotifications() {
                                 {/* Content */}
                                 <div className="flex-1 min-w-0">
                                   {/* Title */}
-                                  <p className="text-sm font-semibold text-slate-100 mb-0 sm:mb-0.5">
+                                  <p className="text-sm font-semibold text-slate-100 mb-0">
                                     {notification.title || 'Notification'}
                                   </p>
-                                  
-                                  {/* Customer name or phone number (masked for SMS failures) */}
-                                  {displayName && (
-                                    <p className="text-xs sm:text-sm font-medium text-slate-300 mb-0.5 sm:mb-1">
-                                      {displayName}
+
+                                  {/* Customer name or phone number (masked for SMS failures) - merged with timestamp */}
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                    {displayName && (
+                                      <p className="text-xs sm:text-sm font-medium text-slate-300">
+                                        {displayName}
+                                      </p>
+                                    )}
+                                    <p className="text-[10px] sm:text-xs text-slate-500">
+                                      {formatNotificationTime(notification.created_at)}
                                     </p>
-                                  )}
-                                  
+                                  </div>
+
                                   {/* Message preview - canonical title for AI intake */}
                                   <p className="text-xs sm:text-sm text-slate-400 truncate">
                                     {displayMessage}
-                                  </p>
-                                  
-                                  {/* Time */}
-                                  <p className="text-[10px] sm:text-xs text-slate-500 mt-1 sm:mt-1.5">
-                                    {formatNotificationTime(notification.created_at)}
                                   </p>
                                 </div>
                                 
                                 {/* Unread indicator dot */}
                                 {!notification.read && (
-                                  <div className="flex-shrink-0 mt-1 sm:mt-1.5">
+                                  <div className="flex-shrink-0 mt-0.5">
                                     <div className={`w-2.5 h-2.5 rounded-full ${getNotificationDotColor(notification.type)}`}></div>
                                   </div>
                                 )}
@@ -564,7 +564,7 @@ export default function NavbarNotifications() {
 
             {/* Footer */}
             {notifications.length > 0 && (
-              <div className="px-4 py-2 sm:py-3 border-t border-slate-700">
+              <div className="px-4 py-2 border-t border-slate-700">
                 <Link
                   href="/dashboard/notifications"
                   onClick={() => setIsOpen(false)}

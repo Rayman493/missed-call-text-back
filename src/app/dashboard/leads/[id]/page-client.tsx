@@ -57,7 +57,7 @@ import Skeleton, { CardSkeleton, ListItemSkeleton } from '@/components/ui/Skelet
 import EmptyState from '@/components/ui/EmptyState'
 import Modal from '@/components/ui/Modal'
 import JobComposer, { JobPrefill, Job } from '@/components/jobs/JobComposer'
-import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smartphone } from 'lucide-react'
+import { CalendarDays, ClipboardPlus, CreditCard, PhoneCall, MessageSquare, Smartphone, Maximize2, Minimize2 } from 'lucide-react'
 import NewAppointmentModal from '@/components/calendar/NewAppointmentModal'
 import SuccessBanner from '@/components/SuccessBanner'
 import BusinessPhoneModal from '@/components/BusinessPhoneModal'
@@ -495,6 +495,74 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const bottomSentinelRef = useRef<HTMLDivElement>(null)
   const isInitialAutoScrollingRef = useRef(false)
   const initialScrollDoneRef = useRef<string | null>(null)
+  // Full-screen conversation state and refs
+  const [isFullScreen, setIsFullScreen] = useState(false)
+  const fullScreenToggleBtnRef = useRef<HTMLButtonElement>(null)
+  const preservedScrollRef = useRef(0)
+  const fullScreenScrollRef = useRef<HTMLDivElement>(null)
+
+  // Body scroll lock and Escape/back handling for full-screen
+  useEffect(() => {
+    if (!isFullScreen) return
+    const previousOverflow = typeof document !== 'undefined' ? document.body.style.overflow : ''
+    if (typeof document !== 'undefined') {
+      document.body.style.overflow = 'hidden'
+    }
+    // Focus scroll container on next frame for accessibility
+    let focusRaf: number | null = null
+    if (typeof window !== 'undefined') {
+      focusRaf = window.requestAnimationFrame(() => {
+        fullScreenScrollRef.current?.focus()
+      })
+    }
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsFullScreen(false)
+      }
+    }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('keydown', onKeyDown)
+    }
+    let backHandle: any = null
+    if (App?.addListener) {
+      App.addListener('backButton', () => {
+        setIsFullScreen(false)
+      }).then((h: any) => { backHandle = h }).catch(() => {})
+    }
+    return () => {
+      if (typeof document !== 'undefined') {
+        document.body.style.overflow = previousOverflow
+      }
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('keydown', onKeyDown)
+        if (focusRaf && typeof window.cancelAnimationFrame === 'function') {
+          window.cancelAnimationFrame(focusRaf)
+        }
+      }
+      backHandle?.remove?.()
+      fullScreenToggleBtnRef.current?.focus()
+    }
+  }, [isFullScreen])
+
+  // Preserve and restore scroll position when toggling full-screen
+  useEffect(() => {
+    const isDesktop = typeof window !== 'undefined' ? window.innerWidth >= 1024 : true
+    const source = isDesktop ? conversationContainerRef.current : mobileConversationContainerRef.current
+    if (isFullScreen) {
+      preservedScrollRef.current = source?.scrollTop || 0
+      if (typeof window !== 'undefined') {
+        const id = window.requestAnimationFrame(() => {
+          if (fullScreenScrollRef.current) {
+            fullScreenScrollRef.current.scrollTop = preservedScrollRef.current
+          }
+        })
+        return () => { if (typeof window.cancelAnimationFrame === 'function') window.cancelAnimationFrame(id) }
+      }
+    } else {
+      const target = source
+      if (target) target.scrollTop = preservedScrollRef.current
+    }
+  }, [isFullScreen])
 
   // Native call capability — when customerPhone is valid
   const customerPhoneRaw = (getLeadAIIntake(leadData || {}).customerPhone || (leadData as any)?.caller_phone || '') as string
@@ -3297,7 +3365,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
         </div>
       </main>
-    )
+      )
+
   }
 
   if (!leadData) {
@@ -3851,6 +3920,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </DropdownMenu>
                   </div>
                 </div>
+                <button
+                  ref={fullScreenToggleBtnRef}
+                  type="button"
+                  onClick={() => setIsFullScreen(true)}
+                  className="p-1.5 rounded-md hover:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  aria-label="Open conversation in full screen"
+                >
+                  <Maximize2 className="w-4 h-4 text-muted-foreground" />
+                </button>
               </div>
             </div>
           </div>
@@ -3886,9 +3964,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 <div className="flex items-center gap-2">
                   <h2 className="text-sm font-semibold text-foreground/90">Conversation</h2>
                 </div>
+                <button
+                  ref={fullScreenToggleBtnRef}
+                  type="button"
+                  onClick={() => setIsFullScreen(true)}
+                  className="p-1.5 rounded-md hover:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  aria-label="Open conversation in full screen"
+                >
+                  <Maximize2 className="w-4 h-4 text-muted-foreground" />
+                </button>
               </div>
               
               {/* Desktop Message Thread - Scrollable */}
+              {!isFullScreen && (
               <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-5 py-4 min-h-0" style={{ minHeight: '200px' }}>
                 {loading ? (
                   <div className="flex items-center justify-center py-12">
@@ -3920,8 +4008,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   />
                 )}
               </div>
+              )}
 
               {/* Desktop Message Composer - Fixed to Bottom */}
+              {!isFullScreen && (
               <div className="shrink-0 border-t border-border/20 bg-muted/30 px-6 py-4 rounded-b-2xl">
                 {(() => {
                   const effectiveSource = (sendingSource === 'business' && supportsBusiness) ? 'business' : 'replyflow'
@@ -3964,6 +4054,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   )
                 })()}
               </div>
+              )}
             </section>
 
             {/* Desktop Sidebar - Premium Card */}
@@ -5754,6 +5845,135 @@ If you have questions, reply to this message.`
           }
         }}
       />
+    )}
+
+    {/* Full-screen Conversation Overlay */}
+    {isFullScreen && typeof document !== 'undefined' && createPortal(
+      <div className="fixed inset-0 z-[999] bg-background/98 backdrop-blur-sm flex flex-col" role="dialog" aria-modal="true" aria-label="Full screen conversation">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-border/30 bg-muted/40 flex-shrink-0" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-foreground">Conversation</h2>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsFullScreen(false)}
+            className="p-1.5 rounded-md hover:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-primary/20"
+            aria-label="Exit full screen"
+          >
+            <Minimize2 className="w-4 h-4 text-muted-foreground" />
+          </button>
+        </div>
+
+        {/* Scrollable thread */}
+        <div ref={fullScreenScrollRef} tabIndex={-1} className="flex-1 overflow-y-auto min-h-0 outline-none">
+          <div className="px-3 sm:px-5 py-3 sm:py-4">
+            {isMobileView ? (
+              loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                </div>
+              ) : messagesArray.length === 0 ? (
+                <div className="flex items-center justify-center h-full py-12 animate-fadeIn">
+                  <div className="text-center max-w-sm px-6">
+                    <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-blue-500/20">
+                      <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-base font-semibold text-foreground mb-2">Start the conversation</h3>
+                    <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
+                      Send a message to {getLeadDisplayName(leadData || lead).split(' ')[0]} to begin the conversation.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <MobileConversationMessageList
+                  messagesArray={messagesArray}
+                  conversationTimeline={conversationTimeline}
+                  sending={sending}
+                  handleRetry={handleRetry}
+                  getErrorMessage={getErrorMessage}
+                  highlightedItemId={highlightedTimelineItemId}
+                />
+              )
+            ) : (
+              loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                </div>
+              ) : messagesArray.length === 0 ? (
+                <div className="flex items-center justify-center h-full py-16 animate-fadeIn">
+                  <div className="text-center max-w-md px-6">
+                    <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-blue-500/20">
+                      <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">Start the conversation</h3>
+                    <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
+                      Send a message to {getLeadDisplayName(leadData || lead).split(' ')[0]} to begin the conversation.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="max-w-3xl mx-auto">
+                  <DesktopConversationMessageList
+                    messagesArray={messagesArray}
+                    conversationTimeline={conversationTimeline}
+                    sending={sending}
+                    handleRetry={handleRetry}
+                    getErrorMessage={getErrorMessage}
+                    onImageLoad={() => scrollToBottom('smooth', true)}
+                    highlightedItemId={highlightedTimelineItemId}
+                  />
+                </div>
+              )
+            )}
+          </div>
+        </div>
+
+        {/* Composer pinned bottom */}
+        <div className="shrink-0 border-t border-border/20 bg-muted/40 px-3 sm:px-6 py-3 sm:py-4" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+          {(() => {
+            const effectiveSource = (sendingSource === 'business' && supportsBusiness) ? 'business' : 'replyflow'
+            if (effectiveSource === 'business') {
+              const customerName = getCustomerName(lead, leadData)
+              const dialNumber = leadData?.caller_phone || lead?.caller_phone || ''
+              return (
+                <div className="max-w-3xl mx-auto">
+                  <BusinessNumberPanel recipient={dialNumber} recipientName={customerName} />
+                </div>
+              )
+            }
+            return (
+              <div className="max-w-3xl mx-auto">
+                <ConversationComposer
+                  message={message}
+                  setMessage={setMessage}
+                  handleSendMessage={handleSendMessage}
+                  sending={sending}
+                  sendingSource={sendingSource}
+                  isNativeMobilePlatform={supportsBusiness}
+                  onClearImages={(clearFn: () => void) => { clearComposerImagesRef.current = clearFn }}
+                  messagingContext={
+                    business?.id && lead?.id ? (() => {
+                      const memory = memoryService.getCustomerMemory(business.id, lead.id)
+                      if (!memory) return undefined
+                      return {
+                        preferredContactMethod: memory.preferredContactMethod,
+                        averageResponseDelay: memory.averageResponseDelay,
+                        lastFollowUpTime: memory.lastSuccessfulFollowUp
+                      }
+                    })() : undefined
+                  }
+                />
+              </div>
+            )
+          })()}
+        </div>
+      </div>,
+      document.body
     )}
     </DashboardErrorBoundary>
   )
