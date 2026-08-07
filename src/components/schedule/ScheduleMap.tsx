@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { MapPin, Calendar, Briefcase, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react'
+import { MapPin, Calendar, Briefcase, AlertCircle, ChevronLeft, ChevronRight, Filter, ArrowLeft, ArrowRight, Layers } from 'lucide-react'
 import Link from 'next/link'
 import Skeleton from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
@@ -46,6 +46,8 @@ interface ScheduleMapProps {
 
 type MapItemType = 'job' | 'appointment'
 
+type MapFilter = 'all' | 'jobs' | 'appointments'
+
 interface MapItem {
   id: string
   type: MapItemType
@@ -83,9 +85,13 @@ export default function ScheduleMap({
   const [isMapLoaded, setIsMapLoaded] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [selectedMarker, setSelectedMarker] = useState<MarkerInfo | null>(null)
+  const [selectedMapItemId, setSelectedMapItemId] = useState<string | null>(null)
   const [mapItems, setMapItems] = useState<MapItem[]>([])
   const [itemsWithoutAddress, setItemsWithoutAddress] = useState<number>(0)
   const [geocodingFailed, setGeocodingFailed] = useState(false)
+  const [mapFilter, setMapFilter] = useState<MapFilter>('all')
+  const [userInteracted, setUserInteracted] = useState(false)
+  const [showAllMode, setShowAllMode] = useState(true)
 
   // Format date for display
   const formatDate = (date: Date) => {
@@ -119,6 +125,98 @@ export default function ScheduleMap({
 
     return { filteredJobs, filteredEvents }
   }, [jobs, calendarEvents, selectedDate])
+
+  // Filter map items by type
+  const getFilteredMapItems = useCallback((items: MapItem[]): MapItem[] => {
+    if (mapFilter === 'all') return items
+    return items.filter(item => item.type === mapFilter.slice(0, -1) as MapItemType)
+  }, [mapFilter])
+
+  // Get sorted mapped items for navigation
+  const getSortedMappedItems = useCallback((items: MapItem[]): MapItem[] => {
+    return [...items].sort((a, b) => {
+      const timeA = a.scheduledTime || '00:00'
+      const timeB = b.scheduledTime || '00:00'
+      return timeA.localeCompare(timeB)
+    })
+  }, [])
+
+  // Fit bounds with max zoom constraint
+  const fitBoundsWithMaxZoom = useCallback((bounds: any, maxZoom: number = 15) => {
+    if (!googleMapRef.current) return
+    
+    googleMapRef.current.fitBounds(bounds)
+    
+    // Ensure we don't zoom in too much
+    const listener = googleMapRef.current.addListener('bounds_changed', () => {
+      const currentZoom = googleMapRef.current.getZoom()
+      if (currentZoom > maxZoom) {
+        googleMapRef.current.setZoom(maxZoom)
+      }
+      // Remove listener after first execution
+      (window as any).google.maps.event.removeListener(listener)
+    })
+  }, [])
+
+  // Pan to marker without resetting bounds
+  const panToMarker = useCallback((lat: number, lng: number, zoom?: number) => {
+    if (!googleMapRef.current) return
+    
+    googleMapRef.current.panTo({ lat, lng })
+    if (zoom !== undefined) {
+      googleMapRef.current.setZoom(zoom)
+    }
+    setUserInteracted(true)
+  }, [])
+
+  // Reset to show all markers
+  const showAllMarkers = useCallback(() => {
+    setSelectedMapItemId(null)
+    setShowAllMode(true)
+    setUserInteracted(false)
+    
+    if (!googleMapRef.current || markersRef.current.length === 0) return
+    
+    const bounds = new (window as any).google.maps.LatLngBounds()
+    markersRef.current.forEach(marker => {
+      bounds.extend(marker.getPosition()!)
+    })
+    fitBoundsWithMaxZoom(bounds)
+  }, [fitBoundsWithMaxZoom])
+
+  // Navigate to next/previous stop
+  const navigateToStop = useCallback((direction: 'next' | 'previous') => {
+    const filteredItems = getFilteredMapItems(mapItems)
+    const sortedItems = getSortedMappedItems(filteredItems)
+    
+    if (sortedItems.length === 0) return
+    
+    let currentIndex = selectedMapItemId 
+      ? sortedItems.findIndex(item => item.id === selectedMapItemId)
+      : -1
+    
+    if (direction === 'next') {
+      currentIndex = (currentIndex + 1) % sortedItems.length
+    } else {
+      currentIndex = currentIndex <= 0 ? sortedItems.length - 1 : currentIndex - 1
+    }
+    
+    const selectedItem = sortedItems[currentIndex]
+    setSelectedMapItemId(selectedItem.id)
+    setShowAllMode(false)
+    panToMarker(selectedItem.latitude, selectedItem.longitude, 15)
+  }, [selectedMapItemId, mapItems, getFilteredMapItems, getSortedMappedItems, panToMarker])
+
+  // Select a specific map item
+  const selectMapItem = useCallback((itemId: string) => {
+    const filteredItems = getFilteredMapItems(mapItems)
+    const item = filteredItems.find(i => i.id === itemId)
+    if (!item) return
+    
+    setSelectedMapItemId(itemId)
+    setShowAllMode(false)
+    panToMarker(item.latitude, item.longitude, 15)
+  }, [mapItems, getFilteredMapItems, panToMarker])
 
   // Helper function to extract customer address from lead metadata
   const getCustomerAddressFromLead = (job: Job): string | null => {
@@ -391,6 +489,10 @@ export default function ScheduleMap({
       ]
     })
 
+    // Track user interaction with the map
+    map.addListener('dragstart', () => setUserInteracted(true))
+    map.addListener('zoom_changed', () => setUserInteracted(true))
+
     googleMapRef.current = map
   }, [isMapLoaded])
 
@@ -403,57 +505,67 @@ export default function ScheduleMap({
   useEffect(() => {
     if (!googleMapRef.current || mapItems.length === 0) return
 
+    const filteredItems = getFilteredMapItems(mapItems)
+    
     // Clear existing markers
     markersRef.current.forEach(marker => marker.setMap(null))
     markersRef.current = []
 
     // Group items by location
-    const markerInfos = groupItemsByLocation(mapItems)
+    const markerInfos = groupItemsByLocation(filteredItems)
 
     // Create markers
     markerInfos.forEach(markerInfo => {
+      const isSelected = selectedMapItemId !== null && markerInfo.items.some(item => item.id === selectedMapItemId)
       const marker = new (window as any).google.maps.Marker({
         position: markerInfo.position,
         map: googleMapRef.current,
         title: markerInfo.items.length === 1 
           ? markerInfo.items[0].title 
           : `${markerInfo.items.length} items`,
-        icon: createMarkerIcon(markerInfo.items[0].type, markerInfo.items.length)
+        icon: createMarkerIcon(markerInfo.items[0].type, markerInfo.items.length, isSelected),
+        zIndex: isSelected ? 1000 : 1
       })
 
       marker.addListener('click', () => {
-        setSelectedMarker(markerInfo)
+        if (markerInfo.items.length === 1) {
+          selectMapItem(markerInfo.items[0].id)
+        } else {
+          setSelectedMarker(markerInfo)
+        }
       })
 
       markersRef.current.push(marker)
     })
 
-    // Fit bounds to show all markers
-    if (markersRef.current.length > 0) {
+    // Fit bounds to show all markers (only if not user interacted and in show all mode)
+    if (markersRef.current.length > 0 && showAllMode && !userInteracted) {
       const bounds = new (window as any).google.maps.LatLngBounds()
       markersRef.current.forEach(marker => {
         bounds.extend(marker.getPosition()!)
       })
-      googleMapRef.current.fitBounds(bounds)
+      fitBoundsWithMaxZoom(bounds)
     }
 
     return () => {
       markersRef.current.forEach(marker => marker.setMap(null))
       markersRef.current = []
     }
-  }, [mapItems, groupItemsByLocation, isMapLoaded])
+  }, [mapItems, groupItemsByLocation, isMapLoaded, selectedMapItemId, getFilteredMapItems, showAllMode, userInteracted, fitBoundsWithMaxZoom, selectMapItem])
 
-  // Create marker icon based on type
-  const createMarkerIcon = (type: MapItemType, count: number): any => {
+  // Create marker icon based on type and selection state
+  const createMarkerIcon = (type: MapItemType, count: number, isSelected: boolean = false): any => {
     const color = type === 'job' ? '#8B5CF6' : '#3B82F6' // Purple for jobs, blue for appointments
-    const size = count > 1 ? 40 : 32
+    const baseSize = count > 1 ? 40 : 32
+    const size = isSelected ? baseSize * 1.3 : baseSize
+    const strokeWidth = isSelected ? 4 : 2
 
     return {
       path: (window as any).google.maps.SymbolPath.CIRCLE,
       fillColor: color,
       fillOpacity: 0.9,
-      strokeColor: '#FFFFFF',
-      strokeWeight: 2,
+      strokeColor: isSelected ? '#F59E0B' : '#FFFFFF', // Amber ring for selected
+      strokeWidth,
       scale: size / 10
     }
   }
@@ -584,6 +696,10 @@ export default function ScheduleMap({
     )
   }
 
+  const filteredItems = getFilteredMapItems(mapItems)
+  const sortedItems = getSortedMappedItems(filteredItems)
+  const selectedItem = selectedMapItemId ? filteredItems.find(i => i.id === selectedMapItemId) : null
+
   return (
     <div className="flex flex-col h-full relative">
       {/* Date Navigation Header */}
@@ -619,18 +735,214 @@ export default function ScheduleMap({
         </button>
       </div>
 
+      {/* Filter and Show All Controls */}
+      <div className="flex items-center justify-between mb-4 px-1 z-10">
+        <div className="flex items-center gap-2">
+          <Filter className="w-4 h-4 text-slate-500" />
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+            <button
+              onClick={() => { setMapFilter('all'); setSelectedMapItemId(null); setShowAllMode(true); setUserInteracted(false) }}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                mapFilter === 'all' 
+                  ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm' 
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => { setMapFilter('jobs'); setSelectedMapItemId(null); setShowAllMode(true); setUserInteracted(false) }}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                mapFilter === 'jobs' 
+                  ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm' 
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+              }`}
+            >
+              Jobs
+            </button>
+            <button
+              onClick={() => { setMapFilter('appointments'); setSelectedMapItemId(null); setShowAllMode(true); setUserInteracted(false) }}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                mapFilter === 'appointments' 
+                  ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm' 
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+              }`}
+            >
+              Appointments
+            </button>
+          </div>
+        </div>
+        {sortedItems.length > 0 && (
+          <button
+            onClick={showAllMarkers}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-xs font-medium transition-colors"
+          >
+            <Layers className="w-3.5 h-3.5" />
+            Show All Stops
+          </button>
+        )}
+      </div>
+
+      {/* Desktop Stop Selector */}
+      {sortedItems.length > 0 && (
+        <div className="hidden md:block mb-4 z-10">
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700">
+              <h3 className="text-sm font-semibold text-foreground">Today's Stops</h3>
+            </div>
+            <div className="max-h-48 overflow-y-auto">
+              {sortedItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => selectMapItem(item.id)}
+                  className={`w-full px-4 py-3 flex items-start gap-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-0 ${
+                    selectedMapItemId === item.id ? 'bg-slate-50 dark:bg-slate-700/50' : ''
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                    item.type === 'job' ? 'bg-purple-100 dark:bg-purple-900/30' : 'bg-blue-100 dark:bg-blue-900/30'
+                  }`}>
+                    {item.type === 'job' ? (
+                      <Briefcase className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    ) : (
+                      <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="text-sm font-medium text-foreground truncate">{item.title}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                      {item.scheduledTime ? formatTime(item.scheduledTime) : 'No time'}
+                    </p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 truncate">
+                      {item.customerName || 'No customer'}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Horizontal Stop Cards */}
+      {sortedItems.length > 0 && (
+        <div className="md:hidden mb-4 z-10">
+          <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+            {sortedItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => selectMapItem(item.id)}
+                className={`flex-shrink-0 px-4 py-2 rounded-lg border transition-colors ${
+                  selectedMapItemId === item.id
+                    ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800'
+                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <div className={`w-6 h-6 rounded flex items-center justify-center ${
+                    item.type === 'job' ? 'bg-purple-100 dark:bg-purple-900/30' : 'bg-blue-100 dark:bg-blue-900/30'
+                  }`}>
+                    {item.type === 'job' ? (
+                      <Briefcase className="w-3 h-3 text-purple-600 dark:text-purple-400" />
+                    ) : (
+                      <Calendar className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                    )}
+                  </div>
+                  <div className="text-left">
+                    <p className="text-xs font-medium text-foreground truncate max-w-[120px]">
+                      {item.scheduledTime ? formatTime(item.scheduledTime) : 'No time'}
+                    </p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[120px]">
+                      {item.title}
+                    </p>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Map Container */}
       <div className="flex-1 relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
         <div ref={mapRef} className="w-full h-full" />
         
-        {/* Selected Marker Info Card */}
-        {selectedMarker && (
+        {/* Selected Item Info Card */}
+        {selectedItem && (
+          <div className="absolute bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-4 z-20">
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                  selectedItem.type === 'job' ? 'bg-purple-100 dark:bg-purple-900/30' : 'bg-blue-100 dark:bg-blue-900/30'
+                }`}>
+                  {selectedItem.type === 'job' ? (
+                    <Briefcase className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  ) : (
+                    <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  )}
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900 dark:text-foreground">{selectedItem.title}</h3>
+                  {selectedItem.customerName && (
+                    <p className="text-xs text-slate-600 dark:text-slate-400">{selectedItem.customerName}</p>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedMapItemId(null)}
+                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {selectedItem.scheduledTime && (
+              <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">
+                {formatTime(selectedItem.scheduledTime)}
+              </p>
+            )}
+
+            <p className="text-xs text-slate-500 dark:text-slate-500 mb-3">
+              {selectedItem.address}
+            </p>
+
+            {/* Next/Previous Navigation */}
+            {sortedItems.length > 1 && (
+              <div className="flex items-center justify-between mb-3">
+                <button
+                  onClick={() => navigateToStop('previous')}
+                  className="flex items-center gap-1 px-2 py-1 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors"
+                >
+                  <ArrowLeft className="w-3 h-3" />
+                  Previous
+                </button>
+                <button
+                  onClick={() => navigateToStop('next')}
+                  className="flex items-center gap-1 px-2 py-1 text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors"
+                >
+                  Next
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+
+            <button
+              onClick={() => handleViewItem(selectedItem)}
+              className="w-full px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
+            >
+              View Details
+            </button>
+          </div>
+        )}
+
+        {/* Legacy selected marker info card (for clustered items) */}
+        {selectedMarker && !selectedItem && (
           <div className="absolute bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-4 z-20">
             <div className="flex items-start justify-between mb-3">
               <h3 className="font-semibold text-slate-900 dark:text-foreground">
-                {selectedMarker.items.length === 1 
-                  ? selectedMarker.items[0].title 
-                  : `${selectedMarker.items.length} stops`}
+                {selectedMarker.items.length} stops at this location
               </h3>
               <button
                 onClick={() => setSelectedMarker(null)}
@@ -642,53 +954,33 @@ export default function ScheduleMap({
               </button>
             </div>
 
-            <div className="space-y-3 max-h-64 overflow-y-auto">
+            <div className="space-y-2 max-h-64 overflow-y-auto">
               {selectedMarker.items.map((item, index) => (
-                <div
+                <button
                   key={`${item.type}-${item.id}-${index}`}
-                  className="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg"
+                  onClick={() => selectMapItem(item.id)}
+                  className="w-full p-2 bg-slate-50 dark:bg-slate-900 rounded-lg text-left hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
-                  <div className="flex items-start gap-2 mb-2">
+                  <div className="flex items-center gap-2">
                     {item.type === 'job' ? (
-                      <Briefcase className="w-4 h-4 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
+                      <Briefcase className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                     ) : (
-                      <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                      <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm text-slate-900 dark:text-foreground">
-                        {item.title}
+                      <p className="text-xs font-medium text-foreground truncate">{item.title}</p>
+                      <p className="text-[10px] text-slate-500 truncate">
+                        {item.scheduledTime ? formatTime(item.scheduledTime) : 'No time'}
                       </p>
-                      {item.customerName && (
-                        <p className="text-xs text-slate-600 dark:text-slate-400">
-                          {item.customerName}
-                        </p>
-                      )}
                     </div>
                   </div>
-
-                  {item.scheduledTime && (
-                    <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">
-                      {formatTime(item.scheduledTime)}
-                    </p>
-                  )}
-
-                  <p className="text-xs text-slate-500 dark:text-slate-500 mb-2">
-                    {item.address}
-                  </p>
-
-                  <button
-                    onClick={() => handleViewItem(item)}
-                    className="w-full px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors"
-                  >
-                    {item.type === 'job' ? 'View Job' : 'View Customer'}
-                  </button>
-                </div>
+                </button>
               ))}
             </div>
           </div>
         )}
 
-        {/* Items without address warning */}
+        {/* Location-less items warning */}
         {itemsWithoutAddress > 0 && (
           <div className="absolute top-4 left-4 right-4 md:left-auto md:right-4 md:w-auto bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2 z-10">
             <p className="text-xs text-amber-800 dark:text-amber-200">
