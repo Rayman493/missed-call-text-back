@@ -256,7 +256,7 @@ export default function MobileConversationComposer({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200 flex-shrink-0 rounded-lg w-11 h-11 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2"
+              className="p-2 text-muted-foreground/50 hover:text-foreground hover:bg-muted/30 transition-all duration-200 flex-shrink-0 rounded-md h-11 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary/10 focus:ring-offset-2 focus:ring-offset-background"
               disabled={sending}
               aria-label="Add image"
             >

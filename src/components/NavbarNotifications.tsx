@@ -86,6 +86,10 @@ export default function NavbarNotifications() {
   const buttonRef = useRef<HTMLButtonElement>(null)
   const [buttonPosition, setButtonPosition] = useState<{ top: number; right: number } | null>(null)
   const isMobile = useIsMobile()
+  
+  // Scroll detection state
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null)
+  const isScrollingRef = useRef(false)
 
   // Lock body scroll when notifications panel is open
   useBodyScrollLock(isOpen)
@@ -163,6 +167,64 @@ export default function NavbarNotifications() {
     if (notification.action_url) {
       router.push(notification.action_url)
       setIsOpen(false)
+    }
+  }
+
+  // Scroll detection handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0]
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY }
+    isScrollingRef.current = false
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchStartRef.current) return
+    
+    const touch = e.touches[0]
+    const deltaX = Math.abs(touch.clientX - touchStartRef.current.x)
+    const deltaY = Math.abs(touch.clientY - touchStartRef.current.y)
+    
+    // If movement exceeds threshold, consider it a scroll
+    if (deltaX > 5 || deltaY > 5) {
+      isScrollingRef.current = true
+    }
+  }
+
+  const handleTouchEnd = (notification: Notification) => {
+    const wasScrolling = isScrollingRef.current
+    touchStartRef.current = null
+    isScrollingRef.current = false
+    
+    // Only trigger click if not scrolling
+    if (!wasScrolling) {
+      handleNotificationClick(notification)
+    }
+  }
+
+  // Desktop mouse handlers for testing
+  const handleMouseDown = (e: React.MouseEvent) => {
+    touchStartRef.current = { x: e.clientX, y: e.clientY }
+    isScrollingRef.current = false
+  }
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!touchStartRef.current) return
+    
+    const deltaX = Math.abs(e.clientX - touchStartRef.current.x)
+    const deltaY = Math.abs(e.clientY - touchStartRef.current.y)
+    
+    if (deltaX > 5 || deltaY > 5) {
+      isScrollingRef.current = true
+    }
+  }
+
+  const handleMouseUp = (notification: Notification) => {
+    const wasScrolling = isScrollingRef.current
+    touchStartRef.current = null
+    isScrollingRef.current = false
+    
+    if (!wasScrolling) {
+      handleNotificationClick(notification)
     }
   }
 
@@ -486,7 +548,12 @@ export default function NavbarNotifications() {
                             return (
                               <div
                                 key={notification.id}
-                                onClick={() => handleNotificationClick(notification)}
+                                onTouchStart={handleTouchStart}
+                                onTouchMove={handleTouchMove}
+                                onTouchEnd={() => handleTouchEnd(notification)}
+                                onMouseDown={handleMouseDown}
+                                onMouseMove={handleMouseMove}
+                                onMouseUp={() => handleMouseUp(notification)}
                                 className={`flex items-start gap-3 py-1 sm:py-2 px-4 hover:bg-slate-800/20 transition-colors duration-150 cursor-pointer ${isLast ? '' : 'border-b border-slate-700/30'}`}
                               >
                                 {/* Icon */}

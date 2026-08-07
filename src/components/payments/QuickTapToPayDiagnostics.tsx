@@ -256,7 +256,7 @@ export default function QuickTapToPayDiagnostics({
               >
                 <div className="flex items-start gap-2">
                   <span className="text-muted-foreground shrink-0">
-                    {new Date(event.ts).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    {new Date(event.ts).toLocaleTimeString('en-US', { hour12: true, hour: 'numeric', minute: '2-digit' })}
                   </span>
                   <span className="font-medium shrink-0">{event.name}</span>
                   {event.phase && (

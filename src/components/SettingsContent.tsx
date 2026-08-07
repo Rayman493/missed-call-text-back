@@ -476,7 +476,7 @@ export default function SettingsContent() {
     const date = new Date(value)
     if (isNaN(date.getTime())) return ''
 
-    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
   }
 
   // Helper to update automation settings
@@ -2650,10 +2650,11 @@ export default function SettingsContent() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col h-full p-3 sm:p-4 rounded-md border border-border/30">
-                    <div className="flex-1">
-                      <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <img src="/brands/venmo.png" alt="Venmo" className="h-[13px] w-auto object-contain sm:h-[17px] flex-shrink-0" />
+                  <div className="flex flex-col h-full border border-border/30 rounded-lg p-4">
+                    <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-4 mb-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                          <img src="/brands/venmo.png" alt="Venmo" className="h-5 w-auto object-contain sm:h-6 flex-shrink-0" />
                         {formBusiness.venmo_username ? (
                           <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
                             <span className="w-1 h-1 bg-green-500 rounded-full" />
@@ -2665,42 +2666,45 @@ export default function SettingsContent() {
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-3">
+                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                         Accept Venmo payments by username.
                       </p>
                     </div>
-                    <div className="mt-auto">
-                      <input
-                        type="text"
-                        value={formBusiness.venmo_username || ''}
-                        onChange={(e) => updateBusiness({ venmo_username: e.target.value })}
-                        placeholder="joesplumbing"
-                        className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all duration-150 text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
-                      />
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        With or without @
-                      </p>
-                    </div>
                   </div>
+                  <div className="mt-auto">
+                    <input
+                      type="text"
+                      value={formBusiness.venmo_username || ''}
+                      onChange={(e) => updateBusiness({ venmo_username: e.target.value })}
+                      placeholder="joesplumbing"
+                      className="w-full px-3 py-2 border border-slate-200/60 dark:border-slate-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/80 bg-white/60 dark:bg-slate-800/40 text-slate-900 dark:text-foreground placeholder:text-slate-600 dark:text-muted-foreground transition-all duration-150 text-xs sm:text-sm hover:border-slate-300/60 dark:hover:border-slate-600/50"
+                    />
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      With or without @
+                    </p>
+                  </div>
+                </div>
 
-                  <div className="flex flex-col h-full p-3 sm:p-4 rounded-md border border-border/30">
-                    <div className="flex-1">
-                      <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <img src="/brands/paypal.png" alt="PayPal" className="h-[22px] w-auto object-contain sm:h-[27px] flex-shrink-0" />
-                        {formBusiness.paypal_payment_link ? (
-                          <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
-                            <span className="w-1 h-1 bg-green-500 rounded-full" />
-                            Configured
-                          </span>
-                        ) : (
-                          <span className="text-xs px-2.5 py-0.5 bg-slate-200/70 dark:bg-slate-700/70 text-slate-600 dark:text-slate-300 rounded-full font-medium">
-                            Not Configured
-                          </span>
-                        )}
+                  <div className="flex flex-col h-full border border-border/30 rounded-lg p-4">
+                    <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-4 mb-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                          <img src="/brands/paypal.png" alt="PayPal" className="h-5 w-auto object-contain sm:h-6 flex-shrink-0" />
+                          {formBusiness.paypal_payment_link ? (
+                            <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
+                              <span className="w-1 h-1 bg-green-500 rounded-full" />
+                              Configured
+                            </span>
+                          ) : (
+                            <span className="text-xs px-2.5 py-0.5 bg-slate-200/70 dark:bg-slate-700/70 text-slate-600 dark:text-slate-300 rounded-full font-medium">
+                              Not Configured
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                          Accept PayPal payments by link.
+                        </p>
                       </div>
-                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-3">
-                        Accept PayPal payments by link.
-                      </p>
                     </div>
                     <div className="mt-auto">
                       <input
