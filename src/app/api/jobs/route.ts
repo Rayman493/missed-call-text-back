@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import { requireSubscriptionAccessWithClient } from '@/lib/server-subscription-guard'
 import { geocodeAddress, isValidCoordinate, isGeocodingStale } from '@/lib/geocoding'
 
@@ -80,11 +81,14 @@ export async function POST(request: NextRequest) {
 
     // Handle geocoding action
     if (action === 'geocode') {
+      console.log('[GEOCODE_API] ========== STEP 1: Trace ID ==========')
       console.log('[GEOCODE_API] Incoming geocoding request', {
         jobId,
         jobIdType: typeof jobId,
         address,
-        businessId: business.id
+        userId: user.id,
+        businessId: business.id,
+        fullRequestBody: body
       })
 
       if (!jobId) {
@@ -92,10 +96,13 @@ export async function POST(request: NextRequest) {
       }
 
       // Get the job with business_id for security
-      console.log('[GEOCODE_API] Executing Supabase query', {
+      console.log('[GEOCODE_API] ========== STEP 3: Authenticated Query ==========')
+      console.log('[GEOCODE_API] Executing authenticated Supabase query', {
         table: 'jobs',
         select: 'id, business_id, service_address, latitude, longitude, geocoded_at, geocoded_address',
-        filter: { id: jobId }
+        filter: { id: jobId },
+        userId: user.id,
+        businessId: business.id
       })
 
       const { data: job, error: jobError } = await supabase
@@ -104,7 +111,7 @@ export async function POST(request: NextRequest) {
         .eq('id', jobId)
         .single()
 
-      console.log('[GEOCODE_API] Query result', {
+      console.log('[GEOCODE_API] Authenticated query result', {
         jobError: jobError ? jobError.message : null,
         jobErrorCode: jobError?.code,
         jobErrorHint: jobError?.hint,
@@ -115,11 +122,49 @@ export async function POST(request: NextRequest) {
       })
 
       if (jobError || !job) {
+        console.log('[GEOCODE_API] ========== STEP 2: Service Role Diagnostic Lookup ==========')
+        console.log('[GEOCODE_API] Authenticated query failed, performing service role diagnostic lookup')
+
+        const { data: serviceJob, error: serviceError } = await supabaseAdmin
+          .from('jobs')
+          .select('id, business_id, service_address, title, customer_name, lead_id, created_at')
+          .eq('id', jobId)
+          .single()
+
+        console.log('[GEOCODE_API] Service role query result', {
+          serviceError: serviceError ? serviceError.message : null,
+          serviceErrorCode: serviceError?.code,
+          serviceJobFound: !!serviceJob,
+          serviceJobId: serviceJob?.id,
+          serviceJobBusinessId: serviceJob?.business_id,
+          serviceJobTitle: serviceJob?.title,
+          serviceJobCustomerName: serviceJob?.customer_name,
+          serviceJobLeadId: serviceJob?.lead_id,
+          serviceJobCreatedAt: serviceJob?.created_at
+        })
+
+        console.log('[GEOCODE_API] ========== STEP 3: Comparison ==========')
+        console.log('[GEOCODE_API] Authenticated vs Service Role comparison', {
+          authenticatedSuccess: !jobError && !!job,
+          serviceRoleSuccess: !serviceError && !!serviceJob,
+          jobError: jobError?.message,
+          serviceError: serviceError?.message,
+          jobErrorCode: jobError?.code,
+          serviceErrorCode: serviceError?.code,
+          businessIdMatch: job?.business_id === business.id,
+          serviceBusinessIdMatch: serviceJob?.business_id === business.id,
+          authenticatedBusinessId: job?.business_id,
+          serviceBusinessId: serviceJob?.business_id,
+          expectedBusinessId: business.id
+        })
+
         console.error('[GEOCODE_API] Job lookup failed', {
           jobId,
           jobError: jobError?.message,
           jobErrorCode: jobError?.code,
-          jobExists: !!job
+          jobExists: !!job,
+          serviceJobExists: !!serviceJob,
+          rootCause: !serviceJob ? 'Record does not exist in database' : 'RLS policy blocking access'
         })
         return NextResponse.json({ error: 'Job not found' }, { status: 404 })
       }

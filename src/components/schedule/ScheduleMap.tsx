@@ -221,15 +221,32 @@ export default function ScheduleMap({
         })
       } else {
         // Trigger geocoding
-        console.log('[SCHEDULE_MAP_ATTEMPTING_GEOCODING]', {
+        console.log('[SCHEDULE_MAP] ========== STEP 4: Verify ScheduleMap Data ==========')
+        console.log('[SCHEDULE_MAP] Job data before geocoding request', {
           jobId: job.id,
-          address: serviceAddress
+          jobTitle: job.title,
+          customerName: job.customer_name,
+          customerPhone: job.customer_phone,
+          serviceAddress: job.service_address,
+          leadId: job.lead_id,
+          selectedAddress: serviceAddress,
+          hasLeadsData: !!job.leads,
+          leadIdFromLeads: job.leads?.id
         })
+
+        console.log('[SCHEDULE_MAP] ========== STEP 5: Verify API Payload ==========')
+        const payload = { action: 'geocode', jobId: job.id, address: serviceAddress }
+        console.log('[SCHEDULE_MAP] Exact API payload leaving browser', {
+          payload,
+          payloadString: JSON.stringify(payload),
+          jobIdType: typeof job.id
+        })
+
         try {
           const response = await fetch('/api/jobs', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'geocode', jobId: job.id, address: serviceAddress })
+            body: JSON.stringify(payload)
           })
           const result = await response.json()
           console.log('[SCHEDULE_MAP_GEOCODING_RESULT]', {
