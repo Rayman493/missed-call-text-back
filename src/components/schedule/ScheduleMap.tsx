@@ -48,6 +48,14 @@ type MapItemType = 'job' | 'appointment'
 
 type MapFilter = 'all' | 'jobs' | 'appointments'
 
+interface MapDateState {
+  selectedMapItemId: string | null
+  filter: MapFilter
+  center: { lat: number; lng: number } | null
+  zoom: number | null
+  userInteracted: boolean
+}
+
 interface MapItem {
   id: string
   type: MapItemType
@@ -82,6 +90,7 @@ export default function ScheduleMap({
   const mapRef = useRef<HTMLDivElement>(null)
   const googleMapRef = useRef<any>(null)
   const markersRef = useRef<any[]>([])
+  const perDateStateRef = useRef<Map<string, MapDateState>>(new Map())
   const [isMapLoaded, setIsMapLoaded] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [selectedMarker, setSelectedMarker] = useState<MarkerInfo | null>(null)
@@ -92,6 +101,7 @@ export default function ScheduleMap({
   const [mapFilter, setMapFilter] = useState<MapFilter>('all')
   const [userInteracted, setUserInteracted] = useState(false)
   const [showAllMode, setShowAllMode] = useState(true)
+  const [previousDateKey, setPreviousDateKey] = useState<string | null>(null)
 
   // Format date for display
   const formatDate = (date: Date) => {
@@ -501,25 +511,109 @@ export default function ScheduleMap({
     googleMapRef.current = map
   }, [isMapLoaded])
 
-  // Reset state when selectedDate changes
+  // Save per-date state before date change
   useEffect(() => {
-    console.log('[ScheduleMap] MAP_DATE_CHANGED', {
-      selectedDate: selectedDate.toISOString().split('T')[0],
-      previousSelectedMapItemId: selectedMapItemId
-    })
-    setSelectedMapItemId(null)
-    setShowAllMode(true)
-    setUserInteracted(false)
+    const dateKey = selectedDate.toISOString().split('T')[0]
+    if (previousDateKey && previousDateKey !== dateKey) {
+      console.log('[ScheduleMap] MAP_DATE_STATE_SAVED', {
+        dateKey: previousDateKey,
+        selectedMapItemId,
+        filter: mapFilter,
+        userInteracted
+      })
+      const state = perDateStateRef.current.get(previousDateKey) || {
+        selectedMapItemId: null,
+        filter: 'all',
+        center: null,
+        zoom: null,
+        userInteracted: false
+      }
+      
+      // Save current viewport if map exists and user has interacted
+      if (googleMapRef.current && userInteracted) {
+        const center = googleMapRef.current.getCenter()
+        const zoom = googleMapRef.current.getZoom()
+        state.center = { lat: center.lat(), lng: center.lng() }
+        state.zoom = zoom
+      }
+      
+      state.selectedMapItemId = selectedMapItemId
+      state.filter = mapFilter
+      state.userInteracted = userInteracted
+      perDateStateRef.current.set(previousDateKey, state)
+    }
+    setPreviousDateKey(dateKey)
+  }, [selectedDate, selectedMapItemId, mapFilter, userInteracted, previousDateKey])
+
+  // Restore per-date state when date changes
+  useEffect(() => {
+    const dateKey = selectedDate.toISOString().split('T')[0]
+    const savedState = perDateStateRef.current.get(dateKey)
+    
+    if (savedState) {
+      console.log('[ScheduleMap] MAP_DATE_STATE_RESTORED', {
+        dateKey,
+        savedState
+      })
+      setSelectedMapItemId(savedState.selectedMapItemId)
+      setMapFilter(savedState.filter)
+      setUserInteracted(savedState.userInteracted)
+      
+      // Restore viewport after markers are rendered
+      setTimeout(() => {
+        if (googleMapRef.current && savedState.center && savedState.zoom) {
+          console.log('[ScheduleMap] MAP_CAMERA_RESTORED', {
+            center: savedState.center,
+            zoom: savedState.zoom
+          })
+          googleMapRef.current.setCenter(savedState.center)
+          googleMapRef.current.setZoom(savedState.zoom)
+        }
+      }, 100)
+    } else {
+      console.log('[ScheduleMap] MAP_DATE_STATE_NOT_FOUND', { dateKey })
+      // First visit - use defaults
+      setShowAllMode(true)
+      setUserInteracted(false)
+    }
+    
     setSelectedMarker(null)
   }, [selectedDate])
 
-  // Prepare map items when date changes
+  // Prepare map items when date changes (with race condition guard)
   useEffect(() => {
+    const dateKey = selectedDate.toISOString().split('T')[0]
     console.log('[ScheduleMap] MAP_ITEMS_PREPARING', {
-      selectedDate: selectedDate.toISOString().split('T')[0]
+      selectedDate: dateKey
     })
-    prepareMapItems()
-  }, [prepareMapItems])
+    
+    let isCancelled = false
+    
+    const prepare = async () => {
+      await prepareMapItems()
+      
+      // Check if this result is still relevant
+      const currentDateKey = selectedDate.toISOString().split('T')[0]
+      if (dateKey !== currentDateKey) {
+        console.log('[ScheduleMap] MAP_STALE_RESULT_IGNORED', {
+          requestDate: dateKey,
+          currentDate: currentDateKey
+        })
+        return
+      }
+      
+      if (isCancelled) {
+        console.log('[ScheduleMap] MAP_PREPARATION_CANCELLED', { dateKey })
+        return
+      }
+    }
+    
+    prepare()
+    
+    return () => {
+      isCancelled = true
+    }
+  }, [prepareMapItems, selectedDate])
 
   // Update markers when map items change
   useEffect(() => {
@@ -574,6 +668,12 @@ export default function ScheduleMap({
       markerCount: markersRef.current.length,
       filteredItemCount: filteredItems.length
     })
+
+    // Trigger map resize to ensure proper rendering
+    if (googleMapRef.current) {
+      googleMapRef.current.triggerResize()
+      console.log('[ScheduleMap] MAP_RESIZE_TRIGGERED')
+    }
 
     // Fit bounds to show all markers (only if not user interacted and in show all mode)
     if (markersRef.current.length > 0 && showAllMode && !userInteracted) {
