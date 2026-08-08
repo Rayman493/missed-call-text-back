@@ -9,8 +9,8 @@ import NativeOfflineBoundary from '@/components/NativeOfflineBoundary'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'ReplyFlowHQ — Missed-Call Text Back for Local Businesses',
-  description: 'Automatically text customers back when you miss a call. ReplyFlowHQ helps local businesses capture more customers with missed-call text-back automation.',
+  title: 'ReplyFlow — Customers, Scheduling & Payments for Service Businesses',
+  description: 'Capture customer requests with AI, manage conversations and jobs, schedule work, and accept payments from one place. Built for local service businesses.',
   keywords: ['missed call text back', 'automated SMS', 'local business', 'customer capture', 'customer communication', 'SMS automation'],
   authors: [{ name: 'ReplyFlowHQ' }],
   creator: 'ReplyFlowHQ',
@@ -28,22 +28,22 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     url: 'https://replyflowhq.com',
-    title: 'ReplyFlowHQ — Missed-Call Text Back for Local Businesses',
-    description: 'Automatically text customers back when you miss a call. ReplyFlowHQ helps local businesses capture more leads with missed-call text-back automation.',
-    siteName: 'ReplyFlowHQ',
+    title: 'ReplyFlow — Customers, Scheduling & Payments for Service Businesses',
+    description: 'Capture customer requests with AI, manage conversations and jobs, schedule work, and accept payments from one place. Built for local service businesses.',
+    siteName: 'ReplyFlow',
     images: [
       {
         url: '/replyflow-r-logo.png',
         width: 512,
         height: 512,
-        alt: 'ReplyFlowHQ - Missed-Call Text Back Automation',
+        alt: 'ReplyFlow - Customer Management and Scheduling',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'ReplyFlowHQ — Missed-Call Text Back for Local Businesses',
-    description: 'Automatically text customers back when you miss a call. ReplyFlowHQ helps local businesses capture more leads with missed-call text-back automation.',
+    title: 'ReplyFlow — Customers, Scheduling & Payments for Service Businesses',
+    description: 'Capture customer requests with AI, manage conversations and jobs, schedule work, and accept payments from one place. Built for local service businesses.',
     images: ['/replyflow-r-logo.png'],
     creator: '@replyflowhq',
   },
