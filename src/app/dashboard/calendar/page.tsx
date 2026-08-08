@@ -228,6 +228,9 @@ export default function SchedulePage() {
   // Jobs state
   const [jobs, setJobs] = useState<Job[]>([])
   const [isLoadingJobs, setIsLoadingJobs] = useState(false)
+
+  // Tasks state
+  const [tasks, setTasks] = useState<any[]>([])
   const [isNewJobModalOpen, setIsNewJobModalOpen] = useState(false)
   const [newJobWorkflowTitle, setNewJobWorkflowTitle] = useState('Create Job')
   const [newJobWorkflowPrompt, setNewJobWorkflowPrompt] = useState('Select a customer to create a job for')
@@ -264,6 +267,23 @@ export default function SchedulePage() {
   // Map date navigation state
   const [mapSelectedDate, setMapSelectedDate] = useState<Date>(() => new Date())
 
+  // Edit handlers for ScheduleMap
+  const handleMapEditJob = (job: any) => {
+    setEditingJob(job)
+    setIsJobComposerOpen(true)
+  }
+
+  const handleMapEditTask = (task: any) => {
+    // Set task for editing in NewTaskModal
+    // This would require passing taskToEdit to NewTaskModal
+    setIsNewTaskModalOpen(true)
+  }
+
+  const handleMapEditEvent = (event: any) => {
+    setSelectedEvent(event)
+    setIsEventDetailsOpen(true)
+  }
+
   // Check for OAuth success/error redirect
   useEffect(() => {
     if (searchParams) {
@@ -295,8 +315,31 @@ export default function SchedulePage() {
     }
   }
 
+  const fetchTasks = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) return
+
+      const response = await fetch('/api/tasks', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+
+      if (!response.ok) return
+
+      const data = await response.json()
+      setTasks(data.tasks || [])
+    } catch (error) {
+      console.error('[Schedule] Failed to fetch tasks:', error)
+    }
+  }
+
   useEffect(() => {
-    if (business) fetchJobs()
+    if (business) {
+      fetchJobs()
+      fetchTasks()
+    }
   }, [business])
 
   
@@ -1536,12 +1579,16 @@ export default function SchedulePage() {
                       <ScheduleMap
                         jobs={jobs}
                         calendarEvents={events}
+                        tasks={tasks}
                         selectedDate={mapSelectedDate}
                         onPreviousDay={handleMapPreviousDay}
                         onNextDay={handleMapNextDay}
                         onGoToToday={handleMapGoToToday}
                         onViewCustomer={handleMapViewCustomer}
                         onViewJob={handleMapViewJob}
+                        onEditJob={handleMapEditJob}
+                        onEditTask={handleMapEditTask}
+                        onEditEvent={handleMapEditEvent}
                       />
                     </div>
                   )}

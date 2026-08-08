@@ -1,10 +1,13 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { MapPin, Calendar, Briefcase, AlertCircle, ChevronLeft, ChevronRight, Filter, ArrowLeft, ArrowRight, Layers } from 'lucide-react'
 import Link from 'next/link'
 import Skeleton from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
+
+// Global singleton flag to ensure Google Maps is loaded only once
+let googleMapsScriptLoaded = false
 
 interface Job {
   id: string
@@ -33,15 +36,30 @@ interface CalendarEvent {
   end: { dateTime?: string; date?: string }
 }
 
+interface Task {
+  id: string
+  title: string
+  notes: string | null
+  due_date: string | null
+  due_time: string | null
+  completed: boolean
+  lead_id: string | null
+  job_id: string | null
+}
+
 interface ScheduleMapProps {
   jobs: Job[]
   calendarEvents: CalendarEvent[]
+  tasks: Task[]
   selectedDate: Date
   onPreviousDay: () => void
   onNextDay: () => void
   onGoToToday: () => void
   onViewCustomer: (leadId: string) => void
   onViewJob: (jobId: string) => void
+  onEditJob?: (job: Job) => void
+  onEditTask?: (task: Task) => void
+  onEditEvent?: (event: CalendarEvent) => void
 }
 
 type MapItemType = 'job' | 'appointment'
@@ -83,12 +101,16 @@ interface MarkerInfo {
 export default function ScheduleMap({
   jobs,
   calendarEvents,
+  tasks,
   selectedDate,
   onPreviousDay,
   onNextDay,
   onGoToToday,
   onViewCustomer,
-  onViewJob
+  onViewJob,
+  onEditJob,
+  onEditTask,
+  onEditEvent
 }: ScheduleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const googleMapRef = useRef<any>(null)
@@ -97,11 +119,11 @@ export default function ScheduleMap({
   const [isMapLoaded, setIsMapLoaded] = useState(false)
   const [mapReady, setMapReady] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [mapError, setMapError] = useState<string | null>(null)
   const [selectedMarker, setSelectedMarker] = useState<MarkerInfo | null>(null)
   const [selectedMapItemId, setSelectedMapItemId] = useState<string | null>(null)
+  const [selectedListItem, setSelectedListItem] = useState<any>(null)
   const [mapItems, setMapItems] = useState<MapItem[]>([])
-  const [itemsWithoutAddress, setItemsWithoutAddress] = useState<number>(0)
-  const [geocodingFailed, setGeocodingFailed] = useState(false)
   const [mapFilter, setMapFilter] = useState<MapFilter>('all')
   const [mapType, setMapType] = useState<MapType>(() => {
     if (typeof window !== 'undefined') {
@@ -124,11 +146,10 @@ export default function ScheduleMap({
   // Update map type when state changes (only after map is ready)
   useEffect(() => {
     if (mapReady && googleMapRef.current) {
-      const mapTypeId = mapType === 'satellite' 
-        ? (window as any).google.maps.MapTypeId.HYBRID 
+      const mapTypeId = mapType === 'satellite'
+        ? (window as any).google.maps.MapTypeId.HYBRID
         : (window as any).google.maps.MapTypeId.ROADMAP
       googleMapRef.current.setMapTypeId(mapTypeId)
-      console.log('[ScheduleMap] MAP_TYPE_APPLIED', { mapType, mapTypeId })
     }
   }, [mapType, mapReady])
 
@@ -275,9 +296,9 @@ export default function ScheduleMap({
   // Helper function to extract customer address from lead metadata
   const getCustomerAddressFromLead = (job: Job): string | null => {
     if (!job.leads?.raw_metadata) return null
-    
+
     const rawMetadata = job.leads.raw_metadata
-    
+
     // Check for various address field names in raw_metadata
     const addressFields = [
       rawMetadata.addressOrLocation,
@@ -291,71 +312,174 @@ export default function ScheduleMap({
       rawMetadata.ai_extracted_info?.serviceAddress,
       rawMetadata.ai_extracted_info?.address,
     ]
-    
+
     for (const field of addressFields) {
       if (field && typeof field === 'string' && field.trim().length > 0) {
         return field.trim()
       }
     }
-    
+
     return null
   }
+
+  // Get all items for the selected date (jobs, events, tasks) for the list view
+  const getSelectedDayItems = useCallback((): Array<{
+    id: string
+    type: 'job' | 'appointment' | 'task'
+    title: string
+    customerName: string | null
+    address: string | null
+    scheduledDate: string | null
+    scheduledTime: string | null
+    status: string | null
+    hasLocation: boolean
+    leadId: string | null
+    jobId: string | null
+    taskId: string | null
+    eventId: string | null
+    latitude: number | null
+    longitude: number | null
+  }> => {
+    const dateStr = selectedDate.toLocaleDateString('en-CA') // YYYY-MM-DD in local timezone
+    const items: Array<{
+    id: string
+    type: 'job' | 'appointment' | 'task'
+    title: string
+    customerName: string | null
+    address: string | null
+    scheduledDate: string | null
+    scheduledTime: string | null
+    status: string | null
+    hasLocation: boolean
+    leadId: string | null
+    jobId: string | null
+    taskId: string | null
+    eventId: string | null
+    latitude: number | null
+    longitude: number | null
+  }> = []
+
+    // Filter jobs for selected date
+    const filteredJobs = jobs.filter(job => {
+      if (!job.scheduled_date) return false
+      return job.scheduled_date === dateStr
+    })
+
+    // Filter events for selected date
+    const filteredEvents = calendarEvents.filter(event => {
+      const eventDate = event.start.dateTime || event.start.date
+      if (!eventDate) return false
+      return eventDate.startsWith(dateStr)
+    })
+
+    // Filter tasks for selected date
+    const filteredTasks = tasks.filter(task => {
+      if (!task.due_date) return false
+      return task.due_date === dateStr && !task.completed
+    })
+
+    // Process jobs
+    filteredJobs.forEach(job => {
+      const fallbackAddress = getCustomerAddressFromLead(job)
+      const serviceAddress = job.service_address || fallbackAddress
+      const hasCoordinates = job.latitude !== null && job.latitude !== undefined && job.longitude !== null && job.longitude !== undefined
+      const hasLocation = Boolean(serviceAddress) || hasCoordinates
+
+      items.push({
+        id: `job:${job.id}`,
+        type: 'job',
+        title: job.title,
+        customerName: job.customer_name,
+        address: serviceAddress,
+        scheduledDate: job.scheduled_date,
+        scheduledTime: job.scheduled_time,
+        status: job.status,
+        hasLocation,
+        leadId: job.lead_id,
+        jobId: job.id,
+        taskId: null,
+        eventId: null,
+        latitude: job.latitude || null,
+        longitude: job.longitude || null
+      })
+    })
+
+    // Process events
+    filteredEvents.forEach(event => {
+      const hasLocation = Boolean(event.location)
+
+      items.push({
+        id: `appointment:${event.id}`,
+        type: 'appointment',
+        title: event.summary,
+        customerName: null,
+        address: event.location,
+        scheduledDate: (event.start.dateTime || event.start.date)?.split('T')[0] || null,
+        scheduledTime: event.start.dateTime ? event.start.dateTime.split('T')[1]?.substring(0, 5) || null : null,
+        status: null,
+        hasLocation,
+        leadId: null,
+        jobId: null,
+        taskId: null,
+        eventId: event.id,
+        latitude: null,
+        longitude: null
+      })
+    })
+
+    // Process tasks
+    filteredTasks.forEach(task => {
+      items.push({
+        id: `task:${task.id}`,
+        type: 'task',
+        title: task.title,
+        customerName: null,
+        address: null,
+        scheduledDate: task.due_date,
+        scheduledTime: task.due_time,
+        status: task.completed ? 'completed' : 'pending',
+        hasLocation: false,
+        leadId: task.lead_id,
+        jobId: task.job_id,
+        taskId: task.id,
+        eventId: null,
+        latitude: null,
+        longitude: null
+      })
+    })
+
+    // Sort chronologically by time
+    items.sort((a, b) => {
+      const timeA = a.scheduledTime || '00:00'
+      const timeB = b.scheduledTime || '00:00'
+      return timeA.localeCompare(timeB)
+    })
+
+    return items
+  }, [jobs, calendarEvents, tasks, selectedDate, getCustomerAddressFromLead])
 
   // Geocode addresses and prepare map items
   const prepareMapItems = useCallback(async () => {
     const { filteredJobs, filteredEvents } = getItemsForDate()
     const items: MapItem[] = []
-    let withoutAddressCount = 0
 
     // Process jobs
     for (const job of filteredJobs) {
       // Extract fallback address from lead metadata
       const fallbackAddress = getCustomerAddressFromLead(job)
-      
+
       // Use service_address, or fall back to customer address from lead metadata
       const serviceAddress = job.service_address || fallbackAddress
 
-      // Log detailed diagnostics for each job
-      const hasRawMetadata = !!job.leads?.raw_metadata
-      const rawMetadataKeys = hasRawMetadata ? Object.keys(job.leads!.raw_metadata) : []
       const hasCoordinates = job.latitude !== null && job.latitude !== undefined && job.longitude !== null && job.longitude !== undefined
 
-      console.log('[SCHEDULE_MAP_JOB_PROCESSING]', {
-        jobId: job.id,
-        customerName: job.customer_name,
-        service_address: job.service_address,
-        hasRawMetadata,
-        rawMetadataKeys,
-        extractedFallbackAddress: fallbackAddress,
-        finalAddressSelected: serviceAddress,
-        hasCoordinates,
-        latitude: job.latitude,
-        longitude: job.longitude,
-        geocoded_address: job.geocoded_address
-      })
-      
+      // Skip jobs without address
       if (!serviceAddress) {
-        console.log('[MAP_ITEM_SKIPPED]', {
-          jobId: job.id,
-          reason: 'no_address_available',
-          serviceAddress: job.service_address,
-          fallbackAddress: fallbackAddress,
-          hasCoordinates,
-          geocodedAddress: job.geocoded_address
-        })
-        withoutAddressCount++
         continue
       }
 
       // Check if already geocoded
       if (hasCoordinates) {
-        console.log('[SCHEDULE_MAP_USING_CACHED_COORDINATES]', {
-          jobId: job.id,
-          address: serviceAddress,
-          latitude: job.latitude,
-          longitude: job.longitude,
-          geocoded_address: job.geocoded_address
-        })
         items.push({
           id: job.id,
           type: 'job',
@@ -372,42 +496,25 @@ export default function ScheduleMap({
           longitude: job.longitude!
         })
       } else {
+        // Validate inputs before geocoding request
+        const normalizedAddress = serviceAddress.trim()
+        if (!normalizedAddress || normalizedAddress.length === 0) {
+          continue
+        }
+
+        if (!job.id) {
+          console.error('[ScheduleMap] Missing jobId for geocoding request')
+          continue
+        }
+
         // Trigger geocoding
-        console.log('[SCHEDULE_MAP] ========== STEP 4: Verify ScheduleMap Data ==========')
-        console.log('[SCHEDULE_MAP] Job data before geocoding request', {
-          jobId: job.id,
-          jobTitle: job.title,
-          customerName: job.customer_name,
-          customerPhone: job.customer_phone,
-          serviceAddress: job.service_address,
-          leadId: job.lead_id,
-          selectedAddress: serviceAddress,
-          hasLeadsData: !!job.leads,
-          leadIdFromLeads: job.leads?.id
-        })
-
-        console.log('[SCHEDULE_MAP] ========== STEP 5: Verify API Payload ==========')
-        const payload = { action: 'geocode', jobId: job.id, address: serviceAddress }
-        console.log('[SCHEDULE_MAP] Exact API payload leaving browser', {
-          payload,
-          payloadString: JSON.stringify(payload),
-          jobIdType: typeof job.id
-        })
-
         try {
           const response = await fetch('/api/jobs', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify({ action: 'geocode', jobId: job.id, address: normalizedAddress })
           })
           const result = await response.json()
-          console.log('[SCHEDULE_MAP_GEOCODING_RESULT]', {
-            jobId: job.id,
-            success: result.success,
-            error: result.error,
-            latitude: result.latitude,
-            longitude: result.longitude
-          })
           if (result.success) {
             items.push({
               id: job.id,
@@ -425,54 +532,18 @@ export default function ScheduleMap({
               longitude: result.longitude
             })
           } else {
-            console.log('[MAP_ITEM_SKIPPED]', {
-              jobId: job.id,
-              reason: 'geocoding_failed',
-              serviceAddress: job.service_address,
-              fallbackAddress: fallbackAddress,
-              hasCoordinates,
-              geocodedAddress: job.geocoded_address,
-              geocodingError: result.error
-            })
-            withoutAddressCount++
+            console.error('[ScheduleMap] Geocoding failed for job:', job.id, result.error)
           }
         } catch (error) {
-          console.error('[ScheduleMap] Geocoding failed for job:', job.id, error)
-          console.log('[MAP_ITEM_SKIPPED]', {
-            jobId: job.id,
-            reason: 'geocoding_exception',
-            serviceAddress: job.service_address,
-            fallbackAddress: fallbackAddress,
-            hasCoordinates,
-            geocodedAddress: job.geocoded_address,
-            error: error instanceof Error ? error.message : String(error)
-          })
-          withoutAddressCount++
+          console.error('[ScheduleMap] Geocoding exception for job:', job.id, error)
         }
       }
     }
 
-    // Process calendar events (geocode on the fly for now)
-    for (const event of filteredEvents) {
-      if (!event.location) {
-        withoutAddressCount++
-        continue
-      }
+    // Process calendar events (skip for now - no geocoding support)
+    // Calendar events without pre-geocoded coordinates are omitted from map
 
-      // For calendar events, we'll need to geocode on the fly
-      // For MVP, we'll skip calendar events without pre-geocoded coordinates
-      // In a future enhancement, we could add geocoding to events table
-      withoutAddressCount++
-    }
-
-    console.log('[ScheduleMap] MAP_ITEMS_RECOMPUTED', {
-      itemCount: items.length,
-      withoutAddressCount,
-      selectedDate: selectedDate.toISOString().split('T')[0]
-    })
     setMapItems(items)
-    setItemsWithoutAddress(withoutAddressCount)
-    setGeocodingFailed(withoutAddressCount > 0 && items.length === 0)
     setIsLoading(false)
   }, [getItemsForDate])
 
@@ -497,50 +568,63 @@ export default function ScheduleMap({
     }))
   }, [])
 
-  // Load Google Maps script
+  // Load Google Maps script using singleton pattern
   useEffect(() => {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
     if (!apiKey) {
-      console.error('[ScheduleMap] NEXT_PUBLIC_GOOGLE_MAPS_API_KEY not configured')
+      const error = 'Google Maps API key is not configured'
+      console.error('[ScheduleMap]', error)
+      setMapError(error)
       setIsLoading(false)
       return
     }
 
-    if ((window as any).google && (window as any).google.maps) {
+    // Check if already loaded via global flag or window object
+    if (googleMapsScriptLoaded || (window as any).google?.maps) {
       setIsMapLoaded(true)
       return
     }
 
+    // Load script only once using Google Maps recommended async pattern
     const script = document.createElement('script')
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`
-    script.async = true
-    script.onload = () => setIsMapLoaded(true)
+    script.src = 'https://maps.googleapis.com/maps/api/js?key=' + apiKey + '&libraries=places&loading=async'
+
+    script.onload = () => {
+      googleMapsScriptLoaded = true
+      setIsMapLoaded(true)
+    }
+
     script.onerror = () => {
-      console.error('[ScheduleMap] Failed to load Google Maps script')
+      const error = 'Failed to load Google Maps script'
+      console.error('[ScheduleMap]', error)
+      setMapError(error)
       setIsLoading(false)
     }
+
     document.head.appendChild(script)
 
-    return () => {
-      document.head.removeChild(script)
-    }
+    // Do NOT remove script on unmount - keep it as singleton
   }, [])
 
-  // Initialize map
+  // Initialize map (only when API, container, and dimensions are ready)
   useEffect(() => {
-    console.log('[ScheduleMap] MAP_INSTANCE_INITIALIZING', {
-      isMapLoaded,
-      containerExists: !!mapRef.current,
-      mapInstanceExists: !!googleMapRef.current
-    })
-    
     if (!isMapLoaded || !mapRef.current || googleMapRef.current) return
 
-    const initialMapTypeId = mapType === 'satellite' 
-      ? (window as any).google.maps.MapTypeId.HYBRID 
+    // Check container dimensions
+    const container = mapRef.current
+    const containerWidth = container.offsetWidth
+    const containerHeight = container.offsetHeight
+
+    if (containerWidth === 0 || containerHeight === 0) {
+      // Container not ready yet, will retry via ResizeObserver
+      return
+    }
+
+    const initialMapTypeId = mapType === 'satellite'
+      ? (window as any).google.maps.MapTypeId.HYBRID
       : (window as any).google.maps.MapTypeId.ROADMAP
-    
-    const map = new (window as any).google.maps.Map(mapRef.current, {
+
+    const map = new (window as any).google.maps.Map(container, {
       center: { lat: 39.8283, lng: -98.5795 }, // Default to US center
       zoom: 4,
       mapTypeId: initialMapTypeId,
@@ -564,19 +648,36 @@ export default function ScheduleMap({
 
     googleMapRef.current = map
     setMapReady(true)
-    console.log('[ScheduleMap] MAP_INSTANCE_READY', { mapReady: true })
   }, [isMapLoaded, mapType])
+
+  // ResizeObserver to initialize map when container gets dimensions
+  useEffect(() => {
+    if (googleMapRef.current || !isMapLoaded || !mapRef.current) return
+
+    const container = mapRef.current
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect
+        if (width > 0 && height > 0 && !googleMapRef.current) {
+          resizeObserver.disconnect()
+          // Trigger map initialization by setting a dummy state
+          setMapReady(false) // Will trigger the init effect again
+          setTimeout(() => setMapReady(true), 0)
+        }
+      }
+    })
+
+    resizeObserver.observe(container)
+
+    return () => {
+      resizeObserver.disconnect()
+    }
+  }, [isMapLoaded])
 
   // Save per-date state before date change
   useEffect(() => {
     const dateKey = selectedDate.toISOString().split('T')[0]
     if (previousDateKey && previousDateKey !== dateKey) {
-      console.log('[ScheduleMap] MAP_DATE_STATE_SAVED', {
-        dateKey: previousDateKey,
-        selectedMapItemId,
-        filter: mapFilter,
-        userInteracted
-      })
       const state = perDateStateRef.current.get(previousDateKey) || {
         selectedMapItemId: null,
         filter: 'all',
@@ -584,7 +685,7 @@ export default function ScheduleMap({
         zoom: null,
         userInteracted: false
       }
-      
+
       // Save current viewport if map exists and user has interacted
       if (googleMapRef.current && userInteracted) {
         const center = googleMapRef.current.getCenter()
@@ -592,11 +693,18 @@ export default function ScheduleMap({
         state.center = { lat: center.lat(), lng: center.lng() }
         state.zoom = zoom
       }
-      
-      state.selectedMapItemId = selectedMapItemId
-      state.filter = mapFilter
-      state.userInteracted = userInteracted
-      perDateStateRef.current.set(previousDateKey, state)
+
+      // Only save if state actually changed
+      if (
+        state.selectedMapItemId !== selectedMapItemId ||
+        state.filter !== mapFilter ||
+        state.userInteracted !== userInteracted
+      ) {
+        state.selectedMapItemId = selectedMapItemId
+        state.filter = mapFilter
+        state.userInteracted = userInteracted
+        perDateStateRef.current.set(previousDateKey, state)
+      }
     }
     setPreviousDateKey(dateKey)
   }, [selectedDate, selectedMapItemId, mapFilter, userInteracted, previousDateKey])
@@ -605,67 +713,46 @@ export default function ScheduleMap({
   useEffect(() => {
     const dateKey = selectedDate.toISOString().split('T')[0]
     const savedState = perDateStateRef.current.get(dateKey)
-    
+
     if (savedState) {
-      console.log('[ScheduleMap] MAP_DATE_STATE_RESTORED', {
-        dateKey,
-        savedState
-      })
       setSelectedMapItemId(savedState.selectedMapItemId)
       setMapFilter(savedState.filter)
       setUserInteracted(savedState.userInteracted)
-      
+
       // Restore viewport after markers are rendered
       setTimeout(() => {
         if (googleMapRef.current && savedState.center && savedState.zoom) {
-          console.log('[ScheduleMap] MAP_CAMERA_RESTORED', {
-            center: savedState.center,
-            zoom: savedState.zoom
-          })
           googleMapRef.current.setCenter(savedState.center)
           googleMapRef.current.setZoom(savedState.zoom)
         }
       }, 100)
     } else {
-      console.log('[ScheduleMap] MAP_DATE_STATE_NOT_FOUND', { dateKey })
       // First visit - use defaults
       setShowAllMode(true)
       setUserInteracted(false)
     }
-    
+
     setSelectedMarker(null)
   }, [selectedDate])
 
   // Prepare map items when date changes (with race condition guard)
   useEffect(() => {
     const dateKey = selectedDate.toISOString().split('T')[0]
-    console.log('[ScheduleMap] MAP_ITEMS_PREPARING', {
-      selectedDate: dateKey
-    })
-    
+
     let isCancelled = false
-    
+
     const prepare = async () => {
       await prepareMapItems()
-      
+
       // Check if this result is still relevant
       const currentDateKey = selectedDate.toISOString().split('T')[0]
-      if (dateKey !== currentDateKey) {
-        console.log('[ScheduleMap] MAP_STALE_RESULT_IGNORED', {
-          requestDate: dateKey,
-          currentDate: currentDateKey
-        })
-        return
-      }
-      
-      if (isCancelled) {
-        console.log('[ScheduleMap] MAP_PREPARATION_CANCELLED', { dateKey })
+      if (dateKey !== currentDateKey || isCancelled) {
         return
       }
     }
-    
+
     prepare()
-    
+
     return () => {
       isCancelled = true
     }
@@ -673,29 +760,17 @@ export default function ScheduleMap({
 
   // Update markers when map items change or map becomes ready
   useEffect(() => {
-    console.log('[ScheduleMap] MAP_MARKER_EFFECT_TRIGGERED', {
-      mapReady,
-      mapItemsCount: mapItems.length,
-      selectedMapItemId,
-      showAllMode,
-      userInteracted,
-      selectedDate: selectedDate.toISOString().split('T')[0]
-    })
-
     if (!mapReady || !googleMapRef.current) {
-      console.log('[ScheduleMap] MAP_MARKERS_WAITING_FOR_MAP', { mapReady, mapExists: !!googleMapRef.current })
       return
     }
 
     if (mapItems.length === 0) {
-      console.log('[ScheduleMap] MAP_MARKERS_SKIPPED - no items')
       return
     }
 
     const filteredItems = getFilteredMapItems(mapItems)
-    
+
     // Clear existing markers
-    console.log('[ScheduleMap] MAP_MARKERS_CLEARED', { clearedCount: markersRef.current.length })
     markersRef.current.forEach(marker => marker.setMap(null))
     markersRef.current = []
 
@@ -710,8 +785,8 @@ export default function ScheduleMap({
       const marker = new (window as any).google.maps.Marker({
         position: markerInfo.position,
         map: googleMapRef.current,
-        title: markerInfo.items.length === 1 
-          ? `Stop ${stopNumber}: ${primaryItem.title}` 
+        title: markerInfo.items.length === 1
+          ? `Stop ${stopNumber}: ${primaryItem.title}`
           : `${markerInfo.items.length} stops at this location`,
         icon: createNumberedMarkerIcon(stopNumber, primaryItem.type, isSelected),
         zIndex: isSelected ? 1000 : 1
@@ -728,68 +803,20 @@ export default function ScheduleMap({
       markersRef.current.push(marker)
     })
 
-    console.log('[ScheduleMap] MAP_MARKERS_RENDERED', {
-      markerCount: markersRef.current.length,
-      filteredItemCount: filteredItems.length
-    })
-
-    // Check map container status and trigger resize if needed
-    const container = mapRef.current
-    if (googleMapRef.current && container) {
-      const containerWidth = container.offsetWidth
-      const containerHeight = container.offsetHeight
-      console.log('[ScheduleMap] MAP_CONTAINER_STATUS', {
-        containerWidth,
-        containerHeight,
-        mapInstanceExists: !!googleMapRef.current
-      })
-      
-      if (containerWidth > 0 && containerHeight > 0) {
-        // Trigger Google Maps resize event to ensure proper rendering
-        (window as any).google.maps.event.trigger(googleMapRef.current, 'resize')
-        console.log('[ScheduleMap] MAP_RESIZE_TRIGGERED')
-      } else {
-        console.log('[ScheduleMap] MAP_CONTAINER_HAS_ZERO_DIMENSIONS')
-        // Schedule a retry after a short delay
-        setTimeout(() => {
-          if (googleMapRef.current && mapRef.current) {
-            const retryWidth = mapRef.current.offsetWidth
-            const retryHeight = mapRef.current.offsetHeight
-            if (retryWidth > 0 && retryHeight > 0) {
-              (window as any).google.maps.event.trigger(googleMapRef.current, 'resize')
-              console.log('[ScheduleMap] MAP_RESIZE_RETRIED', { retryWidth, retryHeight })
-            }
-          }
-        }, 200)
-      }
-    } else {
-      console.log('[ScheduleMap] MAP_RECOVERY_NEEDED', {
-        mapInstanceExists: !!googleMapRef.current,
-        containerExists: !!container
-      })
-    }
-
     // Fit bounds to show all markers (only if not user interacted and in show all mode)
     if (markersRef.current.length > 0 && showAllMode && !userInteracted) {
-      console.log('[ScheduleMap] MAP_BOUNDS_UPDATING', { markerCount: markersRef.current.length })
       const bounds = new (window as any).google.maps.LatLngBounds()
       markersRef.current.forEach(marker => {
         bounds.extend(marker.getPosition()!)
       })
       fitBoundsWithMaxZoom(bounds)
-    } else {
-      console.log('[ScheduleMap] MAP_BOUNDS_SKIPPED', {
-        markerCount: markersRef.current.length,
-        showAllMode,
-        userInteracted
-      })
     }
 
     return () => {
       markersRef.current.forEach(marker => marker.setMap(null))
       markersRef.current = []
     }
-  }, [mapItems, groupItemsByLocation, mapReady, selectedMapItemId, getFilteredMapItems, showAllMode, userInteracted, fitBoundsWithMaxZoom, selectMapItem])
+  }, [mapItems, groupItemsByLocation, mapReady, getFilteredMapItems, showAllMode, userInteracted, fitBoundsWithMaxZoom, selectMapItem, selectedMapItemId])
 
   // Create numbered marker icon
   const createNumberedMarkerIcon = (stopNumber: number, type: MapItemType, isSelected: boolean = false): any => {
@@ -900,10 +927,6 @@ export default function ScheduleMap({
 
   // Empty state
   if (mapItems.length === 0) {
-    const emptyMessage = itemsWithoutAddress > 0
-      ? `${itemsWithoutAddress} stop${itemsWithoutAddress > 1 ? 's' : ''} need location${itemsWithoutAddress > 1 ? 's' : ''}`
-      : 'No scheduled stops for this day'
-    
     return (
       <div className="flex flex-col h-full">
         {/* Date Navigation Header */}
@@ -944,7 +967,7 @@ export default function ScheduleMap({
           <EmptyState
             icon={<MapPin className="w-12 h-12" />}
             title="No mapped stops for this day"
-            description={emptyMessage}
+            description="Jobs with valid addresses will appear on the map"
           />
         </div>
       </div>
@@ -1006,8 +1029,8 @@ export default function ScheduleMap({
             <button
               onClick={() => { setMapFilter('all') }}
               className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                mapFilter === 'all' 
-                  ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm' 
+                mapFilter === 'all'
+                  ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
               }`}
             >
@@ -1016,8 +1039,8 @@ export default function ScheduleMap({
             <button
               onClick={() => { setMapFilter('jobs') }}
               className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                mapFilter === 'jobs' 
-                  ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm' 
+                mapFilter === 'jobs'
+                  ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
               }`}
             >
@@ -1026,8 +1049,8 @@ export default function ScheduleMap({
             <button
               onClick={() => { setMapFilter('appointments') }}
               className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                mapFilter === 'appointments' 
-                  ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm' 
+                mapFilter === 'appointments'
+                  ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
               }`}
             >
@@ -1046,45 +1069,142 @@ export default function ScheduleMap({
         )}
       </div>
 
-      {/* Desktop Stop Selector */}
-      {sortedItems.length > 0 && (
-        <div className="hidden md:block mb-4 z-10">
-          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-foreground">Today's Stops</h3>
-              <span className="text-xs text-slate-500 dark:text-slate-400">{routeSummary}</span>
-            </div>
-            <div className="max-h-48 overflow-y-auto">
-              {sortedItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => selectMapItem(item.id)}
-                  className={`w-full px-4 py-3 flex items-start gap-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-0 ${
-                    selectedMapItemId === item.id ? 'bg-slate-50 dark:bg-slate-700/50' : ''
-                  }`}
-                >
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-sm ${
-                    item.type === 'job' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                  }`}>
-                    {item.stopNumber}
+      {/* Selected-Day Item List (All items: jobs, appointments, tasks) */}
+      <div className="mb-4 z-10">
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700">
+            <h3 className="text-sm font-semibold text-foreground">Today's Schedule</h3>
+          </div>
+          <div>
+            {(() => {
+              const selectedDayItems = getSelectedDayItems()
+              if (selectedDayItems.length === 0) {
+                return (
+                  <div className="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+                    No items scheduled for this day
                   </div>
-                  <div className="flex-1 min-w-0 text-left">
-                    <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                      {item.scheduledTime ? formatTime(item.scheduledTime) : 'No time'}
-                    </p>
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {item.customerName || 'No customer'}
-                    </p>
-                    <p className="text-xs text-slate-400 dark:text-slate-500 truncate">
-                      {item.title}
-                    </p>
-                  </div>
-                </button>
-              ))}
-            </div>
+                )
+              }
+              return selectedDayItems.map((item) => {
+                const isSelected = selectedListItem?.id === item.id
+                const isMappable = item.hasLocation && item.latitude !== null && item.longitude !== null
+
+                const handleItemClick = () => {
+                  setSelectedListItem(item)
+                  if (isMappable && item.jobId) {
+                    selectMapItem(item.jobId)
+                  }
+                }
+
+                const handleEditClick = (e: React.MouseEvent) => {
+                  e.stopPropagation()
+                  if (item.type === 'job' && onEditJob) {
+                    const job = jobs.find(j => j.id === item.jobId)
+                    if (job) onEditJob(job)
+                  } else if (item.type === 'task' && onEditTask) {
+                    const task = tasks.find(t => t.id === item.taskId)
+                    if (task) onEditTask(task)
+                  } else if (item.type === 'appointment' && onEditEvent) {
+                    const event = calendarEvents.find(e => e.id === item.eventId)
+                    if (event) onEditEvent(event)
+                  }
+                }
+
+                const handleAddLocationClick = (e: React.MouseEvent) => {
+                  e.stopPropagation()
+                  handleEditClick(e)
+                }
+
+                const formatItemTime = (time: string | null) => {
+                  if (!time) return 'No time'
+                  const [hours, minutes] = time.split(':')
+                  const hour = parseInt(hours, 10)
+                  const ampm = hour >= 12 ? 'PM' : 'AM'
+                  const hour12 = hour % 12 || 12
+                  return `${hour12}:${minutes} ${ampm}`
+                }
+
+                const getItemIcon = () => {
+                  if (item.type === 'job') return <Briefcase className="w-4 h-4" />
+                  if (item.type === 'appointment') return <Calendar className="w-4 h-4" />
+                  return <AlertCircle className="w-4 h-4" />
+                }
+
+                const getItemColor = () => {
+                  if (item.type === 'job') return 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+                  if (item.type === 'appointment') return 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                  return 'bg-slate-100 dark:bg-slate-900/30 text-slate-600 dark:text-slate-400'
+                }
+
+                return (
+                  <button
+                    key={item.id}
+                    onClick={handleItemClick}
+                    className={`w-full px-4 py-3 flex items-start gap-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-0 ${
+                      isSelected ? 'bg-slate-50 dark:bg-slate-700/50' : ''
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${getItemColor()}`}>
+                      {getItemIcon()}
+                    </div>
+                    <div className="flex-1 min-w-0 text-left">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                          {formatItemTime(item.scheduledTime)}
+                        </p>
+                        {!item.hasLocation && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+                            No location
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {item.title}
+                      </p>
+                      {item.customerName && (
+                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                          {item.customerName}
+                        </p>
+                      )}
+                      {item.address && (
+                        <p className="text-xs text-slate-400 dark:text-slate-500 truncate">
+                          {item.address}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      {!item.hasLocation && item.type !== 'task' && (
+                        <button
+                          onClick={handleAddLocationClick}
+                          className="text-[10px] px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                        >
+                          Add location
+                        </button>
+                      )}
+                      {item.hasLocation && (
+                        <button
+                          onClick={handleEditClick}
+                          className="text-[10px] px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                        >
+                          Edit
+                        </button>
+                      )}
+                      {item.type === 'task' && (
+                        <button
+                          onClick={handleEditClick}
+                          className="text-[10px] px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                        >
+                          Edit
+                        </button>
+                      )}
+                    </div>
+                  </button>
+                )
+              })
+            })()}
           </div>
         </div>
-      )}
+      </div>
 
       {/* Mobile Horizontal Stop Cards */}
       {sortedItems.length > 0 && (
@@ -1154,23 +1274,13 @@ export default function ScheduleMap({
               onClick={() => setMapType('satellite')}
               className={`px-3 py-2 text-xs font-medium transition-colors min-w-[60px] ${
                 mapType === 'satellite'
-                  ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'
               }`}
             >
               Satellite
             </button>
           </div>
-          
-          {/* Missing Location Warning */}
-          {itemsWithoutAddress > 0 && (
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2 flex items-center gap-2">
-              <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-              <span className="text-xs text-amber-800 dark:text-amber-200">
-                {itemsWithoutAddress} stop{itemsWithoutAddress > 1 ? 's' : ''} need location{itemsWithoutAddress > 1 ? 's' : ''}
-              </span>
-            </div>
-          )}
         </div>
         
         {/* Selected Item Info Card */}
@@ -1285,18 +1395,6 @@ export default function ScheduleMap({
                   </div>
                 </button>
               ))}
-            </div>
-          </div>
-        )}
-
-        {/* Location-less items warning (bottom left) */}
-        {itemsWithoutAddress > 0 && !selectedItem && (
-          <div className="absolute bottom-4 left-4 md:left-auto md:right-4 md:w-auto bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2 z-10">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-              <span className="text-xs text-amber-800 dark:text-amber-200">
-                {itemsWithoutAddress} stop{itemsWithoutAddress > 1 ? 's' : ''} need location{itemsWithoutAddress > 1 ? 's' : ''}
-              </span>
             </div>
           </div>
         )}
