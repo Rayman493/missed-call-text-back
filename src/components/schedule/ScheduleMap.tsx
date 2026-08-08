@@ -1045,8 +1045,8 @@ export default function ScheduleMap({
 
   return (
     <div className="flex flex-col h-full relative">
-      {/* Date Navigation Header */}
-      <div className="flex items-center justify-between mb-4 px-1 z-10">
+      {/* Date Navigation Header - Compact on mobile */}
+      <div className="flex items-center justify-between mb-2 md:mb-4 px-1 z-10">
         <button
           onClick={onPreviousDay}
           className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
@@ -1054,10 +1054,16 @@ export default function ScheduleMap({
         >
           <ChevronLeft className="w-5 h-5 text-slate-600 dark:text-slate-400" />
         </button>
-        <div className="text-center">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">
+        <div className="text-center flex-1 flex flex-col items-center">
+          <h2 className="text-base md:text-lg font-semibold text-slate-900 dark:text-foreground">
             {formatDate(selectedDate)}
           </h2>
+          <button
+            onClick={onGoToToday}
+            className="mt-1 md:hidden px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-xs font-medium transition-colors"
+          >
+            Today
+          </button>
         </div>
         <button
           onClick={onNextDay}
@@ -1068,8 +1074,8 @@ export default function ScheduleMap({
         </button>
       </div>
 
-      {/* Today button */}
-      <div className="flex justify-center mb-4 z-10">
+      {/* Desktop Today button - hidden on mobile */}
+      <div className="hidden md:flex justify-center mb-4 z-10">
         <button
           onClick={onGoToToday}
           className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-sm font-medium transition-colors"
@@ -1078,14 +1084,14 @@ export default function ScheduleMap({
         </button>
       </div>
 
-      {/* Filter and Show All Controls */}
-      <div className="flex items-center justify-between mb-4 px-1 z-10">
+      {/* Filter and Show All Controls - Compact on mobile */}
+      <div className="flex items-center justify-between mb-2 md:mb-4 px-1 z-10">
         <div className="flex items-center gap-2">
           <Filter className="w-4 h-4 text-slate-500" />
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 md:p-1">
             <button
               onClick={() => { setMapFilter('all') }}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+              className={`px-2 md:px-3 py-1 md:py-1 text-xs font-medium rounded-md transition-colors ${
                 mapFilter === 'all'
                   ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
@@ -1095,7 +1101,7 @@ export default function ScheduleMap({
             </button>
             <button
               onClick={() => { setMapFilter('jobs') }}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+              className={`px-2 md:px-3 py-1 md:py-1 text-xs font-medium rounded-md transition-colors ${
                 mapFilter === 'jobs'
                   ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
@@ -1105,7 +1111,7 @@ export default function ScheduleMap({
             </button>
             <button
               onClick={() => { setMapFilter('appointments') }}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+              className={`px-2 md:px-3 py-1 md:py-1 text-xs font-medium rounded-md transition-colors ${
                 mapFilter === 'appointments'
                   ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
@@ -1118,18 +1124,19 @@ export default function ScheduleMap({
         {sortedItems.length > 0 && (
           <button
             onClick={showAllMarkers}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-xs font-medium transition-colors"
+            className="flex items-center gap-1 px-2 md:px-3 py-1 md:py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-xs font-medium transition-colors"
           >
             <Layers className="w-3.5 h-3.5" />
-            Show All Stops
+            <span className="hidden md:inline">Show All Stops</span>
+            <span className="md:hidden">All</span>
           </button>
         )}
       </div>
 
-      {/* Selected-Day Item List (All items: jobs, appointments, tasks) */}
-      <div className="mb-4 z-10">
+      {/* Selected-Day Item List (All items: jobs, appointments, tasks) - Compact on mobile */}
+      <div className="mb-2 md:mb-4 z-10">
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700">
+          <div className="px-3 md:px-4 py-2 md:py-3 border-b border-slate-100 dark:border-slate-700">
             <h3 className="text-sm font-semibold text-foreground">Today's Schedule</h3>
           </div>
           <div>
@@ -1137,7 +1144,7 @@ export default function ScheduleMap({
               const selectedDayItems = getSelectedDayItems()
               if (selectedDayItems.length === 0) {
                 return (
-                  <div className="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+                  <div className="px-4 py-6 md:py-8 text-center text-sm text-slate-500 dark:text-slate-400">
                     No items scheduled for this day
                   </div>
                 )
@@ -1203,35 +1210,30 @@ export default function ScheduleMap({
                   <button
                     key={item.id}
                     onClick={handleItemClick}
-                    className={`w-full px-4 py-3 flex items-start gap-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-0 ${
+                    className={`w-full px-3 md:px-4 py-2 md:py-3 flex items-start gap-2 md:gap-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-0 ${
                       isSelected ? 'bg-slate-50 dark:bg-slate-700/50' : ''
                     }`}
                   >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${getItemColor()}`}>
+                    <div className={`w-7 h-7 md:w-8 md:h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${getItemColor()}`}>
                       {getItemIcon()}
                     </div>
                     <div className="flex-1 min-w-0 text-left">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-1.5 md:gap-2 mb-0.5 md:mb-1">
                         <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
                           {formatItemTime(item.scheduledTime)}
                         </p>
                         {!item.hasLocation && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+                          <span className="text-[10px] px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
                             No location
                           </span>
                         )}
                       </div>
-                      <p className="text-sm font-medium text-foreground truncate">
+                      <p className="text-xs md:text-sm font-medium text-foreground truncate">
                         {item.title}
                       </p>
                       {item.customerName && (
-                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                        <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 truncate hidden md:block">
                           {item.customerName}
-                        </p>
-                      )}
-                      {item.address && (
-                        <p className="text-xs text-slate-400 dark:text-slate-500 truncate">
-                          {item.address}
                         </p>
                       )}
                     </div>
@@ -1239,15 +1241,15 @@ export default function ScheduleMap({
                       {!item.hasLocation && item.type !== 'task' && (
                         <button
                           onClick={handleAddLocationClick}
-                          className="text-[10px] px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                          className="text-[10px] px-1.5 py-0.5 md:px-2 md:py-1 rounded bg-blue-600 text-white hover:bg-blue-700 transition-colors"
                         >
-                          Add location
+                          Add
                         </button>
                       )}
                       {item.hasLocation && (
                         <button
                           onClick={handleEditClick}
-                          className="text-[10px] px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                          className="text-[10px] px-1.5 py-0.5 md:px-2 md:py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                         >
                           Edit
                         </button>
@@ -1255,7 +1257,7 @@ export default function ScheduleMap({
                       {item.type === 'task' && (
                         <button
                           onClick={handleEditClick}
-                          className="text-[10px] px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                          className="text-[10px] px-1.5 py-0.5 md:px-2 md:py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                         >
                           Edit
                         </button>
@@ -1269,9 +1271,9 @@ export default function ScheduleMap({
         </div>
       </div>
 
-      {/* Mobile Horizontal Stop Cards */}
+      {/* Mobile Horizontal Stop Cards - Removed on mobile to save space, map markers provide stop navigation */}
       {sortedItems.length > 0 && (
-        <div className="md:hidden mb-4 z-10">
+        <div className="hidden md:block mb-4 z-10">
           <div className="flex items-center justify-between mb-2 px-1">
             <h3 className="text-sm font-semibold text-foreground">Today's Stops</h3>
             <span className="text-xs text-slate-500 dark:text-slate-400">{routeSummary}</span>
@@ -1315,8 +1317,8 @@ export default function ScheduleMap({
         </div>
       )}
 
-      {/* Map Container */}
-      <div className="flex-1 relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
+      {/* Map Container - Increased height on mobile */}
+      <div className="flex-1 min-h-[50vh] md:min-h-0 relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
         <div ref={mapRef} className="w-full h-full" />
         
         {/* Map Controls Stack */}
