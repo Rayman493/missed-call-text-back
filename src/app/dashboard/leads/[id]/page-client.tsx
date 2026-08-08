@@ -27,6 +27,8 @@ import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { formatPhoneNumber, formatRelativeTime, formatCurrency, getLeadDisplayName } from '@/lib/utils'
+import { getCustomerSourceInfo } from '@/lib/customer-source'
+import { PhoneIncoming, UserPlus } from 'lucide-react'
 import { getLeadAIIntake, getLeadRequestTitle, getAIIntakeStatus, getAIIntakeStatusLabel, getAIIntakeStatusColor } from '@/lib/ai-field-mapping'
 import { deriveJobSchedulingPrefill } from '@/lib/job-scheduling-prefill'
 import { getLeadLifecycleStatus, getLeadStatusClasses, getLeadStatusLabel, LeadLifecycleStatus } from '@/lib/lead-lifecycle'
@@ -3447,9 +3449,28 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
               {/* Customer Info */}
               <div className="min-w-0 flex-1">
-                <h1 className="font-medium text-foreground text-sm leading-tight truncate">
-                  {getLeadDisplayName(leadData || lead)}
-                </h1>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <h1 className="font-medium text-foreground text-sm leading-tight truncate">
+                    {getLeadDisplayName(leadData || lead)}
+                  </h1>
+                  {(() => {
+                    const customerSourceInfo = getCustomerSourceInfo(leadData?.source || lead?.source)
+                    return customerSourceInfo && (
+                      <span
+                        className="inline-flex items-center gap-1 px-1 py-0.5 rounded-full text-[9px] font-medium border whitespace-nowrap flex-shrink-0"
+                        title={customerSourceInfo.description}
+                        style={{
+                          backgroundColor: customerSourceInfo.type === 'replyflow' ? 'rgba(139, 92, 246, 0.1)' : 'rgba(100, 116, 139, 0.1)',
+                          color: customerSourceInfo.type === 'replyflow' ? 'rgb(139, 92, 246)' : 'rgb(100, 116, 139)',
+                          borderColor: customerSourceInfo.type === 'replyflow' ? 'rgba(139, 92, 246, 0.2)' : 'rgba(100, 116, 139, 0.2)'
+                        }}
+                      >
+                        {customerSourceInfo.icon === 'PhoneIncoming' && <PhoneIncoming className="w-2.5 h-2.5" />}
+                        {customerSourceInfo.icon === 'UserPlus' && <UserPlus className="w-2.5 h-2.5" />}
+                      </span>
+                    )
+                  })()}
+                </div>
                 <p className="text-[11px] text-muted-foreground/80 truncate">
                   {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
                 </p>
@@ -3685,9 +3706,29 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
                     {/* Name, Request Title, Phone, Status */}
                     <div className="min-w-0 flex-1">
-                      <h1 className="text-2xl font-semibold text-foreground tracking-tight leading-tight mb-1">
-                        {getLeadDisplayName(leadData || lead)}
-                      </h1>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h1 className="text-2xl font-semibold text-foreground tracking-tight leading-tight">
+                          {getLeadDisplayName(leadData || lead)}
+                        </h1>
+                        {(() => {
+                          const customerSourceInfo = getCustomerSourceInfo(leadData?.source || lead?.source)
+                          return customerSourceInfo && (
+                            <span
+                              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium border whitespace-nowrap"
+                              title={customerSourceInfo.description}
+                              style={{
+                                backgroundColor: customerSourceInfo.type === 'replyflow' ? 'rgba(139, 92, 246, 0.1)' : 'rgba(100, 116, 139, 0.1)',
+                                color: customerSourceInfo.type === 'replyflow' ? 'rgb(139, 92, 246)' : 'rgb(100, 116, 139)',
+                                borderColor: customerSourceInfo.type === 'replyflow' ? 'rgba(139, 92, 246, 0.2)' : 'rgba(100, 116, 139, 0.2)'
+                              }}
+                            >
+                              {customerSourceInfo.icon === 'PhoneIncoming' && <PhoneIncoming className="w-3 h-3" />}
+                              {customerSourceInfo.icon === 'UserPlus' && <UserPlus className="w-3 h-3" />}
+                              <span>{customerSourceInfo.label}</span>
+                            </span>
+                          )
+                        })()}
+                      </div>
                       <div className="flex items-center gap-3 mb-1">
                         <p className="text-sm text-slate-400 leading-tight truncate">
                           {getLeadRequestTitle(leadData || lead) || getLeadAIIntake(leadData || lead).serviceRequested || 'No request'}
