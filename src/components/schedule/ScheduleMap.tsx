@@ -22,6 +22,7 @@ interface Job {
   latitude?: number | null
   longitude?: number | null
   geocoded_address?: string | null
+  google_calendar_event_id?: string | null
   leads?: {
     id: string
     raw_metadata: any
@@ -114,7 +115,7 @@ export default function ScheduleMap({
 }: ScheduleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const googleMapRef = useRef<any>(null)
-  const markersRef = useRef<any[]>([])
+  const markersRef = useRef<Map<string, any>>(new Map()) // Marker registry keyed by item ID
   const perDateStateRef = useRef<Map<string, MapDateState>>(new Map())
   const [isMapLoaded, setIsMapLoaded] = useState(false)
   const [mapReady, setMapReady] = useState(false)
@@ -249,9 +250,9 @@ export default function ScheduleMap({
     setSelectedMapItemId(null)
     setShowAllMode(true)
     setUserInteracted(false)
-    
-    if (!googleMapRef.current || markersRef.current.length === 0) return
-    
+
+    if (!googleMapRef.current || markersRef.current.size === 0) return
+
     const bounds = new (window as any).google.maps.LatLngBounds()
     markersRef.current.forEach(marker => {
       bounds.extend(marker.getPosition()!)
@@ -372,6 +373,14 @@ export default function ScheduleMap({
       return eventDate.startsWith(dateStr)
     })
 
+    // Deduplicate: exclude calendar events that are linked to jobs
+    const jobLinkedEventIds = new Set(
+      filteredJobs
+        .filter(job => job.google_calendar_event_id)
+        .map(job => job.google_calendar_event_id!)
+    )
+    const deduplicatedEvents = filteredEvents.filter(event => !jobLinkedEventIds.has(event.id))
+
     // Filter tasks for selected date
     const filteredTasks = tasks.filter(task => {
       if (!task.due_date) return false
@@ -405,7 +414,7 @@ export default function ScheduleMap({
     })
 
     // Process events
-    filteredEvents.forEach(event => {
+    deduplicatedEvents.forEach(event => {
       const hasLocation = Boolean(event.location)
 
       items.push({
@@ -742,6 +751,7 @@ export default function ScheduleMap({
     let isCancelled = false
 
     const prepare = async () => {
+      // Do NOT set isLoading to true - keep map visible during data preparation
       await prepareMapItems()
 
       // Check if this result is still relevant
@@ -764,47 +774,64 @@ export default function ScheduleMap({
       return
     }
 
-    if (mapItems.length === 0) {
-      return
-    }
-
     const filteredItems = getFilteredMapItems(mapItems)
-
-    // Clear existing markers
-    markersRef.current.forEach(marker => marker.setMap(null))
-    markersRef.current = []
 
     // Group items by location
     const markerInfos = groupItemsByLocation(filteredItems)
 
-    // Create markers with numbers
+    // Track current marker IDs
+    const currentMarkerIds = new Set<string>()
+    
+    // Create or update markers
     markerInfos.forEach(markerInfo => {
       const primaryItem = markerInfo.items[0]
+      const markerKey = primaryItem.id // Use item ID as marker key
+      currentMarkerIds.add(markerKey)
+
       const isSelected = selectedMapItemId !== null && markerInfo.items.some(item => item.id === selectedMapItemId)
       const stopNumber = primaryItem.stopNumber || 1
-      const marker = new (window as any).google.maps.Marker({
-        position: markerInfo.position,
-        map: googleMapRef.current,
-        title: markerInfo.items.length === 1
-          ? `Stop ${stopNumber}: ${primaryItem.title}`
-          : `${markerInfo.items.length} stops at this location`,
-        icon: createNumberedMarkerIcon(stopNumber, primaryItem.type, isSelected),
-        zIndex: isSelected ? 1000 : 1
-      })
 
-      marker.addListener('click', () => {
-        if (markerInfo.items.length === 1) {
-          selectMapItem(markerInfo.items[0].id)
-        } else {
-          setSelectedMarker(markerInfo)
-        }
-      })
+      // Check if marker already exists
+      const existingMarker = markersRef.current.get(markerKey)
 
-      markersRef.current.push(marker)
+      if (existingMarker) {
+        // Update existing marker
+        existingMarker.setIcon(createNumberedMarkerIcon(stopNumber, primaryItem.type, isSelected))
+        existingMarker.setZIndex(isSelected ? 1000 : 1)
+      } else {
+        // Create new marker
+        const marker = new (window as any).google.maps.Marker({
+          position: markerInfo.position,
+          map: googleMapRef.current,
+          title: markerInfo.items.length === 1
+            ? `Stop ${stopNumber}: ${primaryItem.title}`
+            : `${markerInfo.items.length} stops at this location`,
+          icon: createNumberedMarkerIcon(stopNumber, primaryItem.type, isSelected),
+          zIndex: isSelected ? 1000 : 1
+        })
+
+        marker.addListener('click', () => {
+          if (markerInfo.items.length === 1) {
+            selectMapItem(markerInfo.items[0].id)
+          } else {
+            setSelectedMarker(markerInfo)
+          }
+        })
+
+        markersRef.current.set(markerKey, marker)
+      }
+    })
+
+    // Remove markers that no longer exist
+    markersRef.current.forEach((marker, key) => {
+      if (!currentMarkerIds.has(key)) {
+        marker.setMap(null)
+        markersRef.current.delete(key)
+      }
     })
 
     // Fit bounds to show all markers (only if not user interacted and in show all mode)
-    if (markersRef.current.length > 0 && showAllMode && !userInteracted) {
+    if (markersRef.current.size > 0 && showAllMode && !userInteracted) {
       const bounds = new (window as any).google.maps.LatLngBounds()
       markersRef.current.forEach(marker => {
         bounds.extend(marker.getPosition()!)
@@ -813,8 +840,9 @@ export default function ScheduleMap({
     }
 
     return () => {
+      // Clean up all markers on unmount
       markersRef.current.forEach(marker => marker.setMap(null))
-      markersRef.current = []
+      markersRef.current.clear()
     }
   }, [mapItems, groupItemsByLocation, mapReady, getFilteredMapItems, showAllMode, userInteracted, fitBoundsWithMaxZoom, selectMapItem, selectedMapItemId])
 
@@ -866,8 +894,8 @@ export default function ScheduleMap({
     setSelectedMarker(null)
   }
 
-  // Loading state
-  if (isLoading) {
+  // Loading state - only show skeleton if Google Maps itself is not loaded
+  if (!isMapLoaded && !mapError) {
     return (
       <div className="flex flex-col h-full">
         {/* Date Navigation Header */}
@@ -925,55 +953,7 @@ export default function ScheduleMap({
     )
   }
 
-  // Empty state
-  if (mapItems.length === 0) {
-    return (
-      <div className="flex flex-col h-full">
-        {/* Date Navigation Header */}
-        <div className="flex items-center justify-between mb-4 px-1">
-          <button
-            onClick={onPreviousDay}
-            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-            aria-label="Previous day"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <div className="text-center">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">
-              {formatDate(selectedDate)}
-            </h2>
-          </div>
-          <button
-            onClick={onNextDay}
-            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-            aria-label="Next day"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Today button */}
-        <div className="flex justify-center mb-4">
-          <button
-            onClick={onGoToToday}
-            className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-sm font-medium transition-colors"
-          >
-            Today
-          </button>
-        </div>
-
-        {/* Empty State */}
-        <div className="flex-1 flex items-center justify-center">
-          <EmptyState
-            icon={<MapPin className="w-12 h-12" />}
-            title="No mapped stops for this day"
-            description="Jobs with valid addresses will appear on the map"
-          />
-        </div>
-      </div>
-    )
-  }
-
+  
   const filteredItems = getFilteredMapItems(mapItems)
   const sortedItems = getSortedMappedItems(filteredItems)
   const selectedItem = selectedMapItemId ? sortedItems.find(i => i.id === selectedMapItemId) : null
