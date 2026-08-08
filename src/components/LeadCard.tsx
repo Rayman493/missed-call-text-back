@@ -164,7 +164,7 @@ export default function LeadCard({
                 >
                   {customerSourceInfo.icon === 'PhoneIncoming' && <PhoneIncoming className="w-2.5 h-2.5" />}
                   {customerSourceInfo.icon === 'UserPlus' && <UserPlus className="w-2.5 h-2.5" />}
-                  <span className="hidden sm:inline">{customerSourceInfo.label}</span>
+                  <span>{customerSourceInfo.label}</span>
                 </span>
               )}
             </div>

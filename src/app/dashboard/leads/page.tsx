@@ -287,6 +287,7 @@ export default function LeadsPage() {
           deleted_at,
           deleted_by,
           deletion_reason,
+          source,
           raw_metadata,
           messages (
             id,
