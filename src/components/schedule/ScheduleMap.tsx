@@ -151,6 +151,7 @@ export default function ScheduleMap({
   const perDateStateRef = useRef<Map<string, MapDateState>>(new Map())
   const calendarEventCoordsCacheRef = useRef<Map<string, { lat: number; lng: number; formattedAddress: string } | null>>(new Map()) // Cache for calendar event coordinates (null = failed geocode)
   const programmaticCameraChangeRef = useRef(false) // Guard to distinguish user vs programmatic movement
+  const mapPreparationIdRef = useRef(0) // Monotonically increasing ID to prevent stale async results
   const markerSetSignatureRef = useRef<string>('') // Signature of current marker set to prevent repeated fitBounds
   const newlyMappableEventIdRef = useRef<string | null>(null) // Track newly mappable event for one-time camera adjustment
   const [isMapLoaded, setIsMapLoaded] = useState(false)
@@ -523,7 +524,7 @@ export default function ScheduleMap({
   }, [jobs, calendarEvents, tasks, selectedDate, getCustomerAddressFromLead])
 
   // Geocode addresses and prepare map items
-  const prepareMapItems = useCallback(async () => {
+  const prepareMapItems = useCallback(async (preparationId: number) => {
     const { filteredJobs, filteredEvents } = getItemsForDate()
     const items: MapItem[] = []
 
@@ -689,6 +690,11 @@ export default function ScheduleMap({
           console.error('[ScheduleMap] Geocoding exception for calendar event:', event.id, error)
         }
       }
+    }
+
+    // Check if this preparation is still the most recent (prevents stale async results)
+    if (preparationId !== mapPreparationIdRef.current) {
+      return
     }
 
     setMapItems(items)
@@ -936,13 +942,14 @@ export default function ScheduleMap({
 
   // Prepare map items when date changes (with race condition guard)
   useEffect(() => {
+    const preparationId = ++mapPreparationIdRef.current
     const dateKey = selectedDate.toISOString().split('T')[0]
 
     let isCancelled = false
 
     const prepare = async () => {
       // Do NOT set isLoading to true - keep map visible during data preparation
-      await prepareMapItems()
+      await prepareMapItems(preparationId)
 
       // Check if this result is still relevant
       const currentDateKey = selectedDate.toISOString().split('T')[0]
