@@ -973,12 +973,29 @@ export default function ScheduleMap({
 
     const filteredItems = getFilteredMapItems(mapItems)
 
+    // Create canonical stop-number lookup based on chronological order
+    const sortedWithStopNumbers = [...filteredItems]
+      .sort((a, b) => {
+        const timeA = a.scheduledTime || '00:00'
+        const timeB = b.scheduledTime || '00:00'
+        const timeCompare = timeA.localeCompare(timeB)
+        if (timeCompare !== 0) return timeCompare
+        // Stable tie-breaker: use item ID for identical times
+        return a.id.localeCompare(b.id)
+      })
+      .map((item, index) => ({ ...item, stopNumber: index + 1 }))
+
+    const stopNumberLookup = new Map<string, number>()
+    sortedWithStopNumbers.forEach(item => {
+      stopNumberLookup.set(item.id, item.stopNumber!)
+    })
+
     // Group items by location
     const markerInfos = groupItemsByLocation(filteredItems)
 
     // Track current marker IDs
     const currentMarkerIds = new Set<string>()
-    
+
     // Create or update markers
     markerInfos.forEach(markerInfo => {
       const primaryItem = markerInfo.items[0]
@@ -986,7 +1003,7 @@ export default function ScheduleMap({
       currentMarkerIds.add(markerKey)
 
       const isSelected = selectedMapItemId !== null && markerInfo.items.some(item => item.id === selectedMapItemId)
-      const stopNumber = primaryItem.stopNumber || 1
+      const stopNumber = stopNumberLookup.get(primaryItem.id) || 1
 
       // Check if marker already exists
       const existingMarker = markersRef.current.get(markerKey)
@@ -1086,22 +1103,37 @@ export default function ScheduleMap({
   useEffect(() => {
     if (!mapReady) return
 
+    // Create stopNumber lookup for current filter state
+    const filteredItems = getFilteredMapItems(mapItems)
+    const sortedWithStopNumbers = [...filteredItems]
+      .sort((a, b) => {
+        const timeA = a.scheduledTime || '00:00'
+        const timeB = b.scheduledTime || '00:00'
+        const timeCompare = timeA.localeCompare(timeB)
+        if (timeCompare !== 0) return timeCompare
+        return a.id.localeCompare(b.id)
+      })
+      .map((item, index) => ({ ...item, stopNumber: index + 1 }))
+
+    const stopNumberLookup = new Map<string, number>()
+    sortedWithStopNumbers.forEach(item => {
+      stopNumberLookup.set(item.id, item.stopNumber!)
+    })
+
     markersRef.current.forEach((marker, key) => {
       // Check if this marker corresponds to the selected item
       const isSelected = selectedMapItemId !== null && key === selectedMapItemId
       const currentIcon = marker.getIcon()
-      
+
       // Only update if selection state actually changed
       // We can detect this by checking the icon size (selected = 44, unselected = 36)
       const currentSize = currentIcon?.size || 36
       const targetSize = isSelected ? 44 : 36
-      
+
       if (currentSize !== targetSize) {
-        // Extract stop number from marker key or marker title
-        const title = marker.getTitle() || ''
-        const stopNumberMatch = title.match(/Stop (\d+)/)
-        const stopNumber = stopNumberMatch ? parseInt(stopNumberMatch[1]) : 1
-        
+        // Use stopNumber lookup instead of parsing title
+        const stopNumber = stopNumberLookup.get(key) || 1
+
         // Extract type from marker key
         const type = key.startsWith('appointment:') ? 'appointment' : 'job'
         
