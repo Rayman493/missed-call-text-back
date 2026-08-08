@@ -6,8 +6,36 @@ import Link from 'next/link'
 import Skeleton from '@/components/ui/Skeleton'
 import EmptyState from '@/components/ui/EmptyState'
 
-// Global singleton flag to ensure Google Maps is loaded only once
-let googleMapsScriptLoaded = false
+// Check if Google Maps API is fully initialized
+function isGoogleMapsReady(): boolean {
+  if (typeof window === 'undefined') return false
+  const g = (window as any).google
+  return !!(
+    g?.maps?.Map &&
+    g?.maps?.MapTypeId &&
+    g?.maps?.Marker &&
+    g?.maps?.LatLngBounds
+  )
+}
+
+// Poll for Google Maps readiness after script loads
+function waitForGoogleMapsReady(callback: () => void, onTimeout?: () => void, maxAttempts = 80, interval = 100): void {
+  let attempts = 0
+  const check = () => {
+    if (isGoogleMapsReady()) {
+      callback()
+    } else if (attempts < maxAttempts) {
+      attempts++
+      setTimeout(check, interval)
+    } else {
+      console.error('[ScheduleMap] Google Maps API did not initialize within expected time')
+      if (onTimeout) {
+        onTimeout()
+      }
+    }
+  }
+  check()
+}
 
 interface Job {
   id: string
@@ -147,10 +175,20 @@ export default function ScheduleMap({
   // Update map type when state changes (only after map is ready)
   useEffect(() => {
     if (mapReady && googleMapRef.current) {
-      const mapTypeId = mapType === 'satellite'
-        ? (window as any).google.maps.MapTypeId.HYBRID
-        : (window as any).google.maps.MapTypeId.ROADMAP
-      googleMapRef.current.setMapTypeId(mapTypeId)
+      // Verify API is actually ready before accessing MapTypeId
+      if (!isGoogleMapsReady()) {
+        console.error('[ScheduleMap] Google Maps API not ready during map type update')
+        return
+      }
+
+      try {
+        const mapTypeId = mapType === 'satellite'
+          ? (window as any).google.maps.MapTypeId.HYBRID
+          : (window as any).google.maps.MapTypeId.ROADMAP
+        googleMapRef.current.setMapTypeId(mapTypeId)
+      } catch (error) {
+        console.error('[ScheduleMap] Failed to update map type:', error)
+      }
     }
   }, [mapType, mapReady])
 
@@ -588,9 +626,23 @@ export default function ScheduleMap({
       return
     }
 
-    // Check if already loaded via global flag or window object
-    if (googleMapsScriptLoaded || (window as any).google?.maps) {
+    // Check if API is already fully ready (script state alone is insufficient)
+    if (isGoogleMapsReady()) {
       setIsMapLoaded(true)
+      return
+    }
+
+    // Check if Google Maps script is already injected to prevent duplicate injection
+    const existingScript = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]')
+    if (existingScript) {
+      // Script already exists, wait for API to become ready
+      waitForGoogleMapsReady(() => {
+        setIsMapLoaded(true)
+      }, () => {
+        console.error('[ScheduleMap] Google Maps API initialization timeout (existing script)')
+        setMapError('Unable to load Google Maps. Please try again.')
+        setIsLoading(false)
+      })
       return
     }
 
@@ -599,8 +651,15 @@ export default function ScheduleMap({
     script.src = 'https://maps.googleapis.com/maps/api/js?key=' + apiKey + '&libraries=places&loading=async'
 
     script.onload = () => {
-      googleMapsScriptLoaded = true
-      setIsMapLoaded(true)
+      // Wait for Google Maps API to be fully initialized
+      waitForGoogleMapsReady(() => {
+        setIsMapLoaded(true)
+      }, () => {
+        // Timeout callback - set error state instead of hanging on loading skeleton
+        console.error('[ScheduleMap] Google Maps API initialization timeout')
+        setMapError('Unable to load Google Maps. Please try again.')
+        setIsLoading(false)
+      })
     }
 
     script.onerror = () => {
@@ -629,34 +688,48 @@ export default function ScheduleMap({
       return
     }
 
-    const initialMapTypeId = mapType === 'satellite'
-      ? (window as any).google.maps.MapTypeId.HYBRID
-      : (window as any).google.maps.MapTypeId.ROADMAP
+    // Verify API is actually ready before accessing MapTypeId
+    if (!isGoogleMapsReady()) {
+      console.error('[ScheduleMap] Google Maps API not ready during map initialization')
+      setMapError('Google Maps API not ready')
+      setIsLoading(false)
+      return
+    }
 
-    const map = new (window as any).google.maps.Map(container, {
-      center: { lat: 39.8283, lng: -98.5795 }, // Default to US center
-      zoom: 4,
-      mapTypeId: initialMapTypeId,
-      disableDefaultUI: false,
-      zoomControl: true,
-      mapTypeControl: false,
-      streetViewControl: false,
-      fullscreenControl: false,
-      styles: [
-        {
-          featureType: 'poi',
-          elementType: 'labels',
-          stylers: [{ visibility: 'off' }]
-        }
-      ]
-    })
+    try {
+      const initialMapTypeId = mapType === 'satellite'
+        ? (window as any).google.maps.MapTypeId.HYBRID
+        : (window as any).google.maps.MapTypeId.ROADMAP
 
-    // Track user interaction with the map
-    map.addListener('dragstart', () => setUserInteracted(true))
-    map.addListener('zoom_changed', () => setUserInteracted(true))
+      const map = new (window as any).google.maps.Map(container, {
+        center: { lat: 39.8283, lng: -98.5795 }, // Default to US center
+        zoom: 4,
+        mapTypeId: initialMapTypeId,
+        disableDefaultUI: false,
+        zoomControl: true,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false,
+        styles: [
+          {
+            featureType: 'poi',
+            elementType: 'labels',
+            stylers: [{ visibility: 'off' }]
+          }
+        ]
+      })
 
-    googleMapRef.current = map
-    setMapReady(true)
+      // Track user interaction with the map
+      map.addListener('dragstart', () => setUserInteracted(true))
+      map.addListener('zoom_changed', () => setUserInteracted(true))
+
+      googleMapRef.current = map
+      setMapReady(true)
+    } catch (error) {
+      console.error('[ScheduleMap] Failed to initialize map:', error)
+      setMapError('Failed to initialize Google Maps')
+      setIsLoading(false)
+    }
   }, [isMapLoaded, mapType])
 
   // ResizeObserver to initialize map when container gets dimensions
