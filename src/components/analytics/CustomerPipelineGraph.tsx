@@ -30,10 +30,9 @@ export default function CustomerPipelineGraph() {
         // Fetch all leads (not time-limited for pipeline view)
         const { data: leads } = await supabase
           .from('leads')
-          .select('status, payment_status, deleted_at, ignored_at')
+          .select('status, payment_status, deleted_at')
           .eq('business_id', business.id)
           .is('deleted_at', null)
-          .is('ignored_at', null)
 
         // Process status data
         const allStatuses = getAllCustomerStatuses()

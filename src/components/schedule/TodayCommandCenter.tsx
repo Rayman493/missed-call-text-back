@@ -162,7 +162,8 @@ export default function TodayCommandCenter({
 
   const formatTime = (timeStr: string | null) => {
     if (!timeStr) return ''
-    const [hours, minutes] = timeStr.split(':')
+    // Handle time strings with or without seconds (e.g., "15:30:00" or "15:30")
+    const [hours, minutes] = timeStr.split(':').slice(0, 2)
     const hour = parseInt(hours, 10)
     const ampm = hour >= 12 ? 'PM' : 'AM'
     const hour12 = hour % 12 || 12

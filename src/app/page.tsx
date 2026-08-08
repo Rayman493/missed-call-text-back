@@ -123,7 +123,7 @@ export default async function Home() {
                   From First Call to Final Payment.
                 </h1>
                 <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-slate-700 dark:text-slate-300 max-w-2xl sm:max-w-3xl leading-relaxed sm:leading-relaxed md:leading-relaxed lg:leading-relaxed">
-                  Capture customer requests automatically. Schedule jobs. Text with customers. Accept payments on the spot. Keep your entire customer workflow in one place.
+                  Capture customer details from missed calls. Schedule jobs. Text with customers. Accept payments on the spot. Keep your customer workflow in one place.
                 </p>
 
                 <div className="flex flex-col items-center gap-y-3 sm:gap-y-4">
@@ -508,7 +508,7 @@ export default async function Home() {
                 Everything You Need to Keep Customer Work Moving
               </h2>
               <p className="text-sm sm:text-base md:text-lg text-slate-700 dark:text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-                Capture customer requests automatically. Manage conversations, jobs, and tasks. Schedule work and accept payments — all from one place.
+                Capture customer details from missed calls. Manage conversations, jobs, and tasks. Schedule work and accept payments — all from one place.
               </p>
             </div>
 

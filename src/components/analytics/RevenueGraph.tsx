@@ -65,17 +65,17 @@ export default function RevenueGraph() {
         // Fetch completed payments
         const { data: payments } = await supabase
           .from('payment_requests')
-          .select('amount, created_at')
+          .select('amount_cents, created_at')
           .eq('business_id', business.id)
-          .eq('status', 'completed')
+          .eq('status', 'paid')
           .gte('created_at', startDateIso)
           .order('created_at', { ascending: true })
 
-        // Group by date
+        // Group by date (convert cents to dollars)
         const groupedData: { [key: string]: number } = {}
         payments?.forEach((payment: any) => {
           const date = new Date(payment.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-          groupedData[date] = (groupedData[date] || 0) + (payment.amount || 0)
+          groupedData[date] = (groupedData[date] || 0) + ((payment.amount_cents || 0) / 100)
         })
 
         // Convert to array

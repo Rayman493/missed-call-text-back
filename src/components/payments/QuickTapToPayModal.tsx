@@ -133,46 +133,18 @@ const handleSendReceipt = () => {
 const handleSendReceiptSubmit = async () => {
   setIsSendingReceipt(true)
   setReceiptError('')
-  
+
   try {
-    const supabase = createBrowserClient()
-    // Get session token
-    const { data: { session } } = await supabase.auth.getSession()
-    
-    if (!session) {
-      throw new Error('Not authenticated')
+    // Validate phone number format (basic E.164 validation)
+    const phoneRegex = /^\+?[1-9]\d{1,14}$/
+    const cleanPhone = receiptPhoneNumber.replace(/[\s\-\(\)]/g, '')
+
+    if (!cleanPhone || !phoneRegex.test(cleanPhone)) {
+      throw new Error('Please enter a valid phone number')
     }
-    
-    // Get paymentIntentId from terminal service
-    const paymentIntentId = terminalService?.getPaymentIntentId()
-    if (!paymentIntentId) {
-      throw new Error('Payment ID not found')
-    }
-    
-    // Call the send-receipt API
-    const response = await fetch('/api/payments/send-receipt', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({
-        payment_intent_id: paymentIntentId,
-        phone_number: receiptPhoneNumber,
-        idempotency_key: crypto.randomUUID(),
-      }),
-    })
-    
-    const data = await response.json()
-    
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to send receipt')
-    }
-    
-    setReceiptSent(true)
-    setTimeout(() => {
-      setShowReceiptModal(false)
-    }, 1500)
+
+    // SMS receipts are temporarily unavailable
+    throw new Error('SMS receipts are temporarily unavailable. Payment was successful.')
   } catch (error) {
     console.error('[QuickTapToPayModal] Failed to send receipt:', error)
     setReceiptError(error instanceof Error ? error.message : 'Failed to send receipt')

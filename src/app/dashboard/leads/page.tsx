@@ -96,7 +96,7 @@ function getCompactSummary(lead: any): string {
     const inbound = lead.messages
       .filter((m: any) => m.direction === 'inbound')
       .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
-    if (inbound?.body) return truncateText(inbound.body, 80)
+    if (inbound?.content) return truncateText(inbound.content, 80)
   }
 
   return 'New customer request'
@@ -287,7 +287,6 @@ export default function LeadsPage() {
           deleted_at,
           deleted_by,
           deletion_reason,
-          source,
           raw_metadata,
           messages (
             id,
@@ -624,7 +623,7 @@ export default function LeadsPage() {
       (intake.serviceAddress?.toLowerCase().includes(q)) ||
       normalizePhoneNumberForSearch(lead.caller_phone).includes(normalizePhoneNumberForSearch(searchQuery)) ||
       (lead.messages && lead.messages.some((m: any) =>
-        m.body.toLowerCase().includes(searchQuery.toLowerCase())
+        m.content.toLowerCase().includes(searchQuery.toLowerCase())
       ))
 
     const leadStatus = getLeadLifecycleStatus(lead)

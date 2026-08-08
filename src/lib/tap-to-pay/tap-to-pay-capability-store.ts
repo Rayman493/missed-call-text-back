@@ -28,6 +28,21 @@ interface TapToPayCapabilityState {
 
 type TapToPayCapabilityListener = (state: TapToPayCapabilityState) => void
 
+function createTimeoutPromise<T>(ms: number, operation: string): Promise<T> {
+  return new Promise<T>((_, reject) => {
+    const timeoutId = setTimeout(() => {
+      const error = new Error(`${operation} timeout after ${ms}ms`)
+      error.name = 'TimeoutError'
+      reject(error)
+    }, ms)
+    if (typeof timeoutId.unref === 'function') {
+      timeoutId.unref()
+    }
+  })
+}
+
+const CAPABILITY_CHECK_TIMEOUT_MS = 10000 // 10 seconds
+
 class TapToPayCapabilityStore {
   private state: TapToPayCapabilityState = {
     status: null,
@@ -81,6 +96,9 @@ class TapToPayCapabilityStore {
     // Start a new capability check
     this.setState({ isLoading: true, error: null })
 
+    const previousStatus = this.state.status
+    const previousError = this.state.error
+
     this.inFlightPromise = (async () => {
       try {
         // Early exit for non-iOS platforms
@@ -98,32 +116,36 @@ class TapToPayCapabilityStore {
           return result
         }
 
-        // Call native plugin
-        const result = await ReplyflowStripeTerminal.getTapToPaySupportStatus()
-        const supportStatus = result as TapToPaySupportStatus
+        // Call native plugin with timeout
+        const result = await Promise.race([
+          ReplyflowStripeTerminal.getTapToPaySupportStatus(),
+          createTimeoutPromise<TapToPaySupportStatus>(CAPABILITY_CHECK_TIMEOUT_MS, 'Tap to Pay capability check'),
+        ]) as TapToPaySupportStatus
 
         this.setState({
-          status: supportStatus,
+          status: result,
           isLoading: false,
           lastChecked: now,
         })
 
-        return supportStatus
+        return result
       } catch (error) {
         console.error('[TapToPayCapabilityStore] Error checking capability:', error)
-        const errorResult: TapToPaySupportStatus = {
-          status: 'unknown',
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        const isTimeout = error instanceof Error && error.name === 'TimeoutError'
+        const fallbackStatus = (previousStatus && previousStatus.status !== 'unknown') ? previousStatus : {
+          status: 'unknown' as const,
           supported: false,
           platform: Capacitor.getPlatform(),
-          unsupportedReason: 'capability_check_failed',
+          unsupportedReason: isTimeout ? 'capability_check_timeout' : 'capability_check_failed',
         }
         this.setState({
-          status: errorResult,
+          status: fallbackStatus,
           isLoading: false,
-          error: error instanceof Error ? error.message : 'Failed to check capability',
+          error: isTimeout ? 'Capability check timed out. Try again.' : errorMessage,
           lastChecked: now,
         })
-        return errorResult
+        return fallbackStatus
       } finally {
         this.inFlightPromise = null
       }

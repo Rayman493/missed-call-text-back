@@ -320,7 +320,7 @@ export default function NotificationsPage() {
             {notificationCount.unread > 0 && (
               <button
                 onClick={handleMarkAllAsRead}
-                className="px-4 py-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-sm font-medium rounded-lg hover:bg-slate-800 dark:hover:bg-white transition-colors"
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors"
               >
                 Mark all as read
               </button>
@@ -329,7 +329,10 @@ export default function NotificationsPage() {
         )}
 
         {/* Notifications List */}
-        <div className="space-y-3">
+        <div
+          className="space-y-3"
+          onPointerMove={handlePointerMove}
+        >
           {notifications.length > 0 ? (
             notifications.map(notification => (
               <div
@@ -337,7 +340,6 @@ export default function NotificationsPage() {
                 role="button"
                 tabIndex={0}
                 onPointerDown={(e) => handlePointerDown(e, notification.id)}
-                onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
                 onPointerCancel={handlePointerCancel}
                 onKeyDown={(e) => {

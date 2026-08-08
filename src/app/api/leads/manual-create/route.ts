@@ -73,7 +73,6 @@ export async function POST(request: NextRequest) {
         business_id: businessId,
         caller_phone: normalizedPhone,
         status: 'new',
-        source: 'manual',
         raw_metadata: {
           source: 'manual',
           extracted_info: {

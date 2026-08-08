@@ -62,7 +62,6 @@ export default function NewCustomersGraph() {
           .select('created_at')
           .eq('business_id', business.id)
           .is('deleted_at', null)
-          .is('ignored_at', null)
           .gte('created_at', startDateIso)
           .order('created_at', { ascending: true })
 
