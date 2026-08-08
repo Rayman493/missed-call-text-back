@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
             .single()
 
           if (lead) {
-            await supabaseAdmin
+            const { error: leadPaymentStatusError } = await supabaseAdmin
               .from('leads')
               .update({
                 payment_status: 'paid',
@@ -164,12 +164,22 @@ export async function POST(request: NextRequest) {
               })
               .eq('id', paymentRequest.lead_id)
 
+            if (leadPaymentStatusError) {
+              console.error('[TERMINAL_RECONCILIATION] stage=reconciliation_failure reason=lead_payment_status_update_failed error=' + leadPaymentStatusError.message)
+              return NextResponse.json({ error: 'Failed to update lead payment status' }, { status: 500 })
+            }
+
             // Update lead status to paid if appropriate
             if (lead.status === 'payment_requested' || lead.status === 'new' || lead.status === 'active') {
-              await supabaseAdmin
+              const { error: leadStatusError } = await supabaseAdmin
                 .from('leads')
                 .update({ status: 'paid' })
                 .eq('id', paymentRequest.lead_id)
+
+              if (leadStatusError) {
+                console.error('[TERMINAL_RECONCILIATION] stage=reconciliation_failure reason=lead_status_update_failed error=' + leadStatusError.message)
+                return NextResponse.json({ error: 'Failed to update lead status' }, { status: 500 })
+              }
             }
             console.log('[TERMINAL_RECONCILIATION] stage=lead_update_complete')
           }

@@ -20,6 +20,7 @@ import { nativePermissionsStore } from '@/lib/native-permissions/native-permissi
 import { isNativeCapacitor } from '@/lib/terminal'
 import { createEducationPromise, resolveEducation, hasPendingEducationPromise, resetEducationPromise, classifyNativeEducationReturn, type EducationResolution } from '@/lib/education-promise-bridge'
 import { maskPhoneNumber } from '@/lib/phone-masking'
+import { getDeviceEducationState, setDeviceEducationCompleted } from '@/lib/tap-to-pay-education-persistence'
 
 type PaymentState = 'ready' | 'preparing' | 'connecting_reader' | 'education_pending' | 'education_waiting_for_confirmation' | 'creating_payment_intent' | 'waiting_for_card' | 'processing' | 'success' | 'failure' | 'canceled' | 'pending' | 'ambiguous'
 
@@ -1501,10 +1502,35 @@ export function useTapToPayOrchestration({
 
       // Enforce education check BEFORE reader connection (iOS only)
       // This prevents the Swift education presentation from interfering with active discovery
-      if (!business?.tap_to_pay_education_completed_at) {
-        const isIOS = Capacitor.getPlatform() === 'ios'
-        if (isIOS) {
-          console.log('[TTP Hook] EDUCATION_REQUIRED: Checking education status before connection')
+      const isIOS = Capacitor.getPlatform() === 'ios'
+      if (isIOS && business?.id) {
+        console.log('[TTP Hook] EDUCATION_GATE: Checking device-scoped education status')
+        
+        // Device-scoped education is authoritative
+        const deviceEducationState = await getDeviceEducationState(business.id)
+        const educationRequired = !deviceEducationState.completed
+        
+        // Log both device and business state for diagnostics
+        await logTapToPayEvent('EDUCATION_GATE_DECISION', {
+          correlationId: getCorrelationId() ?? undefined,
+          attemptId: terminalService.getCurrentAttemptId() ?? undefined,
+          sessionId: terminalService.getSessionId(),
+          source: 'orchestration',
+          paymentState: 'education_pending',
+          stage: 'education_gate',
+          meta: {
+            businessId: business.id,
+            businessEducationCompletedAt: business.tap_to_pay_education_completed_at,
+            deviceEducationCompleted: deviceEducationState.completed,
+            deviceEducationCompletedAt: deviceEducationState.completedAt,
+            deviceEducationVersion: deviceEducationState.educationVersion,
+            educationRequired,
+            educationGateSource: 'device_scoped'
+          }
+        }).catch(() => {})
+        
+        if (educationRequired) {
+          console.log('[TTP Hook] EDUCATION_REQUIRED: Device education not completed')
           updatePaymentStateRef('education_pending', 'education_check_started')
           dispatchTTPEvent('EDUCATION_CHECK_STARTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'education_pending')
           
@@ -1518,8 +1544,34 @@ export function useTapToPayOrchestration({
             throw new Error('Education required before payment. Please complete the Tap to Pay education guide.')
           }
           
+          console.log('[TTP Hook] EDUCATION_COMPLETED: Persisting device education state')
+          // Persist device-scoped education completion
+          try {
+            await setDeviceEducationCompleted(business.id)
+            console.log('[TTP Hook] Device education persisted successfully')
+            
+            // Also persist to business-level for audit purposes only (not used for gate)
+            const response = await fetch('/api/business/tap-to-pay-education', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+            })
+            if (response.ok) {
+              console.log('[TTP Hook] Business-level education audit record updated')
+              // Update local business state immediately to avoid stale state
+              business.tap_to_pay_education_completed_at = new Date().toISOString()
+            } else {
+              console.warn('[TTP Hook] Failed to update business-level audit record (non-critical)')
+            }
+          } catch (error) {
+            console.error('[TTP Hook] Failed to persist education state:', error)
+            // Continue anyway - native education was completed
+          }
+          
           console.log('[TTP Hook] EDUCATION_COMPLETED: Proceeding to reader connection')
           dispatchTTPEvent('EDUCATION_COMPLETED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'education_pending')
+        } else {
+          console.log('[TTP Hook] EDUCATION_SKIPPED: Device education already completed')
+          dispatchTTPEvent('EDUCATION_SKIPPED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'education_pending', 'device_completed')
         }
       }
 
@@ -1997,37 +2049,46 @@ export function useTapToPayOrchestration({
         
         // Set processing state while reconciling
         updatePaymentStateRef('processing', 'reconciliation_started')
-        
+
         try {
+          // Add bounded timeout for reconciliation (15 seconds)
+          const abortController = new AbortController()
+          const timeoutId = setTimeout(() => abortController.abort(), 15000)
+
           const reconcileResponse = await fetch('/api/terminal/reconcile-payment', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ paymentIntentId }),
+            signal: abortController.signal,
           })
+
+          clearTimeout(timeoutId)
           
           if (!reconcileResponse.ok) {
             console.error('[TTP Hook] RECONCILE_FAILED', reconcileResponse.status)
             dispatchTTPEvent('RECONCILE_FAILED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'processing', 'reconciliation_failed')
-            
-            // Reconciliation failed - show error state
-            updatePaymentStateRef('failure', 'reconciliation_failed')
-            setError('Payment verification failed. Please check your payment history.')
+
+            // Reconciliation failed - native succeeded but verification unresolved
+            // Use ambiguous state to indicate payment may have succeeded
+            updatePaymentStateRef('ambiguous', 'reconciliation_failed')
+            setError('Payment verification is still pending. Check payment history before retrying.')
             setIsPaymentInProgress(false)
             permissionLock.setTapToPayActive(false)
             startInFlight.current = false
             activeAttemptRef.current = false
             activeAttemptIdRef.current = null
             activeAttemptTokenRef.current = null
-            console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_CLEARED_FAILURE')
+            console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_CLEARED_AMBIGUOUS')
             return
           }
           
           const reconcileData = await reconcileResponse.json()
-          console.log('[TTP Hook] RECONCILE_COMPLETED', { paymentIntentId, status: reconcileData.status })
-          dispatchTTPEvent('RECONCILE_COMPLETED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'processing', 'reconciliation_completed')
-          
+          console.log('[TTP Hook] RECONCILE_RESPONSE_RECEIVED', { paymentIntentId, status: reconcileData.status })
+
           // Only show success if reconciliation confirms payment is paid
           if (reconcileData.status === 'paid') {
+            console.log('[TTP Hook] RECONCILE_COMPLETED', { paymentIntentId, status: reconcileData.status })
+            dispatchTTPEvent('RECONCILE_COMPLETED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'processing', 'reconciliation_completed')
             // Emit SUCCESS_GATE_VERIFIED before success UI
             await logTapToPayEvent('SUCCESS_GATE_VERIFIED', {
               correlationId: getCorrelationId() ?? undefined,
@@ -2092,18 +2153,19 @@ export function useTapToPayOrchestration({
           }
         } catch (reconcileError) {
           console.error('[TTP Hook] RECONCILE_EXCEPTION', reconcileError)
-          dispatchTTPEvent('RECONCILE_EXCEPTION', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'failure', 'exception')
-          
-          // Reconciliation failed due to exception - show error state
-          updatePaymentStateRef('failure', 'reconciliation_exception')
-          setError('Payment verification failed. Please check your payment history.')
+          dispatchTTPEvent('RECONCILE_EXCEPTION', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'ambiguous', 'exception')
+
+          // Reconciliation failed due to exception - native succeeded but verification unresolved
+          // Use ambiguous state to indicate payment may have succeeded
+          updatePaymentStateRef('ambiguous', 'reconciliation_exception')
+          setError('Payment verification is still pending. Check payment history before retrying.')
           setIsPaymentInProgress(false)
           permissionLock.setTapToPayActive(false)
           startInFlight.current = false
           activeAttemptRef.current = false
           activeAttemptIdRef.current = null
           activeAttemptTokenRef.current = null
-          console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_CLEARED_FAILURE')
+          console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_CLEARED_AMBIGUOUS')
         }
       } else if (normalizedStatus === 'canceled') {
         console.log('[TTP Hook] PAYMENT_CANCELED')
