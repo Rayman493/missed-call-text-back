@@ -14,7 +14,8 @@ import { formatPhoneNumber, formatRelativeTime, sentenceCase, getLeadDisplayName
 import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
 import { getCustomerStatusStyle, normalizeCustomerStatus, CustomerStatus } from '@/lib/customer-status'
 import { memoryService } from '@/lib/business-memory/memory-service'
-import { Repeat, TrendingUp, Clock, DollarSign } from 'lucide-react'
+import { getCustomerSourceInfo } from '@/lib/customer-source'
+import { Repeat, TrendingUp, Clock, DollarSign, PhoneIncoming, UserPlus } from 'lucide-react'
 
 // Helper to get structured AI data for lead card
 function getAIData(lead: any): { reason: string | null; urgency: string | null; details: string | null } {
@@ -115,6 +116,7 @@ export default function LeadCard({
   const aiData = React.useMemo(() => getAIData(lead), [lead])
   const requestTitle = React.useMemo(() => getLeadRequestTitle(lead), [lead])
   const customerIndicators = React.useMemo(() => getCustomerIndicators(lead, businessId), [lead, businessId])
+  const customerSourceInfo = React.useMemo(() => getCustomerSourceInfo(lead.source), [lead.source])
 
   // Hook must be called at the top level of the component
   const pressGuard = useMobilePressGuard({
@@ -143,12 +145,29 @@ export default function LeadCard({
         className={`pointer-events-none absolute inset-x-0 top-0 h-0.5 ${statusStyle.accentStripClass}`}
       ></div>
       <div>
-      {/* Header: Name, Phone, Status */}
+      {/* Header: Name, Phone, Status, Source */}
         <div className="flex items-start justify-between gap-2 sm:gap-3 mb-1.5 sm:mb-2">
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm sm:text-base font-semibold text-foreground mb-0.5 truncate tracking-tight leading-tight">
-              <span className="text-foreground">{getLeadDisplayName(lead)}</span>
-            </h3>
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <h3 className="text-sm sm:text-base font-semibold text-foreground truncate tracking-tight leading-tight">
+                <span className="text-foreground">{getLeadDisplayName(lead)}</span>
+              </h3>
+              {customerSourceInfo && (
+                <span 
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium border whitespace-nowrap"
+                  title={customerSourceInfo.description}
+                  style={{
+                    backgroundColor: customerSourceInfo.type === 'replyflow' ? 'rgba(139, 92, 246, 0.1)' : 'rgba(100, 116, 139, 0.1)',
+                    color: customerSourceInfo.type === 'replyflow' ? 'rgb(139, 92, 246)' : 'rgb(100, 116, 139)',
+                    borderColor: customerSourceInfo.type === 'replyflow' ? 'rgba(139, 92, 246, 0.2)' : 'rgba(100, 116, 139, 0.2)'
+                  }}
+                >
+                  {customerSourceInfo.icon === 'PhoneIncoming' && <PhoneIncoming className="w-2.5 h-2.5" />}
+                  {customerSourceInfo.icon === 'UserPlus' && <UserPlus className="w-2.5 h-2.5" />}
+                  <span className="hidden sm:inline">{customerSourceInfo.label}</span>
+                </span>
+              )}
+            </div>
             <p className="text-[11px] sm:text-xs text-muted-foreground/90">
               {lead.caller_phone === '+10000000000' ? 'Test Number' : formatPhoneNumber(lead.caller_phone)}
             </p>
