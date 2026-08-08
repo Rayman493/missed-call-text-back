@@ -149,6 +149,10 @@ export default function ScheduleMap({
   const googleMapRef = useRef<any>(null)
   const markersRef = useRef<Map<string, any>>(new Map()) // Marker registry keyed by item ID
   const perDateStateRef = useRef<Map<string, MapDateState>>(new Map())
+  const calendarEventCoordsCacheRef = useRef<Map<string, { lat: number; lng: number; formattedAddress: string } | null>>(new Map()) // Cache for calendar event coordinates (null = failed geocode)
+  const programmaticCameraChangeRef = useRef(false) // Guard to distinguish user vs programmatic movement
+  const markerSetSignatureRef = useRef<string>('') // Signature of current marker set to prevent repeated fitBounds
+  const newlyMappableEventIdRef = useRef<string | null>(null) // Track newly mappable event for one-time camera adjustment
   const [isMapLoaded, setIsMapLoaded] = useState(false)
   const [mapReady, setMapReady] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -243,7 +247,7 @@ export default function ScheduleMap({
       if (!isSelectedVisible) {
         setSelectedMapItemId(null)
         setShowAllMode(true)
-        setUserInteracted(false)
+        // Do NOT reset userInteracted - user owns the camera
       }
     }
   }, [mapFilter, mapItems, selectedMapItemId, getFilteredMapItems])
@@ -263,6 +267,7 @@ export default function ScheduleMap({
   const fitBoundsWithMaxZoom = useCallback((bounds: any, maxZoom: number = 15) => {
     if (!googleMapRef.current) return
     
+    programmaticCameraChangeRef.current = true
     googleMapRef.current.fitBounds(bounds)
     
     // Ensure we don't zoom in too much
@@ -273,6 +278,10 @@ export default function ScheduleMap({
       }
       // Remove listener after first execution
       (window as any).google.maps.event.removeListener(listener)
+      // Clear guard after animation completes
+      setTimeout(() => {
+        programmaticCameraChangeRef.current = false
+      }, 100)
     })
   }, [])
 
@@ -280,11 +289,15 @@ export default function ScheduleMap({
   const panToMarker = useCallback((lat: number, lng: number, zoom?: number) => {
     if (!googleMapRef.current) return
     
+    programmaticCameraChangeRef.current = true
     googleMapRef.current.panTo({ lat, lng })
     if (zoom !== undefined) {
       googleMapRef.current.setZoom(zoom)
     }
     setUserInteracted(true)
+    setTimeout(() => {
+      programmaticCameraChangeRef.current = false
+    }, 100)
   }, [])
 
   // Reset to show all markers
@@ -591,8 +604,92 @@ export default function ScheduleMap({
       }
     }
 
-    // Process calendar events (skip for now - no geocoding support)
-    // Calendar events without pre-geocoded coordinates are omitted from map
+    // Process calendar events
+    for (const event of filteredEvents) {
+      // Skip events without location
+      if (!event.location) {
+        continue
+      }
+
+      const normalizedLocation = event.location.trim()
+      if (!normalizedLocation || normalizedLocation.length === 0) {
+        continue
+      }
+
+      // Check cache first (key includes location to detect changes)
+      const cacheKey = `appointment:${event.id}:${normalizedLocation}`
+      const cached = calendarEventCoordsCacheRef.current.get(cacheKey)
+
+      if (cached) {
+        // Check if this is a negative cache entry (failed geocode)
+        if (cached === null) {
+          // Previously failed to geocode this exact address - skip
+          continue
+        }
+
+        const dateTime = event.start.dateTime
+        const dateOnly = event.start.date
+        items.push({
+          id: `appointment:${event.id}`,
+          type: 'appointment',
+          title: event.summary,
+          customerName: null,
+          customerPhone: null,
+          address: cached.formattedAddress,
+          scheduledDate: dateTime ? dateTime.split('T')[0] : (dateOnly || null),
+          scheduledTime: dateTime ? (dateTime.split('T')[1]?.slice(0, 5) || null) : null,
+          status: null,
+          leadId: null,
+          jobId: null,
+          latitude: cached.lat,
+          longitude: cached.lng
+        })
+      } else {
+        // Geocode the calendar event location
+        try {
+          const response = await fetch('/api/geocode/address', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ address: normalizedLocation })
+          })
+          const result = await response.json()
+          if (result.success) {
+            // Cache the result
+            calendarEventCoordsCacheRef.current.set(cacheKey, {
+              lat: result.latitude,
+              lng: result.longitude,
+              formattedAddress: result.formattedAddress || normalizedLocation
+            })
+
+            const dateTime = event.start.dateTime
+            const dateOnly = event.start.date
+            items.push({
+              id: `appointment:${event.id}`,
+              type: 'appointment',
+              title: event.summary,
+              customerName: null,
+              customerPhone: null,
+              address: result.formattedAddress || normalizedLocation,
+              scheduledDate: dateTime ? dateTime.split('T')[0] : (dateOnly || null),
+              scheduledTime: dateTime ? (dateTime.split('T')[1]?.slice(0, 5) || null) : null,
+              status: null,
+              leadId: null,
+              jobId: null,
+              latitude: result.latitude,
+              longitude: result.longitude
+            })
+          } else {
+            // Cache the failure as null to prevent repeated geocoding
+            calendarEventCoordsCacheRef.current.set(cacheKey, null)
+            console.error('[ScheduleMap] Geocoding failed for calendar event:', event.id, result.error)
+          }
+        } catch (error) {
+          // Cache the failure as null to prevent repeated geocoding
+          calendarEventCoordsCacheRef.current.set(cacheKey, null)
+          console.error('[ScheduleMap] Geocoding exception for calendar event:', event.id, error)
+        }
+      }
+    }
 
     setMapItems(items)
     setIsLoading(false)
@@ -723,9 +820,17 @@ export default function ScheduleMap({
         ]
       })
 
-      // Track user interaction with the map
-      map.addListener('dragstart', () => setUserInteracted(true))
-      map.addListener('zoom_changed', () => setUserInteracted(true))
+      // Track user interaction with the map (only genuine user input, not programmatic changes)
+      map.addListener('dragstart', () => {
+        if (!programmaticCameraChangeRef.current) {
+          setUserInteracted(true)
+        }
+      })
+      map.addListener('zoom_changed', () => {
+        if (!programmaticCameraChangeRef.current) {
+          setUserInteracted(true)
+        }
+      })
 
       googleMapRef.current = map
       setMapReady(true)
@@ -803,13 +908,21 @@ export default function ScheduleMap({
     if (savedState) {
       setSelectedMapItemId(savedState.selectedMapItemId)
       setMapFilter(savedState.filter)
-      setUserInteracted(savedState.userInteracted)
+      // Only restore userInteracted if it's true (user had manually moved the map)
+      // Don't reset it to false if user has already interacted in current session
+      if (savedState.userInteracted) {
+        setUserInteracted(true)
+      }
 
-      // Restore viewport after markers are rendered
+      // Restore viewport after markers are rendered (only if saved viewport exists)
       setTimeout(() => {
         if (googleMapRef.current && savedState.center && savedState.zoom) {
+          programmaticCameraChangeRef.current = true
           googleMapRef.current.setCenter(savedState.center)
           googleMapRef.current.setZoom(savedState.zoom)
+          setTimeout(() => {
+            programmaticCameraChangeRef.current = false
+          }, 100)
         }
       }, 100)
     } else {
@@ -907,13 +1020,52 @@ export default function ScheduleMap({
       }
     })
 
-    // Fit bounds to show all markers (only if not user interacted and in show all mode)
-    if (markersRef.current.size > 0 && showAllMode && !userInteracted) {
+    // Create signature from sorted marker IDs and coordinates
+    const sortedMarkerIds = Array.from(currentMarkerIds).sort()
+    const signature = sortedMarkerIds.map(id => {
+      const marker = markersRef.current.get(id)
+      if (!marker) return ''
+      const pos = marker.getPosition()
+      return `${id}:${pos.lat().toFixed(6)},${pos.lng().toFixed(6)}`
+    }).join('|')
+
+    // Check if a new appointment marker was added (transition from unmappable to mappable)
+    const previousSignature = markerSetSignatureRef.current
+    const signatureChanged = signature !== previousSignature
+    let hasNewAppointmentMarker = false
+    
+    if (signatureChanged && previousSignature) {
+      // Check if any appointment IDs are in the new signature but not in the old one
+      const previousIds = new Set(previousSignature.split('|').map(s => s.split(':')[0]))
+      const newAppointmentIds = sortedMarkerIds.filter(id => 
+        id.startsWith('appointment:') && !previousIds.has(id)
+      )
+      if (newAppointmentIds.length > 0) {
+        hasNewAppointmentMarker = true
+        newlyMappableEventIdRef.current = newAppointmentIds[0]
+      }
+    }
+
+    // Fit bounds to show all markers (only if not user interacted, in show all mode, and marker set changed)
+    if (markersRef.current.size > 0 && showAllMode && !userInteracted && signatureChanged) {
+      markerSetSignatureRef.current = signature
       const bounds = new (window as any).google.maps.LatLngBounds()
       markersRef.current.forEach(marker => {
         bounds.extend(marker.getPosition()!)
       })
       fitBoundsWithMaxZoom(bounds)
+    } else if (hasNewAppointmentMarker && newlyMappableEventIdRef.current) {
+      // One-time adjustment to show newly mappable event
+      markerSetSignatureRef.current = signature
+      const newMarker = markersRef.current.get(newlyMappableEventIdRef.current)
+      if (newMarker) {
+        const pos = newMarker.getPosition()
+        panToMarker(pos.lat(), pos.lng(), 15) // Zoom to level 15 to show the new marker
+      }
+      newlyMappableEventIdRef.current = null // Clear after one-time adjustment
+    } else if (!showAllMode || userInteracted) {
+      // Update signature even if we don't fit bounds, to prevent future unnecessary fits
+      markerSetSignatureRef.current = signature
     }
 
     return () => {
@@ -921,7 +1073,36 @@ export default function ScheduleMap({
       markersRef.current.forEach(marker => marker.setMap(null))
       markersRef.current.clear()
     }
-  }, [mapItems, groupItemsByLocation, mapReady, getFilteredMapItems, showAllMode, userInteracted, fitBoundsWithMaxZoom, selectMapItem, selectedMapItemId])
+  }, [mapItems, groupItemsByLocation, mapReady, getFilteredMapItems, showAllMode, userInteracted, fitBoundsWithMaxZoom, selectMapItem])
+
+  // Update marker icons when selection changes (without triggering camera changes)
+  useEffect(() => {
+    if (!mapReady) return
+
+    markersRef.current.forEach((marker, key) => {
+      // Check if this marker corresponds to the selected item
+      const isSelected = selectedMapItemId !== null && key === selectedMapItemId
+      const currentIcon = marker.getIcon()
+      
+      // Only update if selection state actually changed
+      // We can detect this by checking the icon size (selected = 44, unselected = 36)
+      const currentSize = currentIcon?.size || 36
+      const targetSize = isSelected ? 44 : 36
+      
+      if (currentSize !== targetSize) {
+        // Extract stop number from marker key or marker title
+        const title = marker.getTitle() || ''
+        const stopNumberMatch = title.match(/Stop (\d+)/)
+        const stopNumber = stopNumberMatch ? parseInt(stopNumberMatch[1]) : 1
+        
+        // Extract type from marker key
+        const type = key.startsWith('appointment:') ? 'appointment' : 'job'
+        
+        marker.setIcon(createNumberedMarkerIcon(stopNumber, type, isSelected))
+        marker.setZIndex(isSelected ? 1000 : 1)
+      }
+    })
+  }, [selectedMapItemId, mapReady])
 
   // Create numbered marker icon
   const createNumberedMarkerIcon = (stopNumber: number, type: MapItemType, isSelected: boolean = false): any => {

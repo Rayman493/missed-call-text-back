@@ -21,9 +21,44 @@ const isPlaceholderValue = (text: string | null | undefined): boolean => {
   return placeholders.some(p => lower === p)
 }
 
+// Sophisticated normalization for structured description text
 const normalizeDisplayText = (text: string | null | undefined): string | null => {
-  if (isPlaceholderValue(text)) return null
-  return text || null
+  if (!text) return null
+  const trimmed = text.trim()
+  if (!trimmed) return null
+
+  // Check for exact placeholder match first
+  if (isPlaceholderValue(trimmed)) return null
+
+  // Split into lines and process structured text
+  const lines = trimmed.split('\n').map(line => line.trim()).filter(line => line.length > 0)
+  const placeholderPatterns = [
+    /^•?\s*(not collected|not provided|unknown|n\/a|none)$/i,
+    /^additional details\s*[:\-]?\s*(not collected|not provided|unknown|n\/a|none)$/i,
+    /^description\s*[:\-]?\s*(not collected|not provided|unknown|n\/a|none)$/i
+  ]
+
+  // Filter out placeholder-only lines
+  const filteredLines = lines.filter(line => {
+    return !placeholderPatterns.some(pattern => pattern.test(line))
+  })
+
+  // If all lines were placeholders, return null
+  if (filteredLines.length === 0) return null
+
+  // Check for empty headings (lines ending with colon with no content after)
+  const meaningfulLines = filteredLines.filter(line => {
+    // Keep lines that are not empty headings
+    if (line.endsWith(':')) {
+      return false
+    }
+    return true
+  })
+
+  // If only empty headings remained, return null
+  if (meaningfulLines.length === 0) return null
+
+  return meaningfulLines.join('\n')
 }
 
 interface EventDetailsModalProps {
@@ -533,7 +568,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
         </div>
 
         {/* Event Details */}
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 min-w-0" style={{ WebkitOverflowScrolling: 'touch' }}>
           {mode === 'add-location' ? (
             // Add-location mode: focused location input
             <div className="space-y-4">
@@ -600,12 +635,12 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
               <div className="flex items-center gap-2 text-sm">
                 <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                 {isEditing ? (
-                  <div className="flex gap-2 flex-1">
+                  <div className="flex gap-2 flex-1 min-w-0 flex-wrap">
                     <input
                       type="date"
                       value={editedStartDate}
                       onChange={(e) => setEditedStartDate(e.target.value)}
-                      className="flex-1 px-2 py-1 bg-slate-800 border border-slate-700 rounded text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                      className="flex-1 min-w-[120px] px-2 py-1 bg-slate-800 border border-slate-700 rounded text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                     />
                     {!isAllDay && (
                       <>
@@ -613,14 +648,14 @@ export default function EventDetailsModal({ isOpen, onClose, event, mode = 'deta
                           type="time"
                           value={editedStartTime}
                           onChange={(e) => setEditedStartTime(e.target.value)}
-                          className="flex-1 px-2 py-1 bg-slate-800 border border-slate-700 rounded text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                          className="flex-1 min-w-[80px] px-2 py-1 bg-slate-800 border border-slate-700 rounded text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                         />
-                        <span className="text-slate-400 self-center">to</span>
+                        <span className="text-slate-400 self-center flex-shrink-0">to</span>
                         <input
                           type="time"
                           value={editedEndTime}
                           onChange={(e) => setEditedEndTime(e.target.value)}
-                          className="flex-1 px-2 py-1 bg-slate-800 border border-slate-700 rounded text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                          className="flex-1 min-w-[80px] px-2 py-1 bg-slate-800 border border-slate-700 rounded text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                         />
                       </>
                     )}
