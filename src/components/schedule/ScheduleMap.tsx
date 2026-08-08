@@ -72,6 +72,7 @@ interface MapItem {
   jobId: string | null
   latitude: number
   longitude: number
+  stopNumber?: number
 }
 
 interface MarkerInfo {
@@ -170,13 +171,28 @@ export default function ScheduleMap({
     return items.filter(item => item.type === mapFilter.slice(0, -1) as MapItemType)
   }, [mapFilter])
 
-  // Get sorted mapped items for navigation
+  // Clear selection if selected item is filtered out
+  useEffect(() => {
+    if (selectedMapItemId) {
+      const filteredItems = getFilteredMapItems(mapItems)
+      const isSelectedVisible = filteredItems.some(item => item.id === selectedMapItemId)
+      if (!isSelectedVisible) {
+        setSelectedMapItemId(null)
+        setShowAllMode(true)
+        setUserInteracted(false)
+      }
+    }
+  }, [mapFilter, mapItems, selectedMapItemId, getFilteredMapItems])
+
+  // Get sorted mapped items for navigation with stop numbering
   const getSortedMappedItems = useCallback((items: MapItem[]): MapItem[] => {
-    return [...items].sort((a, b) => {
-      const timeA = a.scheduledTime || '00:00'
-      const timeB = b.scheduledTime || '00:00'
-      return timeA.localeCompare(timeB)
-    })
+    return [...items]
+      .sort((a, b) => {
+        const timeA = a.scheduledTime || '00:00'
+        const timeB = b.scheduledTime || '00:00'
+        return timeA.localeCompare(timeB)
+      })
+      .map((item, index) => ({ ...item, stopNumber: index + 1 }))
   }, [])
 
   // Fit bounds with max zoom constraint
@@ -686,16 +702,18 @@ export default function ScheduleMap({
     // Group items by location
     const markerInfos = groupItemsByLocation(filteredItems)
 
-    // Create markers
+    // Create markers with numbers
     markerInfos.forEach(markerInfo => {
+      const primaryItem = markerInfo.items[0]
       const isSelected = selectedMapItemId !== null && markerInfo.items.some(item => item.id === selectedMapItemId)
+      const stopNumber = primaryItem.stopNumber || 1
       const marker = new (window as any).google.maps.Marker({
         position: markerInfo.position,
         map: googleMapRef.current,
         title: markerInfo.items.length === 1 
-          ? markerInfo.items[0].title 
-          : `${markerInfo.items.length} items`,
-        icon: createMarkerIcon(markerInfo.items[0].type, markerInfo.items.length, isSelected),
+          ? `Stop ${stopNumber}: ${primaryItem.title}` 
+          : `${markerInfo.items.length} stops at this location`,
+        icon: createNumberedMarkerIcon(stopNumber, primaryItem.type, isSelected),
         zIndex: isSelected ? 1000 : 1
       })
 
@@ -773,20 +791,41 @@ export default function ScheduleMap({
     }
   }, [mapItems, groupItemsByLocation, mapReady, selectedMapItemId, getFilteredMapItems, showAllMode, userInteracted, fitBoundsWithMaxZoom, selectMapItem])
 
-  // Create marker icon based on type and selection state
-  const createMarkerIcon = (type: MapItemType, count: number, isSelected: boolean = false): any => {
+  // Create numbered marker icon
+  const createNumberedMarkerIcon = (stopNumber: number, type: MapItemType, isSelected: boolean = false): any => {
     const color = type === 'job' ? '#8B5CF6' : '#3B82F6' // Purple for jobs, blue for appointments
-    const baseSize = count > 1 ? 40 : 32
-    const size = isSelected ? baseSize * 1.3 : baseSize
+    const size = isSelected ? 44 : 36
     const strokeWidth = isSelected ? 4 : 2
-
+    const textColor = '#FFFFFF'
+    
+    // Create canvas for numbered marker
+    const canvas = document.createElement('canvas')
+    const scale = 2 // Retina display support
+    canvas.width = size * scale
+    canvas.height = size * scale
+    const ctx = canvas.getContext('2d')!
+    ctx.scale(scale, scale)
+    
+    // Draw circle background
+    ctx.beginPath()
+    ctx.arc(size / 2, size / 2, size / 2 - strokeWidth / 2, 0, 2 * Math.PI)
+    ctx.fillStyle = color
+    ctx.fill()
+    ctx.strokeStyle = isSelected ? '#F59E0B' : '#FFFFFF'
+    ctx.lineWidth = strokeWidth
+    ctx.stroke()
+    
+    // Draw number
+    ctx.fillStyle = textColor
+    ctx.font = `bold ${size * 0.4}px system-ui, -apple-system, sans-serif`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(stopNumber.toString(), size / 2, size / 2)
+    
     return {
-      path: (window as any).google.maps.SymbolPath.CIRCLE,
-      fillColor: color,
-      fillOpacity: 0.9,
-      strokeColor: isSelected ? '#F59E0B' : '#FFFFFF', // Amber ring for selected
-      strokeWidth,
-      scale: size / 10
+      url: canvas.toDataURL(),
+      scaledSize: new (window as any).google.maps.Size(size, size),
+      anchor: new (window as any).google.maps.Point(size / 2, size / 2)
     }
   }
 
@@ -861,6 +900,10 @@ export default function ScheduleMap({
 
   // Empty state
   if (mapItems.length === 0) {
+    const emptyMessage = itemsWithoutAddress > 0
+      ? `${itemsWithoutAddress} stop${itemsWithoutAddress > 1 ? 's' : ''} need location${itemsWithoutAddress > 1 ? 's' : ''}`
+      : 'No scheduled stops for this day'
+    
     return (
       <div className="flex flex-col h-full">
         {/* Date Navigation Header */}
@@ -901,16 +944,8 @@ export default function ScheduleMap({
           <EmptyState
             icon={<MapPin className="w-12 h-12" />}
             title="No mapped stops for this day"
-            description={geocodingFailed 
-              ? "Jobs and appointments with an address will appear here."
-              : "Jobs and appointments with an address will appear here."
-            }
+            description={emptyMessage}
           />
-          {itemsWithoutAddress > 0 && (
-            <p className="text-sm text-muted-foreground mt-2">
-              {itemsWithoutAddress} scheduled item{itemsWithoutAddress > 1 ? 's don\'t' : ' doesn\'t'} have an address
-            </p>
-          )}
         </div>
       </div>
     )
@@ -918,7 +953,15 @@ export default function ScheduleMap({
 
   const filteredItems = getFilteredMapItems(mapItems)
   const sortedItems = getSortedMappedItems(filteredItems)
-  const selectedItem = selectedMapItemId ? filteredItems.find(i => i.id === selectedMapItemId) : null
+  const selectedItem = selectedMapItemId ? sortedItems.find(i => i.id === selectedMapItemId) : null
+  
+  // Calculate route summary
+  const mappedStopsCount = sortedItems.length
+  const firstStop = sortedItems[0]
+  const lastStop = sortedItems[sortedItems.length - 1]
+  const routeSummary = mappedStopsCount > 0
+    ? `${mappedStopsCount} stop${mappedStopsCount > 1 ? 's' : ''}${firstStop?.scheduledTime && lastStop?.scheduledTime ? ` · ${formatTime(firstStop.scheduledTime)} – ${formatTime(lastStop.scheduledTime)}` : ''}`
+    : 'No mapped stops'
 
   return (
     <div className="flex flex-col h-full relative">
@@ -961,7 +1004,7 @@ export default function ScheduleMap({
           <Filter className="w-4 h-4 text-slate-500" />
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
             <button
-              onClick={() => { setMapFilter('all'); setSelectedMapItemId(null); setShowAllMode(true); setUserInteracted(false) }}
+              onClick={() => { setMapFilter('all') }}
               className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
                 mapFilter === 'all' 
                   ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm' 
@@ -971,7 +1014,7 @@ export default function ScheduleMap({
               All
             </button>
             <button
-              onClick={() => { setMapFilter('jobs'); setSelectedMapItemId(null); setShowAllMode(true); setUserInteracted(false) }}
+              onClick={() => { setMapFilter('jobs') }}
               className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
                 mapFilter === 'jobs' 
                   ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm' 
@@ -981,7 +1024,7 @@ export default function ScheduleMap({
               Jobs
             </button>
             <button
-              onClick={() => { setMapFilter('appointments'); setSelectedMapItemId(null); setShowAllMode(true); setUserInteracted(false) }}
+              onClick={() => { setMapFilter('appointments') }}
               className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
                 mapFilter === 'appointments' 
                   ? 'bg-white dark:bg-slate-700 text-foreground shadow-sm' 
@@ -1007,8 +1050,9 @@ export default function ScheduleMap({
       {sortedItems.length > 0 && (
         <div className="hidden md:block mb-4 z-10">
           <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700">
+            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-foreground">Today's Stops</h3>
+              <span className="text-xs text-slate-500 dark:text-slate-400">{routeSummary}</span>
             </div>
             <div className="max-h-48 overflow-y-auto">
               {sortedItems.map((item) => (
@@ -1019,22 +1063,20 @@ export default function ScheduleMap({
                     selectedMapItemId === item.id ? 'bg-slate-50 dark:bg-slate-700/50' : ''
                   }`}
                 >
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                    item.type === 'job' ? 'bg-purple-100 dark:bg-purple-900/30' : 'bg-blue-100 dark:bg-blue-900/30'
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-sm ${
+                    item.type === 'job' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
                   }`}>
-                    {item.type === 'job' ? (
-                      <Briefcase className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                    ) : (
-                      <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                    )}
+                    {item.stopNumber}
                   </div>
                   <div className="flex-1 min-w-0 text-left">
-                    <p className="text-sm font-medium text-foreground truncate">{item.title}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                    <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
                       {item.scheduledTime ? formatTime(item.scheduledTime) : 'No time'}
                     </p>
-                    <p className="text-xs text-slate-400 dark:text-slate-500 truncate">
+                    <p className="text-sm font-medium text-foreground truncate">
                       {item.customerName || 'No customer'}
+                    </p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 truncate">
+                      {item.title}
                     </p>
                   </div>
                 </button>
@@ -1047,33 +1089,40 @@ export default function ScheduleMap({
       {/* Mobile Horizontal Stop Cards */}
       {sortedItems.length > 0 && (
         <div className="md:hidden mb-4 z-10">
-          <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+          <div className="flex items-center justify-between mb-2 px-1">
+            <h3 className="text-sm font-semibold text-foreground">Today's Stops</h3>
+            <span className="text-xs text-slate-500 dark:text-slate-400">{routeSummary}</span>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1" id="mobile-stop-cards">
             {sortedItems.map((item) => (
               <button
                 key={item.id}
+                ref={selectedMapItemId === item.id ? (el: any) => {
+                  if (el) {
+                    setTimeout(() => {
+                      el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+                    }, 100)
+                  }
+                } : null}
                 onClick={() => selectMapItem(item.id)}
-                className={`flex-shrink-0 px-4 py-2 rounded-lg border transition-colors ${
+                className={`flex-shrink-0 px-3 py-2 rounded-lg border transition-colors ${
                   selectedMapItemId === item.id
-                    ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800'
+                    ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 ring-2 ring-purple-300 dark:ring-purple-700'
                     : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50'
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <div className={`w-6 h-6 rounded flex items-center justify-center ${
-                    item.type === 'job' ? 'bg-purple-100 dark:bg-purple-900/30' : 'bg-blue-100 dark:bg-blue-900/30'
+                  <div className={`w-6 h-6 rounded flex items-center justify-center font-bold text-xs ${
+                    item.type === 'job' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
                   }`}>
-                    {item.type === 'job' ? (
-                      <Briefcase className="w-3 h-3 text-purple-600 dark:text-purple-400" />
-                    ) : (
-                      <Calendar className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                    )}
+                    {item.stopNumber}
                   </div>
                   <div className="text-left">
-                    <p className="text-xs font-medium text-foreground truncate max-w-[120px]">
+                    <p className="text-xs font-medium text-foreground truncate max-w-[100px]">
                       {item.scheduledTime ? formatTime(item.scheduledTime) : 'No time'}
                     </p>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[120px]">
-                      {item.title}
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[100px]">
+                      {item.customerName || 'No customer'}
                     </p>
                   </div>
                 </div>
@@ -1129,20 +1178,16 @@ export default function ScheduleMap({
           <div className="absolute bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-4 z-20">
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-2">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                  selectedItem.type === 'job' ? 'bg-purple-100 dark:bg-purple-900/30' : 'bg-blue-100 dark:bg-blue-900/30'
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm ${
+                  selectedItem.type === 'job' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
                 }`}>
-                  {selectedItem.type === 'job' ? (
-                    <Briefcase className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                  ) : (
-                    <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  )}
+                  {selectedItem.stopNumber}
                 </div>
                 <div>
-                  <h3 className="font-semibold text-slate-900 dark:text-foreground">{selectedItem.title}</h3>
-                  {selectedItem.customerName && (
-                    <p className="text-xs text-slate-600 dark:text-slate-400">{selectedItem.customerName}</p>
-                  )}
+                  <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                    Stop {selectedItem.stopNumber} · {selectedItem.scheduledTime ? formatTime(selectedItem.scheduledTime) : 'No time'}
+                  </p>
+                  <h3 className="font-semibold text-slate-900 dark:text-foreground">{selectedItem.customerName || 'No customer'}</h3>
                 </div>
               </div>
               <button
@@ -1155,15 +1200,22 @@ export default function ScheduleMap({
               </button>
             </div>
 
-            {selectedItem.scheduledTime && (
-              <p className="text-xs text-slate-600 dark:text-slate-400 mb-1">
-                {formatTime(selectedItem.scheduledTime)}
-              </p>
-            )}
-
-            <p className="text-xs text-slate-500 dark:text-slate-500 mb-3">
+            <p className="text-xs text-slate-500 dark:text-slate-500 mb-2">
               {selectedItem.address}
             </p>
+
+            <div className="flex items-center gap-2 mb-3">
+              <span className={`px-2 py-0.5 text-[10px] font-medium rounded ${
+                selectedItem.type === 'job' 
+                  ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' 
+                  : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+              }`}>
+                {selectedItem.type === 'job' ? 'Job' : 'Appointment'}
+              </span>
+              <p className="text-xs text-slate-400 dark:text-slate-500 truncate flex-1">
+                {selectedItem.title}
+              </p>
+            </div>
 
             {/* Next/Previous Navigation */}
             {sortedItems.length > 1 && (
@@ -1237,12 +1289,15 @@ export default function ScheduleMap({
           </div>
         )}
 
-        {/* Location-less items warning */}
-        {itemsWithoutAddress > 0 && (
-          <div className="absolute top-4 left-4 right-4 md:left-auto md:right-4 md:w-auto bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2 z-10">
-            <p className="text-xs text-amber-800 dark:text-amber-200">
-              {itemsWithoutAddress} scheduled item{itemsWithoutAddress > 1 ? 's don\'t' : ' doesn\'t'} have an address
-            </p>
+        {/* Location-less items warning (bottom left) */}
+        {itemsWithoutAddress > 0 && !selectedItem && (
+          <div className="absolute bottom-4 left-4 md:left-auto md:right-4 md:w-auto bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2 z-10">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+              <span className="text-xs text-amber-800 dark:text-amber-200">
+                {itemsWithoutAddress} stop{itemsWithoutAddress > 1 ? 's' : ''} need location{itemsWithoutAddress > 1 ? 's' : ''}
+              </span>
+            </div>
           </div>
         )}
       </div>
