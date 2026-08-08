@@ -14,10 +14,8 @@ export async function POST(request: NextRequest) {
       businessId,
       customerName,
       phoneNumber,
-      serviceRequested,
+      email,
       address,
-      desiredCompletion,
-      callbackTime,
       notes
     } = body
 
@@ -80,10 +78,8 @@ export async function POST(request: NextRequest) {
           source: 'manual',
           extracted_info: {
             callerName: customerName || null,
-            reasonForCalling: serviceRequested || null,
             addressOrLocation: address || null,
-            desiredCompletionTime: desiredCompletion || null,
-            preferredCallbackTime: callbackTime || null,
+            email: email || null,
             importantDetails: notes || null
           }
         }
@@ -108,10 +104,8 @@ export async function POST(request: NextRequest) {
       const mergedExtractedInfo = {
         ...existingExtractedInfo,
         callerName: customerName || existingExtractedInfo.callerName,
-        reasonForCalling: serviceRequested || existingExtractedInfo.reasonForCalling,
         addressOrLocation: address || existingExtractedInfo.addressOrLocation,
-        desiredCompletionTime: desiredCompletion || existingExtractedInfo.desiredCompletionTime,
-        preferredCallbackTime: callbackTime || existingExtractedInfo.preferredCallbackTime,
+        email: email || existingExtractedInfo.email,
         importantDetails: notes || existingExtractedInfo.importantDetails
       }
 

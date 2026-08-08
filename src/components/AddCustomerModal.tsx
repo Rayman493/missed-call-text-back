@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
@@ -22,21 +22,25 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
   const [formData, setFormData] = useState({
     customerName: '',
     phoneNumber: '',
-    serviceRequested: '',
+    email: '',
     address: '',
-    desiredCompletion: '',
-    callbackTime: '',
     notes: ''
   })
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [duplicateLead, setDuplicateLead] = useState<any | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
 
     // Validate required fields
+    if (!formData.customerName.trim()) {
+      setError('Customer name is required')
+      return
+    }
+
     if (!formData.phoneNumber.trim()) {
       setError('Phone number is required')
       return
@@ -49,7 +53,36 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
       return
     }
 
+    // Validate email format if provided
+    if (formData.email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(formData.email.trim())) {
+        setError('Please enter a valid email address')
+        return
+      }
+    }
+
     setIsSubmitting(true)
+
+    // Check for duplicate customer by phone
+    try {
+      const phoneDigits = formData.phoneNumber.replace(/\D/g, '')
+      const { data: existingLeads } = await supabase
+        .from('leads')
+        .select('id, caller_phone, raw_metadata')
+        .eq('business_id', business?.id)
+        .eq('caller_phone', phoneDigits.startsWith('1') ? phoneDigits : '1' + phoneDigits)
+        .limit(1)
+
+      if (existingLeads && existingLeads.length > 0) {
+        setDuplicateLead(existingLeads[0])
+        setIsSubmitting(false)
+        return
+      }
+    } catch (err) {
+      // If duplicate check fails, continue with submission
+      console.error('Duplicate check failed:', err)
+    }
 
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -67,12 +100,10 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
         },
         body: JSON.stringify({
           businessId: business?.id,
-          customerName: formData.customerName.trim() || undefined,
+          customerName: formData.customerName.trim(),
           phoneNumber: formData.phoneNumber.trim(),
-          serviceRequested: formData.serviceRequested.trim() || undefined,
+          email: formData.email.trim() || undefined,
           address: formData.address.trim() || undefined,
-          desiredCompletion: formData.desiredCompletion.trim() || undefined,
-          callbackTime: formData.callbackTime.trim() || undefined,
           notes: formData.notes.trim() || undefined
         })
       })
@@ -90,10 +121,8 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
       setFormData({
         customerName: '',
         phoneNumber: '',
-        serviceRequested: '',
+        email: '',
         address: '',
-        desiredCompletion: '',
-        callbackTime: '',
         notes: ''
       })
 
@@ -105,10 +134,8 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
         setFormData({
           customerName: '',
           phoneNumber: '',
-          serviceRequested: '',
+          email: '',
           address: '',
-          desiredCompletion: '',
-          callbackTime: '',
           notes: ''
         })
         setError('')
@@ -122,12 +149,29 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
         }
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to add customer')
+      // Provide user-friendly error messages
+      let errorMessage = 'Failed to add customer. Try again.'
+      if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+        errorMessage = 'Network error. Check your connection and try again.'
+      } else if (err.message?.includes('Not authenticated')) {
+        errorMessage = 'Please sign in and try again.'
+      } else if (err.message) {
+        errorMessage = err.message
+      }
+      setError(errorMessage)
       // Preserve form data on error so user can retry without retyping
     } finally {
       setIsSubmitting(false)
     }
   }
+
+  // Reset duplicateLead when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setDuplicateLead(null)
+      setError(null)
+    }
+  }, [isOpen])
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -155,16 +199,19 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
 
         {/* Scrollable Form Body */}
         <div className="overflow-y-auto flex-1 overflow-x-hidden overscroll-contain" data-scroll-lock-allow style={{ WebkitOverflowScrolling: 'touch' }}>
-          <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-3 sm:space-y-4 pb-4">
+          <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 pb-4">
             {/* Required Fields */}
-            <div className="space-y-3 sm:space-y-4">
+            <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Customer Name
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Customer Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   autoComplete="name"
+                  autoCapitalize="words"
+                  autoCorrect="off"
+                  spellCheck="false"
                   value={formData.customerName}
                   onChange={(e) => handleInputChange('customerName', e.target.value)}
                   placeholder="John Smith"
@@ -174,60 +221,16 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Phone Number <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="tel"
                   autoComplete="tel"
+                  inputMode="tel"
                   value={formData.phoneNumber}
                   onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                  placeholder="+1 (555) 123-4567"
-                  className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
-                  disabled={isSubmitting}
-                />
-              </div>
-            </div>
-
-            {/* Recommended Fields */}
-            <div className="space-y-3 sm:space-y-4 pt-3 sm:pt-4 border-t border-white/10">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Service Requested
-                </label>
-                <input
-                  type="text"
-                  value={formData.serviceRequested}
-                  onChange={(e) => handleInputChange('serviceRequested', e.target.value)}
-                  placeholder="Plumbing repair, HVAC service, etc."
-                  className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Service Address
-                </label>
-                <input
-                  type="text"
-                  value={formData.address}
-                  onChange={(e) => handleInputChange('address', e.target.value)}
-                  placeholder="123 Main St, City, State"
-                  className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Desired Completion
-                </label>
-                <input
-                  type="text"
-                  value={formData.desiredCompletion}
-                  onChange={(e) => handleInputChange('desiredCompletion', e.target.value)}
-                  placeholder="ASAP, Next week, etc."
+                  placeholder="(412) 253-3598"
                   className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
                   disabled={isSubmitting}
                 />
@@ -235,38 +238,85 @@ export default function AddCustomerModal({ isOpen, onClose, returnTo, onLeadCrea
             </div>
 
             {/* Optional Fields */}
-            <div className="space-y-3 sm:space-y-4 pt-3 sm:pt-4 border-t border-white/10">
+            <div className="space-y-4 pt-4 border-t border-border/50">
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Best Callback Time
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Email
                 </label>
                 <input
-                  type="text"
-                  value={formData.callbackTime}
-                  onChange={(e) => handleInputChange('callbackTime', e.target.value)}
-                  placeholder="Morning, Afternoon, etc."
+                  type="email"
+                  autoComplete="email"
+                  inputMode="email"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck="false"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  placeholder="john@example.com"
                   className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
                   disabled={isSubmitting}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Address
+                </label>
+                <input
+                  type="text"
+                  autoComplete="street-address"
+                  value={formData.address}
+                  onChange={(e) => handleInputChange('address', e.target.value)}
+                  placeholder="123 Main St, City, State"
+                  className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none"
+                  disabled={isSubmitting}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Optional: Use with Schedule Map and service locations
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Notes
                 </label>
                 <textarea
                   value={formData.notes}
                   onChange={(e) => handleInputChange('notes', e.target.value)}
                   placeholder="Any additional details..."
-                  rows={3}
+                  rows={2}
                   className="premium-input w-full px-3 py-2.5 rounded-lg focus:outline-none resize-none"
                   disabled={isSubmitting}
                   autoCapitalize="sentences"
                   autoCorrect="on"
-                  spellCheck={true}
+                  spellCheck="true"
                 />
               </div>
             </div>
+
+            {/* Duplicate Customer Warning */}
+            {duplicateLead && (
+              <div className="rounded-xl border border-amber-400/20 bg-amber-500/10 p-4">
+                <p className="text-sm text-amber-200 font-medium mb-3">Customer already exists</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => router.push(`/dashboard/leads/${duplicateLead.id}`)}
+                    className="flex-1 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors"
+                  >
+                    View Customer
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDuplicateLead(null)
+                      setError(null)
+                    }}
+                    className="flex-1 px-3 py-2 border border-amber-400/30 text-amber-200 hover:bg-amber-500/20 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Error */}
             {error && (
