@@ -997,6 +997,36 @@ export async function recycleTwilioNumberToInventory(
       return { success: false, error: 'Twilio SID mismatch - concurrent modification detected' };
     }
 
+    // P0 FIX 2: Protected account check - block recycling if business is protected
+    console.log('[RECYCLE] Checking if business is protected...');
+    const { data: business, error: businessFetchError } = await supabase
+      .from('businesses')
+      .select('id, name, is_protected_account')
+      .eq('id', businessId)
+      .single();
+
+    if (businessFetchError) {
+      console.error('[RECYCLE] ERROR: Failed to fetch business for protection check:', businessFetchError);
+      return { success: false, error: 'Failed to fetch business for protection check' };
+    }
+
+    if (business && business.is_protected_account === true) {
+      console.error('[RECYCLE] PROTECTED_ACCOUNT_NUMBER_RECYCLE_BLOCKED: Business is protected', {
+        businessId: business.id,
+        businessName: business.name,
+        phoneNumber: phoneNumber
+      });
+      return {
+        success: false,
+        error: 'Cannot recycle number from protected business'
+      };
+    }
+
+    if (!business) {
+      console.error('[RECYCLE] ERROR: Business not found for protection check', { businessId });
+      return { success: false, error: 'Business not found for protection check' };
+    }
+
     // STEP 3: Detach from business in twilio_numbers table with compare-and-swap
     console.log('[RECYCLE] STEP 3: Detaching number from business with compare-and-swap...');
     const { error: detachError, count: detachCount } = await supabase

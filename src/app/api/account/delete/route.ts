@@ -167,11 +167,11 @@ export async function POST(request: NextRequest) {
       },
     }
 
-    // Step 1: Find all businesses for this user (include Stripe + Twilio fields + reservation metadata)
+    // Step 1: Find all businesses for this user (include Stripe + Twilio fields + reservation metadata + protection status)
     console.log('[delete-account] Step 1: find businesses')
     const { data: businesses, error: businessesError } = await supabaseAdmin
       .from('businesses')
-      .select('id, stripe_customer_id, stripe_subscription_id, subscription_status, twilio_phone_number, twilio_phone_number_sid, twilio_messaging_service_sid, provisioning_status, name, trial_ends_at, created_at, user_id, business_phone_number')
+      .select('id, stripe_customer_id, stripe_subscription_id, subscription_status, twilio_phone_number, twilio_phone_number_sid, twilio_messaging_service_sid, provisioning_status, name, trial_ends_at, created_at, user_id, business_phone_number, is_protected_account')
       .eq('user_id', user.id)
 
     if (businessesError) {
@@ -192,6 +192,25 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[delete-account] Found businesses:', businessIds.length, businessIds)
+
+    // PROTECTED ACCOUNT CHECK: Block deletion if any business is protected
+    const protectedBusiness = businesses?.find((b: any) => b.is_protected_account === true)
+    if (protectedBusiness) {
+      console.error('[delete-account] PROTECTED_ACCOUNT_DELETION_BLOCKED: Business is protected', {
+        businessId: protectedBusiness.id,
+        businessName: protectedBusiness.name,
+        userId: user.id
+      })
+      return NextResponse.json(
+        { 
+          ok: false, 
+          step: 'protected_account_check', 
+          error: 'Cannot delete a protected account. Contact support.',
+          businessId: protectedBusiness.id
+        },
+        { status: 403 }
+      )
+    }
 
     // SAFETY FIX: Two-phase preflight validation - validate all businesses before any destructive operation
     console.log('[delete-account] PREFLIGHT VALIDATION: Validating all businesses for lifecycle safety')
