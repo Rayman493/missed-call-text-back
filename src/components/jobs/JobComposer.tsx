@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { X, Briefcase, User, Phone, MapPin, FileText, Calendar, Clock } from 'lucide-react'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { getCustomerStatusStyle } from '@/lib/customer-status'
@@ -49,6 +49,7 @@ interface JobComposerProps {
   prefill?: JobPrefill
   editJob?: Job
   defaultDate?: Date | null
+  initialFocus?: 'location'
   onShowToast?: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void
 }
 
@@ -66,6 +67,7 @@ export default function JobComposer({
   prefill,
   editJob,
   defaultDate,
+  initialFocus,
   onShowToast,
 }: JobComposerProps) {
   const [title, setTitle] = useState('')
@@ -79,7 +81,20 @@ export default function JobComposer({
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
 
+  const locationInputRef = useRef<HTMLInputElement>(null)
+
   useBodyScrollLock(isOpen)
+
+  // Autofocus location input when initialFocus is 'location'
+  useEffect(() => {
+    if (isOpen && initialFocus === 'location' && locationInputRef.current) {
+      // Small delay to ensure the modal is fully rendered
+      setTimeout(() => {
+        locationInputRef.current?.focus()
+        locationInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 100)
+    }
+  }, [isOpen, initialFocus])
 
   useEffect(() => {
     if (!isOpen) return
@@ -257,6 +272,7 @@ export default function JobComposer({
                 <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                 <input
                   type="text"
+                  ref={locationInputRef}
                   value={serviceAddress}
                   onChange={e => setServiceAddress(e.target.value)}
                   placeholder="123 Main St, City, State"

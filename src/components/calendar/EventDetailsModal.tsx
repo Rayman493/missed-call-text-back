@@ -9,6 +9,23 @@ import ConfirmModal from '@/components/ui/ConfirmModal'
 
 const supabase = createBrowserClient()
 
+type EventDetailsModalMode = 'details' | 'add-location'
+
+// Helper to filter out placeholder values
+const isPlaceholderValue = (text: string | null | undefined): boolean => {
+  if (!text) return true
+  const trimmed = text.trim()
+  if (!trimmed) return true
+  const lower = trimmed.toLowerCase()
+  const placeholders = ['not collected', 'not provided', 'unknown', 'n/a', 'none']
+  return placeholders.some(p => lower === p)
+}
+
+const normalizeDisplayText = (text: string | null | undefined): string | null => {
+  if (isPlaceholderValue(text)) return null
+  return text || null
+}
+
 interface EventDetailsModalProps {
   isOpen: boolean
   onClose: () => void
@@ -25,6 +42,7 @@ interface EventDetailsModalProps {
     meetingUrl?: string | null
     extendedProperties?: any
   }
+  mode?: EventDetailsModalMode
   onDelete?: () => void
   onRefresh?: () => void
   job?: { id: string; title?: string | null; lead_id?: string | null; customer_name?: string | null; customer_phone?: string | null } | null
@@ -35,7 +53,7 @@ interface EventDetailsModalProps {
   onShowToast?: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void
 }
 
-export default function EventDetailsModal({ isOpen, onClose, event, onDelete, onRefresh, job, lead, businessName, onViewCustomer, onViewJob, onShowToast }: EventDetailsModalProps) {
+export default function EventDetailsModal({ isOpen, onClose, event, mode = 'details', onDelete, onRefresh, job, lead, businessName, onViewCustomer, onViewJob, onShowToast }: EventDetailsModalProps) {
   const [isDeleting, setIsDeleting] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -422,6 +440,57 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
     }
   }
 
+  const handleSaveLocation = async () => {
+    setIsSaving(true)
+    setError(null)
+
+    // Validate location is not empty or whitespace-only in add-location mode
+    const trimmedLocation = editedLocation.trim()
+    if (!trimmedLocation) {
+      setError('Please enter a location')
+      setIsSaving(false)
+      return
+    }
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        setError('Not authenticated')
+        setIsSaving(false)
+        return
+      }
+
+      const response = await fetch(`/api/google/calendar/events/${event.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          location: trimmedLocation
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to update location' }))
+        setError(errorData.error || 'Failed to update location')
+        setIsSaving(false)
+        return
+      }
+
+      // Success
+      setIsSaving(false)
+      onRefresh?.()
+      onClose()
+      onShowToast?.('Location saved successfully', 'success')
+    } catch (err) {
+      setError('Failed to update location')
+      setIsSaving(false)
+    }
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden px-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 md:p-4"
@@ -441,15 +510,22 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
         
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border/50 flex-shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${event.isHoliday ? 'bg-emerald-500/10' : 'bg-primary/10'}`}>
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${event.isHoliday ? 'bg-emerald-500/10' : 'bg-primary/10'}`}>
               <Calendar className={`w-4 h-4 ${event.isHoliday ? 'text-emerald-400' : 'text-primary'}`} />
             </div>
-            <h2 className="text-base font-semibold text-foreground tracking-tight truncate">{event.summary}</h2>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-base font-semibold text-foreground tracking-tight line-clamp-2 leading-snug">
+                {mode === 'add-location' ? 'Add location' : event.summary}
+              </h2>
+              {mode === 'add-location' && (
+                <p className="text-xs text-muted-foreground truncate mt-0.5">{event.summary}</p>
+              )}
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+            className="p-2.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors flex-shrink-0"
             aria-label="Close modal"
           >
             <X className="w-5 h-5" />
@@ -458,7 +534,52 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
 
         {/* Event Details */}
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4" style={{ WebkitOverflowScrolling: 'touch' }}>
-          <div className="space-y-3">
+          {mode === 'add-location' ? (
+            // Add-location mode: focused location input
+            <div className="space-y-4">
+              {/* Compact event context */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <span className="text-foreground font-medium">{event.summary}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Clock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <span className="text-foreground">{formatDate(event.start.dateTime, event.start.date)}{!isAllDay && ` • ${formatTimeRange()}`}</span>
+                </div>
+              </div>
+
+              {/* Prominent Location Section */}
+              <div className="pt-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Location
+                </label>
+                <input
+                  type="text"
+                  value={editedLocation}
+                  onChange={(e) => setEditedLocation(e.target.value)}
+                  placeholder="Add an address or place"
+                  className="w-full px-4 py-3 bg-slate-800 border-2 border-slate-700 rounded-lg text-base text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
+                  autoFocus
+                />
+                <p className="text-sm text-muted-foreground mt-2">
+                  Add an address or place so this appears on your Schedule Map.
+                </p>
+              </div>
+
+              {/* Divider */}
+              <div className="pt-2 border-t border-border/50">
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  View or edit additional details
+                </button>
+              </div>
+            </div>
+          ) : (
+            // Normal details/edit mode
+            <div className="space-y-3">
             {/* Title */}
             <div>
               {isEditing ? (
@@ -534,20 +655,27 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
               )}
 
               {/* Location */}
-              {event.location && (
+              {event.location ? (
+                <div className="flex items-start gap-2 text-sm">
+                  <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editedLocation}
+                        onChange={(e) => setEditedLocation(e.target.value)}
+                        placeholder="Add location"
+                        className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                      />
+                    ) : (
+                      <span className="text-foreground break-words">{event.location}</span>
+                    )}
+                  </div>
+                </div>
+              ) : (
                 <div className="flex items-center gap-2 text-sm">
                   <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editedLocation}
-                      onChange={(e) => setEditedLocation(e.target.value)}
-                      placeholder="Add location"
-                      className="flex-1 px-2 py-1 bg-slate-800 border border-slate-700 rounded text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                    />
-                  ) : (
-                    <span className="text-foreground break-words">{event.location}</span>
-                  )}
+                  <span className="text-muted-foreground">No location added</span>
                 </div>
               )}
 
@@ -598,7 +726,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
             </div>
 
             {/* Description - only show if has content or editing */}
-            {(event.description || isEditing) && (
+            {(normalizeDisplayText(event.description) || isEditing) && (
               <div className="pt-3 border-t border-border/50">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-medium text-muted-foreground">Description</span>
@@ -612,7 +740,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
                     className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
                   />
                 ) : (
-                  <p className="text-sm text-foreground whitespace-pre-wrap break-words">{event.description}</p>
+                  <p className="text-sm text-foreground whitespace-pre-wrap break-words">{normalizeDisplayText(event.description)}</p>
                 )}
               </div>
             )}
@@ -755,7 +883,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
               <div className="pt-3 border-t border-border/50">
                 <button
                   onClick={() => setShowCompleteConfirm(true)}
-                  className="w-full px-3 py-2 text-xs font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
+                  className="w-full px-3 py-2 text-xs font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   <span>Mark Complete</span>
@@ -769,6 +897,7 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
               </div>
             )}
           </div>
+          )}
         </div>
 
         {/* Footer */}
@@ -780,7 +909,34 @@ export default function EventDetailsModal({ isOpen, onClose, event, onDelete, on
             </div>
           )}
           
-          {isEditing ? (
+          {mode === 'add-location' ? (
+            <div className="flex gap-2">
+              <button
+                onClick={onClose}
+                disabled={isSaving}
+                className="flex-1 px-4 py-2 text-sm font-medium bg-muted hover:bg-muted/80 text-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveLocation}
+                disabled={isSaving}
+                className="flex-1 px-4 py-2 text-sm font-medium bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isSaving ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    <span>Save location</span>
+                  </>
+                )}
+              </button>
+            </div>
+          ) : isEditing ? (
             <div className="flex gap-2">
               <button
                 onClick={handleCancelEdit}

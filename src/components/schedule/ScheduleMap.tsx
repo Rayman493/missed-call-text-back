@@ -89,6 +89,8 @@ interface ScheduleMapProps {
   onEditJob?: (job: Job) => void
   onEditTask?: (task: Task) => void
   onEditEvent?: (event: CalendarEvent) => void
+  onAddLocationJob?: (job: Job) => void
+  onAddLocationEvent?: (event: CalendarEvent) => void
 }
 
 type MapItemType = 'job' | 'appointment'
@@ -139,7 +141,9 @@ export default function ScheduleMap({
   onViewJob,
   onEditJob,
   onEditTask,
-  onEditEvent
+  onEditEvent,
+  onAddLocationJob,
+  onAddLocationEvent
 }: ScheduleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const googleMapRef = useRef<any>(null)
@@ -1165,7 +1169,13 @@ export default function ScheduleMap({
 
                 const handleAddLocationClick = (e: React.MouseEvent) => {
                   e.stopPropagation()
-                  handleEditClick(e)
+                  if (item.type === 'job' && onAddLocationJob) {
+                    const job = jobs.find(j => j.id === item.jobId)
+                    if (job) onAddLocationJob(job)
+                  } else if (item.type === 'appointment' && onAddLocationEvent) {
+                    const event = calendarEvents.find(e => e.id === item.eventId)
+                    if (event) onAddLocationEvent(event)
+                  }
                 }
 
                 const formatItemTime = (time: string | null) => {

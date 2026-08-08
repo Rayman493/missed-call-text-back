@@ -237,10 +237,12 @@ export default function SchedulePage() {
   const [newJobDefaultDate, setNewJobDefaultDate] = useState<Date | undefined>(undefined)
   const [isLeadPickerOpen, setIsLeadPickerOpen] = useState(false)
   const [isJobComposerOpen, setIsJobComposerOpen] = useState(false)
+  const [jobComposerInitialFocus, setJobComposerInitialFocus] = useState<'location' | undefined>(undefined)
   const [jobPrefill, setJobPrefill] = useState<JobPrefill | undefined>(undefined)
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
   const [isJobDetailsOpen, setIsJobDetailsOpen] = useState(false)
   const [editingJob, setEditingJob] = useState<Job | null>(null)
+  const [eventDetailsMode, setEventDetailsMode] = useState<'details' | 'add-location'>('details')
   const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false)
   const [newlyCreatedLeadId, setNewlyCreatedLeadId] = useState<string | null>(null)
   const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false)
@@ -270,6 +272,13 @@ export default function SchedulePage() {
   // Edit handlers for ScheduleMap
   const handleMapEditJob = (job: any) => {
     setEditingJob(job)
+    setJobComposerInitialFocus(undefined)
+    setIsJobComposerOpen(true)
+  }
+
+  const handleMapAddLocationJob = (job: any) => {
+    setEditingJob(job)
+    setJobComposerInitialFocus('location')
     setIsJobComposerOpen(true)
   }
 
@@ -281,6 +290,13 @@ export default function SchedulePage() {
 
   const handleMapEditEvent = (event: any) => {
     setSelectedEvent(event)
+    setEventDetailsMode('details')
+    setIsEventDetailsOpen(true)
+  }
+
+  const handleMapAddLocationEvent = (event: any) => {
+    setSelectedEvent(event)
+    setEventDetailsMode('add-location')
     setIsEventDetailsOpen(true)
   }
 
@@ -1589,6 +1605,8 @@ export default function SchedulePage() {
                         onEditJob={handleMapEditJob}
                         onEditTask={handleMapEditTask}
                         onEditEvent={handleMapEditEvent}
+                        onAddLocationJob={handleMapAddLocationJob}
+                        onAddLocationEvent={handleMapAddLocationEvent}
                       />
                     </div>
                   )}
@@ -1619,11 +1637,12 @@ export default function SchedulePage() {
                   {/* Job Composer Modal */}
                   <JobComposer
                     isOpen={isJobComposerOpen}
-                    onClose={() => { setIsJobComposerOpen(false); setEditingJob(null); setJobPrefill(undefined); setNewJobDefaultDate(undefined) }}
+                    onClose={() => { setIsJobComposerOpen(false); setEditingJob(null); setJobPrefill(undefined); setNewJobDefaultDate(undefined); setJobComposerInitialFocus(undefined) }}
                     onSave={handleJobSaved}
                     editJob={editingJob || undefined}
                     prefill={jobPrefill}
                     defaultDate={newJobDefaultDate}
+                    initialFocus={jobComposerInitialFocus}
                     onShowToast={showToast}
                   />
 
@@ -1726,8 +1745,10 @@ export default function SchedulePage() {
                       isOpen={isEventDetailsOpen}
                       onClose={() => {
                         setIsEventDetailsOpen(false)
+                        setEventDetailsMode('details')
                       }}
                       event={selectedEvent}
+                      mode={eventDetailsMode}
                       job={selectedEventJob}
                       lead={selectedEventLead}
                       businessName={business?.name || null}
