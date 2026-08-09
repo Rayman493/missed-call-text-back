@@ -47,11 +47,11 @@ const GOOGLE_PLAY_URL = process.env.NEXT_PUBLIC_GOOGLE_PLAY_URL || null
 export default function DownloadPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-slate-900">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
         {/* Logo and Brand */}
-        <div className="text-center mb-12">
-          <div className="flex justify-center mb-6">
-            <BrandIcon className="w-16 h-16 text-blue-600 dark:text-blue-400" />
+        <div className="text-center mb-8">
+          <div className="flex justify-center mb-4">
+            <BrandIcon size={64} />
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-2">
             ReplyFlow
@@ -62,8 +62,8 @@ export default function DownloadPage() {
         </div>
 
         {/* Hero Section */}
-        <div className="text-center mb-12">
-          <h2 className="text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-white mb-4">
+        <div className="text-center mb-8">
+          <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-white leading-snug">
             Calls, customers, scheduling, payments, and more — wherever you work.
           </h2>
         </div>
@@ -75,20 +75,20 @@ export default function DownloadPage() {
         />
 
         {/* Continue on Web */}
-        <div className="mt-12 text-center">
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+        <div className="mt-8 text-center">
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
             Or continue using ReplyFlow on the web
           </p>
           <Link
             href="/"
-            className="inline-flex items-center justify-center px-6 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors duration-200"
+            className="inline-flex items-center justify-center px-5 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors duration-200"
           >
             Continue on the web
           </Link>
         </div>
 
         {/* Footer */}
-        <div className="mt-20 pt-8 border-t border-slate-200 dark:border-slate-800 text-center">
+        <div className="mt-12 pt-6 border-t border-slate-200 dark:border-slate-800 text-center">
           <p className="text-xs text-slate-500 dark:text-slate-400">
             © {new Date().getFullYear()} ReplyFlow. All rights reserved.
           </p>
