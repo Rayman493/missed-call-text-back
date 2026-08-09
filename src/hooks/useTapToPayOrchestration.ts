@@ -77,6 +77,13 @@ export interface UseTapToPayOrchestrationReturn {
   locationServicesEnabled: boolean | null
   locationPermissionState: 'granted' | 'denied' | 'permanently_denied' | 'unknown'
   educationWaitingForConfirmation: boolean
+  paymentRequestId: string | null
+  lastCompletedAttempt: {
+    attemptId: string | null
+    outcome: 'success' | 'failure' | 'canceled' | null
+    completedAt: string | null
+    paymentRequestId: string | null
+  }
   startPayment: () => Promise<void>
   cancelPayment: (reason?: string) => void
   retryPayment: () => Promise<void>
@@ -113,6 +120,18 @@ export function useTapToPayOrchestration({
   const [educationWaitingForConfirmation, setEducationWaitingForConfirmation] = useState(false)
   const [lastResetReason, setLastResetReason] = useState<string>('none')
   const [initializationStartTime, setInitializationStartTime] = useState<number | null>(null)
+  const [paymentRequestId, setPaymentRequestId] = useState<string | null>(null)
+  const [lastCompletedAttempt, setLastCompletedAttempt] = useState<{
+    attemptId: string | null
+    outcome: 'success' | 'failure' | 'canceled' | null
+    completedAt: string | null
+    paymentRequestId: string | null
+  }>({
+    attemptId: null,
+    outcome: null,
+    completedAt: null,
+    paymentRequestId: null,
+  })
   const isInitializationPendingRef = useRef(false)
   const preparingTimerRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -134,6 +153,13 @@ export function useTapToPayOrchestration({
       locationServicesEnabled: null,
       locationPermissionState: 'unknown',
       educationWaitingForConfirmation: false,
+      paymentRequestId: null,
+      lastCompletedAttempt: {
+        attemptId: null,
+        outcome: null,
+        completedAt: null,
+        paymentRequestId: null,
+      },
       startPayment: async () => {},
       cancelPayment: () => {},
       retryPayment: async () => {},
@@ -141,8 +167,8 @@ export function useTapToPayOrchestration({
       resetTapToPayUiState: () => {},
       resetToSetup: () => {},
       checkPlatformSupport: async () => ({ platform: 'web', isNativeSupported: false }),
-      checkLocationPermission: async () => ({ granted: false, locationEnabled: false, canAskAgain: false }),
-      requestLocationPermission: async () => ({ granted: false, locationEnabled: false, canAskAgain: false }),
+      requestLocationPermission: async () => ({ granted: true, locationEnabled: true, canAskAgain: true }),
+      checkLocationPermission: async () => ({ granted: true, locationEnabled: true, canAskAgain: true }),
     }
   }
   
@@ -1207,6 +1233,15 @@ export function useTapToPayOrchestration({
       previousState: paymentState
     })
 
+    // Clear last completed attempt when starting new payment (attempt isolation)
+    setLastCompletedAttempt({
+      attemptId: null,
+      outcome: null,
+      completedAt: null,
+      paymentRequestId: null,
+    })
+    console.log('[TTP Hook] LAST_COMPLETED_ATTEMPT_CLEARED', { reason: 'new_payment_started' })
+
     // Log payment attempt started
     await logTapToPayEvent('PAYMENT_ATTEMPT_STARTED', {
       correlationId,
@@ -2089,6 +2124,26 @@ export function useTapToPayOrchestration({
           if (reconcileData.status === 'paid') {
             console.log('[TTP Hook] RECONCILE_COMPLETED', { paymentIntentId, status: reconcileData.status })
             dispatchTTPEvent('RECONCILE_COMPLETED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'processing', 'reconciliation_completed')
+
+            // Store paymentRequestId for receipt sending
+            if (reconcileData.paymentRequestId) {
+              setPaymentRequestId(reconcileData.paymentRequestId)
+              console.log('[TTP Hook] PAYMENT_REQUEST_ID_STORED', { paymentRequestId: reconcileData.paymentRequestId })
+            }
+
+            // Store last completed attempt for diagnostics
+            setLastCompletedAttempt({
+              attemptId: terminalService.getCurrentAttemptId(),
+              outcome: 'success',
+              completedAt: new Date().toISOString(),
+              paymentRequestId: reconcileData.paymentRequestId || null,
+            })
+            console.log('[TTP Hook] LAST_COMPLETED_ATTEMPT_STORED', {
+              outcome: 'success',
+              attemptId: terminalService.getCurrentAttemptId(),
+              paymentRequestId: reconcileData.paymentRequestId
+            })
+
             // Emit SUCCESS_GATE_VERIFIED before success UI
             await logTapToPayEvent('SUCCESS_GATE_VERIFIED', {
               correlationId: getCorrelationId() ?? undefined,
@@ -2140,7 +2195,20 @@ export function useTapToPayOrchestration({
             // Reconciliation returned non-paid status - treat as failure
             console.error('[TTP Hook] RECONCILE_RETURNED_NON_PAID', reconcileData.status)
             dispatchTTPEvent('RECONCILE_RETURNED_NON_PAID', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'failure', `status_${reconcileData.status}`)
-            
+
+            // Store last completed attempt for diagnostics
+            setLastCompletedAttempt({
+              attemptId: terminalService.getCurrentAttemptId(),
+              outcome: 'failure',
+              completedAt: new Date().toISOString(),
+              paymentRequestId: reconcileData.paymentRequestId || null,
+            })
+            console.log('[TTP Hook] LAST_COMPLETED_ATTEMPT_STORED', {
+              outcome: 'failure',
+              attemptId: terminalService.getCurrentAttemptId(),
+              paymentRequestId: reconcileData.paymentRequestId
+            })
+
             updatePaymentStateRef('failure', 'reconciliation_not_paid')
             setError('Payment verification failed. Please check your payment history.')
             setIsPaymentInProgress(false)
@@ -2218,17 +2286,32 @@ export function useTapToPayOrchestration({
     
     // Check if this is a cancellation and set state accordingly
     const isCancellation = mapped.title === 'Payment canceled'
+    const outcome: 'success' | 'failure' | 'canceled' = isCancellation ? 'canceled' : 'failure'
+
+    // Store last completed attempt for diagnostics
+    setLastCompletedAttempt({
+      attemptId: terminalService.getCurrentAttemptId(),
+      outcome,
+      completedAt: new Date().toISOString(),
+      paymentRequestId: paymentRequestId || null,
+    })
+    console.log('[TTP Hook] LAST_COMPLETED_ATTEMPT_STORED', {
+      outcome,
+      attemptId: terminalService.getCurrentAttemptId(),
+      paymentRequestId
+    })
+
     updatePaymentStateRef(isCancellation ? 'canceled' : 'failure', isCancellation ? 'user_canceled' : 'error_thrown')
-    
+
     setMappedError(mapped)
-    
+
     const errorMsg = mapped.message
     setError(errorMsg)
     setStructuredError(err as TerminalError)
     setIsPaymentInProgress(false)
-            permissionLock.setTapToPayActive(false)
+    permissionLock.setTapToPayActive(false)
     startInFlight.current = false
-            activeAttemptRef.current = false
+    activeAttemptRef.current = false
     console.log('[QuickTTP UI] START_IN_FLIGHT_GUARD_CLEARED_ERROR')
     onPaymentError?.(errorMsg)
   }
@@ -2402,7 +2485,7 @@ async function withTimeout<T>(
     if (!preserveSucceededAttempt && !canResetPaymentUi('resetTapToPayUiState:emergency_reset')) {
       return
     }
-    
+
     console.log('[TTP Hook] EMERGENCY_RESET', { preserveSucceededAttempt })
     dispatchTTPEvent('RESET_TRIGGERED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), paymentState, 'resetTapToPayUiState:emergency_reset')
     setIsPaymentInProgress(false)
@@ -2417,6 +2500,8 @@ async function withTimeout<T>(
     autoRetryInProgress.current = false
     setLastSuccessfulStage('none')
     setShowLocationPermissionDialog(false)
+    setPaymentRequestId(null)
+    // DO NOT clear lastCompletedAttempt - preserve across modal reset for diagnostics
     // Note: We don't clear session/attempt IDs here as they're managed by the terminal service
   }, [updatePaymentStateRef, paymentState, lastSuccessfulStage, isPaymentInProgress, canResetPaymentUi])
 
@@ -2425,7 +2510,7 @@ async function withTimeout<T>(
     if (!canResetPaymentUi(`resetToSetup:${reason}`)) {
       return
     }
-    
+
     console.log('[QuickTTP UI] RESET_TO_SETUP', { reason, currentPaymentState: paymentState })
     dispatchTTPEvent('RESET_TRIGGERED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), paymentState, `resetToSetup:${reason}`)
     setIsPaymentInProgress(false)
@@ -2439,6 +2524,8 @@ async function withTimeout<T>(
     setMappedError(null)
     autoRetryInProgress.current = false
     setShowLocationPermissionDialog(false)
+    setPaymentRequestId(null)
+    // DO NOT clear lastCompletedAttempt - preserve across modal reset for diagnostics
   }, [updatePaymentStateRef, paymentState, lastSuccessfulStage, isPaymentInProgress, canResetPaymentUi])
 
   return {
@@ -2455,6 +2542,8 @@ async function withTimeout<T>(
     locationServicesEnabled,
     locationPermissionState,
     educationWaitingForConfirmation,
+    paymentRequestId,
+    lastCompletedAttempt,
     startPayment,
     cancelPayment,
     retryPayment,

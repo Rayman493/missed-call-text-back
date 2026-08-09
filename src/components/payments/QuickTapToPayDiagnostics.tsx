@@ -19,6 +19,12 @@ interface QuickTapToPayDiagnosticsProps {
     message?: string
     stage?: string
   }
+  lastCompletedAttempt?: {
+    attemptId: string | null
+    outcome: 'success' | 'failure' | 'canceled' | null
+    completedAt: string | null
+    paymentRequestId: string | null
+  }
 }
 
 async function writeClipboard(text: string): Promise<boolean> {
@@ -42,7 +48,8 @@ async function writeClipboard(text: string): Promise<boolean> {
 export default function QuickTapToPayDiagnostics({ 
   paymentState, 
   lastSuccessfulStage,
-  mappedError 
+  mappedError,
+  lastCompletedAttempt
 }: QuickTapToPayDiagnosticsProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [events, setEvents] = useState<any[]>([])
@@ -111,8 +118,16 @@ export default function QuickTapToPayDiagnostics({
       correlationId: (await import('@/lib/tap-to-pay-diagnostics')).getCorrelationId(),
       sessionId: TerminalBridgeService.getInstance()?.getSessionId(),
       attemptId: TerminalBridgeService.getInstance()?.getCurrentAttemptId(),
+      // Current UI state (what the modal is currently showing)
       currentPaymentState: paymentState,
-      finalOutcome: paymentState === 'success' ? 'success' : paymentState === 'failure' ? 'failure' : paymentState === 'canceled' ? 'canceled' : 'in_progress',
+      // Last completed attempt (truthful outcome of the most recent payment)
+      lastCompletedAttempt: lastCompletedAttempt || {
+        attemptId: null,
+        outcome: null,
+        completedAt: null,
+        paymentRequestId: null,
+      },
+      finalOutcome: lastCompletedAttempt?.outcome || (paymentState === 'success' ? 'success' : paymentState === 'failure' ? 'failure' : paymentState === 'canceled' ? 'canceled' : 'in_progress'),
       lastSuccessfulStage: lastSuccessfulStage,
       failedStage: paymentState === 'failure' ? (failedStage || lastSuccessfulStage || 'unknown') : null,
       normalizedErrorCode: mappedError?.code,

@@ -13,6 +13,7 @@ import { useTapToPayOrchestration } from '@/hooks/useTapToPayOrchestration'
 import { Capacitor } from '@capacitor/core'
 import { TapToPayEducationModal } from '@/components/TapToPayEducationModal'
 import { hasPendingEducationPromise, resolveEducation } from '@/lib/education-promise-bridge'
+import { normalizeToE164 } from '@/utils/phone-formatting'
 import QuickTapToPayDiagnostics from './QuickTapToPayDiagnostics'
 
 interface QuickTapToPayModalProps {
@@ -135,16 +136,43 @@ const handleSendReceiptSubmit = async () => {
   setReceiptError('')
 
   try {
-    // Validate phone number format (basic E.164 validation)
-    const phoneRegex = /^\+?[1-9]\d{1,14}$/
-    const cleanPhone = receiptPhoneNumber.replace(/[\s\-\(\)]/g, '')
-
-    if (!cleanPhone || !phoneRegex.test(cleanPhone)) {
-      throw new Error('Please enter a valid phone number')
+    // Validate paymentRequestId is available
+    if (!paymentRequestId) {
+      throw new Error('Payment information not available. Please close and try again.')
     }
 
-    // SMS receipts are temporarily unavailable
-    throw new Error('SMS receipts are temporarily unavailable. Payment was successful.')
+    // Normalize phone to E.164 format
+    const normalizedPhone = normalizeToE164(receiptPhoneNumber)
+    if (!normalizedPhone) {
+      throw new Error('Enter a valid phone number')
+    }
+
+    console.log('[QuickTapToPayModal] Sending receipt:', {
+      paymentRequestId,
+      normalizedPhone,
+      originalPhone: receiptPhoneNumber
+    })
+
+    // Call receipt endpoint
+    const response = await fetch('/api/payments/send-receipt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        paymentRequestId,
+        phoneNumber: normalizedPhone,
+      }),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || 'Failed to send receipt')
+    }
+
+    const result = await response.json()
+    console.log('[QuickTapToPayModal] Receipt sent successfully:', result)
+
+    // Show success state
+    setReceiptSent(true)
   } catch (error) {
     console.error('[QuickTapToPayModal] Failed to send receipt:', error)
     setReceiptError(error instanceof Error ? error.message : 'Failed to send receipt')
@@ -247,6 +275,8 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
     requestLocationPermission,
     checkLocationPermission,
     educationWaitingForConfirmation,
+    paymentRequestId,
+    lastCompletedAttempt,
   } = useTapToPayOrchestration({
     amountCents,
     leadId: selectedLeadId || undefined,
@@ -1306,10 +1336,11 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
             </div>
 
             {/* Embedded Diagnostics - Debug builds only */}
-            <QuickTapToPayDiagnostics 
+            <QuickTapToPayDiagnostics
               paymentState={paymentState}
               lastSuccessfulStage={lastSuccessfulStage}
               mappedError={mappedError || undefined}
+              lastCompletedAttempt={lastCompletedAttempt}
             />
 
             {/* Footer */}
@@ -1556,9 +1587,15 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                 </div>
               </>
             ) : (
-              <div className="text-center py-4">
+              <div className="text-center py-4 space-y-4">
                 <CheckCircle2 className="w-12 h-12 text-green-600 dark:text-green-400 mx-auto mb-2" />
                 <p className="text-sm font-medium text-foreground">Receipt sent successfully!</p>
+                <button
+                  onClick={() => setShowReceiptModal(false)}
+                  className="w-full px-4 py-3 h-11 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-colors"
+                >
+                  Done
+                </button>
               </div>
             )}
           </div>
