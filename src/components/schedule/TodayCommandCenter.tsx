@@ -307,7 +307,7 @@ export default function TodayCommandCenter({
           Agenda
         </h2>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-          {todayTasks.length} Tasks • {todayJobs.length} Jobs • {todayAppointments.length} Appointments
+          {todayTasks.length + overdueTasks.length} Tasks • {todayJobs.length} Jobs • {todayAppointments.length} Appointments
           {overdueTasks.length > 0 && ` • ${overdueTasks.length} Overdue`}
         </p>
       </div>

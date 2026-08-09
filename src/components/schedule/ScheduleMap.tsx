@@ -920,17 +920,16 @@ export default function ScheduleMap({
         setUserInteracted(true)
       }
 
-      // Restore viewport after markers are rendered (only if saved viewport exists)
-      setTimeout(() => {
-        if (googleMapRef.current && savedState.center && savedState.zoom) {
-          programmaticCameraChangeRef.current = true
-          googleMapRef.current.setCenter(savedState.center)
-          googleMapRef.current.setZoom(savedState.zoom)
-          setTimeout(() => {
-            programmaticCameraChangeRef.current = false
-          }, 100)
-        }
-      }, 100)
+      // Restore viewport immediately if map is ready and saved viewport exists
+      // This prevents race condition with marker rendering effect
+      if (mapReady && googleMapRef.current && savedState.center && savedState.zoom) {
+        programmaticCameraChangeRef.current = true
+        googleMapRef.current.setCenter(savedState.center)
+        googleMapRef.current.setZoom(savedState.zoom)
+        setTimeout(() => {
+          programmaticCameraChangeRef.current = false
+        }, 100)
+      }
     } else {
       // First visit - use defaults
       setShowAllMode(true)
@@ -938,7 +937,7 @@ export default function ScheduleMap({
     }
 
     setSelectedMarker(null)
-  }, [selectedDate])
+  }, [selectedDate, mapReady])
 
   // Prepare map items when date changes (with race condition guard)
   useEffect(() => {
@@ -1044,13 +1043,13 @@ export default function ScheduleMap({
       }
     })
 
-    // Create signature from sorted marker IDs and coordinates
+    // Create signature from sorted marker IDs and mapItems coordinates (not Google Maps marker positions)
+    // This prevents signature changes due to floating-point precision differences in Google Maps marker positions
     const sortedMarkerIds = Array.from(currentMarkerIds).sort()
     const signature = sortedMarkerIds.map(id => {
-      const marker = markersRef.current.get(id)
-      if (!marker) return ''
-      const pos = marker.getPosition()
-      return `${id}:${pos.lat().toFixed(6)},${pos.lng().toFixed(6)}`
+      const item = filteredItems.find(i => i.id === id)
+      if (!item) return ''
+      return `${id}:${item.latitude.toFixed(6)},${item.longitude.toFixed(6)}`
     }).join('|')
 
     // Check if a new appointment marker was added (transition from unmappable to mappable)

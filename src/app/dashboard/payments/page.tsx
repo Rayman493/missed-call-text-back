@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '@/contexts/BusinessContext'
-import { CreditCard, Copy, ExternalLink, User, X, Smartphone, AlertCircle, Info, ChevronDown, MessageSquare, Link } from 'lucide-react'
+import { CreditCard, Copy, ExternalLink, User, X, Smartphone, AlertCircle, Info, ChevronDown, MessageSquare, Link, Filter } from 'lucide-react'
 import DashboardShell from '@/components/layout/DashboardShell'
 import Button from '@/components/ui/Button'
 import PageHeader from '@/components/ui/PageHeader'
@@ -23,6 +23,8 @@ import { analyticsService } from '@/lib/analytics/analytics-service'
 import type { JobPrefill } from '@/components/jobs/JobComposer'
 import EmptyState from '@/components/ui/EmptyState'
 import { CardSkeleton } from '@/components/ui/Skeleton'
+import Dropdown from '@/components/ui/Dropdown'
+import type { DropdownOption } from '@/components/ui/Dropdown'
 
 interface PaymentRequest {
   id: string
@@ -100,11 +102,22 @@ const getStatusLabel = (status: string) => {
   return style.label
 }
 
+// Payment filter options
+const paymentFilterOptions: DropdownOption[] = [
+  { value: 'all', label: 'All Payments' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'paid', label: 'Paid' },
+  { value: 'cancelled', label: 'Cancelled' },
+  { value: 'expired', label: 'Expired' },
+  { value: 'failed', label: 'Failed' },
+]
+
 
 export default function PaymentsPage() {
   const router = useRouter()
   const { business } = useBusiness()
   const [paymentRequests, setPaymentRequests] = useState<PaymentRequest[]>([])
+  const [paymentFilter, setPaymentFilter] = useState('all')
   const [stats, setStats] = useState<PaymentStats>({
     pendingAmount: 0,
     paidThisMonth: 0,
@@ -177,17 +190,25 @@ export default function PaymentsPage() {
 
   const hasAnyPaymentMethod = configuredPaymentMethods.length > 0
 
+  // Filter payments based on selected filter
+  const filteredPayments = useMemo(() => {
+    if (paymentFilter === 'all') {
+      return paymentRequests
+    }
+    return paymentRequests.filter(payment => payment.status === paymentFilter)
+  }, [paymentRequests, paymentFilter])
+
   // Split payments into visible (first 20) and older (rest)
   const { visiblePayments, olderPayments } = useMemo(() => {
     const VISIBLE_COUNT = 20
-    if (paymentRequests.length <= VISIBLE_COUNT) {
-      return { visiblePayments: paymentRequests, olderPayments: [] }
+    if (filteredPayments.length <= VISIBLE_COUNT) {
+      return { visiblePayments: filteredPayments, olderPayments: [] }
     }
     return {
-      visiblePayments: paymentRequests.slice(0, VISIBLE_COUNT),
-      olderPayments: paymentRequests.slice(VISIBLE_COUNT),
+      visiblePayments: filteredPayments.slice(0, VISIBLE_COUNT),
+      olderPayments: filteredPayments.slice(VISIBLE_COUNT),
     }
-  }, [paymentRequests])
+  }, [filteredPayments])
 
   // Auto-switch to first configured method if current selection is unavailable
   // Auto-select first available method when modal opens
@@ -531,6 +552,15 @@ export default function PaymentsPage() {
         <PageHeader
           title="Payments"
           description="Request and track customer payments."
+          actions={
+            <Dropdown
+              options={paymentFilterOptions}
+              value={paymentFilter}
+              onChange={setPaymentFilter}
+              size="sm"
+              className="w-40"
+            />
+          }
         />
 
         {/* Focus - Unified Intelligence for Payments */}
