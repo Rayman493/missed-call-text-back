@@ -98,9 +98,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify user owns this payment request by checking business ownership
+    // Load full canonical business sender configuration required by sendSms()
     const { data: business } = await supabaseAdmin
       .from('businesses')
-      .select('id, user_id, name, twilio_phone_number')
+      .select('*')
       .eq('id', paymentRequest.business_id)
       .single()
 
