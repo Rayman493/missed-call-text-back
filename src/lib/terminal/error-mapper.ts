@@ -129,8 +129,8 @@ export function mapTapToPayError(
     lowerMessage.startsWith('timeout:')
   ) {
     return {
-      title: 'Tap to Pay timed out',
-      message: 'ReplyFlow could not start Tap to Pay in time. Check your connection and try again.',
+      title: 'Tap to Pay Took Too Long',
+      message: 'Tap to Pay took too long to start. Please try again.',
       action: 'retry',
       technicalCode: code,
       technicalMessage: message,

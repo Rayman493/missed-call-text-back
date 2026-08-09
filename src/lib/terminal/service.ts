@@ -961,6 +961,17 @@ export class TerminalBridgeService {
     }
   }
 
+  // Cleanup method to clear stale in-flight connection promises on cancellation
+  // This prevents a canceled attempt's unresolved promise from poisoning subsequent attempts
+  clearInFlightConnection(reason: string = 'cleanup') {
+    if (this.connectInFlight) {
+      console.log('[TTP Service] CLEAR_INFLIGHT_CONNECTION', { reason, sessionId: this.sessionId })
+      try { logTapToPayEvent('connect_inflight_cleared', { phase: 'connect_reader', sessionId: this.sessionId, meta: { reason } }).catch(() => {}) } catch {}
+      this.connectInFlight = null
+      this.connectionOperationId = null
+    }
+  }
+
   async createTerminalPayment(options: CreateTerminalPaymentOptions) {
     const headers = await this.getAuthHeaders()
 

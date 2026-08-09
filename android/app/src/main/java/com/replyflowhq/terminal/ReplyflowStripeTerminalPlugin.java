@@ -1146,11 +1146,33 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           if (e.getErrorCode() == com.stripe.stripeterminal.external.models.TerminalErrorCode.ALREADY_CONNECTED_TO_READER) {
             Reader r = Terminal.getInstance().getConnectedReader();
             if (r != null) {
+              // Complete the same success contract as normal onSuccess callback
+              ReplyflowStripeTerminalPlugin.this.connectedReader = r;
+              status = "connected";
+              Log.d(TAG, "[TAP_SESSION_TRACE] stage=already_connected_success reader_id=" + r.getId() + " ts=" + System.currentTimeMillis());
+
+              JSObject readerInfo = new JSObject();
+              readerInfo.put("connected", true);
+              readerInfo.put("readerId", r.getId());
+              readerInfo.put("deviceType", r.getDeviceType().toString());
+              readerInfo.put("simulated", simulated);
+
+              notifyListeners("statusChanged", new JSObject().put("status", status));
+              notifyListeners("readerConnected", readerInfo);
+              
               JSObject info = new JSObject();
               info.put("readerId", r.getId());
               info.put("operationId", operationId);
+              info.put("recoveryReason", "ALREADY_CONNECTED_TO_READER");
               emitDiag("connect_already_connected_treated_success", "connect_reader", correlationId, info);
-              // Preserve connected status and do not overwrite with error
+              
+              JSObject done = new JSObject();
+              done.put("readerId", r.getId());
+              done.put("connectionStatus", status);
+              done.put("operationId", operationId);
+              done.put("recoveryReason", "ALREADY_CONNECTED_TO_READER");
+              emitDiag("connect_reader_completed", "connect_reader", correlationId, done);
+              
               synchronized (connectGuard) { connectInFlightNative = false; activeConnectOpId = null; }
               // Do NOT emit error - this is a successful state
               return;
