@@ -270,7 +270,7 @@ export default function QuickTapToPayDiagnostics({
           </div>
 
           {/* Events list - latest 100 */}
-          <div className="max-h-48 overflow-y-auto">
+          <div className="max-h-64 overflow-y-auto">
             {events.slice(-100).reverse().map((event, idx) => (
               <div 
                 key={idx}

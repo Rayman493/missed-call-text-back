@@ -159,7 +159,15 @@ async function isDiagnosticsEnabled(): Promise<boolean> {
   // Web development: always enable
   if (process.env.NODE_ENV !== 'production') return true
 
-  // Native debug build check
+  // Android: always enable for physical QA builds (matches QuickTapToPayDiagnostics.tsx logic)
+  if (Capacitor.isNativePlatform()) {
+    const platform = Capacitor.getPlatform()
+    if (platform === 'android') {
+      return true
+    }
+  }
+
+  // Native debug build check for iOS and other platforms
   if (!Capacitor.isNativePlatform()) return false
 
   // Return cached result if available

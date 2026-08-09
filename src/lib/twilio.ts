@@ -220,10 +220,20 @@ export async function sendSms(
   if (smsValidation.method === 'simulated') {
     console.log('[SMS] Simulated SMS sent:', { to: maskPhone(to), body: message.substring(0, 50) + '...' });
 
-    // Check if this is a system SMS (no lead_id)
-    const isSystemSms = !options?.lead_id;
+    // Check if this is a system SMS (no lead_id AND not a payment receipt)
+    // Payment receipts skip persistence since Twilio is the source of truth for delivery status
+    const isSystemSms = !options?.lead_id && options?.source !== 'payment_receipt';
 
-    if (isSystemSms) {
+    // Payment receipts skip persistence - Twilio is the source of truth
+    if (options?.source === 'payment_receipt') {
+      console.log('[SMS PERSISTENCE] Simulated payment receipt skipping database persistence (Twilio is source of truth)', {
+        business_id: business.id,
+        to
+      });
+      const simulatedSid = `SIM_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      console.log('[SMS TRACE sendSms RETURN_SIMULATED_PAYMENT_RECEIPT]', { sid: simulatedSid, messageId: null });
+      return { sid: simulatedSid, messageId: null };
+    } else if (isSystemSms) {
       // Insert into system_sms table for account-level messages (optional logging)
       try {
         const { data: insertedSystemSms, error: insertError } = await supabase
@@ -621,12 +631,23 @@ export async function sendSms(
     console.log('[SMS TRACE sendSms STEP_11_COMPLETE]', { actualStatus, twilioErrorCode, twilioErrorMessage });
 
     // Insert successful message record into database
-    // Check if this is a system SMS (no lead_id)
-    console.log('[SMS TRACE sendSms STEP_12_DB_INSERT_START]', { isSystemSms: !options?.lead_id });
-    const isSystemSms = !options?.lead_id;
+    // Check if this is a system SMS (no lead_id AND not a payment receipt)
+    // Payment receipts skip persistence since Twilio is the source of truth for delivery status
+    console.log('[SMS TRACE sendSms STEP_12_DB_INSERT_START]', { 
+      hasLeadId: !!options?.lead_id,
+      source: options?.source 
+    });
+    const isSystemSms = !options?.lead_id && options?.source !== 'payment_receipt';
     let messageId: string | null = null;
 
-    if (isSystemSms) {
+    // Payment receipts skip persistence - Twilio is the source of truth
+    if (options?.source === 'payment_receipt') {
+      console.log('[SMS PERSISTENCE] Payment receipt skipping database persistence (Twilio is source of truth)', {
+        twilio_message_sid: messageResult.sid,
+        business_id: business.id,
+        to
+      });
+    } else if (isSystemSms) {
       // Insert into system_sms table for account-level messages
       console.log('[SMS TRACE sendSms STEP_12A_INSERTING_SYSTEM_SMS]');
       const { data: insertedSystemSms, error: insertError } = await supabase
