@@ -101,6 +101,24 @@ export function mapTapToPayError(
     }
   }
 
+  // Device security requirements not met (Developer Options enabled, device tampered, etc.)
+  if (
+    lowerCode.includes('device_not_secure') ||
+    lowerCode.includes('tap_to_pay_insecure_environment') ||
+    lowerCode.includes('tap_to_pay_device_tampered') ||
+    lowerCode.includes('debug_build_not_supported') ||
+    lowerMessage.includes('developer options') ||
+    lowerMessage.includes('insecure environment')
+  ) {
+    return {
+      title: 'Device Settings Required',
+      message: 'Developer Options must be turned off to use Tap to Pay on this device. Turn off Developer Options in Android Settings, then try again.',
+      action: 'open_app_settings',
+      technicalCode: code,
+      technicalMessage: message,
+    }
+  }
+
   // Timeout errors
   if (
     lowerCode.includes('timeout') ||

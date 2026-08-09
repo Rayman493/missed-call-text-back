@@ -1141,10 +1141,8 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
             emitDiag("stale_connect_callback_ignored", "connect_reader", correlationId, stale);
             return;
           }
-          JSObject err = createStructuredError("connect_reader", e);
-          err.put("deviceState", captureDeviceState());
-          notifyListeners("error", err);
           // Treat ALREADY_CONNECTED_TO_READER as benign if reader is now connected
+          // Check BEFORE emitting error to prevent promise rejection in JS layer
           if (e.getErrorCode() == com.stripe.stripeterminal.external.models.TerminalErrorCode.ALREADY_CONNECTED_TO_READER) {
             Reader r = Terminal.getInstance().getConnectedReader();
             if (r != null) {
@@ -1154,9 +1152,13 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
               emitDiag("connect_already_connected_treated_success", "connect_reader", correlationId, info);
               // Preserve connected status and do not overwrite with error
               synchronized (connectGuard) { connectInFlightNative = false; activeConnectOpId = null; }
+              // Do NOT emit error - this is a successful state
               return;
             }
           }
+          JSObject err = createStructuredError("connect_reader", e);
+          err.put("deviceState", captureDeviceState());
+          notifyListeners("error", err);
           status = "error";
           notifyListeners("statusChanged", new JSObject().put("status", status));
           JSObject d = new JSObject();
