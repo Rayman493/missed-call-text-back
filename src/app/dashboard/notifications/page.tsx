@@ -360,7 +360,7 @@ export default function NotificationsPage() {
                   // Clear the ref after processing
                   pointerStateRef.current = null
                 }}
-                className={`group relative bg-white dark:bg-card border border-slate-200 dark:border-slate-700 rounded-lg p-4 transition-colors hover:shadow-sm focus:shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 select-none touch-pan-y cursor-pointer ${getNotificationAccent(notification.type)} ${
+                className={`group relative bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl p-4 transition-all duration-200 hover:shadow-md focus:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 select-none touch-pan-y cursor-pointer ${getNotificationAccent(notification.type)} ${
                   notification.read
                     ? ''
                     : 'bg-slate-50/50 dark:bg-slate-800/50'

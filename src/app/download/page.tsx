@@ -50,8 +50,8 @@ export default function DownloadPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
         {/* Logo and Brand */}
         <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <BrandIcon size={64} />
+          <div className="flex justify-center mb-3">
+            <BrandIcon size={88} />
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-2">
             ReplyFlow

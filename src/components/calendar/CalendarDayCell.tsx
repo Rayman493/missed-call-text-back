@@ -105,7 +105,7 @@ export default function CalendarDayCell({
         {visibleEvents.map((event, index) => (
           <div
             key={`${event.id}-${index}`}
-            className={`flex items-center gap-1 text-[9px] leading-none truncate ${getEventColor(event.type)}`}
+            className={`flex items-center gap-1 text-[10px] leading-none truncate ${getEventColor(event.type)}`}
             title={event.summary}
           >
             <div className="flex items-center justify-center w-4 h-4 flex-none shrink-0">

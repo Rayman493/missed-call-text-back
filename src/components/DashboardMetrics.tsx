@@ -295,7 +295,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
   }
 
   return (
-    <div className="bg-card/50 backdrop-blur-sm border border-border/30 rounded-xl p-4 sm:p-5">
+    <div className="bg-white dark:bg-slate-800/80 border border-border/50 rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-200">
       {metrics.length === 0 ? (
         <div className="text-center py-3">
           <p className="text-xs text-slate-500 dark:text-slate-400">No activity data available yet.</p>
