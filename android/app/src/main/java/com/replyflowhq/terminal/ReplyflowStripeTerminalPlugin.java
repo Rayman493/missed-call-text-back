@@ -229,7 +229,16 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
     emitDiag("initialize_called", "initialize", initCorrelationId, null);
     Log.d(TAG, "[STRIPE_TERMINAL_INIT] Current init state: " + initState);
     Log.d(TAG, "[STRIPE_TERMINAL_INIT] Android SDK: " + Build.VERSION.SDK_INT);
-    Log.d(TAG, "[STRIPE_TERMINAL_INIT] NFC available: " + getContext().getPackageManager().hasSystemFeature(PackageManager.FEATURE_NFC));
+
+    // Capture device capabilities for diagnostics
+    boolean nfcAvailable = getContext().getPackageManager().hasSystemFeature(PackageManager.FEATURE_NFC);
+    Log.d(TAG, "[STRIPE_TERMINAL_INIT] NFC available: " + nfcAvailable);
+
+    JSObject initDiag = new JSObject();
+    initDiag.put("androidSdk", Build.VERSION.SDK_INT);
+    initDiag.put("nfcAvailable", nfcAvailable);
+    initDiag.put("initState", initState.toString());
+    emitDiag("ANDROID_INITIALIZE_STARTED", "initialize", initCorrelationId, initDiag);
 
     // Get device locale for diagnostics
     Locale deviceLocale = Locale.getDefault();
@@ -376,32 +385,40 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
   @PluginMethod
   public void checkLocationPermission(PluginCall call) {
     Log.d(TAG, "[LOCATION] checkLocationPermission() called");
-    
+
     JSObject ret = new JSObject();
-    
+
     // Check if location permission is granted
     boolean hasPermission = ContextCompat.checkSelfPermission(
       getContext(),
       Manifest.permission.ACCESS_FINE_LOCATION
     ) == PackageManager.PERMISSION_GRANTED;
-    
+
     boolean hasCoarsePermission = ContextCompat.checkSelfPermission(
       getContext(),
       Manifest.permission.ACCESS_COARSE_LOCATION
     ) == PackageManager.PERMISSION_GRANTED;
-    
+
     boolean precise = hasPermission;
     boolean canAskAgain = !ActivityCompat.shouldShowRequestPermissionRationale(getActivity(), Manifest.permission.ACCESS_FINE_LOCATION);
-    
+
     ret.put("granted", hasPermission || hasCoarsePermission);
     ret.put("precise", precise);
     ret.put("canAskAgain", canAskAgain);
-    
+
     // Check if location services are enabled
     LocationManager locationManager = (LocationManager) getContext().getSystemService(Context.LOCATION_SERVICE);
     boolean locationEnabled = locationManager != null && locationManager.isLocationEnabled();
-    
+
     ret.put("locationEnabled", locationEnabled);
+
+    // Emit permission status diagnostic
+    JSObject permDiag = new JSObject();
+    permDiag.put("granted", hasPermission || hasCoarsePermission);
+    permDiag.put("precise", precise);
+    permDiag.put("canAskAgain", canAskAgain);
+    permDiag.put("locationEnabled", locationEnabled);
+    emitDiag("ANDROID_PERMISSION_STATUS", "connect_reader", currentCorrelationId, permDiag);
     
     Log.d(TAG, "[LOCATION] Permission check result: granted=" + (hasPermission || hasCoarsePermission) + " precise=" + precise + " canAskAgain=" + canAskAgain + " locationEnabled=" + locationEnabled);
     
@@ -864,6 +881,16 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
         @Override
         public void onUpdateDiscoveredReaders(@NonNull java.util.List<Reader> readers) {
           Log.d(TAG, "[TAP_SESSION_TRACE] stage=reader_discovered count=" + readers.size() + " ts=" + System.currentTimeMillis());
+          JSObject discoveryDiag = new JSObject();
+          discoveryDiag.put("readerCount", readers.size());
+          discoveryDiag.put("discoveryMethod", "TapToPayDiscoveryConfiguration");
+          discoveryDiag.put("simulated", effectiveSimulated);
+          if (!readers.isEmpty()) {
+            Reader firstReader = readers.get(0);
+            discoveryDiag.put("readerId", firstReader.getId());
+            discoveryDiag.put("readerType", firstReader.getDeviceType().toString());
+          }
+          emitDiag("DISCOVER_READERS_RESULT", "discover", connectCorrelationId, discoveryDiag);
           if (!readers.isEmpty()) {
             // For Tap to Pay, we expect at most one local reader
             // Auto-connect to the first discovered reader
@@ -1016,7 +1043,7 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
           JSObject d = new JSObject();
           if (e.getErrorCode() != null) d.put("code", e.getErrorCode().toString());
           d.put("message", e.getMessage());
-          emitDiag("discover_readers_failed", "discover", connectCorrelationId, d);
+          emitDiag("DISCOVER_READERS_FAILED", "discover", connectCorrelationId, d);
         }
       }
     );
@@ -1725,7 +1752,12 @@ public class ReplyflowStripeTerminalPlugin extends Plugin {
       try {
         PackageInfo packageInfo = pm.getPackageInfo(packageName, 0);
         appVersion = packageInfo.versionName != null ? packageInfo.versionName : "unknown";
-        buildNumber = String.valueOf(packageInfo.longVersionCode);
+        // Use getLongVersionCode() for API 28+, fallback to versionCode for older versions
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+          buildNumber = String.valueOf(packageInfo.getLongVersionCode());
+        } else {
+          buildNumber = String.valueOf(packageInfo.versionCode);
+        }
       } catch (Exception e) {
         Log.w(TAG, "[DIAGNOSTICS] Could not get package info: " + e.getMessage());
       }

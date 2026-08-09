@@ -170,6 +170,22 @@ export function mapTapToPayError(
     }
   }
 
+  // Education required/canceled - treat as cancellation, not failure
+  if (
+    lowerMessage.includes('education required') ||
+    lowerMessage.includes('education guide') ||
+    lowerCode.includes('education') ||
+    lowerCode.includes('education_canceled')
+  ) {
+    return {
+      title: 'Payment canceled',
+      message: 'Tap to Pay education must be completed before making a payment.',
+      action: 'back',
+      technicalCode: code,
+      technicalMessage: message,
+    }
+  }
+
   // Already in progress
   if (
     lowerCode.includes('already_in_progress') ||

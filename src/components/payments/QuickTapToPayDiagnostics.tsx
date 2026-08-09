@@ -61,7 +61,7 @@ export default function QuickTapToPayDiagnostics({
   const isFailure = paymentState === 'failure'
   const failedStage = mappedError?.stage || lastSuccessfulStage
 
-  // Check if diagnostics are enabled (web dev OR native debug build)
+  // Check if diagnostics are enabled (web dev OR native debug build OR Android for physical QA)
   useEffect(() => {
     const checkDiagnosticsEnabled = async () => {
       let enabled = false
@@ -75,7 +75,14 @@ export default function QuickTapToPayDiagnostics({
           const TerminalBridge = (await import('@/lib/terminal')).default
           const result = await TerminalBridge.getDiagnosticEnvironment()
           setNativeBuildInfo(result)
-          enabled = result.isNativeDebugBuild === true
+
+          // iOS: require debug build
+          // Android: enable for physical QA regardless of debug/release
+          if (result.platform === 'android') {
+            enabled = true
+          } else {
+            enabled = result.isNativeDebugBuild === true
+          }
         } catch {
           enabled = false
         }
@@ -173,8 +180,8 @@ export default function QuickTapToPayDiagnostics({
 
   return (
     <div className="border-t border-border/50">
-      {/* Debug failure summary - only in native debug builds when failed */}
-      {isFailure && nativeBuildInfo?.isNativeDebugBuild && (
+      {/* Debug failure summary - native debug builds OR Android QA */}
+      {isFailure && (nativeBuildInfo?.isNativeDebugBuild || nativeBuildInfo?.platform === 'android') && (
         <div className="px-4 py-2 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800">
           <div className="flex items-center gap-2 text-xs text-red-800 dark:text-red-200">
             <AlertTriangle className="w-3 h-3" />
@@ -184,13 +191,13 @@ export default function QuickTapToPayDiagnostics({
             {mappedError?.message && <span className="truncate max-w-[200px]">{mappedError.message}</span>}
           </div>
           <div className="flex gap-2 mt-1">
-            <button 
+            <button
               onClick={handleCopyDiagnostics}
               className="text-xs text-red-700 dark:text-red-300 hover:underline"
             >
               Copy Diagnostics
             </button>
-            <button 
+            <button
               onClick={() => setIsExpanded(true)}
               className="text-xs text-red-700 dark:text-red-300 hover:underline"
             >
