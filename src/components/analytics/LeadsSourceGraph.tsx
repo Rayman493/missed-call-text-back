@@ -15,21 +15,19 @@ interface LeadSourceData {
 }
 
 const SOURCE_COLORS: Record<string, string> = {
-  voice: '#8B5CF6',
+  replyflow: '#8B5CF6',
   sms: '#06B6D4',
   demo: '#EC4899',
-  manual_entry: '#F59E0B',
-  manual_backfill: '#F97316',
+  manual: '#F59E0B',
   web: '#3B82F6',
   unknown: '#94A3B8'
 }
 
 const SOURCE_LABELS: Record<string, string> = {
-  voice: 'Voice',
+  replyflow: 'ReplyFlow',
   sms: 'SMS',
   demo: 'Demo',
-  manual_entry: 'Manual',
-  manual_backfill: 'Manual',
+  manual: 'Manual',
   web: 'Web',
   unknown: 'Unknown'
 }
@@ -72,10 +70,10 @@ export default function LeadsSourceGraph() {
         Object.entries(sourceCounts).forEach(([source, count]) => {
           let normalizedSource = source
           // Map legacy/variant source values to canonical display values
-          if (source === 'manual' || source === 'manual_entry' || source === 'manual_backfill') {
-            normalizedSource = 'manual_entry'
-          } else if (source === 'ai_intake' || source === 'ai_voice') {
-            normalizedSource = 'voice'
+          if (source === 'voice' || source === 'ai_intake' || source === 'ai_voice') {
+            normalizedSource = 'replyflow'
+          } else if (source === 'manual' || source === 'manual_entry' || source === 'manual_backfill') {
+            normalizedSource = 'manual'
           }
           normalizedCounts[normalizedSource] = (normalizedCounts[normalizedSource] || 0) + count
         })
@@ -103,7 +101,7 @@ export default function LeadsSourceGraph() {
 
   // Calculate summary KPIs
   const totalLeads = data.reduce((sum, item) => sum + item.value, 0)
-  const voiceLeads = data.find(d => d.name === 'Voice')?.value || 0
+  const replyflowLeads = data.find(d => d.name === 'ReplyFlow')?.value || 0
 
   return (
     <Card className="h-full" variant="hero" padding="md">
@@ -118,9 +116,9 @@ export default function LeadsSourceGraph() {
               <span className="text-2xl font-semibold text-foreground">{totalLeads.toLocaleString()}</span>
               <span className="text-xs text-muted-foreground">total leads</span>
             </div>
-            {voiceLeads > 0 && (
+            {replyflowLeads > 0 && (
               <div className="text-[11px] text-muted-foreground/70 mt-1">
-                {voiceLeads} from voice calls (last 90 days)
+                {replyflowLeads} from ReplyFlow (last 90 days)
               </div>
             )}
           </div>
