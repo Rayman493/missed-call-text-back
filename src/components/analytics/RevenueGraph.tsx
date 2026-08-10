@@ -148,45 +148,47 @@ export default function RevenueGraph() {
           />
         ) : (
           <div className="h-[260px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data} margin={{ top: 16, right: 8, bottom: 8, left: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border/10" vertical={false} />
-                <XAxis 
-                  dataKey="date" 
-                  className="text-[10px] text-muted-foreground/60"
-                  tick={{ fontSize: 10 }}
-                  axisLine={false}
-                  tickLine={false}
-                  interval="preserveStartEnd"
-                />
-                <YAxis 
-                  className="text-[10px] text-muted-foreground/60"
-                  tick={{ fontSize: 10 }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(value) => `$${value}`}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    padding: '8px 12px',
-                    fontSize: '11px'
-                  }}
-                  itemStyle={{ color: 'hsl(var(--foreground))' }}
-                  formatter={(value: any) => [`$${(value || 0).toFixed(2)}`, 'Revenue']}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="revenue" 
-                  stroke="#16a34a" 
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={{ r: 4, fill: '#16a34a', strokeWidth: 2 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <div className="h-full w-full" style={{ touchAction: 'none', userSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={data} margin={{ top: 16, right: 8, bottom: 8, left: 8 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/10" vertical={false} />
+                  <XAxis 
+                    dataKey="date" 
+                    className="text-[10px] text-muted-foreground/60"
+                    tick={{ fontSize: 10 }}
+                    axisLine={false}
+                    tickLine={false}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis 
+                    className="text-[10px] text-muted-foreground/60"
+                    tick={{ fontSize: 10 }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(value) => `$${value}`}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                      fontSize: '11px'
+                    }}
+                    itemStyle={{ color: 'hsl(var(--foreground))' }}
+                    formatter={(value: any) => [`$${(value || 0).toFixed(2)}`, 'Revenue']}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="revenue" 
+                    stroke="#16a34a" 
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4, fill: '#16a34a', strokeWidth: 2 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         )}
       </div>

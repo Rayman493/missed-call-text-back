@@ -135,42 +135,44 @@ export default function NewCustomersGraph() {
           />
         ) : (
           <div className="h-[260px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data} margin={{ top: 16, right: 8, bottom: 8, left: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border/10" vertical={false} />
-                <XAxis 
-                  dataKey="date" 
-                  className="text-[10px] text-muted-foreground/60"
-                  tick={{ fontSize: 10 }}
-                  axisLine={false}
-                  tickLine={false}
-                  interval="preserveStartEnd"
-                />
-                <YAxis 
-                  className="text-[10px] text-muted-foreground/60"
-                  tick={{ fontSize: 10 }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    padding: '8px 12px',
-                    fontSize: '11px'
-                  }}
-                  itemStyle={{ color: 'hsl(var(--foreground))' }}
-                />
-                <Bar 
-                  dataKey="customers" 
-                  fill="hsl(var(--primary))" 
-                  fillOpacity={0.8}
-                  radius={[3, 3, 0, 0]}
-                  className="hover:fill-opacity-100 transition-all"
-                />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="h-full w-full" style={{ touchAction: 'none', userSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data} margin={{ top: 16, right: 8, bottom: 8, left: 8 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/10" vertical={false} />
+                  <XAxis 
+                    dataKey="date" 
+                    className="text-[10px] text-muted-foreground/60"
+                    tick={{ fontSize: 10 }}
+                    axisLine={false}
+                    tickLine={false}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis 
+                    className="text-[10px] text-muted-foreground/60"
+                    tick={{ fontSize: 10 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                      fontSize: '11px'
+                    }}
+                    itemStyle={{ color: 'hsl(var(--foreground))' }}
+                  />
+                  <Bar 
+                    dataKey="customers" 
+                    fill="hsl(var(--primary))" 
+                    fillOpacity={0.8}
+                    radius={[3, 3, 0, 0]}
+                    className="hover:fill-opacity-100 transition-all"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         )}
       </div>

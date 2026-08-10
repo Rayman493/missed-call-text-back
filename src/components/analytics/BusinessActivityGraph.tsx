@@ -204,102 +204,104 @@ export default function BusinessActivityGraph() {
           />
         ) : (
           <div className="h-[260px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data} margin={{ top: 16, right: 8, bottom: 8, left: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border/10" vertical={false} />
-                <XAxis 
-                  dataKey="date" 
-                  className="text-[10px] text-muted-foreground/60"
-                  tick={{ fontSize: 10 }}
-                  axisLine={false}
-                  tickLine={false}
-                  interval="preserveStartEnd"
-                />
-                <YAxis 
-                  className="text-[10px] text-muted-foreground/60"
-                  tick={{ fontSize: 10 }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    padding: '8px 12px',
-                    fontSize: '11px'
-                  }}
-                  itemStyle={{ color: 'hsl(var(--foreground))' }}
-                />
-                {showLegend && (
-                  <Legend 
-                    content={({ payload }: any) => (
-                      <div className="flex flex-wrap gap-3 justify-center pt-2">
-                        {payload.map((entry: any, index: number) => {
-                          const key = entry.dataKey as keyof ActivityData
-                          const total = data.reduce((sum, day) => {
-                            const value = day[key]
-                            return sum + (typeof value === 'number' ? value : 0)
-                          }, 0)
-                          return (
-                            <div key={index} className="flex items-center gap-1.5">
-                              <div 
-                                className="w-2.5 h-2.5 rounded-full" 
-                                style={{ backgroundColor: entry.color }}
-                              />
-                              <span className="text-[10px] text-muted-foreground">
-                                {entry.name}: <span className="font-medium text-foreground">{total}</span>
-                              </span>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                    wrapperStyle={{ paddingTop: '12px' }}
-                    iconType="circle"
-                    iconSize={6}
-                    verticalAlign="bottom"
-                    height={28}
+            <div className="h-full w-full" style={{ touchAction: 'none', userSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={data} margin={{ top: 16, right: 8, bottom: 8, left: 8 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/10" vertical={false} />
+                  <XAxis 
+                    dataKey="date" 
+                    className="text-[10px] text-muted-foreground/60"
+                    tick={{ fontSize: 10 }}
+                    axisLine={false}
+                    tickLine={false}
+                    interval="preserveStartEnd"
                   />
-                )}
-                <Line 
-                  type="monotone" 
-                  dataKey="conversations" 
-                  stroke="#3b82f6" 
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={{ r: 4, fill: '#3b82f6', strokeWidth: 2 }}
-                  name="Conversations"
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="appointments" 
-                  stroke="#22c55e" 
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={{ r: 4, fill: '#22c55e', strokeWidth: 2 }}
-                  name="Appointments"
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="paymentRequests" 
-                  stroke="#f59e0b" 
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={{ r: 4, fill: '#f59e0b', strokeWidth: 2 }}
-                  name="Payment Requests"
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="completedJobs" 
-                  stroke="#8b5cf6" 
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={{ r: 4, fill: '#8b5cf6', strokeWidth: 2 }}
-                  name="Completed Jobs"
-                />
-              </LineChart>
-            </ResponsiveContainer>
+                  <YAxis 
+                    className="text-[10px] text-muted-foreground/60"
+                    tick={{ fontSize: 10 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                      fontSize: '11px'
+                    }}
+                    itemStyle={{ color: 'hsl(var(--foreground))' }}
+                  />
+                  {showLegend && (
+                    <Legend 
+                      content={({ payload }: any) => (
+                        <div className="flex flex-wrap gap-3 justify-center pt-2">
+                          {payload.map((entry: any, index: number) => {
+                            const key = entry.dataKey as keyof ActivityData
+                            const total = data.reduce((sum, day) => {
+                              const value = day[key]
+                              return sum + (typeof value === 'number' ? value : 0)
+                            }, 0)
+                            return (
+                              <div key={index} className="flex items-center gap-1.5">
+                                <div 
+                                  className="w-2.5 h-2.5 rounded-full" 
+                                  style={{ backgroundColor: entry.color }}
+                                />
+                                <span className="text-[10px] text-muted-foreground">
+                                  {entry.name}: <span className="font-medium text-foreground">{total}</span>
+                                </span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                      wrapperStyle={{ paddingTop: '12px' }}
+                      iconType="circle"
+                      iconSize={6}
+                      verticalAlign="bottom"
+                      height={28}
+                    />
+                  )}
+                  <Line 
+                    type="monotone" 
+                    dataKey="conversations" 
+                    stroke="#3b82f6" 
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4, fill: '#3b82f6', strokeWidth: 2 }}
+                    name="Conversations"
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="appointments" 
+                    stroke="#22c55e" 
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4, fill: '#22c55e', strokeWidth: 2 }}
+                    name="Appointments"
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="paymentRequests" 
+                    stroke="#f59e0b" 
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4, fill: '#f59e0b', strokeWidth: 2 }}
+                    name="Payment Requests"
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="completedJobs" 
+                    stroke="#8b5cf6" 
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4, fill: '#8b5cf6', strokeWidth: 2 }}
+                    name="Completed Jobs"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         )}
       </div>

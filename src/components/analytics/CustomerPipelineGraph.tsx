@@ -48,7 +48,7 @@ export default function CustomerPipelineGraph() {
           return {
             status: style.label,
             count: statusCounts[status] || 0,
-            color: style.badgeClass
+            color: style.color
           }
         }).filter((item) => item.count > 0)
 
@@ -102,43 +102,45 @@ export default function CustomerPipelineGraph() {
           />
         ) : (
           <div className="h-[260px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data} layout="horizontal" margin={{ top: 16, right: 8, bottom: 8, left: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border/10" horizontal={false} />
-                <XAxis 
-                  type="number" 
-                  className="text-[10px] text-muted-foreground/60"
-                  tick={{ fontSize: 10 }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis 
-                  type="category" 
-                  dataKey="status" 
-                  className="text-[10px] text-muted-foreground/60"
-                  tick={{ fontSize: 10 }}
-                  width={100}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    padding: '8px 12px',
-                    fontSize: '11px'
-                  }}
-                  itemStyle={{ color: 'hsl(var(--foreground))' }}
-                  formatter={(value: any, name?: any) => [value, 'Customers']}
-                />
-                <Bar dataKey="count" radius={[0, 3, 3, 0]} className="hover:opacity-80 transition-all">
-                  {data.map((entry, index) => (
-                    <rect key={`cell-${index}`} fill={entry.color} fillOpacity={0.8} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="h-full w-full" style={{ touchAction: 'none', userSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data} layout="horizontal" margin={{ top: 16, right: 8, bottom: 8, left: 8 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/10" horizontal={false} />
+                  <XAxis 
+                    type="number" 
+                    className="text-[10px] text-muted-foreground/60"
+                    tick={{ fontSize: 10 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis 
+                    type="category" 
+                    dataKey="status" 
+                    className="text-[10px] text-muted-foreground/60"
+                    tick={{ fontSize: 10 }}
+                    width={100}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                      fontSize: '11px'
+                    }}
+                    itemStyle={{ color: 'hsl(var(--foreground))' }}
+                    formatter={(value: any, name?: any) => [value, 'Customers']}
+                  />
+                  <Bar dataKey="count" radius={[0, 3, 3, 0]} className="hover:opacity-80 transition-all">
+                    {data.map((entry, index) => (
+                      <rect key={`cell-${index}`} fill={entry.color} fillOpacity={0.8} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         )}
       </div>

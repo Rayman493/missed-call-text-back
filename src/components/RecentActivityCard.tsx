@@ -48,13 +48,33 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
             *,
             jobs(id, title, status, created_at, updated_at, scheduled_date),
             tasks(id, title, status, created_at, updated_at),
-            payment_requests(id, amount_cents, status, created_at, updated_at, paid_at),
+            payment_requests(id, amount_cents, status, created_at, updated_at, paid_at, payment_method_type, lead_id),
             ai_call_records(id, outcome, created_at)
           `)
           .eq('business_id', business.id)
           .gte('created_at', sevenDaysAgo)
           .order('created_at', { ascending: false })
           .limit(10)
+
+        // Fetch terminal payments linked to jobs (Tap to Pay)
+        const { data: terminalPayments } = await supabase
+          .from('payment_requests')
+          .select(`
+            id,
+            amount_cents,
+            status,
+            created_at,
+            updated_at,
+            paid_at,
+            payment_method_type,
+            job_id,
+            jobs!inner(id, title, lead_id, business_id)
+          `)
+          .eq('business_id', business.id)
+          .eq('payment_method_type', 'card_present')
+          .gte('created_at', sevenDaysAgo)
+          .order('created_at', { ascending: false })
+          .limit(5)
 
         // Fetch recent messages (messages has no business_id; filter by business phone)
         const businessPhone = business.twilio_phone_number || ''
@@ -258,6 +278,37 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
             icon: <Mic className="w-3 h-3" />,
             color: 'text-purple-600 dark:text-purple-400',
           })
+        })
+
+        // Add terminal payments (Tap to Pay)
+        terminalPayments?.forEach((tp: any) => {
+          const job = tp.jobs
+          const customerName = job?.title || 'Job Payment'
+          if (tp.status === 'paid' && tp.paid_at && new Date(tp.paid_at) >= new Date(sevenDaysAgo)) {
+            events.push({
+              id: `terminal-payment-${tp.id}`,
+              type: 'payment_received',
+              title: 'Payment Received',
+              description: `$${(tp.amount_cents / 100).toFixed(2)} • Tap to Pay`,
+              timestamp: tp.paid_at,
+              icon: <DollarSign className="w-3 h-3" />,
+              color: 'text-emerald-600 dark:text-emerald-400',
+              customerId: job?.lead_id,
+              customerName,
+            })
+          } else if (tp.status === 'failed' && new Date(tp.updated_at) >= new Date(sevenDaysAgo)) {
+            events.push({
+              id: `terminal-payment-failed-${tp.id}`,
+              type: 'payment_failed',
+              title: 'Payment Failed',
+              description: `$${(tp.amount_cents / 100).toFixed(2)} • Tap to Pay`,
+              timestamp: tp.updated_at,
+              icon: <AlertCircle className="w-3 h-3" />,
+              color: 'text-red-600 dark:text-red-400',
+              customerId: job?.lead_id,
+              customerName,
+            })
+          }
         })
 
         // Sort by timestamp and take latest 8

@@ -39,6 +39,7 @@ export interface CustomerStatusStyle {
   iconClass: string
   textClass: string
   selectedClass: string
+  color: string // Hex color for chart rendering
 }
 
 /**
@@ -53,7 +54,8 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
     badgeClass: 'border-blue-500/40 bg-blue-500/12 text-blue-400',
     iconClass: 'bg-blue-500/15 text-blue-400',
     textClass: 'text-blue-400',
-    selectedClass: 'border-blue-500/40 bg-blue-500/12'
+    selectedClass: 'border-blue-500/40 bg-blue-500/12',
+    color: '#3B82F6'
   },
   needs_reply: {
     label: 'Needs Reply',
@@ -62,7 +64,8 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
     badgeClass: 'border-cyan-500/40 bg-cyan-500/12 text-cyan-400',
     iconClass: 'bg-cyan-500/15 text-cyan-400',
     textClass: 'text-cyan-400',
-    selectedClass: 'border-cyan-500/40 bg-cyan-500/12'
+    selectedClass: 'border-cyan-500/40 bg-cyan-500/12',
+    color: '#06B6D4'
   },
   active: {
     label: 'Active',
@@ -71,7 +74,8 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
     badgeClass: 'border-green-500/40 bg-green-500/12 text-green-400',
     iconClass: 'bg-green-500/15 text-green-400',
     textClass: 'text-green-400',
-    selectedClass: 'border-green-500/40 bg-green-500/12'
+    selectedClass: 'border-green-500/40 bg-green-500/12',
+    color: '#22C55E'
   },
   scheduled: {
     label: 'Scheduled',
@@ -80,7 +84,8 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
     badgeClass: 'border-purple-500/40 bg-purple-500/12 text-purple-400',
     iconClass: 'bg-purple-500/15 text-purple-400',
     textClass: 'text-purple-400',
-    selectedClass: 'border-purple-500/40 bg-purple-500/12'
+    selectedClass: 'border-purple-500/40 bg-purple-500/12',
+    color: '#A855F7'
   },
   payment_requested: {
     label: 'Payment Requested',
@@ -89,7 +94,8 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
     badgeClass: 'border-amber-500/40 bg-amber-500/12 text-amber-400',
     iconClass: 'bg-amber-500/15 text-amber-400',
     textClass: 'text-amber-400',
-    selectedClass: 'border-amber-500/40 bg-amber-500/12'
+    selectedClass: 'border-amber-500/40 bg-amber-500/12',
+    color: '#F59E0B'
   },
   paid: {
     label: 'Paid',
@@ -98,7 +104,8 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
     badgeClass: 'border-emerald-500/40 bg-emerald-500/12 text-emerald-400',
     iconClass: 'bg-emerald-500/15 text-emerald-400',
     textClass: 'text-emerald-400',
-    selectedClass: 'border-emerald-500/40 bg-emerald-500/12'
+    selectedClass: 'border-emerald-500/40 bg-emerald-500/12',
+    color: '#10B981'
   },
   completed: {
     label: 'Completed',
@@ -107,7 +114,8 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
     badgeClass: 'border-slate-400/40 bg-slate-400/12 text-slate-400',
     iconClass: 'bg-slate-400/15 text-slate-400',
     textClass: 'text-slate-400',
-    selectedClass: 'border-slate-400/40 bg-slate-400/12'
+    selectedClass: 'border-slate-400/40 bg-slate-400/12',
+    color: '#94A3B8'
   },
   ignored: {
     label: 'Ignored',
@@ -116,7 +124,8 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
     badgeClass: 'border-orange-500/40 bg-orange-500/12 text-orange-400',
     iconClass: 'bg-orange-500/15 text-orange-400',
     textClass: 'text-orange-400',
-    selectedClass: 'border-orange-500/40 bg-orange-500/12'
+    selectedClass: 'border-orange-500/40 bg-orange-500/12',
+    color: '#F97316'
   },
   lost: {
     label: 'Lost',
@@ -125,7 +134,8 @@ export const CUSTOMER_STATUS_STYLES: Record<CustomerStatus, CustomerStatusStyle>
     badgeClass: 'border-red-500/40 bg-red-500/12 text-red-400',
     iconClass: 'bg-red-500/15 text-red-400',
     textClass: 'text-red-400',
-    selectedClass: 'border-red-500/40 bg-red-500/12'
+    selectedClass: 'border-red-500/40 bg-red-500/12',
+    color: '#EF4444'
   }
 }
 

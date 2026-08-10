@@ -87,10 +87,18 @@ export default function LeadStatusDropdown({
     }
   }
 
+  const handleOpenChange = (open: boolean) => {
+    if (shouldPreventClick && open) {
+      setShouldPreventClick(false)
+      return
+    }
+    setIsOpen(open)
+  }
+
   const allStatuses = getAllCustomerStatuses()
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={isOpen} onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>
         <button
           type="button"
