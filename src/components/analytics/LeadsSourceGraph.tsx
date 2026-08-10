@@ -42,7 +42,7 @@ export default function LeadsSourceGraph() {
       try {
         const supabase = createBrowserClient()
 
-        // Fetch leads with raw_metadata to get true source
+        // Fetch leads with raw_metadata for source classification
         const { data: leads } = await supabase
           .from('leads')
           .select('raw_metadata')
@@ -52,14 +52,95 @@ export default function LeadsSourceGraph() {
 
         if (!isMounted) return
 
-        // Count by source from raw_metadata
+        // Helper: Check for historical AI-intake metadata in raw_metadata
+        // This is for leads created before creation_source was consistently populated
+        const hasHistoricalReplyFlowIntakeEvidence = (rawMetadata: any): boolean => {
+          if (!rawMetadata) return false
+
+          // HIGH-CONFIDENCE HISTORICAL SIGNALS
+          // These metadata fields are only present when ReplyFlow AI intake pipeline processed the lead
+          const hasAiIntakeCompleted = rawMetadata.ai_intake_completed === true
+          const hasAiIntakePartial = rawMetadata.ai_intake_partial === true
+          const hasCallSid = rawMetadata.ai_intake_latest_call_sid && rawMetadata.ai_intake_latest_call_sid.length > 0
+          const hasCompletedAt = rawMetadata.ai_intake_completed_at && rawMetadata.ai_intake_completed_at.length > 0
+          const hasAiSummarySms = rawMetadata.ai_summary_sms_sent === true
+          const hasConfirmationSms = rawMetadata.ai_confirmation_sms_sent === true
+          const hasSmsOutcome = rawMetadata.auto_sms_dispatch_outcome !== undefined
+
+          // Support failed/incomplete AI intake records that entered the pipeline
+          const hasFailedIntake = rawMetadata.ai_intake_completed === false &&
+            (rawMetadata.extracted_info?.customerPhone || rawMetadata.failure_reason)
+
+          return hasAiIntakeCompleted || hasAiIntakePartial || hasCallSid ||
+                 hasCompletedAt || hasAiSummarySms || hasConfirmationSms ||
+                 hasSmsOutcome || hasFailedIntake
+        }
+
+        // Normalize explicit source to canonical value
+        const normalizeExplicitSource = (source: string): string | null => {
+          if (!source || source === 'unknown') return null
+
+          // ReplyFlow Intake: all automatic ReplyFlow acquisition paths
+          if (source === 'voice' || source === 'ai_voice' || source === 'call_intake' || source === 'ai_intake' || source === 'sms') {
+            return 'replyflow_intake'
+          }
+
+          // Manually Added: merchant/user-created leads
+          if (source === 'manual' || source === 'manual_payment_request' || source === 'manual_entry' || source === 'manual_backfill') {
+            return 'manual'
+          }
+
+          // Test/demo leads - excluded
+          if (source === 'admin_test' || source === 'demo') {
+            return 'excluded'
+          }
+
+          // Web source - unclassified (no proven acquisition meaning)
+          if (source === 'web') {
+            return 'unclassified'
+          }
+
+          // Unknown source value
+          return 'unclassified'
+        }
+
+        // Resolve lead source with precedence: explicit source > historical metadata
+        const resolveLeadSource = (lead: any): string => {
+          // Priority 1: Explicit canonical source in raw_metadata
+          const canonicalSource = lead.raw_metadata?.creation_source
+          if (canonicalSource) {
+            const normalized = normalizeExplicitSource(canonicalSource)
+            if (normalized && normalized !== 'unclassified') {
+              return canonicalSource // Return original source for normalization
+            }
+          }
+
+          // Priority 2: Legacy source field in raw_metadata
+          const legacySource = lead.raw_metadata?.source
+          if (legacySource) {
+            const normalized = normalizeExplicitSource(legacySource)
+            if (normalized && normalized !== 'unclassified') {
+              return legacySource // Return original source for normalization
+            }
+          }
+
+          // Priority 3: Historical AI-intake metadata (only when explicit source is absent)
+          // This is for leads created before creation_source was consistently populated
+          if (hasHistoricalReplyFlowIntakeEvidence(lead.raw_metadata)) {
+            return 'voice' // Classify as voice (ReplyFlow Intake)
+          }
+
+          // Priority 4: Unclassified
+          return 'unknown'
+        }
+
+        // Count by resolved source
         const sourceCounts: { [key: string]: number } = {}
         leads?.forEach((lead: any) => {
-          // Read from creation_source (canonical field) first, then fall back to source (legacy field)
-          const source = lead.raw_metadata?.creation_source || lead.raw_metadata?.source || 'unknown'
+          const resolvedSource = resolveLeadSource(lead)
           // Exclude demo leads from production analytics
-          if (source !== 'demo') {
-            sourceCounts[source] = (sourceCounts[source] || 0) + 1
+          if (resolvedSource !== 'demo') {
+            sourceCounts[resolvedSource] = (sourceCounts[resolvedSource] || 0) + 1
           }
         })
 
