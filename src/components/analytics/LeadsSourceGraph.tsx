@@ -58,7 +58,8 @@ export default function LeadsSourceGraph() {
         // Count by source from raw_metadata
         const sourceCounts: { [key: string]: number } = {}
         leads?.forEach((lead: any) => {
-          const source = lead.raw_metadata?.source || 'unknown'
+          // Read from creation_source (canonical field) first, then fall back to source (legacy field)
+          const source = lead.raw_metadata?.creation_source || lead.raw_metadata?.source || 'unknown'
           // Exclude demo leads from production analytics
           if (source !== 'demo') {
             sourceCounts[source] = (sourceCounts[source] || 0) + 1
