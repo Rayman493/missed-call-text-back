@@ -2203,9 +2203,9 @@ export default function SettingsContent() {
                           <button
                             onClick={calendarConnected ? handleDisconnectCalendar : handleConnectCalendar}
                             disabled={isConnectingCalendar || isDisconnectingCalendar}
-                            className={`h-9 px-4 text-xs font-medium rounded-md transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap ${
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap ${
                               calendarConnected
-                                ? 'border border-red-200 dark:border-red-800/50 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30'
+                                ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
                                 : 'bg-blue-600 hover:bg-blue-700 text-white'
                             }`}
                           >
@@ -2750,10 +2750,18 @@ export default function SettingsContent() {
                     )
                   })()}
 
-                <div className="mt-3 p-2.5 bg-blue-50/70 dark:bg-blue-900/15 border border-blue-200/70 dark:border-blue-800/60 rounded-lg">
-                  <p className="text-xs text-blue-700 dark:text-blue-300">
-                    Choose a payment method when sending a request.
-                  </p>
+                <div className="mt-4 pt-3 border-t border-border/25">
+                  <div className="flex items-start gap-2">
+                    <CreditCard className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-medium text-foreground mb-0.5">
+                        Payment requests
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Choose a payment method when sending a payment request.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
