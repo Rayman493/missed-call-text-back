@@ -552,15 +552,6 @@ export default function PaymentsPage() {
         <PageHeader
           title="Payments"
           description="Request and track customer payments."
-          actions={
-            <Dropdown
-              options={paymentFilterOptions}
-              value={paymentFilter}
-              onChange={setPaymentFilter}
-              size="sm"
-              className="w-40"
-            />
-          }
         />
 
         {/* Focus - Unified Intelligence for Payments */}
@@ -743,6 +734,20 @@ export default function PaymentsPage() {
                   {stats.collectionRate}%
                 </div>
               </div>
+            </div>
+
+            {/* Table toolbar */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex-1">
+                {/* Optional: Add label if needed */}
+              </div>
+              <Dropdown
+                options={paymentFilterOptions}
+                value={paymentFilter}
+                onChange={setPaymentFilter}
+                size="sm"
+                className="w-40"
+              />
             </div>
 
             {/* Payment Requests Table - Mobile cards, Desktop table */}
