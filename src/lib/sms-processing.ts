@@ -4,7 +4,7 @@ import { sanitizeMessageContent } from '@/lib/security'
 import { notificationServiceServer } from '@/lib/notifications-server'
 import { isIgnoredContact } from '@/lib/ignored-contacts'
 import { normalizePunctuation } from '@/lib/utils'
-import { formatAiIntakeSummary, formatAiIntakeSummaryWithMode } from '@/lib/ai-intake-formatter'
+import { formatAiIntakeSummary, formatAiIntakeSummaryWithMode, formatAdaptiveIntakeSms } from '@/lib/ai-intake-formatter'
 import { detectCorrection, applyCorrection, generateCorrectionNote, generateMultiFieldAcknowledgement } from '@/lib/ai-correction-engine'
 import { normalizeExtractedInfo } from '@/lib/ai-field-mapping'
 import { extractFromSmsBody, safeMergeSmsExtraction } from '@/lib/voicemail-extraction'
@@ -106,7 +106,7 @@ export interface ProcessInboundSmsParams {
 }
 
 // Generate the complete AI intake SMS body.
-// Delegates to formatAiIntakeSummary (single source of truth for SMS + dashboard).
+// Uses adaptive message quality based on intake completeness.
 // extractedInfo uses canonical keys (callerName, reasonForCalling, etc.)
 // businessName and callerPhone must be passed by the caller.
 // prefixNotice is optional (out-of-office / after-hours message).
@@ -117,8 +117,8 @@ export function generateSummaryFromExtractedInfo(
   prefixNotice: string = '',
   options?: { serviceLocationType?: 'onsite' | 'customer_comes_to_business' | 'remote' | string | null }
 ): string {
-  console.log('[AI SMS FORMATTER VERSION] formatAiIntakeSummary (single formatter)');
-  const body = formatAiIntakeSummaryWithMode(
+  console.log('[AI SMS FORMATTER VERSION] formatAdaptiveIntakeSms (adaptive quality)');
+  const body = formatAdaptiveIntakeSms(
     extractedInfo,
     callerPhone,
     businessName || undefined,
@@ -126,7 +126,6 @@ export function generateSummaryFromExtractedInfo(
     options?.serviceLocationType
   )
 
-  // Omit Location section for non-onsite businesses when location not provided
   return body
 }
 

@@ -877,6 +877,138 @@ export const formatAiIntakeSummary = (
   return body;
 };
 
+/**
+ * Generate adaptive SMS message based on intake completeness level
+ * Uses friendly, natural copy that sounds like a business message
+ *
+ * Message Levels:
+ * - Level A (Minimal): No useful information collected → simple reply prompt
+ * - Level B (Some): Service known → personalized acknowledgment
+ * - Level C (Partial): Service + some context → structured summary with partial ending
+ * - Level D (Complete): Sufficient information → structured summary with complete ending
+ */
+export const formatAdaptiveIntakeSms = (
+  intakeData: any,
+  callerPhone: string,
+  businessName?: string,
+  prefixNotice?: string,
+  serviceLocationType?: 'onsite' | 'customer_comes_to_business' | 'remote' | string | null
+): string => {
+  // Read canonical field names with backward compatibility
+  const customerName = normalizeCustomerName(
+    intakeData?.customerName ?? intakeData?.callerName
+  );
+  const serviceAddress = normalizeAddress(
+    intakeData?.serviceAddress ?? intakeData?.addressOrLocation
+  );
+  const desiredCompletionTime = normalizeTiming(
+    intakeData?.desiredCompletionTime
+  );
+  const callbackTime = normalizeTiming(
+    intakeData?.callbackTime ?? intakeData?.preferredCallbackTime
+  );
+  const serviceRequested = normalizeServiceReason(
+    intakeData?.serviceRequested ?? intakeData?.reasonForCalling
+  );
+
+  // Determine which fields have actual meaningful values
+  const hasName = customerName && customerName !== 'Not collected' && customerName.trim() !== '';
+  const hasRequest = serviceRequested && serviceRequested !== 'Not collected' && serviceRequested.trim() !== '';
+  const hasAddress = serviceAddress && serviceAddress !== 'Not collected' && serviceAddress.trim() !== '';
+  const hasCompletionTime = desiredCompletionTime && desiredCompletionTime !== 'Not collected' && desiredCompletionTime.trim() !== '';
+  const hasCallbackTime = callbackTime && callbackTime !== 'Not collected' && callbackTime.trim() !== '';
+
+  // Business name: use if available, otherwise omit entirely
+  const displayName = businessName && businessName.trim() ? businessName : null;
+  const prefix = prefixNotice ? `${prefixNotice}\n\n` : '';
+
+  // Determine if location should be shown (for non-onsite businesses, location may not be relevant)
+  const mode = typeof serviceLocationType === 'string' ? serviceLocationType.trim().toLowerCase() : 'onsite';
+  const normalizedMode = (mode === 'onsite' || mode === 'customer_comes_to_business' || mode === 'remote') ? mode : 'onsite';
+  const shouldShowLocation = normalizedMode === 'onsite' || hasAddress;
+
+  // Semantic completeness: prioritize useful information
+  // Customer name improves personalization but doesn't make intake substantially complete
+  // Phone number doesn't count since ReplyFlow already has it
+  const meaningfulFields = [
+    hasRequest, // Service/request is most important
+    shouldShowLocation && hasAddress, // Location when relevant
+    hasCompletionTime, // Timing
+    hasCallbackTime // Callback preference
+  ];
+  const meaningfulFieldCount = meaningfulFields.filter(Boolean).length;
+
+  // Level A: Minimal information - no useful details
+  if (meaningfulFieldCount === 0) {
+    const greeting = hasName ? `Hi ${customerName}!` : 'Hi!';
+    const businessPart = displayName ? ` Thanks for reaching out to ${displayName}.` : ' Thanks for reaching out.';
+    return `${prefix}${greeting}${businessPart} Reply here with what you need help with and we'll make sure the business gets it.`;
+  }
+
+  // Level B: Service only - personalized acknowledgment
+  if (meaningfulFieldCount === 1 && hasRequest) {
+    const greeting = hasName ? `Hi ${customerName}!` : 'Hi!';
+    const businessPart = displayName ? ` Thanks for reaching out to ${displayName}.` : ' Thanks for reaching out.';
+    return `${prefix}${greeting}${businessPart}\n\nWe got your request for ${serviceRequested.toLowerCase()}.\n\nWe'll pass this along. Reply here if you'd like to add or change anything.`;
+  }
+
+  // Level C: Partial intake - service + some context
+  if (meaningfulFieldCount === 2) {
+    const greeting = hasName ? `Hi ${customerName}!` : 'Hi!';
+    const businessPart = displayName ? ` Thanks for reaching out to ${displayName}.` : ' Thanks for reaching out.';
+    let body = `${prefix}${greeting}${businessPart}\n\nHere's what we got:\n`;
+
+    // Service (always show if available)
+    if (hasRequest) {
+      body += `• ${serviceRequested}`;
+    }
+
+    // Location (without emoji to avoid UCS-2 encoding)
+    if (shouldShowLocation && hasAddress) {
+      body += `\n• ${serviceAddress}`;
+    }
+
+    // Timing (without emoji)
+    if (hasCompletionTime) {
+      body += `\n• ${desiredCompletionTime}`;
+    }
+
+    // Callback (without emoji)
+    if (hasCallbackTime) {
+      body += `\n• Best callback: ${callbackTime}`;
+    }
+
+    body += `\n\nWe'll pass this along. Reply here if you'd like to add or change anything.`;
+
+    return body.trim();
+  }
+
+  // Level D: Complete intake - sufficient information
+  const greeting = hasName ? `Hi ${customerName}!` : 'Hi!';
+  const businessPart = displayName ? ` Thanks for reaching out to ${displayName}.` : ' Thanks for reaching out.';
+  let body = `${prefix}${greeting}${businessPart}\n\nHere's what we got:\n`;
+
+  if (hasRequest) {
+    body += `• ${serviceRequested}`;
+  }
+
+  if (shouldShowLocation && hasAddress) {
+    body += `\n• ${serviceAddress}`;
+  }
+
+  if (hasCompletionTime) {
+    body += `\n• ${desiredCompletionTime}`;
+  }
+
+  if (hasCallbackTime) {
+    body += `\n• Best callback: ${callbackTime}`;
+  }
+
+  body += `\n\nWe've got everything we need for now. We'll share this with the business and they'll follow up soon. Reply here if anything changes.`;
+
+  return body.trim();
+};
+
 // Wrapper that applies service-location omission logic for Location block
 export const formatAiIntakeSummaryWithMode = (
   intakeData: any,

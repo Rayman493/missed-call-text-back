@@ -7,21 +7,25 @@ export interface BusinessAvailabilityNoticeResult {
   notice: string | null
 }
 
-function replaceBusinessName(message: string, business: any): string {
-  return message.replace(/\{\{business_name\}\}/gi, business?.name || 'the business').trim()
+// SMS-specific concise defaults (optimized for segment efficiency)
+function getSmsDefaultAfterHoursTemplate(businessName: string | null): string {
+  if (businessName && businessName.trim()) {
+    return `${businessName.trim()} is currently closed. They'll review your message during business hours.`
+  }
+  return "We're currently closed. Your message will be reviewed during business hours."
 }
 
-function replaceReturnDate(message: string, business: any): string {
-  if (!business?.out_of_office_end) return message
-  const endDate = new Date(business.out_of_office_end)
-  const friendlyDate = endDate.toLocaleDateString('en-US', { 
-    weekday: 'short', 
-    month: 'short', 
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit'
-  })
-  return message.replace(/\{\{return_date\}\}/gi, friendlyDate).trim()
+function getSmsDefaultOutOfOfficeTemplate(businessName: string | null, returnDate: string | null): string {
+  if (businessName && businessName.trim()) {
+    if (returnDate && returnDate.trim()) {
+      return `${businessName.trim()} is currently away. Responses may be delayed until ${returnDate.trim()}.`
+    }
+    return `${businessName.trim()} is currently away, so responses may be delayed.`
+  }
+  if (returnDate && returnDate.trim()) {
+    return `We're currently away. Responses may be delayed until ${returnDate.trim()}.`
+  }
+  return "We're currently away, so responses may be delayed."
 }
 
 export function isWithinBusinessHoursForSms(business: any): boolean {
@@ -53,26 +57,59 @@ export function isWithinBusinessHoursForSms(business: any): boolean {
 export function getBusinessAvailabilityNoticeForSms(business: any): BusinessAvailabilityNoticeResult {
   if (!business) return { type: 'none', notice: null }
 
+  const businessName = business?.name && business.name.trim() ? business.name.trim() : null
+
+  // Out of office takes precedence
   if (business.out_of_office_enabled && business.out_of_office_start && business.out_of_office_end) {
     const now = new Date()
     const start = new Date(business.out_of_office_start)
     const end = new Date(business.out_of_office_end)
 
     if (now >= start && now <= end) {
-      const notice = business.out_of_office_message && business.out_of_office_message.trim()
-        ? replaceReturnDate(replaceBusinessName(business.out_of_office_message, business), business)
-        : replaceReturnDate(replaceBusinessName(getDefaultOutOfOfficeTemplate(), business), business)
-
-      return { type: 'out_of_office', notice }
+      // Use custom message if present, otherwise use SMS-specific default
+      if (business.out_of_office_message && business.out_of_office_message.trim()) {
+        // Custom message: preserve merchant wording, just replace placeholders
+        const customMessage = business.out_of_office_message.trim()
+        let notice = customMessage
+        notice = notice.replace(/\{\{business_name\}\}/gi, businessName || 'the business')
+        if (business.out_of_office_end) {
+          const endDate = new Date(business.out_of_office_end)
+          const friendlyDate = endDate.toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric'
+          })
+          notice = notice.replace(/\{\{return_date\}\}/gi, friendlyDate)
+        }
+        return { type: 'out_of_office', notice }
+      } else {
+        // Use SMS-specific default
+        const returnDate = business.out_of_office_end
+          ? new Date(business.out_of_office_end).toLocaleDateString('en-US', {
+              weekday: 'short',
+              month: 'short',
+              day: 'numeric'
+            })
+          : null
+        const notice = getSmsDefaultOutOfOfficeTemplate(businessName, returnDate)
+        return { type: 'out_of_office', notice }
+      }
     }
   }
 
+  // After hours
   if (!isWithinBusinessHoursForSms(business)) {
-    const notice = business.after_hours_message && business.after_hours_message.trim()
-      ? replaceBusinessName(business.after_hours_message, business)
-      : replaceBusinessName(getDefaultAfterHoursTemplate(), business)
-
-    return { type: 'after_hours', notice }
+    // Use custom message if present, otherwise use SMS-specific default
+    if (business.after_hours_message && business.after_hours_message.trim()) {
+      // Custom message: preserve merchant wording, just replace placeholders
+      let notice = business.after_hours_message.trim()
+      notice = notice.replace(/\{\{business_name\}\}/gi, businessName || 'the business')
+      return { type: 'after_hours', notice }
+    } else {
+      // Use SMS-specific default
+      const notice = getSmsDefaultAfterHoursTemplate(businessName)
+      return { type: 'after_hours', notice }
+    }
   }
 
   return { type: 'none', notice: null }
