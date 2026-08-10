@@ -179,6 +179,7 @@ function ScheduleMapComponent({
   const [userInteracted, setUserInteracted] = useState(false)
   const [showAllMode, setShowAllMode] = useState(true)
   const [previousDateKey, setPreviousDateKey] = useState<string | null>(null)
+  const [lastAutoFitDateKey, setLastAutoFitDateKey] = useState<string | null>(null) // Track when we last auto-fitted to prevent repeated fits
 
   // Persist map type preference
   useEffect(() => {
@@ -242,6 +243,11 @@ function ScheduleMapComponent({
   const getFilteredMapItems = useCallback((items: MapItem[]): MapItem[] => {
     if (mapFilter === 'all') return items
     return items.filter(item => item.type === mapFilter.slice(0, -1) as MapItemType)
+  }, [mapFilter])
+
+  // Reset auto-fit tracking when filter changes (so map will refit to filtered markers)
+  useEffect(() => {
+    setLastAutoFitDateKey(null)
   }, [mapFilter])
 
   // Clear selection if selected item is filtered out
@@ -864,6 +870,7 @@ function ScheduleMapComponent({
       map.addListener('dragstart', () => {
         if (!programmaticCameraChangeRef.current) {
           setUserInteracted(true)
+          setLastAutoFitDateKey(null) // Reset auto-fit tracking on user interaction
         }
       })
       // idle fires after any movement settles (user or programmatic)
@@ -876,6 +883,7 @@ function ScheduleMapComponent({
         } else if (!programmaticCameraChangeRef.current) {
           // This idle was caused by user movement
           setUserInteracted(true)
+          setLastAutoFitDateKey(null) // Reset auto-fit tracking on user interaction
         }
       })
 
@@ -1122,15 +1130,20 @@ function ScheduleMapComponent({
     }
 
     // Get bottom nav height from CSS variable for padding
-    const bottomNavHeight = typeof window !== 'undefined' 
+    const bottomNavHeight = typeof window !== 'undefined'
       ? parseInt(getComputedStyle(document.body).getPropertyValue('--bottom-nav-height')) || 80
       : 80
     const bottomPadding = bottomNavHeight + 40 // Add extra breathing room
+
+    // Get current date key for auto-fit logic
+    const currentDateKey = selectedDate.toISOString().split('T')[0]
+    const dateChanged = previousDateKey !== null && previousDateKey !== currentDateKey
 
     // Smart automatic framing logic
     if (markersRef.current.size === 0) {
       // Zero mapped items - keep current viewport
       markerSetSignatureRef.current = signature
+      setLastAutoFitDateKey(null) // Reset auto-fit tracking on empty day
     } else if (selectedMapItemId && !userInteracted) {
       // Explicitly selected item - center on it with detail zoom
       // Only auto-focus if user hasn't manually moved the map
@@ -1141,14 +1154,37 @@ function ScheduleMapComponent({
         panToMarker(pos.lat(), pos.lng(), 15, false) // Programmatic: do not set userInteracted
         markerSetSignatureRef.current = signature
       }
-    } else if (showAllMode && !userInteracted && signatureChanged) {
-      // Multiple items in show all mode - fit bounds with bottom padding
-      markerSetSignatureRef.current = signature
-      const bounds = new (window as any).google.maps.LatLngBounds()
-      markersRef.current.forEach(marker => {
-        bounds.extend(marker.getPosition()!)
-      })
-      fitBoundsWithMaxZoom(bounds, 15, bottomPadding)
+    } else if (showAllMode && !userInteracted && (dateChanged || signatureChanged)) {
+      // Auto-fit when:
+      // - Show all mode active
+      // - User hasn't manually moved the map
+      // - Date changed OR marker set changed (filter change, new geocoding, etc.)
+      // - We haven't already auto-fitted to this date (prevents repeated fits on same date)
+      const shouldAutoFit = dateChanged || (signatureChanged && lastAutoFitDateKey !== currentDateKey)
+
+      if (shouldAutoFit) {
+        markerSetSignatureRef.current = signature
+        setLastAutoFitDateKey(currentDateKey)
+
+        if (markersRef.current.size === 1) {
+          // Single stop - center with sensible zoom (neighborhood/city context)
+          const singleMarker = markersRef.current.values().next().value
+          if (singleMarker) {
+            const pos = singleMarker.getPosition()
+            panToMarker(pos.lat(), pos.lng(), 13, false) // Zoom 13 = neighborhood/city context, not building-level
+          }
+        } else {
+          // Multiple stops - fit bounds with padding
+          const bounds = new (window as any).google.maps.LatLngBounds()
+          markersRef.current.forEach(marker => {
+            bounds.extend(marker.getPosition()!)
+          })
+          fitBoundsWithMaxZoom(bounds, 15, bottomPadding)
+        }
+      } else {
+        // No auto-fit needed, just update signature
+        markerSetSignatureRef.current = signature
+      }
     } else if (hasNewAppointmentMarker && newlyMappableEventIdRef.current) {
       // One-time adjustment to show newly mappable event
       markerSetSignatureRef.current = signature
@@ -1168,7 +1204,7 @@ function ScheduleMapComponent({
       markersRef.current.forEach(marker => marker.setMap(null))
       markersRef.current.clear()
     }
-  }, [mapItems, groupItemsByLocation, mapReady, getFilteredMapItems, showAllMode, fitBoundsWithMaxZoom, selectMapItem, selectedMapItemId, userInteracted])
+  }, [mapItems, groupItemsByLocation, mapReady, getFilteredMapItems, showAllMode, fitBoundsWithMaxZoom, selectMapItem, selectedMapItemId, userInteracted, previousDateKey, lastAutoFitDateKey])
 
   // Update marker icons when selection changes (without triggering camera changes)
   useEffect(() => {
