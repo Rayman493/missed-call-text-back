@@ -134,12 +134,14 @@ export async function POST(request: Request) {
         timestamp: new Date().toISOString()
       })
       
+      // Use legacy db.createLead for demo lead creation (preserves existing behavior)
       demoLead = await db.createLead({
         business_id: business.id,
         caller_phone: normalizedDemoPhone,
         status: 'new',
         name: 'Demo User',
-        raw_metadata: { source: 'demo' },
+        source: 'demo',
+        raw_metadata: {}
       })
 
       if (!demoLead) {

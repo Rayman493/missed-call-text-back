@@ -1020,7 +1020,12 @@ export const db = {
 
     const normalizedLead = {
       ...lead,
-      caller_phone: normalizePhoneNumberForStorage(lead.caller_phone || '')
+      caller_phone: normalizePhoneNumberForStorage(lead.caller_phone || ''),
+      raw_metadata: {
+        ...lead.raw_metadata,
+        creation_source: lead.source || lead.raw_metadata?.source || 'ai_voice',
+        callSid: callSid
+      }
     }
 
     // IDEMPOTENCY GUARD: Check if lead already exists for this Call SID

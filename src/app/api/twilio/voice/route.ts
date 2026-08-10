@@ -1719,12 +1719,13 @@ async function handleVoiceWebhook(request: NextRequest, skipSignatureValidation:
         reason: 'No existing lead found, creating new lead for voicemail flow'
       })
       
-      // Create new lead
+      // Create new lead using legacy db.createLead (preserves existing behavior)
       lead = await db.createLead({
         business_id: business.id,
         caller_phone: normalizedCallerPhone,
         status: 'new',
-        raw_metadata: { source: 'voice', callSid: CallSid },
+        source: 'voice',
+        raw_metadata: { callSid: CallSid },
       }, CallSid);
       
       if (lead) {
