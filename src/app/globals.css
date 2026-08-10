@@ -208,8 +208,8 @@ main {
   .page-gradient {
     background: radial-gradient(
       ellipse at top,
-      rgba(59, 130, 246, 0.03) 0%,
-      rgba(99, 102, 241, 0.02) 40%,
+      rgba(59, 130, 246, 0.04) 0%,
+      rgba(99, 102, 241, 0.03) 40%,
       transparent 70%
     ),
     #020617;
