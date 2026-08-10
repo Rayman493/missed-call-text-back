@@ -420,7 +420,30 @@ export async function POST(request: NextRequest) {
                         .maybeSingle();
 
                       if (callEvent && !callEvent.sms_sent_at) {
-                        console.log('[RECORDING STATUS SMS] sms_pending flag found, sending structured SMS after extraction');
+                        console.log('[RECORDING STATUS SMS] sms_pending flag found, attempting atomic claim');
+
+                        // Atomic claim: set sms_message_sid to 'CLAIMING' to prevent concurrent sends
+                        const { data: claimedCallEvent } = await supabaseAdmin
+                          .from('call_events')
+                          .update({ sms_message_sid: 'CLAIMING' })
+                          .eq('twilio_call_sid', voicemail.call_sid)
+                          .eq('sms_pending', true)
+                          .is('sms_message_sid', null)
+                          .select()
+                          .maybeSingle();
+
+                        if (!claimedCallEvent) {
+                          console.log('[AUTO_SMS_CLAIM_SKIPPED] SMS already claimed by another request or already sent', {
+                            callSid: voicemail.call_sid,
+                            reason: 'atomic_claim_failed'
+                          });
+                          return;
+                        }
+
+                        console.log('[AUTO_SMS_CLAIM_ACQUIRED] Atomic claim successful', {
+                          callSid: voicemail.call_sid,
+                          sms_message_sid: claimedCallEvent.sms_message_sid
+                        });
 
                         // Fetch the updated lead with freshly extracted data
                         const { data: freshLead } = await supabaseAdmin
@@ -450,17 +473,34 @@ export async function POST(request: NextRequest) {
                           };
 
                           const conversation = await db.getOpenConversationForLead(voicemail.lead_id, voicemail.business_id);
-                          const dispatchResult = await dispatchAutomaticCustomerSms({
-                            trigger: 'voicemail_completed',
-                            callSid: voicemail.call_sid,
-                            businessId: voicemail.business_id,
-                            leadId: voicemail.lead_id,
-                            conversationId: conversation?.id,
-                            callerPhone,
-                            businessName: businessDetails.name || 'My Business',
-                            extractedInfo,
-                            voicemailCompleted: true
-                          });
+
+                          let dispatchResult;
+                          try {
+                            dispatchResult = await dispatchAutomaticCustomerSms({
+                              trigger: 'voicemail_completed',
+                              callSid: voicemail.call_sid,
+                              businessId: voicemail.business_id,
+                              leadId: voicemail.lead_id,
+                              conversationId: conversation?.id,
+                              callerPhone,
+                              businessName: businessDetails.name || 'My Business',
+                              extractedInfo,
+                              voicemailCompleted: true
+                            });
+                          } catch (dispatchError) {
+                            console.error('[AUTO_SMS_DISPATCH_FAILED] Dispatch failed, restoring claim for retry', {
+                              callSid: voicemail.call_sid,
+                              error: dispatchError
+                            });
+                            await supabaseAdmin
+                              .from('call_events')
+                              .update({ sms_message_sid: null })
+                              .eq('twilio_call_sid', voicemail.call_sid);
+                            console.log('[AUTO_SMS_CLAIM_RECOVERED] Claim restored after dispatch failure', {
+                              callSid: voicemail.call_sid
+                            });
+                            throw dispatchError;
+                          }
 
                           const messageSid = dispatchResult.twilioMessageSid || null;
                           console.log('[RECORDING STATUS SMS] Centralized dispatch after extraction', {
@@ -472,6 +512,45 @@ export async function POST(request: NextRequest) {
                             template: dispatchResult.template,
                             reason: dispatchResult.reason
                           });
+
+                          // Handle terminal skip conditions - mark call as no longer needing SMS
+                          if (dispatchResult.skipped) {
+                            const terminalSkipReasons = [
+                              'automatic_sms_already_dispatched_for_call',
+                              'already_sent',
+                              'call_did_not_reach_replyflow_ai',
+                              'repeat_call_protection',
+                              'blocked_caller',
+                              'private_caller',
+                              'suspected_spam_caller',
+                              'opted_out'
+                            ];
+
+                            if (terminalSkipReasons.includes(dispatchResult.reason)) {
+                              // Terminal skip: mark call as satisfied, release claim
+                              await supabaseAdmin
+                                .from('call_events')
+                                .update({
+                                  sms_pending: false,
+                                  sms_message_sid: null
+                                })
+                                .eq('twilio_call_sid', voicemail.call_sid);
+                              console.log('[AUTO_SMS_TERMINAL_SKIP] Call marked as no longer needing automatic SMS', {
+                                callSid: voicemail.call_sid,
+                                reason: dispatchResult.reason
+                              });
+                            } else {
+                              // Non-terminal skip: release claim but keep pending for retry
+                              await supabaseAdmin
+                                .from('call_events')
+                                .update({ sms_message_sid: null })
+                                .eq('twilio_call_sid', voicemail.call_sid);
+                              console.log('[AUTO_SMS_RETRYABLE_SKIP] Claim released, call remains pending for retry', {
+                                callSid: voicemail.call_sid,
+                                reason: dispatchResult.reason
+                              });
+                            }
+                          }
 
                           if (messageSid) {
                             await timelineEvents.messageSent(voicemail.business_id, voicemail.lead_id, conversation?.id || '', '', messageSid);
@@ -536,7 +615,7 @@ export async function POST(request: NextRequest) {
           .maybeSingle();
 
         if ((pendingCallEvent && !pendingCallEvent.sms_sent_at) || testFallbacks.forceFinalSmsFallback) {
-          console.log('[FINAL SMS FALLBACK] sms_pending still true after all voicemail paths - sending structured fallback SMS', {
+          console.log('[FINAL SMS FALLBACK] sms_pending still true after all voicemail paths - attempting atomic claim for fallback SMS', {
             callSid: voicemail.call_sid,
             leadId: voicemail.lead_id,
             businessId: voicemail.business_id,
@@ -544,33 +623,112 @@ export async function POST(request: NextRequest) {
             reason: 'ai_failed_and_voicemail_no_usable_transcript'
           });
 
-          const { data: fallbackBusiness } = await supabaseAdmin
-            .from('businesses')
-            .select('*')
-            .eq('id', voicemail.business_id)
-            .single();
+          // Atomic claim: set sms_message_sid to 'CLAIMING' to prevent concurrent sends
+          const { data: claimedFallbackCallEvent } = await supabaseAdmin
+            .from('call_events')
+            .update({ sms_message_sid: 'CLAIMING' })
+            .eq('twilio_call_sid', voicemail.call_sid)
+            .eq('sms_pending', true)
+            .is('sms_message_sid', null)
+            .select()
+            .maybeSingle();
 
-          if (fallbackBusiness && voicemail.caller_phone) {
-            const fallbackConversation = await db.getOpenConversationForLead(voicemail.lead_id, voicemail.business_id);
-            const dispatchResult = await dispatchAutomaticCustomerSms({
-              trigger: 'recording_fallback',
+          if (!claimedFallbackCallEvent && !testFallbacks.forceFinalSmsFallback) {
+            console.log('[AUTO_SMS_CLAIM_SKIPPED] Fallback SMS already claimed by another request or already sent', {
               callSid: voicemail.call_sid,
-              businessId: voicemail.business_id,
-              leadId: voicemail.lead_id,
-              conversationId: fallbackConversation?.id,
-              callerPhone: voicemail.caller_phone,
-              businessName: fallbackBusiness.name || 'My Business'
+              reason: 'atomic_claim_failed_fallback'
             });
+          } else {
+            if (claimedFallbackCallEvent) {
+              console.log('[AUTO_SMS_CLAIM_ACQUIRED] Atomic claim successful for fallback SMS', {
+                callSid: voicemail.call_sid,
+                sms_message_sid: claimedFallbackCallEvent.sms_message_sid
+              });
+            }
 
-            const fallbackMessageSid = dispatchResult.twilioMessageSid || null;
-            console.log('[FINAL SMS FALLBACK] Centralized dispatch result', {
+            const { data: fallbackBusiness } = await supabaseAdmin
+              .from('businesses')
+              .select('*')
+              .eq('id', voicemail.business_id)
+              .single();
+
+            if (fallbackBusiness && voicemail.caller_phone) {
+              const fallbackConversation = await db.getOpenConversationForLead(voicemail.lead_id, voicemail.business_id);
+
+              let fallbackDispatchResult;
+              try {
+                fallbackDispatchResult = await dispatchAutomaticCustomerSms({
+                  trigger: 'recording_fallback',
+                  callSid: voicemail.call_sid,
+                  businessId: voicemail.business_id,
+                  leadId: voicemail.lead_id,
+                  conversationId: fallbackConversation?.id,
+                  callerPhone: voicemail.caller_phone,
+                  businessName: fallbackBusiness.name || 'My Business'
+                });
+              } catch (fallbackDispatchError) {
+                console.error('[AUTO_SMS_DISPATCH_FAILED] Fallback dispatch failed, restoring claim for retry', {
+                  callSid: voicemail.call_sid,
+                  error: fallbackDispatchError
+                });
+                await supabaseAdmin
+                  .from('call_events')
+                  .update({ sms_message_sid: null })
+                  .eq('twilio_call_sid', voicemail.call_sid);
+                console.log('[AUTO_SMS_CLAIM_RECOVERED] Claim restored after fallback dispatch failure', {
+                  callSid: voicemail.call_sid
+                });
+                throw fallbackDispatchError;
+              }
+
+              const fallbackMessageSid = fallbackDispatchResult.twilioMessageSid || null;
+              console.log('[FINAL SMS FALLBACK] Centralized dispatch result', {
               messageSid: fallbackMessageSid,
               leadId: voicemail.lead_id,
               callerPhone: voicemail.caller_phone,
-              outcome: dispatchResult.outcome,
-              template: dispatchResult.template,
-              reason: dispatchResult.reason
+              outcome: fallbackDispatchResult.outcome,
+              template: fallbackDispatchResult.template,
+              reason: fallbackDispatchResult.reason
             });
+
+            // Handle terminal skip conditions - mark call as no longer needing SMS
+            if (fallbackDispatchResult.skipped) {
+              const terminalSkipReasons = [
+                'automatic_sms_already_dispatched_for_call',
+                'already_sent',
+                'call_did_not_reach_replyflow_ai',
+                'repeat_call_protection',
+                'blocked_caller',
+                'private_caller',
+                'suspected_spam_caller',
+                'opted_out'
+              ];
+
+              if (terminalSkipReasons.includes(fallbackDispatchResult.reason)) {
+                // Terminal skip: mark call as satisfied, release claim
+                await supabaseAdmin
+                  .from('call_events')
+                  .update({
+                    sms_pending: false,
+                    sms_message_sid: null
+                  })
+                  .eq('twilio_call_sid', voicemail.call_sid);
+                console.log('[AUTO_SMS_TERMINAL_SKIP] Fallback: call marked as no longer needing automatic SMS', {
+                  callSid: voicemail.call_sid,
+                  reason: fallbackDispatchResult.reason
+                });
+              } else {
+                // Non-terminal skip: release claim but keep pending for retry
+                await supabaseAdmin
+                  .from('call_events')
+                  .update({ sms_message_sid: null })
+                  .eq('twilio_call_sid', voicemail.call_sid);
+                console.log('[AUTO_SMS_RETRYABLE_SKIP] Fallback: claim released, call remains pending for retry', {
+                  callSid: voicemail.call_sid,
+                  reason: fallbackDispatchResult.reason
+                });
+              }
+            }
 
             if (fallbackMessageSid) {
               await timelineEvents.messageSent(voicemail.business_id, voicemail.lead_id, fallbackConversation?.id || '', '', fallbackMessageSid);
@@ -591,6 +749,7 @@ export async function POST(request: NextRequest) {
               businessId: voicemail.business_id,
               callerPhone: voicemail.caller_phone
             });
+          }
           }
         } else if (pendingCallEvent?.sms_sent_at) {
           console.log('[FINAL SMS FALLBACK] SMS already sent, skipping fallback', { callSid: voicemail.call_sid });
