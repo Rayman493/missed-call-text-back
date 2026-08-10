@@ -49,9 +49,9 @@ export default function DownloadPage() {
     <div className="min-h-screen page-gradient">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
         {/* Logo and Brand */}
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-3">
-            <BrandIcon size={88} />
+        <div className="text-center mb-6">
+          <div className="flex justify-center mb-2">
+            <BrandIcon size={72} />
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white mb-2">
             ReplyFlow
@@ -62,10 +62,10 @@ export default function DownloadPage() {
         </div>
 
         {/* Hero Section */}
-        <div className="text-center mb-8">
-          <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-white leading-snug">
+        <div className="text-center mb-6">
+          <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 leading-relaxed max-w-2xl mx-auto">
             Calls, customers, scheduling, payments, and more — wherever you work.
-          </h2>
+          </p>
         </div>
 
         {/* Download Section - Client-side device detection */}
@@ -76,19 +76,25 @@ export default function DownloadPage() {
 
         {/* Continue on Web */}
         <div className="mt-8 text-center">
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
-            Or continue using ReplyFlow on the web
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+            Available now
+          </p>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+            Continue using ReplyFlow on the web.
           </p>
           <Link
             href="/"
-            className="inline-flex items-center justify-center px-5 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors duration-200"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-sm hover:shadow"
           >
             Continue on the web
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
           </Link>
         </div>
 
         {/* Footer */}
-        <div className="mt-12 pt-6 border-t border-slate-200 dark:border-slate-800 text-center">
+        <div className="mt-10 pt-4 border-t border-slate-200 dark:border-slate-800 text-center">
           <p className="text-xs text-slate-500 dark:text-slate-400">
             © {new Date().getFullYear()} ReplyFlow. All rights reserved.
           </p>
