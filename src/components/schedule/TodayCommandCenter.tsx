@@ -475,7 +475,7 @@ export default function TodayCommandCenter({
                     {onEditTask && item.type === 'task' && (
                       <button
                         onClick={() => onEditTask(item.data)}
-                        className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                        className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors opacity-100"
                         aria-label="Edit task"
                       >
                         <Pencil className="w-3.5 h-3.5" />
@@ -484,7 +484,7 @@ export default function TodayCommandCenter({
                     {item.type === 'task' && (
                       <button
                         onClick={() => deleteTask(item.id)}
-                        className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                        className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors opacity-100"
                         aria-label="Delete task"
                       >
                         ×
@@ -503,7 +503,7 @@ export default function TodayCommandCenter({
                     {onEditJob && (
                       <button
                         onClick={(e) => { e.stopPropagation(); onEditJob(item.data) }}
-                        className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                        className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors opacity-100"
                         aria-label="Edit job"
                       >
                         <Pencil className="w-3.5 h-3.5" />
@@ -512,7 +512,7 @@ export default function TodayCommandCenter({
                     {onDeleteJob && (
                       <button
                         onClick={(e) => { e.stopPropagation(); onDeleteJob(item.data) }}
-                        className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                        className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors opacity-100"
                         aria-label="Delete job"
                       >
                         ×
@@ -628,7 +628,7 @@ export default function TodayCommandCenter({
                         {onEditTask && (
                           <button
                             onClick={() => onEditTask(task)}
-                            className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                            className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors opacity-100"
                             aria-label="Edit task"
                           >
                             <Pencil className="w-3.5 h-3.5" />
@@ -636,7 +636,7 @@ export default function TodayCommandCenter({
                         )}
                         <button
                           onClick={() => deleteTask(task.id)}
-                          className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                          className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors opacity-100"
                           aria-label="Delete task"
                         >
                           ×
@@ -730,7 +730,7 @@ export default function TodayCommandCenter({
                         {onEditJob && (
                           <button
                             onClick={(e) => { e.stopPropagation(); onEditJob(job) }}
-                            className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                            className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors opacity-100"
                             aria-label="Edit job"
                           >
                             <Pencil className="w-3.5 h-3.5" />
@@ -739,7 +739,7 @@ export default function TodayCommandCenter({
                         {onDeleteJob && (
                           <button
                             onClick={(e) => { e.stopPropagation(); onDeleteJob(job) }}
-                            className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                            className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors opacity-100"
                             aria-label="Delete job"
                           >
                             ×
@@ -829,7 +829,7 @@ export default function TodayCommandCenter({
                         {onEditAppointment && (
                           <button
                             onClick={() => onEditAppointment(event)}
-                            className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                            className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors opacity-100"
                             aria-label="Edit appointment"
                           >
                             <Pencil className="w-3.5 h-3.5" />
@@ -838,7 +838,7 @@ export default function TodayCommandCenter({
                         {onDeleteAppointment && (
                           <button
                             onClick={() => onDeleteAppointment(event)}
-                            className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                            className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors opacity-100"
                             aria-label="Delete appointment"
                           >
                             ×
