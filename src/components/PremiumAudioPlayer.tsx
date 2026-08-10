@@ -289,7 +289,7 @@ export default function PremiumAudioPlayer({
             {/* Desktop: Horizontal Volume Popover */}
             <div className="hidden md:block">
               {isDesktopVolumeOpen && (
-                <div className="absolute bottom-full right-0 mb-2 w-44 bg-popover border border-border rounded-lg shadow-lg p-3 z-50 flex items-center gap-2">
+                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 w-44 bg-popover border border-border rounded-lg shadow-lg p-3 z-50 flex items-center gap-2">
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
@@ -323,7 +323,7 @@ export default function PremiumAudioPlayer({
             {/* Mobile: Horizontal Volume Popover */}
             <div className="md:hidden">
               {isMobileVolumeOpen && (
-                <div className="absolute bottom-full right-0 mb-2 w-44 bg-popover border border-border rounded-lg shadow-lg p-3 z-50 flex items-center gap-2">
+                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 w-44 bg-popover border border-border rounded-lg shadow-lg p-3 z-50 flex items-center gap-2">
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
