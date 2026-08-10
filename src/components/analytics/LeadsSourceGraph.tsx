@@ -15,27 +15,24 @@ interface LeadSourceData {
 }
 
 const SOURCE_COLORS: Record<string, string> = {
-  replyflow: '#8B5CF6',
-  sms: '#06B6D4',
-  demo: '#EC4899',
+  replyflow_intake: '#8B5CF6',
   manual: '#F59E0B',
-  web: '#3B82F6',
-  unknown: '#94A3B8'
+  excluded: '#94A3B8',
+  unclassified: '#94A3B8'
 }
 
 const SOURCE_LABELS: Record<string, string> = {
-  replyflow: 'ReplyFlow',
-  sms: 'SMS',
-  demo: 'Demo',
-  manual: 'Manual',
-  web: 'Web',
-  unknown: 'Unknown'
+  replyflow_intake: 'ReplyFlow Intake',
+  manual: 'Manually Added',
+  excluded: 'Excluded',
+  unclassified: 'Unclassified'
 }
 
 export default function LeadsSourceGraph() {
   const { business } = useBusiness()
   const [data, setData] = useState<LeadSourceData[]>([])
   const [loading, setLoading] = useState(true)
+  const [unclassifiedCount, setUnclassifiedCount] = useState(0)
 
   useEffect(() => {
     let isMounted = true
@@ -66,27 +63,34 @@ export default function LeadsSourceGraph() {
           }
         })
 
-        // Normalize source values for display
+        // Normalize source values to two customer-facing categories
         const normalizedCounts: { [key: string]: number } = {}
+        let localUnclassifiedCount = 0
         Object.entries(sourceCounts).forEach(([source, count]) => {
-          let normalizedSource = source
-          // Map legacy/variant source values to canonical display values
-          if (source === 'voice' || source === 'ai_intake' || source === 'ai_voice' || source === 'call_intake') {
-            normalizedSource = 'replyflow'
-          } else if (source === 'manual' || source === 'manual_entry' || source === 'manual_backfill') {
-            normalizedSource = 'manual'
-          } else if (source === 'sms') {
-            normalizedSource = 'sms'
-          } else if (source === 'web' || source === 'manual_payment_request') {
-            normalizedSource = 'web'
-          } else if (source === 'admin_test' || source === 'demo') {
-            // Exclude admin test and demo from analytics
+          let normalizedSource: string | null = null
+
+          // Exclude test/demo leads
+          if (source === 'admin_test' || source === 'demo') {
             return
-          } else {
-            // Any unclassified source values map to unknown to prevent raw labels from appearing
-            normalizedSource = 'unknown'
           }
-          normalizedCounts[normalizedSource] = (normalizedCounts[normalizedSource] || 0) + count
+
+          // Map to customer-facing categories based on creation path audit
+          if (source === 'voice' || source === 'ai_voice' || source === 'call_intake' || source === 'ai_intake' || source === 'sms') {
+            // ReplyFlow Intake: all automatic ReplyFlow acquisition paths (missed calls, SMS)
+            normalizedSource = 'replyflow_intake'
+          } else if (source === 'manual' || source === 'manual_payment_request' || source === 'manual_entry' || source === 'manual_backfill') {
+            // Manually Added: leads created by user via manual entry or payment request
+            normalizedSource = 'manual'
+          } else {
+            // Unclassified: source value not proven in audit (including 'web')
+            normalizedSource = 'unclassified'
+          }
+
+          if (normalizedSource === 'unclassified') {
+            localUnclassifiedCount += count
+          } else if (normalizedSource) {
+            normalizedCounts[normalizedSource] = (normalizedCounts[normalizedSource] || 0) + count
+          }
         })
 
         // Convert to array for chart
@@ -96,7 +100,10 @@ export default function LeadsSourceGraph() {
           color: SOURCE_COLORS[source] || '#94A3B8'
         }))
 
-        if (isMounted) setData(chartData)
+        if (isMounted) {
+          setData(chartData)
+          setUnclassifiedCount(localUnclassifiedCount)
+        }
       } catch (error) {
         if (isMounted) console.error('[LeadsSourceGraph] Error fetching data:', error)
       } finally {
@@ -111,8 +118,9 @@ export default function LeadsSourceGraph() {
   const isEmpty = data.length === 0
 
   // Calculate summary KPIs
-  const totalLeads = data.reduce((sum, item) => sum + item.value, 0)
-  const replyflowLeads = data.find(d => d.name === 'ReplyFlow')?.value || 0
+  const classifiedTotal = data.reduce((sum, item) => sum + item.value, 0)
+  const trueTotal = classifiedTotal + unclassifiedCount
+  const replyflowIntake = data.find(d => d.name === 'ReplyFlow Intake')?.value || 0
 
   return (
     <Card className="h-full" variant="hero" padding="md">
@@ -124,12 +132,17 @@ export default function LeadsSourceGraph() {
         {!isEmpty && (
           <div className="mb-4">
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-semibold text-foreground">{totalLeads.toLocaleString()}</span>
+              <span className="text-2xl font-semibold text-foreground">{trueTotal.toLocaleString()}</span>
               <span className="text-xs text-muted-foreground">total leads</span>
             </div>
-            {replyflowLeads > 0 && (
+            {replyflowIntake > 0 && (
               <div className="text-[11px] text-muted-foreground/70 mt-1">
-                {replyflowLeads} from ReplyFlow (last 90 days)
+                {replyflowIntake} captured by ReplyFlow (last 90 days)
+              </div>
+            )}
+            {unclassifiedCount > 0 && (
+              <div className="text-[11px] text-muted-foreground/50 mt-1">
+                {unclassifiedCount} historical {unclassifiedCount === 1 ? 'lead has' : 'leads have'} unclassified source data
               </div>
             )}
           </div>
@@ -180,10 +193,10 @@ export default function LeadsSourceGraph() {
                     iconType="circle"
                     wrapperStyle={{ fontSize: '11px' }}
                   />
-              </PieChart>
-            </ResponsiveContainer>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-        </div>
         )}
       </div>
     </Card>
