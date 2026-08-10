@@ -1,15 +1,17 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Phone, User, MessageCircle, MapPin, Clock, AlertCircle, Pencil, Check, Loader2, FileText, Calendar } from 'lucide-react'
+import { Phone, User, MessageCircle, MapPin, Clock, AlertCircle, Check, Loader2, FileText, Calendar } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { sentenceCase } from '@/lib/utils'
+import { getProvenanceLabel } from '@/lib/customer-source'
 
 interface VoicemailSummaryProps {
   leadData?: any
+  triggerEdit?: boolean
 }
 
-export default function VoicemailSummary({ leadData }: VoicemailSummaryProps) {
+export default function VoicemailSummary({ leadData, triggerEdit }: VoicemailSummaryProps) {
   const voicemailExtraction = leadData?.raw_metadata?.voicemail_extraction
   const smsExtraction = leadData?.raw_metadata?.sms_extraction
   const extractedInfo = leadData?.raw_metadata?.extracted_info
@@ -29,6 +31,16 @@ export default function VoicemailSummary({ leadData }: VoicemailSummaryProps) {
     Array.isArray(leadData?.raw_metadata?.manualFields) ? leadData.raw_metadata.manualFields : []
   ))
   const supabase = createBrowserClient()
+
+  // Trigger edit mode when prop changes
+  React.useEffect(() => {
+    if (triggerEdit) {
+      openEdit()
+    }
+  }, [triggerEdit])
+
+  // Get provenance label using canonical helper
+  const provenanceLabel = getProvenanceLabel(leadData)
 
   const openEdit = () => {
     setEditValues({
@@ -135,10 +147,7 @@ export default function VoicemailSummary({ leadData }: VoicemailSummaryProps) {
   }
 
   // Build source badge text
-  const sourceParts: string[] = []
-  if (hasVoicemail) sourceParts.push('voicemail')
-  if (hasSms) sourceParts.push('SMS')
-  const sourceText = sourceParts.length > 0 ? `Extracted from ${sourceParts.join(' + ')}` : 'Extracted from messages'
+  const sourceText = provenanceLabel
 
   // Helper to get badge text and style for a field
   const getFieldBadge = (field: string) => {
@@ -170,7 +179,7 @@ export default function VoicemailSummary({ leadData }: VoicemailSummaryProps) {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-foreground">Customer Summary</h3>
+        <h3 className="text-sm font-semibold text-foreground">Customer Details</h3>
         <div className="flex items-center gap-2">
           <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md font-medium">
             {sourceText}
@@ -187,22 +196,12 @@ export default function VoicemailSummary({ leadData }: VoicemailSummaryProps) {
               <button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium disabled:opacity-50 flex items-center gap-1"
+                className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium disabled:opacity-50"
               >
-                {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                 Save
               </button>
             </div>
-          ) : (
-            <button
-              onClick={openEdit}
-              className="p-1.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
-              title="Edit customer information"
-              aria-label="Edit customer information"
-            >
-              <Pencil className="w-3.5 h-3.5" />
-            </button>
-          )}
+          ) : null}
         </div>
       </div>
 

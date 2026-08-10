@@ -366,6 +366,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [showMoreActions, setShowMoreActions] = useState(false)
   const [showMobileOverflow, setShowMobileOverflow] = useState(false)
   const [showCustomerInfoModal, setShowCustomerInfoModal] = useState(false)
+  const [triggerEditCustomerDetails, setTriggerEditCustomerDetails] = useState(false)
   const [savingCustomerInfo, setSavingCustomerInfo] = useState(false)
   const [mobileCustomerExpanded, setMobileCustomerExpanded] = useState(true)
   const [mobileLeadDetailsExpanded, setMobileLeadDetailsExpanded] = useState(false)
@@ -610,6 +611,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       setAutoFocusNotes(false)
     }
   }, [showCustomerInfoModal])
+
+  // Reset triggerEditCustomerDetails after it's been consumed
+  useEffect(() => {
+    if (triggerEditCustomerDetails) {
+      setTriggerEditCustomerDetails(false)
+    }
+  }, [triggerEditCustomerDetails])
   
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth', force = false, isInitialLoad = false) => {
     // Guard against SSR
@@ -1263,9 +1271,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [showIgnoreModal, setShowIgnoreModal] = useState(false)
   const [isIgnoring, setIsIgnoring] = useState(false)
 
-  // State for remove customer modal
-  const [showRemoveModal, setShowRemoveModal] = useState(false)
-  const [isRemoving, setIsRemoving] = useState(false)
   const [isCompleting, setIsCompleting] = useState(false)
 
   // State for payment modal
@@ -1677,48 +1682,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     setTimeout(() => {
       setHighlightedTimelineItemId(null)
     }, 2000)
-  }
-  const handleRemoveCustomer = async () => {
-    setIsRemoving(true)
-    try {
-      // Get auth token
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token
-
-      if (!token) {
-        throw new Error('Not authenticated')
-      }
-
-      // Soft delete the customer using DELETE endpoint
-      const response = await fetch(`/api/leads/${params.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to delete customer')
-      }
-
-      // Show success message
-      setSuccessMessage('Customer deleted successfully.')
-      setShowRemoveModal(false)
-
-      // Redirect to customers list after a short delay
-      setTimeout(() => {
-        if (typeof window !== 'undefined') {
-          window.location.href = '/dashboard/leads'
-        }
-      }, 1500)
-    } catch (error) {
-      console.error('Error removing customer:', error)
-      setError(error instanceof Error ? error.message : 'Failed to remove customer')
-    } finally {
-      setIsRemoving(false)
-    }
   }
 
   let automationStatus = ''
@@ -3461,47 +3424,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         </DropdownMenuItem>
                       </div>
 
-                      {/* Subtle Divider for Footer */}
-                      <div className="px-3 py-1">
-                        <div className="h-px bg-border/20"></div>
-                      </div>
-
-                      {/* Footer Zone - Ignore Customer */}
-                      <div className="px-1.5 py-1">
-                        {getLeadLifecycleStatus(leadData || lead) !== 'ignored' && (
-                          <DropdownMenuItem
-                            onSelect={() => handleStatusUpdate('ignored')}
-                            className="w-full px-2 py-1.5 text-left text-sm font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-950/10 dark:hover:bg-amber-950/15 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-amber-950/10 dark:focus:bg-amber-950/15 cursor-pointer min-h-[36px] group"
-                          >
-                            <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded bg-amber-500/10 dark:bg-amber-500/15 group-hover:bg-amber-500/15 dark:group-hover:bg-amber-500/20 transition-colors">
-                              <svg className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                              </svg>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-medium">Ignore Customer</div>
-                              <div className="text-[10px] text-muted-foreground/70 font-normal leading-tight">Hide from your active workflow</div>
-                            </div>
-                          </DropdownMenuItem>
-                        )}
-                        {getLeadLifecycleStatus(leadData || lead) === 'ignored' && (
-                          <DropdownMenuItem
-                            onSelect={() => handleStatusUpdate('active')}
-                            className="w-full px-2 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer min-h-[44px] group"
-                          >
-                            <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded bg-accent/30 group-hover:bg-accent/40 transition-colors">
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                              </svg>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-medium">Restore Customer</div>
-                              <div className="text-[10px] text-muted-foreground/70 font-normal leading-tight">Return to your active workflow</div>
-                            </div>
-                          </DropdownMenuItem>
-                        )}
-                      </div>
-                    </DropdownMenuContent>
+                                          </DropdownMenuContent>
                   </DropdownMenuPortal>
                 </DropdownMenu>
               </div>
@@ -3661,16 +3584,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           </div>
                         </div>
 
-                        {/* Edit Customer */}
+                        {/* Edit Customer Details */}
                         <div className="px-1 py-0.5">
                           <DropdownMenuItem
-                            onSelect={() => setShowCustomerInfoModal(true)}
+                            onSelect={() => setTriggerEditCustomerDetails(true)}
                             className="w-full px-2 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
                           >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                             </svg>
-                            <span>Edit Customer</span>
+                            <span>Edit Customer Details</span>
                           </DropdownMenuItem>
                         </div>
 
@@ -3746,70 +3669,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           </DropdownMenuItem>
                         </div>
 
-                        {/* Divider */}
-                        <div className="px-2.5 py-1">
-                          <div className="h-px bg-border/20"></div>
-                        </div>
-
-                        {/* DANGER Section */}
-                        <div className="px-2.5 py-1.5">
-                          <div className="px-0.5 py-0.5 text-[9px] font-medium text-red-600/70 dark:text-red-400/70 uppercase tracking-[0.12em]">
-                            Danger
-                          </div>
-                        </div>
-
-                        {/* Ignore Customer */}
-                        {getLeadLifecycleStatus(leadData || lead) !== 'ignored' && (
-                          <div className="px-1 py-0.5">
-                            <DropdownMenuItem
-                              onSelect={() => handleStatusUpdate('ignored')}
-                              className="w-full px-1.5 py-1 text-left text-xs font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-950/10 dark:hover:bg-amber-950/15 flex items-center gap-2 transition-colors rounded-md outline-none focus:bg-amber-950/10 dark:focus:bg-amber-950/15 cursor-pointer min-h-[32px] group"
-                            >
-                              <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded bg-amber-950/10 group-hover:bg-amber-950/15 transition-colors">
-                                <svg className="w-3 h-3 stroke-[2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                </svg>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="text-xs font-medium">Ignore Customer</div>
-                                <div className="text-[9px] text-muted-foreground/70 font-normal leading-tight">Hide from active list</div>
-                              </div>
-                            </DropdownMenuItem>
-                          </div>
-                        )}
-
-                        {getLeadLifecycleStatus(leadData || lead) === 'ignored' && (
-                          <div className="px-1 py-0.5">
-                            <DropdownMenuItem
-                              onSelect={() => handleStatusUpdate('active')}
-                              className="w-full px-2 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
-                            >
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                              </svg>
-                              <span>Restore Customer</span>
-                            </DropdownMenuItem>
-                          </div>
-                        )}
-
-                        {/* Delete Customer */}
-                        <div className="px-1 py-0.5">
-                          <DropdownMenuItem
-                            onSelect={() => setShowRemoveModal(true)}
-                            className="w-full px-1.5 py-1 text-left text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-950/10 dark:hover:bg-red-950/15 flex items-center gap-2 transition-colors rounded-md outline-none focus:bg-red-950/10 dark:focus:bg-red-950/15 cursor-pointer min-h-[32px] group"
-                          >
-                            <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded bg-red-950/10 group-hover:bg-red-950/15 transition-colors">
-                              <svg className="w-3 h-3 stroke-[2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-xs font-medium">Delete Customer</div>
-                              <div className="text-[9px] text-muted-foreground/70 font-normal leading-tight">Permanently remove</div>
-                            </div>
-                          </DropdownMenuItem>
-                        </div>
-                      </DropdownMenuContent>
+                                              </DropdownMenuContent>
                     </DropdownMenuPortal>
                   </DropdownMenu>
                 </div>
@@ -3963,6 +3823,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                 conversationId={leadData?.conversation?.id}
                                 callerPhone={leadData?.phone_number || lead?.phone}
                                 leadData={leadData}
+                                triggerEdit={triggerEditCustomerDetails}
                                 collapsible={false}
                                 onSave={handleRefresh}
                               />
@@ -3972,7 +3833,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           {/* Customer Summary */}
                           {!(leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id) && (
                             <div className="bg-muted/30 rounded-xl border border-border/30 p-4">
-                              <VoicemailSummary leadData={leadData} />
+                              <VoicemailSummary leadData={leadData} triggerEdit={triggerEditCustomerDetails} />
                             </div>
                           )}
                         </div>
@@ -4308,7 +4169,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
           {/* Customer Summary - Hero Card for non-AI-intake customers */}
           {!(leadData?.aiCallRecords && leadData.aiCallRecords.length > 0 && business?.id) && (
-            <VoicemailSummary leadData={leadData} />
+            <VoicemailSummary leadData={leadData} triggerEdit={triggerEditCustomerDetails} />
           )}
 
           {/* Collapsible Sections - Below conversation */}
@@ -4339,6 +4200,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                     conversationId={leadData?.conversation?.id}
                     callerPhone={leadData?.phone_number || lead?.phone}
                     leadData={leadData}
+                    triggerEdit={triggerEditCustomerDetails}
                     collapsible={false}
                     onSave={handleRefresh}
                     onNavigateToTimeline={handleNavigateToTimeline}
@@ -4704,42 +4566,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </>
                 ) : (
                   'Ignore Contact'
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Remove Customer Modal */}
-      {showRemoveModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-slate-800/80 rounded-xl shadow-xl max-w-md w-full p-6">
-            <h2 className="text-lg font-semibold text-foreground mb-4">
-              Remove this customer?
-            </h2>
-            <p className="text-sm text-muted-foreground mb-6">
-              This will permanently remove this customer and all associated messages. This action cannot be undone.
-            </p>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setShowRemoveModal(false)}
-                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleRemoveCustomer}
-                disabled={isRemoving}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50"
-              >
-                {isRemoving ? (
-                  <>
-                    <div className="w-4 h-4 animate-spin rounded-full border-2 border-white border-t-transparent border-solid inline-block mr-2"></div>
-                    Removing...
-                  </>
-                ) : (
-                  'Remove Customer'
                 )}
               </button>
             </div>
