@@ -46,7 +46,7 @@ const GOOGLE_PLAY_URL = process.env.NEXT_PUBLIC_GOOGLE_PLAY_URL || null
 
 export default function DownloadPage() {
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-900">
+    <div className="min-h-screen page-gradient">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
         {/* Logo and Brand */}
         <div className="text-center mb-8">
