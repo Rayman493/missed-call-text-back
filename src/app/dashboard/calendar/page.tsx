@@ -1182,6 +1182,26 @@ export default function SchedulePage() {
                           setSelectedJob(job as Job)
                           setIsJobDetailsOpen(true)
                         }}
+                        onEditJob={(job) => {
+                          setEditingJob(job)
+                          setJobPrefill(undefined)
+                          setNewJobDefaultDate(undefined)
+                          setIsJobComposerOpen(true)
+                        }}
+                        onDeleteJob={handleJobDeleted}
+                        onEditAppointment={(event) => {
+                          setSelectedEvent(event)
+                          setEventDetailsMode('details')
+                          setIsEventDetailsOpen(true)
+                        }}
+                        onDeleteAppointment={() => {
+                          if (selectedEvent) {
+                            // The EventDetailsModal handles the actual deletion
+                            setSelectedEvent(selectedEvent)
+                            setEventDetailsMode('details')
+                            setIsEventDetailsOpen(true)
+                          }
+                        }}
                         taskRefreshTrigger={taskRefreshTrigger}
                         onViewAllTasks={() => setShowFullTasks(true)}
                       />

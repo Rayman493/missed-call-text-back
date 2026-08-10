@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Calendar, Briefcase, CheckCircle2, Clock, Plus, AlertCircle, Pencil, ExternalLink } from 'lucide-react'
+import { Calendar, Briefcase, CheckCircle2, Clock, Plus, AlertCircle, Pencil } from 'lucide-react'
 import Link from 'next/link'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import type { Job } from '@/components/jobs/JobComposer'
 
 interface Task {
   id: string
@@ -17,21 +18,14 @@ interface Task {
   created_at: string
 }
 
-interface Job {
-  id: string
-  title: string
-  customer_name: string | null
-  scheduled_date: string | null
-  scheduled_time: string | null
-  status: string
-  google_calendar_event_id: string | null
-  lead_id: string | null
-}
-
 interface CalendarEvent {
   id: string
   summary: string
+  description: string | null
   start: { dateTime?: string; date?: string }
+  end: { dateTime?: string; date?: string }
+  location: string | null
+  htmlLink: string | null
 }
 
 interface TodayCommandCenterProps {
@@ -41,6 +35,10 @@ interface TodayCommandCenterProps {
   onAddJob?: () => void
   onAddAppointment?: () => void
   onJobClick?: (job: Job) => void
+  onEditJob?: (job: Job) => void
+  onDeleteJob?: (job: Job) => void
+  onEditAppointment?: (event: CalendarEvent) => void
+  onDeleteAppointment?: (event: CalendarEvent) => void
   onEditTask?: (task: Task) => void
   taskRefreshTrigger?: number
   onViewAllTasks?: () => void
@@ -53,6 +51,10 @@ export default function TodayCommandCenter({
   onAddJob,
   onAddAppointment,
   onJobClick,
+  onEditJob,
+  onDeleteJob,
+  onEditAppointment,
+  onDeleteAppointment,
   onEditTask,
   taskRefreshTrigger,
   onViewAllTasks,
@@ -473,7 +475,7 @@ export default function TodayCommandCenter({
                     {onEditTask && item.type === 'task' && (
                       <button
                         onClick={() => onEditTask(item.data)}
-                        className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+                        className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
                         aria-label="Edit task"
                       >
                         <Pencil className="w-3.5 h-3.5" />
@@ -482,7 +484,7 @@ export default function TodayCommandCenter({
                     {item.type === 'task' && (
                       <button
                         onClick={() => deleteTask(item.id)}
-                        className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+                        className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
                         aria-label="Delete task"
                       >
                         ×
@@ -491,12 +493,32 @@ export default function TodayCommandCenter({
                   </div>
                 )}
                 {item.type === 'job' && (
-                  <Link
-                    href={`/dashboard/leads/${item.data.lead_id || ''}`}
-                    className="flex-shrink-0 text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                  >
-                    View
-                  </Link>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => onJobClick?.(item.data)}
+                      className="flex-shrink-0 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      View
+                    </button>
+                    {onEditJob && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onEditJob(item.data) }}
+                        className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                        aria-label="Edit job"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    {onDeleteJob && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onDeleteJob(item.data) }}
+                        className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                        aria-label="Delete job"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             ))}
@@ -606,7 +628,7 @@ export default function TodayCommandCenter({
                         {onEditTask && (
                           <button
                             onClick={() => onEditTask(task)}
-                            className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+                            className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
                             aria-label="Edit task"
                           >
                             <Pencil className="w-3.5 h-3.5" />
@@ -614,7 +636,7 @@ export default function TodayCommandCenter({
                         )}
                         <button
                           onClick={() => deleteTask(task.id)}
-                          className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+                          className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
                           aria-label="Delete task"
                         >
                           ×
@@ -674,20 +696,24 @@ export default function TodayCommandCenter({
                 {sortedBrowseJobs.slice(0, 5).map(job => {
                   const jobToday = job.scheduled_date === todayStr
                   return (
-                    <button
+                    <div
                       key={job.id}
-                      onClick={() => onJobClick?.(job)}
-                      className="flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors w-full text-left group"
+                      className="flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
                     >
-                      <Briefcase className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">
-                          {job.title}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate mt-0.5">
-                          {job.customer_name || 'No customer'}
-                        </p>
-                      </div>
+                      <button
+                        onClick={() => onJobClick?.(job)}
+                        className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                      >
+                        <Briefcase className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {job.title}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate mt-0.5">
+                            {job.customer_name || 'No customer'}
+                          </p>
+                        </div>
+                      </button>
                       <div className="flex-shrink-0 text-right min-w-[80px]">
                         {job.scheduled_date && (
                           <p className="text-xs text-muted-foreground">
@@ -700,7 +726,27 @@ export default function TodayCommandCenter({
                           </p>
                         )}
                       </div>
-                    </button>
+                      <div className="flex items-center gap-1">
+                        {onEditJob && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onEditJob(job) }}
+                            className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                            aria-label="Edit job"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {onDeleteJob && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onDeleteJob(job) }}
+                            className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                            aria-label="Delete job"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   )
                 })}
               </div>
@@ -779,13 +825,26 @@ export default function TodayCommandCenter({
                           </p>
                         )}
                       </div>
-                      <Link
-                        href="/dashboard/calendar"
-                        className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
-                        aria-label="Open in Calendar"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </Link>
+                      <div className="flex items-center gap-1">
+                        {onEditAppointment && (
+                          <button
+                            onClick={() => onEditAppointment(event)}
+                            className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                            aria-label="Edit appointment"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {onDeleteAppointment && (
+                          <button
+                            onClick={() => onDeleteAppointment(event)}
+                            className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                            aria-label="Delete appointment"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )
                 })}
