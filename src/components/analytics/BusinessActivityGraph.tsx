@@ -211,20 +211,20 @@ export default function BusinessActivityGraph() {
           />
         ) : (
           <div className="h-[260px]">
-            <div className="h-full w-full">
+            <div className="h-full w-full select-none">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data} margin={{ top: 16, right: 8, bottom: 8, left: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/10" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/10 pointer-events-none" vertical={false} />
                   <XAxis 
                     dataKey="date" 
-                    className="text-[10px] text-muted-foreground/60"
+                    className="text-[10px] text-muted-foreground/60 pointer-events-none"
                     tick={{ fontSize: 10 }}
                     axisLine={false}
                     tickLine={false}
                     interval="preserveStartEnd"
                   />
                   <YAxis 
-                    className="text-[10px] text-muted-foreground/60"
+                    className="text-[10px] text-muted-foreground/60 pointer-events-none"
                     tick={{ fontSize: 10 }}
                     axisLine={false}
                     tickLine={false}

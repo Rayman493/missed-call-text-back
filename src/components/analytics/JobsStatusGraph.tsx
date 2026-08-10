@@ -133,45 +133,49 @@ export default function JobsStatusGraph() {
           />
         ) : (
           <div className="h-[260px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data} layout="vertical" margin={{ top: 16, right: 16, bottom: 8, left: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border/10" horizontal={false} />
-                <XAxis
-                  type="number"
-                  className="text-[10px] text-muted-foreground/60"
-                  tick={{ fontSize: 10 }}
-                  axisLine={false}
-                  tickLine={false}
-                  domain={[0, 'auto']}
-                />
-                <YAxis
-                  type="category"
-                  dataKey="status"
-                  className="text-[10px] text-muted-foreground/60"
-                  tick={{ fontSize: 10 }}
-                  width={100}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    padding: '8px 12px',
-                    fontSize: '11px'
-                  }}
-                  itemStyle={{ color: 'hsl(var(--foreground))' }}
-                  formatter={(value: any, name?: any) => [value, 'Jobs']}
-                  labelFormatter={(label: any) => label}
-                />
-                <Bar dataKey="count" radius={[0, 3, 3, 0]} barSize={24}>
-                  {data.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} fillOpacity={0.85} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="h-full w-full select-none">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data} layout="vertical" margin={{ top: 16, right: 16, bottom: 8, left: 8 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/10 pointer-events-none" horizontal={false} />
+                  <XAxis
+                    type="number"
+                    className="text-[10px] text-muted-foreground/60 pointer-events-none"
+                    tick={{ fontSize: 10 }}
+                    axisLine={false}
+                    tickLine={false}
+                    domain={[0, 'auto']}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="status"
+                    className="text-[10px] text-muted-foreground/60 pointer-events-none"
+                    tick={{ fontSize: 10 }}
+                    width={100}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    shared={false}
+                    cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                      fontSize: '11px'
+                    }}
+                    itemStyle={{ color: 'hsl(var(--foreground))' }}
+                    formatter={(value: any, name?: any) => [value, 'Jobs']}
+                    labelFormatter={(label: any) => label}
+                  />
+                  <Bar dataKey="count" radius={[0, 3, 3, 0]} barSize={24}>
+                    {data.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} fillOpacity={0.85} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         )}
       </div>

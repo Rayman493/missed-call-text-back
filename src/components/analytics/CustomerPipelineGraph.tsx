@@ -118,13 +118,13 @@ export default function CustomerPipelineGraph() {
           />
         ) : (
           <div className="h-[260px]">
-            <div className="h-full w-full">
+            <div className="h-full w-full select-none">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data} layout="vertical" margin={{ top: 16, right: 16, bottom: 8, left: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/10" horizontal={false} />
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border/10 pointer-events-none" horizontal={false} />
                   <XAxis
                     type="number"
-                    className="text-[10px] text-muted-foreground/60"
+                    className="text-[10px] text-muted-foreground/60 pointer-events-none"
                     tick={{ fontSize: 10 }}
                     axisLine={false}
                     tickLine={false}
@@ -133,13 +133,15 @@ export default function CustomerPipelineGraph() {
                   <YAxis
                     type="category"
                     dataKey="status"
-                    className="text-[10px] text-muted-foreground/60"
+                    className="text-[10px] text-muted-foreground/60 pointer-events-none"
                     tick={{ fontSize: 10 }}
                     width={100}
                     axisLine={false}
                     tickLine={false}
                   />
                   <Tooltip
+                    shared={false}
+                    cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
                     contentStyle={{
                       backgroundColor: 'hsl(var(--card))',
                       border: '1px solid hsl(var(--border))',
