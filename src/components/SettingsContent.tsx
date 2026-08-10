@@ -2260,8 +2260,16 @@ export default function SettingsContent() {
                     Connect payment methods for customer requests.
                   </p>
                 </div>
-                
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
+
+                {/* Determine if Tap to Pay card should be visible for grid layout */}
+                {(() => {
+                  const platform = tapToPayAwareness.state.tapToPaySupportStatus?.platform
+                  const unsupportedReason = tapToPayAwareness.state.tapToPaySupportStatus?.unsupportedReason
+                  const deviceType = tapToPayAwareness.state.tapToPaySupportStatus?.deviceInfo?.deviceType
+                  const showTapToPayCard = platform === 'ios' && !(unsupportedReason === 'unsupported_device_type' || deviceType === 'ipad')
+
+                  return (
+                    <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${showTapToPayCard ? 'xl:grid-cols-4' : 'lg:grid-cols-3'}`}>
                   {/* Tap to Pay - Only render on supported iPhone (not iPad, iPod, or unsupported devices) */}
                   {(() => {
                     const status = tapToPayAwareness.state.tapToPaySupportStatus?.status
@@ -2739,6 +2747,8 @@ export default function SettingsContent() {
                     </div>
                   </div>
                 </div>
+                    )
+                  })()}
 
                 <div className="mt-3 p-2.5 bg-blue-50/70 dark:bg-blue-900/15 border border-blue-200/70 dark:border-blue-800/60 rounded-lg">
                   <p className="text-xs text-blue-700 dark:text-blue-300">
