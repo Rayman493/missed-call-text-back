@@ -303,7 +303,7 @@ export default function PremiumAudioPlayer({
                     aria-valuemax={100}
                     aria-valuenow={Math.round((isMuted ? 0 : volume) * 100)}
                   />
-                  <span className="text-xs text-muted-foreground font-mono tabular-nums w-8 text-right flex-shrink-0">
+                  <span className="text-xs text-muted-foreground font-mono tabular-nums w-8 text-right flex-shrink-0 mr-3">
                     {Math.round((isMuted ? 0 : volume) * 100)}%
                   </span>
                 </div>
@@ -327,7 +327,7 @@ export default function PremiumAudioPlayer({
                     aria-valuemax={100}
                     aria-valuenow={Math.round((isMuted ? 0 : volume) * 100)}
                   />
-                  <span className="text-xs text-muted-foreground font-mono tabular-nums w-8 text-right flex-shrink-0">
+                  <span className="text-xs text-muted-foreground font-mono tabular-nums w-8 text-right flex-shrink-0 mr-3">
                     {Math.round((isMuted ? 0 : volume) * 100)}%
                   </span>
                 </div>
