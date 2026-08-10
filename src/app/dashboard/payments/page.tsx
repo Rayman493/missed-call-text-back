@@ -813,54 +813,56 @@ export default function PaymentsPage() {
                             </div>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-slate-700">
-                          {payment.leads && (
-                            <button
-                              onClick={() => router.push(`/dashboard/leads/${payment.leads!.id}`)}
-                              className="flex-1 text-blue-400 hover:text-blue-300 text-xs font-medium text-center py-1.5"
-                            >
-                              View Customer
-                            </button>
-                          )}
-                          {payment.status === 'pending' && payment.checkout_url && (
-                            <>
+                        <div className="flex items-center w-full mt-2.5 pt-2.5 border-t border-slate-700">
+                          <div className="flex items-center gap-2 min-w-0">
+                            {payment.leads && (
                               <button
-                                onClick={() => copyPaymentLink(payment.checkout_url!)}
-                                className="p-1.5 text-blue-400 hover:text-blue-300"
-                                title="Copy payment link"
+                                onClick={() => router.push(`/dashboard/leads/${payment.leads!.id}`)}
+                                className="flex-1 text-blue-400 hover:text-blue-300 text-xs font-medium text-center py-1.5"
                               >
-                                <Copy className="h-4 w-4" />
+                                View Customer
                               </button>
-                              <a
-                                href={payment.checkout_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-1.5 text-blue-400 hover:text-blue-300"
-                                title="Open payment link"
+                            )}
+                            {payment.status === 'pending' && payment.checkout_url && (
+                              <>
+                                <button
+                                  onClick={() => copyPaymentLink(payment.checkout_url!)}
+                                  className="p-1.5 text-blue-400 hover:text-blue-300"
+                                  title="Copy payment link"
+                                >
+                                  <Copy className="h-4 w-4" />
+                                </button>
+                                <a
+                                  href={payment.checkout_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1.5 text-blue-400 hover:text-blue-300"
+                                  title="Open payment link"
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                </a>
+                              </>
+                            )}
+                            {payment.status === 'pending' && (payment.payment_provider === 'paypal' || payment.payment_provider === 'venmo') && (
+                              <button
+                                onClick={() => {
+                                  setPaymentToMarkPaid(payment)
+                                  setShowMarkPaidConfirm(true)
+                                }}
+                                disabled={isMarkingPaid}
+                                className="p-1.5 text-green-400 hover:text-green-300 disabled:opacity-50 flex items-center gap-1 text-xs font-medium"
+                                title="Mark as paid"
                               >
-                                <ExternalLink className="h-4 w-4" />
-                              </a>
-                            </>
-                          )}
-                          {payment.status === 'pending' && (payment.payment_provider === 'paypal' || payment.payment_provider === 'venmo') && (
-                            <button
-                              onClick={() => {
-                                setPaymentToMarkPaid(payment)
-                                setShowMarkPaidConfirm(true)
-                              }}
-                              disabled={isMarkingPaid}
-                              className="p-1.5 text-green-400 hover:text-green-300 disabled:opacity-50 flex items-center gap-1 text-xs font-medium"
-                              title="Mark as paid"
-                            >
-                              <CreditCard className="h-4 w-4" />
-                              Mark Paid
-                            </button>
-                          )}
+                                <CreditCard className="h-4 w-4" />
+                                Mark Paid
+                              </button>
+                            )}
+                          </div>
                           {payment.status === 'pending' && (
                             <button
                               onClick={() => handleCancelPayment(payment)}
                               disabled={isCancelling}
-                              className="p-1.5 text-red-400 hover:text-red-300 disabled:opacity-50"
+                              className="ml-auto p-1.5 text-red-400 hover:text-red-300 disabled:opacity-50 flex-shrink-0"
                               title="Cancel payment request"
                             >
                               <X className="h-4 w-4" />
@@ -935,54 +937,56 @@ export default function PaymentsPage() {
                                     </div>
                                   )}
                                 </div>
-                                <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-slate-700">
-                                  {payment.leads && (
-                                    <button
-                                      onClick={() => router.push(`/dashboard/leads/${payment.leads!.id}`)}
-                                      className="flex-1 text-blue-400 hover:text-blue-300 text-xs font-medium text-center py-1.5"
-                                    >
-                                      View Customer
-                                    </button>
-                                  )}
-                                  {payment.status === 'pending' && payment.checkout_url && (
-                                    <>
+                                <div className="flex items-center w-full mt-2.5 pt-2.5 border-t border-slate-700">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    {payment.leads && (
                                       <button
-                                        onClick={() => copyPaymentLink(payment.checkout_url!)}
-                                        className="p-1.5 text-blue-400 hover:text-blue-300"
-                                        title="Copy payment link"
+                                        onClick={() => router.push(`/dashboard/leads/${payment.leads!.id}`)}
+                                        className="flex-1 text-blue-400 hover:text-blue-300 text-xs font-medium text-center py-1.5"
                                       >
-                                        <Copy className="h-4 w-4" />
+                                        View Customer
                                       </button>
-                                      <a
-                                        href={payment.checkout_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="p-1.5 text-blue-400 hover:text-blue-300"
-                                        title="Open payment link"
+                                    )}
+                                    {payment.status === 'pending' && payment.checkout_url && (
+                                      <>
+                                        <button
+                                          onClick={() => copyPaymentLink(payment.checkout_url!)}
+                                          className="p-1.5 text-blue-400 hover:text-blue-300"
+                                          title="Copy payment link"
+                                        >
+                                          <Copy className="h-4 w-4" />
+                                        </button>
+                                        <a
+                                          href={payment.checkout_url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="p-1.5 text-blue-400 hover:text-blue-300"
+                                          title="Open payment link"
+                                        >
+                                          <ExternalLink className="h-4 w-4" />
+                                        </a>
+                                      </>
+                                    )}
+                                    {payment.status === 'pending' && (payment.payment_provider === 'paypal' || payment.payment_provider === 'venmo') && (
+                                      <button
+                                        onClick={() => {
+                                          setPaymentToMarkPaid(payment)
+                                          setShowMarkPaidConfirm(true)
+                                        }}
+                                        disabled={isMarkingPaid}
+                                        className="p-1.5 text-green-400 hover:text-green-300 disabled:opacity-50 flex items-center gap-1 text-xs font-medium"
+                                        title="Mark as paid"
                                       >
-                                        <ExternalLink className="h-4 w-4" />
-                                      </a>
-                                    </>
-                                  )}
-                                  {payment.status === 'pending' && (payment.payment_provider === 'paypal' || payment.payment_provider === 'venmo') && (
-                                    <button
-                                      onClick={() => {
-                                        setPaymentToMarkPaid(payment)
-                                        setShowMarkPaidConfirm(true)
-                                      }}
-                                      disabled={isMarkingPaid}
-                                      className="p-1.5 text-green-400 hover:text-green-300 disabled:opacity-50 flex items-center gap-1 text-xs font-medium"
-                                      title="Mark as paid"
-                                    >
-                                      <CreditCard className="h-4 w-4" />
-                                      Mark Paid
-                                    </button>
-                                  )}
+                                        <CreditCard className="h-4 w-4" />
+                                        Mark Paid
+                                      </button>
+                                    )}
+                                  </div>
                                   {payment.status === 'pending' && (
                                     <button
                                       onClick={() => handleCancelPayment(payment)}
                                       disabled={isCancelling}
-                                      className="p-1.5 text-red-400 hover:text-red-300 disabled:opacity-50"
+                                      className="ml-auto p-1.5 text-red-400 hover:text-red-300 disabled:opacity-50 flex-shrink-0"
                                       title="Cancel payment request"
                                     >
                                       <X className="h-4 w-4" />
@@ -1087,56 +1091,58 @@ export default function PaymentsPage() {
                               {payment.paid_at ? new Date(payment.paid_at).toLocaleDateString() : '-'}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap">
-                              <div className="flex items-center gap-2 whitespace-nowrap">
-                                {payment.leads && (
-                                  <button
-                                    onClick={() => router.push(`/dashboard/leads/${payment.leads!.id}`)}
-                                    className="text-gray-400 hover:text-white text-xs font-medium transition-colors"
-                                  >
-                                    View Customer
-                                  </button>
-                                )}
-                                {payment.status === 'pending' && payment.checkout_url && (
-                                  <>
+                              <div className="flex items-center w-full">
+                                <div className="flex items-center gap-2 min-w-0 whitespace-nowrap">
+                                  {payment.leads && (
                                     <button
-                                      onClick={() => copyPaymentLink(payment.checkout_url!)}
-                                      className="h-8 w-8 flex items-center justify-center rounded-lg text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                                      title="Copy payment link"
-                                      aria-label="Copy payment link"
+                                      onClick={() => router.push(`/dashboard/leads/${payment.leads!.id}`)}
+                                      className="text-gray-400 hover:text-white text-xs font-medium transition-colors"
                                     >
-                                      <Copy className="h-3.5 w-3.5" />
+                                      View Customer
                                     </button>
-                                    <a
-                                      href={payment.checkout_url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="h-8 w-8 flex items-center justify-center rounded-lg text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                                      title="Open payment link"
-                                      aria-label="Open payment link"
+                                  )}
+                                  {payment.status === 'pending' && payment.checkout_url && (
+                                    <>
+                                      <button
+                                        onClick={() => copyPaymentLink(payment.checkout_url!)}
+                                        className="h-8 w-8 flex items-center justify-center rounded-lg text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                        title="Copy payment link"
+                                        aria-label="Copy payment link"
+                                      >
+                                        <Copy className="h-3.5 w-3.5" />
+                                      </button>
+                                      <a
+                                        href={payment.checkout_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="h-8 w-8 flex items-center justify-center rounded-lg text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                        title="Open payment link"
+                                        aria-label="Open payment link"
+                                      >
+                                        <ExternalLink className="h-3.5 w-3.5" />
+                                      </a>
+                                    </>
+                                  )}
+                                  {payment.status === 'pending' && (payment.payment_provider === 'paypal' || payment.payment_provider === 'venmo') && (
+                                    <button
+                                      onClick={() => {
+                                        setPaymentToMarkPaid(payment)
+                                        setShowMarkPaidConfirm(true)
+                                      }}
+                                      disabled={isMarkingPaid}
+                                      className="flex items-center gap-1.5 px-3 h-8 rounded-lg text-green-400 hover:text-green-300 hover:bg-green-500/10 text-xs font-medium transition-colors disabled:opacity-50 disabled:hover:bg-transparent focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                                      aria-label="Mark as paid"
                                     >
-                                      <ExternalLink className="h-3.5 w-3.5" />
-                                    </a>
-                                  </>
-                                )}
-                                {payment.status === 'pending' && (payment.payment_provider === 'paypal' || payment.payment_provider === 'venmo') && (
-                                  <button
-                                    onClick={() => {
-                                      setPaymentToMarkPaid(payment)
-                                      setShowMarkPaidConfirm(true)
-                                    }}
-                                    disabled={isMarkingPaid}
-                                    className="flex items-center gap-1.5 px-3 h-8 rounded-lg text-green-400 hover:text-green-300 hover:bg-green-500/10 text-xs font-medium transition-colors disabled:opacity-50 disabled:hover:bg-transparent focus:outline-none focus:ring-2 focus:ring-green-500/50"
-                                    aria-label="Mark as paid"
-                                  >
-                                    <CreditCard className="h-3.5 w-3.5" />
-                                    Mark Paid
-                                  </button>
-                                )}
+                                      <CreditCard className="h-3.5 w-3.5" />
+                                      Mark Paid
+                                    </button>
+                                  )}
+                                </div>
                                 {payment.status === 'pending' && (
                                   <button
                                     onClick={() => handleCancelPayment(payment)}
                                     disabled={isCancelling}
-                                    className="h-8 w-8 flex items-center justify-center rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors disabled:opacity-50 disabled:hover:bg-transparent focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                                    className="ml-auto h-8 w-8 flex items-center justify-center rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors disabled:opacity-50 disabled:hover:bg-transparent focus:outline-none focus:ring-2 focus:ring-red-500/50 flex-shrink-0"
                                     title="Cancel payment request"
                                     aria-label="Cancel payment request"
                                   >
@@ -1205,56 +1211,58 @@ export default function PaymentsPage() {
                                   {payment.paid_at ? new Date(payment.paid_at).toLocaleDateString() : '-'}
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap">
-                                  <div className="flex items-center gap-2 whitespace-nowrap">
-                                    {payment.leads && (
-                                      <button
-                                        onClick={() => router.push(`/dashboard/leads/${payment.leads!.id}`)}
-                                        className="text-gray-400 hover:text-white text-xs font-medium transition-colors"
-                                      >
-                                        View Customer
-                                      </button>
-                                    )}
-                                    {payment.status === 'pending' && payment.checkout_url && (
-                                      <>
+                                  <div className="flex items-center w-full">
+                                    <div className="flex items-center gap-2 min-w-0 whitespace-nowrap">
+                                      {payment.leads && (
                                         <button
-                                          onClick={() => copyPaymentLink(payment.checkout_url!)}
-                                          className="h-8 w-8 flex items-center justify-center rounded-lg text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                                          title="Copy payment link"
-                                          aria-label="Copy payment link"
+                                          onClick={() => router.push(`/dashboard/leads/${payment.leads!.id}`)}
+                                          className="text-gray-400 hover:text-white text-xs font-medium transition-colors"
                                         >
-                                          <Copy className="h-3.5 w-3.5" />
+                                          View Customer
                                         </button>
-                                        <a
-                                          href={payment.checkout_url}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="h-8 w-8 flex items-center justify-center rounded-lg text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                                          title="Open payment link"
-                                          aria-label="Open payment link"
+                                      )}
+                                      {payment.status === 'pending' && payment.checkout_url && (
+                                        <>
+                                          <button
+                                            onClick={() => copyPaymentLink(payment.checkout_url!)}
+                                            className="h-8 w-8 flex items-center justify-center rounded-lg text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                            title="Copy payment link"
+                                            aria-label="Copy payment link"
+                                          >
+                                            <Copy className="h-3.5 w-3.5" />
+                                          </button>
+                                          <a
+                                            href={payment.checkout_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="h-8 w-8 flex items-center justify-center rounded-lg text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                            title="Open payment link"
+                                            aria-label="Open payment link"
+                                          >
+                                            <ExternalLink className="h-3.5 w-3.5" />
+                                          </a>
+                                        </>
+                                      )}
+                                      {payment.status === 'pending' && (payment.payment_provider === 'paypal' || payment.payment_provider === 'venmo') && (
+                                        <button
+                                          onClick={() => {
+                                            setPaymentToMarkPaid(payment)
+                                            setShowMarkPaidConfirm(true)
+                                          }}
+                                          disabled={isMarkingPaid}
+                                          className="flex items-center gap-1.5 px-3 h-8 rounded-lg text-green-400 hover:text-green-300 hover:bg-green-500/10 text-xs font-medium transition-colors disabled:opacity-50 disabled:hover:bg-transparent focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                                          aria-label="Mark as paid"
                                         >
-                                          <ExternalLink className="h-3.5 w-3.5" />
-                                        </a>
-                                      </>
-                                    )}
-                                    {payment.status === 'pending' && (payment.payment_provider === 'paypal' || payment.payment_provider === 'venmo') && (
-                                      <button
-                                        onClick={() => {
-                                          setPaymentToMarkPaid(payment)
-                                          setShowMarkPaidConfirm(true)
-                                        }}
-                                        disabled={isMarkingPaid}
-                                        className="flex items-center gap-1.5 px-3 h-8 rounded-lg text-green-400 hover:text-green-300 hover:bg-green-500/10 text-xs font-medium transition-colors disabled:opacity-50 disabled:hover:bg-transparent focus:outline-none focus:ring-2 focus:ring-green-500/50"
-                                        aria-label="Mark as paid"
-                                      >
-                                        <CreditCard className="h-3.5 w-3.5" />
-                                        Mark Paid
-                                      </button>
-                                    )}
+                                          <CreditCard className="h-3.5 w-3.5" />
+                                          Mark Paid
+                                        </button>
+                                      )}
+                                    </div>
                                     {payment.status === 'pending' && (
                                       <button
                                         onClick={() => handleCancelPayment(payment)}
                                         disabled={isCancelling}
-                                        className="h-8 w-8 flex items-center justify-center rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors disabled:opacity-50 disabled:hover:bg-transparent focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                                        className="ml-auto h-8 w-8 flex items-center justify-center rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors disabled:opacity-50 disabled:hover:bg-transparent focus:outline-none focus:ring-2 focus:ring-red-500/50 flex-shrink-0"
                                         title="Cancel payment request"
                                         aria-label="Cancel payment request"
                                       >
