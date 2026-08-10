@@ -43,19 +43,17 @@ export default function LeadEngagementCard({ business }: LeadEngagementCardProps
 
         const businessPhone = business.twilio_phone_number || ''
 
-        // Get leads with replies (inbound messages to business phone)
-        // Use dual filter for consistency with DashboardMetrics and AnalyticsContent
+        // Get leads with replies (inbound customer messages)
+        // Filter by direction only - canonical customer responses are inbound messages
         const leadIds = allLeads?.map((l: any) => l.id) || []
         const { data: allMessages } = leadIds.length > 0 ? await supabase
           .from('messages')
-          .select('lead_id, direction, to_phone, created_at')
+          .select('lead_id, direction, created_at')
           .in('lead_id', leadIds)
           .gte('created_at', thirtyDaysAgo) : { data: [] }
 
         const leadsWithReplies = allMessages?.filter((m: any) => {
-          const isDirectionInbound = m.direction === 'inbound' || m.direction?.startsWith?.('inbound')
-          const isToBusinessPhone = m.to_phone === businessPhone
-          return isDirectionInbound || isToBusinessPhone
+          return m.direction === 'inbound' || m.direction?.startsWith?.('inbound')
         }) || []
 
         // Get recent replies (last 7 days)
@@ -113,10 +111,7 @@ export default function LeadEngagementCard({ business }: LeadEngagementCardProps
     return 'bg-slate-50 dark:bg-slate-900/20 border-slate-200 dark:border-slate-800'
   }
 
-  // Hide card entirely if there are no customer responses (low-value empty state)
-  if (metrics.repliedLeads === 0) {
-    return null
-  }
+  // Show empty state instead of hiding the card - all analytics cards must remain visible
 
   return (
     <div className="bg-white dark:bg-slate-800/80 border border-border/50 rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
@@ -127,7 +122,15 @@ export default function LeadEngagementCard({ business }: LeadEngagementCardProps
         </div>
       </div>
 
-      {metrics.repliedLeads > 0 && (
+      {metrics.repliedLeads === 0 ? (
+        <div className="text-center py-8">
+          <div className="flex items-center justify-center w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-full mx-auto mb-3">
+            <MessageSquare className="w-6 h-6 text-slate-400 dark:text-slate-500" />
+          </div>
+          <p className="text-sm font-medium text-foreground mb-1">No customer responses yet</p>
+          <p className="text-xs text-muted-foreground">Customer replies will appear here as they respond to your messages.</p>
+        </div>
+      ) : metrics.repliedLeads > 0 && (
         <div className="space-y-3">
           {/* Main response metric */}
           <div className={`p-3 rounded-lg border ${getEngagementBg(metrics.engagementRate)}`}>

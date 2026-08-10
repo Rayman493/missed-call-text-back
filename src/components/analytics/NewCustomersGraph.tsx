@@ -117,10 +117,16 @@ export default function NewCustomersGraph() {
           <div className="mb-4">
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-semibold text-foreground">{totalCustomers.toLocaleString()}</span>
-              <span className="text-xs text-muted-foreground">new customers</span>
+              <span className="text-xs text-muted-foreground">
+                {totalCustomers === 1 ? 'new customer' : 'new customers'}
+              </span>
             </div>
             <div className="text-[11px] text-muted-foreground/70 mt-1">
-              {averageDaily > 0 ? `${averageDaily.toFixed(1)} per day average` : 'No data yet'}
+              {totalCustomers === 1 && timeRange === '30d'
+                ? '1 new customer this month'
+                : averageDaily > 0
+                  ? `${averageDaily.toFixed(1)} per day average`
+                  : 'No data yet'}
               {peakDay && ` • Peak: ${peakDay.date} (${peakDay.customers})`}
             </div>
           </div>
@@ -134,7 +140,7 @@ export default function NewCustomersGraph() {
           <PremiumEmptyState
             icon={Users}
             title="No new customers yet"
-            description="New customers captured by ReplyFlow will appear here as missed calls are converted into leads."
+            description="Missed calls converted to customers will appear here over time."
           />
         ) : (
           <div className="h-[260px]">

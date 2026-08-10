@@ -103,7 +103,9 @@ export default function PaymentCollectionGraph() {
           <div className="mb-4">
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-semibold text-foreground">{totalPayments.toLocaleString()}</span>
-              <span className="text-xs text-muted-foreground">total requests • all time</span>
+              <span className="text-xs text-muted-foreground">
+                {totalPayments === 1 ? 'payment request' : 'payment requests'} • all time
+              </span>
             </div>
             <div className="text-[11px] text-muted-foreground/70 mt-1">
               {paidPayments} paid, {pendingPayments} pending
@@ -118,8 +120,8 @@ export default function PaymentCollectionGraph() {
         ) : isEmpty ? (
           <PremiumEmptyState
             icon={CreditCard}
-            title="No payment data yet"
-            description="Send payment requests to customers to see collection status breakdown."
+            title="No payment requests yet"
+            description="Send payment requests to customers to track collection status."
           />
         ) : (
           <div className="h-[260px]">

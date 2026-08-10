@@ -113,10 +113,14 @@ export default function JobsStatusGraph() {
           <div className="mb-4">
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-semibold text-foreground">{totalJobs.toLocaleString()}</span>
-              <span className="text-xs text-muted-foreground">total jobs • all time</span>
+              <span className="text-xs text-muted-foreground">
+                {totalJobs === 1 ? 'job' : 'jobs'} • all time
+              </span>
             </div>
             <div className="text-[11px] text-muted-foreground/70 mt-1">
-              {scheduledJobs} scheduled, {completedJobs} completed
+              {totalJobs === 1 && data.length === 1
+                ? `${data[0].status}`
+                : `${scheduledJobs} scheduled, ${completedJobs} completed`}
             </div>
           </div>
         )}
@@ -129,7 +133,7 @@ export default function JobsStatusGraph() {
           <PremiumEmptyState
             icon={Briefcase}
             title="No jobs yet"
-            description="Create jobs to track work and see status breakdown."
+            description="Jobs created from customer conversations will appear here with their status."
           />
         ) : (
           <div className="h-[260px]">
@@ -144,6 +148,8 @@ export default function JobsStatusGraph() {
                     axisLine={false}
                     tickLine={false}
                     domain={[0, 'auto']}
+                    tickFormatter={(value) => Math.round(value).toString()}
+                    allowDecimals={false}
                   />
                   <YAxis
                     type="category"

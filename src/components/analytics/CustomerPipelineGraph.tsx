@@ -96,9 +96,15 @@ export default function CustomerPipelineGraph() {
           <div className="mb-4">
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-semibold text-foreground">{totalCustomers.toLocaleString()}</span>
-              <span className="text-xs text-muted-foreground">total customers</span>
+              <span className="text-xs text-muted-foreground">
+                {totalCustomers === 1 ? 'customer' : 'total customers'}
+              </span>
             </div>
-            {largestGroup && (
+            {totalCustomers === 1 && data.length === 1 ? (
+              <div className="text-[11px] text-muted-foreground/70 mt-1">
+                {data[0].status}
+              </div>
+            ) : largestGroup && (
               <div className="text-[11px] text-muted-foreground/70 mt-1">
                 Most common: {largestGroup.status} ({largestGroup.count})
               </div>
@@ -113,8 +119,8 @@ export default function CustomerPipelineGraph() {
         ) : isEmpty ? (
           <PremiumEmptyState
             icon={Funnel}
-            title="No customers in workflow yet"
-            description="Customers automatically move through your workflow as ReplyFlow captures and processes missed calls."
+            title="No customers yet"
+            description="Customers captured from missed calls will appear here as they move through your workflow."
           />
         ) : (
           <div className="h-[260px]">
@@ -129,6 +135,8 @@ export default function CustomerPipelineGraph() {
                     axisLine={false}
                     tickLine={false}
                     domain={[0, 'auto']}
+                    tickFormatter={(value) => Math.round(value).toString()}
+                    allowDecimals={false}
                   />
                   <YAxis
                     type="category"

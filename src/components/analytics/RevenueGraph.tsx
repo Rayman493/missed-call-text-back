@@ -121,11 +121,17 @@ export default function RevenueGraph() {
           <div className="mb-4">
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-semibold text-foreground">${totalRevenue.toLocaleString()}</span>
-              <span className="text-xs text-muted-foreground">total revenue</span>
+              <span className="text-xs text-muted-foreground">
+                {data.length === 1 ? 'payment received' : 'total revenue'}
+              </span>
             </div>
             <div className="text-[11px] text-muted-foreground/70 mt-1">
-              {averageDaily > 0 ? `$${averageDaily.toLocaleString()} per day average` : 'No payments yet'}
-              {peakDay && ` • Peak: ${peakDay.date} ($${peakDay.revenue.toLocaleString()})`}
+              {data.length === 1
+                ? `First payment: ${data[0].date}`
+                : averageDaily > 0
+                  ? `$${averageDaily.toLocaleString()} per day average`
+                  : 'No payments yet'}
+              {peakDay && data.length > 1 && ` • Peak: ${peakDay.date} ($${peakDay.revenue.toLocaleString()})`}
             </div>
           </div>
         )}
