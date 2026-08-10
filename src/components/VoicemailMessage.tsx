@@ -490,7 +490,7 @@ export default function VoicemailMessage({
       )}
 
       {/* Voicemail Content */}
-      <div className={`max-w-[90%] sm:max-w-[85%] lg:max-w-[75%] ${!isInbound ? 'text-right' : ''}`}>
+      <div className={`w-full max-w-[90%] sm:max-w-[85%] lg:max-w-[75%] ${!isInbound ? 'text-right' : ''}`}>
         {/* Message Header */}
         <div className={`flex items-center gap-2 mb-0.5 ${!isInbound ? 'justify-end flex-row-reverse' : 'justify-start flex-wrap'}`}>
           <span className="text-[11px] sm:text-xs text-muted-foreground/70 font-normal" title={new Date(recording.created_at).toLocaleString()}>

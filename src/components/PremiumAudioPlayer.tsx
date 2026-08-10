@@ -306,7 +306,7 @@ export default function PremiumAudioPlayer({
             {/* Mobile: Volume Popover */}
             <div className="md:hidden">
               {isMobileVolumeOpen && (
-                <div className="absolute top-full right-0 mt-2 w-44 max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-lg shadow-lg p-4 z-50">
+                <div className="absolute bottom-full right-0 mb-2 w-44 max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-lg shadow-lg p-4 z-50">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <button
