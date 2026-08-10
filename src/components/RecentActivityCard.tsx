@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatRelativeTime } from '@/lib/utils'
-import { Phone, MessageSquare, Reply, Calendar, Mic, Briefcase, CheckCircle, CreditCard, AlertCircle, Bot, DollarSign, Video } from 'lucide-react'
+import { Phone, MessageSquare, Reply, Calendar, Mic, Briefcase, CheckCircle, CreditCard, AlertCircle, Bot, DollarSign, Video, Send } from 'lucide-react'
 import { getLeadAIIntake, getLeadRequestTitle } from '@/lib/ai-field-mapping'
 
 interface RecentActivityCardProps {
@@ -293,9 +293,9 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
               title: 'Message Sent',
               description: formattedPhone ? `To ${formattedPhone}` : 'Message sent',
               timestamp: message.created_at,
-              icon: <MessageSquare className="w-4 h-4" />,
-              iconBgColor: 'bg-green-500/20',
-              iconTextColor: 'text-green-400',
+              icon: <Send className="w-4 h-4" />,
+              iconBgColor: 'bg-amber-500/20',
+              iconTextColor: 'text-amber-400',
             })
           } else {
             events.push({
@@ -304,9 +304,9 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
               title: 'Customer Replied',
               description: formattedPhone ? `From ${formattedPhone}` : 'Message received',
               timestamp: message.created_at,
-              icon: <Reply className="w-4 h-4" />,
-              iconBgColor: 'bg-amber-500/20',
-              iconTextColor: 'text-amber-400',
+              icon: <MessageSquare className="w-4 h-4" />,
+              iconBgColor: 'bg-green-500/20',
+              iconTextColor: 'text-green-400',
             })
           }
         })
