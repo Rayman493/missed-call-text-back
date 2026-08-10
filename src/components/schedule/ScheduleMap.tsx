@@ -264,13 +264,19 @@ export default function ScheduleMap({
       .map((item, index) => ({ ...item, stopNumber: index + 1 }))
   }, [])
 
-  // Fit bounds with max zoom constraint
-  const fitBoundsWithMaxZoom = useCallback((bounds: any, maxZoom: number = 15) => {
+  // Fit bounds with max zoom constraint and bottom padding for nav
+  const fitBoundsWithMaxZoom = useCallback((bounds: any, maxZoom: number = 15, paddingBottom: number = 0) => {
     if (!googleMapRef.current) return
-    
+
     programmaticCameraChangeRef.current = true
-    googleMapRef.current.fitBounds(bounds)
-    
+
+    // Apply bottom padding if specified (for bottom nav)
+    if (paddingBottom > 0) {
+      googleMapRef.current.fitBounds(bounds, 0, 0, 0, paddingBottom)
+    } else {
+      googleMapRef.current.fitBounds(bounds)
+    }
+
     // Ensure we don't zoom in too much
     const listener = googleMapRef.current.addListener('bounds_changed', () => {
       const currentZoom = googleMapRef.current.getZoom()
@@ -279,15 +285,16 @@ export default function ScheduleMap({
       }
       // Remove listener after first execution
       (window as any).google.maps.event.removeListener(listener)
-      // Clear guard after animation completes
+      // Clear guard after animation completes (500ms exceeds typical animation duration)
+      // This ensures idle fires before guard clears, preventing false userInteracted=true
       setTimeout(() => {
         programmaticCameraChangeRef.current = false
-      }, 100)
+      }, 500)
     })
   }, [])
 
   // Pan to marker without resetting bounds
-  const panToMarker = useCallback((lat: number, lng: number, zoom?: number) => {
+  const panToMarker = useCallback((lat: number, lng: number, zoom?: number, setUserInteractedFlag: boolean = true) => {
     if (!googleMapRef.current) return
     
     programmaticCameraChangeRef.current = true
@@ -295,10 +302,14 @@ export default function ScheduleMap({
     if (zoom !== undefined) {
       googleMapRef.current.setZoom(zoom)
     }
-    setUserInteracted(true)
+    if (setUserInteractedFlag) {
+      setUserInteracted(true)
+    }
+    // Clear guard after animation completes (500ms exceeds typical animation duration)
+    // This ensures idle fires before guard clears, preventing false userInteracted=true
     setTimeout(() => {
       programmaticCameraChangeRef.current = false
-    }, 100)
+    }, 500)
   }, [])
 
   // Reset to show all markers
@@ -832,7 +843,10 @@ export default function ScheduleMap({
           setUserInteracted(true)
         }
       })
-      map.addListener('zoom_changed', () => {
+      // idle fires after any movement settles (user or programmatic)
+      // Guard prevents false positives: programmatic movements set guard=true
+      // Guard timeout (500ms) exceeds animation duration so idle fires before guard clears
+      map.addListener('idle', () => {
         if (!programmaticCameraChangeRef.current) {
           setUserInteracted(true)
         }
@@ -1069,21 +1083,39 @@ export default function ScheduleMap({
       }
     }
 
-    // Fit bounds to show all markers (only if not user interacted, in show all mode, and marker set changed)
-    if (markersRef.current.size > 0 && showAllMode && !userInteracted && signatureChanged) {
+    // Get bottom nav height from CSS variable for padding
+    const bottomNavHeight = typeof window !== 'undefined' 
+      ? parseInt(getComputedStyle(document.body).getPropertyValue('--bottom-nav-height')) || 80
+      : 80
+    const bottomPadding = bottomNavHeight + 40 // Add extra breathing room
+
+    // Smart automatic framing logic
+    if (markersRef.current.size === 0) {
+      // Zero mapped items - keep current viewport
+      markerSetSignatureRef.current = signature
+    } else if (selectedMapItemId && !userInteracted) {
+      // Explicitly selected item - center on it with detail zoom
+      const selectedMarker = markersRef.current.get(selectedMapItemId)
+      if (selectedMarker) {
+        const pos = selectedMarker.getPosition()
+        panToMarker(pos.lat(), pos.lng(), 15, false) // Programmatic: do not set userInteracted
+        markerSetSignatureRef.current = signature
+      }
+    } else if (showAllMode && !userInteracted && signatureChanged) {
+      // Multiple items in show all mode - fit bounds with bottom padding
       markerSetSignatureRef.current = signature
       const bounds = new (window as any).google.maps.LatLngBounds()
       markersRef.current.forEach(marker => {
         bounds.extend(marker.getPosition()!)
       })
-      fitBoundsWithMaxZoom(bounds)
+      fitBoundsWithMaxZoom(bounds, 15, bottomPadding)
     } else if (hasNewAppointmentMarker && newlyMappableEventIdRef.current) {
       // One-time adjustment to show newly mappable event
       markerSetSignatureRef.current = signature
       const newMarker = markersRef.current.get(newlyMappableEventIdRef.current)
       if (newMarker) {
         const pos = newMarker.getPosition()
-        panToMarker(pos.lat(), pos.lng(), 15) // Zoom to level 15 to show the new marker
+        panToMarker(pos.lat(), pos.lng(), 15, false) // Programmatic: do not set userInteracted
       }
       newlyMappableEventIdRef.current = null // Clear after one-time adjustment
     } else if (!showAllMode || userInteracted) {
@@ -1096,7 +1128,7 @@ export default function ScheduleMap({
       markersRef.current.forEach(marker => marker.setMap(null))
       markersRef.current.clear()
     }
-  }, [mapItems, groupItemsByLocation, mapReady, getFilteredMapItems, showAllMode, fitBoundsWithMaxZoom, selectMapItem])
+  }, [mapItems, groupItemsByLocation, mapReady, getFilteredMapItems, showAllMode, fitBoundsWithMaxZoom, selectMapItem, selectedMapItemId, userInteracted])
 
   // Update marker icons when selection changes (without triggering camera changes)
   useEffect(() => {
