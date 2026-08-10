@@ -46,9 +46,9 @@ import VoicemailSummary from '@/components/VoicemailSummary'
 import FocusSection from '@/components/FocusSection'
 import RevenueOpportunityCard from '@/components/RevenueOpportunityCard'
 import CustomerReactivationCard from '@/components/CustomerReactivationCard'
-import WorkflowCard from '@/components/WorkflowCard'
+import CustomerSnapshot from '@/components/CustomerSnapshot'
+import CustomerStats from '@/components/CustomerStats'
 import DraftCard from '@/components/DraftCard'
-import RelationshipProfile from '@/components/RelationshipProfile'
 import CustomerSuccessCard from '@/components/CustomerSuccessCard'
 import CustomerMilestone from '@/components/CustomerMilestone'
 import CustomerActivityTimeline from '@/components/CustomerActivityTimeline'
@@ -4133,19 +4133,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             </div>
                           )}
 
-                          {/* Workflow Card - What happens next */}
-                          {business?.id && (
-                            <WorkflowCard businessId={business.id} customerId={params.id} />
-                          )}
+                          {/* Customer Snapshot - Factual customer context */}
+                          <CustomerSnapshot lead={lead} leadData={leadData} />
 
-                          {/* Draft Card - Ready to send */}
+                          {/* Customer Stats - Activity overview */}
                           {business?.id && (
-                            <DraftCard businessId={business.id} customerId={params.id} />
-                          )}
-
-                          {/* Relationship Profile - Who is this */}
-                          {business?.id && (
-                            <RelationshipProfile businessId={business.id} customerId={params.id} />
+                            <CustomerStats businessId={business.id} customerId={params.id} />
                           )}
 
                           {/* Customer Milestone - Milestone */}
