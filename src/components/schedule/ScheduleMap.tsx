@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
+import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react'
 import { MapPin, Calendar, Briefcase, AlertCircle, ChevronLeft, ChevronRight, Filter, ArrowLeft, ArrowRight, Layers } from 'lucide-react'
 import Link from 'next/link'
 import Skeleton from '@/components/ui/Skeleton'
@@ -129,7 +129,10 @@ interface MarkerInfo {
   items: MapItem[]
 }
 
-export default function ScheduleMap({
+// Marker icon cache to avoid recreating identical canvas icons
+const markerIconCache = new Map<string, any>()
+
+function ScheduleMapComponent({
   jobs,
   calendarEvents,
   tasks,
@@ -1213,11 +1216,19 @@ export default function ScheduleMap({
 
   // Create numbered marker icon
   const createNumberedMarkerIcon = (stopNumber: number, type: MapItemType, isSelected: boolean = false): any => {
+    // Cache key based on all inputs that affect visual output
+    const cacheKey = `${stopNumber}-${type}-${isSelected}`
+
+    // Return cached icon if available
+    if (markerIconCache.has(cacheKey)) {
+      return markerIconCache.get(cacheKey)
+    }
+
     const color = type === 'job' ? '#8B5CF6' : '#3B82F6' // Purple for jobs, blue for appointments
     const size = isSelected ? 44 : 36
     const strokeWidth = isSelected ? 4 : 2
     const textColor = '#FFFFFF'
-    
+
     // Create canvas for numbered marker
     const canvas = document.createElement('canvas')
     const scale = 2 // Retina display support
@@ -1225,7 +1236,7 @@ export default function ScheduleMap({
     canvas.height = size * scale
     const ctx = canvas.getContext('2d')!
     ctx.scale(scale, scale)
-    
+
     // Draw circle background
     ctx.beginPath()
     ctx.arc(size / 2, size / 2, size / 2 - strokeWidth / 2, 0, 2 * Math.PI)
@@ -1234,19 +1245,24 @@ export default function ScheduleMap({
     ctx.strokeStyle = isSelected ? '#F59E0B' : '#FFFFFF'
     ctx.lineWidth = strokeWidth
     ctx.stroke()
-    
+
     // Draw number
     ctx.fillStyle = textColor
     ctx.font = `bold ${size * 0.4}px system-ui, -apple-system, sans-serif`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillText(stopNumber.toString(), size / 2, size / 2)
-    
-    return {
+
+    const icon = {
       url: canvas.toDataURL(),
       scaledSize: new (window as any).google.maps.Size(size, size),
       anchor: new (window as any).google.maps.Point(size / 2, size / 2)
     }
+
+    // Cache the icon
+    markerIconCache.set(cacheKey, icon)
+
+    return icon
   }
 
   // Handle marker info card actions
@@ -1755,3 +1771,6 @@ export default function ScheduleMap({
     </div>
   )
 }
+
+const ScheduleMap = memo(ScheduleMapComponent)
+export default ScheduleMap

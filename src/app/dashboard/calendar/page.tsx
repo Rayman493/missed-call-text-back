@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBusiness } from '@/contexts/BusinessContext'
@@ -278,35 +278,35 @@ export default function SchedulePage() {
   const [mapSelectedDate, setMapSelectedDate] = useState<Date>(() => new Date())
 
   // Edit handlers for ScheduleMap
-  const handleMapEditJob = (job: any) => {
+  const handleMapEditJob = useCallback((job: any) => {
     setEditingJob(job)
     setJobComposerInitialFocus(undefined)
     setIsJobComposerOpen(true)
-  }
+  }, [])
 
-  const handleMapAddLocationJob = (job: any) => {
+  const handleMapAddLocationJob = useCallback((job: any) => {
     setEditingJob(job)
     setJobComposerInitialFocus('location')
     setIsJobComposerOpen(true)
-  }
+  }, [])
 
-  const handleMapEditTask = (task: any) => {
+  const handleMapEditTask = useCallback((task: any) => {
     // Set task for editing in NewTaskModal
     // This would require passing taskToEdit to NewTaskModal
     setIsNewTaskModalOpen(true)
-  }
+  }, [])
 
-  const handleMapEditEvent = (event: any) => {
+  const handleMapEditEvent = useCallback((event: any) => {
     setSelectedEvent(event)
     setEventDetailsMode('details')
     setIsEventDetailsOpen(true)
-  }
+  }, [])
 
-  const handleMapAddLocationEvent = (event: any) => {
+  const handleMapAddLocationEvent = useCallback((event: any) => {
     setSelectedEvent(event)
     setEventDetailsMode('add-location')
     setIsEventDetailsOpen(true)
-  }
+  }, [])
 
   // Check for OAuth success/error redirect
   useEffect(() => {
@@ -968,38 +968,38 @@ export default function SchedulePage() {
     }
   }
 
-  const handleMapPreviousDay = () => {
+  const handleMapPreviousDay = useCallback(() => {
     setMapSelectedDate(prev => {
       const newDate = new Date(prev)
       newDate.setDate(newDate.getDate() - 1)
       return newDate
     })
-  }
+  }, [])
 
-  const handleMapNextDay = () => {
+  const handleMapNextDay = useCallback(() => {
     setMapSelectedDate(prev => {
       const newDate = new Date(prev)
       newDate.setDate(newDate.getDate() + 1)
       return newDate
     })
-  }
+  }, [])
 
-  const handleMapGoToToday = () => {
+  const handleMapGoToToday = useCallback(() => {
     setMapSelectedDate(new Date())
-  }
+  }, [])
 
-  const handleMapViewCustomer = (leadId: string) => {
+  const handleMapViewCustomer = useCallback((leadId: string) => {
     // Navigate to lead detail page
     window.location.href = `/dashboard/leads/${leadId}`
-  }
+  }, [])
 
-  const handleMapViewJob = (jobId: string) => {
+  const handleMapViewJob = useCallback((jobId: string) => {
     const job = jobs.find(j => j.id === jobId)
     if (job) {
       setSelectedJob(job)
       setIsJobDetailsOpen(true)
     }
-  }
+  }, [jobs])
 
   // Filter events to only show those in the visible month
   const visibleMonthEvents = filterEventsByMonth(
