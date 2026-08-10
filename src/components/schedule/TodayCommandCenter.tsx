@@ -588,17 +588,19 @@ export default function TodayCommandCenter({
                               Today
                             </span>
                           )}
-                          {task.due_date && !taskToday && !taskOverdue && (
-                            <span className="text-xs text-muted-foreground">
-                              {formatDate(task.due_date)}
-                            </span>
-                          )}
-                          {task.due_time && (
-                            <span className="text-xs text-muted-foreground">
-                              {formatTime(task.due_time)}
-                            </span>
-                          )}
                         </div>
+                      </div>
+                      <div className="flex-shrink-0 text-right min-w-[80px]">
+                        {task.due_date && (
+                          <p className="text-xs text-muted-foreground">
+                            {formatDate(task.due_date)}
+                          </p>
+                        )}
+                        {task.due_time && (
+                          <p className="text-xs text-muted-foreground">
+                            {formatTime(task.due_time)}
+                          </p>
+                        )}
                       </div>
                       <div className="flex items-center gap-1">
                         {onEditTask && (
