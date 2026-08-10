@@ -373,10 +373,10 @@ export default function TodayCommandCenter({
       </div>
 
       {/* Needs Done Today - Primary Section */}
-      <div className="bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 rounded-lg p-4">
-        <div className="flex items-center gap-2 mb-4">
-          <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-foreground">
+      <div className="bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 rounded-lg">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-border/25">
+          <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          <h3 className="text-sm font-semibold text-foreground">
             Needs Done Today
           </h3>
         </div>
@@ -420,11 +420,11 @@ export default function TodayCommandCenter({
             </div>
           </div>
         ) : (
-          <div className="space-y-1">
+          <div className="p-4 space-y-1">
             {sortedWorkItems.map(item => (
               <div
                 key={item.id}
-                className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                className="flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
               >
                 <div className="flex-shrink-0">
                   {item.type === 'task' ? (
@@ -444,7 +444,7 @@ export default function TodayCommandCenter({
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-slate-900 dark:text-foreground truncate">
+                    <p className="text-sm font-medium text-foreground truncate">
                       {item.title}
                     </p>
                     {item.isOverdue && (
@@ -455,12 +455,12 @@ export default function TodayCommandCenter({
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
                     {item.time && (
-                      <span className={`text-xs ${item.isOverdue ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                      <span className={`text-xs ${item.isOverdue ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
                         {item.time}
                       </span>
                     )}
                     {item.customer && (
-                      <span className="text-xs text-slate-400 dark:text-slate-500">
+                      <span className="text-xs text-muted-foreground">
                         • {item.customer}
                       </span>
                     )}
@@ -469,7 +469,7 @@ export default function TodayCommandCenter({
                 {item.type === 'task' && (
                   <button
                     onClick={() => deleteTask(item.id)}
-                    className="flex-shrink-0 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                    className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
                   >
                     ×
                   </button>
@@ -499,259 +499,276 @@ export default function TodayCommandCenter({
         </div>
 
         {/* Tasks */}
-        <div className="bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 rounded-lg p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground uppercase tracking-wider">
-              Tasks
-            </h3>
+        <div className="bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 rounded-lg">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border/25">
             <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-slate-400" />
+              <h3 className="text-sm font-semibold text-foreground">
+                Tasks
+              </h3>
+            </div>
+            <div className="flex items-center gap-1">
               {onAddTask && (
                 <button
                   onClick={onAddTask}
-                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                 >
                   + Task
                 </button>
               )}
               <button
                 onClick={onViewAllTasks}
-                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
               >
                 View all →
               </button>
             </div>
           </div>
-          {sortedBrowseTasks.length === 0 ? (
-            <div className="text-center py-4">
-              <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
-                No open tasks
-              </p>
-              {onAddTask && (
-                <button
-                  onClick={onAddTask}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-[0.98]"
-                >
-                  + Add Task
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {sortedBrowseTasks.slice(0, 5).map(task => {
-                const taskOverdue = task.due_date && task.due_date < todayStr
-                const taskToday = task.due_date === todayStr
-                return (
-                  <div
-                    key={task.id}
-                    className="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+          <div className="p-4">
+            {sortedBrowseTasks.length === 0 ? (
+              <div className="text-center py-6">
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
+                  No open tasks
+                </p>
+                {onAddTask && (
+                  <button
+                    onClick={onAddTask}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-[0.98]"
                   >
-                    <button
-                      onClick={() => toggleTaskComplete(task.id, task.completed)}
-                      className="mt-0.5 flex-shrink-0 w-5 h-5 rounded border-2 border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-blue-400 transition-colors flex items-center justify-center"
+                    + Add Task
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {sortedBrowseTasks.slice(0, 5).map(task => {
+                  const taskOverdue = task.due_date && task.due_date < todayStr
+                  const taskToday = task.due_date === todayStr
+                  return (
+                    <div
+                      key={task.id}
+                      className="flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
                     >
-                      {task.completed && (
-                        <CheckCircle2 className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                      )}
-                    </button>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-900 dark:text-foreground">
-                        {task.title}
-                      </p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        {taskOverdue && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 font-medium">
-                            Overdue
-                          </span>
+                      <button
+                        onClick={() => toggleTaskComplete(task.id, task.completed)}
+                        className="flex-shrink-0 w-5 h-5 rounded border-2 border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-blue-400 transition-colors flex items-center justify-center"
+                      >
+                        {task.completed && (
+                          <CheckCircle2 className="w-3 h-3 text-blue-600 dark:text-blue-400" />
                         )}
-                        {taskToday && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">
-                            Today
-                          </span>
-                        )}
-                        {task.due_date && !taskToday && !taskOverdue && (
-                          <span className="text-xs text-slate-500 dark:text-slate-400">
-                            {formatDate(task.due_date)}
-                          </span>
-                        )}
-                        {task.due_time && (
-                          <span className="text-xs text-slate-500 dark:text-slate-400">
-                            {formatTime(task.due_time)}
-                          </span>
-                        )}
+                      </button>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {task.title}
+                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {taskOverdue && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 font-medium">
+                              Overdue
+                            </span>
+                          )}
+                          {taskToday && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">
+                              Today
+                            </span>
+                          )}
+                          {task.due_date && !taskToday && !taskOverdue && (
+                            <span className="text-xs text-muted-foreground">
+                              {formatDate(task.due_date)}
+                            </span>
+                          )}
+                          {task.due_time && (
+                            <span className="text-xs text-muted-foreground">
+                              {formatTime(task.due_time)}
+                            </span>
+                          )}
+                        </div>
                       </div>
+                      <button
+                        onClick={() => deleteTask(task.id)}
+                        className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                      >
+                        ×
+                      </button>
                     </div>
-                    <button
-                      onClick={() => deleteTask(task.id)}
-                      className="flex-shrink-0 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                    >
-                      ×
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
-          )}
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Jobs */}
-        <div className="bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 rounded-lg p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground uppercase tracking-wider">
-              Jobs
-            </h3>
+        <div className="bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 rounded-lg">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border/25">
             <div className="flex items-center gap-2">
+              <Briefcase className="w-4 h-4 text-slate-400" />
+              <h3 className="text-sm font-semibold text-foreground">
+                Jobs
+              </h3>
+            </div>
+            <div className="flex items-center gap-1">
               {onAddJob && (
                 <button
                   onClick={onAddJob}
-                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                 >
                   + Job
                 </button>
               )}
               <Link
                 href="/dashboard/leads"
-                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
               >
                 View all →
               </Link>
             </div>
           </div>
-          {sortedBrowseJobs.length === 0 ? (
-            <div className="text-center py-4">
-              <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
-                No upcoming jobs
-              </p>
-              {onAddJob && (
-                <button
-                  onClick={onAddJob}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-[0.98]"
-                >
-                  + Create Job
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {sortedBrowseJobs.slice(0, 5).map(job => {
-                const jobToday = job.scheduled_date === todayStr
-                return (
+          <div className="p-4">
+            {sortedBrowseJobs.length === 0 ? (
+              <div className="text-center py-6">
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
+                  No upcoming jobs
+                </p>
+                {onAddJob && (
                   <button
-                    key={job.id}
-                    onClick={() => onJobClick?.(job)}
-                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors w-full text-left"
+                    onClick={onAddJob}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-[0.98]"
                   >
-                    <Briefcase className="w-4 h-4 text-slate-400" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-900 dark:text-foreground">
-                        {job.title}
-                      </p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          {job.customer_name || 'No customer'}
+                    + Create Job
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {sortedBrowseJobs.slice(0, 5).map(job => {
+                  const jobToday = job.scheduled_date === todayStr
+                  return (
+                    <button
+                      key={job.id}
+                      onClick={() => onJobClick?.(job)}
+                      className="flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors w-full text-left group"
+                    >
+                      <Briefcase className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {job.title}
                         </p>
-                        {jobToday && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">
-                            Today
-                          </span>
-                        )}
-                        {job.scheduled_date && !jobToday && (
-                          <span className="text-xs text-slate-500 dark:text-slate-400">
-                            {formatDate(job.scheduled_date)}
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <p className="text-xs text-muted-foreground truncate">
+                            {job.customer_name || 'No customer'}
+                          </p>
+                          {jobToday && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">
+                              Today
+                            </span>
+                          )}
+                          {job.scheduled_date && !jobToday && (
+                            <span className="text-xs text-muted-foreground">
+                              {formatDate(job.scheduled_date)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex-shrink-0 text-right">
+                        {job.scheduled_time && (
+                          <span className="text-xs text-muted-foreground">
+                            {formatTime(job.scheduled_time)}
                           </span>
                         )}
                       </div>
-                    </div>
-                    <div className="flex-shrink-0 text-right">
-                      {job.scheduled_time && (
-                        <span className="text-xs text-slate-500 dark:text-slate-400">
-                          {formatTime(job.scheduled_time)}
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-          )}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Appointments */}
-        <div className="bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 rounded-lg p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs font-semibold text-slate-900 dark:text-foreground uppercase tracking-wider">
-              Appointments
-            </h3>
+        <div className="bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 rounded-lg">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border/25">
             <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-slate-400" />
+              <h3 className="text-sm font-semibold text-foreground">
+                Appointments
+              </h3>
+            </div>
+            <div className="flex items-center gap-1">
               {onAddAppointment && (
                 <button
                   onClick={onAddAppointment}
-                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                 >
                   + Appointment
                 </button>
               )}
               <Link
                 href="/dashboard/calendar"
-                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
               >
                 Calendar →
               </Link>
             </div>
           </div>
-          {sortedBrowseAppointments.length === 0 ? (
-            <div className="text-center py-4">
-              <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
-                No upcoming appointments
-              </p>
-              {onAddAppointment && (
-                <button
-                  onClick={onAddAppointment}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-[0.98]"
-                >
-                  + Schedule Appointment
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {sortedBrowseAppointments.slice(0, 5).map(event => {
-                const eventDateRaw = event.start?.dateTime || event.start?.date
-                const eventDate = eventDateRaw ? new Date(eventDateRaw) : null
-                const eventDateOnly = eventDateRaw?.split('T')[0]
-                const isToday = eventDateOnly === todayStr
-                return (
-                  <div
-                    key={event.id}
-                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+          <div className="p-4">
+            {sortedBrowseAppointments.length === 0 ? (
+              <div className="text-center py-6">
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
+                  No upcoming appointments
+                </p>
+                {onAddAppointment && (
+                  <button
+                    onClick={onAddAppointment}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-[0.98]"
                   >
-                    <Calendar className="w-4 h-4 text-slate-400" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-900 dark:text-foreground">
-                        {event.summary}
-                      </p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        {isToday && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">
-                            Today
-                          </span>
-                        )}
-                        {eventDate && !isToday && (
-                          <span className="text-xs text-slate-500 dark:text-slate-400">
-                            {formatDate(eventDateOnly || '')}
+                    + Schedule Appointment
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {sortedBrowseAppointments.slice(0, 5).map(event => {
+                  const eventDateRaw = event.start?.dateTime || event.start?.date
+                  const eventDate = eventDateRaw ? new Date(eventDateRaw) : null
+                  const eventDateOnly = eventDateRaw?.split('T')[0]
+                  const isToday = eventDateOnly === todayStr
+                  return (
+                    <div
+                      key={event.id}
+                      className="flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
+                    >
+                      <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {event.summary}
+                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {isToday && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">
+                              Today
+                            </span>
+                          )}
+                          {eventDate && !isToday && (
+                            <span className="text-xs text-muted-foreground">
+                              {formatDate(eventDateOnly || '')}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex-shrink-0 text-right">
+                        {event.start.dateTime && (
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(event.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                           </span>
                         )}
                       </div>
                     </div>
-                    {event.start.dateTime && (
-                      <span className="text-xs text-slate-500 dark:text-slate-400">
-                        {new Date(event.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                      </span>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
