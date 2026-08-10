@@ -117,10 +117,10 @@ export default function NewCustomersGraph() {
           <div className="mb-4">
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-semibold text-foreground">{totalCustomers.toLocaleString()}</span>
-              <span className="text-xs text-muted.toFixed(1)-foreground">new customers</span>
+              <span className="text-xs text-muted-foreground">new customers</span>
             </div>
             <div className="text-[11px] text-muted-foreground/70 mt-1">
-              {averageDaily > 0 ? `${averageDaily} per day average` : 'No data yet'}
+              {averageDaily > 0 ? `${averageDaily.toFixed(1)} per day average` : 'No data yet'}
               {peakDay && ` • Peak: ${peakDay.date} (${peakDay.customers})`}
             </div>
           </div>
