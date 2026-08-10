@@ -138,6 +138,15 @@ export async function POST(request: NextRequest) {
           if (normalizedRecordingStatus === 'completed' && voicemail.recording_url) {
             console.log('[UPDATE VOICEMAIL RECORDING STATUS] Starting transcription');
 
+            // Set status to processing before starting transcription
+            await supabaseAdmin
+              .from('voicemail_recordings')
+              .update({
+                transcription_status: 'processing',
+                updated_at: new Date().toISOString()
+              })
+              .eq('recording_sid', recordingSid);
+
             try {
               const transcriptionResult = await transcribeVoicemail(voicemail.recording_url, recordingSid);
 
@@ -157,6 +166,14 @@ export async function POST(request: NextRequest) {
               }
             } catch (transcriptionError) {
               console.error('[UPDATE VOICEMAIL RECORDING STATUS] Transcription error:', transcriptionError);
+              // Set status to failed on transcription error
+              await supabaseAdmin
+                .from('voicemail_recordings')
+                .update({
+                  transcription_status: 'failed',
+                  updated_at: new Date().toISOString()
+                })
+                .eq('recording_sid', recordingSid);
               // Don't fail the callback on transcription errors
             }
           }
@@ -317,6 +334,15 @@ export async function POST(request: NextRequest) {
         } else {
           console.log('[RECORDING STATUS] Starting OpenAI voicemail transcription');
           
+          // Set status to processing before starting transcription
+          await supabaseAdmin
+            .from('voicemail_recordings')
+            .update({
+              transcription_status: 'processing',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', voicemail.id);
+
           try {
             const transcriptionResult = await transcribeVoicemail(voicemail.recording_url, recordingSid);
             
@@ -590,6 +616,14 @@ export async function POST(request: NextRequest) {
             }
           } catch (transcriptionError) {
             console.error('[RECORDING STATUS] Error during OpenAI transcription:', transcriptionError);
+            // Set status to failed on transcription error
+            await supabaseAdmin
+              .from('voicemail_recordings')
+              .update({
+                transcription_status: 'failed',
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', voicemail.id);
             // Don't let transcription errors break the recording status flow
           }
         }
