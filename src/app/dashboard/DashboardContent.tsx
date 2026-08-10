@@ -82,6 +82,7 @@ import BusinessActivityGraph from '@/components/analytics/BusinessActivityGraph'
 import PaymentCollectionGraph from '@/components/analytics/PaymentCollectionGraph'
 import JobsStatusGraph from '@/components/analytics/JobsStatusGraph'
 import LeadsSourceGraph from '@/components/analytics/LeadsSourceGraph'
+import LeadConversionGraph from '@/components/analytics/LeadConversionGraph'
 import BetaFeedbackModal from '@/components/BetaFeedbackModal'
 import { reconcileWarmNumbers, getWarmInventoryStats } from '@/app/admin/actions'
 import { getBusinessOnboardingState, getEmptyStateCopy, BusinessData } from '@/lib/onboarding-state'
@@ -1196,7 +1197,10 @@ export default function DashboardContent() {
                           <div className={`${!business?.forwarding_verified ? 'opacity-40' : ''} transition-opacity duration-200`}>
                             <JobsStatusGraph />
                           </div>
-                          <div className={`${!business?.forwarding_verified ? 'opacity-40' : ''} transition-opacity duration-200 col-span-1 sm:col-span-2`}>
+                          <div className={`${!business?.forwarding_verified ? 'opacity-40' : ''} transition-opacity duration-200 col-span-1 sm:col-span-1`}>
+                            <LeadConversionGraph />
+                          </div>
+                          <div className={`${!business?.forwarding_verified ? 'opacity-40' : ''} transition-opacity duration-200 col-span-1 sm:col-span-1`}>
                             <LeadsSourceGraph />
                           </div>
                         </div>
