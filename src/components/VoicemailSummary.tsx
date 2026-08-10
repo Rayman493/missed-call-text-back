@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Phone, User, MessageCircle, MapPin, Clock, AlertCircle, Check, Loader2, FileText, Calendar } from 'lucide-react'
+import { Phone, User, MessageCircle, MapPin, Clock, AlertCircle, Check, Loader2, Pencil, Calendar } from 'lucide-react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { sentenceCase } from '@/lib/utils'
 import { getProvenanceLabel } from '@/lib/customer-source'
@@ -190,7 +190,7 @@ export default function VoicemailSummary({ leadData, triggerEdit }: VoicemailSum
               className="p-1.5 text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
               aria-label="Edit customer details"
             >
-              <FileText className="w-3.5 h-3.5" />
+              <Pencil className="w-3.5 h-3.5" />
             </button>
           )}
           {isEditMode ? (
@@ -249,7 +249,7 @@ export default function VoicemailSummary({ leadData, triggerEdit }: VoicemailSum
           <div className="bg-muted/40 rounded-xl p-4 border border-border/30">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-muted-foreground" />
+                <Pencil className="w-4 h-4 text-muted-foreground" />
                 <span className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">Reason</span>
               </div>
               {manualFields.has('reasonForCalling') && !isEditMode && (
@@ -280,7 +280,7 @@ export default function VoicemailSummary({ leadData, triggerEdit }: VoicemailSum
           <div className="bg-card rounded-xl p-4 border border-border/30">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4" aria-hidden="true" />
+                <Pencil className="w-4 h-4" aria-hidden="true" />
                 <span className="text-xs font-semibold text-muted-foreground/80 uppercase tracking-wider">Details</span>
               </div>
               {manualFields.has('importantDetails') && !isEditMode && (

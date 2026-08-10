@@ -985,6 +985,7 @@ If forwarding does not stop immediately, restart your phone or contact your carr
               if (recycleResult.success) {
                 console.log('[RECYCLE] Number recycled successfully to warm inventory')
                 summary.twilioNumberRecycled = business.twilio_phone_number
+                summary.tablesDeleted.twilio_numbers_recycled = (summary.tablesDeleted.twilio_numbers_recycled || 0) + 1
               } else {
                 console.error('[RECYCLE] Failed to recycle number to warm inventory (continuing with deletion):', recycleResult.error)
                 summary.twilioRecycleFailed = true
@@ -998,11 +999,21 @@ If forwarding does not stop immediately, restart your phone or contact your carr
           } else {
             console.log('[delete-account] DRY RUN: Would recycle number to warm inventory')
             summary.twilioNumberRecycled = business.twilio_phone_number
+            summary.tablesDeleted.twilio_numbers_recycled = (summary.tablesDeleted.twilio_numbers_recycled || 0) + 1
           }
         }
       }
-      summary.tablesDeleted.twilio_numbers_recycled = businesses.filter((b: any) => b.twilio_phone_number_sid).length
-      console.log('[delete-account] Step 18 completed: recycled assigned Twilio numbers to warm inventory')
+      const recycledCount = summary.tablesDeleted.twilio_numbers_recycled || 0
+      const failedCount = summary.twilioRecycleFailed ? 1 : 0
+      if (recycledCount > 0 && failedCount === 0) {
+        console.log(`[delete-account] Step 18 completed: successfully recycled ${recycledCount} assigned Twilio number(s) to warm inventory`)
+      } else if (recycledCount > 0 && failedCount > 0) {
+        console.log(`[delete-account] Step 18 completed: recycled ${recycledCount} number(s) to warm inventory with ${failedCount} failure(s)`)
+      } else if (failedCount > 0) {
+        console.error(`[delete-account] Step 18 completed: failed to recycle Twilio number to warm inventory`)
+      } else {
+        console.log('[delete-account] Step 18 completed: no Twilio numbers to recycle')
+      }
 
       // Trigger cleanup of excess inventory after recycling
       // This handles the case where recycling numbers back to inventory

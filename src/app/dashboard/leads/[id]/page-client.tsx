@@ -368,7 +368,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [showInternalNotesModal, setShowInternalNotesModal] = useState(false)
   const [internalNotesValue, setInternalNotesValue] = useState('')
   const [triggerEditCustomerDetails, setTriggerEditCustomerDetails] = useState(false)
-  const [savingCustomerInfo, setSavingCustomerInfo] = useState(false)
   const [mobileCustomerExpanded, setMobileCustomerExpanded] = useState(true)
   const [mobileLeadDetailsExpanded, setMobileLeadDetailsExpanded] = useState(false)
   const [mobileActionsExpanded, setMobileActionsExpanded] = useState(false)
@@ -3520,16 +3519,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         <p className="text-sm text-slate-500 leading-tight">
                           {formatPhoneNumber(getLeadAIIntake(leadData || lead).customerPhone || lead?.caller_phone || '')}
                         </p>
-                        <LeadStatusDropdown
-                          currentStatus={normalizeCustomerStatus((leadData || lead).status || (leadData || lead).lead_status)}
-                          onStatusChange={handleStatusUpdate}
-                          size="sm"
-                        />
                       </div>
                     </div>
 
-                  {/* Three-dot menu - All actions moved here */}
-                  <DropdownMenu>
+                  {/* Right Action Cluster - Status + Three-dot menu */}
+                  <div className="flex items-center gap-2">
+                    <LeadStatusDropdown
+                      currentStatus={normalizeCustomerStatus((leadData || lead).status || (leadData || lead).lead_status)}
+                      onStatusChange={handleStatusUpdate}
+                      size="sm"
+                    />
+                    {/* Three-dot menu */}
+                    <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button
                         type="button"
@@ -3650,6 +3651,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                               </DropdownMenuContent>
                     </DropdownMenuPortal>
                   </DropdownMenu>
+                  </div>
                 </div>
               </div>
             </div>

@@ -467,6 +467,30 @@ export const generateCanonicalRequestTitle = (text: string | null | undefined): 
   return titleCased || 'General Service';
 };
 
+/**
+ * Remove trailing periods from structured address display values only.
+ * This is a display-only normalization to remove sentence-ending punctuation
+ * that was added during AI extraction. Internal periods (e.g., "W. Main St.")
+ * are preserved.
+ *
+ * Examples:
+ * - "1632 Southpine Drive." → "1632 Southpine Drive"
+ * - "1632 Southpine Drive..." → "1632 Southpine Drive"
+ * - "123 W. Main St." → "123 W. Main St" (removes trailing but keeps internal)
+ * - "45 St. James Ave." → "45 St. James Ave"
+ * - "Apt. 4B, 123 Main St." → "Apt. 4B, 123 Main St"
+ * - "123 W. Main St., Apt. 4B" → unchanged (no trailing period)
+ * - null → ""
+ * - "" → ""
+ */
+export const normalizeAddressForDisplay = (text: string | null | undefined): string => {
+  if (!text) return '';
+  const trimmed = text.trim();
+  if (trimmed === '') return '';
+  // Remove trailing periods only, preserving internal periods
+  return trimmed.replace(/\.+$/, '');
+};
+
 // Field-specific normalization for addresses
 // Removes location-specific conversational prefixes
 export const normalizeAddress = (text: string | null | undefined): string => {
@@ -793,8 +817,10 @@ export const formatAiIntakeSummary = (
   const customerName = normalizeCustomerName(
     intakeData?.customerName ?? intakeData?.callerName
   );
-  const serviceAddress = normalizeAddress(
-    intakeData?.serviceAddress ?? intakeData?.addressOrLocation
+  const serviceAddress = normalizeAddressForDisplay(
+    normalizeAddress(
+      intakeData?.serviceAddress ?? intakeData?.addressOrLocation
+    )
   );
   const desiredCompletionTime = normalizeTiming(
     intakeData?.desiredCompletionTime
@@ -898,8 +924,10 @@ export const formatAdaptiveIntakeSms = (
   const customerName = normalizeCustomerName(
     intakeData?.customerName ?? intakeData?.callerName
   );
-  const serviceAddress = normalizeAddress(
-    intakeData?.serviceAddress ?? intakeData?.addressOrLocation
+  const serviceAddress = normalizeAddressForDisplay(
+    normalizeAddress(
+      intakeData?.serviceAddress ?? intakeData?.addressOrLocation
+    )
   );
   const desiredCompletionTime = normalizeTiming(
     intakeData?.desiredCompletionTime

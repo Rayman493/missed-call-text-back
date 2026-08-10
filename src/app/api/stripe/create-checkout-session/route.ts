@@ -262,9 +262,7 @@ export async function POST(request: Request) {
       }, { status: 500 })
     }
 
-    const trialEndTimestamp = finalCheckoutMode === 'trial'
-      ? Math.floor(Date.now() / 1000) + (14 * 24 * 60 * 60)
-      : undefined
+    const trialPeriodDays = finalCheckoutMode === 'trial' ? 14 : undefined
 
     console.log('[STRIPE CHECKOUT] Creating checkout session with:', {
       customerId,
@@ -277,9 +275,7 @@ export async function POST(request: Request) {
       hasStripeCustomerId: !!business.stripe_customer_id,
       action: 'checkout',
       checkoutMode: finalCheckoutMode,
-      trialPeriodDays: finalCheckoutMode === 'trial' ? 14 : undefined,
-      trialEndTimestamp,
-      trialEndIso: trialEndTimestamp ? new Date(trialEndTimestamp * 1000).toISOString() : undefined
+      trialPeriodDays
     });
     
     // Route to dedicated billing success page for smoother post-checkout flow
@@ -326,7 +322,7 @@ export async function POST(request: Request) {
         onboarding_status: business.onboarding_status || 'unknown'
       },
       subscription_data: {
-        ...(trialEndTimestamp && { trial_end: trialEndTimestamp }),
+        ...(trialPeriodDays && { trial_period_days: trialPeriodDays }),
         metadata: {
           business_id: business.id,
           user_id: user.id,

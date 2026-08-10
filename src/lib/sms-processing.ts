@@ -416,7 +416,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       phone: lead.phone
     })
   } else if (lead) {
-    // Update existing lead's status to 'replied' and track reply time
+    // Update existing lead's metadata with customer reply info
     console.log('[INBOUND SMS LEAD UPDATE START]', {
       leadId: lead.id,
       businessId: business.id,
@@ -452,8 +452,13 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       })
     }
 
+    // Use canonical lifecycle helper to update status
+    // This ensures valid status transitions and avoids DB constraint violations
+    const { updateLeadStatusForInboundMessage } = await import('./lead-lifecycle')
+    const statusUpdateSuccess = await updateLeadStatusForInboundMessage(lead.id, supabaseAdmin)
+
+    // Update lead metadata and timestamp regardless of status change
     const updatedLead = await db.updateLead(lead.id, {
-      status: 'replied', // Customer replied, so mark as replied
       last_message_at: now,
       last_reply_at: now, // Track when customer replied
       raw_metadata: updatedRawMetadata
@@ -468,6 +473,7 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
       console.log('[INBOUND SMS LEAD UPDATED]', {
         leadId: updatedLead.id,
         status: updatedLead.status,
+        statusUpdateSuccess,
         last_customer_reply_at: updatedRawMetadata.last_customer_reply_at,
         replied_after_ai_call: updatedRawMetadata.replied_after_ai_call
       })
@@ -1253,6 +1259,18 @@ export async function processInboundSms(params: ProcessInboundSmsParams) {
               correctionResult.confidence
             )
           : `[AI CORRECTIONS APPLIED] ${smsCorrectedFields.length} fields updated: ${smsCorrectedFields.map(c => c.field).join(', ')}`
+
+        // Synchronize legacy serviceAddress field when addressOrLocation is corrected
+        // This prevents stale duplicate address values in raw_metadata
+        const addressCorrection = smsCorrectedFields.find(c => c.field === 'addressOrLocation')
+        if (addressCorrection) {
+          currentMetadata.serviceAddress = addressCorrection.newValue
+          console.log('[ADDRESS LEGACY FIELD SYNC]', {
+            leadId: lead.id,
+            serviceAddress: currentMetadata.serviceAddress,
+            addressOrLocation: addressCorrection.newValue
+          })
+        }
 
         const correctedMetadata = {
           ...currentMetadata,

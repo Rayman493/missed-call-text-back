@@ -156,7 +156,7 @@ interface FAQItem {
 const FAQS: FAQItem[] = [
   {
     question: 'What if I accidentally forward the wrong number?',
-    answer: 'Use the disable code below to turn off forwarding immediately. Then dial the correct forwarding code with your ReplyFlow number.'
+    answer: 'Use the disable code above to turn off forwarding immediately. Then dial the correct forwarding code with your ReplyFlow number.'
   },
   {
     question: 'Will my phone still ring normally?',

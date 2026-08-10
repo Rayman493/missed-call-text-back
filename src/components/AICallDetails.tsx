@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { formatRelativeTime, formatPhoneNumber, sentenceCase } from '@/lib/utils'
-import { MessageCircle, ChevronDown, ChevronUp, X, Check, Loader2, User, FileText, MapPin, Calendar, Phone, Sparkles, RefreshCw, Clock, Info } from 'lucide-react'
+import { MessageCircle, ChevronDown, ChevronUp, X, Check, Loader2, User, Pencil, MapPin, Calendar, Phone, Sparkles, RefreshCw, Clock, Info } from 'lucide-react'
 import { normalizeExtractedInfo, getLeadAIIntake, getLeadRequestTitle, getAIIntakeStatus } from '@/lib/ai-field-mapping'
 import { normalizeAITranscript } from '@/lib/transcript-normalization'
 import { normalizeAICallRecord, getHistoryCardTitle, getOutcomeColor as getRecordOutcomeColor, getIntakeBadgeLabel, type NormalizedIntake } from '@/lib/ai-call-record-normalizer'
@@ -253,7 +253,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           <div className="bg-gradient-to-r from-blue-500/5 to-violet-500/5 border border-blue-500/10 rounded-lg px-4 py-3">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded-md bg-blue-500/10 flex items-center justify-center">
-                <FileText className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                <Pencil className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 mb-0.5">Request</p>
@@ -296,7 +296,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           <div className="rounded-lg border border-border/25 bg-background/25 px-4 py-3">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-muted-foreground" />
+                <Pencil className="w-4 h-4 text-muted-foreground" />
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Details</span>
               </div>
               {(manualFields.has('reasonForCalling') || manualFields.has('importantDetails')) && !isEditMode && (
@@ -618,7 +618,7 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
                     className="p-1.5 text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
                     aria-label="Edit customer details"
                   >
-                    <FileText className="w-3.5 h-3.5" />
+                    <Pencil className="w-3.5 h-3.5" />
                   </button>
                 )}
                 {isEditMode ? (

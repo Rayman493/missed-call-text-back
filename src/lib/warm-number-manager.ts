@@ -971,7 +971,7 @@ export async function recycleTwilioNumberToInventory(
     console.log('[RECYCLE] STEP 2: Fetching current state for compare-and-swap validation...');
     const { data: currentNumber, error: fetchError } = await supabase
       .from('twilio_numbers')
-      .select('id, phone_number, twilio_sid, business_id, status, sms_status, assigned_at, assigned_twilio_number_id')
+      .select('id, phone_number, twilio_sid, business_id, status, sms_status, assigned_at, detached_at, detached_reason')
       .eq('twilio_sid', phoneNumberSid)
       .single();
 
