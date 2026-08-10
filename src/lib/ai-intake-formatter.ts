@@ -988,17 +988,17 @@ export const formatAdaptiveIntakeSms = (
 
     // Service (always show if available)
     if (hasRequest) {
-      body += `• ${serviceRequested}`;
+      body += `• Request: ${serviceRequested}`;
     }
 
     // Location (without emoji to avoid UCS-2 encoding)
     if (shouldShowLocation && hasAddress) {
-      body += `\n• ${serviceAddress}`;
+      body += `\n• Address: ${serviceAddress}`;
     }
 
     // Timing (without emoji)
     if (hasCompletionTime) {
-      body += `\n• ${desiredCompletionTime}`;
+      body += `\n• Desired completion: ${desiredCompletionTime}`;
     }
 
     // Callback (without emoji)
@@ -1017,15 +1017,15 @@ export const formatAdaptiveIntakeSms = (
   let body = `${prefix}${greeting}${businessPart}\n\nHere's what we got:\n`;
 
   if (hasRequest) {
-    body += `• ${serviceRequested}`;
+    body += `• Request: ${serviceRequested}`;
   }
 
   if (shouldShowLocation && hasAddress) {
-    body += `\n• ${serviceAddress}`;
+    body += `\n• Address: ${serviceAddress}`;
   }
 
   if (hasCompletionTime) {
-    body += `\n• ${desiredCompletionTime}`;
+    body += `\n• Desired completion: ${desiredCompletionTime}`;
   }
 
   if (hasCallbackTime) {
