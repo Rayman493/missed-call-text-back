@@ -132,25 +132,27 @@ export default function OnboardingSuccess() {
         )}
 
         {/* CTA Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex flex-col gap-4">
           <button
             onClick={handleGoToDashboard}
-            className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-md hover:bg-blue-700 transition-colors font-medium"
+            className="w-full bg-blue-600 text-white py-3 px-6 rounded-md hover:bg-blue-700 transition-colors font-medium text-base"
           >
             Go to Dashboard
           </button>
-          <button
-            onClick={handleTestSetup}
-            className="flex-1 bg-secondary text-foreground py-3 px-6 rounded-md hover:bg-secondary/80 transition-colors font-medium"
-          >
-            Optional Real-World Test
-          </button>
-          <button
-            onClick={handleForwardingInstructions}
-            className="flex-1 bg-secondary text-foreground py-3 px-6 rounded-md hover:bg-secondary/80 transition-colors font-medium"
-          >
-            Forwarding Instructions
-          </button>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={handleTestSetup}
+              className="flex-1 bg-secondary text-foreground py-2.5 px-4 rounded-md hover:bg-secondary/80 transition-colors font-medium text-sm"
+            >
+              Optional Real-World Test
+            </button>
+            <button
+              onClick={handleForwardingInstructions}
+              className="flex-1 bg-secondary text-foreground py-2.5 px-4 rounded-md hover:bg-secondary/80 transition-colors font-medium text-sm"
+            >
+              Forwarding Instructions
+            </button>
+          </div>
         </div>
 
         {/* Additional Info */}
