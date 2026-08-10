@@ -134,7 +134,14 @@ export default function QuickTapToPayDiagnostics({
         completedAt: null,
         paymentRequestId: null,
       },
-      finalOutcome: lastCompletedAttempt?.outcome || (paymentState === 'success' ? 'success' : paymentState === 'failure' ? 'failure' : paymentState === 'canceled' ? 'canceled' : 'in_progress'),
+      // Calculate finalOutcome: prefer lastCompletedAttempt, then check event history for SUCCESS_GATE_VERIFIED (scoped to current attempt), then fall back to paymentState
+      finalOutcome: lastCompletedAttempt?.outcome || (() => {
+        const currentAttemptId = TerminalBridgeService.getInstance()?.getCurrentAttemptId()
+        const hasCurrentAttemptSuccess = currentAttemptId
+          ? events.some(e => e.name === 'SUCCESS_GATE_VERIFIED' && e.attemptId === currentAttemptId)
+          : false
+        return hasCurrentAttemptSuccess ? 'success' : paymentState === 'success' ? 'success' : paymentState === 'failure' ? 'failure' : paymentState === 'canceled' ? 'canceled' : 'in_progress'
+      })(),
       lastSuccessfulStage: lastSuccessfulStage,
       failedStage: paymentState === 'failure' ? (failedStage || lastSuccessfulStage || 'unknown') : null,
       normalizedErrorCode: mappedError?.code,
