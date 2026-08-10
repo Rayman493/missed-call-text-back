@@ -674,6 +674,8 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                    paymentState === 'success' ? 'Payment Complete' :
                    paymentState === 'canceled' ? 'Payment Canceled' :
                    paymentState === 'failure' ? 'Payment Failed' :
+                   paymentState === 'education_pending' ? 'Tap to Pay Setup' :
+                   paymentState === 'education_waiting_for_confirmation' ? 'Tap to Pay Setup' :
                    'Tap to Pay'}
                 </h3>
               </div>
@@ -788,13 +790,13 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
 
                   {/* Inline Location Permission Card */}
                   {showLocationPermissionCard && (
-                    <div className="bg-amber-50/80 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/50 rounded-xl p-3 animate-in fade-in duration-200">
+                    <div className="bg-blue-50/80 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/50 rounded-xl p-3 animate-in fade-in duration-200">
                       <div className="flex items-start gap-2.5">
                         <div className="flex-shrink-0">
-                          <MapPin className="w-4 h-4 text-amber-600/80 dark:text-amber-400/80" />
+                          <MapPin className="w-4 h-4 text-blue-600/80 dark:text-blue-400/80" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-xs font-semibold text-amber-900 dark:text-amber-100 mb-1">Location Required</h4>
+                          <h4 className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-1">Location Required</h4>
                           <p className="text-[11px] text-gray-700 dark:text-gray-300 mb-2.5 leading-relaxed">
                             Android requires location access to prepare Tap to Pay. ReplyFlow only uses it while starting a contactless payment.
                           </p>
@@ -820,7 +822,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                               }
                             }}
                             disabled={isRequestingLocationPermission}
-                            className="w-full h-[44px] px-3 text-xs font-medium bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            className="w-full h-[44px] px-3 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                           >
                             {isRequestingLocationPermission ? (
                               <>
@@ -838,13 +840,13 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
 
                   {/* Inline Location Services Card */}
                   {showLocationServicesCard && (
-                    <div className="bg-amber-50/80 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/50 rounded-xl p-3 animate-in fade-in duration-200">
+                    <div className="bg-blue-50/80 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/50 rounded-xl p-3 animate-in fade-in duration-200">
                       <div className="flex items-start gap-2.5">
                         <div className="flex-shrink-0">
-                          <MapPin className="w-4 h-4 text-amber-600/80 dark:text-amber-400/80" />
+                          <MapPin className="w-4 h-4 text-blue-600/80 dark:text-blue-400/80" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-xs font-semibold text-amber-900 dark:text-amber-100 mb-1">Location Required</h4>
+                          <h4 className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-1">Location Required</h4>
                           <p className="text-[11px] text-gray-700 dark:text-gray-300 mb-2.5 leading-relaxed">
                             Turn on Location Services, then try Tap to Pay again.
                           </p>
@@ -862,7 +864,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                                 setShowLocationPermissionCard(true)
                               }
                             }}
-                            className="w-full h-[44px] px-3 text-xs font-medium bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors"
+                            className="w-full h-[44px] px-3 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
                           >
                             Check Again
                           </button>
@@ -873,13 +875,13 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
 
                   {/* Inline Location Blocked Card */}
                   {showLocationBlockedCard && (
-                    <div className="bg-amber-50/80 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/50 rounded-xl p-3 animate-in fade-in duration-200">
+                    <div className="bg-blue-50/80 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/50 rounded-xl p-3 animate-in fade-in duration-200">
                       <div className="flex items-start gap-2.5">
                         <div className="flex-shrink-0">
-                          <MapPin className="w-4 h-4 text-amber-600/80 dark:text-amber-400/80" />
+                          <MapPin className="w-4 h-4 text-blue-600/80 dark:text-blue-400/80" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-xs font-semibold text-amber-900 dark:text-amber-100 mb-1">Location Required</h4>
+                          <h4 className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-1">Location Required</h4>
                           <p className="text-[11px] text-gray-700 dark:text-gray-300 mb-2.5 leading-relaxed">
                             Location access is disabled for ReplyFlow. Enable it in your phone's app settings, then try Tap to Pay again.
                           </p>
@@ -898,7 +900,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                                 setShowLocationPermissionCard(true)
                               }
                             }}
-                            className="w-full h-[44px] px-3 text-xs font-medium bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors"
+                            className="w-full h-[44px] px-3 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
                           >
                             Try Again
                           </button>

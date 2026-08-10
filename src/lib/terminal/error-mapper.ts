@@ -192,6 +192,8 @@ export function mapTapToPayError(
   if (
     lowerMessage.includes('education required') ||
     lowerMessage.includes('education guide') ||
+    lowerMessage.includes('education must be completed') ||
+    lowerMessage.includes('complete the tap to pay education') ||
     lowerCode.includes('education') ||
     lowerCode.includes('education_canceled')
   ) {
