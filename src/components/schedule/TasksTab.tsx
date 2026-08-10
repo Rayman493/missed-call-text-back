@@ -32,18 +32,26 @@ interface Task {
 }
 
 interface TasksTabProps {
-  onNewJob: () => void
+  onNewJob?: () => void
+  taskRefreshTrigger?: number
+  onAddTask?: () => void
+  onEditTask?: (task: Task) => void
+  showBackButton?: boolean
+  onBack?: () => void
 }
 
 type TaskFilter = 'all' | 'active' | 'overdue' | 'future' | 'completed'
 
-export default function TasksTab({ onNewJob }: TasksTabProps) {
+export default function TasksTab({ onNewJob, taskRefreshTrigger, onAddTask, onEditTask, showBackButton, onBack }: TasksTabProps) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const hasLoadedOnceRef = useRef(false)
   const [filter, setFilter] = useState<TaskFilter>('all')
   const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
+
+  // Use parent modal if available, otherwise use local state
+  const useParentModal = !!onAddTask && !!onEditTask
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info'; isVisible: boolean }>({
     message: '',
     type: 'success',
@@ -61,7 +69,7 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
 
   useEffect(() => {
     fetchTasks()
-  }, [])
+  }, [taskRefreshTrigger])
 
   const fetchTasks = async () => {
     setIsLoading(true)
@@ -274,13 +282,23 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
             Keep track of smaller to-dos, reminders, and follow-ups.
           </p>
         </div>
-        <button
-          onClick={() => setIsNewTaskModalOpen(true)}
-          className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm active:scale-[0.98]"
-        >
-          <Plus className="w-4 h-4" />
-          New Task
-        </button>
+        <div className="flex items-center gap-2">
+          {showBackButton && onBack && (
+            <button
+              onClick={onBack}
+              className="text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground transition-colors"
+            >
+              ← Back to Agenda
+            </button>
+          )}
+          <button
+            onClick={() => useParentModal ? onAddTask!() : setIsNewTaskModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm active:scale-[0.98]"
+          >
+            <Plus className="w-4 h-4" />
+            New Task
+          </button>
+        </div>
       </div>
 
       {/* Filter Tabs */}
@@ -360,7 +378,7 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
             {filter === 'all' && 'Create your first task to get started.'}
           </p>
           <button
-            onClick={() => setIsNewTaskModalOpen(true)}
+            onClick={() => useParentModal ? onAddTask!() : setIsNewTaskModalOpen(true)}
             className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm active:scale-[0.98]"
           >
             <Plus className="w-4 h-4" />
@@ -443,7 +461,7 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
                 </div>
                 <div className="flex items-center gap-1">
                   <button
-                    onClick={() => setEditingTask(task)}
+                    onClick={() => useParentModal ? onEditTask!(task) : setEditingTask(task)}
                     className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
                     title="Edit task"
                   >
@@ -463,19 +481,21 @@ export default function TasksTab({ onNewJob }: TasksTabProps) {
         </div>
       )}
 
-      {/* New Task Modal */}
-      <NewTaskModal
-        isOpen={isNewTaskModalOpen}
-        onClose={() => setIsNewTaskModalOpen(false)}
-        onTaskCreated={(isNew) => {
-          fetchTasks()
-          setIsNewTaskModalOpen(false)
-        }}
-        onShowToast={showToast}
-      />
+      {/* New Task Modal - only render if not using parent modal */}
+      {!useParentModal && (
+        <NewTaskModal
+          isOpen={isNewTaskModalOpen}
+          onClose={() => setIsNewTaskModalOpen(false)}
+          onTaskCreated={(isNew) => {
+            fetchTasks()
+            setIsNewTaskModalOpen(false)
+          }}
+          onShowToast={showToast}
+        />
+      )}
 
-      {/* Edit Task Modal */}
-      {editingTask && (
+      {/* Edit Task Modal - only render if not using parent modal */}
+      {!useParentModal && editingTask && (
         <NewTaskModal
           isOpen={!!editingTask}
           onClose={() => setEditingTask(null)}

@@ -307,6 +307,11 @@ export default function SchedulePage() {
     setIsNewTaskModalOpen(true)
   }, [])
 
+  const handleAgendaEditTask = useCallback((task: any) => {
+    setTaskToEdit(task)
+    setIsNewTaskModalOpen(true)
+  }, [])
+
   const handleMapEditEvent = useCallback((event: any) => {
     setSelectedEvent(event)
     setEventDetailsMode('details')
@@ -1170,6 +1175,7 @@ export default function SchedulePage() {
                         jobs={jobs}
                         calendarEvents={events}
                         onAddTask={() => setIsNewTaskModalOpen(true)}
+                        onEditTask={handleAgendaEditTask}
                         onAddJob={openNewJob}
                         onAddAppointment={handleNewAppointment}
                         onJobClick={(job) => {
@@ -1181,16 +1187,14 @@ export default function SchedulePage() {
                       />
                       {showFullTasks && (
                         <div className="mt-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <h2 className="text-base font-semibold text-slate-900 dark:text-foreground">All Tasks</h2>
-                            <button
-                              onClick={() => setShowFullTasks(false)}
-                              className="text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground"
-                            >
-                              Show less
-                            </button>
-                          </div>
-                          <TasksTab onNewJob={openNewJob} />
+                          <TasksTab
+                            onNewJob={openNewJob}
+                            taskRefreshTrigger={taskRefreshTrigger}
+                            onAddTask={() => setIsNewTaskModalOpen(true)}
+                            onEditTask={handleAgendaEditTask}
+                            showBackButton={true}
+                            onBack={() => setShowFullTasks(false)}
+                          />
                         </div>
                       )}
                     </>

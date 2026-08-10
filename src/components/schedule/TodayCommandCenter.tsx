@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Calendar, Briefcase, CheckCircle2, Clock, Plus, AlertCircle } from 'lucide-react'
+import { Calendar, Briefcase, CheckCircle2, Clock, Plus, AlertCircle, Pencil, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 import { createBrowserClient } from '@/lib/supabase/browser'
 
@@ -41,6 +41,7 @@ interface TodayCommandCenterProps {
   onAddJob?: () => void
   onAddAppointment?: () => void
   onJobClick?: (job: Job) => void
+  onEditTask?: (task: Task) => void
   taskRefreshTrigger?: number
   onViewAllTasks?: () => void
 }
@@ -52,6 +53,7 @@ export default function TodayCommandCenter({
   onAddJob,
   onAddAppointment,
   onJobClick,
+  onEditTask,
   taskRefreshTrigger,
   onViewAllTasks,
 }: TodayCommandCenterProps) {
@@ -373,8 +375,8 @@ export default function TodayCommandCenter({
       </div>
 
       {/* Needs Done Today - Primary Section */}
-      <div className="bg-white dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-700/50 rounded-lg">
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-border/25">
+      <div className="bg-white dark:bg-slate-900/60 border border-blue-200/60 dark:border-blue-800/40 rounded-lg">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-blue-100/50 dark:border-blue-900/30">
           <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           <h3 className="text-sm font-semibold text-foreground">
             Needs Done Today
@@ -467,12 +469,26 @@ export default function TodayCommandCenter({
                   </div>
                 </div>
                 {item.type === 'task' && (
-                  <button
-                    onClick={() => deleteTask(item.id)}
-                    className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
-                  >
-                    ×
-                  </button>
+                  <div className="flex items-center gap-1">
+                    {onEditTask && item.type === 'task' && (
+                      <button
+                        onClick={() => onEditTask(item.data)}
+                        className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+                        aria-label="Edit task"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    {item.type === 'task' && (
+                      <button
+                        onClick={() => deleteTask(item.id)}
+                        className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+                        aria-label="Delete task"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
                 )}
                 {item.type === 'job' && (
                   <Link
@@ -488,14 +504,14 @@ export default function TodayCommandCenter({
         )}
       </div>
 
-      {/* Browse by Type - Secondary Sections */}
+      {/* Work Overview - Secondary Sections */}
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <div className="h-px bg-slate-200 dark:bg-slate-700 flex-1" />
-          <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-            Browse by Type
+          <div className="h-px bg-border/30 flex-1" />
+          <h3 className="text-xs font-medium text-muted-foreground">
+            Work Overview
           </h3>
-          <div className="h-px bg-slate-200 dark:bg-slate-700 flex-1" />
+          <div className="h-px bg-border/30 flex-1" />
         </div>
 
         {/* Tasks */}
@@ -507,7 +523,7 @@ export default function TodayCommandCenter({
                 Tasks
               </h3>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-3">
               {onAddTask && (
                 <button
                   onClick={onAddTask}
@@ -584,12 +600,24 @@ export default function TodayCommandCenter({
                           )}
                         </div>
                       </div>
-                      <button
-                        onClick={() => deleteTask(task.id)}
-                        className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
-                      >
-                        ×
-                      </button>
+                      <div className="flex items-center gap-1">
+                        {onEditTask && (
+                          <button
+                            onClick={() => onEditTask(task)}
+                            className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+                            aria-label="Edit task"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => deleteTask(task.id)}
+                          className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+                          aria-label="Delete task"
+                        >
+                          ×
+                        </button>
+                      </div>
                     </div>
                   )
                 })}
@@ -607,7 +635,7 @@ export default function TodayCommandCenter({
                 Jobs
               </h3>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-3">
               {onAddJob && (
                 <button
                   onClick={onAddJob}
@@ -654,27 +682,20 @@ export default function TodayCommandCenter({
                         <p className="text-sm font-medium text-foreground truncate">
                           {job.title}
                         </p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <p className="text-xs text-muted-foreground truncate">
-                            {job.customer_name || 'No customer'}
-                          </p>
-                          {jobToday && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">
-                              Today
-                            </span>
-                          )}
-                          {job.scheduled_date && !jobToday && (
-                            <span className="text-xs text-muted-foreground">
-                              {formatDate(job.scheduled_date)}
-                            </span>
-                          )}
-                        </div>
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">
+                          {job.customer_name || 'No customer'}
+                        </p>
                       </div>
-                      <div className="flex-shrink-0 text-right">
+                      <div className="flex-shrink-0 text-right min-w-[80px]">
+                        {job.scheduled_date && (
+                          <p className="text-xs text-muted-foreground">
+                            {formatDate(job.scheduled_date)}
+                          </p>
+                        )}
                         {job.scheduled_time && (
-                          <span className="text-xs text-muted-foreground">
+                          <p className="text-xs text-muted-foreground">
                             {formatTime(job.scheduled_time)}
-                          </span>
+                          </p>
                         )}
                       </div>
                     </button>
@@ -694,7 +715,7 @@ export default function TodayCommandCenter({
                 Appointments
               </h3>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-3">
               {onAddAppointment && (
                 <button
                   onClick={onAddAppointment}
@@ -743,26 +764,26 @@ export default function TodayCommandCenter({
                         <p className="text-sm font-medium text-foreground truncate">
                           {event.summary}
                         </p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          {isToday && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">
-                              Today
-                            </span>
-                          )}
-                          {eventDate && !isToday && (
-                            <span className="text-xs text-muted-foreground">
-                              {formatDate(eventDateOnly || '')}
-                            </span>
-                          )}
-                        </div>
                       </div>
-                      <div className="flex-shrink-0 text-right">
+                      <div className="flex-shrink-0 text-right min-w-[80px]">
+                        {eventDateOnly && (
+                          <p className="text-xs text-muted-foreground">
+                            {formatDate(eventDateOnly)}
+                          </p>
+                        )}
                         {event.start.dateTime && (
-                          <span className="text-xs text-muted-foreground">
+                          <p className="text-xs text-muted-foreground">
                             {new Date(event.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                          </span>
+                          </p>
                         )}
                       </div>
+                      <Link
+                        href="/dashboard/calendar"
+                        className="flex-shrink-0 w-6 h-6 flex items-center justify-center text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+                        aria-label="Open in Calendar"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </Link>
                     </div>
                   )
                 })}
