@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { Funnel } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import PremiumEmptyState from '@/components/ui/PremiumEmptyState'
@@ -21,8 +21,9 @@ export default function CustomerPipelineGraph() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let isMounted = true
     const fetchData = async () => {
-      if (!business) return
+      if (!business?.id) return
 
       try {
         const supabase = createBrowserClient()
@@ -34,13 +35,18 @@ export default function CustomerPipelineGraph() {
           .eq('business_id', business.id)
           .is('deleted_at', null)
 
-        // Process status data
+        if (!isMounted) return
+
+        // Process status data - normalize to canonical statuses
         const allStatuses = getAllCustomerStatuses()
         const statusCounts: { [key: string]: number } = {}
         
         leads?.forEach((lead: any) => {
-          const status = lead.status || 'new'
-          statusCounts[status] = (statusCounts[status] || 0) + 1
+          // Normalize status to canonical value, but don't silently count unknown as New
+          const rawStatus = lead.status || 'new'
+          const normalizedStatus = allStatuses.includes(rawStatus) ? rawStatus : 'unknown'
+
+          statusCounts[normalizedStatus] = (statusCounts[normalizedStatus] || 0) + 1
         })
 
         const pipelineData = allStatuses.map((status: string) => {
@@ -52,16 +58,26 @@ export default function CustomerPipelineGraph() {
           }
         }).filter((item) => item.count > 0)
 
-        setData(pipelineData)
+        // Add unknown bucket if there are legacy/uncleanable statuses
+        if (statusCounts['unknown'] > 0) {
+          pipelineData.push({
+            status: 'Unknown',
+            count: statusCounts['unknown'],
+            color: '#94A3B8'
+          })
+        }
+
+        if (isMounted) setData(pipelineData)
       } catch (error) {
-        console.error('[CustomerPipelineGraph] Error fetching data:', error)
+        if (isMounted) console.error('[CustomerPipelineGraph] Error fetching data:', error)
       } finally {
-        setLoading(false)
+        if (isMounted) setLoading(false)
       }
     }
 
     fetchData()
-  }, [business])
+    return () => { isMounted = false }
+  }, [business?.id])
 
   const isEmpty = data.length === 0
 
@@ -102,28 +118,28 @@ export default function CustomerPipelineGraph() {
           />
         ) : (
           <div className="h-[260px]">
-            <div className="h-full w-full" style={{ touchAction: 'none', userSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
+            <div className="h-full w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data} layout="horizontal" margin={{ top: 16, right: 8, bottom: 8, left: 8 }}>
+                <BarChart data={data} layout="horizontal" margin={{ top: 16, right: 16, bottom: 8, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/10" horizontal={false} />
-                  <XAxis 
-                    type="number" 
+                  <XAxis
+                    type="number"
                     className="text-[10px] text-muted-foreground/60"
                     tick={{ fontSize: 10 }}
                     axisLine={false}
                     tickLine={false}
                   />
-                  <YAxis 
-                    type="category" 
-                    dataKey="status" 
+                  <YAxis
+                    type="category"
+                    dataKey="status"
                     className="text-[10px] text-muted-foreground/60"
                     tick={{ fontSize: 10 }}
                     width={100}
                     axisLine={false}
                     tickLine={false}
                   />
-                  <Tooltip 
-                    contentStyle={{ 
+                  <Tooltip
+                    contentStyle={{
                       backgroundColor: 'hsl(var(--card))',
                       border: '1px solid hsl(var(--border))',
                       borderRadius: '8px',
@@ -132,10 +148,11 @@ export default function CustomerPipelineGraph() {
                     }}
                     itemStyle={{ color: 'hsl(var(--foreground))' }}
                     formatter={(value: any, name?: any) => [value, 'Customers']}
+                    labelFormatter={(label: any) => label}
                   />
-                  <Bar dataKey="count" radius={[0, 3, 3, 0]} className="hover:opacity-80 transition-all">
+                  <Bar dataKey="count" radius={[0, 3, 3, 0]} barSize={24}>
                     {data.map((entry, index) => (
-                      <rect key={`cell-${index}`} fill={entry.color} fillOpacity={0.8} />
+                      <Cell key={`cell-${index}`} fill={entry.color} fillOpacity={0.85} />
                     ))}
                   </Bar>
                 </BarChart>

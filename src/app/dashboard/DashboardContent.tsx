@@ -79,6 +79,9 @@ import NewCustomersGraph from '@/components/analytics/NewCustomersGraph'
 import RevenueGraph from '@/components/analytics/RevenueGraph'
 import CustomerPipelineGraph from '@/components/analytics/CustomerPipelineGraph'
 import BusinessActivityGraph from '@/components/analytics/BusinessActivityGraph'
+import PaymentCollectionGraph from '@/components/analytics/PaymentCollectionGraph'
+import JobsStatusGraph from '@/components/analytics/JobsStatusGraph'
+import LeadsSourceGraph from '@/components/analytics/LeadsSourceGraph'
 import BetaFeedbackModal from '@/components/BetaFeedbackModal'
 import { reconcileWarmNumbers, getWarmInventoryStats } from '@/app/admin/actions'
 import { getBusinessOnboardingState, getEmptyStateCopy, BusinessData } from '@/lib/onboarding-state'
@@ -1186,6 +1189,15 @@ export default function DashboardContent() {
                           </div>
                           <div className={`${!business?.forwarding_verified ? 'opacity-40' : ''} transition-opacity duration-200`}>
                             <NewCustomersGraph />
+                          </div>
+                          <div className={`${!business?.forwarding_verified ? 'opacity-40' : ''} transition-opacity duration-200`}>
+                            <PaymentCollectionGraph />
+                          </div>
+                          <div className={`${!business?.forwarding_verified ? 'opacity-40' : ''} transition-opacity duration-200`}>
+                            <JobsStatusGraph />
+                          </div>
+                          <div className={`${!business?.forwarding_verified ? 'opacity-40' : ''} transition-opacity duration-200 col-span-1 sm:col-span-2`}>
+                            <LeadsSourceGraph />
                           </div>
                         </div>
                       </SectionErrorBoundary>

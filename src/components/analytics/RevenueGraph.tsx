@@ -148,7 +148,7 @@ export default function RevenueGraph() {
           />
         ) : (
           <div className="h-[260px]">
-            <div className="h-full w-full" style={{ touchAction: 'none', userSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
+            <div className="h-full w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={data} margin={{ top: 16, right: 8, bottom: 8, left: 8 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/10" vertical={false} />
