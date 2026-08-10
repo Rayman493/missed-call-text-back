@@ -270,32 +270,45 @@ export default function OnboardingSuccess() {
               </div>
 
               <div>
-                <h3 className="font-semibold text-foreground mb-3">Carrier-Specific Instructions</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="border border-border rounded-lg p-3">
-                    <h4 className="font-medium text-foreground">Verizon</h4>
-                    <p className="text-xs text-muted-foreground mt-1">Instructions coming soon...</p>
+                <h3 className="font-semibold text-foreground mb-3">Setup Steps</h3>
+                <div className="space-y-3 text-sm text-muted-foreground">
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">1</span>
+                    </div>
+                    <p className="leading-relaxed">
+                      Go to your phone provider's settings and find "Call Forwarding" or "Conditional Call Forwarding"
+                    </p>
                   </div>
-                  <div className="border border-border rounded-lg p-3">
-                    <h4 className="font-medium text-foreground">AT&T</h4>
-                    <p className="text-xs text-muted-foreground mt-1">Instructions coming soon...</p>
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">2</span>
+                    </div>
+                    <p className="leading-relaxed">
+                      Enable forwarding for <strong>unanswered</strong> or <strong>busy</strong> calls only
+                    </p>
                   </div>
-                  <div className="border border-border rounded-lg p-3">
-                    <h4 className="font-medium text-foreground">T-Mobile</h4>
-                    <p className="text-xs text-muted-foreground mt-1">Instructions coming soon...</p>
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">3</span>
+                    </div>
+                    <p className="leading-relaxed">
+                      Enter the ReplyFlow number shown above as the forwarding destination
+                    </p>
                   </div>
-                  <div className="border border-border rounded-lg p-3">
-                    <h4 className="font-medium text-foreground">Google Voice</h4>
-                    <p className="text-xs text-muted-foreground mt-1">Instructions coming soon...</p>
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-blue-600 dark:text-blue-400 font-semibold text-xs">4</span>
+                    </div>
+                    <p className="leading-relaxed">
+                      Save settings and test with the "Optional Real-World Test" button below
+                    </p>
                   </div>
-                  <div className="border border-border rounded-lg p-3">
-                    <h4 className="font-medium text-foreground">OpenPhone</h4>
-                    <p className="text-xs text-muted-foreground mt-1">Instructions coming soon...</p>
-                  </div>
-                  <div className="border border-border rounded-lg p-3">
-                    <h4 className="font-medium text-foreground">RingCentral</h4>
-                    <p className="text-xs text-muted-foreground mt-1">Instructions coming soon...</p>
-                  </div>
+                </div>
+                <div className="mt-4 p-3 bg-muted rounded-lg">
+                  <p className="text-xs text-muted-foreground">
+                    <strong>Note:</strong> Most providers support conditional forwarding. If you can't find this option, check your provider's help documentation or contact their support.
+                  </p>
                 </div>
               </div>
             </div>
