@@ -93,7 +93,7 @@ interface ScheduleMapProps {
   onAddLocationEvent?: (event: CalendarEvent) => void
 }
 
-type MapItemType = 'job' | 'appointment'
+type MapItemType = 'job' | 'appointment' | 'task'
 
 type MapFilter = 'all' | 'jobs' | 'appointments'
 
@@ -1510,6 +1510,20 @@ function ScheduleMapComponent({
                   return 'bg-slate-100 dark:bg-slate-900/30 text-slate-600 dark:text-slate-400'
                 }
 
+                const getTypeLabel = () => {
+                  if (item.type === 'job') return 'Job'
+                  if (item.type === 'appointment') return 'Appointment'
+                  if (item.type === 'task') return 'Task'
+                  return ''
+                }
+
+                const getTypeLabelColor = () => {
+                  if (item.type === 'job') return 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                  if (item.type === 'appointment') return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                  if (item.type === 'task') return 'bg-slate-100 dark:bg-slate-900/30 text-slate-700 dark:text-slate-300'
+                  return 'bg-slate-100 dark:bg-slate-900/30 text-slate-700 dark:text-slate-300'
+                }
+
                 return (
                   <button
                     key={item.id}
@@ -1526,6 +1540,9 @@ function ScheduleMapComponent({
                         <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
                           {formatItemTime(item.scheduledTime)}
                         </p>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${getTypeLabelColor()}`}>
+                          {getTypeLabel()}
+                        </span>
                         {!item.hasLocation && (
                           <span className="text-[10px] px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
                             No location

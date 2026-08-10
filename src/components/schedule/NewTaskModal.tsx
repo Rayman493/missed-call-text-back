@@ -27,6 +27,7 @@ interface NewTaskModalProps {
   onTaskCreated: (isNew?: boolean) => void
   taskToEdit?: Task | null
   onShowToast?: (message: string, type: 'success' | 'error' | 'warning' | 'info') => void
+  onTaskDeleted?: () => void
 }
 
 interface Lead {
@@ -41,7 +42,7 @@ interface Job {
   customer_name: string | null
 }
 
-export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdit, onShowToast }: NewTaskModalProps) {
+export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdit, onShowToast, onTaskDeleted }: NewTaskModalProps) {
   const [title, setTitle] = useState('')
   const [notes, setNotes] = useState('')
   const [dueDate, setDueDate] = useState('')
@@ -53,6 +54,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isTogglingComplete, setIsTogglingComplete] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const supabase = createBrowserClient()
 
   // Use shared body scroll lock hook
@@ -200,6 +202,46 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
     }
   }
 
+  const handleDelete = async () => {
+    if (!taskToEdit) return
+
+    if (!confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) {
+        onShowToast?.('Authentication error. Please try again.', 'error')
+        return
+      }
+
+      const response = await fetch(`/api/tasks/${taskToEdit.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to delete task')
+      }
+
+      onShowToast?.('Task deleted successfully', 'success')
+      onTaskDeleted?.()
+      handleClose()
+    } catch (error) {
+      console.error('[NewTaskModal] Failed to delete task:', error)
+      onShowToast?.('Failed to delete task. Please try again.', 'error')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   const handleClose = () => {
     setTitle('')
     setNotes('')
@@ -316,6 +358,20 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
                 className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isTogglingComplete ? 'Updating...' : (taskToEdit.completed ? 'Reopen Task' : 'Mark as Complete')}
+              </button>
+            </div>
+          )}
+
+          {/* Delete Button - Only in Edit Mode */}
+          {taskToEdit && (
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="w-full px-4 py-2 border border-red-200 dark:border-red-900/30 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete Task'}
               </button>
             </div>
           )}

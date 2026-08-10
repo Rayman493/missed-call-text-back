@@ -49,6 +49,18 @@ interface CalendarEvent {
   extendedProperties?: any
 }
 
+interface Task {
+  id: string
+  title: string
+  notes: string | null
+  due_date: string | null
+  due_time: string | null
+  completed: boolean
+  lead_id: string | null
+  job_id: string | null
+  created_at: string
+}
+
 // Lightweight MeetingsTab component (scoped, no new files)
 function MeetingsTab({
   events,
@@ -252,6 +264,7 @@ export default function SchedulePage() {
   const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false)
   const [newlyCreatedLeadId, setNewlyCreatedLeadId] = useState<string | null>(null)
   const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false)
+  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null)
   const [taskRefreshTrigger, setTaskRefreshTrigger] = useState(0)
   const [showFullTasks, setShowFullTasks] = useState(false)
   const [isNewAppointmentModalOpen, setIsNewAppointmentModalOpen] = useState(false)
@@ -279,9 +292,8 @@ export default function SchedulePage() {
 
   // Edit handlers for ScheduleMap
   const handleMapEditJob = useCallback((job: any) => {
-    setEditingJob(job)
-    setJobComposerInitialFocus(undefined)
-    setIsJobComposerOpen(true)
+    setSelectedJob(job as Job)
+    setIsJobDetailsOpen(true)
   }, [])
 
   const handleMapAddLocationJob = useCallback((job: any) => {
@@ -291,8 +303,7 @@ export default function SchedulePage() {
   }, [])
 
   const handleMapEditTask = useCallback((task: any) => {
-    // Set task for editing in NewTaskModal
-    // This would require passing taskToEdit to NewTaskModal
+    setTaskToEdit(task)
     setIsNewTaskModalOpen(true)
   }, [])
 
@@ -1721,11 +1732,18 @@ export default function SchedulePage() {
                   {/* New Task Modal */}
                   <NewTaskModal
                     isOpen={isNewTaskModalOpen}
-                    onClose={() => setIsNewTaskModalOpen(false)}
+                    onClose={() => {
+                      setIsNewTaskModalOpen(false)
+                      setTaskToEdit(null)
+                    }}
                     onTaskCreated={(isNew) => {
                       setTaskRefreshTrigger(prev => prev + 1)
                     }}
+                    taskToEdit={taskToEdit}
                     onShowToast={showToast}
+                    onTaskDeleted={() => {
+                      setTaskRefreshTrigger(prev => prev + 1)
+                    }}
                   />
 
                   {/* New Appointment Modal */}
