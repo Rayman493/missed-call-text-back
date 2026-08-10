@@ -41,6 +41,7 @@ interface TodayCommandCenterProps {
   onAddJob?: () => void
   onAddAppointment?: () => void
   onJobClick?: (job: Job) => void
+  taskRefreshTrigger?: number
 }
 
 export default function TodayCommandCenter({
@@ -50,6 +51,7 @@ export default function TodayCommandCenter({
   onAddJob,
   onAddAppointment,
   onJobClick,
+  taskRefreshTrigger,
 }: TodayCommandCenterProps) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [isLoadingTasks, setIsLoadingTasks] = useState(true)
@@ -59,7 +61,7 @@ export default function TodayCommandCenter({
 
   useEffect(() => {
     fetchTasks()
-  }, [])
+  }, [taskRefreshTrigger])
 
   const fetchTasks = async () => {
     setIsLoadingTasks(true)
@@ -205,7 +207,7 @@ export default function TodayCommandCenter({
         id: task.id,
         title: task.title,
         customer: null,
-        time: task.due_time || null,
+        time: task.due_time ? formatTime(task.due_time) : null,
         date: task.due_date,
         icon: <AlertCircle className="w-4 h-4 text-red-500" />,
         status: 'Overdue',
@@ -454,7 +456,7 @@ export default function TodayCommandCenter({
                 </button>
               )}
               <Link
-                href="/dashboard/tasks"
+                href="/dashboard/calendar?tab=tasks"
                 className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
               >
                 View all →

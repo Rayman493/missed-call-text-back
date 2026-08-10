@@ -71,11 +71,6 @@ export default function DatePicker({
             <X className="w-4 h-4 text-muted-foreground" />
           </button>
         )}
-        {!value && !disabled && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-            <Calendar className="w-4 h-4 text-muted-foreground" />
-          </div>
-        )}
       </div>
 
       {!required && (
