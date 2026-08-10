@@ -365,7 +365,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [refreshing, setRefreshing] = useState(false)
   const [showMoreActions, setShowMoreActions] = useState(false)
   const [showMobileOverflow, setShowMobileOverflow] = useState(false)
-  const [showCustomerInfoModal, setShowCustomerInfoModal] = useState(false)
+  const [showInternalNotesModal, setShowInternalNotesModal] = useState(false)
+  const [internalNotesValue, setInternalNotesValue] = useState('')
   const [triggerEditCustomerDetails, setTriggerEditCustomerDetails] = useState(false)
   const [savingCustomerInfo, setSavingCustomerInfo] = useState(false)
   const [mobileCustomerExpanded, setMobileCustomerExpanded] = useState(true)
@@ -604,13 +605,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       }
     }
   }, [showLeadInfo])
-
-  // Reset notes autofocus flag when the customer info modal closes
-  useEffect(() => {
-    if (!showCustomerInfoModal) {
-      setAutoFocusNotes(false)
-    }
-  }, [showCustomerInfoModal])
 
   // Reset triggerEditCustomerDetails after it's been consumed
   useEffect(() => {
@@ -2663,15 +2657,26 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       <div className="space-y-4">
         {/* Jobs & Appointments - Collapsible - Compact on mobile */}
         <div className="bg-white dark:bg-slate-800/80 rounded-xl border border-border/50 p-4 sm:p-5 shadow-sm">
-          <button
-            onClick={() => setCollapsedSections((prev: any) => ({ ...prev, schedule: !prev.schedule }))}
-            className="flex items-center justify-between w-full mb-2 sm:mb-3 group"
-          >
-            <h3 className="text-sm font-medium text-foreground group-hover:text-foreground/80 transition-colors">Jobs</h3>
-            <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.schedule ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
+            <button
+              onClick={() => setCollapsedSections((prev: any) => ({ ...prev, schedule: !prev.schedule }))}
+              className="flex items-center gap-2 group"
+            >
+              <h3 className="text-sm font-medium text-foreground group-hover:text-foreground/80 transition-colors">Jobs</h3>
+              <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.schedule ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <Link
+              href="/dashboard/calendar"
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              View
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
           {!collapsedSections.schedule && (
             <div className="transition-all duration-200">
               {leadJobs.length === 0 ? (
@@ -2720,15 +2725,26 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
         {/* Payment Requests - Collapsible - Compact on mobile */}
         <div className="bg-white dark:bg-slate-800/80 rounded-xl border border-border/50 p-4 sm:p-5 shadow-sm">
-          <button
-            onClick={() => setCollapsedSections((prev: any) => ({ ...prev, payments: !prev.payments }))}
-            className="flex items-center justify-between w-full mb-2 sm:mb-3 group"
-          >
-            <h3 className="text-sm font-medium text-foreground group-hover:text-foreground/80 transition-colors">Payments</h3>
-            <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.payments ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
+            <button
+              onClick={() => setCollapsedSections((prev: any) => ({ ...prev, payments: !prev.payments }))}
+              className="flex items-center gap-2 group"
+            >
+              <h3 className="text-sm font-medium text-foreground group-hover:text-foreground/80 transition-colors">Payments</h3>
+              <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.payments ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <Link
+              href="/dashboard/payments"
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              View
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
           {!collapsedSections.payments && (
             <div className="transition-all duration-200">
               {paymentRequests.length === 0 ? (
@@ -2792,7 +2808,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             <div className="flex-shrink-0">
               <button
                 type="button"
-                onClick={() => { setShowCustomerInfoModal(true); setAutoFocusNotes(true) }}
+                onClick={() => {
+                  setInternalNotesValue(leadData?.notes || '')
+                  setShowInternalNotesModal(true)
+                }}
                 className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
               >
                 {Boolean((leadData?.notes || '').trim()) ? 'Edit' : 'Add note'}
@@ -3577,47 +3596,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           <div className="h-px bg-border/20"></div>
                         </div>
 
-                        {/* CUSTOMER Section */}
-                        <div className="px-2.5 py-1.5">
-                          <div className="px-0.5 py-0.5 text-[9px] font-medium text-muted-foreground/60 uppercase tracking-[0.12em]">
-                            Customer
-                          </div>
-                        </div>
-
-                        {/* Edit Customer Details */}
-                        <div className="px-1 py-0.5">
-                          <DropdownMenuItem
-                            onSelect={() => setTriggerEditCustomerDetails(true)}
-                            className="w-full px-2 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                            </svg>
-                            <span>Edit Customer Details</span>
-                          </DropdownMenuItem>
-                        </div>
-
-                        {/* Internal Notes */}
-                        <div className="px-1 py-0.5">
-                          <DropdownMenuItem
-                            onSelect={() => {
-                              setInternalNotesExpanded(true)
-                              setShowLeadInfo(true)
-                            }}
-                            className="w-full px-2 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                            <span>Internal Notes</span>
-                          </DropdownMenuItem>
-                        </div>
-
-                        {/* Divider */}
-                        <div className="px-2.5 py-1">
-                          <div className="h-px bg-border/20"></div>
-                        </div>
-
                         {/* SETTINGS Section */}
                         <div className="px-2.5 py-1.5">
                           <div className="px-0.5 py-0.5 text-[9px] font-medium text-muted-foreground/60 uppercase tracking-[0.12em]">
@@ -3975,7 +3953,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               <div className="flex-shrink-0">
                                 <button
                                   type="button"
-                                  onClick={() => { setShowCustomerInfoModal(true); setAutoFocusNotes(true) }}
+                                  onClick={() => {
+                                    setInternalNotesValue(leadData?.notes || '')
+                                    setShowInternalNotesModal(true)
+                                  }}
                                   className="inline-flex items-center gap-2 px-3 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
                                 >
                                   {Boolean((leadData?.notes || '').trim()) ? 'Edit' : 'Add'}
@@ -4573,88 +4554,42 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         </div>
       )}
 
-      {/* Edit Customer Info Modal */}
-      {showCustomerInfoModal && (
+      {/* Internal Notes Modal */}
+      {showInternalNotesModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-slate-800/80 rounded-xl shadow-xl max-w-md w-full p-6">
             <h2 className="text-lg font-semibold text-foreground mb-4">
-              Edit Customer Information
+              {internalNotesValue?.trim() ? 'Edit Internal Notes' : 'Add Internal Notes'}
             </h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  Contact Name
-                </label>
-                <input
-                  type="text"
-                  value={leadData?.contact_name || ''}
-                  onChange={(e) => setLeadData((prev: any) => ({ ...prev, contact_name: e.target.value }))}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-background"
-                  placeholder="Enter contact name"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  Company Name
-                </label>
-                <input
-                  type="text"
-                  value={leadData?.company_name || ''}
-                  onChange={(e) => setLeadData((prev: any) => ({ ...prev, company_name: e.target.value }))}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-background"
-                  placeholder="Enter company name"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  Tags
-                </label>
-                <input
-                  type="text"
-                  value={leadData?.tags?.join(', ') || ''}
-                  onChange={(e) => setLeadData((prev: any) => ({ 
-                    ...prev, 
-                    tags: e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
-                  }))}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-background"
-                  placeholder="Enter tags separated by commas"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Separate multiple tags with commas
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  Notes
-                </label>
-                <p className="text-[11px] text-muted-foreground mb-2">Private to your business. Customers cannot see these notes.</p>
+                <p className="text-xs text-muted-foreground mb-2">Private — customers cannot see these notes.</p>
                 <textarea
-                  autoFocus={autoFocusNotes}
-                  value={leadData?.notes || ''}
-                  onChange={(e) => setLeadData((prev: any) => ({ ...prev, notes: e.target.value }))}
+                  value={internalNotesValue}
+                  onChange={(e) => setInternalNotesValue(e.target.value)}
                   className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-background resize-none"
                   autoCapitalize="sentences"
                   autoCorrect="on"
                   spellCheck={true}
                   inputMode="text"
-                  rows={3}
+                  rows={5}
                   placeholder="Enter notes about this customer"
+                  autoFocus
                 />
               </div>
             </div>
             <div className="flex gap-3 justify-end mt-6">
               <button
-                onClick={() => setShowCustomerInfoModal(false)}
+                onClick={() => {
+                  setShowInternalNotesModal(false)
+                  setInternalNotesValue('')
+                }}
                 className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={async () => {
-                  if (savingCustomerInfo) return
-                  setSavingCustomerInfo(true)
-                  
-                  // Save customer info
                   const supabase = createBrowserClient()
                   const { data: { session } } = await supabase.auth.getSession()
                   const headers: HeadersInit = { 'Content-Type': 'application/json' }
@@ -4667,15 +4602,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       method: 'PATCH',
                       headers,
                       body: JSON.stringify({
-                        contact_name: leadData?.contact_name || null,
-                        company_name: leadData?.company_name || null,
-                        tags: leadData?.tags || [],
-                        notes: leadData?.notes || null
+                        notes: internalNotesValue || null
                       })
                     })
 
                     if (response.ok) {
-                      setShowCustomerInfoModal(false)
+                      setShowInternalNotesModal(false)
+                      setInternalNotesValue('')
                       // Refresh lead data
                       const updatedData = await getLeadDetails(lead?.id)
                       if (updatedData?.ok && updatedData.lead) {
@@ -4683,19 +4616,16 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       }
                     } else {
                       const errorData = await response.json()
-                      setError(errorData.error || 'Failed to save customer information')
+                      setError(errorData.error || 'Failed to save notes')
                     }
                   } catch (error) {
-                    console.error('Error saving customer info:', error)
-                    setError(error instanceof Error ? error.message : 'Failed to save customer information')
-                  } finally {
-                    setSavingCustomerInfo(false)
+                    console.error('Error saving notes:', error)
+                    setError(error instanceof Error ? error.message : 'Failed to save notes')
                   }
                 }}
-                disabled={savingCustomerInfo}
-                className={`px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors ${savingCustomerInfo ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
               >
-                {savingCustomerInfo ? 'Saving...' : 'Save'}
+                Save
               </button>
             </div>
           </div>

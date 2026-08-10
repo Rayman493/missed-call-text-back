@@ -184,6 +184,15 @@ export default function VoicemailSummary({ leadData, triggerEdit }: VoicemailSum
           <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md font-medium">
             {sourceText}
           </span>
+          {!isEditMode && (
+            <button
+              onClick={() => setIsEditMode(true)}
+              className="p-1.5 text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all duration-200"
+              aria-label="Edit customer details"
+            >
+              <FileText className="w-3.5 h-3.5" />
+            </button>
+          )}
           {isEditMode ? (
             <div className="flex items-center gap-2">
               <button
