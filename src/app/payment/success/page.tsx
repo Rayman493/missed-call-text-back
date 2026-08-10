@@ -29,8 +29,8 @@ export default function PaymentSuccessPage() {
       })
       .catch(err => {
         console.error('[PAYMENT SUCCESS] Reconcile error:', err)
-        // Even if reconcile fails, show success since user completed checkout
-        setStatus('paid')
+        // If reconcile fails, show error - never show success without server confirmation
+        setStatus('error')
       })
   }, [sessionId])
 
@@ -73,14 +73,14 @@ export default function PaymentSuccessPage() {
             </>
           ) : (
             <>
-              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
-                <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-yellow-100 mb-4">
+                <svg className="h-8 w-8 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">Payment Received</h1>
-              <p className="text-gray-600">Thank you for your payment.</p>
-              <p className="text-sm text-gray-500 mt-4">You can close this window.</p>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">We couldn't verify your payment</h1>
+              <p className="text-gray-600">Your payment may have completed successfully. Please don't pay again while we confirm it.</p>
+              <p className="text-sm text-gray-500 mt-4">We'll send you a confirmation email once verified.</p>
             </>
           )}
         </div>
