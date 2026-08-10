@@ -7,6 +7,7 @@ import DatePicker from '@/components/ui/DatePicker'
 import TimePicker from '@/components/ui/TimePicker'
 import SelectPicker from '@/components/ui/SelectPicker'
 import { getLeadDisplayName } from '@/lib/utils'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 
 interface Task {
   id: string
@@ -54,6 +55,9 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
   const [isTogglingComplete, setIsTogglingComplete] = useState(false)
   const supabase = createBrowserClient()
 
+  // Use shared body scroll lock hook
+  useBodyScrollLock(isOpen)
+
   useEffect(() => {
     if (isOpen) {
       fetchLeads()
@@ -73,16 +77,6 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
         setSelectedLeadId(null)
         setSelectedJobId(null)
       }
-      // Lock body scroll when modal opens
-      document.body.style.overflow = 'hidden'
-    } else {
-      // Restore body scroll when modal closes
-      document.body.style.overflow = ''
-    }
-    
-    // Cleanup on unmount
-    return () => {
-      document.body.style.overflow = ''
     }
   }, [isOpen, taskToEdit])
 
@@ -224,7 +218,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md max-h-[calc(90vh-env(safe-area-inset-bottom))] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-foreground">
             {taskToEdit ? 'Edit Task' : 'New Task'}
@@ -326,7 +320,7 @@ export default function NewTaskModal({ isOpen, onClose, onTaskCreated, taskToEdi
             </div>
           )}
 
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-3 pt-2 pb-safe-bottom">
             <button
               type="button"
               onClick={handleClose}

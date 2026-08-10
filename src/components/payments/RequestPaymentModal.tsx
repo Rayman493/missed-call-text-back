@@ -555,7 +555,7 @@ export default function RequestPaymentModal({
         </div>
 
         {/* Footer/Actions - shrink-0 */}
-        <div className="flex gap-3 justify-end px-4 py-3 border-t border-border/30 shrink-0 pb-safe bg-card">
+        <div className="flex gap-3 justify-end px-4 py-3 border-t border-border/30 shrink-0 pb-safe-bottom bg-card">
           <button
             onClick={onClose}
             disabled={isCreatingPayment}
