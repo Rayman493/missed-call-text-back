@@ -2856,20 +2856,23 @@ export default function SettingsContent() {
                 <div className="h-px flex-1 bg-border/30"></div>
               </div>
 
-              {/* Account Section - Merged Profile and Account Access */}
+              {/* Account Section */}
               <div id="account" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
                 <div className="mb-5">
                   <h2 className="text-base font-semibold text-foreground mb-1">Account</h2>
                   <p className="text-sm text-muted-foreground leading-relaxed">Your account details and status.</p>
                 </div>
-                <div className="border border-border/30 rounded-lg overflow-hidden">
+                <div className="space-y-px bg-border/20 rounded-lg overflow-hidden">
                   {/* Login Email */}
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 border-b border-border/20 last:border-b-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-slate-900/60 p-4">
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2.5">
                         <Mail className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm font-medium text-muted-foreground">Login Email</span>
+                        <span className="text-sm font-medium text-foreground">Login Email</span>
                       </div>
+                      <span className="text-xs text-muted-foreground">
+                        This is the email you use to sign in.
+                      </span>
                       {pendingNewEmail && (
                         <span className="text-xs text-amber-600 dark:text-amber-400">
                           Pending confirmation: {pendingNewEmail}
@@ -2877,10 +2880,10 @@ export default function SettingsContent() {
                       )}
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-semibold text-foreground">{user?.email}</span>
+                      <span className="text-sm font-medium text-foreground truncate max-w-[200px]">{user?.email}</span>
                       <button
                         onClick={() => setShowChangeEmailModal(true)}
-                        className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
+                        className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 whitespace-nowrap"
                       >
                         Change Email
                       </button>
@@ -2889,7 +2892,7 @@ export default function SettingsContent() {
 
                   {/* Pending Email Confirmation */}
                   {pendingNewEmail && (
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 border-b border-border/20 last:border-b-0 bg-amber-50 dark:bg-amber-900/20">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-amber-50 dark:bg-amber-900/20 p-4">
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2.5">
                           <Mail className="w-4 h-4 text-amber-600 dark:text-amber-400" />
@@ -2901,7 +2904,7 @@ export default function SettingsContent() {
                       </div>
                       <button
                         onClick={handleResendConfirmation}
-                        className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-amber-100 dark:bg-amber-800 hover:bg-amber-200 dark:hover:bg-amber-700 text-amber-700 dark:text-amber-300"
+                        className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-amber-100 dark:bg-amber-800 hover:bg-amber-200 dark:hover:bg-amber-700 text-amber-700 dark:text-amber-300 whitespace-nowrap"
                       >
                         Resend Confirmation
                       </button>
@@ -2909,18 +2912,31 @@ export default function SettingsContent() {
                   )}
 
                   {/* Status */}
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 border-b border-border/20 last:border-b-0">
-                    <div className="flex items-center gap-2.5">
-                      <div className={`w-2.5 h-2.5 rounded-full ${
-                        isInTrialPeriod(business?.subscription_status) 
-                          ? 'bg-blue-500' 
-                          : hasActiveSubscription(business)
-                            ? 'bg-green-500'
-                            : 'bg-amber-500'
-                      }`}></div>
-                      <span className="text-sm font-medium text-muted-foreground">Status</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-slate-900/60 p-4">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-2.5 h-2.5 rounded-full ${
+                          isInTrialPeriod(business?.subscription_status)
+                            ? 'bg-blue-500'
+                            : hasActiveSubscription(business)
+                              ? 'bg-green-500'
+                              : 'bg-amber-500'
+                        }`}></div>
+                        <span className="text-sm font-medium text-foreground">Status</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        Your account is in good standing.
+                      </span>
                     </div>
-                    <span className="text-sm font-semibold text-foreground">{getSubscriptionStatusText(business?.subscription_status)}</span>
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                      isInTrialPeriod(business?.subscription_status)
+                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                        : hasActiveSubscription(business)
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                          : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                    }`}>
+                      {getSubscriptionStatusText(business?.subscription_status)}
+                    </span>
                   </div>
 
                   {/* Access Status */}
@@ -2929,23 +2945,28 @@ export default function SettingsContent() {
                     const accessInfo = getManualAccessDisplayInfo(business)
                     
                     return (
-                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 p-4 last:border-b-0">
-                        <div className="flex items-center gap-2.5">
-                          <div className={`w-2.5 h-2.5 rounded-full ${
-                            manualStatus.hasManualAccess && accessInfo.status === 'active' 
-                              ? 'bg-green-500' 
-                              : manualStatus.hasManualAccess && accessInfo.status === 'expired'
-                                ? 'bg-red-500'
-                                : 'bg-slate-400'
-                          }`}></div>
-                          <span className={`text-sm font-medium ${
-                            manualStatus.hasManualAccess && accessInfo.status === 'active' 
-                              ? 'text-green-600 dark:text-green-400'
-                              : manualStatus.hasManualAccess && accessInfo.status === 'expired'
-                                ? 'text-red-600 dark:text-red-400'
-                                : 'text-muted-foreground'
-                          }`}>
-                            Access Status
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 bg-white dark:bg-slate-900/60 p-4">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2.5">
+                            <div className={`w-2.5 h-2.5 rounded-full ${
+                              manualStatus.hasManualAccess && accessInfo.status === 'active'
+                                ? 'bg-green-500'
+                                : manualStatus.hasManualAccess && accessInfo.status === 'expired'
+                                  ? 'bg-red-500'
+                                  : 'bg-slate-400'
+                            }`}></div>
+                            <span className={`text-sm font-medium ${
+                              manualStatus.hasManualAccess && accessInfo.status === 'active'
+                                ? 'text-green-600 dark:text-green-400'
+                                : manualStatus.hasManualAccess && accessInfo.status === 'expired'
+                                  ? 'text-red-600 dark:text-red-400'
+                                  : 'text-foreground'
+                            }`}>
+                              Access Status
+                            </span>
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            How you currently access ReplyFlow.
                           </span>
                         </div>
                         <div className="flex flex-col items-start sm:items-end">
@@ -2981,16 +3002,21 @@ export default function SettingsContent() {
                   })()}
 
                   {/* Password */}
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 border-b border-border/20 last:border-b-0">
-                    <div className="flex items-center gap-2.5">
-                      <Smartphone className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm font-medium text-muted-foreground">Password</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-slate-900/60 p-4">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2.5">
+                        <Smartphone className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm font-medium text-foreground">Password</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        Keep your account secure.
+                      </span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-semibold text-foreground">•••••••••</span>
+                      <span className="text-sm font-medium text-foreground">•••••••••</span>
                       <button
                         onClick={() => setShowChangePasswordModal(true)}
-                        className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
+                        className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 whitespace-nowrap"
                       >
                         Change Password
                       </button>
@@ -3000,110 +3026,113 @@ export default function SettingsContent() {
               </div>
 
               {/* Subscription & Billing Section */}
-              <div id="subscription" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-200 p-3 sm:p-4 scroll-mt-[64px]">
-                <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-foreground mb-1 sm:mb-2">Subscription & Billing</h2>
-                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-3 sm:mb-4">Manage your subscription and billing.</p>
-                <div className="space-y-2.5 sm:space-y-3">
-                  <div className="bg-gradient-to-r from-blue-50/50 to-indigo-50/40 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-lg border border-blue-200/60 dark:border-blue-800/50 p-3 sm:p-4">
-                    <div className="flex items-center justify-between gap-3 sm:gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 sm:gap-2.5 mb-1.5">
-                          <h4 className="text-xs sm:text-sm font-semibold text-blue-900 dark:text-blue-100">Current Plan</h4>
-                          <span className={`text-[10px] sm:text-[11px] px-2.5 py-0.5 rounded-full font-semibold ${
-                            isInTrialPeriod(business?.subscription_status) 
-                              ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' 
-                              : hasActiveSubscription(business)
-                                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                                : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-                          }`}>
-                            {getSubscriptionStatusText(business?.subscription_status)}
-                          </span>
-                        </div>
-                        <p className="text-sm sm:text-base font-black text-slate-900 dark:text-foreground">
-                          {isInTrialPeriod(business?.subscription_status)
-                            ? `ReplyFlow — ${getPricingDisplay()}`
-                            : getPricingDisplay()}
-                        </p>
-                        <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mt-1.5 leading-relaxed">
-                          {isInTrialPeriod(business?.subscription_status) && business?.trial_ends_at
-                            ? `Your free trial ends on ${new Date(business.trial_ends_at).toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric'
-                              })}. You won't be charged until then.`
-                            : (business?.subscription_status === 'past_due' || business?.subscription_status === 'unpaid')
-                              ? 'Your latest payment could not be processed. Stripe will retry automatically. Please update your payment method if needed.'
-                              : getSubscriptionStatusDescription(
-                                  business?.subscription_status,
-                                  business?.stripe_customer_id,
-                                  business?.stripe_subscription_id,
-                                  business?.cancel_at_period_end,
-                                  business?.current_period_end,
-                                  business?.trial_ends_at
-                                )}
-                        </p>
-                      </div>
-                      <div className="flex-shrink-0">
-                        {(business?.subscription_status === 'beta' || business?.subscription_status === 'comped') ? (
-                          <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 text-right">
-                            Billing not required
-                          </p>
-                        ) : (
-                          <button
-                            onClick={() => handleBillingActionClick('portal')}
-                            disabled={isOpeningPortal}
-                            className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
-                          >
-                            {isOpeningPortal ? (
-                              <>
-                                <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018 8v4h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
-                                <span>{business?.stripe_customer_id && business.stripe_customer_id.startsWith('cus_') ? 'Opening...' : 'Loading...'}</span>
-                              </>
-                            ) : (
-                              <span>{business?.stripe_customer_id && business.stripe_customer_id.startsWith('cus_') ? 'Manage Billing' : 'Subscribe Now'}</span>
-                            )}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  {needsUpgrade(business?.subscription_status) && !getManualAccessStatus(business).hasManualAccess && (
-                    <button
-                      onClick={() => handleBillingActionClick('upgrade')}
-                      disabled={isStartingCheckout}
-                      className="w-full h-11 px-4 text-sm font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
-                    >
-                      {isStartingCheckout ? (
-                        <>
-                          <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018 8v4h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                          </svg>
-                          <span>Processing...</span>
-                        </>
-                      ) : (
-                        <span>Upgrade Plan</span>
-                      )}
-                    </button>
-                  )}
+              <div id="subscription" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-border/20 shadow-sm p-5 scroll-mt-[64px]">
+                <div className="mb-4">
+                  <h2 className="text-base font-semibold text-foreground mb-1">Subscription & Billing</h2>
+                  <p className="text-sm text-muted-foreground leading-relaxed">Manage your subscription and billing.</p>
                 </div>
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2.5 mb-2">
+                      <h3 className="text-sm font-semibold text-foreground">Current Plan</h3>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        isInTrialPeriod(business?.subscription_status)
+                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                          : hasActiveSubscription(business)
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                            : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                      }`}>
+                        {getSubscriptionStatusText(business?.subscription_status)}
+                      </span>
+                    </div>
+                    <p className="text-2xl font-bold text-foreground mb-1">
+                      {isInTrialPeriod(business?.subscription_status)
+                        ? `ReplyFlow — ${getPricingDisplay()}`
+                        : getPricingDisplay()}
+                    </p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      {isInTrialPeriod(business?.subscription_status) && business?.trial_ends_at
+                        ? `Your free trial ends on ${new Date(business.trial_ends_at).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}. You won't be charged until then.`
+                        : (business?.subscription_status === 'past_due' || business?.subscription_status === 'unpaid')
+                          ? 'Your latest payment could not be processed. Stripe will retry automatically. Please update your payment method if needed.'
+                          : getSubscriptionStatusDescription(
+                              business?.subscription_status,
+                              business?.stripe_customer_id,
+                              business?.stripe_subscription_id,
+                              business?.cancel_at_period_end,
+                              business?.current_period_end,
+                              business?.trial_ends_at
+                            )}
+                    </p>
+                  </div>
+                  <div className="flex-shrink-0">
+                    {(business?.subscription_status === 'beta' || business?.subscription_status === 'comped') ? (
+                      <p className="text-xs text-muted-foreground">
+                        Billing not required
+                      </p>
+                    ) : (
+                      <button
+                        onClick={() => handleBillingActionClick('portal')}
+                        disabled={isOpeningPortal}
+                        className="px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
+                      >
+                        {isOpeningPortal ? (
+                          <>
+                            <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018 8v4h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            <span>{business?.stripe_customer_id && business.stripe_customer_id.startsWith('cus_') ? 'Opening...' : 'Loading...'}</span>
+                          </>
+                        ) : (
+                          <span>{business?.stripe_customer_id && business.stripe_customer_id.startsWith('cus_') ? 'Manage Billing' : 'Subscribe Now'}</span>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {needsUpgrade(business?.subscription_status) && !getManualAccessStatus(business).hasManualAccess && (
+                  <button
+                    onClick={() => handleBillingActionClick('upgrade')}
+                    disabled={isStartingCheckout}
+                    className="w-full h-11 px-4 text-sm font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98] mt-4"
+                  >
+                    {isStartingCheckout ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018 8v4h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span>Processing...</span>
+                      </>
+                    ) : (
+                      <span>Upgrade Plan</span>
+                    )}
+                  </button>
+                )}
               </div>
 
               {/* Danger Zone Section */}
-              <div className="mt-6 sm:mt-8">
-                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium mb-2 sm:mb-3 uppercase tracking-wider">Danger Zone</p>
-                <div className="bg-red-50/60 dark:bg-red-900/20 rounded-xl border border-red-200/50 dark:border-red-800/30 p-3 sm:p-4">
-                  <p className="text-[10px] sm:text-xs text-red-700/80 dark:text-red-300/80 mb-3 sm:mb-4">
-                    Permanent destructive actions that cannot be undone.
-                  </p>
-                  <div>
-                    <h3 className="text-xs sm:text-sm font-semibold text-red-900 dark:text-red-100 mb-1.5 sm:mb-2">Delete Account</h3>
+              <div id="danger-zone" className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-lg border border-red-200/40 dark:border-red-900/30 shadow-sm p-5 scroll-mt-[64px]">
+                <div className="mb-4">
+                  <h2 className="text-base font-semibold text-red-700 dark:text-red-400 mb-1">Danger Zone</h2>
+                  <p className="text-sm text-red-600/70 dark:text-red-400/70 leading-relaxed">Permanent destructive actions that cannot be undone.</p>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex-1">
+                    <h3 className="text-sm font-medium text-foreground mb-1">Delete Account</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Permanently delete your account and associated data.
+                    </p>
+                  </div>
+                  <div className="flex-shrink-0">
                     <button
                       onClick={() => setShowDeleteModal(true)}
-                      className="px-3 py-1.5 text-xs font-medium rounded-lg transition-colors duration-150 bg-red-600 hover:bg-red-700 text-white"
+                      className="px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-150 bg-red-600 hover:bg-red-700 text-white focus:outline-none focus:ring-2 focus:ring-red-500/40 whitespace-nowrap"
                     >
                       Delete Account
                     </button>
