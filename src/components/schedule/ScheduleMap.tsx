@@ -151,6 +151,7 @@ export default function ScheduleMap({
   const perDateStateRef = useRef<Map<string, MapDateState>>(new Map())
   const calendarEventCoordsCacheRef = useRef<Map<string, { lat: number; lng: number; formattedAddress: string } | null>>(new Map()) // Cache for calendar event coordinates (null = failed geocode)
   const programmaticCameraChangeRef = useRef(false) // Guard to distinguish user vs programmatic movement
+  const pendingProgrammaticMoveRef = useRef(false) // Track if a programmatic move is in progress
   const mapPreparationIdRef = useRef(0) // Monotonically increasing ID to prevent stale async results
   const markerSetSignatureRef = useRef<string>('') // Signature of current marker set to prevent repeated fitBounds
   const newlyMappableEventIdRef = useRef<string | null>(null) // Track newly mappable event for one-time camera adjustment
@@ -268,7 +269,24 @@ export default function ScheduleMap({
   const fitBoundsWithMaxZoom = useCallback((bounds: any, maxZoom: number = 15, paddingBottom: number = 0) => {
     if (!googleMapRef.current) return
 
+    // Check if bounds would actually change viewport (avoid no-op calls)
+    const currentBounds = googleMapRef.current.getBounds()
+    const ne = bounds.getNorthEast()
+    const sw = bounds.getSouthWest()
+    const currentNe = currentBounds.getNorthEast()
+    const currentSw = currentBounds.getSouthWest()
+    const isSameBounds = Math.abs(ne.lat() - currentNe.lat()) < 0.000001 && 
+                       Math.abs(ne.lng() - currentNe.lng()) < 0.000001 &&
+                       Math.abs(sw.lat() - currentSw.lat()) < 0.000001 && 
+                       Math.abs(sw.lng() - currentSw.lng()) < 0.000001
+    
+    if (isSameBounds) {
+      // No actual camera change needed, don't set guard
+      return
+    }
+
     programmaticCameraChangeRef.current = true
+    pendingProgrammaticMoveRef.current = true
 
     // Apply bottom padding if specified (for bottom nav)
     if (paddingBottom > 0) {
@@ -285,11 +303,6 @@ export default function ScheduleMap({
       }
       // Remove listener after first execution
       (window as any).google.maps.event.removeListener(listener)
-      // Clear guard after animation completes (500ms exceeds typical animation duration)
-      // This ensures idle fires before guard clears, preventing false userInteracted=true
-      setTimeout(() => {
-        programmaticCameraChangeRef.current = false
-      }, 500)
     })
   }, [])
 
@@ -297,7 +310,19 @@ export default function ScheduleMap({
   const panToMarker = useCallback((lat: number, lng: number, zoom?: number, setUserInteractedFlag: boolean = true) => {
     if (!googleMapRef.current) return
     
+    // Check if this is actually a camera change (avoid no-op calls)
+    const currentCenter = googleMapRef.current.getCenter()
+    const currentZoom = googleMapRef.current.getZoom()
+    const isSameCenter = Math.abs(currentCenter.lat() - lat) < 0.000001 && Math.abs(currentCenter.lng() - lng) < 0.000001
+    const isSameZoom = zoom === undefined || Math.abs(currentZoom - zoom) < 0.01
+    
+    if (isSameCenter && isSameZoom) {
+      // No actual camera change needed, don't set guard
+      return
+    }
+    
     programmaticCameraChangeRef.current = true
+    pendingProgrammaticMoveRef.current = true
     googleMapRef.current.panTo({ lat, lng })
     if (zoom !== undefined) {
       googleMapRef.current.setZoom(zoom)
@@ -305,11 +330,6 @@ export default function ScheduleMap({
     if (setUserInteractedFlag) {
       setUserInteracted(true)
     }
-    // Clear guard after animation completes (500ms exceeds typical animation duration)
-    // This ensures idle fires before guard clears, preventing false userInteracted=true
-    setTimeout(() => {
-      programmaticCameraChangeRef.current = false
-    }, 500)
   }, [])
 
   // Reset to show all markers
@@ -844,10 +864,14 @@ export default function ScheduleMap({
         }
       })
       // idle fires after any movement settles (user or programmatic)
-      // Guard prevents false positives: programmatic movements set guard=true
-      // Guard timeout (500ms) exceeds animation duration so idle fires before guard clears
+      // Event-driven guard: consume pending programmatic move on idle
       map.addListener('idle', () => {
-        if (!programmaticCameraChangeRef.current) {
+        if (pendingProgrammaticMoveRef.current) {
+          // This idle was caused by a programmatic move
+          pendingProgrammaticMoveRef.current = false
+          programmaticCameraChangeRef.current = false
+        } else if (!programmaticCameraChangeRef.current) {
+          // This idle was caused by user movement
           setUserInteracted(true)
         }
       })
@@ -937,12 +961,23 @@ export default function ScheduleMap({
       // Restore viewport immediately if map is ready and saved viewport exists
       // This prevents race condition with marker rendering effect
       if (mapReady && googleMapRef.current && savedState.center && savedState.zoom) {
-        programmaticCameraChangeRef.current = true
-        googleMapRef.current.setCenter(savedState.center)
-        googleMapRef.current.setZoom(savedState.zoom)
-        setTimeout(() => {
-          programmaticCameraChangeRef.current = false
-        }, 100)
+        // Check if this is actually a camera change (avoid no-op calls)
+        const currentCenter = googleMapRef.current.getCenter()
+        const currentZoom = googleMapRef.current.getZoom()
+        const currentLat = currentCenter.lat()
+        const currentLng = currentCenter.lng()
+        const savedLat = savedState.center.lat
+        const savedLng = savedState.center.lng
+        const isSameCenter = Math.abs(currentLat - savedLat) < 0.000001 && 
+                             Math.abs(currentLng - savedLng) < 0.000001
+        const isSameZoom = Math.abs(currentZoom - savedState.zoom) < 0.01
+        
+        if (!isSameCenter || !isSameZoom) {
+          programmaticCameraChangeRef.current = true
+          pendingProgrammaticMoveRef.current = true
+          googleMapRef.current.setCenter(savedState.center)
+          googleMapRef.current.setZoom(savedState.zoom)
+        }
       }
     } else {
       // First visit - use defaults
@@ -1095,6 +1130,8 @@ export default function ScheduleMap({
       markerSetSignatureRef.current = signature
     } else if (selectedMapItemId && !userInteracted) {
       // Explicitly selected item - center on it with detail zoom
+      // Only auto-focus if user hasn't manually moved the map
+      // Explicit selections (selectMapItem, navigateToStop) call panToMarker directly
       const selectedMarker = markersRef.current.get(selectedMapItemId)
       if (selectedMarker) {
         const pos = selectedMarker.getPosition()
