@@ -1082,11 +1082,11 @@ export default function PaymentsPage() {
                               {payment.paid_at ? new Date(payment.paid_at).toLocaleDateString() : '-'}
                             </td>
                             <td className="px-4 py-3 whitespace-nowrap">
-                              <div className="flex items-center gap-1.5 whitespace-nowrap">
+                              <div className="flex items-center gap-2 whitespace-nowrap">
                                 {payment.leads && (
                                   <button
                                     onClick={() => router.push(`/dashboard/leads/${payment.leads!.id}`)}
-                                    className="text-gray-400 hover:text-white text-xs font-medium"
+                                    className="text-gray-400 hover:text-white text-xs font-medium transition-colors"
                                   >
                                     View Customer
                                   </button>
@@ -1095,8 +1095,9 @@ export default function PaymentsPage() {
                                   <>
                                     <button
                                       onClick={() => copyPaymentLink(payment.checkout_url!)}
-                                      className="text-blue-400 hover:text-blue-300 p-1"
+                                      className="h-8 w-8 flex items-center justify-center rounded-lg text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                                       title="Copy payment link"
+                                      aria-label="Copy payment link"
                                     >
                                       <Copy className="h-3.5 w-3.5" />
                                     </button>
@@ -1104,8 +1105,9 @@ export default function PaymentsPage() {
                                       href={payment.checkout_url}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="text-blue-400 hover:text-blue-300 p-1"
+                                      className="h-8 w-8 flex items-center justify-center rounded-lg text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                                       title="Open payment link"
+                                      aria-label="Open payment link"
                                     >
                                       <ExternalLink className="h-3.5 w-3.5" />
                                     </a>
@@ -1118,7 +1120,8 @@ export default function PaymentsPage() {
                                       setShowMarkPaidConfirm(true)
                                     }}
                                     disabled={isMarkingPaid}
-                                    className="text-green-400 hover:text-green-300 text-xs font-medium p-1 disabled:opacity-50 flex items-center gap-1"
+                                    className="flex items-center gap-1.5 px-3 h-8 rounded-lg text-green-400 hover:text-green-300 hover:bg-green-500/10 text-xs font-medium transition-colors disabled:opacity-50 disabled:hover:bg-transparent focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                                    aria-label="Mark as paid"
                                   >
                                     <CreditCard className="h-3.5 w-3.5" />
                                     Mark Paid
@@ -1128,8 +1131,9 @@ export default function PaymentsPage() {
                                   <button
                                     onClick={() => handleCancelPayment(payment)}
                                     disabled={isCancelling}
-                                    className="text-red-400 hover:text-red-300 p-1 disabled:opacity-50"
+                                    className="h-8 w-8 flex items-center justify-center rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors disabled:opacity-50 disabled:hover:bg-transparent focus:outline-none focus:ring-2 focus:ring-red-500/50"
                                     title="Cancel payment request"
+                                    aria-label="Cancel payment request"
                                   >
                                     <X className="h-3.5 w-3.5" />
                                   </button>
@@ -1196,11 +1200,11 @@ export default function PaymentsPage() {
                                   {payment.paid_at ? new Date(payment.paid_at).toLocaleDateString() : '-'}
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap">
-                                  <div className="flex items-center gap-1.5 whitespace-nowrap">
+                                  <div className="flex items-center gap-2 whitespace-nowrap">
                                     {payment.leads && (
                                       <button
                                         onClick={() => router.push(`/dashboard/leads/${payment.leads!.id}`)}
-                                        className="text-gray-400 hover:text-white text-xs font-medium"
+                                        className="text-gray-400 hover:text-white text-xs font-medium transition-colors"
                                       >
                                         View Customer
                                       </button>
@@ -1209,8 +1213,9 @@ export default function PaymentsPage() {
                                       <>
                                         <button
                                           onClick={() => copyPaymentLink(payment.checkout_url!)}
-                                          className="text-blue-400 hover:text-blue-300 p-1"
+                                          className="h-8 w-8 flex items-center justify-center rounded-lg text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                                           title="Copy payment link"
+                                          aria-label="Copy payment link"
                                         >
                                           <Copy className="h-3.5 w-3.5" />
                                         </button>
@@ -1218,8 +1223,9 @@ export default function PaymentsPage() {
                                           href={payment.checkout_url}
                                           target="_blank"
                                           rel="noopener noreferrer"
-                                          className="text-blue-400 hover:text-blue-300 p-1"
+                                          className="h-8 w-8 flex items-center justify-center rounded-lg text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                                           title="Open payment link"
+                                          aria-label="Open payment link"
                                         >
                                           <ExternalLink className="h-3.5 w-3.5" />
                                         </a>
@@ -1232,7 +1238,8 @@ export default function PaymentsPage() {
                                           setShowMarkPaidConfirm(true)
                                         }}
                                         disabled={isMarkingPaid}
-                                        className="text-green-400 hover:text-green-300 text-xs font-medium p-1 disabled:opacity-50 flex items-center gap-1"
+                                        className="flex items-center gap-1.5 px-3 h-8 rounded-lg text-green-400 hover:text-green-300 hover:bg-green-500/10 text-xs font-medium transition-colors disabled:opacity-50 disabled:hover:bg-transparent focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                                        aria-label="Mark as paid"
                                       >
                                         <CreditCard className="h-3.5 w-3.5" />
                                         Mark Paid
@@ -1242,8 +1249,9 @@ export default function PaymentsPage() {
                                       <button
                                         onClick={() => handleCancelPayment(payment)}
                                         disabled={isCancelling}
-                                        className="text-red-400 hover:text-red-300 p-1 disabled:opacity-50"
+                                        className="h-8 w-8 flex items-center justify-center rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors disabled:opacity-50 disabled:hover:bg-transparent focus:outline-none focus:ring-2 focus:ring-red-500/50"
                                         title="Cancel payment request"
+                                        aria-label="Cancel payment request"
                                       >
                                         <X className="h-3.5 w-3.5" />
                                       </button>
