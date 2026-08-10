@@ -71,10 +71,20 @@ export default function LeadsSourceGraph() {
         Object.entries(sourceCounts).forEach(([source, count]) => {
           let normalizedSource = source
           // Map legacy/variant source values to canonical display values
-          if (source === 'voice' || source === 'ai_intake' || source === 'ai_voice') {
+          if (source === 'voice' || source === 'ai_intake' || source === 'ai_voice' || source === 'call_intake') {
             normalizedSource = 'replyflow'
           } else if (source === 'manual' || source === 'manual_entry' || source === 'manual_backfill') {
             normalizedSource = 'manual'
+          } else if (source === 'sms') {
+            normalizedSource = 'sms'
+          } else if (source === 'web' || source === 'manual_payment_request') {
+            normalizedSource = 'web'
+          } else if (source === 'admin_test' || source === 'demo') {
+            // Exclude admin test and demo from analytics
+            return
+          } else {
+            // Any unclassified source values map to unknown to prevent raw labels from appearing
+            normalizedSource = 'unknown'
           }
           normalizedCounts[normalizedSource] = (normalizedCounts[normalizedSource] || 0) + count
         })
