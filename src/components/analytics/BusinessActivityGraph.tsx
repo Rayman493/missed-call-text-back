@@ -18,6 +18,13 @@ const TIME_RANGE_OPTIONS = [
   { value: '1y' as TimeRange, label: 'This Year' },
 ]
 
+const SERIES_LABELS: Record<string, string> = {
+  conversations: 'Conversations',
+  appointments: 'Appointments',
+  paymentRequests: 'Payment Requests',
+  completedJobs: 'Completed Jobs'
+}
+
 interface ActivityData {
   date: string
   conversations: number
@@ -222,34 +229,52 @@ export default function BusinessActivityGraph() {
                     axisLine={false}
                     tickLine={false}
                   />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                      padding: '8px 12px',
-                      fontSize: '11px'
+                  <Tooltip
+                    content={({ active, payload, label }: any) => {
+                      if (!active || !payload || payload.length === 0) return null
+
+                      return (
+                        <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
+                          <p className="text-[11px] font-medium text-foreground mb-2">{label}</p>
+                          {payload.map((entry: any, index: number) => {
+                            const key = entry.dataKey as string
+                            const label = SERIES_LABELS[key] || entry.dataKey
+                            return (
+                              <div key={index} className="flex items-center justify-between gap-4 text-[10px]">
+                                <div className="flex items-center gap-1.5">
+                                  <div
+                                    className="w-2 h-2 rounded-full"
+                                    style={{ backgroundColor: entry.color }}
+                                  />
+                                  <span className="text-muted-foreground">{label}</span>
+                                </div>
+                                <span className="font-medium text-foreground">{entry.value}</span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )
                     }}
-                    itemStyle={{ color: 'hsl(var(--foreground))' }}
                   />
                   {showLegend && (
-                    <Legend 
+                    <Legend
                       content={({ payload }: any) => (
                         <div className="flex flex-wrap gap-3 justify-center pt-2">
                           {payload.map((entry: any, index: number) => {
-                            const key = entry.dataKey as keyof ActivityData
+                            const key = entry.dataKey as string
+                            const label = SERIES_LABELS[key] || entry.dataKey
                             const total = data.reduce((sum, day) => {
-                              const value = day[key]
+                              const value = day[key as keyof ActivityData]
                               return sum + (typeof value === 'number' ? value : 0)
                             }, 0)
                             return (
                               <div key={index} className="flex items-center gap-1.5">
-                                <div 
-                                  className="w-2.5 h-2.5 rounded-full" 
+                                <div
+                                  className="w-2.5 h-2.5 rounded-full"
                                   style={{ backgroundColor: entry.color }}
                                 />
                                 <span className="text-[10px] text-muted-foreground">
-                                  {entry.name}: <span className="font-medium text-foreground">{total}</span>
+                                  {label}: <span className="font-medium text-foreground">{total}</span>
                                 </span>
                               </div>
                             )
