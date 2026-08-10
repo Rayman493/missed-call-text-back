@@ -134,9 +134,9 @@ export default function OnboardingPage() {
           redirectTarget = '/dashboard'
           redirectReason = 'Onboarding completed'
         }
-        // If has active subscription but onboarding not complete, go to new onboarding flow
+        // If has active subscription but onboarding not complete, go to dashboard setup mode
         else if (hasActiveSub && !forwardingComplete) {
-          redirectTarget = '/onboarding/new-onboarding'
+          redirectTarget = '/dashboard?setup=1'
           redirectReason = 'Has active subscription, continue setup'
         }
         // If has business but no active subscription and profile is complete, resume on
