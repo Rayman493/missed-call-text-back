@@ -8,7 +8,7 @@ import { createBrowserClient } from '@/lib/supabase/browser'
 import DashboardShell from '@/components/layout/DashboardShell'
 import Toast, { ToastContainer } from '@/components/Toast'
 import Link from 'next/link'
-import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle, Briefcase, MapPin, MoreVertical, CheckCircle2, Map as MapIcon } from 'lucide-react'
+import { Calendar as CalendarIcon, Plus, RefreshCw, AlertTriangle, Briefcase, MapPin, MoreVertical, CheckCircle2, Map as MapIcon, ExternalLink } from 'lucide-react'
 import CalendarGrid from '@/components/calendar/CalendarGrid'
 import EventPill from '@/components/calendar/EventPill'
 import EventDetailsModal from '@/components/calendar/EventDetailsModal'
@@ -1485,16 +1485,29 @@ export default function SchedulePage() {
                         {/* Selected Day Events - shown inline below calendar */}
                         {selectedDay && (
                           <div className="bg-white dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/70 dark:border-slate-700/50 shadow-sm p-4 sm:p-6">
-                            <div className="flex items-center justify-between mb-4">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                               <h3 className="text-lg font-semibold text-foreground">
                                 {selectedDay.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                               </h3>
-                              <button
-                                onClick={() => setSelectedDay(null)}
-                                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                              >
-                                Close
-                              </button>
+                              <div className="flex items-center gap-2">
+                                {calendarConnected && (
+                                  <a
+                                    href="https://calendar.google.com"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                                  >
+                                    Open Google Calendar
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                  </a>
+                                )}
+                                <button
+                                  onClick={() => setSelectedDay(null)}
+                                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                  Close
+                                </button>
+                              </div>
                             </div>
 
                             {/* Events for selected day */}
