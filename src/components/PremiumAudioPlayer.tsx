@@ -286,76 +286,70 @@ export default function PremiumAudioPlayer({
               {React.createElement(getVolumeIcon(), { className: 'w-5 h-5' })}
             </button>
             
-            {/* Desktop: Vertical Volume Popover */}
+            {/* Desktop: Horizontal Volume Popover */}
             <div className="hidden md:block">
               {isDesktopVolumeOpen && (
-                <div className="absolute bottom-full right-1/2 translate-x-1/2 mb-2 w-12 h-40 bg-popover border border-border rounded-lg shadow-lg p-3 z-50 flex flex-col items-center">
-                  <span className="text-xs text-muted-foreground font-mono tabular-nums mb-2">
-                    {Math.round((isMuted ? 0 : volume) * 100)}%
-                  </span>
-                  <div className="flex-1 flex items-center">
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.01"
-                      value={isMuted ? 0 : volume}
-                      onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                      className="w-32 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600 origin-center -rotate-90 touch-action-pan-y [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:hover:bg-blue-700 [&::-webkit-slider-thumb]:focus:outline-none [&::-webkit-slider-thumb]:focus:ring-2 [&::-webkit-slider-thumb]:focus:ring-blue-500 [&::-webkit-slider-thumb]:focus:ring-offset-2 [&::-webkit-slider-thumb]:shadow-md [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-600 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:hover:bg-blue-700 [&::-moz-range-thumb]:focus:outline-none [&::-moz-range-thumb]:focus:ring-2 [&::-moz-range-thumb]:focus:ring-blue-500 [&::-moz-range-thumb]:focus:ring-offset-2 [&::-moz-range-thumb]:shadow-md"
-                      aria-label="Volume"
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                      aria-valuenow={Math.round((isMuted ? 0 : volume) * 100)}
-                      style={{ width: '120px' }}
-                    />
-                  </div>
+                <div className="absolute bottom-full right-0 mb-2 w-44 bg-popover border border-border rounded-lg shadow-lg p-3 z-50 flex items-center gap-2">
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
                       toggleMute()
                     }}
-                    className="mt-2 p-1 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+                    className="p-1 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 rounded flex-shrink-0"
                     aria-label={isMuted ? 'Unmute' : 'Mute'}
                   >
                     {React.createElement(getVolumeIcon(), { className: 'w-4 h-4' })}
                   </button>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={isMuted ? 0 : volume}
+                    onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+                    className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:hover:bg-blue-700 [&::-webkit-slider-thumb]:focus:outline-none [&::-webkit-slider-thumb]:focus:ring-2 [&::-webkit-slider-thumb]:focus:ring-blue-500 [&::-webkit-slider-thumb]:focus:ring-offset-2 [&::-webkit-slider-thumb]:shadow-md [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-600 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:hover:bg-blue-700 [&::-moz-range-thumb]:focus:outline-none [&::-moz-range-thumb]:focus:ring-2 [&::-moz-range-thumb]:focus:ring-blue-500 [&::-moz-range-thumb]:focus:ring-offset-2 [&::-moz-range-thumb]:shadow-md"
+                    aria-label="Volume"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={Math.round((isMuted ? 0 : volume) * 100)}
+                  />
+                  <span className="text-xs text-muted-foreground font-mono tabular-nums w-8 text-right flex-shrink-0">
+                    {Math.round((isMuted ? 0 : volume) * 100)}%
+                  </span>
                 </div>
               )}
             </div>
 
-            {/* Mobile: Vertical Volume Popover */}
+            {/* Mobile: Horizontal Volume Popover */}
             <div className="md:hidden">
               {isMobileVolumeOpen && (
-                <div className="absolute bottom-full right-0 mb-2 w-12 h-40 bg-popover border border-border rounded-lg shadow-lg p-3 z-50 flex flex-col items-center">
-                  <span className="text-xs text-muted-foreground font-mono tabular-nums mb-2">
-                    {Math.round((isMuted ? 0 : volume) * 100)}%
-                  </span>
-                  <div className="flex-1 flex items-center">
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.01"
-                      value={isMuted ? 0 : volume}
-                      onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                      className="w-32 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600 origin-center -rotate-90 touch-action-pan-y [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:hover:bg-blue-700 [&::-webkit-slider-thumb]:focus:outline-none [&::-webkit-slider-thumb]:focus:ring-2 [&::-webkit-slider-thumb]:focus:ring-blue-500 [&::-webkit-slider-thumb]:focus:ring-offset-2 [&::-webkit-slider-thumb]:shadow-md [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-600 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:hover:bg-blue-700 [&::-moz-range-thumb]:focus:outline-none [&::-moz-range-thumb]:focus:ring-2 [&::-moz-range-thumb]:focus:ring-blue-500 [&::-moz-range-thumb]:focus:ring-offset-2 [&::-moz-range-thumb]:shadow-md"
-                      aria-label="Volume"
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                      aria-valuenow={Math.round((isMuted ? 0 : volume) * 100)}
-                      style={{ width: '120px' }}
-                    />
-                  </div>
+                <div className="absolute bottom-full right-0 mb-2 w-44 bg-popover border border-border rounded-lg shadow-lg p-3 z-50 flex items-center gap-2">
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
                       toggleMute()
                     }}
-                    className="mt-2 p-1 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+                    className="p-1 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 rounded flex-shrink-0"
                     aria-label={isMuted ? 'Unmute' : 'Mute'}
                   >
                     {React.createElement(getVolumeIcon(), { className: 'w-4 h-4' })}
                   </button>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={isMuted ? 0 : volume}
+                    onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+                    className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:hover:bg-blue-700 [&::-webkit-slider-thumb]:focus:outline-none [&::-webkit-slider-thumb]:focus:ring-2 [&::-webkit-slider-thumb]:focus:ring-blue-500 [&::-webkit-slider-thumb]:focus:ring-offset-2 [&::-webkit-slider-thumb]:shadow-md [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-600 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:hover:bg-blue-700 [&::-moz-range-thumb]:focus:outline-none [&::-moz-range-thumb]:focus:ring-2 [&::-moz-range-thumb]:focus:ring-blue-500 [&::-moz-range-thumb]:focus:ring-offset-2 [&::-moz-range-thumb]:shadow-md"
+                    aria-label="Volume"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={Math.round((isMuted ? 0 : volume) * 100)}
+                  />
+                  <span className="text-xs text-muted-foreground font-mono tabular-nums w-8 text-right flex-shrink-0">
+                    {Math.round((isMuted ? 0 : volume) * 100)}%
+                  </span>
                 </div>
               )}
             </div>
