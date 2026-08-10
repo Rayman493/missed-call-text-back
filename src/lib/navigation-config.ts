@@ -53,7 +53,7 @@ export const primaryNavItems: NavItem[] = [
 
 export const accountMenuItems: AccountMenuItem[] = [
   {
-    label: 'Account',
+    label: 'Settings',
     icon: Settings,
     href: '/dashboard/settings',
   },
