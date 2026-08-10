@@ -2262,8 +2262,25 @@ export default function SettingsContent() {
                 </div>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
-                  {/* Tap to Pay */}
-                  <div className="flex flex-col h-full border border-border/30 rounded-lg p-4">
+                  {/* Tap to Pay - Only render on supported iPhone (not iPad, iPod, or unsupported devices) */}
+                  {(() => {
+                    const status = tapToPayAwareness.state.tapToPaySupportStatus?.status
+                    const platform = tapToPayAwareness.state.tapToPaySupportStatus?.platform
+                    const unsupportedReason = tapToPayAwareness.state.tapToPaySupportStatus?.unsupportedReason
+                    const deviceType = tapToPayAwareness.state.tapToPaySupportStatus?.deviceInfo?.deviceType
+
+                    // Hide on non-iOS platforms
+                    if (platform !== 'ios') {
+                      return null
+                    }
+
+                    // Hide on iPad, iPod touch, or other unsupported device types
+                    if (unsupportedReason === 'unsupported_device_type' || deviceType === 'ipad') {
+                      return null
+                    }
+
+                    return (
+                      <div className="flex flex-col h-full border border-border/30 rounded-lg p-4">
                     <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-4 mb-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-1.5">
@@ -2553,6 +2570,8 @@ export default function SettingsContent() {
                       })()}
                     </div>
                   </div>
+                    )
+                  })()}
 
                   <div className="flex flex-col h-full border border-border/30 rounded-lg p-4">
                     <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-4 mb-3">
