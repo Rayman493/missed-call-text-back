@@ -87,20 +87,22 @@ class DailyBriefService implements DailyBriefServiceInterface {
 
   /**
    * Build brief sections from Focus items
+   * Exception-driven: only include sections with meaningful content
    */
   private buildSections(focusItems: FocusItem[]): BriefSection[] {
     const sections: BriefSection[] = []
 
+    // Track item IDs already surfaced to avoid cross-section duplication
+    const usedIds = new Set<string>()
+
     // Today's Priorities (max 3, highest urgency, exclude generic schedule)
     const priorities = this.buildPrioritiesSection(focusItems)
-    sections.push(priorities)
-
-    // Track item IDs already surfaced to avoid cross-section duplication
-    const usedIds = new Set<string>(
-      priorities.items
-        .filter(i => !i.id.startsWith('placeholder-'))
-        .map(i => i.id)
-    )
+    // Only include if there are real (non-placeholder) items
+    const hasRealPriorities = priorities.items.some(i => !i.isPlaceholder)
+    if (hasRealPriorities) {
+      sections.push(priorities)
+      priorities.items.filter(i => !i.isPlaceholder).forEach(i => usedIds.add(i.id))
+    }
 
     // Money section (exclude anything already shown in priorities)
     const money = this.buildMoneySection(focusItems, usedIds)
@@ -109,10 +111,13 @@ class DailyBriefService implements DailyBriefServiceInterface {
       money.items.forEach(i => { if (!i.id.startsWith('placeholder-')) usedIds.add(i.id) })
     }
 
-    // Schedule section (exclude duplicates; include explicit empty-state message when none)
+    // Schedule section (exclude duplicates, only include if real items exist)
     const schedule = this.buildScheduleSection(focusItems, usedIds)
-    sections.push(schedule)
-    schedule.items.forEach(i => { if (!i.id.startsWith('placeholder-')) usedIds.add(i.id) })
+    const hasRealSchedule = schedule.items.some(i => !i.isPlaceholder)
+    if (hasRealSchedule) {
+      sections.push(schedule)
+      schedule.items.filter(i => !i.isPlaceholder).forEach(i => usedIds.add(i.id))
+    }
 
     // Customers section (exclude anything already shown)
     const customers = this.buildCustomersSection(focusItems, usedIds)
@@ -121,7 +126,7 @@ class DailyBriefService implements DailyBriefServiceInterface {
       customers.items.forEach(i => { if (!i.id.startsWith('placeholder-')) usedIds.add(i.id) })
     }
 
-    // Business Health section (always include if we have items)
+    // Business Health section (only include if there's an actual actionable condition)
     const health = this.buildHealthSection(focusItems)
     if (health) {
       sections.push(health)
@@ -132,6 +137,7 @@ class DailyBriefService implements DailyBriefServiceInterface {
 
   /**
    * Build Today's Priorities section (max 3 items)
+   * Returns empty items array if no actionable priorities (no placeholder)
    */
   private buildPrioritiesSection(focusItems: FocusItem[]): BriefSection {
     // Filter for urgent/high priority items that are actionable
@@ -148,10 +154,10 @@ class DailyBriefService implements DailyBriefServiceInterface {
 
     const topPriorities = actionable.slice(0, 3)
 
-    // If no actionable priorities, surface explicit empty state per spec
+    // Return empty array if no actionable priorities (no placeholder)
     const items: BriefItem[] = topPriorities.length > 0
       ? topPriorities.map(item => this.mapFocusToBriefItem(item))
-      : [{ id: 'placeholder-priorities', summary: 'Nothing urgent today.', priority: 'low' as const, category: 'efficiency' as const, isPlaceholder: true } as BriefItem]
+      : []
 
     return {
       type: 'priorities',
@@ -174,6 +180,7 @@ class DailyBriefService implements DailyBriefServiceInterface {
 
   /**
    * Build Schedule section
+   * Returns empty items array if no schedule items (no placeholder)
    */
   private buildScheduleSection(focusItems: FocusItem[], excludeIds?: Set<string>): BriefSection {
     // Only show actual appointment/event-derived items; exclude generic duplicate notices
@@ -186,13 +193,12 @@ class DailyBriefService implements DailyBriefServiceInterface {
     })
 
     const mapped = filtered.slice(0, 3).map(item => this.mapFocusToBriefItem(item))
-    const items: BriefItem[] = mapped.length > 0
-      ? mapped
-      : [{ id: 'placeholder-schedule', summary: 'No appointments scheduled today.', priority: 'low' as const, category: 'efficiency' as const, isPlaceholder: true } as BriefItem]
+    // Return empty array if no schedule items (no placeholder)
+    const items: BriefItem[] = mapped
 
     return {
       type: 'schedule',
-      title: 'Schedule',
+      title: "Today's Schedule",
       items,
     }
   }
@@ -210,7 +216,8 @@ class DailyBriefService implements DailyBriefServiceInterface {
   }
 
   /**
-   * Build Business Health section (one sentence)
+   * Build Business Health section (only for actionable conditions)
+   * Returns null if business is running normally (no actionable health issues)
    */
   private buildHealthSection(focusItems: FocusItem[]): BriefSection | null {
     if (focusItems.length === 0) {
@@ -220,13 +227,16 @@ class DailyBriefService implements DailyBriefServiceInterface {
     // Analyze the overall health based on Focus items
     const urgentCount = focusItems.filter(i => i.priority === 'urgent').length
     const highCount = focusItems.filter(i => i.priority === 'high').length
-    const totalCount = focusItems.length
+
+    // Only show health section if there are actionable issues
+    // No positive "running smoothly" message - that's redundant with ReplyFlow Ready status
+    if (urgentCount === 0 && highCount === 0) {
+      return null
+    }
 
     let summary: string
 
-    if (urgentCount === 0 && highCount === 0) {
-      summary = 'Business is running smoothly.'
-    } else if (urgentCount > 2) {
+    if (urgentCount > 2) {
       summary = 'Several urgent items need attention today.'
     } else if (urgentCount > 0) {
       summary = 'One or two urgent items need your attention.'

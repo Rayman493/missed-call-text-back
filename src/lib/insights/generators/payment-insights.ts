@@ -96,7 +96,7 @@ export const paymentInsightsGenerator: InsightGenerator = {
           type: 'payment',
           category: 'money',
           priority,
-          title: 'Payment request pending',
+          title: 'Payment pending',
           description,
           actionable: true,
           customerId,

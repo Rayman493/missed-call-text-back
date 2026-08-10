@@ -52,7 +52,7 @@ export const communicationInsightsGenerator: InsightGenerator = {
             type: 'communication',
             category: 'communication',
             priority,
-            title: `${waitingForReplyCount} customer${waitingForReplyCount > 1 ? 's are' : ' is'} waiting for replies`,
+            title: `${waitingForReplyCount} customer${waitingForReplyCount > 1 ? 's are' : ' is'} waiting for a reply`,
             description: 'Review recent messages',
             actionable: true,
             confidence: 85,
