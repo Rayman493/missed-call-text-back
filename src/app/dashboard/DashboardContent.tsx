@@ -1034,7 +1034,7 @@ export default function DashboardContent() {
       <AuthGuard>
         <BusinessGuard>
           <NotificationPermissionEducation />
-          <div className="min-h-screen bg-background flex flex-col relative overflow-x-hidden">
+          <div className="min-h-screen bg-background page-gradient flex flex-col relative overflow-x-hidden">
             {/* App Header */}
             <AppHeader showNavigation={true} />
 

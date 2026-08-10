@@ -203,6 +203,17 @@ main {
   .premium-divider {
     @apply border-white/10;
   }
+
+  /* Subtle page background gradient for authenticated sections */
+  .page-gradient {
+    background: radial-gradient(
+      ellipse at top,
+      rgba(59, 130, 246, 0.03) 0%,
+      rgba(99, 102, 241, 0.02) 40%,
+      transparent 70%
+    ),
+    #020617;
+  }
 }
 
 button,

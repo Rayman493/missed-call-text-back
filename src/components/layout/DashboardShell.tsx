@@ -34,7 +34,7 @@ function DashboardShellFrame({
   maxWidthClassName = 'max-w-[1400px] mx-auto',
 }: Omit<DashboardShellProps, 'withGuards' | 'withErrorBoundary' | 'debugInfo'>) {
   return (
-    <div className={`min-h-screen bg-background dark:bg-background flex flex-col relative overflow-x-hidden ${className}`}>
+    <div className={`min-h-screen bg-background page-gradient flex flex-col relative overflow-x-hidden ${className}`}>
       <AppHeader title={title} showNavigation={showNavigation} />
       <main className={contentClassName} style={contentStyle}>
         <div className={`${maxWidthClassName} ${innerClassName}`}>
