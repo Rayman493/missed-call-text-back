@@ -19,17 +19,39 @@ interface ActivityEvent {
   description: string
   timestamp: string
   icon: React.ReactNode
-  color: string
+  iconBgColor: string
+  iconTextColor: string
   customerId?: string
   customerName?: string
   customerPhone?: string
   conciseRequestTitle?: string
+  jobTitle?: string
+  jobScheduledDate?: string
 }
 
 export default function RecentActivityCard({ business }: RecentActivityCardProps) {
   const router = useRouter()
   const [activities, setActivities] = useState<ActivityEvent[]>([])
   const [loading, setLoading] = useState(true)
+
+  const formatPhoneNumber = (phone: string): string => {
+    if (!phone) return ''
+    const digits = phone.replace(/\D/g, '')
+    if (digits.length === 10) {
+      return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+    }
+    return phone
+  }
+
+  const getDisplayName = (customerName?: string, customerPhone?: string): string => {
+    if (customerName && customerName !== 'Unknown') {
+      return customerName
+    }
+    if (customerPhone) {
+      return formatPhoneNumber(customerPhone)
+    }
+    return 'Customer'
+  }
 
   useEffect(() => {
     const fetchRecentActivity = async () => {
@@ -105,7 +127,7 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
           const intake = getLeadAIIntake(lead)
           const customerName = intake.customerName || lead.name || 'Unknown'
           const conciseTitle = getLeadRequestTitle(lead) || intake.serviceRequested || ''
-          const displayName = lead.caller_phone || 'Unknown Caller'
+          const displayName = getDisplayName(customerName, lead.caller_phone)
 
           // AI Intake Completed event
           if (lead.ai_call_records && lead.ai_call_records.length > 0) {
@@ -113,12 +135,13 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
               id: `ai-intake-${lead.id}`,
               type: 'call_captured',
               title: 'AI Intake Completed',
-              description: customerName,
+              description: conciseTitle || 'New lead captured',
               timestamp: lead.created_at,
-              icon: <Bot className="w-3 h-3" />,
-              color: 'text-blue-600 dark:text-blue-400',
+              icon: <Bot className="w-4 h-4" />,
+              iconBgColor: 'bg-blue-500/20',
+              iconTextColor: 'text-blue-400',
               customerId: lead.id,
-              customerName,
+              customerName: displayName,
               customerPhone: lead.caller_phone,
               conciseRequestTitle: conciseTitle,
             })
@@ -127,17 +150,24 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
           // Add jobs
           if (lead.jobs && lead.jobs.length > 0) {
             lead.jobs.forEach((job: any) => {
+              const displayName = getDisplayName(customerName, lead.caller_phone)
+              const jobTitle = job.title || 'Job'
+              const jobDate = job.scheduled_date ? new Date(job.scheduled_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''
+
               if (new Date(job.created_at) >= new Date(sevenDaysAgo)) {
                 events.push({
                   id: `job-created-${job.id}`,
                   type: 'job_created',
                   title: 'Job Scheduled',
-                  description: `${job.title || 'New job'}`,
+                  description: jobDate ? `${jobTitle} • ${jobDate}` : jobTitle,
                   timestamp: job.created_at,
-                  icon: <Briefcase className="w-3 h-3" />,
-                  color: 'text-teal-600 dark:text-teal-400',
+                  icon: <Briefcase className="w-4 h-4" />,
+                  iconBgColor: 'bg-teal-500/20',
+                  iconTextColor: 'text-teal-400',
                   customerId: lead.id,
-                  customerName,
+                  customerName: displayName,
+                  jobTitle,
+                  jobScheduledDate: job.scheduled_date,
                 })
               }
               if (job.status === 'completed' && new Date(job.updated_at) >= new Date(sevenDaysAgo)) {
@@ -145,12 +175,14 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
                   id: `job-completed-${job.id}`,
                   type: 'job_completed',
                   title: 'Job Completed',
-                  description: `${job.title || 'Job'}`,
+                  description: jobTitle,
                   timestamp: job.updated_at,
-                  icon: <CheckCircle className="w-3 h-3" />,
-                  color: 'text-emerald-600 dark:text-emerald-400',
+                  icon: <CheckCircle className="w-4 h-4" />,
+                  iconBgColor: 'bg-emerald-500/20',
+                  iconTextColor: 'text-emerald-400',
                   customerId: lead.id,
-                  customerName,
+                  customerName: displayName,
+                  jobTitle,
                 })
               }
             })
@@ -159,17 +191,19 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
           // Add tasks
           if (lead.tasks && lead.tasks.length > 0) {
             lead.tasks.forEach((task: any) => {
+              const displayName = getDisplayName(customerName, lead.caller_phone)
               if (task.status === 'completed' && new Date(task.updated_at) >= new Date(sevenDaysAgo)) {
                 events.push({
                   id: `task-completed-${task.id}`,
                   type: 'task_completed',
                   title: 'Task Completed',
-                  description: `${task.title || 'Task'}`,
+                  description: task.title || 'Task',
                   timestamp: task.updated_at,
-                  icon: <CheckCircle className="w-3 h-3" />,
-                  color: 'text-emerald-600 dark:text-emerald-400',
+                  icon: <CheckCircle className="w-4 h-4" />,
+                  iconBgColor: 'bg-emerald-500/20',
+                  iconTextColor: 'text-emerald-400',
                   customerId: lead.id,
-                  customerName,
+                  customerName: displayName,
                 })
               }
             })
@@ -178,42 +212,47 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
           // Add payments
           if (lead.payment_requests && lead.payment_requests.length > 0) {
             lead.payment_requests.forEach((pr: any) => {
+              const displayName = getDisplayName(customerName, lead.caller_phone)
+              const amount = `$${(pr.amount_cents / 100).toFixed(2)}`
               if (new Date(pr.created_at) >= new Date(sevenDaysAgo)) {
                 if (pr.status === 'pending') {
                   events.push({
                     id: `payment-requested-${pr.id}`,
                     type: 'payment_requested',
                     title: 'Payment Request Sent',
-                    description: customerName,
+                    description: amount,
                     timestamp: pr.created_at,
-                    icon: <CreditCard className="w-3 h-3" />,
-                    color: 'text-amber-600 dark:text-amber-400',
+                    icon: <CreditCard className="w-4 h-4" />,
+                    iconBgColor: 'bg-amber-500/20',
+                    iconTextColor: 'text-amber-400',
                     customerId: lead.id,
-                    customerName,
+                    customerName: displayName,
                   })
                 } else if (pr.status === 'paid' && new Date(pr.paid_at) >= new Date(sevenDaysAgo)) {
                   events.push({
                     id: `payment-paid-${pr.id}`,
                     type: 'payment_received',
                     title: 'Payment Received',
-                    description: `$${(pr.amount_cents / 100).toFixed(2)}`,
+                    description: amount,
                     timestamp: pr.paid_at,
-                    icon: <DollarSign className="w-3 h-3" />,
-                    color: 'text-emerald-600 dark:text-emerald-400',
+                    icon: <DollarSign className="w-4 h-4" />,
+                    iconBgColor: 'bg-emerald-500/20',
+                    iconTextColor: 'text-emerald-400',
                     customerId: lead.id,
-                    customerName,
+                    customerName: displayName,
                   })
                 } else if (pr.status === 'failed' && new Date(pr.updated_at) >= new Date(sevenDaysAgo)) {
                   events.push({
                     id: `payment-failed-${pr.id}`,
                     type: 'payment_failed',
                     title: 'Payment Failed',
-                    description: `$${(pr.amount_cents / 100).toFixed(2)}`,
+                    description: amount,
                     timestamp: pr.updated_at,
-                    icon: <AlertCircle className="w-3 h-3" />,
-                    color: 'text-red-600 dark:text-red-400',
+                    icon: <AlertCircle className="w-4 h-4" />,
+                    iconBgColor: 'bg-red-500/20',
+                    iconTextColor: 'text-red-400',
                     customerId: lead.id,
-                    customerName,
+                    customerName: displayName,
                   })
                 }
               }
@@ -223,18 +262,20 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
           // Add appointments from jobs
           if (lead.jobs && lead.jobs.length > 0) {
             lead.jobs.forEach((job: any) => {
+              const displayName = getDisplayName(customerName, lead.caller_phone)
               if (job.scheduled_date && new Date(job.created_at) >= new Date(sevenDaysAgo)) {
-                const appointmentDate = new Date(job.scheduled_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                const appointmentDate = new Date(job.scheduled_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
                 events.push({
                   id: `appointment-${job.id}`,
                   type: 'appointment_scheduled',
                   title: 'Appointment Scheduled',
                   description: appointmentDate,
                   timestamp: job.created_at,
-                  icon: <Calendar className="w-3 h-3" />,
-                  color: 'text-violet-600 dark:text-violet-400',
+                  icon: <Calendar className="w-4 h-4" />,
+                  iconBgColor: 'bg-violet-500/20',
+                  iconTextColor: 'text-violet-400',
                   customerId: lead.id,
-                  customerName,
+                  customerName: displayName,
                 })
               }
             })
@@ -244,25 +285,28 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
         // Add messages
         messages?.forEach((message: any) => {
           const displayPhone = message.direction === 'outbound' ? message.to_phone : message.from_phone
+          const formattedPhone = formatPhoneNumber(displayPhone)
           if (message.direction === 'outbound') {
             events.push({
               id: `message-out-${message.id}`,
               type: 'text_sent',
               title: 'Message Sent',
-              description: `To ${displayPhone || 'Unknown'}`,
+              description: formattedPhone ? `To ${formattedPhone}` : 'Message sent',
               timestamp: message.created_at,
-              icon: <MessageSquare className="w-3 h-3" />,
-              color: 'text-green-600 dark:text-green-400',
+              icon: <MessageSquare className="w-4 h-4" />,
+              iconBgColor: 'bg-green-500/20',
+              iconTextColor: 'text-green-400',
             })
           } else {
             events.push({
               id: `message-in-${message.id}`,
               type: 'customer_replied',
               title: 'Customer Replied',
-              description: `From ${displayPhone || 'Unknown'}`,
+              description: formattedPhone ? `From ${formattedPhone}` : 'Message received',
               timestamp: message.created_at,
-              icon: <Reply className="w-3 h-3" />,
-              color: 'text-amber-600 dark:text-amber-400',
+              icon: <Reply className="w-4 h-4" />,
+              iconBgColor: 'bg-amber-500/20',
+              iconTextColor: 'text-amber-400',
             })
           }
         })
@@ -273,40 +317,44 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
             id: `voicemail-${voicemail.id}`,
             type: 'voicemail_received',
             title: 'Voicemail Received',
-            description: 'New voicemail',
+            description: 'Left a voicemail',
             timestamp: voicemail.created_at,
-            icon: <Mic className="w-3 h-3" />,
-            color: 'text-purple-600 dark:text-purple-400',
+            icon: <Mic className="w-4 h-4" />,
+            iconBgColor: 'bg-purple-500/20',
+            iconTextColor: 'text-purple-400',
           })
         })
 
         // Add terminal payments (Tap to Pay)
         terminalPayments?.forEach((tp: any) => {
           const job = tp.jobs
-          const customerName = job?.title || 'Job Payment'
+          const jobTitle = job?.title || 'Job'
+          const amount = `$${(tp.amount_cents / 100).toFixed(2)}`
           if (tp.status === 'paid' && tp.paid_at && new Date(tp.paid_at) >= new Date(sevenDaysAgo)) {
             events.push({
               id: `terminal-payment-${tp.id}`,
               type: 'payment_received',
               title: 'Payment Received',
-              description: `$${(tp.amount_cents / 100).toFixed(2)} • Tap to Pay`,
+              description: `${amount} • Tap to Pay`,
               timestamp: tp.paid_at,
-              icon: <DollarSign className="w-3 h-3" />,
-              color: 'text-emerald-600 dark:text-emerald-400',
+              icon: <DollarSign className="w-4 h-4" />,
+              iconBgColor: 'bg-emerald-500/20',
+              iconTextColor: 'text-emerald-400',
               customerId: job?.lead_id,
-              customerName,
+              customerName: jobTitle,
             })
           } else if (tp.status === 'failed' && new Date(tp.updated_at) >= new Date(sevenDaysAgo)) {
             events.push({
               id: `terminal-payment-failed-${tp.id}`,
               type: 'payment_failed',
               title: 'Payment Failed',
-              description: `$${(tp.amount_cents / 100).toFixed(2)} • Tap to Pay`,
+              description: `${amount} • Tap to Pay`,
               timestamp: tp.updated_at,
-              icon: <AlertCircle className="w-3 h-3" />,
-              color: 'text-red-600 dark:text-red-400',
+              icon: <AlertCircle className="w-4 h-4" />,
+              iconBgColor: 'bg-red-500/20',
+              iconTextColor: 'text-red-400',
               customerId: job?.lead_id,
-              customerName,
+              customerName: jobTitle,
             })
           }
         })
@@ -335,17 +383,18 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
 
   if (loading) {
     return (
-      <div className="bg-card/50 backdrop-blur-sm border border-border/30 rounded-xl p-3 sm:p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-foreground">Activity</h3>
+      <div className="bg-card/50 backdrop-blur-sm border border-border/30 rounded-xl p-2.5 sm:p-3">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-xs font-semibold text-foreground">Activity</h3>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-0">
           {[1, 2, 3].map(i => (
-            <div key={i} className="flex items-center gap-3">
-              <div className="w-4 h-4 bg-slate-200 dark:bg-slate-700 rounded-full animate-pulse"></div>
+            <div key={i} className="flex items-start gap-3 py-2 px-2">
+              <div className="w-9 h-9 bg-slate-200 dark:bg-slate-700 rounded-lg animate-pulse"></div>
               <div className="flex-1">
-                <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-20 mb-1"></div>
-                <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded w-12"></div>
+                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-24 mb-2"></div>
+                <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-16 mb-1"></div>
+                <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-20"></div>
               </div>
             </div>
           ))}
@@ -365,29 +414,29 @@ export default function RecentActivityCard({ business }: RecentActivityCardProps
           <p className="text-xs text-muted-foreground/80">Business activity will appear here as you work with customers.</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-0">
           {activities.slice(0, 5).map((activity, index) => (
             <div
               key={activity.id}
               onClick={() => handleActivityClick(activity)}
-              className={`flex items-start gap-2 py-1 ${activity.customerId ? 'cursor-pointer hover:bg-muted/20 -mx-1.5 px-1.5 rounded-md transition-colors' : ''}`}
+              className={`flex items-start gap-3 py-2 px-2 ${activity.customerId ? 'cursor-pointer hover:bg-muted/20 -mx-2 px-2 rounded-lg transition-colors' : ''} ${index < activities.slice(0, 5).length - 1 ? 'border-b border-border/30' : ''}`}
             >
-              <div className="flex-shrink-0 mt-0.5 w-3.5">
-                <div className={`${activity.color}`}>
+              <div className="flex-shrink-0">
+                <div className={`w-9 h-9 rounded-lg ${activity.iconBgColor} ${activity.iconTextColor} flex items-center justify-center`}>
                   {activity.icon}
                 </div>
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <p className="text-[11px] font-medium text-foreground">{activity.title}</p>
+                <p className="text-sm font-semibold text-foreground mb-0.5">{activity.title}</p>
+                <div className="flex items-center gap-2 mb-0.5">
                   {activity.customerName && (
-                    <span className="text-[10px] text-muted-foreground/80">{activity.customerName}</span>
+                    <p className="text-xs font-medium text-foreground truncate">{activity.customerName}</p>
                   )}
+                  <p className="text-[10px] text-muted-foreground/60">{formatRelativeTime(activity.timestamp)}</p>
                 </div>
                 {activity.description && (
-                  <p className="text-[10px] text-muted-foreground/70 mb-0.5">{activity.description}</p>
+                  <p className="text-xs text-muted-foreground/70 truncate">{activity.description}</p>
                 )}
-                <p className="text-[10px] text-muted-foreground/50">{formatRelativeTime(activity.timestamp)}</p>
               </div>
             </div>
           ))}
