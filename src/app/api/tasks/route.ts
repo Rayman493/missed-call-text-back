@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
     const completed = url.searchParams.get('completed')
     const overdue = url.searchParams.get('overdue') === 'true'
     const today = url.searchParams.get('today') === 'true'
+    const lead_id = url.searchParams.get('lead_id')
 
     let query = supabase
       .from('tasks')
@@ -31,6 +32,10 @@ export async function GET(request: NextRequest) {
       .order('due_date', { ascending: true })
       .order('due_time', { ascending: true })
       .order('created_at', { ascending: false })
+
+    if (lead_id) {
+      query = query.eq('lead_id', lead_id)
+    }
 
     if (completed !== null) {
       query = query.eq('completed', completed === 'true')

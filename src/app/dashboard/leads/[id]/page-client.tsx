@@ -46,11 +46,7 @@ import VoicemailSummary from '@/components/VoicemailSummary'
 import FocusSection from '@/components/FocusSection'
 import RevenueOpportunityCard from '@/components/RevenueOpportunityCard'
 import CustomerReactivationCard from '@/components/CustomerReactivationCard'
-import CustomerSnapshot from '@/components/CustomerSnapshot'
-import CustomerStats from '@/components/CustomerStats'
-import DraftCard from '@/components/DraftCard'
 import CustomerSuccessCard from '@/components/CustomerSuccessCard'
-import CustomerMilestone from '@/components/CustomerMilestone'
 import CustomerActivityTimeline from '@/components/CustomerActivityTimeline'
 import { ImageMessage } from '@/components/ImageMessage'
 import FloatingHelpButton from '@/components/FloatingHelpButton'
@@ -390,44 +386,23 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         customerHealth: false,
         quickActions: true,
         aiIntake: false, // Default to expanded - show current request immediately
-        jobs: true, // Default to collapsed for conversation-first
-        payments: true, // Default to collapsed for conversation-first
-        recentActivity: true, // Default to collapsed for conversation-first
-        activityTimeline: true // Default to collapsed - expand if few events
+        schedule: true, // Default to collapsed for conversation-first
+        payments: true, // Default to collapsed
       }
     }
-    const saved = localStorage.getItem('customerDetailsCollapsedSections')
-    if (saved) {
-      try {
-        return JSON.parse(saved)
-      } catch {
-        return {
-          photos: true,
-          activity: true,
-          automation: true,
-          customerHealth: false,
-          quickActions: true,
-          aiIntake: false, // Default to expanded - show current request immediately
-          jobs: true,
-          payments: true,
-          recentActivity: true,
-          activityTimeline: true // Default to collapsed - expand if few events
-        }
-      }
-    }
+
     return {
       photos: true,
       activity: true,
       automation: true,
       customerHealth: false,
       quickActions: true,
-      aiIntake: false, // Default to expanded - show current request immediately
-      jobs: true, // Default to collapsed for conversation-first
-      payments: true, // Default to collapsed for conversation-first
-      recentActivity: true, // Default to collapsed for conversation-first
-      activityTimeline: true // Default to collapsed - expand if few events
+      aiIntake: false,
+      schedule: true,
+      payments: true,
     }
   })
+
   const [photoModalOpen, setPhotoModalOpen] = useState(false)
   const [selectedPhotoUrl, setSelectedPhotoUrl] = useState('')
   const [mobileImages, setMobileImages] = useState<File[]>([])
@@ -1323,6 +1298,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [isSendingConfirmation, setIsSendingConfirmation] = useState(false)
   const [confirmationError, setConfirmationError] = useState<string | null>(null)
   const [leadJobs, setLeadJobs] = useState<any[]>([])
+  const [leadTasks, setLeadTasks] = useState<any[]>([])
   const [appointmentDate, setAppointmentDate] = useState('')
   const [appointmentTime, setAppointmentTime] = useState('')
   const [showAppointmentSuccessModal, setShowAppointmentSuccessModal] = useState(false)
@@ -1388,9 +1364,34 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   }
 
+  const fetchLeadTasks = async () => {
+    if (!leadData?.id || !business) return
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      if (!token) return
+
+      const response = await fetch(`/api/tasks?lead_id=${leadData.id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setLeadTasks(data.tasks || [])
+      }
+    } catch (error) {
+      console.error('Error fetching lead tasks:', error)
+    }
+  }
+
   // Fetch jobs for lead to check for scheduled appointments
   useEffect(() => {
     fetchLeadJobs()
+    fetchLeadTasks()
   }, [leadData?.id, business])
 
   // Get future scheduled appointments for this lead
@@ -2700,15 +2701,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         {/* Jobs & Appointments - Collapsible - Compact on mobile */}
         <div className="bg-white dark:bg-slate-800/80 rounded-xl border border-border/50 p-4 sm:p-5 shadow-sm">
           <button
-            onClick={() => setCollapsedSections((prev: any) => ({ ...prev, jobs: !prev.jobs }))}
+            onClick={() => setCollapsedSections((prev: any) => ({ ...prev, schedule: !prev.schedule }))}
             className="flex items-center justify-between w-full mb-2 sm:mb-3 group"
           >
             <h3 className="text-sm font-medium text-foreground group-hover:text-foreground/80 transition-colors">Jobs</h3>
-            <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.jobs ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.schedule ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
-          {!collapsedSections.jobs && (
+          {!collapsedSections.schedule && (
             <div className="transition-all duration-200">
               {leadJobs.length === 0 ? (
                 <div className="text-center py-2 sm:py-4">
@@ -2835,142 +2836,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </button>
             </div>
           </div>
-        </div>
-
-        {/* Recent Activity - Collapsible - Compact on mobile */}
-        <div className="bg-card rounded-xl border border-border/50 p-2.5 sm:p-3">
-          <button
-            onClick={() => setCollapsedSections((prev: any) => ({ ...prev, recentActivity: !prev.recentActivity }))}
-            className="flex items-center justify-between w-full mb-1.5 sm:mb-2 group"
-          >
-            <h3 className="text-sm font-medium text-foreground group-hover:text-foreground/80 transition-colors">Recent Activity</h3>
-            <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.recentActivity ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-          {!collapsedSections.recentActivity && (
-            <div className="transition-all duration-200">
-              {conversationTimeline.length === 0 ? (
-                <div className="text-center py-1.5 sm:py-2">
-                  <p className="text-xs text-muted-foreground">No activity yet.</p>
-                </div>
-              ) : (
-                <div className="space-y-0 max-h-60 sm:max-h-80 overflow-y-auto pr-1">
-                  {conversationTimeline.slice(-10).reverse().map((item: any, index: number) => {
-                    // Determine event label and icon
-                    let eventLabel = ''
-                    let eventIcon = null
-                    let isExpandable = false
-                    let expandedContent = null
-
-                    if (item.type === 'message') {
-                      if (item.data?.direction === 'inbound') {
-                        eventLabel = 'Customer replied'
-                        eventIcon = <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                      } else {
-                        eventLabel = 'SMS sent'
-                        eventIcon = <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
-                      }
-                    } else if (item.type === 'voicemail') {
-                      eventLabel = 'Voicemail'
-                      eventIcon = <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
-                    } else if (item.type === 'system_event') {
-                      const message = item.data?.message || ''
-                      if (message.includes('Completed Request') || message.includes('Partial Request') || message.includes('Caller Hung Up')) {
-                        eventLabel = 'AI intake'
-                        eventIcon = <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        isExpandable = true
-                        const aiCallId = item.id.replace('ai-intake-', '')
-                        const aiCall = leadData?.aiCallRecords?.find((r: any) => r.id === aiCallId)
-                        if (aiCall?.extracted_info) {
-                          const extracted = aiCall.extracted_info
-                          expandedContent = (
-                            <div className="mt-1.5 sm:mt-2 pt-1.5 sm:pt-2 border-t border-border/50 space-y-0.5 sm:space-y-1 text-[10px] sm:text-xs">
-                              {extracted.reasonForCalling && (
-                                <div><span className="text-muted-foreground">Service:</span> {extracted.reasonForCalling}</div>
-                              )}
-                              {extracted.addressOrLocation && (
-                                <div><span className="text-muted-foreground">Address:</span> {extracted.addressOrLocation}</div>
-                              )}
-                              {extracted.preferredCallbackTime && (
-                                <div><span className="text-muted-foreground">Callback:</span> {extracted.preferredCallbackTime}</div>
-                              )}
-                              {extracted.desiredCompletionTime && (
-                                <div><span className="text-muted-foreground">Completion:</span> {extracted.desiredCompletionTime}</div>
-                              )}
-                              {extracted.importantDetails && (
-                                <div><span className="text-muted-foreground">Details:</span> {extracted.importantDetails}</div>
-                              )}
-                            </div>
-                          )
-                        }
-                      } else if (message.includes('Customer Corrected') || message.includes('Customer Updated')) {
-                        eventLabel = 'Customer updated'
-                        eventIcon = <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2h2.828l8.586-8.586z" /></svg>
-                      } else if (message.includes('Follow-Ups Cancelled')) {
-                        eventLabel = 'Follow-ups cancelled'
-                        eventIcon = <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                      } else if (message.includes('Customer Sent Photos')) {
-                        eventLabel = 'Photos sent'
-                        eventIcon = <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                      } else if (message.includes('Payment Received')) {
-                        eventLabel = 'Payment received'
-                        eventIcon = <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                      } else if (message.includes('Payment Requested')) {
-                        eventLabel = 'Payment requested'
-                        eventIcon = <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
-                      } else if (message.includes('Lead Marked Complete')) {
-                        eventLabel = 'Marked complete'
-                        eventIcon = <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                      } else if (message.includes('added manually')) {
-                        eventLabel = 'Customer created'
-                        eventIcon = <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
-                      } else {
-                        eventLabel = message
-                        eventIcon = <svg className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                      }
-                    }
-
-                    return (
-                      <div key={item.id}>
-                        <div className="flex gap-2 sm:gap-3 py-2 sm:py-3">
-                          <div className="mt-0.5 flex-shrink-0 w-5 h-5 flex items-center justify-center">
-                            {eventIcon}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <button
-                              onClick={() => {
-                                if (isExpandable) {
-                                  const element = document.getElementById(`expanded-${item.id}`)
-                                  if (element) {
-                                    element.classList.toggle('hidden')
-                                  }
-                                }
-                              }}
-                              className="text-left w-full"
-                            >
-                              <p className="text-[11px] sm:text-sm font-medium text-foreground break-words hover:text-primary transition-colors">
-                                {eventLabel}
-                              </p>
-                              <p className="text-[10px] sm:text-xs text-muted-foreground/80 mt-0.5">{formatRelativeTime(item.created_at)}</p>
-                            </button>
-                            {isExpandable && expandedContent && (
-                              <div id={`expanded-${item.id}`} className="hidden">
-                                {expandedContent}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        {index < conversationTimeline.slice(-10).reverse().length - 1 && (
-                          <div className="border-t border-border/20"></div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
     )
@@ -3746,50 +3611,19 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       </div>
                     </div>
 
-                  {/* Quick Actions - Lightweight */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {/* Job */}
-                    <button
-                      onClick={handleCreateJobClick}
-                      className="inline-flex h-8 items-center gap-1.5 px-2.5 rounded-md text-foreground hover:bg-slate-800 transition-colors text-xs font-medium"
-                      title="Create job"
-                    >
-                      <ClipboardPlus className="w-3.5 h-3.5 stroke-[1.8]" />
-                      <span className="leading-none">Job</span>
-                    </button>
-                    {/* Schedule */}
-                    <button
-                      onClick={handleAppointmentClick}
-                      className="inline-flex h-8 items-center gap-1.5 px-2.5 rounded-md text-foreground hover:bg-slate-800 transition-colors text-xs font-medium"
-                      title="Schedule appointment"
-                    >
-                      <CalendarDays className="w-3.5 h-3.5 stroke-[1.8]" />
-                      <span className="leading-none">Schedule</span>
-                    </button>
-                    {/* Payment */}
-                    <button
-                      onClick={() => setShowPaymentModal(true)}
-                      disabled={!business || getAvailableProviders(business).length === 0}
-                      className="inline-flex h-8 items-center gap-1.5 px-2.5 rounded-md text-foreground hover:bg-slate-800 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                      title={!business || getAvailableProviders(business).length === 0 ? 'Configure a payment method in Settings to request payments' : 'Request payment'}
-                    >
-                      <CreditCard className="w-3.5 h-3.5 stroke-[1.8]" />
-                      <span className="leading-none">Payment</span>
-                    </button>
-
-                    {/* Overflow */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button
-                          type="button"
-                          className="h-9 w-9 inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-slate-800 rounded-md transition-colors"
-                          aria-label="More actions"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                          </svg>
-                        </button>
-                      </DropdownMenuTrigger>
+                  {/* Three-dot menu - All actions moved here */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        className="h-9 w-9 inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-slate-800 rounded-md transition-colors"
+                        aria-label="More actions"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                        </svg>
+                      </button>
+                    </DropdownMenuTrigger>
                     <DropdownMenuPortal>
                       <DropdownMenuContent
                         align="end"
@@ -3797,179 +3631,198 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         sideOffset={8}
                         collisionPadding={12}
                         avoidCollisions
-                        className="z-[10000] w-[260px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-lg border border-border/40 bg-popover/95 backdrop-blur-sm shadow-[0_2px_12px_rgb(0,0,0,0.08),0_1px_4px_rgb(0,0,0,0.06)]"
+                        className="z-[10000] w-[240px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-lg border border-border/40 bg-popover/95 backdrop-blur-sm shadow-[0_2px_12px_rgb(0,0,0,0.08),0_1px_4px_rgb(0,0,0,0.06)]"
                       >
-                        {/* Customer Section */}
-                        <div className="px-3 py-2">
-                          <div className="px-0.5 py-1 text-[9px] font-medium text-muted-foreground/60 uppercase tracking-[0.12em]">
+                        {/* CREATE Section */}
+                        <div className="px-2.5 py-1.5">
+                          <div className="px-0.5 py-0.5 text-[9px] font-medium text-muted-foreground/60 uppercase tracking-[0.12em]">
+                            Create
+                          </div>
+                        </div>
+
+                        {/* Create Job */}
+                        <div className="px-1 py-0.5">
+                          <DropdownMenuItem
+                            onSelect={handleCreateJobClick}
+                            className="w-full px-2 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
+                          >
+                            <ClipboardPlus className="w-3.5 h-3.5" />
+                            <span>Create Job</span>
+                          </DropdownMenuItem>
+                        </div>
+
+                        {/* Schedule */}
+                        <div className="px-1 py-0.5">
+                          <DropdownMenuItem
+                            onSelect={handleAppointmentClick}
+                            className="w-full px-2 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
+                          >
+                            <CalendarDays className="w-3.5 h-3.5" />
+                            <span>Schedule</span>
+                          </DropdownMenuItem>
+                        </div>
+
+                        {/* Request Payment */}
+                        <div className="px-1 py-0.5">
+                          <DropdownMenuItem
+                            onSelect={() => setShowPaymentModal(true)}
+                            disabled={!business || getAvailableProviders(business).length === 0}
+                            className="w-full px-2 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
+                          >
+                            <CreditCard className="w-3.5 h-3.5" />
+                            <span>Request Payment</span>
+                          </DropdownMenuItem>
+                        </div>
+
+                        {/* Divider */}
+                        <div className="px-2.5 py-1">
+                          <div className="h-px bg-border/20"></div>
+                        </div>
+
+                        {/* CUSTOMER Section */}
+                        <div className="px-2.5 py-1.5">
+                          <div className="px-0.5 py-0.5 text-[9px] font-medium text-muted-foreground/60 uppercase tracking-[0.12em]">
                             Customer
                           </div>
                         </div>
 
                         {/* Edit Customer */}
-                        <div className="px-1.5 py-1 space-y-0.5">
+                        <div className="px-1 py-0.5">
                           <DropdownMenuItem
                             onSelect={() => setShowCustomerInfoModal(true)}
-                            className="w-full px-2 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer min-h-[44px] group"
+                            className="w-full px-2 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
                           >
-                            <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded bg-accent/30 group-hover:bg-accent/40 transition-colors">
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                              </svg>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-medium">Edit Customer</div>
-                              <div className="text-[10px] text-muted-foreground/70 font-normal leading-tight">Update customer information</div>
-                            </div>
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                            <span>Edit Customer</span>
                           </DropdownMenuItem>
+                        </div>
 
-                          {/* Internal Notes */}
+                        {/* Internal Notes */}
+                        <div className="px-1 py-0.5">
                           <DropdownMenuItem
                             onSelect={() => {
                               setInternalNotesExpanded(true)
                               setShowLeadInfo(true)
                             }}
-                            className="w-full px-2 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer min-h-[44px] group"
+                            className="w-full px-2 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
                           >
-                            <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded bg-accent/30 group-hover:bg-accent/40 transition-colors">
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-medium">Internal Notes</div>
-                              <div className="text-[10px] text-muted-foreground/70 font-normal leading-tight">View or edit notes</div>
-                            </div>
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            <span>Internal Notes</span>
                           </DropdownMenuItem>
                         </div>
 
-                        {/* Subtle Divider */}
-                        <div className="px-3 py-1">
+                        {/* Divider */}
+                        <div className="px-2.5 py-1">
                           <div className="h-px bg-border/20"></div>
                         </div>
 
-                        {/* Conversation Section */}
-                        <div className="px-3 py-2">
-                          <div className="px-0.5 py-1 text-[9px] font-medium text-muted-foreground/60 uppercase tracking-[0.12em]">
-                            Conversation
+                        {/* SETTINGS Section */}
+                        <div className="px-2.5 py-1.5">
+                          <div className="px-0.5 py-0.5 text-[9px] font-medium text-muted-foreground/60 uppercase tracking-[0.12em]">
+                            Settings
+                          </div>
+                        </div>
+
+                        {/* Messaging & Availability */}
+                        <div className="px-1 py-0.5">
+                          <DropdownMenuItem
+                            onSelect={() => {
+                              window.location.href = '/dashboard/settings#automation'
+                            }}
+                            className="w-full px-2 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            <span>Messaging & Availability</span>
+                          </DropdownMenuItem>
+                        </div>
+
+                        {/* Divider */}
+                        <div className="px-2.5 py-1">
+                          <div className="h-px bg-border/20"></div>
+                        </div>
+
+                        {/* OTHER Section */}
+                        <div className="px-2.5 py-1.5">
+                          <div className="px-0.5 py-0.5 text-[9px] font-medium text-muted-foreground/60 uppercase tracking-[0.12em]">
+                            Other
                           </div>
                         </div>
 
                         {/* Refresh */}
-                        <div className="px-1.5 py-1 space-y-0.5">
+                        <div className="px-1 py-0.5">
                           <DropdownMenuItem
                             onSelect={() => handleRefresh()}
                             disabled={refreshing}
-                            className="w-full px-2 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer min-h-[36px] group"
+                            className="w-full px-2 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
                           >
-                            <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded bg-accent/30 group-hover:bg-accent/40 transition-colors">
-                              <svg
-                                className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`}
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                              </svg>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-medium">Refresh</div>
-                              <div className="text-[10px] text-muted-foreground/70 font-normal leading-tight">Reload conversation data</div>
-                            </div>
+                            <svg className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            <span>Refresh</span>
                           </DropdownMenuItem>
                         </div>
 
-                        {/* Subtle Divider */}
-                        <div className="px-3 py-1">
+                        {/* Divider */}
+                        <div className="px-2.5 py-1">
                           <div className="h-px bg-border/20"></div>
                         </div>
 
-                        {/* Workflow Section */}
-                        <div className="px-3 py-2">
-                          <div className="px-0.5 py-1 text-[9px] font-medium text-muted-foreground/60 uppercase tracking-[0.12em]">
-                            Workflow
+                        {/* DANGER Section */}
+                        <div className="px-2.5 py-1.5">
+                          <div className="px-0.5 py-0.5 text-[9px] font-medium text-red-600/70 dark:text-red-400/70 uppercase tracking-[0.12em]">
+                            Danger
                           </div>
                         </div>
 
-                        {/* Archive/Ignore Customer */}
-                        <div className="px-1.5 py-1 space-y-0.5">
-                          {getLeadLifecycleStatus(leadData || lead) !== 'ignored' && (
+                        {/* Ignore Customer */}
+                        {getLeadLifecycleStatus(leadData || lead) !== 'ignored' && (
+                          <div className="px-1 py-0.5">
                             <DropdownMenuItem
                               onSelect={() => handleStatusUpdate('ignored')}
-                              className="w-full px-2 py-1.5 text-left text-sm font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-950/10 dark:hover:bg-amber-950/15 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-amber-950/10 dark:focus:bg-amber-950/15 cursor-pointer min-h-[36px] group"
+                              className="w-full px-2 py-1.5 text-left text-sm font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-950/10 dark:hover:bg-amber-950/15 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-amber-950/10 dark:focus:bg-amber-950/15 cursor-pointer"
                             >
-                              <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded bg-amber-500/10 dark:bg-amber-500/15 group-hover:bg-amber-500/15 dark:group-hover:bg-amber-500/20 transition-colors">
-                                <svg className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                </svg>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium">Ignore Customer</div>
-                                <div className="text-[10px] text-muted-foreground/70 font-normal leading-tight">Hide from your active workflow</div>
-                              </div>
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                              </svg>
+                              <span>Ignore Customer</span>
                             </DropdownMenuItem>
-                          )}
-                          {getLeadLifecycleStatus(leadData || lead) === 'ignored' && (
+                          </div>
+                        )}
+
+                        {getLeadLifecycleStatus(leadData || lead) === 'ignored' && (
+                          <div className="px-1 py-0.5">
                             <DropdownMenuItem
                               onSelect={() => handleStatusUpdate('active')}
-                              className="w-full px-2 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer min-h-[44px] group"
+                              className="w-full px-2 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
                             >
-                              <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded bg-accent/30 group-hover:bg-accent/40 transition-colors">
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium">Restore Customer</div>
-                                <div className="text-[10px] text-muted-foreground/70 font-normal leading-tight">Return to your active workflow</div>
-                              </div>
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                              <span>Restore Customer</span>
                             </DropdownMenuItem>
-                          )}
-                        </div>
-
-                        {/* Subtle Divider for Danger Zone */}
-                        <div className="px-3 py-1">
-                          <div className="h-px bg-border/20"></div>
-                        </div>
-
-                        {/* Danger Zone */}
-                        <div className="px-3 py-2">
-                          <div className="px-0.5 py-1 text-[9px] font-medium text-red-600/70 dark:text-red-400/70 uppercase tracking-[0.12em]">
-                            Danger Zone
                           </div>
-                        </div>
+                        )}
 
                         {/* Delete Customer */}
-                        <div className="px-1.5 py-1 space-y-0.5">
+                        <div className="px-1 py-0.5">
                           <DropdownMenuItem
                             onSelect={() => setShowRemoveModal(true)}
-                            className="w-full px-2 py-1.5 text-left text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-950/10 dark:hover:bg-red-950/15 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-red-950/10 dark:focus:bg-red-950/15 cursor-pointer min-h-[36px] group"
+                            className="w-full px-2 py-1.5 text-left text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-950/10 dark:hover:bg-red-950/15 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-red-950/10 dark:focus:bg-red-950/15 cursor-pointer"
                           >
-                            <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded bg-red-500/10 dark:bg-red-500/15 group-hover:bg-red-500/15 dark:group-hover:bg-red-500/20 transition-colors">
-                              <svg className="w-3.5 h-3.5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-medium">Delete Customer</div>
-                              <div className="text-[10px] text-muted-foreground/70 font-normal leading-tight">Permanently remove this customer</div>
-                            </div>
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            <span>Delete Customer</span>
                           </DropdownMenuItem>
                         </div>
                       </DropdownMenuContent>
                     </DropdownMenuPortal>
                   </DropdownMenu>
-                  </div>
                 </div>
-                <button
-                  ref={fullScreenToggleBtnRef}
-                  type="button"
-                  onClick={() => setIsFullScreen(true)}
-                  className="p-1.5 rounded-md hover:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  aria-label="Open conversation in full screen"
-                >
-                  <Maximize2 className="w-4 h-4 text-muted-foreground" />
-                </button>
               </div>
             </div>
           </div>
@@ -3999,7 +3852,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
         {!isMobileView && (
           <div className="grid grid-cols-[minmax(0,3fr)_minmax(320px,380px)] gap-8 items-start">
             {/* Desktop Conversation Section - Primary workspace */}
-            <section className="flex flex-col min-h-0 h-[calc(100vh-260px)] bg-background rounded-xl border border-border/50 shadow-sm overflow-hidden">
+            <section className="flex flex-col min-h-0 h-[calc(100vh-280px)] bg-background rounded-xl border border-border/50 shadow-sm overflow-hidden">
               {/* Desktop Conversation Header */}
               <div className="flex items-center justify-between px-5 py-3 border-b border-border/30 bg-muted/40">
                 <div className="flex items-center gap-2">
@@ -4132,73 +3985,52 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               <VoicemailSummary leadData={leadData} />
                             </div>
                           )}
-
-                          {/* Customer Snapshot - Factual customer context */}
-                          <CustomerSnapshot lead={lead} leadData={leadData} />
-
-                          {/* Customer Stats - Activity overview */}
-                          {business?.id && (
-                            <CustomerStats businessId={business.id} customerId={params.id} />
-                          )}
-
-                          {/* Customer Milestone - Milestone */}
-                          {business?.id && (
-                            <CustomerMilestone businessId={business.id} customerId={params.id} />
-                          )}
                         </div>
                       </div>
 
-                      {/* Work */}
+                      {/* Schedule - Unified Jobs + Tasks */}
                       <div>
                         <div className="px-1 py-1">
-                          <div className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider mb-3">Work</div>
+                          <div className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider mb-3">Schedule</div>
                         </div>
                         <div className="space-y-4">
-                          {/* Jobs */}
                           <div className="p-3">
                             <button
-                              onClick={() => setCollapsedSections((prev: any) => ({ ...prev, jobs: !prev.jobs }))}
+                              onClick={() => setCollapsedSections((prev: any) => ({ ...prev, schedule: !prev.schedule }))}
                               className="flex items-center justify-between w-full mb-2 group"
                             >
-                              <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Jobs</h3>
-                              <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.jobs ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Schedule</h3>
+                              <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.schedule ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                               </svg>
                             </button>
-                            {collapsedSections.jobs && (
+                            {collapsedSections.schedule && (
                               <div className="text-sm text-muted-foreground">
-                                {leadJobs.length === 0 ? (
-                                  <span>No jobs created</span>
-                                ) : leadJobs.length === 1 ? (
-                                  <span>
-                                    • {leadJobs[0].title || 'Job'}
-                                    {leadJobs[0].scheduled_date ? ` • ${formatDate(leadJobs[0].scheduled_date)}` : ''}
-                                  </span>
+                                {leadJobs.length === 0 && leadTasks.length === 0 ? (
+                                  <span>No scheduled work</span>
                                 ) : (
-                                  <span>{leadJobs.length} jobs</span>
+                                  <span>
+                                    {leadJobs.length} job{leadJobs.length !== 1 ? 's' : ''}, {leadTasks.length} task{leadTasks.length !== 1 ? 's' : ''}
+                                  </span>
                                 )}
                               </div>
                             )}
-                            {!collapsedSections.jobs && (
+                            {!collapsedSections.schedule && (
                               <div className="transition-all duration-200">
-                                {leadJobs.length === 0 ? (
+                                {leadJobs.length === 0 && leadTasks.length === 0 ? (
                                   <div className="text-center py-4">
-                                    <p className="text-sm text-muted-foreground mb-2">No jobs created yet</p>
-                                    <p className="text-xs text-muted-foreground/70 mb-3">Create a job to schedule work and track progress</p>
-                                    <button
-                                      onClick={handleCreateJobClick}
-                                      className="inline-flex items-center gap-2 px-3 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors"
-                                    >
-                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                      </svg>
-                                      <span>Create Job</span>
-                                    </button>
+                                    <p className="text-sm text-muted-foreground">No scheduled work</p>
                                   </div>
                                 ) : (
                                   <div className="space-y-2">
-                                    {leadJobs.slice(0, 3).map((job: any) => (
-                                      <div key={job.id} className="flex items-center justify-between p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg transition-all duration-200">
+                                    {/* Jobs */}
+                                    {leadJobs.map((job: any) => (
+                                      <div key={job.id} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg transition-all duration-200">
+                                        <div className="flex-shrink-0 w-6 h-6 rounded bg-blue-500/10 flex items-center justify-center">
+                                          <svg className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                          </svg>
+                                        </div>
                                         <div className="min-w-0 flex-1">
                                           <p className="text-sm font-medium text-foreground truncate">{job.title || 'Job'}</p>
                                           <p className="text-xs text-muted-foreground/80">
@@ -4206,84 +4038,28 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                             {job.scheduled_time ? ` • ${job.scheduled_time}` : ''}
                                           </p>
                                         </div>
-                                        <span className="text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground/90 capitalize whitespace-nowrap ml-2 border border-border/30">
+                                        <span className="text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground/90 capitalize whitespace-nowrap border border-border/30">
                                           {formatJobStatus(job.status).text}
                                         </span>
                                       </div>
                                     ))}
-                                    {leadJobs.length > 3 && (
-                                      <button
-                                        onClick={handleAppointmentClick}
-                                        className="w-full text-center text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-                                      >
-                                        View all {leadJobs.length} jobs
-                                      </button>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Payments */}
-                          <div className="p-3">
-                            <button
-                              onClick={() => setCollapsedSections((prev: any) => ({ ...prev, payments: !prev.payments }))}
-                              className="flex items-center justify-between w-full mb-2 group"
-                            >
-                              <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Payments</h3>
-                              <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.payments ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                              </svg>
-                            </button>
-                            {collapsedSections.payments && (
-                              <div className="text-sm text-muted-foreground">
-                                {paymentRequests.length === 0 ? (
-                                  <span>No payments requested</span>
-                                ) : paymentRequests.length === 1 ? (
-                                  <span>
-                                    • {paymentRequests[0].status === 'paid' ? 'Paid' : 'Awaiting'} {formatCurrency(paymentRequests[0].amount_cents / 100)}
-                                  </span>
-                                ) : (
-                                  <span>
-                                    • {paymentRequests.filter((pr: any) => pr.status === 'paid').length} paid of {paymentRequests.length} total
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                            {!collapsedSections.payments && (
-                              <div className="transition-all duration-200">
-                                {paymentRequests.length === 0 ? (
-                                  <div className="text-center py-4">
-                                    <p className="text-sm text-muted-foreground mb-2">No payments recorded</p>
-                                    <p className="text-xs text-muted-foreground/70 mb-3">Request payment once work is scheduled</p>
-                                    <button
-                                      onClick={() => setShowPaymentModal(true)}
-                                      disabled={!business || getAvailableProviders(business).length === 0}
-                                      className="inline-flex items-center gap-2 px-3 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                      </svg>
-                                      <span>Request Payment</span>
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <div className="space-y-2">
-                                    {paymentRequests.map((pr: any) => (
-                                      <div key={pr.id} className="flex items-center justify-between p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg transition-all duration-200">
-                                        <div className="min-w-0 flex-1">
-                                          <p className="text-sm font-semibold text-foreground">{formatCurrency(pr.amount_cents / 100)}</p>
-                                          <p className="text-xs text-muted-foreground/80">{formatDate(pr.created_at)}</p>
+                                    {/* Tasks */}
+                                    {leadTasks.map((task: any) => (
+                                      <div key={task.id} className="flex items-center gap-3 p-2.5 bg-muted/30 hover:bg-muted/50 rounded-lg transition-all duration-200">
+                                        <div className="flex-shrink-0 w-6 h-6 rounded bg-purple-500/10 flex items-center justify-center">
+                                          <svg className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                          </svg>
                                         </div>
-                                        <span className={`text-xs px-2 py-0.5 rounded-full capitalize whitespace-nowrap ml-2 border ${
-                                          pr.status === 'paid'
-                                            ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20'
-                                            : pr.status === 'pending'
-                                            ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
-                                            : 'bg-muted/60 text-muted-foreground/90 border-border/30'
-                                        }`}>
-                                          {formatPaymentStatus(pr.status).text}
+                                        <div className="min-w-0 flex-1">
+                                          <p className="text-sm font-medium text-foreground truncate">{task.title || 'Task'}</p>
+                                          <p className="text-xs text-muted-foreground/80">
+                                            {task.due_date ? formatDate(task.due_date) : 'No due date'}
+                                            {task.due_time ? ` • ${task.due_time}` : ''}
+                                          </p>
+                                        </div>
+                                        <span className="text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground/90 capitalize whitespace-nowrap border border-border/30">
+                                          {task.completed ? 'Done' : 'Open'}
                                         </span>
                                       </div>
                                     ))}
@@ -4292,96 +4068,56 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               </div>
                             )}
                           </div>
+                        </div>
+                      </div>
 
-                          {/* Status */}
-                          <div className="p-1">
-                            <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider mb-3">Status</h3>
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs text-muted-foreground">Customer Replied</span>
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                                  leadData?.raw_metadata?.customer_replied || leadData?.raw_metadata?.replied_after_ai_call || leadData?.raw_metadata?.last_customer_reply_at || followUpJobs.some((j: any) => j.cancelled_reason === 'customer_replied')
-                                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                                    : 'bg-muted text-muted-foreground'
-                                }`}>
-                                  {leadData?.raw_metadata?.customer_replied || leadData?.raw_metadata?.replied_after_ai_call || leadData?.raw_metadata?.last_customer_reply_at || followUpJobs.some((j: any) => j.cancelled_reason === 'customer_replied') ? 'Yes' : 'No'}
-                                </span>
+                      {/* Payment */}
+                      <div>
+                        <div className="px-1 py-1">
+                          <div className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider mb-3">Payment</div>
+                        </div>
+                        <div className="space-y-4">
+                          <div className="p-3">
+                            {paymentRequests.length === 0 ? (
+                              <div className="text-center py-4">
+                                <p className="text-sm text-muted-foreground">No payments yet</p>
                               </div>
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs text-muted-foreground">Corrections</span>
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                                  (leadData?.raw_metadata?.corrected_fields && Object.keys(leadData.raw_metadata.corrected_fields).length > 0)
-                                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
-                                    : 'bg-muted text-muted-foreground'
-                                }`}>
-                                  {leadData?.raw_metadata?.corrected_fields ? Object.keys(leadData.raw_metadata.corrected_fields).length : 0}
-                                </span>
+                            ) : (
+                              <div>
+                                <div className="text-sm font-medium text-foreground mb-2">
+                                  {paymentRequests.filter((pr: any) => pr.status === 'paid').length === paymentRequests.length
+                                    ? `Paid ${formatCurrency(paymentRequests.reduce((sum: number, pr: any) => sum + (pr.amount_cents || 0), 0) / 100)}`
+                                    : `$${(paymentRequests.reduce((sum: number, pr: any) => sum + (pr.amount_cents || 0) - (pr.status === 'paid' ? pr.amount_cents || 0 : 0), 0) / 100).toFixed(2)} outstanding`
+                                  }
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {paymentRequests.length} request{paymentRequests.length !== 1 ? 's' : ''}
+                                </div>
                               </div>
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs text-muted-foreground">Follow-Ups</span>
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                                  !followUpSettings || !followUpSettings.followUps || followUpSettings.followUps.length === 0
-                                    ? 'bg-muted text-muted-foreground'
-                                    : !followUpSettings.enabled
-                                    ? 'bg-muted text-muted-foreground'
-                                    : followUpJobs.some((j: any) => j.status === 'pending')
-                                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
-                                    : followUpJobs.some((j: any) => j.status === 'sent')
-                                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                                    : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
-                                }`}>
-                                  {!followUpSettings || !followUpSettings.followUps || followUpSettings.followUps.length === 0
-                                    ? 'Not Configured'
-                                    : !followUpSettings.enabled
-                                    ? 'Disabled'
-                                    : followUpJobs.some((j: any) => j.status === 'pending')
-                                    ? 'Active'
-                                    : followUpJobs.some((j: any) => j.status === 'sent')
-                                    ? 'Complete'
-                                    : 'Configured'}
-                                </span>
-                              </div>
-                            </div>
+                            )}
                           </div>
                         </div>
                       </div>
 
-                      {/* History */}
+                      {/* Internal Notes */}
                       <div>
                         <div className="px-1 py-1">
-                          <div className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider mb-3">History</div>
+                          <div className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider mb-3">Internal Notes</div>
                         </div>
                         <div className="space-y-4">
-                          {/* Activity Timeline */}
-                          <div className="p-1">
-                            <button
-                              onClick={() => setCollapsedSections((prev: any) => ({ ...prev, activityTimeline: !prev.activityTimeline }))}
-                              className="flex items-center justify-between w-full mb-3 group"
-                            >
-                              <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Timeline</h3>
-                            </button>
-                            {!collapsedSections.activityTimeline && (
-                              <div className="transition-all duration-200">
-                                <CustomerActivityTimeline leadData={leadData} />
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Internal Notes */}
                           <div className="p-3">
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2 mb-2">
-                                  <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Internal Notes</h3>
                                   <div className="text-[10px] text-muted-foreground/70">Private</div>
                                 </div>
                                 {Boolean((leadData?.notes || '').trim()) ? (
-                                  <div className="mt-2 text-xs text-muted-foreground line-clamp-3 break-words">
+                                  <div className="text-xs text-muted-foreground line-clamp-3 break-words">
                                     {(leadData?.notes || '').trim()}
                                   </div>
                                 ) : (
-                                  <div className="mt-2 text-xs text-muted-foreground/70">
-                                    No notes added yet
+                                  <div className="text-xs text-muted-foreground/70">
+                                    No notes yet
                                   </div>
                                 )}
                               </div>
@@ -4396,42 +4132,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               </div>
                             </div>
                           </div>
-
-                          {/* Photos */}
-                          {Object.keys(messageMedia).length > 0 && (
-                            <div className="p-3">
-                              <h3 className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider mb-2">Photos</h3>
-                              <div className="grid grid-cols-2 gap-2">
-                                {Object.entries(messageMedia).slice(0, showAllPhotos ? undefined : 4).map(([messageId, media]: [string, any]) => (
-                                  media.urls.slice(0, 1).map((url: string, idx: number) => (
-                                    <div
-                                      key={`${messageId}-${idx}`}
-                                      className="relative group cursor-pointer"
-                                      onClick={() => {
-                                        setSelectedPhotoUrl(url)
-                                        setPhotoModalOpen(true)
-                                      }}
-                                    >
-                                      <img
-                                        src={url}
-                                        alt="Customer photo"
-                                        className="w-full h-24 object-cover rounded-lg hover:opacity-90 transition-opacity"
-                                        loading="lazy"
-                                      />
-                                    </div>
-                                  ))
-                                ))}
-                              </div>
-                              {Object.keys(messageMedia).length > 4 && (
-                                <button
-                                  onClick={() => setShowAllPhotos(!showAllPhotos)}
-                                  className="w-full mt-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-normal"
-                                >
-                                  {showAllPhotos ? 'Show Less' : `View All Photos (${Object.keys(messageMedia).length})`}
-                                </button>
-                              )}
-                            </div>
-                          )}
                         </div>
                       </div>
                     </div>
@@ -4442,7 +4142,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
         )}
 
-        {/* Mobile Layout - Only render when mobile view */}
+      </div>
+
+      {/* Mobile Layout - Only render when mobile view */}
         {isMobileView && (
           <div className="space-y-4 pb-[calc(6rem+env(safe-area-inset-bottom))]">
           {/* Conversation Workspace Card - Dedicated workspace with fixed height */}
@@ -4659,7 +4361,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           {/* Jobs - Collapsible */}
           <div className="bg-muted/30 border border-border/30 rounded-xl p-3 shadow-sm">
             <button
-              onClick={() => setCollapsedSections((prev: any) => ({ ...prev, jobs: !prev.jobs }))}
+              onClick={() => setCollapsedSections((prev: any) => ({ ...prev, schedule: !prev.schedule }))}
               className="flex items-center justify-between w-full"
             >
               <div className="flex items-center gap-2">
@@ -4673,11 +4375,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   <span className="text-xs text-muted-foreground">({leadJobs.length})</span>
                 )}
               </div>
-              <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.jobs ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.schedule ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-            {!collapsedSections.jobs && (
+            {!collapsedSections.schedule && (
               <div className="mt-2">
                 {leadJobs.length === 0 ? (
                   <button
@@ -4761,92 +4463,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               </div>
             )}
           </div>
-
-          {/* Timeline - Collapsible */}
-          <div className="bg-muted/30 border border-border/30 rounded-xl p-3 shadow-sm">
-            <button
-              onClick={() => setCollapsedSections((prev: any) => ({ ...prev, recentActivity: !prev.recentActivity }))}
-              className="flex items-center justify-between w-full"
-            >
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 flex items-center justify-center">
-                  <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <span className="text-xs font-semibold text-muted-foreground/90 uppercase tracking-wider">Timeline</span>
-              </div>
-              <svg className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${collapsedSections.recentActivity ? 'rotate-0' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {!collapsedSections.recentActivity && (
-              <div className="mt-2 space-y-1">
-                {conversationTimeline.slice(-10).reverse().slice(0, 5).map((item: any, index: number) => (
-                  <div key={item.id} className="flex items-start gap-2 py-1 border-b border-border/10 last:border-0">
-                    <div className="flex-shrink-0 pt-0.5">
-                      {(() => {
-                        // Determine color based on event type and data
-                        if (item.type === 'payment_requested') {
-                          const isPaid = item.data?.status === 'paid'
-                          return isPaid ? (
-                            <svg className="w-3 h-3 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          ) : (
-                            <svg className="w-3 h-3 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2-1.343-2-3-2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          )
-                        } else if (item.type === 'voicemail') {
-                          return (
-                            <svg className="w-3 h-3 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                            </svg>
-                          )
-                        } else if (item.type === 'message') {
-                          return (
-                            <svg className="w-3 h-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                            </svg>
-                          )
-                        } else if (item.type === 'system_event') {
-                          // Check if it's an AI Intake event
-                          const isAIIntake = item.id?.startsWith('ai-intake-')
-                          if (isAIIntake) {
-                            return (
-                              <svg className="w-3 h-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                            )
-                          }
-                          // Default system event
-                          return (
-                            <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          )
-                        }
-                        // Default fallback
-                        return (
-                          <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        )
-                      })()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[9px] text-muted-foreground truncate">{item.type === 'message' ? (item.data?.direction === 'inbound' ? 'Customer message' : 'Your message') : item.type === 'voicemail' ? 'Voicemail' : 'System event'}</p>
-                      <p className="text-[8px] text-muted-foreground">{formatRelativeTime(item.created_at)}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
         )}
-      </div>
 
       {/* Mobile Bottom Sheet for Customer Details */}
       {showLeadInfo && (

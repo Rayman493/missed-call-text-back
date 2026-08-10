@@ -745,69 +745,6 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
         </div>
       )}
 
-      {/* Full AI Conversation Transcript - Collapsible */}
-      {selectedRecord?.transcript && selectedRecord.transcript.length > 0 && (
-        <div className="bg-card/60 border border-border/25 rounded-lg shadow-sm overflow-hidden">
-          <button
-            onClick={() => setFullTranscriptExpanded(!fullTranscriptExpanded)}
-            className="w-full px-3.5 py-3 flex items-center justify-between hover:bg-muted/30 transition-colors"
-          >
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800/50 flex items-center justify-center">
-                <MessageCircle className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-              </div>
-              <span className="text-sm font-semibold text-foreground">
-                Call Transcript
-              </span>
-            </div>
-            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${fullTranscriptExpanded ? 'rotate-180' : 'rotate-0'}`} />
-          </button>
-
-          {fullTranscriptExpanded && (
-            <div className="px-4 pb-4 pt-3 border-t border-border/30">
-              <div className="space-y-4 max-h-96 overflow-y-auto">
-                {(() => {
-                  const messages = normalizeAITranscript(selectedRecord.transcript);
-                  if (messages.length === 0) {
-                    return (
-                      <div className="text-sm text-muted-foreground py-6 text-center">
-                        Full conversation unavailable
-                      </div>
-                    );
-                  }
-                  return messages.map((message, index) => (
-                    <div
-                      key={message.id || index}
-                      className={`flex gap-3 ${message.role === 'assistant' ? 'justify-start' : 'justify-end'}`}
-                    >
-                      {message.role === 'assistant' && (
-                        <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0 mt-1">
-                          <span className="text-xs">🤖</span>
-                        </div>
-                      )}
-                      <div
-                        className={`max-w-[90%] rounded-2xl px-4 py-3 ${
-                          message.role === 'assistant'
-                            ? 'bg-muted/40 dark:bg-muted/30 text-foreground border border-border/20'
-                            : 'bg-primary/5 dark:bg-primary/10 text-foreground border border-primary/20'
-                        }`}
-                      >
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
-                      </div>
-                      {message.role !== 'assistant' && (
-                        <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0 mt-1">
-                          <span className="text-xs">👤</span>
-                        </div>
-                      )}
-                    </div>
-                  ));
-                })()}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* AI Summary - Collapsible */}
       <div className="bg-card/60 border border-border/25 rounded-lg shadow-sm overflow-hidden">
         <button
