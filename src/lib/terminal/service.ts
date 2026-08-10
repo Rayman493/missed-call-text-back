@@ -596,6 +596,11 @@ export class TerminalBridgeService {
         return new Error('Tap to Pay requires NFC permissions. Please enable them in your device settings.')
       }
 
+      // iOS version unsupported
+      if (message.includes('ios_version_unsupported') || message.includes('unsupported ios') || message.includes('unsupported version')) {
+        return new Error('Update your iPhone to use Tap to Pay on iPhone.')
+      }
+
       // Reader connection failure
       if (message.includes('reader') || message.includes('bluetooth')) {
         return new Error('Tap to Pay couldn\'t connect to this device.')
@@ -1393,6 +1398,24 @@ export class TerminalBridgeService {
     const res = await (this.plugin as any).disconnect({ diagnosticAttemptId: this.currentAttemptId || this.sessionId })
     try { await logTapToPayEvent('disconnect_completed', { phase: 'disconnect', sessionId: this.sessionId, connectionStatus: res.status }) } catch {}
     return res
+  }
+
+  async isTapToPayAccountLinked(options?: { onBehalfOf?: string }): Promise<{ isLinked: boolean }> {
+    if (!this.plugin) throw new Error('Stripe Terminal is not available on web')
+    try {
+      const result = await this.plugin.isTapToPayAccountLinked(options)
+      try {
+        await logTapToPayEvent('account_linkage_checked', {
+          phase: 'connect_reader',
+          sessionId: this.sessionId,
+          meta: { isLinked: result.isLinked, onBehalfOf: options?.onBehalfOf }
+        })
+      } catch {}
+      return result
+    } catch (error) {
+      console.error('[TTP Service] Failed to check account linkage:', error)
+      throw error
+    }
   }
 
   async teardown() {

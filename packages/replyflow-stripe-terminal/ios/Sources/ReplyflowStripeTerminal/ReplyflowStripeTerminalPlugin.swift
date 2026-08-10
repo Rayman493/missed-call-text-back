@@ -906,13 +906,38 @@ extension ReplyflowStripeTerminalPlugin: TerminalDelegate, DiscoveryDelegate, Re
   public func tapToPayReader(
     _ reader: Reader,
     didRequestReaderInput inputOptions: ReaderInputOptions = []
-  ) {}
+  ) {
+    self.notifyListeners("readerInputRequested", data: [
+      "inputOptions": inputOptions.rawValue
+    ])
+  }
   public func tapToPayReader(
     _ reader: Reader,
     didRequestReaderDisplayMessage displayMessage: ReaderDisplayMessage
-  ) {}
-  public func tapToPayReader(_ reader: Reader, didStartInstallingUpdate update: ReaderSoftwareUpdate, cancelable: Cancelable?) {}
-  public func tapToPayReader(_ reader: Reader, didReportReaderSoftwareUpdateProgress progress: Float) {}
-  public func tapToPayReader(_ reader: Reader, didFinishInstallingUpdate update: ReaderSoftwareUpdate?, error: Error?) {}
+  ) {
+    self.notifyListeners("readerDisplayMessageRequested", data: [
+      "displayMessage": displayMessage.rawValue
+    ])
+  }
+  public func tapToPayReader(_ reader: Reader, didStartInstallingUpdate update: ReaderSoftwareUpdate, cancelable: Cancelable?) {
+    self.notifyListeners("readerUpdateStarted", data: [
+      "updateRequired": update.required,
+      "updateEstimatedTime": update.estimatedUpdateTime
+    ])
+  }
+  public func tapToPayReader(_ reader: Reader, didReportReaderSoftwareUpdateProgress progress: Float) {
+    self.notifyListeners("readerUpdateProgress", data: [
+      "progress": progress
+    ])
+  }
+  public func tapToPayReader(_ reader: Reader, didFinishInstallingUpdate update: ReaderSoftwareUpdate?, error: Error?) {
+    if let error = error {
+      self.notifyListeners("readerUpdateFailed", data: [
+        "error": error.localizedDescription
+      ])
+    } else {
+      self.notifyListeners("readerUpdateCompleted", data: [:])
+    }
+  }
 }
 #endif

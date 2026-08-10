@@ -10,6 +10,7 @@ import { isNativeCapacitor } from '@/lib/terminal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import type { TerminalError, DeviceState } from '@/lib/terminal'
 import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
+import { useTapToPayReaderPresentation } from '@/hooks/useTapToPayReaderPresentation'
 import { Capacitor } from '@capacitor/core'
 import { SHOW_TAP_TO_PAY_DIAGNOSTICS } from './tapToPayUiConfig'
 
@@ -61,6 +62,12 @@ export default function TapToPayModal({
   const [showLocationPermissionDialog, setShowLocationPermissionDialog] = useState(false)
 
   useBodyScrollLock(isOpen)
+
+  // Use shared reader presentation hook
+  const {
+    state: readerState,
+    resetState: resetReaderState,
+  } = useTapToPayReaderPresentation(isOpen && isNativeSupported)
 
   // Track current UI state in a ref to guard against stale callbacks
   const paymentStateRef = useRef<PaymentState>(paymentState)
@@ -187,8 +194,10 @@ export default function TapToPayModal({
       setIsPaymentInProgress(false)
       autoRetryInProgress.current = false
       waitingForConfirmationEmitted.current = null
+      // Reset reader presentation state when modal closes
+      resetReaderState()
     }
-  }, [isOpen])
+  }, [isOpen, resetReaderState])
 
   // Track modalVisible state transitions
   const prevVisibleRef = useRef<boolean | null>(null)
@@ -380,6 +389,9 @@ export default function TapToPayModal({
       if (error.code === 'network_error') {
         return 'We couldn\'t connect. Check your connection and try again.'
       }
+      if (error.code === 'timeout') {
+        return 'Tap to Pay took too long to start. Please try again.'
+      }
       if (error.code === 'payment_declined') {
         return 'The payment was declined. Ask the customer to try another payment method.'
       }
@@ -415,6 +427,9 @@ export default function TapToPayModal({
       }
       if (message.includes('network') || message.includes('fetch')) {
         return 'Network error. Please check your connection and try again.'
+      }
+      if (message.includes('timeout') || message.includes('timed out')) {
+        return 'Tap to Pay took too long to start. Please try again.'
       }
       if (message.includes('client-secret-required')) {
         return 'Payment setup could not be completed. Please try again.'
@@ -753,6 +768,9 @@ export default function TapToPayModal({
     // Ensure service-layer internal state is fully reset so a brand new attempt/PI will be created
     terminalService.resetForRetry('user_retry').catch(() => {})
     
+    // Reset reader presentation state on retry
+    resetReaderState()
+
     // Re-check location permission on retry
     checkLocationPermission()
   }
@@ -946,6 +964,12 @@ export default function TapToPayModal({
             </div>
             <p className="text-lg font-medium">Preparing Tap to Pay</p>
             <p className="text-sm text-muted-foreground">Getting the secure reader ready</p>
+            {/* Indeterminate preparation message for Apple configuration */}
+            {readerState.preparing && (
+              <p className="text-xs text-muted-foreground mt-2 text-center">
+                Preparing Tap to Pay on iPhone… This can take a moment the first time.
+              </p>
+            )}
           </div>
         )
 
@@ -970,6 +994,39 @@ export default function TapToPayModal({
                  'Hold the customer\'s card or phone near this device'}
               </p>
             </div>
+
+            {/* Software update error - highest priority */}
+            {readerState.softwareUpdateError && (
+              <div className="w-full max-w-xs mx-auto p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                <p className="text-sm text-red-600 dark:text-red-400 text-center">{readerState.softwareUpdateError}</p>
+              </div>
+            )}
+            {/* Software update progress bar - second priority */}
+            {!readerState.softwareUpdateError && readerState.softwareUpdateActive && readerState.softwareUpdateProgress !== null && (
+              <div className="w-full max-w-xs mx-auto">
+                <div className="w-full bg-muted rounded-full h-2">
+                  <div
+                    className="bg-primary h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${readerState.softwareUpdateProgress * 100}%` }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 text-center">
+                  Updating reader… {Math.round(readerState.softwareUpdateProgress * 100)}%
+                </p>
+              </div>
+            )}
+            {/* Reader display message from Stripe Terminal - third priority */}
+            {!readerState.softwareUpdateError && !readerState.softwareUpdateActive && readerState.displayMessage && (
+              <div className="w-full max-w-xs mx-auto p-3 bg-muted border border-muted-foreground/20 rounded-lg">
+                <p className="text-sm text-foreground text-center">{readerState.displayMessage}</p>
+              </div>
+            )}
+            {/* Reader instruction from Stripe Terminal - fourth priority */}
+            {!readerState.softwareUpdateError && !readerState.softwareUpdateActive && !readerState.displayMessage && readerState.instruction && (
+              <div className="w-full max-w-xs mx-auto p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                <p className="text-sm font-medium text-primary text-center">{readerState.instruction}</p>
+              </div>
+            )}
 
             {/* Collapsible Diagnostics */}
             {SHOW_TAP_TO_PAY_DIAGNOSTICS && (
