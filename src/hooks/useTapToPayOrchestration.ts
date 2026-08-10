@@ -1610,6 +1610,21 @@ export function useTapToPayOrchestration({
         }
       }
 
+      // Check Apple account linkage status before connecting (iOS compliance requirement)
+      let accountLinkedBeforeConnect = true
+      if (isIOS) {
+        try {
+          console.log('[TTP Hook] ACCOUNT_LINKAGE_CHECK: Checking Apple Tap to Pay account linkage status')
+          const linkageResult = await terminalService.isTapToPayAccountLinked()
+          accountLinkedBeforeConnect = linkageResult.isLinked
+          console.log('[TTP Hook] ACCOUNT_LINKAGE_STATUS', { isLinked: accountLinkedBeforeConnect })
+          dispatchTTPEvent('ACCOUNT_LINKAGE_CHECKED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'connecting_reader', String(accountLinkedBeforeConnect))
+        } catch (error) {
+          console.warn('[TTP Hook] ACCOUNT_LINKAGE_CHECK_FAILED: Proceeding with connection', error)
+          // Proceed with connection even if check fails - Apple Terms will be presented if needed
+        }
+      }
+
       // Connect if needed
       if (initResult.status === 'connected') {
         setLastSuccessfulStage('connected')
@@ -1617,7 +1632,8 @@ export function useTapToPayOrchestration({
         updatePaymentStateRef('connecting_reader', 'connection_started')
         console.log('[TTP Hook] CONNECTION_STARTED', {
           attemptId: terminalService.getCurrentAttemptId(),
-          sessionId: terminalService.getSessionId()
+          sessionId: terminalService.getSessionId(),
+          accountLinkedBeforeConnect
         })
         dispatchTTPEvent('CONNECTION_STARTED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'connecting_reader')
         setLastSuccessfulStage('connecting_reader')
@@ -1666,6 +1682,35 @@ export function useTapToPayOrchestration({
             console.log('[TTP Hook] CONNECTION_FAILED', { status: connectResult.status })
             throw new Error('Failed to connect to payment terminal')
           }
+
+          // Re-check Apple account linkage status after connection to verify Apple Terms were accepted (iOS compliance requirement)
+          if (isIOS && !accountLinkedBeforeConnect) {
+            try {
+              console.log('[TTP Hook] ACCOUNT_LINKAGE_POST_CONNECT: Re-checking after connection (Terms may have been presented)')
+              const linkageResult = await terminalService.isTapToPayAccountLinked()
+              const accountLinkedAfterConnect = linkageResult.isLinked
+              console.log('[TTP Hook] ACCOUNT_LINKAGE_POST_CONNECT_STATUS', {
+                wasLinkedBefore: accountLinkedBeforeConnect,
+                isLinkedAfter: accountLinkedAfterConnect
+              })
+              dispatchTTPEvent('ACCOUNT_LINKAGE_POST_CONNECT_CHECKED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'connecting_reader', String(accountLinkedAfterConnect))
+
+              // If still not linked after connection, stop payment flow and show setup error
+              if (!accountLinkedAfterConnect) {
+                console.error('[TTP Hook] ACCOUNT_LINKAGE_POST_CONNECT_FALSE: Apple Terms not accepted, stopping payment flow')
+                dispatchTTPEvent('ACCOUNT_LINKAGE_POST_CONNECT_FALSE_STOPPED', terminalService.getSessionId(), terminalService.getCurrentAttemptId(), 'connecting_reader')
+                throw new Error('Tap to Pay setup isn\'t complete yet. Please accept the Apple Terms in Settings.')
+              }
+            } catch (error: any) {
+              console.warn('[TTP Hook] ACCOUNT_LINKAGE_POST_CONNECT_CHECK_FAILED:', error)
+              // If it's a known error about account linkage, surface it
+              if (error?.message?.includes('setup') || error?.message?.includes('Terms')) {
+                throw error // Re-throw to stop payment flow
+              }
+              // For other errors, log but continue (non-critical - connection succeeded)
+            }
+          }
+
           setLastSuccessfulStage('connected')
         } catch (connectError: any) {
           const durationMs = Date.now() - connectStartTime

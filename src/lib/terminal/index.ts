@@ -133,7 +133,7 @@ export interface TerminalPlugin {
     requiresConfirmation?: boolean
   }>
   addListener(
-    eventName: 'statusChanged' | 'paymentSucceeded' | 'paymentFailed' | 'error' | 'connectionTokenRequested' | 'readerConnected' | 'paymentStatusChanged' | 'locationPermissionResult',
+    eventName: 'statusChanged' | 'paymentSucceeded' | 'paymentFailed' | 'error' | 'connectionTokenRequested' | 'readerConnected' | 'paymentStatusChanged' | 'locationPermissionResult' | 'readerInputRequested' | 'readerDisplayMessageRequested' | 'readerUpdateStarted' | 'readerUpdateProgress' | 'readerUpdateCompleted' | 'readerUpdateFailed',
     listenerFunc: (data: any) => void,
   ): Promise<{ remove: () => void }>
   removeAllListeners(): Promise<void>

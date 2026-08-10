@@ -314,6 +314,24 @@ export function mapTapToPayError(
     }
   }
 
+  // iOS version unsupported
+  if (
+    lowerCode.includes('ios_version_unsupported') ||
+    lowerMessage.includes('ios_version_unsupported') ||
+    lowerCode.includes('unsupported ios') ||
+    lowerMessage.includes('unsupported ios') ||
+    lowerCode.includes('unsupported version') ||
+    lowerMessage.includes('unsupported version')
+  ) {
+    return {
+      title: 'iOS Update Required',
+      message: 'Update your iPhone to use Tap to Pay on iPhone.',
+      action: 'back',
+      technicalCode: code,
+      technicalMessage: message,
+    }
+  }
+
   // Default fallback - don't show technical stage names
   if (stage && !message.includes(stage)) {
     return {

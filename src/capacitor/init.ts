@@ -130,7 +130,8 @@ export async function initializeCapacitor() {
 
 /**
  * Opportunistic Tap to Pay warm-up
- * Initializes TerminalBridgeService in the background to reduce latency when payment modal opens
+ * Initializes TerminalBridgeService SDK plumbing in the background to reduce latency when payment modal opens
+ * Does NOT connect or prepare the Tap to Pay reader
  * Completely idempotent - safe to call repeatedly
  * Never reconnects readers, never creates PaymentIntents, never shows UI
  * Failures are silent - payment flow will initialize normally when modal opens

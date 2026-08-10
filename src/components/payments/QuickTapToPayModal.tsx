@@ -10,6 +10,7 @@ import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { TerminalBridgeService } from '@/lib/terminal/service'
 import { logTapToPayEvent } from '@/lib/tap-to-pay-diagnostics'
 import { useTapToPayOrchestration } from '@/hooks/useTapToPayOrchestration'
+import { useTapToPayReaderPresentation } from '@/hooks/useTapToPayReaderPresentation'
 import { Capacitor } from '@capacitor/core'
 import { TapToPayEducationModal } from '@/components/TapToPayEducationModal'
 import { hasPendingEducationPromise, resolveEducation } from '@/lib/education-promise-bridge'
@@ -289,6 +290,13 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
     onPaymentError: () => {},
   })
 
+  // Use shared reader presentation hook
+  const {
+    state: readerState,
+    resetState: resetReaderState,
+    setPreparing: setReaderPreparing,
+  } = useTapToPayReaderPresentation(isOpen && hookIsNativeSupported)
+
   // Ref to store resetToSetup for modal-open effect (avoid unstable dependency)
   const resetToSetupRef = useRef(resetToSetup)
   resetToSetupRef.current = resetToSetup
@@ -337,6 +345,8 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
       // Track state when modal closes
       prevIsOpenRef.current = false
       prevPaymentStateRef.current = paymentState
+      // Reset reader presentation state when modal closes
+      resetReaderState()
       return
     }
 
@@ -348,7 +358,7 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
     if (wasClosed) {
       // Reset close guard for fresh modal session
       closeHandledRef.current = false
-      
+
       // Use accurate reset reason based on previous state
       let resetReason = 'modal_reopened'
       if (previousState === 'success') {
@@ -356,13 +366,13 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
       } else if (previousState === 'ready') {
         resetReason = 'setup_initialized'
       }
-      
+
       // Call resetToSetup via ref to avoid unstable dependency
       resetToSetupRef.current(resetReason)
     }
 
     prevIsOpenRef.current = true
-  }, [isOpen, paymentState])
+  }, [isOpen, paymentState, resetReaderState])
 
   // Focus modal title on open for accessibility (prevents keyboard from opening on amount input)
   useEffect(() => {
@@ -1221,12 +1231,18 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                       </div>
                       <div className="space-y-2">
                         <p className="text-sm font-medium text-foreground">
-                          {lastSuccessfulStage === 'checking_previous_payment' 
-                            ? 'Checking previous payment…' 
+                          {lastSuccessfulStage === 'checking_previous_payment'
+                            ? 'Checking previous payment…'
                             : 'Initializing payment terminal…'}
                         </p>
                         <p className="text-xs text-muted-foreground">{formatCurrency(amountCents / 100)}</p>
                       </div>
+                      {/* Indeterminate preparation message for Apple configuration */}
+                      {readerState.preparing && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Preparing Tap to Pay on iPhone… This can take a moment the first time.
+                        </p>
+                      )}
                     </div>
                   )}
 
@@ -1271,6 +1287,38 @@ const normalizeLocationPermissionResult = (raw: any, source: 'check' | 'request'
                         <p className="text-xs text-muted-foreground">Tap or insert card</p>
                       </div>
                       <p className="text-lg font-bold text-foreground">{formatCurrency(amountCents / 100)}</p>
+                      {/* Software update error - highest priority */}
+                      {readerState.softwareUpdateError && (
+                        <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                          <p className="text-sm text-red-600 dark:text-red-400">{readerState.softwareUpdateError}</p>
+                        </div>
+                      )}
+                      {/* Software update progress bar - second priority */}
+                      {!readerState.softwareUpdateError && readerState.softwareUpdateActive && readerState.softwareUpdateProgress !== null && (
+                        <div className="mt-3 w-full max-w-xs mx-auto">
+                          <div className="w-full bg-muted rounded-full h-2">
+                            <div
+                              className="bg-primary h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${readerState.softwareUpdateProgress * 100}%` }}
+                            />
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Updating reader… {Math.round(readerState.softwareUpdateProgress * 100)}%
+                          </p>
+                        </div>
+                      )}
+                      {/* Reader display message from Stripe Terminal - third priority */}
+                      {!readerState.softwareUpdateError && !readerState.softwareUpdateActive && readerState.displayMessage && (
+                        <div className="mt-3 p-3 bg-muted border border-muted-foreground/20 rounded-lg">
+                          <p className="text-sm text-foreground">{readerState.displayMessage}</p>
+                        </div>
+                      )}
+                      {/* Reader instruction from Stripe Terminal - fourth priority */}
+                      {!readerState.softwareUpdateError && !readerState.softwareUpdateActive && !readerState.displayMessage && readerState.instruction && (
+                        <div className="mt-3 p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                          <p className="text-sm font-medium text-primary">{readerState.instruction}</p>
+                        </div>
+                      )}
                     </div>
                   )}
 
