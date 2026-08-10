@@ -94,7 +94,10 @@ export default function NewCustomersGraph() {
   // Calculate summary KPIs
   const totalCustomers = data.reduce((sum, day) => sum + day.customers, 0)
   const peakDay = data.length > 0 ? data.reduce((max, day) => day.customers > max.customers ? day : max, data[0]) : null
-  const averageDaily = data.length > 0 ? Math.round(totalCustomers / data.length) : 0
+
+  // Calculate average across the selected period, not just days with customers
+  const daysInRange: Record<TimeRange, number> = { '7d': 7, '30d': 30, '90d': 90, '1y': 365 }
+  const averageDaily = totalCustomers > 0 ? (totalCustomers / daysInRange[timeRange]) : 0
 
   return (
     <Card className="h-full" variant="hero" padding="md">
@@ -114,7 +117,7 @@ export default function NewCustomersGraph() {
           <div className="mb-4">
             <div className="flex items-baseline gap-2">
               <span className="text-2xl font-semibold text-foreground">{totalCustomers.toLocaleString()}</span>
-              <span className="text-xs text-muted-foreground">new customers</span>
+              <span className="text-xs text-muted.toFixed(1)-foreground">new customers</span>
             </div>
             <div className="text-[11px] text-muted-foreground/70 mt-1">
               {averageDaily > 0 ? `${averageDaily} per day average` : 'No data yet'}

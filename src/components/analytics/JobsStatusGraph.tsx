@@ -69,6 +69,20 @@ export default function JobsStatusGraph() {
           }
         }).filter((item): item is JobStatusData => item !== null)
 
+        // Add unknown bucket for unrecognized status values
+        const recognizedStatuses = new Set(statusOrder)
+        const unknownCount = Object.entries(statusCounts)
+          .filter(([status]) => !recognizedStatuses.has(status))
+          .reduce((sum, [, count]) => sum + count, 0)
+
+        if (unknownCount > 0) {
+          chartData.push({
+            status: 'Unknown',
+            count: unknownCount,
+            color: '#94A3B8'
+          })
+        }
+
         if (isMounted) setData(chartData)
       } catch (error) {
         if (isMounted) console.error('[JobsStatusGraph] Error fetching data:', error)
@@ -120,7 +134,7 @@ export default function JobsStatusGraph() {
         ) : (
           <div className="h-[260px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data} layout="horizontal" margin={{ top: 16, right: 16, bottom: 8, left: 0 }}>
+              <BarChart data={data} layout="horizontal" margin={{ top: 16, right: 16, bottom: 8, left: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border/10" horizontal={false} />
                 <XAxis
                   type="number"
@@ -128,6 +142,7 @@ export default function JobsStatusGraph() {
                   tick={{ fontSize: 10 }}
                   axisLine={false}
                   tickLine={false}
+                  domain={[0, 'auto']}
                 />
                 <YAxis
                   type="category"

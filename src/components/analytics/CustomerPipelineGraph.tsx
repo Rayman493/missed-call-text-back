@@ -40,7 +40,7 @@ export default function CustomerPipelineGraph() {
         // Process status data - normalize to canonical statuses
         const allStatuses = getAllCustomerStatuses()
         const statusCounts: { [key: string]: number } = {}
-        
+
         leads?.forEach((lead: any) => {
           // Normalize status to canonical value, but don't silently count unknown as New
           const rawStatus = lead.status || 'new'
@@ -120,7 +120,7 @@ export default function CustomerPipelineGraph() {
           <div className="h-[260px]">
             <div className="h-full w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data} layout="horizontal" margin={{ top: 16, right: 16, bottom: 8, left: 0 }}>
+                <BarChart data={data} layout="horizontal" margin={{ top: 16, right: 16, bottom: 8, left: 8 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/10" horizontal={false} />
                   <XAxis
                     type="number"
@@ -128,6 +128,7 @@ export default function CustomerPipelineGraph() {
                     tick={{ fontSize: 10 }}
                     axisLine={false}
                     tickLine={false}
+                    domain={[0, 'auto']}
                   />
                   <YAxis
                     type="category"

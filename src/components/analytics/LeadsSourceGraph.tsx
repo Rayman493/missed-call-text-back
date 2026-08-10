@@ -67,14 +67,17 @@ export default function LeadsSourceGraph() {
           }
         })
 
-        // Normalize manual_entry and manual_backfill to 'Manual' for display
+        // Normalize source values for display
         const normalizedCounts: { [key: string]: number } = {}
         Object.entries(sourceCounts).forEach(([source, count]) => {
-          if (source === 'manual_entry' || source === 'manual_backfill') {
-            normalizedCounts['manual_entry'] = (normalizedCounts['manual_entry'] || 0) + count
-          } else {
-            normalizedCounts[source] = (normalizedCounts[source] || 0) + 1
+          let normalizedSource = source
+          // Map legacy/variant source values to canonical display values
+          if (source === 'manual' || source === 'manual_entry' || source === 'manual_backfill') {
+            normalizedSource = 'manual_entry'
+          } else if (source === 'ai_intake' || source === 'ai_voice') {
+            normalizedSource = 'voice'
           }
+          normalizedCounts[normalizedSource] = (normalizedCounts[normalizedSource] || 0) + count
         })
 
         // Convert to array for chart
