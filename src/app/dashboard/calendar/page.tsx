@@ -223,9 +223,9 @@ export default function SchedulePage() {
   const [selectedEventJob, setSelectedEventJob] = useState<Job | null>(null)
   const [selectedEventLead, setSelectedEventLead] = useState<{ id: string; name: string | null; caller_phone: string | null } | null>(null)
   const [toasts, setToasts] = useState<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }[]>([])
-  const [scheduleTab, setScheduleTab] = useState<'agenda' | 'calendar' | 'map' | 'tasks'>(() => {
+  const [scheduleTab, setScheduleTab] = useState<'agenda' | 'calendar' | 'map'>(() => {
     const tabParam = searchParams.get('tab')
-    if (tabParam === 'agenda' || tabParam === 'calendar' || tabParam === 'map' || tabParam === 'tasks') {
+    if (tabParam === 'agenda' || tabParam === 'calendar' || tabParam === 'map') {
       return tabParam
     }
     return 'agenda'
@@ -253,6 +253,7 @@ export default function SchedulePage() {
   const [newlyCreatedLeadId, setNewlyCreatedLeadId] = useState<string | null>(null)
   const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false)
   const [taskRefreshTrigger, setTaskRefreshTrigger] = useState(0)
+  const [showFullTasks, setShowFullTasks] = useState(false)
   const [isNewAppointmentModalOpen, setIsNewAppointmentModalOpen] = useState(false)
   const [newAppointmentContext, setNewAppointmentContext] = useState<'calendar' | 'customer' | 'meetings'>('calendar')
   const [newAppointmentPreselectedLeadId, setNewAppointmentPreselectedLeadId] = useState<string | null>(null)
@@ -1105,24 +1106,13 @@ export default function SchedulePage() {
                         <MapIcon className={`w-4 h-4 ${scheduleTab === 'map' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
                         Map
                       </button>
-                      <button
-                        onClick={() => setScheduleTab('tasks')}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ease-out ${
-                          scheduleTab === 'tasks'
-                            ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50 text-sm'
-                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-sm'
-                        }`}
-                      >
-                        <CheckCircle2 className={`w-4 h-4 ${scheduleTab === 'tasks' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
-                        Tasks
-                      </button>
                     </div>
                   </div>
 
                   {/* Mobile tab toggle (responsive grid, no horizontal scrolling) */}
                   <div className="md:hidden mb-4 mt-2">
                     <div className="bg-slate-900/40 dark:bg-slate-800/60 rounded-xl p-0.5 border border-slate-200/50 dark:border-slate-700/50">
-                      <div className="grid grid-cols-4 gap-0.5">
+                      <div className="grid grid-cols-3 gap-0.5">
                         <button
                           onClick={() => setScheduleTab('agenda')}
                           className={`flex items-center justify-center gap-1 py-2 px-0.5 rounded-lg font-medium transition-all duration-200 ease-out ${
@@ -1156,17 +1146,6 @@ export default function SchedulePage() {
                           <MapIcon className={`w-3 h-3 ${scheduleTab === 'map' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
                           <span>Map</span>
                         </button>
-                        <button
-                          onClick={() => setScheduleTab('tasks')}
-                          className={`flex items-center justify-center gap-1 py-2 px-0.5 rounded-lg font-medium transition-all duration-200 ease-out ${
-                            scheduleTab === 'tasks'
-                              ? 'bg-white dark:bg-slate-700/80 text-slate-900 dark:text-foreground shadow-sm border border-slate-200/50 dark:border-slate-600/50'
-                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/50 dark:hover:bg-slate-700/30 text-xs'
-                          }`}
-                        >
-                          <CheckCircle2 className={`w-3 h-3 ${scheduleTab === 'tasks' ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
-                          <span>Tasks</span>
-                        </button>
                       </div>
                     </div>
                   </div>
@@ -1187,7 +1166,22 @@ export default function SchedulePage() {
                           setIsJobDetailsOpen(true)
                         }}
                         taskRefreshTrigger={taskRefreshTrigger}
+                        onViewAllTasks={() => setShowFullTasks(true)}
                       />
+                      {showFullTasks && (
+                        <div className="mt-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <h2 className="text-base font-semibold text-slate-900 dark:text-foreground">All Tasks</h2>
+                            <button
+                              onClick={() => setShowFullTasks(false)}
+                              className="text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-foreground"
+                            >
+                              Show less
+                            </button>
+                          </div>
+                          <TasksTab onNewJob={openNewJob} />
+                        </div>
+                      )}
                     </>
                   )}
 
@@ -1641,10 +1635,6 @@ export default function SchedulePage() {
                     </div>
                   )}
 
-                  {/* Tasks Tab */}
-                  {scheduleTab === 'tasks' && (
-                    <TasksTab onNewJob={openNewJob} />
-                  )}
 
                   {/* Lead Selection Modal */}
                   <NewJobModal

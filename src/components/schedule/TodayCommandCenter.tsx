@@ -42,6 +42,7 @@ interface TodayCommandCenterProps {
   onAddAppointment?: () => void
   onJobClick?: (job: Job) => void
   taskRefreshTrigger?: number
+  onViewAllTasks?: () => void
 }
 
 export default function TodayCommandCenter({
@@ -52,6 +53,7 @@ export default function TodayCommandCenter({
   onAddAppointment,
   onJobClick,
   taskRefreshTrigger,
+  onViewAllTasks,
 }: TodayCommandCenterProps) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [isLoadingTasks, setIsLoadingTasks] = useState(true)
@@ -455,12 +457,12 @@ export default function TodayCommandCenter({
                   + Task
                 </button>
               )}
-              <Link
-                href="/dashboard/calendar?tab=tasks"
+              <button
+                onClick={onViewAllTasks}
                 className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
               >
                 View all →
-              </Link>
+              </button>
             </div>
           </div>
           {todayTasks.length === 0 ? (
