@@ -2262,14 +2262,14 @@ export default function SettingsContent() {
                 </div>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
-                  {/* Tap to Pay on iPhone */}
+                  {/* Tap to Pay */}
                   <div className="flex flex-col h-full border border-border/30 rounded-lg p-4">
                     <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-start sm:justify-between gap-4 mb-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-1.5">
                           <Smartphone className="h-5 w-auto text-blue-600 dark:text-blue-400 flex-shrink-0" />
                           <span className="text-[10px] px-2 py-0.5 bg-blue-500/10 text-blue-700 dark:text-blue-300 rounded-full font-medium">
-                            iOS Only
+                            Tap to Pay on iPhone
                           </span>
                           {(() => {
                             const status = tapToPayAwareness.state.tapToPaySupportStatus?.status
@@ -2328,7 +2328,7 @@ export default function SettingsContent() {
                           })()}
                         </div>
                         <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                          Accept contactless cards directly on your iPhone.
+                          Accept contactless payments directly on a supported iPhone.
                         </p>
                       </div>
                       {tapToPayAwareness.state.isLoading ? (

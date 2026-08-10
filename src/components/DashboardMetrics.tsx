@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { Business } from '@/lib/types'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useRouter } from 'next/navigation'
-import { Users, MessageSquareReply, CheckSquare, Calendar, DollarSign, CreditCard, Loader2, AlertCircle } from 'lucide-react'
+import { Users, MessageSquareReply, CheckSquare, Calendar, DollarSign, CreditCard, Loader2, AlertCircle, Phone } from 'lucide-react'
 import MetricCard from '@/components/MetricCard'
 
 interface DashboardMetricsProps {
@@ -15,6 +15,7 @@ interface QuickLookMetric {
   id: string
   label: string
   value: number
+  formattedValue?: string
   icon: React.ElementType
   color: string
   bgColor: string
@@ -42,6 +43,8 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
       const todayStartISO = todayStart.toISOString()
       const todayStr = todayStart.toLocaleDateString('en-CA') // YYYY-MM-DD
       const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0).toISOString()
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
       // Fetch all business leads once for use in joins (N+1 prevention)
       const { data: allBusinessLeads, error: leadsError } = await supabase
@@ -181,6 +184,38 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
         (msg) => msg.direction === 'inbound'
       ).length
 
+      // Metric 7: Revenue This Month
+      // Definition: Total revenue from paid payments in current month
+      // Source: payment_requests table
+      // Filter: business_id, status = 'paid', paid_at >= monthStart
+      // Timezone: Client timezone
+      const { data: paymentsThisMonth, error: paymentsMonthError } = await supabase
+        .from('payment_requests')
+        .select('id, status, paid_at, amount_cents')
+        .eq('business_id', business.id)
+        .eq('status', 'paid')
+        .gte('paid_at', monthStart)
+
+      if (paymentsMonthError) {
+        console.error('[DashboardMetrics] Error fetching payments month:', paymentsMonthError)
+        throw new Error('Failed to fetch payments this month')
+      }
+
+      const revenueThisMonthCents = paymentsThisMonth?.reduce((sum: number, p: any) => sum + (p.amount_cents || 0), 0) || 0
+      const revenueThisMonth = revenueThisMonthCents / 100 // Convert to dollars
+
+      // Metric 8: Voice Leads Captured (Last 30 Days)
+      // Definition: Leads created from AI voice intake (missed calls) in last 30 days
+      // Source: leads table
+      // Filter: business_id, created_at >= 30 days ago, raw_metadata.source = 'voice'
+      // Timezone: Client timezone
+      const voiceLeadsCount = allBusinessLeads?.filter((l: any) => {
+        const createdAt = new Date(l.created_at)
+        const isRecent = createdAt >= new Date(thirtyDaysAgo)
+        const isVoiceLead = l.raw_metadata?.source === 'voice'
+        return isRecent && isVoiceLead
+      }).length || 0
+
       const quickLookMetrics: QuickLookMetric[] = [
         {
           id: 'new-inquiries',
@@ -241,6 +276,27 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           bgColor: 'bg-emerald-50 dark:bg-emerald-900/20',
           href: '/dashboard/payments',
           description: 'This week'
+        },
+        {
+          id: 'revenue-month',
+          label: 'Revenue',
+          value: revenueThisMonth,
+          formattedValue: `$${revenueThisMonth.toLocaleString()}`,
+          icon: DollarSign,
+          color: 'text-green-600 dark:text-green-400',
+          bgColor: 'bg-green-50 dark:bg-green-900/20',
+          href: '/dashboard/payments',
+          description: 'This month'
+        },
+        {
+          id: 'voice-leads',
+          label: 'Voice Leads',
+          value: voiceLeadsCount,
+          icon: Phone,
+          color: 'text-indigo-600 dark:text-indigo-400',
+          bgColor: 'bg-indigo-50 dark:bg-indigo-900/20',
+          href: '/dashboard/leads',
+          description: 'Last 30 days'
         }
       ]
 
@@ -265,8 +321,8 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
   if (loading) {
     return (
       <div className="bg-card/50 backdrop-blur-sm border border-border/30 rounded-xl p-4 sm:p-5">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
-          {[...Array(6)].map((_, i) => (
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8 gap-4 sm:gap-6">
+          {[...Array(8)].map((_, i) => (
             <div key={i} className="animate-pulse">
               <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded w-16 mb-2"></div>
               <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-12"></div>
@@ -301,7 +357,7 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
           <p className="text-xs text-slate-500 dark:text-slate-400">No activity data available yet.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8 gap-4 sm:gap-6">
           {metrics.map((metric) => (
             <button
               key={metric.id}
@@ -315,10 +371,10 @@ export default function DashboardMetrics({ business }: DashboardMetricsProps) {
               <div className="flex items-center gap-3">
                 <metric.icon className={`w-5 h-5 ${metric.color} flex-shrink-0 ${metric.value === 0 ? 'opacity-40' : ''}`} />
                 <div className="flex-1 min-w-0">
-                  <div className={`text-3xl sm:text-4xl leading-none tracking-tight ${metric.value === 0 ? 'text-muted-foreground/40 font-medium' : 'text-foreground font-bold'}`}>
-                    {metric.value}
+                  <div className={`text-2xl sm:text-3xl leading-none tracking-tight ${metric.value === 0 ? 'text-muted-foreground/40 font-medium' : 'text-foreground font-bold'}`}>
+                    {metric.formattedValue || metric.value}
                   </div>
-                  <div className={`text-xs mt-1 ${metric.value === 0 ? 'text-muted-foreground/40' : 'text-muted-foreground'}`}>
+                  <div className={`text-[10px] sm:text-xs mt-1 ${metric.value === 0 ? 'text-muted-foreground/40' : 'text-muted-foreground'}`}>
                     {metric.label}
                   </div>
                 </div>
