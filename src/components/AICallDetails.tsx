@@ -355,67 +355,61 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           </div>
         ) : null}
 
-        {/* Timing Section - Grouped */}
-        {(isEditMode || extractedInfo?.desiredCompletionTime || extractedInfo?.preferredCallbackTime) && (
+        {/* Desired Completion */}
+        {isEditMode || extractedInfo?.desiredCompletionTime ? (
           <div className="rounded-lg border border-border/25 bg-background/25 px-4 py-3">
-            <div className="flex items-center gap-2 mb-3">
-              <Clock className="w-4 h-4 text-muted-foreground" />
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Timing</span>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-muted-foreground" />
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Desired Completion</span>
+              </div>
+              {manualFields.has('desiredCompletionTime') && !isEditMode && (
+                <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
+              )}
             </div>
-            
-            <div className="space-y-3">
-              {/* Completion Time */}
-              {isEditMode || extractedInfo?.desiredCompletionTime ? (
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] text-muted-foreground/70">Desired Completion</span>
-                    {manualFields.has('desiredCompletionTime') && !isEditMode && (
-                      <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
-                    )}
-                  </div>
-                  {isEditMode ? (
-                    <textarea
-                      value={editValues.desiredCompletionTime}
-                      onChange={(e) => setEditValues({ ...editValues, desiredCompletionTime: e.target.value })}
-                      className="w-full min-h-[48px] px-3 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
-                      rows={2}
-                      placeholder="Desired completion"
-                    />
-                  ) : (
-                    <p className="text-sm font-medium leading-relaxed text-foreground">
-                      {sentenceCase(extractedInfo.desiredCompletionTime) || <span className="text-muted-foreground italic">Not specified</span>}
-                    </p>
-                  )}
-                </div>
-              ) : null}
-
-              {/* Callback Time */}
-              {isEditMode || extractedInfo?.preferredCallbackTime ? (
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] text-muted-foreground/70">Preferred Callback</span>
-                    {manualFields.has('preferredCallbackTime') && !isEditMode && (
-                      <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
-                    )}
-                  </div>
-                  {isEditMode ? (
-                    <textarea
-                      value={editValues.preferredCallbackTime}
-                      onChange={(e) => setEditValues({ ...editValues, preferredCallbackTime: e.target.value })}
-                      className="w-full min-h-[48px] px-3 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
-                      rows={2}
-                      placeholder="Best time to call"
-                    />
-                  ) : (
-                    <p className="text-sm font-medium leading-relaxed text-foreground">
-                      {sentenceCase(extractedInfo.preferredCallbackTime) || <span className="text-muted-foreground italic">Not specified</span>}
-                    </p>
-                  )}
-                </div>
-              ) : null}
-            </div>
+            {isEditMode ? (
+              <textarea
+                value={editValues.desiredCompletionTime}
+                onChange={(e) => setEditValues({ ...editValues, desiredCompletionTime: e.target.value })}
+                className="w-full min-h-[48px] px-3 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
+                rows={2}
+                placeholder="Desired completion"
+              />
+            ) : (
+              <p className="text-sm font-medium leading-relaxed text-foreground pl-6">
+                {sentenceCase(extractedInfo.desiredCompletionTime) || <span className="text-muted-foreground italic">Not specified</span>}
+              </p>
+            )}
           </div>
-        )}
+        ) : null}
+
+        {/* Preferred Callback */}
+        {isEditMode || extractedInfo?.preferredCallbackTime ? (
+          <div className="rounded-lg border border-border/25 bg-background/25 px-4 py-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-muted-foreground" />
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">Preferred Callback</span>
+              </div>
+              {manualFields.has('preferredCallbackTime') && !isEditMode && (
+                <span className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded font-medium">Manual</span>
+              )}
+            </div>
+            {isEditMode ? (
+              <textarea
+                value={editValues.preferredCallbackTime}
+                onChange={(e) => setEditValues({ ...editValues, preferredCallbackTime: e.target.value })}
+                className="w-full min-h-[48px] px-3 py-2 text-sm text-foreground bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y"
+                rows={2}
+                placeholder="Best time to call"
+              />
+            ) : (
+              <p className="text-sm font-medium leading-relaxed text-foreground pl-6">
+                {sentenceCase(extractedInfo.preferredCallbackTime) || <span className="text-muted-foreground italic">Not specified</span>}
+              </p>
+            )}
+          </div>
+        ) : null}
 
         {/* Metadata - Only in view mode */}
         {!isEditMode && aiCallRecord && (

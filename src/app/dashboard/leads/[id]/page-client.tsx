@@ -3275,12 +3275,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   return (
     <DashboardErrorBoundary>
-      <main className="min-h-screen bg-background flex flex-col overflow-x-hidden">
+      <main className="h-[100dvh] bg-background flex flex-col overflow-x-hidden">
       {/* Standard App Header */}
       <AppHeader />
 
       {/* Customer Identity Header - Distinct from global navigation */}
-      <div className="border-y border-slate-700/35 bg-slate-900/60">
+      <div className="flex-shrink-0 border-y border-slate-700/35 bg-slate-900/60">
         <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-3">
           {/* Mobile Layout: Compact Information Header */}
           <div className="md:hidden">
@@ -3376,7 +3376,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       sideOffset={8}
                       collisionPadding={12}
                       avoidCollisions
-                      className="z-[10000] w-[260px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-lg border border-border/40 bg-popover/95 backdrop-blur-sm shadow-[0_2px_12px_rgb(0,0,0,0.08),0_1px_4px_rgb(0,0,0,0.06)]"
+                      className="z-[10000] w-[260px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-lg border border-border/60 bg-popover ring-1 ring-border/40 shadow-[0_4px_16px_rgb(0,0,0,0.12),0_2px_6px_rgb(0,0,0,0.08)]"
                     >
                       {/* Section Label */}
                       <div className="px-3 py-2">
@@ -3403,40 +3403,25 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         )}
                         <DropdownMenuItem
                           onSelect={() => handleCreateJobClick()}
-                          className="w-full px-1.5 py-1 text-left text-xs font-medium text-foreground hover:bg-accent/40 flex items-center gap-2 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer min-h-[32px] group"
+                          className="w-full px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
                         >
-                          <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded bg-accent/30 group-hover:bg-accent/40 transition-colors">
-                            <ClipboardPlus className="w-3.5 h-3.5 stroke-[2]" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs font-medium">Create Job</div>
-                            <div className="text-[9px] text-muted-foreground/70 font-normal leading-tight">Create a new job for this customer</div>
-                          </div>
+                          <ClipboardPlus className="w-4 h-4" />
+                          <span>Create Job</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onSelect={() => handleAppointmentClick()}
-                          className="w-full px-1.5 py-1 text-left text-xs font-medium text-foreground hover:bg-accent/40 flex items-center gap-2 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer min-h-[32px] group"
+                          className="w-full px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
                         >
-                          <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded bg-accent/30 group-hover:bg-accent/40 transition-colors">
-                            <CalendarDays className="w-3 h-3 stroke-[2]" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs font-medium">Schedule</div>
-                            <div className="text-[9px] text-muted-foreground/70 font-normal leading-tight">Book an appointment</div>
-                          </div>
+                          <CalendarDays className="w-4 h-4" />
+                          <span>Schedule</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onSelect={() => setShowPaymentModal(true)}
                           disabled={!business || getAvailableProviders(business).length === 0}
-                          className="w-full px-1.5 py-1 text-left text-xs font-medium text-foreground hover:bg-accent/40 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer min-h-[32px] group"
+                          className="w-full px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
                         >
-                          <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded bg-accent/30 group-hover:bg-accent/40 transition-colors">
-                            <CreditCard className="w-3 h-3 stroke-[2]" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs font-medium">Request Payment</div>
-                            <div className="text-[9px] text-muted-foreground/70 font-normal leading-tight">Send a payment request</div>
-                          </div>
+                          <CreditCard className="w-4 h-4" />
+                          <span>Request Payment</span>
                         </DropdownMenuItem>
                       </div>
 
@@ -3452,37 +3437,27 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             setMobileInternalNotesExpanded(true)
                             setShowLeadInfo(true)
                           }}
-                          className="w-full px-2 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer min-h-[44px] group"
+                          className="w-full px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
                         >
-                          <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded bg-accent/30 group-hover:bg-accent/40 transition-colors">
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium">Internal Notes</div>
-                            <div className="text-[10px] text-muted-foreground/70 font-normal leading-tight">View or edit notes</div>
-                          </div>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          <span>Internal Notes</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onSelect={() => handleRefresh()}
                           disabled={refreshing}
-                          className="w-full px-2 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer min-h-[36px] group"
+                          className="w-full px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
                         >
-                          <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded bg-accent/30 group-hover:bg-accent/40 transition-colors">
-                            <svg
-                              className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`}
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium">Refresh</div>
-                            <div className="text-[10px] text-muted-foreground/70 font-normal leading-tight">Reload conversation data</div>
-                          </div>
+                          <svg
+                            className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          <span>Refresh</span>
                         </DropdownMenuItem>
                       </div>
 
@@ -3534,7 +3509,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Desktop Layout: Premium Profile Header */}
-          <div className="hidden md:block">
+          <div className="hidden md:block flex-shrink-0">
             {/* Workspace Header Surface */}
             <div className="border-y border-slate-800/20 bg-slate-900/20">
               <div className="max-w-7xl mx-auto px-6 lg:px-8 py-3">
@@ -3631,7 +3606,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         sideOffset={8}
                         collisionPadding={12}
                         avoidCollisions
-                        className="z-[10000] w-[240px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-lg border border-border/40 bg-popover/95 backdrop-blur-sm shadow-[0_2px_12px_rgb(0,0,0,0.08),0_1px_4px_rgb(0,0,0,0.06)]"
+                        className="z-[10000] w-[240px] max-w-[calc(100vw-24px)] max-h-[calc(100dvh-96px)] overflow-y-auto overscroll-contain rounded-lg border border-border/60 bg-popover ring-1 ring-border/40 shadow-[0_4px_16px_rgb(0,0,0,0.12),0_2px_6px_rgb(0,0,0,0.08)]"
                       >
                         {/* CREATE Section */}
                         <div className="px-2.5 py-1.5">
@@ -3733,10 +3708,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                             onSelect={() => {
                               window.location.href = '/dashboard/settings#automation'
                             }}
-                            className="w-full px-2 py-1.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
+                            className="w-full px-1.5 py-1 text-left text-xs font-medium text-foreground hover:bg-accent/40 flex items-center gap-2 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer min-h-[32px] group"
                           >
-                            <MessageSquare className="w-3.5 h-3.5" />
-                            <span>Messaging & Availability</span>
+                            <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded bg-accent/30 group-hover:bg-accent/40 transition-colors">
+                              <MessageSquare className="w-3 h-3 stroke-[2]" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-medium">Messaging & Availability</div>
+                              <div className="text-[9px] text-muted-foreground/70 font-normal leading-tight">Configure auto-replies</div>
+                            </div>
                           </DropdownMenuItem>
                         </div>
 
@@ -3783,12 +3763,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                           <div className="px-1 py-0.5">
                             <DropdownMenuItem
                               onSelect={() => handleStatusUpdate('ignored')}
-                              className="w-full px-2 py-1.5 text-left text-sm font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-950/10 dark:hover:bg-amber-950/15 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-amber-950/10 dark:focus:bg-amber-950/15 cursor-pointer"
+                              className="w-full px-1.5 py-1 text-left text-xs font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-950/10 dark:hover:bg-amber-950/15 flex items-center gap-2 transition-colors rounded-md outline-none focus:bg-amber-950/10 dark:focus:bg-amber-950/15 cursor-pointer min-h-[32px] group"
                             >
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                              </svg>
-                              <span>Ignore Customer</span>
+                              <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded bg-amber-950/10 group-hover:bg-amber-950/15 transition-colors">
+                                <svg className="w-3 h-3 stroke-[2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs font-medium">Ignore Customer</div>
+                                <div className="text-[9px] text-muted-foreground/70 font-normal leading-tight">Hide from active list</div>
+                              </div>
                             </DropdownMenuItem>
                           </div>
                         )}
@@ -3811,12 +3796,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         <div className="px-1 py-0.5">
                           <DropdownMenuItem
                             onSelect={() => setShowRemoveModal(true)}
-                            className="w-full px-2 py-1.5 text-left text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-950/10 dark:hover:bg-red-950/15 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-red-950/10 dark:focus:bg-red-950/15 cursor-pointer"
+                            className="w-full px-1.5 py-1 text-left text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-950/10 dark:hover:bg-red-950/15 flex items-center gap-2 transition-colors rounded-md outline-none focus:bg-red-950/10 dark:focus:bg-red-950/15 cursor-pointer min-h-[32px] group"
                           >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                            <span>Delete Customer</span>
+                            <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded bg-red-950/10 group-hover:bg-red-950/15 transition-colors">
+                              <svg className="w-3 h-3 stroke-[2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-medium">Delete Customer</div>
+                              <div className="text-[9px] text-muted-foreground/70 font-normal leading-tight">Permanently remove</div>
+                            </div>
                           </DropdownMenuItem>
                         </div>
                       </DropdownMenuContent>
@@ -3846,15 +3836,15 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Conversation Thread - Conditional Rendering to Prevent Duplicate Audio Elements */}
-      <div className="flex-1 max-w-7xl mx-auto w-full px-6 lg:px-8 pt-8 pb-4">
+      <div className="flex-1 min-h-0 max-w-7xl mx-auto w-full px-6 lg:px-8 py-4">
 
         {/* Desktop Layout - Only render when not mobile view */}
         {!isMobileView && (
-          <div className="grid grid-cols-[minmax(0,3fr)_minmax(320px,380px)] gap-8 items-start">
+          <div className="grid grid-cols-[minmax(0,3fr)_minmax(320px,380px)] gap-8 h-full min-h-0">
             {/* Desktop Conversation Section - Primary workspace */}
-            <section className="flex flex-col min-h-0 h-[calc(100vh-280px)] bg-background rounded-xl border border-border/50 shadow-sm overflow-hidden">
+            <section className="flex flex-col h-full min-h-0 bg-background rounded-xl border border-border/50 shadow-sm overflow-hidden">
               {/* Desktop Conversation Header */}
-              <div className="flex items-center justify-between px-5 py-3 border-b border-border/30 bg-muted/40">
+              <div className="flex-shrink-0 flex items-center justify-between px-5 py-3 border-b border-border/30 bg-muted/40">
                 <div className="flex items-center gap-2">
                   <h2 className="text-sm font-semibold text-foreground/90">Conversation</h2>
                 </div>
@@ -3871,7 +3861,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
               
               {/* Desktop Message Thread - Scrollable */}
               {!isFullScreen && (
-              <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-5 py-4 min-h-0" style={{ minHeight: '200px' }}>
+              <div ref={conversationContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-5 py-4 min-h-0">
                 {loading ? (
                   <div className="flex items-center justify-center py-12">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
@@ -3906,7 +3896,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
               {/* Desktop Message Composer - Fixed to Bottom */}
               {!isFullScreen && (
-              <div className="shrink-0 border-t border-border/20 bg-muted/30 px-6 py-4 rounded-b-2xl">
+              <div className="flex-shrink-0 border-t border-border/20 bg-muted/30 px-6 py-4 rounded-b-2xl">
                 {(() => {
                   const effectiveSource = (sendingSource === 'business' && supportsBusiness) ? 'business' : 'replyflow'
 
@@ -3952,8 +3942,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             </section>
 
             {/* Desktop Sidebar - Premium Card */}
-            <aside className="sticky top-4 h-[calc(100vh-240px)]" data-sidebar>
-              <div className="h-full bg-background rounded-2xl border border-border/40 shadow-sm p-5 overflow-y-auto custom-scrollbar">
+            <aside className="h-full min-h-0" data-sidebar>
+              <div className="h-full min-h-0 bg-background rounded-2xl border border-border/40 shadow-sm p-5 overflow-y-auto custom-scrollbar">
                 {(() => {
                   const paymentRequests = leadData?.paymentRequests || []
                   return (
@@ -4147,8 +4137,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       {/* Mobile Layout - Only render when mobile view */}
         {isMobileView && (
           <div className="space-y-4 pb-[calc(6rem+env(safe-area-inset-bottom))]">
-          {/* Conversation Workspace Card - Dedicated workspace with fixed height */}
-          <div className="bg-background rounded-2xl border border-border/40 shadow-sm overflow-hidden flex flex-col h-[calc(100vh-280px)]">
+          {/* Conversation Workspace Card - Natural scrolling for mobile */}
+          <div className="bg-background rounded-2xl border border-border/40 shadow-sm overflow-hidden flex flex-col">
             {/* Conversation Header - Distinct header */}
             <div className="px-4 py-3 border-b border-border/30 bg-muted/50 flex-shrink-0">
               <div className="flex items-center justify-between">
