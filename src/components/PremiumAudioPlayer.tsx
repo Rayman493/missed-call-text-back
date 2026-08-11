@@ -289,7 +289,7 @@ export default function PremiumAudioPlayer({
             {/* Desktop: Horizontal Volume Popover */}
             <div className="hidden md:block">
               {isDesktopVolumeOpen && (
-                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 w-44 h-9 bg-muted/40 border border-border/40 rounded-md shadow-none pl-2 pr-3 z-50 flex items-center gap-2">
+                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 w-44 h-9 bg-muted/40 border border-border/40 rounded-md shadow-none px-3 z-50 flex items-center gap-3">
                   <input
                     type="range"
                     min="0"
@@ -303,7 +303,7 @@ export default function PremiumAudioPlayer({
                     aria-valuemax={100}
                     aria-valuenow={Math.round((isMuted ? 0 : volume) * 100)}
                   />
-                  <span className="text-xs text-muted-foreground font-mono tabular-nums w-8 text-right flex-shrink-0 mr-3">
+                  <span className="text-xs text-muted-foreground font-mono tabular-nums min-w-[2.5rem] text-right flex-shrink-0">
                     {Math.round((isMuted ? 0 : volume) * 100)}%
                   </span>
                 </div>
@@ -313,7 +313,7 @@ export default function PremiumAudioPlayer({
             {/* Mobile: Horizontal Volume Popover */}
             <div className="md:hidden">
               {isMobileVolumeOpen && (
-                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 w-44 h-9 bg-muted/40 border border-border/40 rounded-md shadow-none pl-2 pr-3 z-50 flex items-center gap-2">
+                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 w-44 h-9 bg-muted/40 border border-border/40 rounded-md shadow-none px-3 z-50 flex items-center gap-3">
                   <input
                     type="range"
                     min="0"
@@ -327,7 +327,7 @@ export default function PremiumAudioPlayer({
                     aria-valuemax={100}
                     aria-valuenow={Math.round((isMuted ? 0 : volume) * 100)}
                   />
-                  <span className="text-xs text-muted-foreground font-mono tabular-nums w-8 text-right flex-shrink-0 mr-3">
+                  <span className="text-xs text-muted-foreground font-mono tabular-nums min-w-[2.5rem] text-right flex-shrink-0">
                     {Math.round((isMuted ? 0 : volume) * 100)}%
                   </span>
                 </div>
