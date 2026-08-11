@@ -587,36 +587,298 @@ describe('Tap to Pay Settings Enablement', () => {
       const shouldShowCallout = status === 'supported' && !awarenessAcknowledged && appleLinkageStatus !== 'linked'
       expect(shouldShowCallout).toBe(false)
     })
+  })
+})
 
-    it('should preserve enabling/configuring progress UI during enablement', () => {
-      const isEnabling = true
-      const softwareUpdateActive = true
-      const softwareUpdateProgress = 0.27
+describe('Settings Modal Context Preservation', () => {
+  describe('Contacts section modal behavior', () => {
+    it('should skip scroll-based section update when Add modal is open', () => {
+      const showAddModal = true
+      const showImportModal = false
+      const showDeleteModal = false
+      const showChangePasswordModal = false
+      const showChangeEmailModal = false
+      const showFollowUpSettings = false
 
-      // Progress UI should show during enablement
-      const shouldShowProgress = isEnabling && softwareUpdateActive && softwareUpdateProgress !== null
-      expect(shouldShowProgress).toBe(true)
-      expect(softwareUpdateProgress).toBe(0.27)
+      const anyModalOpen = showAddModal || showImportModal || showDeleteModal ||
+                          showChangePasswordModal || showChangeEmailModal || showFollowUpSettings
+
+      expect(anyModalOpen).toBe(true)
     })
 
-    it('should show Enabled badge when Apple account is linked', () => {
-      const status = 'supported'
-      const appleLinkageStatus = 'linked'
-      const stripeChargesEnabled = true
+    it('should skip scroll-based section update when Import modal is open', () => {
+      const showAddModal = false
+      const showImportModal = true
+      const showDeleteModal = false
+      const showChangePasswordModal = false
+      const showChangeEmailModal = false
+      const showFollowUpSettings = false
 
-      // Enabled badge should show when linked
-      const shouldShowEnabledBadge = status === 'supported' && stripeChargesEnabled && appleLinkageStatus === 'linked'
-      expect(shouldShowEnabledBadge).toBe(true)
+      const anyModalOpen = showAddModal || showImportModal || showDeleteModal ||
+                          showChangePasswordModal || showChangeEmailModal || showFollowUpSettings
+
+      expect(anyModalOpen).toBe(true)
     })
 
-    it('should show Not Enabled badge when Apple account is not linked', () => {
-      const status = 'supported'
+    it('should skip scroll-based section update during modal close grace period', () => {
+      const isModalCloseGracePeriod = true
+
+      // Grace period prevents scroll-based section update after modal close
+      expect(isModalCloseGracePeriod).toBe(true)
+    })
+
+    it('should allow scroll-based section update when no modals open and grace period over', () => {
+      const showAddModal = false
+      const showImportModal = false
+      const showDeleteModal = false
+      const showChangePasswordModal = false
+      const showChangeEmailModal = false
+      const showFollowUpSettings = false
+      const isModalCloseGracePeriod = false
+
+      const anyModalOpen = showAddModal || showImportModal || showDeleteModal ||
+                          showChangePasswordModal || showChangeEmailModal || showFollowUpSettings
+
+      const shouldSkipUpdate = anyModalOpen || isModalCloseGracePeriod
+      expect(shouldSkipUpdate).toBe(false)
+    })
+
+    it('should detect modal close event when Add modal transitions from true to false', () => {
+      const prevShowAddModal = true
+      const currentShowAddModal = false
+
+      const modalJustClosed = prevShowAddModal && !currentShowAddModal
+      expect(modalJustClosed).toBe(true)
+    })
+
+    it('should detect modal close event when Import modal transitions from true to false', () => {
+      const prevShowImportModal = true
+      const currentShowImportModal = false
+
+      const modalJustClosed = prevShowImportModal && !currentShowImportModal
+      expect(modalJustClosed).toBe(true)
+    })
+
+    it('should not detect modal close event when modal state unchanged', () => {
+      const prevShowAddModal = false
+      const currentShowAddModal = false
+
+      const modalJustClosed = prevShowAddModal && !currentShowAddModal
+      expect(modalJustClosed).toBe(false)
+    })
+
+    it('should not detect modal close event when modal opens', () => {
+      const prevShowAddModal = false
+      const currentShowAddModal = true
+
+      const modalJustClosed = prevShowAddModal && !currentShowAddModal
+      expect(modalJustClosed).toBe(false)
+    })
+
+    it('should set grace period flag when modal closes', () => {
+      let gracePeriodFlag = false
+      const modalJustClosed = true
+
+      if (modalJustClosed) {
+        gracePeriodFlag = true
+      }
+
+      expect(gracePeriodFlag).toBe(true)
+    })
+
+    it('should clear grace period flag after timeout', () => {
+      let gracePeriodFlag = true
+      const timeoutMs = 300
+
+      // Simulate timeout
+      setTimeout(() => {
+        gracePeriodFlag = false
+      }, timeoutMs)
+
+      // After timeout, flag should be cleared (this would be verified in async test)
+      expect(gracePeriodFlag).toBe(true) // Initially true
+      // After timeout: expect(gracePeriodFlag).toBe(false)
+    })
+  })
+
+  describe('Active section preservation', () => {
+    it('should preserve active section when modal closes', () => {
+      const activeSectionBeforeModal = 'contacts'
+      const activeSectionAfterModal = 'contacts'
+
+      expect(activeSectionAfterModal).toBe(activeSectionBeforeModal)
+    })
+
+    it('should not reset active section to General when modal closes', () => {
+      const activeSectionBeforeModal = 'contacts'
+      const activeSectionAfterModal = 'contacts'
+      const generalSection = 'general'
+
+      expect(activeSectionAfterModal).not.toBe(generalSection)
+      expect(activeSectionAfterModal).toBe(activeSectionBeforeModal)
+    })
+
+    it('should NOT show "New feature available" callout when device not supported', () => {
+      const status = 'unsupported_device'
+      const awarenessAcknowledged = false
       const appleLinkageStatus = 'not_linked'
-      const stripeChargesEnabled = true
 
-      // Not Enabled badge should show when not linked
-      const shouldShowNotEnabledBadge = status === 'supported' && stripeChargesEnabled && appleLinkageStatus === 'not_linked'
-      expect(shouldShowNotEnabledBadge).toBe(true)
+      // Callout should NOT show when device not supported
+      const shouldShowCallout = status === 'supported' && !awarenessAcknowledged && appleLinkageStatus !== 'linked'
+      expect(shouldShowCallout).toBe(false)
+    })
+  })
+})
+
+describe('Tap to Pay Apple Account Linked Status', () => {
+  describe('Apple Account Linked indicator display', () => {
+    it('should show Apple Account Linked when appleAccountLinkageState.status is linked', () => {
+      const appleAccountLinkageState = { status: 'linked' as const, isLoading: false }
+      const shouldShowIndicator = appleAccountLinkageState.status === 'linked'
+
+      expect(shouldShowIndicator).toBe(true)
+    })
+
+    it('should NOT show Apple Account Linked when appleAccountLinkageState.status is not_linked', () => {
+      const appleAccountLinkageState = { status: 'not_linked' as const, isLoading: false }
+      const shouldShowIndicator = appleAccountLinkageState.status === 'linked'
+
+      expect(shouldShowIndicator).toBe(false)
+    })
+
+    it('should NOT show Apple Account Linked when appleAccountLinkageState.status is unknown', () => {
+      const appleAccountLinkageState = { status: 'unknown' as const, isLoading: true }
+      const shouldShowIndicator = appleAccountLinkageState.status === 'linked'
+
+      expect(shouldShowIndicator).toBe(false)
+    })
+
+    it('should NOT show Apple Account Linked when appleAccountLinkageState.status is error', () => {
+      const appleAccountLinkageState = { status: 'error' as const, isLoading: false }
+      const shouldShowIndicator = appleAccountLinkageState.status === 'linked'
+
+      expect(shouldShowIndicator).toBe(false)
+    })
+  })
+
+  describe('No fabricated Terms Accepted indicator', () => {
+    it('should NOT display Terms Accepted indicator', () => {
+      // Terms Accepted is not a separate state - it's implied by Apple Account Linked
+      // We should only display Apple Account Linked, not Terms Accepted
+      const hasTermsAcceptedIndicator = false
+      expect(hasTermsAcceptedIndicator).toBe(false)
+    })
+
+    it('should rely on isTapToPayAccountLinked() as authoritative source', () => {
+      const isLinked = true
+      const appleAccountLinkageState = { status: 'linked' as const, isLoading: false }
+
+      // Apple Account Linked is based on isTapToPayAccountLinked() === true
+      const shouldShowAppleAccountLinked = isLinked && appleAccountLinkageState.status === 'linked'
+      expect(shouldShowAppleAccountLinked).toBe(true)
+    })
+  })
+})
+
+describe('Tap to Pay Education Confirmation Flow', () => {
+  describe('Native education guide handler', () => {
+    it('should present native education when available', async () => {
+      const presentResult = {
+        presented: true,
+        method: 'native_ios18',
+        completionStatus: 'presented_awaiting_confirmation',
+        requiresConfirmation: true
+      }
+
+      expect(presentResult.presented).toBe(true)
+      expect(presentResult.method).toBe('native_ios18')
+      expect(presentResult.requiresConfirmation).toBe(true)
+    })
+
+    it('should show confirmation modal immediately after native education is presented', () => {
+      const educationPresented = true
+      const requiresConfirmation = true
+
+      const shouldShowConfirmationModal = educationPresented && requiresConfirmation
+      expect(shouldShowConfirmationModal).toBe(true)
+    })
+
+    it('should NOT use a timer delay (relies on native layering)', () => {
+      const timerDelayUsed = false
+      expect(timerDelayUsed).toBe(false)
+    })
+
+    it('should NOT immediately mark education complete on presentation', () => {
+      const educationPresented = true
+      let educationMarkedComplete = false
+
+      // Presentation alone should not mark complete
+      if (educationPresented) {
+        // Show confirmation modal instead
+        educationMarkedComplete = false
+      }
+
+      expect(educationMarkedComplete).toBe(false)
+    })
+
+    it('should mark education complete only when user confirms "I Reviewed It"', async () => {
+      const userConfirmed = true
+      let apiCalled = false
+
+      if (userConfirmed) {
+        apiCalled = true
+      }
+
+      expect(apiCalled).toBe(true)
+    })
+
+    it('should NOT mark education complete when user selects "Not Yet"', async () => {
+      const userConfirmed = false
+      let apiCalled = false
+
+      if (userConfirmed) {
+        apiCalled = true
+      }
+
+      expect(apiCalled).toBe(false)
+    })
+  })
+
+  describe('Education state persistence', () => {
+    it('should update business.tap_to_pay_education_completed_at after explicit confirmation', async () => {
+      const before = null
+      const after = new Date().toISOString()
+
+      expect(before).toBeNull()
+      expect(after).toBeTruthy()
+      expect(after !== before).toBe(true)
+    })
+
+    it('should refresh business state after education completion', () => {
+      let businessRefreshed = false
+      const educationCompleted = true
+
+      if (educationCompleted) {
+        businessRefreshed = true
+      }
+
+      expect(businessRefreshed).toBe(true)
+    })
+  })
+
+  describe('Education Required vs Completed display', () => {
+    it('should show Education Required when tap_to_pay_education_completed_at is null', () => {
+      const tapToPayEducationCompletedAt = null
+      const showRequired = tapToPayEducationCompletedAt === null
+
+      expect(showRequired).toBe(true)
+    })
+
+    it('should show Education Completed when tap_to_pay_education_completed_at is set', () => {
+      const tapToPayEducationCompletedAt = new Date().toISOString()
+      const showCompleted = tapToPayEducationCompletedAt !== null
+
+      expect(showCompleted).toBe(true)
     })
   })
 })

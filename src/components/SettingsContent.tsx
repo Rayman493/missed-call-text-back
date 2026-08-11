@@ -117,6 +117,9 @@ export default function SettingsContent() {
   const [showEducationModal, setShowEducationModal] = useState(false)
   const [educationOfferedThisSession, setEducationOfferedThisSession] = useState(false)
 
+  // Education confirmation modal state
+  const [showEducationConfirmationModal, setShowEducationConfirmationModal] = useState(false)
+
   // Apple Tap to Pay account linkage state (authoritative Apple/Stripe status)
   const [appleAccountLinkageState, setAppleAccountLinkageState] = useState<{
     status: 'unknown' | 'linked' | 'not_linked' | 'error' | 'unavailable'
@@ -177,10 +180,11 @@ export default function SettingsContent() {
       const result = await ReplyflowStripeTerminal.presentMerchantEducation()
 
       if (result.presented && result.method === 'native_ios18') {
-        // Native education presented - it's fire-and-forget
-        // User will need to confirm they reviewed it
+        // Native education presented - show confirmation modal immediately
+        // Apple's native UI overlays the WebView, so the confirmation modal
+        // will be hidden underneath until the user dismisses Apple's native content
         console.log('[SettingsContent] Native education presented via ProximityReaderDiscovery')
-        // Note: We do NOT mark Apple account linkage as true - education != Terms acceptance
+        setShowEducationConfirmationModal(true)
       } else {
         // Fallback to React modal if native not available
         console.log('[SettingsContent] Native education not available, using fallback:', result.reason)
@@ -1456,13 +1460,13 @@ export default function SettingsContent() {
   // Scroll-aware active section detection using canonical sections
   useEffect(() => {
     let timeoutId: NodeJS.Timeout | null = null
-    
+
     const updateActiveSection = () => {
       // Get section offsets from canonical sections only
       // This ensures web and native both work correctly
       const sectionOffsets: { [key: string]: number | null } = {}
       let hasAnySection = false
-      
+
       for (const section of settingsSections) {
         const divider = document.getElementById(`${section.id}-divider`)
         if (divider) {
@@ -1472,7 +1476,7 @@ export default function SettingsContent() {
           sectionOffsets[section.id] = null
         }
       }
-      
+
       // If no sections are available, skip update (may be loading)
       if (!hasAnySection) return
       
@@ -2879,6 +2883,12 @@ export default function SettingsContent() {
                                   <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
                                   Device Supported
                                 </div>
+                                {appleAccountLinkageState.status === 'linked' && (
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                                    Apple Account Linked
+                                  </div>
+                                )}
                                 {business?.tap_to_pay_education_completed_at ? (
                                   <div className="flex items-center gap-1.5">
                                     <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
@@ -4112,6 +4122,37 @@ export default function SettingsContent() {
             onDismiss={() => setShowEducationModal(false)}
             showTryButton={false}
           />
+
+          {/* Tap to Pay Education Confirmation Modal */}
+          {showEducationConfirmationModal && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+              <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl max-w-md w-full p-6">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-foreground mb-2">
+                  Finished reviewing Tap to Pay?
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+                  Confirm that you reviewed Apple's Tap to Pay on iPhone guide.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowEducationConfirmationModal(false)}
+                    className="flex-1 h-11 px-4 text-sm font-medium rounded-lg transition-colors duration-200 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
+                  >
+                    Not Yet
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setShowEducationConfirmationModal(false)
+                      await handleEducationComplete()
+                    }}
+                    className="flex-1 h-11 px-4 text-sm font-medium rounded-lg transition-all duration-200 bg-blue-600 hover:bg-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 active:scale-[0.98]"
+                  >
+                    I Reviewed It
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Business Number Confirmation Modal */}
           {showBusinessNumberWarning && (
