@@ -400,7 +400,7 @@ export default function TodayCommandCenter({
               {onAddTask && (
                 <button
                   onClick={onAddTask}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors active:scale-[0.98]"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-lg transition-colors active:scale-[0.98]"
                 >
                   Create Task
                 </button>
@@ -776,7 +776,7 @@ export default function TodayCommandCenter({
                 href="/dashboard/calendar"
                 className="text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
               >
-                Calendar →
+                View all →
               </Link>
             </div>
           </div>
