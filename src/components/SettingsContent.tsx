@@ -1904,7 +1904,26 @@ export default function SettingsContent() {
                             </p>
                           </div>
                           <button
-                            onClick={() => setBusinessHoursExpanded(false)}
+                            onClick={async () => {
+                              // Auto-enable/disable business hours based on configuration
+                              const hasValidConfig =
+                                formBusiness.business_hours_timezone &&
+                                formBusiness.business_hours_start &&
+                                formBusiness.business_hours_end &&
+                                formBusiness.after_hours_message
+
+                              if (hasValidConfig && !formBusiness.business_hours_enabled) {
+                                // Enable if valid config exists
+                                updateBusiness({ business_hours_enabled: true })
+                                await saveChanges()
+                              } else if (!hasValidConfig && formBusiness.business_hours_enabled) {
+                                // Disable if config is cleared
+                                updateBusiness({ business_hours_enabled: false })
+                                await saveChanges()
+                              }
+
+                              setBusinessHoursExpanded(false)
+                            }}
                             className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
                           >
                             Done
@@ -2017,21 +2036,61 @@ export default function SettingsContent() {
                         <div className="flex-1 pr-4">
                           <div className="flex items-center gap-2 mb-1">
                             <h3 className="text-sm font-medium text-slate-900 dark:text-foreground">Out of Office</h3>
-                            {formBusiness.out_of_office_enabled ? (
-                              <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-2">
-                                <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
-                                Active
-                              </span>
-                            ) : (
-                              <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded-full font-medium">
-                                Inactive
-                              </span>
-                            )}
+                            {(() => {
+                              if (!formBusiness.out_of_office_enabled || !formBusiness.out_of_office_start || !formBusiness.out_of_office_end) {
+                                return (
+                                  <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded-full font-medium">
+                                    Inactive
+                                  </span>
+                                )
+                              }
+
+                              const now = new Date()
+                              const start = new Date(formBusiness.out_of_office_start)
+                              const end = new Date(formBusiness.out_of_office_end)
+
+                              if (now >= start && now <= end) {
+                                return (
+                                  <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-2">
+                                    <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
+                                    Active
+                                  </span>
+                                )
+                              } else if (now < start) {
+                                return (
+                                  <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full font-medium">
+                                    Scheduled
+                                  </span>
+                                )
+                              } else {
+                                return (
+                                  <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded-full font-medium">
+                                    Ended
+                                  </span>
+                                )
+                              }
+                            })()}
                           </div>
                           {formBusiness.out_of_office_enabled && formBusiness.out_of_office_start && formBusiness.out_of_office_end ? (
-                            <p className="text-xs text-slate-600 dark:text-slate-400">
-                              {new Date(formBusiness.out_of_office_start).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} – {new Date(formBusiness.out_of_office_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-                            </p>
+                            (() => {
+                              const now = new Date()
+                              const start = new Date(formBusiness.out_of_office_start)
+                              const end = new Date(formBusiness.out_of_office_end)
+
+                              if (now >= start && now <= end) {
+                                return (
+                                  <p className="text-xs text-slate-600 dark:text-slate-400">
+                                    Back {end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                  </p>
+                                )
+                              } else {
+                                return (
+                                  <p className="text-xs text-slate-600 dark:text-slate-400">
+                                    {start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – {end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                  </p>
+                                )
+                              }
+                            })()
                           ) : (
                             <p className="text-xs text-slate-600 dark:text-slate-400">
                               No automatic away message scheduled.
@@ -2065,7 +2124,24 @@ export default function SettingsContent() {
                             </p>
                           </div>
                           <button
-                            onClick={() => setOutOfOfficeExpanded(false)}
+                            onClick={async () => {
+                              // Auto-enable/disable Out of Office based on configuration
+                              const hasValidConfig =
+                                formBusiness.out_of_office_start &&
+                                formBusiness.out_of_office_end
+
+                              if (hasValidConfig && !formBusiness.out_of_office_enabled) {
+                                // Enable if valid config exists
+                                updateBusiness({ out_of_office_enabled: true })
+                                await saveChanges()
+                              } else if (!hasValidConfig && formBusiness.out_of_office_enabled) {
+                                // Disable if config is cleared
+                                updateBusiness({ out_of_office_enabled: false })
+                                await saveChanges()
+                              }
+
+                              setOutOfOfficeExpanded(false)
+                            }}
                             className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
                           >
                             Done
