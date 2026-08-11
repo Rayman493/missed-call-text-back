@@ -172,6 +172,20 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
 
       const businessData = data as Business | null
 
+      // TEMPORARY DIAGNOSTIC: Business Hours load trace
+      if (businessData) {
+        console.log('[BUSINESS HOURS LOAD TRACE] =========================================');
+        console.log('[BUSINESS HOURS LOAD TRACE] businessData.id:', businessData.id);
+        console.log('[BUSINESS HOURS LOAD TRACE] businessData.business_hours_enabled:', businessData.business_hours_enabled);
+        console.log('[BUSINESS HOURS LOAD TRACE] businessData.business_hours_timezone:', businessData.business_hours_timezone);
+        console.log('[BUSINESS HOURS LOAD TRACE] businessData.business_hours_start:', businessData.business_hours_start);
+        console.log('[BUSINESS HOURS LOAD TRACE] businessData.business_hours_end:', businessData.business_hours_end);
+        console.log('[BUSINESS HOURS LOAD TRACE] businessData.after_hours_message present:', !!businessData.after_hours_message);
+        console.log('[BUSINESS HOURS LOAD TRACE] businessData.after_hours_message length:', businessData.after_hours_message?.length);
+        console.log('[BUSINESS HOURS LOAD TRACE] allKeys:', Object.keys(businessData));
+        console.log('[BUSINESS HOURS LOAD TRACE] =========================================');
+      }
+
       if (fetchError) {
         if (fetchError.code === 'PGRST116') {
           // No business found - do NOT auto-create, just set business to null

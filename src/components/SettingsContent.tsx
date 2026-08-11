@@ -339,6 +339,17 @@ export default function SettingsContent() {
         paypal_payment_link: businessData.paypal_payment_link
       }
 
+      // TEMPORARY DIAGNOSTIC: Business Hours save trace
+      console.log('[BUSINESS HOURS SAVE TRACE] =========================================');
+      console.log('[BUSINESS HOURS SAVE TRACE] businessData.id:', businessData.id);
+      console.log('[BUSINESS HOURS SAVE TRACE] updatePayload.business_hours_enabled:', updatePayload.business_hours_enabled);
+      console.log('[BUSINESS HOURS SAVE TRACE] updatePayload.business_hours_timezone:', updatePayload.business_hours_timezone);
+      console.log('[BUSINESS HOURS SAVE TRACE] updatePayload.business_hours_start:', updatePayload.business_hours_start);
+      console.log('[BUSINESS HOURS SAVE TRACE] updatePayload.business_hours_end:', updatePayload.business_hours_end);
+      console.log('[BUSINESS HOURS SAVE TRACE] updatePayload.after_hours_message present:', !!updatePayload.after_hours_message);
+      console.log('[BUSINESS HOURS SAVE TRACE] updatePayload.after_hours_message length:', updatePayload.after_hours_message?.length);
+      console.log('[BUSINESS HOURS SAVE TRACE] =========================================');
+
       // Log Out of Office save attempt
       const hasOutOfOfficeFields = (
         'out_of_office_enabled' in updatePayload ||
@@ -362,6 +373,19 @@ export default function SettingsContent() {
         })
         throw new Error(`Failed to save settings: ${error.message} (code: ${error.code})`)
       }
+
+      // TEMPORARY DIAGNOSTIC: Business Hours save result
+      console.log('[BUSINESS HOURS SAVE TRACE] Supabase returned data:', {
+        businessId: businessData.id,
+        business_hours_enabled: data.business_hours_enabled,
+        business_hours_timezone: data.business_hours_timezone,
+        business_hours_start: data.business_hours_start,
+        business_hours_end: data.business_hours_end,
+        after_hours_message_present: !!data.after_hours_message,
+        after_hours_message_length: data.after_hours_message?.length,
+        allKeys: Object.keys(data)
+      });
+      console.log('[BUSINESS HOURS SAVE TRACE] =========================================');
 
       // Return the confirmed database record
       return data
@@ -1854,17 +1878,28 @@ export default function SettingsContent() {
                         <div className="flex-1 pr-4">
                           <div className="flex items-center gap-2 mb-1">
                             <h3 className="text-sm font-medium text-foreground">Business Hours</h3>
-                            {formBusiness.business_hours_enabled && (
-                              <span className="text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-2">
-                                <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
-                                Active
-                              </span>
-                            )}
-                            {!formBusiness.business_hours_enabled && (
-                              <span className="text-xs px-2 py-0.5 bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded-full font-medium">
-                                Inactive
-                              </span>
-                            )}
+                            {(() => {
+                              // TEMPORARY DIAGNOSTIC: Collapsed UI values
+                              console.log('[BUSINESS HOURS UI TRACE] =========================================');
+                              console.log('[BUSINESS HOURS UI TRACE] formBusiness.business_hours_enabled:', formBusiness.business_hours_enabled);
+                              console.log('[BUSINESS HOURS UI TRACE] formBusiness.business_hours_timezone:', formBusiness.business_hours_timezone);
+                              console.log('[BUSINESS HOURS UI TRACE] formBusiness.business_hours_start:', formBusiness.business_hours_start);
+                              console.log('[BUSINESS HOURS UI TRACE] formBusiness.business_hours_end:', formBusiness.business_hours_end);
+                              console.log('[BUSINESS HOURS UI TRACE] formBusiness.after_hours_message present:', !!formBusiness.after_hours_message);
+                              console.log('[BUSINESS HOURS UI TRACE] formBusiness.after_hours_message length:', formBusiness.after_hours_message?.length);
+                              console.log('[BUSINESS HOURS UI TRACE] =========================================');
+
+                              return formBusiness.business_hours_enabled ? (
+                                <span className="text-xs px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-2">
+                                  <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse" />
+                                  Active
+                                </span>
+                              ) : (
+                                <span className="text-xs px-2 py-0.5 bg-slate-500/10 text-slate-600 dark:text-slate-400 rounded-full font-medium">
+                                  Inactive
+                                </span>
+                              )
+                            })()}
                           </div>
                           {formBusiness.business_hours_enabled ? (
                             <div className="text-xs text-slate-600 dark:text-slate-400 space-y-1">
