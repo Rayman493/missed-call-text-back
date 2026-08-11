@@ -210,7 +210,9 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
           let result = semaphore.wait(timeout: timeout)
 
           // Cancel discovery immediately after check
-          discoveryCancelable.cancel()
+          Task { @MainActor in
+            _ = try? await discoveryCancelable.cancel()
+          }
           
           if result == .success && discoverySupported {
             call.resolve([
@@ -323,7 +325,9 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
           let result = semaphore.wait(timeout: timeout)
 
           // Cancel discovery immediately after check
-          discoveryCancelable.cancel()
+          Task { @MainActor in
+            _ = try? await discoveryCancelable.cancel()
+          }
           
           if result == .success && discoverySupported {
             call.resolve([
@@ -767,11 +771,11 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
           while let presented = topVC.presentedViewController {
             topVC = presented
           }
-          
+
           // Apple's presentContent does not await dismissal
           // We present it and immediately return 'presented'
           // The caller must handle completion detection via UI confirmation
-          discovery.presentContent(content, from: topVC)
+          try await discovery.presentContent(content, from: topVC)
           
           // Return presented but indicate completion status is unknown
           // The caller must show a confirmation step to verify user actually completed it
