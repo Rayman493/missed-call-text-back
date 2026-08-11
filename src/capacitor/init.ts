@@ -176,16 +176,27 @@ async function warmUpTapToPay() {
  * - Universal/App Links: https://www.replyflowhq.com/dashboard/leads/123
  */
 function handleDeepLink(url: string) {
-  console.log('[Capacitor] Handling deep link:', url);
+  console.log('[APP URL OPEN] Received deep link:', url);
 
   try {
     const urlObj = new URL(url);
 
+    // Log context for diagnostics
+    const urlParams = urlObj.searchParams;
+    console.log('[APP URL OPEN] Context', {
+      protocol: urlObj.protocol,
+      pathname: urlObj.pathname,
+      hasSessionId: urlParams.has('session_id'),
+      recovery: urlParams.has('recovery'),
+      timestamp: Date.now()
+    });
+
     // Close any open Browser instance when receiving deep-link callback
     // This ensures that if Stripe opened in external Safari and redirected to custom scheme,
     // we close any in-app browser that might be open (defensive cleanup)
+    console.log('[BROWSER] close_requested=true');
     Browser.close().catch((err) => {
-      console.log('[Capacitor] Browser.close() called (may not be open):', err);
+      console.log('[BROWSER] close_result=already_closed_or_error', { error: err?.message || 'unknown' });
     });
 
     // Handle custom scheme (replyflow://)
