@@ -61,6 +61,15 @@ const isNativeMobile = () => {
   }
 }
 
+// Check if running on iOS
+const isIOS = () => {
+  try {
+    return (window as any).Capacitor?.getPlatform?.() === 'ios'
+  } catch {
+    return false
+  }
+}
+
 export default function SettingsContent() {
   const router = useRouter()
   const { business, setBusiness, refreshBusiness } = useBusiness()
@@ -2571,7 +2580,11 @@ export default function SettingsContent() {
                   const platform = tapToPayAwareness.state.tapToPaySupportStatus?.platform
                   const unsupportedReason = tapToPayAwareness.state.tapToPaySupportStatus?.unsupportedReason
                   const deviceType = tapToPayAwareness.state.tapToPaySupportStatus?.deviceInfo?.deviceType
-                  const showTapToPayCard = platform === 'ios' && !(unsupportedReason === 'unsupported_device_type' || deviceType === 'ipad')
+                  // Use Capacitor directly for platform check to show card even while support status is loading
+                  const isIOSPlatform = isIOS()
+                  // Only exclude iPad if device type is available
+                  const isIPad = deviceType === 'ipad'
+                  const showTapToPayCard = isIOSPlatform && !isIPad
 
                   return (
                     <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${showTapToPayCard ? 'xl:grid-cols-4' : 'lg:grid-cols-3'}`}>
@@ -2582,8 +2595,8 @@ export default function SettingsContent() {
                     const unsupportedReason = tapToPayAwareness.state.tapToPaySupportStatus?.unsupportedReason
                     const deviceType = tapToPayAwareness.state.tapToPaySupportStatus?.deviceInfo?.deviceType
 
-                    // Hide on non-iOS platforms
-                    if (platform !== 'ios') {
+                    // Hide on non-iOS platforms (use Capacitor directly, not support status which may be loading)
+                    if (!isIOS()) {
                       return null
                     }
 
@@ -2894,7 +2907,7 @@ export default function SettingsContent() {
                         const platform = tapToPayAwareness.state.tapToPaySupportStatus?.platform
 
                         // Show guide for supported iOS devices with Stripe connected
-                        if (platform === 'ios' && status === 'supported' && business?.stripe_charges_enabled) {
+                        if (isIOS() && status === 'supported' && business?.stripe_charges_enabled) {
                           return (
                             <button
                               onClick={handleNativeEducationGuide}

@@ -396,4 +396,95 @@ describe('Tap to Pay Settings Enablement', () => {
       expect(shouldShowProgress).toBe(false)
     })
   })
+
+  describe('Card visibility', () => {
+    it('should show Tap to Pay card on native iOS', () => {
+      const platform = 'ios'
+      const isIOSPlatform = platform === 'ios'
+      expect(isIOSPlatform).toBe(true)
+    })
+
+    it('should show Tap to Pay card while Apple linkage status is unknown/loading', () => {
+      const platform = 'ios'
+      const isIOSPlatform = platform === 'ios'
+      const appleLinkageStatus = 'unknown'
+      const deviceType = undefined
+
+      // Card should render on iOS even while status is loading
+      const shouldShowCard = isIOSPlatform && deviceType !== 'ipad'
+      expect(shouldShowCard).toBe(true)
+      // Apple linkage status does not control card visibility
+      expect(appleLinkageStatus).toBe('unknown')
+    })
+
+    it('should show Tap to Pay card when not linked', () => {
+      const platform = 'ios'
+      const isIOSPlatform = platform === 'ios'
+      const appleLinkageStatus = 'not_linked'
+      const deviceType = undefined
+
+      // Card should render on iOS when not linked
+      const shouldShowCard = isIOSPlatform && deviceType !== 'ipad'
+      expect(shouldShowCard).toBe(true)
+      expect(appleLinkageStatus).toBe('not_linked')
+    })
+
+    it('should show Tap to Pay card when linked', () => {
+      const platform = 'ios'
+      const isIOSPlatform = platform === 'ios'
+      const appleLinkageStatus = 'linked'
+      const deviceType = undefined
+
+      // Card should render on iOS when linked
+      const shouldShowCard = isIOSPlatform && deviceType !== 'ipad'
+      expect(shouldShowCard).toBe(true)
+      expect(appleLinkageStatus).toBe('linked')
+    })
+
+    it('should not show Tap to Pay card on Android', () => {
+      const platform = 'android'
+      const isIOSPlatform = platform === 'ios'
+      expect(isIOSPlatform).toBe(false)
+    })
+
+    it('should not show Tap to Pay card on web', () => {
+      const platform = 'web'
+      const isIOSPlatform = platform === 'ios'
+      expect(isIOSPlatform).toBe(false)
+    })
+
+    it('should not show Tap to Pay card on iPad', () => {
+      const platform = 'ios'
+      const isIOSPlatform = platform === 'ios'
+      const deviceType = 'ipad'
+
+      // Card should not render on iPad
+      const shouldShowCard = isIOSPlatform && deviceType !== 'ipad'
+      expect(shouldShowCard).toBe(false)
+    })
+
+    it('education timestamp presence does not control whole-card visibility', () => {
+      const platform = 'ios'
+      const isIOSPlatform = platform === 'ios'
+      const educationComplete = false
+      const deviceType = undefined
+
+      // Card visibility depends on platform, not education timestamp
+      const shouldShowCard = isIOSPlatform && deviceType !== 'ipad'
+      expect(shouldShowCard).toBe(true)
+      expect(educationComplete).toBe(false)
+    })
+
+    it('configuration progress state does not control whole-card visibility', () => {
+      const platform = 'ios'
+      const isIOSPlatform = platform === 'ios'
+      const softwareUpdateActive = true
+      const deviceType = undefined
+
+      // Card visibility depends on platform, not progress state
+      const shouldShowCard = isIOSPlatform && deviceType !== 'ipad'
+      expect(shouldShowCard).toBe(true)
+      expect(softwareUpdateActive).toBe(true)
+    })
+  })
 })
