@@ -57,7 +57,7 @@ import { OpenAIRealtimeClient } from './openai-client';
 import { TwilioStreamHandler } from './twilio-stream';
 import { createClient } from '@supabase/supabase-js';
 import audioDecode from 'audio-decode';
-import { cachedPromptAudio, CACHED_AUDIO_GENERATION_VERSION, CACHED_AUDIO_GENERATED_AT, REALTIME_MODEL, TTS_VOICE, OUTPUT_FORMAT, getCachedPromptAudio } from './cached-audio';
+import { cachedPromptAudio, CACHED_AUDIO_GENERATION_VERSION, CACHED_AUDIO_GENERATED_AT, REALTIME_MODEL, TTS_VOICE, OUTPUT_FORMAT } from './cached-audio';
 import {
   IntakeTemplate,
   AI_INTAKE_TEMPLATES,
@@ -9580,7 +9580,7 @@ Reply to this message if you'd like to update or add any information.
 
     logSimple('send_prompt', { prompt: prompt.substring(0, 50) + '...' });
 
-    let cachedAudio = getCachedPromptAudio(promptKey as keyof typeof cachedPromptAudio);
+    let cachedAudio = cachedPromptAudio[promptKey as keyof typeof cachedPromptAudio];
     let usedFallback = false;
     let resolvedCacheKey = promptKey;
 
@@ -9600,7 +9600,7 @@ Reply to this message if you'd like to update or add any information.
       console.log('[TARGETED PROMPT DELIVERY] =========================================');
 
       // Fall back to the full prompt for the current stage
-      const fallbackAudio = getCachedPromptAudio(stage as keyof typeof cachedPromptAudio);
+      const fallbackAudio = cachedPromptAudio[stage as keyof typeof cachedPromptAudio];
       if (fallbackAudio) {
         console.log('[TARGETED PROMPT DELIVERY] =========================================');
         console.log('[TARGETED PROMPT DELIVERY] event: fallback_prompt_audio_found');
