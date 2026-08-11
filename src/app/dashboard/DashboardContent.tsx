@@ -14,7 +14,7 @@ import RoutingDebugBanner from '@/components/RoutingDebugBanner'
 import { isAdminUserById } from '@/lib/admin'
 import { useSupportsBusinessNumber } from '@/lib/platform-capabilities'
 import { CalendarOff, MessageSquare } from 'lucide-react'
-import { Capacitor } from '@capacitor/core'
+import { openStripeCheckout, isNativeIOS } from '@/lib/stripe-checkout'
 import { 
   formatPhoneNumber, 
   formatRelativeTime, 
@@ -701,8 +701,6 @@ export default function DashboardContent() {
       })
 
       // Determine if checkout originated from native iOS app for proper return handling
-      const isNativeIOS = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios'
-
       const response = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',
         headers: {
@@ -711,7 +709,7 @@ export default function DashboardContent() {
         body: JSON.stringify({
           checkout_mode: checkoutMode,
           checkout_source: 'dashboard',
-          return_to_app: isNativeIOS,
+          return_to_app: isNativeIOS(),
         }),
       })
       const data = await response.json()
@@ -734,8 +732,8 @@ export default function DashboardContent() {
       if (data.url) {
         console.log('[checkout] Redirecting to Stripe checkout:', data.url)
         // Add delay for mobile localStorage persistence
-        setTimeout(() => {
-          window.location.href = data.url
+        setTimeout(async () => {
+          await openStripeCheckout(data.url)
         }, 500)
       } else {
         console.error('[checkout] No URL returned:', data)

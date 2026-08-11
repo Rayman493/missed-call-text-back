@@ -11,6 +11,8 @@ import BrandIcon from '@/components/BrandIcon'
 import RoutingDebugBanner from '@/components/RoutingDebugBanner'
 import { mapAuthError, type AuthErrorDisplay } from '@/lib/auth-error-mapper'
 import { isCapacitorNative, getCapacitorPlatform } from '@/capacitor/init'
+import { openStripeCheckout } from '@/lib/stripe-checkout'
+import { isNativeIOS as checkNativeIOS } from '@/lib/stripe-checkout'
 
 // Footer with theme support for auth pages
 function AuthFooter() {
@@ -422,7 +424,7 @@ function AuthContent() {
           body: JSON.stringify({
             checkout_mode: 'trial',
             checkout_source: 'auth-signup',
-            return_to_app: isNativeIOS,
+            return_to_app: checkNativeIOS(),
           }),
         })
 
@@ -461,7 +463,8 @@ function AuthContent() {
         isSubmittingRef.current = false
         setIsCreatingCheckout(false)
         isCreatingCheckoutRef.current = false
-        router.replace(checkoutData.url)
+
+        await openStripeCheckout(checkoutData.url)
       } catch (checkoutError: any) {
         console.error('[Auth] Error creating checkout session:', checkoutError)
         setError('Account created! Please sign in to complete your trial setup.')

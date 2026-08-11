@@ -8,7 +8,7 @@ import { CheckCircle, AlertTriangle, ChevronDown, ChevronUp, ArrowRight, Loader2
 import { formatPhoneNumber } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBusiness } from '@/contexts/BusinessContext'
-import { Capacitor } from '@capacitor/core'
+import { openStripeCheckout, isNativeIOS } from '@/lib/stripe-checkout'
 import ReplyFlowAssistant from '@/components/ReplyFlowAssistant'
 import AssistantMobileShell from '@/components/AssistantMobileShell'
 import CallForwardingInstructions from '@/components/CallForwardingInstructions'
@@ -96,9 +96,6 @@ export default function SetupStatusCard({
           throw new Error('No billing portal URL returned')
         }
       } else {
-        // Determine if checkout originated from native iOS app for proper return handling
-        const isNativeIOS = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios'
-
         const response = await fetch('/api/stripe/create-checkout-session', {
           method: 'POST',
           headers: {
@@ -107,7 +104,7 @@ export default function SetupStatusCard({
           body: JSON.stringify({
             checkout_mode: 'paid', // Use paid mode for trial-used users
             checkout_source: 'setup-status-card',
-            return_to_app: isNativeIOS,
+            return_to_app: isNativeIOS(),
           }),
         })
         
@@ -118,7 +115,7 @@ export default function SetupStatusCard({
         }
         
         if (data.url) {
-          window.location.href = data.url
+          await openStripeCheckout(data.url)
         } else {
           throw new Error('No checkout URL returned')
         }

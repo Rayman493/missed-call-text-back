@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { clearAnonymousAppState } from '@/lib/clear-anonymous-state'
 import BrandIcon from '@/components/BrandIcon'
-import { Capacitor } from '@capacitor/core'
+import { openStripeCheckout, isNativeIOS } from '@/lib/stripe-checkout'
 import AppBackButton from '@/components/AppBackButton'
 
 const supabase = createBrowserClient()
@@ -178,9 +178,6 @@ export default function CompleteSetupPage() {
     }
 
     try {
-      // Determine if checkout originated from native iOS app for proper return handling
-      const isNativeIOS = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios'
-
       const response = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',
         headers: {
@@ -189,14 +186,14 @@ export default function CompleteSetupPage() {
         body: JSON.stringify({
           checkout_mode: 'trial',
           checkout_source: 'complete-setup',
-          return_to_app: isNativeIOS,
+          return_to_app: isNativeIOS(),
         }),
       })
 
       const checkoutData = await response.json()
 
       if (response.ok && checkoutData.url) {
-        window.location.href = checkoutData.url
+        await openStripeCheckout(checkoutData.url)
       } else {
         console.error('[CompleteSetup] Failed to create checkout session:', checkoutData)
         setError('Could not create checkout session. Please try again.')

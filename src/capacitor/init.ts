@@ -11,6 +11,7 @@ import { Keyboard } from '@capacitor/keyboard';
 import { Preferences } from '@capacitor/preferences';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
 import { pushService } from '@/lib/push-service';
 import { TerminalBridgeService } from '@/lib/terminal/service';
 
@@ -179,6 +180,13 @@ function handleDeepLink(url: string) {
 
   try {
     const urlObj = new URL(url);
+
+    // Close any open Browser instance when receiving deep-link callback
+    // This ensures that if Stripe opened in external Safari and redirected to custom scheme,
+    // we close any in-app browser that might be open (defensive cleanup)
+    Browser.close().catch((err) => {
+      console.log('[Capacitor] Browser.close() called (may not be open):', err);
+    });
 
     // Handle custom scheme (replyflow://)
     if (urlObj.protocol === 'replyflow:') {

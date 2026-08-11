@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useTrialEligibility } from '@/hooks/useTrialEligibility'
 import AuthGuard from '@/components/AuthGuard'
-import { Capacitor } from '@capacitor/core'
+import { openStripeCheckout, isNativeIOS } from '@/lib/stripe-checkout'
 import BusinessGuard from '@/components/BusinessGuard'
 import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
 import SmsVerificationBanner from '@/components/SmsVerificationBanner'
@@ -664,9 +664,6 @@ export default function LeadsPage() {
     // Eligibility is now handled by useTrialEligibility hook
     
     try {
-      // Determine if checkout originated from native iOS app for proper return handling
-      const isNativeIOS = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios'
-
       const response = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',
         headers: {
@@ -675,7 +672,7 @@ export default function LeadsPage() {
         body: JSON.stringify({
           businessId: business?.id,
           mode: checkoutMode,
-          return_to_app: isNativeIOS,
+          return_to_app: isNativeIOS(),
         })
       })
 
@@ -694,7 +691,7 @@ export default function LeadsPage() {
       }
 
       if (data.url) {
-        window.location.href = data.url
+        await openStripeCheckout(data.url)
       }
     } catch (error) {
       console.error('[checkout] Error creating checkout session:', error)
