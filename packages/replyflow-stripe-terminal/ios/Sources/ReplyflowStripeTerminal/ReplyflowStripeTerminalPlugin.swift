@@ -193,10 +193,10 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
         // This uses TapToPayDiscoveryConfigurationBuilder which is available in Stripe Terminal SDK 5.0.0+
         do {
           let discoveryConfig = try TapToPayDiscoveryConfigurationBuilder().setSimulated(false).build()
-          let terminal = SCPTerminal.shared
+          let terminal = Terminal.shared
           var discoverySupported = false
           let semaphore = DispatchSemaphore(value: 0)
-          
+
           let discoveryCancelable = terminal.discoverReaders(discoveryConfig, delegate: self) { error in
             if error == nil {
               // Discovery started successfully - indicates Tap to Pay is supported
@@ -204,13 +204,13 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
             }
             semaphore.signal()
           }
-          
+
           // Wait for discovery to start or fail (with short timeout)
           let timeout = DispatchTime.now() + .seconds(2)
           let result = semaphore.wait(timeout: timeout)
-          
+
           // Cancel discovery immediately after check
-          discoveryCancelable?.cancel()
+          discoveryCancelable.cancel()
           
           if result == .success && discoverySupported {
             call.resolve([
@@ -306,10 +306,10 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
         // This is the correct Stripe Terminal SDK 5.0.0+ API for Tap to Pay
         do {
           let discoveryConfig = try TapToPayDiscoveryConfigurationBuilder().setSimulated(false).build()
-          let terminal = SCPTerminal.shared
+          let terminal = Terminal.shared
           var discoverySupported = false
           let semaphore = DispatchSemaphore(value: 0)
-          
+
           let discoveryCancelable = terminal.discoverReaders(discoveryConfig, delegate: self) { error in
             if error == nil {
               // Discovery started successfully - indicates Tap to Pay is supported
@@ -317,13 +317,13 @@ public class ReplyflowStripeTerminalPlugin: CAPPlugin, CAPBridgedPlugin {
             }
             semaphore.signal()
           }
-          
+
           // Wait for discovery to start or fail (with short timeout)
           let timeout = DispatchTime.now() + .seconds(2)
           let result = semaphore.wait(timeout: timeout)
-          
+
           // Cancel discovery immediately after check
-          discoveryCancelable?.cancel()
+          discoveryCancelable.cancel()
           
           if result == .success && discoverySupported {
             call.resolve([
@@ -920,10 +920,7 @@ extension ReplyflowStripeTerminalPlugin: TerminalDelegate, DiscoveryDelegate, Re
     ])
   }
   public func tapToPayReader(_ reader: Reader, didStartInstallingUpdate update: ReaderSoftwareUpdate, cancelable: Cancelable?) {
-    self.notifyListeners("readerUpdateStarted", data: [
-      "updateRequired": update.required,
-      "updateEstimatedTime": update.estimatedUpdateTime
-    ])
+    self.notifyListeners("readerUpdateStarted", data: [:])
   }
   public func tapToPayReader(_ reader: Reader, didReportReaderSoftwareUpdateProgress progress: Float) {
     self.notifyListeners("readerUpdateProgress", data: [
