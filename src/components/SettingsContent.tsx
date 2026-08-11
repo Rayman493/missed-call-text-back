@@ -1912,15 +1912,15 @@ export default function SettingsContent() {
                                 formBusiness.business_hours_end &&
                                 formBusiness.after_hours_message
 
-                              if (hasValidConfig && !formBusiness.business_hours_enabled) {
-                                // Enable if valid config exists
-                                updateBusiness({ business_hours_enabled: true })
-                                await saveChanges()
-                              } else if (!hasValidConfig && formBusiness.business_hours_enabled) {
-                                // Disable if config is cleared
-                                updateBusiness({ business_hours_enabled: false })
-                                await saveChanges()
+                              // Construct the complete next state to avoid stale React state
+                              const nextBusiness = {
+                                ...formBusiness,
+                                business_hours_enabled: hasValidConfig ? true : false
                               }
+
+                              // Update local state and persist in one operation
+                              updateBusiness(nextBusiness)
+                              await saveChanges()
 
                               setBusinessHoursExpanded(false)
                             }}
@@ -2130,15 +2130,15 @@ export default function SettingsContent() {
                                 formBusiness.out_of_office_start &&
                                 formBusiness.out_of_office_end
 
-                              if (hasValidConfig && !formBusiness.out_of_office_enabled) {
-                                // Enable if valid config exists
-                                updateBusiness({ out_of_office_enabled: true })
-                                await saveChanges()
-                              } else if (!hasValidConfig && formBusiness.out_of_office_enabled) {
-                                // Disable if config is cleared
-                                updateBusiness({ out_of_office_enabled: false })
-                                await saveChanges()
+                              // Construct the complete next state to avoid stale React state
+                              const nextBusiness = {
+                                ...formBusiness,
+                                out_of_office_enabled: hasValidConfig ? true : false
                               }
+
+                              // Update local state and persist in one operation
+                              updateBusiness(nextBusiness)
+                              await saveChanges()
 
                               setOutOfOfficeExpanded(false)
                             }}
