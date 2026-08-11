@@ -134,14 +134,16 @@ export function useSettingsFormState({
   }, [checkForChanges])
 
   // Save changes
-  const saveChanges = useCallback(async () => {
-    if (!state.business || !state.hasUnsavedChanges) return
+  const saveChanges = useCallback(async (overrideBusiness?: Business) => {
+    // Use overrideBusiness if provided (for immediate save after update), otherwise use state
+    const businessToSave = overrideBusiness || state.business
+    if (!businessToSave) return
 
     setState(prev => ({ ...prev, isSaving: true, saveError: null }))
 
     try {
-      const savedBusiness = await onSaveBusiness(state.business)
-      
+      const savedBusiness = await onSaveBusiness(businessToSave)
+
       // Update original business to reflect saved state
       setState(prev => ({
         ...prev,
@@ -151,10 +153,10 @@ export function useSettingsFormState({
         isSaving: false,
         saveError: null
       }))
-      
+
       // Notify parent of successful update
       onBusinessUpdated(savedBusiness)
-      
+
     } catch (error) {
       setState(prev => ({
         ...prev,
@@ -162,7 +164,7 @@ export function useSettingsFormState({
         saveError: error instanceof Error ? error.message : 'Failed to save settings'
       }))
     }
-  }, [state.business, state.hasUnsavedChanges, onSaveBusiness, onBusinessUpdated])
+  }, [state.business, onSaveBusiness, onBusinessUpdated])
 
   // Discard changes
   const discardChanges = useCallback(() => {

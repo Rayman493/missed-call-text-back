@@ -675,17 +675,41 @@ export default function AICallDetails({ leadId, businessId, conversationId, call
           <div className="px-4 py-3 border-b border-border/30">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-3 flex-1 min-w-0">
-                {/* Completed indicator */}
-                <div className="w-7 h-7 rounded-lg bg-green-100 dark:bg-green-900/40 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
+                {/* Status indicator - check if actually complete based on canonical intake requirements */}
+                {(() => {
+                  const intake = getLeadAIIntake(leadData || {})
+                  const hasRequest = intake.serviceRequested && intake.serviceRequested !== 'Not collected' && intake.serviceRequested.trim() !== ''
+                  const hasDetails = intake.additionalDetails && intake.additionalDetails !== 'Not collected' && intake.additionalDetails.trim() !== ''
+                  const hasAddress = intake.serviceAddress && intake.serviceAddress !== 'Not collected' && intake.serviceAddress.trim() !== ''
+                  const hasCompletion = intake.desiredCompletion && intake.desiredCompletion !== 'Not collected' && intake.desiredCompletion.trim() !== ''
+                  const hasCallback = intake.callbackTime && intake.callbackTime !== 'Not collected' && intake.callbackTime.trim() !== ''
+
+                  // Canonical completion condition from voice flow:
+                  // - Always required: request, details, timing, callback
+                  // - Conditional (onsite only): address
+                  const serviceLocationType = leadData?.raw_metadata?.serviceLocationType ||
+                    leadData?.business?.service_location_type ||
+                    'onsite'
+                  const isOnsite = serviceLocationType === 'onsite'
+                  const isComplete = hasRequest && hasDetails && hasCompletion && hasCallback && (!isOnsite || hasAddress)
+
+                  return (
+                    <div className={`w-7 h-7 rounded-lg ${isComplete ? 'bg-green-100 dark:bg-green-900/40' : 'bg-amber-100 dark:bg-amber-900/40'} flex items-center justify-center flex-shrink-0 mt-0.5`}>
+                      {isComplete ? (
+                        <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <Info className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                      )}
+                    </div>
+                  )
+                })()}
                 {/* Title and key info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-sm font-semibold text-foreground leading-tight">
-                      AI Intake Complete
+                      AI Intake Details
                     </span>
                   </div>
                   <span className="text-[11px] text-muted-foreground font-normal leading-tight">

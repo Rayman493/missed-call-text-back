@@ -1919,8 +1919,9 @@ export default function SettingsContent() {
                               }
 
                               // Update local state and persist in one operation
+                              // Pass nextBusiness directly to saveChanges to avoid stale closure bug
                               updateBusiness(nextBusiness)
-                              await saveChanges()
+                              await saveChanges(nextBusiness)
 
                               setBusinessHoursExpanded(false)
                             }}
@@ -2137,8 +2138,9 @@ export default function SettingsContent() {
                               }
 
                               // Update local state and persist in one operation
+                              // Pass nextBusiness directly to saveChanges to avoid stale closure bug
                               updateBusiness(nextBusiness)
-                              await saveChanges()
+                              await saveChanges(nextBusiness)
 
                               setOutOfOfficeExpanded(false)
                             }}
