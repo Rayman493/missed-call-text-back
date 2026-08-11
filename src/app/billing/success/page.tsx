@@ -55,21 +55,66 @@ export default function BillingSuccessPage() {
   useEffect(() => {
     if (!sessionId) return
 
-    const checkSession = async () => {
+    let isChecking = true
+
+    const checkSession = async (): Promise<boolean> => {
       try {
+        console.log('[Billing Success] Checking Supabase session...')
         const { data: { session } } = await supabase.auth.getSession()
 
         if (session && session.user) {
-          setSessionRestorationState('restored')
+          console.log('[Billing Success] Session restored successfully:', session.user.id)
+          if (isChecking) {
+            setSessionRestorationState('restored')
+          }
+          return true
         } else {
-          setSessionRestorationState('missing')
+          console.log('[Billing Success] Session not found in current check')
+          return false
         }
-      } catch {
+      } catch (error) {
+        console.error('[Billing Success] Error checking session:', error)
+        return false
+      }
+    }
+
+    // On iOS/Capacitor, session restoration from localStorage may need time after returning
+    // from external browser context (Stripe checkout). Retry with delays before concluding missing.
+    const checkWithRetries = async () => {
+      const maxRetries = 3
+      const retryDelay = 500 // 500ms between retries
+
+      console.log('[Billing Success] Starting session restoration check with retries (max:', maxRetries, ')')
+
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        console.log('[Billing Success] Session check attempt', attempt + 1, 'of', maxRetries)
+        const sessionFound = await checkSession()
+
+        // If session is found, stop retrying
+        if (sessionFound) {
+          console.log('[Billing Success] Session found on attempt', attempt + 1)
+          return
+        }
+
+        // Wait before retrying (but not after the last attempt)
+        if (attempt < maxRetries - 1) {
+          console.log('[Billing Success] Waiting', retryDelay, 'ms before retry...')
+          await new Promise(resolve => setTimeout(resolve, retryDelay))
+        }
+      }
+
+      // After all retries, conclude session is missing
+      console.log('[Billing Success] Session restoration failed after', maxRetries, 'attempts')
+      if (isChecking) {
         setSessionRestorationState('missing')
       }
     }
 
-    checkSession()
+    checkWithRetries()
+
+    return () => {
+      isChecking = false
+    }
   }, [sessionId])
 
   // Poll checkout status
