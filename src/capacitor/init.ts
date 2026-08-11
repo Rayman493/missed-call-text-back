@@ -191,6 +191,15 @@ function handleDeepLink(url: string) {
         return;
       }
 
+      // Special handling for billing/success deep link (iOS Stripe checkout return)
+      if (urlObj.pathname === '/billing/success' || urlObj.pathname.startsWith('/billing/success')) {
+        const queryParams = urlObj.search;
+        const webUrl = `https://www.replyflowhq.com/billing/success${queryParams}`;
+        console.log('[Capacitor] Billing success deep link, navigating to:', webUrl);
+        window.location.href = webUrl;
+        return;
+      }
+
       // Convert other custom schemes to web URL
       const webUrl = url.replace('replyflow://', 'https://www.replyflowhq.com/');
       console.log('[Capacitor] Converting custom scheme to web URL:', webUrl);

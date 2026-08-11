@@ -10,7 +10,7 @@ import PasswordInput from '@/components/PasswordInput'
 import BrandIcon from '@/components/BrandIcon'
 import RoutingDebugBanner from '@/components/RoutingDebugBanner'
 import { mapAuthError, type AuthErrorDisplay } from '@/lib/auth-error-mapper'
-import { isCapacitorNative } from '@/capacitor/init'
+import { isCapacitorNative, getCapacitorPlatform } from '@/capacitor/init'
 
 // Footer with theme support for auth pages
 function AuthFooter() {
@@ -411,6 +411,9 @@ function AuthContent() {
       isCreatingCheckoutRef.current = true
       
       try {
+        // Determine if checkout originated from native iOS app for proper return handling
+        const isNativeIOS = isCapacitorNative() && getCapacitorPlatform() === 'ios'
+
         const checkoutResponse = await fetch('/api/stripe/create-checkout-session', {
           method: 'POST',
           headers: {
@@ -419,6 +422,7 @@ function AuthContent() {
           body: JSON.stringify({
             checkout_mode: 'trial',
             checkout_source: 'auth-signup',
+            return_to_app: isNativeIOS,
           }),
         })
 

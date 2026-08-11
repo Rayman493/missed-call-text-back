@@ -8,6 +8,7 @@ import LoadingSpinner from '@/components/LoadingSpinner'
 import { normalizePhoneNumber } from '@/lib/utils'
 import { getTrialDisplay, getPricingDisplay, SUBSCRIPTION_STATES, isActiveSubscription } from '@/lib/subscription'
 import { useSearchParams } from 'next/navigation'
+import { Capacitor } from '@capacitor/core'
 import AuthGuard from '@/components/AuthGuard'
 import SetupError from '@/components/SetupError'
 import Footer from '@/components/Footer'
@@ -299,6 +300,8 @@ export default function OnboardingPage() {
       await refreshBusiness()
       
       // Create Stripe checkout session directly
+      // Determine if checkout originated from native iOS app for proper return handling
+      const isNativeIOS = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios'
       const checkoutResponse = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',
         headers: {
@@ -307,6 +310,7 @@ export default function OnboardingPage() {
         body: JSON.stringify({
           checkout_mode: 'trial',
           checkout_source: 'onboarding',
+          return_to_app: isNativeIOS,
         }),
       })
 

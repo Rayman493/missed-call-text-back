@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import PageBackground from '@/components/PageBackground'
 import { createBrowserClient } from '@/lib/supabase/browser'
+import { shouldTriggerAppRecovery } from '@/lib/billing-recovery'
 
 const supabase = createBrowserClient()
 
@@ -43,6 +44,32 @@ export default function BillingSuccessPage() {
   // Session restoration state
   const [sessionRestorationState, setSessionRestorationState] = useState<'checking' | 'restored' | 'missing'>('checking')
 
+  // Log execution context for diagnostics
+  useEffect(() => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'unknown'
+    const pathname = typeof window !== 'undefined' ? window.location.pathname : 'unknown'
+    const visibilityState = typeof document !== 'undefined' ? document.visibilityState : 'unknown'
+    const hasReturnToAppMarker = typeof window !== 'undefined' && new URL(window.location.href).searchParams.has('return_to_app')
+    const hasRecoveryMarker = typeof window !== 'undefined' && new URL(window.location.href).searchParams.has('recovery')
+
+    console.log('[Billing Success Context Diagnostics]', {
+      origin,
+      pathname,
+      visibilityState,
+      hasSessionId: !!sessionId,
+      hasReturnToAppMarker,
+      hasRecoveryMarker,
+      timestamp: Date.now()
+    })
+
+    // Check if localStorage contains auth key (BOOLEAN only, no tokens)
+    const hasAuthKey = typeof localStorage !== 'undefined' && Boolean(localStorage.getItem('sb-auth-token'))
+    console.log('[Billing Success Storage Diagnostics]', {
+      hasLocalStorageAuthKey: hasAuthKey,
+      timestamp: Date.now()
+    })
+  }, [sessionId])
+
   // Validate session_id
   useEffect(() => {
     if (!sessionId || !sessionId.startsWith('cs_')) {
@@ -63,7 +90,7 @@ export default function BillingSuccessPage() {
         const { data: { session } } = await supabase.auth.getSession()
 
         if (session && session.user) {
-          console.log('[Billing Success] Session restored successfully:', session.user.id)
+          console.log('[Billing Success] Session restored successfully')
           if (isChecking) {
             setSessionRestorationState('restored')
           }
@@ -105,6 +132,23 @@ export default function BillingSuccessPage() {
 
       // After all retries, conclude session is missing
       console.log('[Billing Success] Session restoration failed after', maxRetries, 'attempts')
+
+      // Check if this checkout originated from the native ReplyFlow app (via return_to_app marker)
+      // This is the authoritative signal that we should return to the Capacitor WebView context
+      // Use helper function for deterministic routing logic
+      const currentUrl = typeof window !== 'undefined' ? window.location.href : ''
+      const shouldRecover = shouldTriggerAppRecovery(currentUrl)
+
+      // If checkout originated from native app but session is missing, redirect to deep-link to restore app context
+      // This ensures billing/success executes in the Capacitor WebView where localStorage is available
+      if (isChecking && shouldRecover) {
+        console.log('[Billing Success] Native app checkout detected: redirecting to deep-link to restore app context')
+        const deepLinkUrl = `replyflow://billing/success?session_id=${sessionId}&recovery=1`
+        console.log('[Billing Success] Deep-link URL:', deepLinkUrl)
+        window.location.href = deepLinkUrl
+        return
+      }
+
       if (isChecking) {
         setSessionRestorationState('missing')
       }
@@ -123,6 +167,7 @@ export default function BillingSuccessPage() {
 
     const pollStatus = async () => {
       try {
+        console.log('[Billing Success] Polling checkout status...')
         const response = await fetch('/api/billing/checkout-status', {
           method: 'POST',
           headers: {
@@ -137,11 +182,18 @@ export default function BillingSuccessPage() {
           throw new Error(data.error || 'Failed to check status')
         }
 
+        console.log('[Billing Success] Checkout status response:', {
+          ok: data.ok,
+          subscriptionStatus: data.subscriptionStatus,
+          paymentStatus: data.paymentStatus
+        })
+
         setStatus(data)
         setPollCount(prev => prev + 1)
 
         // Check if subscription is ready for reauth
         if (data.ok && ['trialing', 'active'].includes(data.subscriptionStatus)) {
+          console.log('[Billing Success] Subscription ready, showing success page')
           // Show success state instead of auto-redirecting
           setStatus({
             ...data,
@@ -151,6 +203,7 @@ export default function BillingSuccessPage() {
         }
 
       } catch (err) {
+        console.error('[Billing Success] Poll error:', err)
         if (pollCount >= 5) { // Allow some retries before showing error
           setError(err instanceof Error ? err.message : 'Failed to check status')
         }

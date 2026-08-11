@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { createBrowserClient } from '@/lib/supabase/browser'
 import { useTrialEligibility } from '@/hooks/useTrialEligibility'
 import AuthGuard from '@/components/AuthGuard'
+import { Capacitor } from '@capacitor/core'
 import BusinessGuard from '@/components/BusinessGuard'
 import DashboardErrorBoundary from '@/components/DashboardErrorBoundary'
 import SmsVerificationBanner from '@/components/SmsVerificationBanner'
@@ -663,6 +664,9 @@ export default function LeadsPage() {
     // Eligibility is now handled by useTrialEligibility hook
     
     try {
+      // Determine if checkout originated from native iOS app for proper return handling
+      const isNativeIOS = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios'
+
       const response = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',
         headers: {
@@ -670,7 +674,8 @@ export default function LeadsPage() {
         },
         body: JSON.stringify({
           businessId: business?.id,
-          mode: checkoutMode
+          mode: checkoutMode,
+          return_to_app: isNativeIOS,
         })
       })
 

@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useBusiness } from '@/contexts/BusinessContext'
 import { clearAnonymousAppState } from '@/lib/clear-anonymous-state'
 import BrandIcon from '@/components/BrandIcon'
+import { Capacitor } from '@capacitor/core'
 import AppBackButton from '@/components/AppBackButton'
 
 const supabase = createBrowserClient()
@@ -177,6 +178,9 @@ export default function CompleteSetupPage() {
     }
 
     try {
+      // Determine if checkout originated from native iOS app for proper return handling
+      const isNativeIOS = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios'
+
       const response = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',
         headers: {
@@ -185,6 +189,7 @@ export default function CompleteSetupPage() {
         body: JSON.stringify({
           checkout_mode: 'trial',
           checkout_source: 'complete-setup',
+          return_to_app: isNativeIOS,
         }),
       })
 

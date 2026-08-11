@@ -17,6 +17,7 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({}))
     const checkoutMode = body.checkout_mode || 'trial' // Default to trial for backward compatibility
     const checkoutSource = body.checkout_source || 'unspecified'
+    const returnToApp = body.return_to_app === true // Platform-specific signal: checkout originated from native iOS app
     
     console.log('[stripe-checkout] Request body parsed:', {
       rawBody: body,
@@ -279,7 +280,10 @@ export async function POST(request: Request) {
     });
     
     // Route to dedicated billing success page for smoother post-checkout flow
-    const successUrl = `${siteUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`
+    // Add return_to_app marker for native iOS app checkouts to enable proper context restoration
+    // This marker is only added when returnToApp=true is sent from the native iOS client
+    const returnUrlMarker = returnToApp ? '&return_to_app=1' : ''
+    const successUrl = `${siteUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}${returnUrlMarker}`
     const cancelUrl = `${siteUrl}/dashboard?checkout=cancelled`
     
     console.log('[STRIPE CHECKOUT URLS CONFIGURED]', {
