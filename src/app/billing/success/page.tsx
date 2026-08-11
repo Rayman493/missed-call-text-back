@@ -67,6 +67,7 @@ export default function BillingSuccessPage() {
 
       const deepLinkUrl = `replyflow://billing/success?session_id=${sessionId}&recovery=1`
       console.log('[BILLING RETURN] Redirecting to deep-link:', deepLinkUrl)
+      console.log('[BILLING RETURN] This will trigger appUrlOpen and return to Capacitor WebView')
 
       window.location.href = deepLinkUrl
       return
@@ -79,7 +80,8 @@ export default function BillingSuccessPage() {
     const urlParams = new URL(currentUrl).searchParams
     const hasRecoveryMarker = urlParams.has('recovery')
 
-    console.log('[BILLING SUCCESS] Context', {
+    console.log('[WEBVIEW RETURN] Route loaded', {
+      pathname: typeof window !== 'undefined' ? window.location.pathname : 'unknown',
       hasSessionId: !!sessionId,
       recovery: hasRecoveryMarker ? true : false,
       context: hasRecoveryMarker ? 'recovered-app' : 'normal-web',
@@ -88,10 +90,30 @@ export default function BillingSuccessPage() {
 
     // Check if localStorage contains auth key (BOOLEAN only, no tokens)
     const hasAuthKey = typeof localStorage !== 'undefined' && Boolean(localStorage.getItem('sb-auth-token'))
-    console.log('[RECOVERED BILLING] Storage', {
+    console.log('[AUTH STORAGE] LocalStorage auth key', {
       hasLocalStorageAuthKey: hasAuthKey,
       timestamp: Date.now()
     })
+  }, [sessionId])
+
+  // Check session immediately for diagnostics
+  useEffect(() => {
+    if (!sessionId) return
+
+    const checkSessionImmediate = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        console.log('[AUTH RETURN] getSession result', {
+          sessionPresent: !!session,
+          userPresent: !!session?.user,
+          timestamp: Date.now()
+        })
+      } catch (error) {
+        console.error('[AUTH RETURN] getSession error:', error)
+      }
+    }
+
+    checkSessionImmediate()
   }, [sessionId])
 
   // Validate session_id
@@ -110,21 +132,21 @@ export default function BillingSuccessPage() {
 
     const checkSession = async (): Promise<boolean> => {
       try {
-        console.log('[Billing Success] Checking Supabase session...')
+        console.log('[SESSION CHECK] Attempting getSession()')
         const { data: { session } } = await supabase.auth.getSession()
 
         if (session && session.user) {
-          console.log('[Billing Success] Session restored successfully')
+          console.log('[SESSION CHECK] Session restored successfully')
           if (isChecking) {
             setSessionRestorationState('restored')
           }
           return true
         } else {
-          console.log('[Billing Success] Session not found in current check')
+          console.log('[SESSION CHECK] Session not found in current check')
           return false
         }
       } catch (error) {
-        console.error('[Billing Success] Error checking session:', error)
+        console.error('[SESSION CHECK] Error checking session:', error)
         return false
       }
     }
@@ -207,7 +229,7 @@ export default function BillingSuccessPage() {
           // Native iOS recovery: Auto-navigate to dashboard instead of showing success page
           const hasRecoveryMarker = typeof window !== 'undefined' && new URL(window.location.href).searchParams.has('recovery')
           if (hasRecoveryMarker && sessionRestorationState === 'restored') {
-            console.log('[Billing Success] Native iOS recovery: auto-navigating to dashboard')
+            console.log('[NAVIGATION] Native iOS recovery verified, auto-navigating to dashboard')
             window.location.href = '/dashboard?setup=1'
             return
           }

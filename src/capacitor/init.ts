@@ -187,7 +187,8 @@ function handleDeepLink(url: string) {
       protocol: urlObj.protocol,
       pathname: urlObj.pathname,
       hasSessionId: urlParams.has('session_id'),
-      recovery: urlParams.has('recovery'),
+      hasRecoveryMarker: urlParams.has('recovery'),
+      hasReturnMarker: urlParams.has('return_to_app'),
       timestamp: Date.now()
     });
 
@@ -195,7 +196,9 @@ function handleDeepLink(url: string) {
     // This ensures that if Stripe opened in external Safari and redirected to custom scheme,
     // we close any in-app browser that might be open (defensive cleanup)
     console.log('[BROWSER] close_requested=true');
-    Browser.close().catch((err) => {
+    Browser.close().then(() => {
+      console.log('[BROWSER] close_result=success');
+    }).catch((err) => {
       console.log('[BROWSER] close_result=already_closed_or_error', { error: err?.message || 'unknown' });
     });
 

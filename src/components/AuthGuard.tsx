@@ -89,11 +89,23 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const billingReturnParam = searchParams?.get('billing_return')
   const billingReturnedParam = searchParams?.get('billing')
   const setupParam = searchParams?.get('setup')
-  const isCheckoutRecovery = 
-    !stripeParamsCleared && (
+  const recoveryMarker = searchParams?.get('recovery')
+  const isCheckoutRecovery =
+    !stripeParamsCleared &&
+    recoveryMarker !== '1' && // Do NOT treat recovered context as recovery
+    (
       checkoutParam === 'success' ||
       Boolean(sessionId?.startsWith('cs_'))
     )
+
+  console.log('[AUTH GUARD] State', {
+    isCheckoutRecovery,
+    hasRecoveryMarker: recoveryMarker === '1',
+    hasSessionId: !!sessionId,
+    userPresent: !!user,
+    loading,
+    timestamp: Date.now()
+  })
   
   // Check if we're in billing return grace mode
   // Exclude /billing/success page - it has its own loading and polling logic
