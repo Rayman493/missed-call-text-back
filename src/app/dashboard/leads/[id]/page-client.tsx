@@ -371,7 +371,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [mobileCustomerExpanded, setMobileCustomerExpanded] = useState(true)
   const [mobileLeadDetailsExpanded, setMobileLeadDetailsExpanded] = useState(false)
   const [mobileActionsExpanded, setMobileActionsExpanded] = useState(false)
-  const [mobileInternalNotesExpanded, setMobileInternalNotesExpanded] = useState(false)
   const latestMessageRef = useRef<HTMLDivElement>(null)
   const [mobileLeadHealthExpanded, setMobileLeadHealthExpanded] = useState(false)
   const [isMobileView, setIsMobileView] = useState(false)
@@ -3415,8 +3414,8 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <div className="px-1.5 py-1 space-y-0.5">
                         <DropdownMenuItem
                           onSelect={() => {
-                            setMobileInternalNotesExpanded(true)
-                            setShowLeadInfo(true)
+                            setInternalNotesValue(leadData?.notes || '')
+                            setShowInternalNotesModal(true)
                           }}
                           className="w-full px-3 py-2.5 text-left text-sm font-medium text-foreground hover:bg-accent/40 flex items-center gap-2.5 transition-colors rounded-md outline-none focus:bg-accent/40 cursor-pointer"
                         >
