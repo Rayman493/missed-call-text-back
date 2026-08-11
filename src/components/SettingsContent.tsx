@@ -14,6 +14,8 @@ import PasswordInput from '@/components/PasswordInput'
 import { useSettingsFormState } from '@/hooks/useSettingsFormState'
 import { useTapToPayAwareness } from '@/hooks/useTapToPayAwareness'
 import { TapToPayEducationModal } from '@/components/TapToPayEducationModal'
+import { TerminalBridgeService } from '@/lib/terminal/service'
+import { Capacitor } from '@capacitor/core'
 import Link from 'next/link'
 import { formatPhoneNumber } from '@/lib/utils'
 import Navigation from '@/components/Navigation'
@@ -105,6 +107,18 @@ export default function SettingsContent() {
   const [showEducationModal, setShowEducationModal] = useState(false)
   const [educationOfferedThisSession, setEducationOfferedThisSession] = useState(false)
 
+  // Apple Tap to Pay account linkage state (authoritative Apple/Stripe status)
+  const [appleAccountLinkageState, setAppleAccountLinkageState] = useState<{
+    status: 'unknown' | 'linked' | 'not_linked' | 'error' | 'unavailable'
+    isLoading: boolean
+  }>({
+    status: 'unknown',
+    isLoading: false
+  })
+
+  // Tap to Pay enablement state
+  const [isEnablingTapToPay, setIsEnablingTapToPay] = useState(false)
+
   // Trigger education after first successful reader connection
   useEffect(() => {
     if (!business?.stripe_charges_enabled) return
@@ -139,6 +153,196 @@ export default function SettingsContent() {
       showToast('Failed to complete education', 'error')
     }
   }
+
+  // Handle native education guide for iOS 18+ using Apple's ProximityReaderDiscovery
+  const handleNativeEducationGuide = async () => {
+    try {
+      const ReplyflowStripeTerminal = (await import('@/lib/terminal')).default
+      const result = await ReplyflowStripeTerminal.presentMerchantEducation()
+
+      if (result.presented && result.method === 'native_ios18') {
+        // Native education presented - it's fire-and-forget
+        // User will need to confirm they reviewed it
+        console.log('[SettingsContent] Native education presented via ProximityReaderDiscovery')
+        // Note: We do NOT mark Apple account linkage as true - education != Terms acceptance
+      } else {
+        // Fallback to React modal if native not available
+        console.log('[SettingsContent] Native education not available, using fallback:', result.reason)
+        setShowEducationModal(true)
+      }
+    } catch (error) {
+      console.error('[SettingsContent] Failed to present native education:', error)
+      showToast('Failed to open Tap to Pay guide', 'error')
+    }
+  }
+
+  // Handle Tap to Pay enablement from Settings
+  const handleEnableTapToPay = async () => {
+    // Guard against duplicate concurrent attempts
+    if (isEnablingTapToPay) {
+      console.log('[SettingsContent] Enablement already in progress, ignoring duplicate request')
+      return
+    }
+
+    // Verify Stripe Connect setup is configured
+    if (!business?.stripe_charges_enabled) {
+      showToast('Complete payment setup before enabling Tap to Pay', 'error')
+      return
+    }
+
+    // Verify platform support
+    const platform = tapToPayAwareness.state.tapToPaySupportStatus?.platform
+    const status = tapToPayAwareness.state.tapToPaySupportStatus?.status
+    const isIOS = platform === 'ios'
+    const isSupported = status === 'supported'
+
+    if (!isIOS || !isSupported) {
+      showToast('Tap to Pay is not supported on this device', 'error')
+      return
+    }
+
+    setIsEnablingTapToPay(true)
+
+    try {
+      const terminalService = TerminalBridgeService.getInstance()
+      if (!terminalService) {
+        throw new Error('Terminal service not available')
+      }
+
+      // Step 1: Check if already linked (avoid unnecessary initialization/connection)
+      const initialCheck = await terminalService.isTapToPayAccountLinked()
+      if (initialCheck.isLinked) {
+        console.log('[SettingsContent] Apple account already linked, no enablement needed')
+        setAppleAccountLinkageState({ status: 'linked', isLoading: false })
+        showToast('Tap to Pay is already enabled', 'success')
+        setIsEnablingTapToPay(false)
+        return
+      }
+
+      console.log('[SettingsContent] Apple account not linked, starting enablement flow')
+
+      // Step 2: Initialize Terminal SDK
+      console.log('[SettingsContent] Initializing Terminal SDK')
+      const initResult = await terminalService.initialize()
+      console.log('[SettingsContent] Terminal initialized:', initResult.status)
+      if (initResult.status !== 'ready' && initResult.status !== 'connected') {
+        throw new Error('Failed to initialize Terminal SDK')
+      }
+
+      // Step 3: Connect Tap to Pay (triggers Apple Terms/account-linkage flow)
+      console.log('[SettingsContent] Connecting Tap to Pay reader')
+      const connectResult = await terminalService.connectTapToPay()
+      console.log('[SettingsContent] Connection result:', connectResult.status)
+      if (connectResult.status !== 'connected') {
+        throw new Error('Failed to connect Tap to Pay reader')
+      }
+
+      // Step 4: Re-check Apple account linkage after connection
+      console.log('[SettingsContent] Re-checking Apple account linkage after connection')
+      const finalCheck = await terminalService.isTapToPayAccountLinked()
+      console.log('[SettingsContent] Final linkage check result:', finalCheck.isLinked)
+
+      if (finalCheck.isLinked) {
+        // Success: Apple Terms were accepted
+        setAppleAccountLinkageState({ status: 'linked', isLoading: false })
+        showToast('Tap to Pay enabled successfully', 'success')
+      } else {
+        // Terms not accepted
+        setAppleAccountLinkageState({ status: 'not_linked', isLoading: false })
+        showToast('Tap to Pay requires Apple Terms acceptance', 'error')
+      }
+
+      // Step 5: Disconnect reader (linkage persists independently)
+      console.log('[SettingsContent] Disconnecting reader after enablement')
+      try {
+        await terminalService.disconnect()
+        console.log('[SettingsContent] Reader disconnected successfully')
+      } catch (disconnectError) {
+        console.warn('[SettingsContent] Failed to disconnect reader (non-critical):', disconnectError)
+        // Don't fail the enablement if disconnect fails
+      }
+
+    } catch (error) {
+      console.error('[SettingsContent] Enablement failed:', error)
+
+      // Attempt fresh linkage check even on failure (Apple may have accepted Terms before error)
+      try {
+        const terminalService = TerminalBridgeService.getInstance()
+        if (terminalService) {
+          const fallbackCheck = await terminalService.isTapToPayAccountLinked()
+          if (fallbackCheck.isLinked) {
+            console.log('[SettingsContent] Apple account linked despite error, marking as enabled')
+            setAppleAccountLinkageState({ status: 'linked', isLoading: false })
+            showToast('Tap to Pay enabled', 'success')
+            setIsEnablingTapToPay(false)
+            return
+          }
+        }
+      } catch (fallbackError) {
+        console.warn('[SettingsContent] Fallback linkage check failed:', fallbackError)
+      }
+
+      // If not linked, show error
+      setAppleAccountLinkageState({ status: 'error', isLoading: false })
+
+      // Classify error for user-friendly message
+      const errorMessage = error instanceof Error ? error.message.toLowerCase() : ''
+      let userMessage = 'Failed to enable Tap to Pay. Please try again.'
+
+      if (errorMessage.includes('location') || errorMessage.includes('permission')) {
+        userMessage = 'Tap to Pay requires location permission. Enable it in Settings.'
+      } else if (errorMessage.includes('terminal location') || errorMessage.includes('business address')) {
+        userMessage = 'Add a valid business address before enabling Tap to Pay.'
+      } else if (errorMessage.includes('stripe connect') || errorMessage.includes('payment setup')) {
+        userMessage = 'Complete payment setup before enabling Tap to Pay.'
+      } else if (errorMessage.includes('network') || errorMessage.includes('timeout')) {
+        userMessage = 'Network error. Check your connection and try again.'
+      }
+
+      showToast(userMessage, 'error')
+    } finally {
+      setIsEnablingTapToPay(false)
+    }
+  }
+
+  // Check Apple Tap to Pay account linkage status (authoritative Apple/Stripe state)
+  // This is safe to call standalone - no PaymentIntent, reader connection, or Terminal initialization required
+  useEffect(() => {
+    const checkAppleAccountLinkage = async () => {
+      // Only check on native iOS with supported Tap to Pay environment
+      const platform = tapToPayAwareness.state.tapToPaySupportStatus?.platform
+      const status = tapToPayAwareness.state.tapToPaySupportStatus?.status
+      const isSupported = status === 'supported'
+      const isIOS = platform === 'ios'
+      const isNative = Capacitor.isNativePlatform()
+
+      if (!isNative || !isIOS || !isSupported) {
+        setAppleAccountLinkageState({ status: 'unavailable', isLoading: false })
+        return
+      }
+
+      setAppleAccountLinkageState(prev => ({ ...prev, isLoading: true }))
+
+      try {
+        const terminalService = TerminalBridgeService.getInstance()
+        if (!terminalService) {
+          setAppleAccountLinkageState({ status: 'unavailable', isLoading: false })
+          return
+        }
+        const result = await terminalService.isTapToPayAccountLinked()
+        setAppleAccountLinkageState({
+          status: result.isLinked ? 'linked' : 'not_linked',
+          isLoading: false
+        })
+      } catch (error) {
+        console.error('[SettingsContent] Failed to check Apple account linkage:', error)
+        // Degrade gracefully - Settings remains usable even if status check fails
+        setAppleAccountLinkageState({ status: 'error', isLoading: false })
+      }
+    }
+
+    checkAppleAccountLinkage()
+  }, [tapToPayAwareness.state.tapToPaySupportStatus])
   
   const handleImportSuccess = (message: string) => {
     fetchIgnoredContacts()
@@ -2419,20 +2623,20 @@ export default function SettingsContent() {
                               )
                             }
                             
-                            if (status === 'supported' && business?.stripe_charges_enabled && business?.tap_to_pay_education_completed_at) {
+                            if (status === 'supported' && business?.stripe_charges_enabled && appleAccountLinkageState.status === 'linked') {
                               return (
                                 <span className="text-xs px-2.5 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full font-medium flex items-center gap-1.5">
                                   <span className="w-1 h-1 bg-green-500 rounded-full" />
-                                  Ready
+                                  Enabled
                                 </span>
                               )
                             }
                             
-                            if (status === 'supported' && business?.stripe_charges_enabled) {
+                            if (status === 'supported' && business?.stripe_charges_enabled && appleAccountLinkageState.status === 'not_linked') {
                               return (
                                 <span className="text-xs px-2.5 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full font-medium flex items-center gap-1.5">
                                   <span className="w-1 h-1 bg-blue-500 rounded-full" />
-                                  Not Configured
+                                  Not Enabled
                                 </span>
                               )
                             }
@@ -2474,37 +2678,43 @@ export default function SettingsContent() {
                                 className="flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-md bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed"
                                 aria-label={`Tap to Pay is ${status === 'unsupported_device' ? 'not supported on this device' : status === 'unsupported_ios_version' ? 'not available on this iOS version' : 'currently unavailable'}`}
                               >
-                                {business?.stripe_charges_enabled ? 'Manage' : 'Set Up'}
+                                Not Available
                               </button>
                             )
                           }
                           
                           // Show active action for supported
                           if (status === 'supported' && isNativeMobile()) {
-                            return (
-                              <button
-                                onClick={() => router.push('/dashboard/settings#payments')}
-                                className="flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-150"
-                                aria-label={business?.stripe_charges_enabled ? 'Manage Tap to Pay settings' : 'Set up Tap to Pay'}
-                              >
-                                {business?.stripe_charges_enabled ? 'Manage' : 'Set Up'}
-                              </button>
-                            )
+                            // If Apple account is not linked, show enablement action
+                            if (appleAccountLinkageState.status === 'not_linked') {
+                              return (
+                                <button
+                                  onClick={handleEnableTapToPay}
+                                  disabled={isEnablingTapToPay}
+                                  className="flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 dark:disabled:bg-slate-700 disabled:text-slate-500 dark:disabled:text-slate-400 text-white disabled:cursor-not-allowed transition-colors duration-150"
+                                  aria-label="Enable Tap to Pay on iPhone"
+                                >
+                                  {isEnablingTapToPay ? 'Enabling…' : 'Enable Tap to Pay on iPhone'}
+                                </button>
+                              )
+                            }
+                            // If checking status or error, show disabled action
+                            if (appleAccountLinkageState.status === 'unknown' || appleAccountLinkageState.status === 'error') {
+                              return (
+                                <button
+                                  disabled
+                                  className="flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-md bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed"
+                                  aria-label={appleAccountLinkageState.status === 'unknown' ? 'Checking Tap to Pay status' : 'Tap to Pay status check failed'}
+                                >
+                                  {appleAccountLinkageState.isLoading ? 'Checking…' : 'Retry'}
+                                </button>
+                              )
+                            }
+                            // If Apple account is linked, no setup action needed
+                            return null
                           }
                           
-                          // Fallback for native mobile without capability status
-                          if (isNativeMobile()) {
-                            return (
-                              <button
-                                onClick={() => router.push('/dashboard/settings#payments')}
-                                className="flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-150"
-                                aria-label={business?.stripe_charges_enabled ? 'Manage Tap to Pay settings' : 'Set up Tap to Pay'}
-                              >
-                                {business?.stripe_charges_enabled ? 'Manage' : 'Set Up'}
-                              </button>
-                            )
-                          }
-                          
+                          // Fallback for native mobile without capability status - no action needed
                           return null
                         })()
                       )}
@@ -2651,12 +2861,12 @@ export default function SettingsContent() {
                       {(() => {
                         const status = tapToPayAwareness.state.tapToPaySupportStatus?.status
                         const platform = tapToPayAwareness.state.tapToPaySupportStatus?.platform
-                        
+
                         // Show guide for supported iOS devices with Stripe connected
                         if (platform === 'ios' && status === 'supported' && business?.stripe_charges_enabled) {
                           return (
                             <button
-                              onClick={() => setShowEducationModal(true)}
+                              onClick={handleNativeEducationGuide}
                               className="mt-2 text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
                               aria-label="Open Tap to Pay on iPhone guide"
                             >
@@ -2664,7 +2874,7 @@ export default function SettingsContent() {
                             </button>
                           )
                         }
-                        
+
                         // Do not show guide for unsupported devices or non-iOS platforms
                         return null
                       })()}
