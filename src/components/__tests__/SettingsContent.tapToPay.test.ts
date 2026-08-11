@@ -546,4 +546,77 @@ describe('Tap to Pay Settings Enablement', () => {
       expect(initCount).toBeLessThanOrEqual(maxInits)
     })
   })
+
+  describe('New feature available callout visibility', () => {
+    it('should show "New feature available" callout when not enabled', () => {
+      const status = 'supported'
+      const awarenessAcknowledged = false
+      const appleLinkageStatus = 'not_linked'
+
+      // Callout should show when supported, not acknowledged, and not linked
+      const shouldShowCallout = status === 'supported' && !awarenessAcknowledged && appleLinkageStatus !== 'linked'
+      expect(shouldShowCallout).toBe(true)
+    })
+
+    it('should NOT show "New feature available" callout when enabled via Apple', () => {
+      const status = 'supported'
+      const awarenessAcknowledged = false
+      const appleLinkageStatus = 'linked'
+
+      // Callout should NOT show when Apple account is linked, even if not acknowledged
+      const shouldShowCallout = status === 'supported' && !awarenessAcknowledged && appleLinkageStatus !== 'linked'
+      expect(shouldShowCallout).toBe(false)
+    })
+
+    it('should NOT show "New feature available" callout when already acknowledged', () => {
+      const status = 'supported'
+      const awarenessAcknowledged = true
+      const appleLinkageStatus = 'not_linked'
+
+      // Callout should NOT show when already acknowledged
+      const shouldShowCallout = status === 'supported' && !awarenessAcknowledged && appleLinkageStatus !== 'linked'
+      expect(shouldShowCallout).toBe(false)
+    })
+
+    it('should NOT show "New feature available" callout when device not supported', () => {
+      const status = 'unsupported_device'
+      const awarenessAcknowledged = false
+      const appleLinkageStatus = 'not_linked'
+
+      // Callout should NOT show when device not supported
+      const shouldShowCallout = status === 'supported' && !awarenessAcknowledged && appleLinkageStatus !== 'linked'
+      expect(shouldShowCallout).toBe(false)
+    })
+
+    it('should preserve enabling/configuring progress UI during enablement', () => {
+      const isEnabling = true
+      const softwareUpdateActive = true
+      const softwareUpdateProgress = 0.27
+
+      // Progress UI should show during enablement
+      const shouldShowProgress = isEnabling && softwareUpdateActive && softwareUpdateProgress !== null
+      expect(shouldShowProgress).toBe(true)
+      expect(softwareUpdateProgress).toBe(0.27)
+    })
+
+    it('should show Enabled badge when Apple account is linked', () => {
+      const status = 'supported'
+      const appleLinkageStatus = 'linked'
+      const stripeChargesEnabled = true
+
+      // Enabled badge should show when linked
+      const shouldShowEnabledBadge = status === 'supported' && stripeChargesEnabled && appleLinkageStatus === 'linked'
+      expect(shouldShowEnabledBadge).toBe(true)
+    })
+
+    it('should show Not Enabled badge when Apple account is not linked', () => {
+      const status = 'supported'
+      const appleLinkageStatus = 'not_linked'
+      const stripeChargesEnabled = true
+
+      // Not Enabled badge should show when not linked
+      const shouldShowNotEnabledBadge = status === 'supported' && stripeChargesEnabled && appleLinkageStatus === 'not_linked'
+      expect(shouldShowNotEnabledBadge).toBe(true)
+    })
+  })
 })

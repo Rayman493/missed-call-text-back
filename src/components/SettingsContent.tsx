@@ -2860,8 +2860,8 @@ export default function SettingsContent() {
                             )
                           }
                           
-                          // Supported but not acknowledged
-                          if (status === 'supported' && !business?.tap_to_pay_awareness_acknowledged_at) {
+                          // Supported but not acknowledged and not yet enabled via Apple
+                          if (status === 'supported' && !business?.tap_to_pay_awareness_acknowledged_at && appleAccountLinkageState.status !== 'linked') {
                             return (
                               <div className="p-2.5 sm:p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                                 <p className="text-[10px] sm:text-xs text-blue-700 dark:text-blue-300">
