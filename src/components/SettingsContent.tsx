@@ -13,6 +13,7 @@ import Toast, { ToastContainer } from '@/components/Toast'
 import PasswordInput from '@/components/PasswordInput'
 import { useSettingsFormState } from '@/hooks/useSettingsFormState'
 import { useTapToPayAwareness } from '@/hooks/useTapToPayAwareness'
+import { useTapToPayReaderPresentation } from '@/hooks/useTapToPayReaderPresentation'
 import { TapToPayEducationModal } from '@/components/TapToPayEducationModal'
 import { TerminalBridgeService } from '@/lib/terminal/service'
 import { Capacitor } from '@capacitor/core'
@@ -118,6 +119,12 @@ export default function SettingsContent() {
 
   // Tap to Pay enablement state
   const [isEnablingTapToPay, setIsEnablingTapToPay] = useState(false)
+
+  // Reader presentation state for configuration progress (reuses existing hook)
+  const {
+    state: readerState,
+    resetState: resetReaderState,
+  } = useTapToPayReaderPresentation(isEnablingTapToPay)
 
   // Trigger education after first successful reader connection
   useEffect(() => {
@@ -302,6 +309,8 @@ export default function SettingsContent() {
       showToast(userMessage, 'error')
     } finally {
       setIsEnablingTapToPay(false)
+      // Clean up reader presentation state
+      resetReaderState()
     }
   }
 
@@ -2688,14 +2697,36 @@ export default function SettingsContent() {
                             // If Apple account is not linked, show enablement action
                             if (appleAccountLinkageState.status === 'not_linked') {
                               return (
-                                <button
-                                  onClick={handleEnableTapToPay}
-                                  disabled={isEnablingTapToPay}
-                                  className="flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 dark:disabled:bg-slate-700 disabled:text-slate-500 dark:disabled:text-slate-400 text-white disabled:cursor-not-allowed transition-colors duration-150"
-                                  aria-label="Enable Tap to Pay on iPhone"
-                                >
-                                  {isEnablingTapToPay ? 'Enabling…' : 'Enable Tap to Pay on iPhone'}
-                                </button>
+                                <div className="flex flex-col items-end gap-2">
+                                  <button
+                                    onClick={handleEnableTapToPay}
+                                    disabled={isEnablingTapToPay}
+                                    className="flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-md bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 dark:disabled:bg-slate-700 disabled:text-slate-500 dark:disabled:text-slate-400 text-white disabled:cursor-not-allowed transition-colors duration-150"
+                                    aria-label="Enable Tap to Pay on iPhone"
+                                  >
+                                    {isEnablingTapToPay ? 'Enabling…' : 'Enable Tap to Pay on iPhone'}
+                                  </button>
+                                  {/* Configuration progress UI */}
+                                  {readerState.softwareUpdateActive && readerState.softwareUpdateProgress !== null && (
+                                    <div className="w-32">
+                                      <div className="w-full bg-muted rounded-full h-1.5">
+                                        <div
+                                          className="bg-primary h-1.5 rounded-full transition-all duration-300"
+                                          style={{ width: `${readerState.softwareUpdateProgress * 100}%` }}
+                                        />
+                                      </div>
+                                      <p className="text-[10px] text-muted-foreground mt-1 text-right">
+                                        Configuring… {Math.round(readerState.softwareUpdateProgress * 100)}%
+                                      </p>
+                                    </div>
+                                  )}
+                                  {/* Configuration error */}
+                                  {readerState.softwareUpdateError && (
+                                    <p className="text-[10px] text-red-600 dark:text-red-400 text-right max-w-32">
+                                      {readerState.softwareUpdateError}
+                                    </p>
+                                  )}
+                                </div>
                               )
                             }
                             // If checking status or error, show disabled action

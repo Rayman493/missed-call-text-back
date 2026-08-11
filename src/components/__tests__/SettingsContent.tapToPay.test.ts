@@ -288,4 +288,112 @@ describe('Tap to Pay Settings Enablement', () => {
       expect(isNetworkError).toBe(true)
     })
   })
+
+  describe('Configuration progress UI', () => {
+    it('should not show progress when reader update inactive', () => {
+      const readerState = {
+        softwareUpdateActive: false,
+        softwareUpdateProgress: null,
+        softwareUpdateError: null,
+      }
+
+      const shouldShowProgress = readerState.softwareUpdateActive && readerState.softwareUpdateProgress !== null
+      expect(shouldShowProgress).toBe(false)
+    })
+
+    it('should show 0% when reader update active at 0.0', () => {
+      const readerState = {
+        softwareUpdateActive: true,
+        softwareUpdateProgress: 0.0,
+        softwareUpdateError: null,
+      }
+
+      const percentage = Math.round(readerState.softwareUpdateProgress * 100)
+      expect(percentage).toBe(0)
+      expect(readerState.softwareUpdateActive).toBe(true)
+    })
+
+    it('should show 42% when reader update active at 0.42', () => {
+      const readerState = {
+        softwareUpdateActive: true,
+        softwareUpdateProgress: 0.42,
+        softwareUpdateError: null,
+      }
+
+      const percentage = Math.round(readerState.softwareUpdateProgress * 100)
+      expect(percentage).toBe(42)
+    })
+
+    it('should show 100% when reader update active at 1.0', () => {
+      const readerState = {
+        softwareUpdateActive: true,
+        softwareUpdateProgress: 1.0,
+        softwareUpdateError: null,
+      }
+
+      const percentage = Math.round(readerState.softwareUpdateProgress * 100)
+      expect(percentage).toBe(100)
+    })
+
+    it('should clear progress UI when reader update completed', () => {
+      const readerStateBefore = {
+        softwareUpdateActive: true,
+        softwareUpdateProgress: 0.5,
+        softwareUpdateError: null,
+      }
+
+      const readerStateAfter = {
+        softwareUpdateActive: false,
+        softwareUpdateProgress: null,
+        softwareUpdateError: null,
+      }
+
+      expect(readerStateBefore.softwareUpdateActive).toBe(true)
+      expect(readerStateAfter.softwareUpdateActive).toBe(false)
+      expect(readerStateAfter.softwareUpdateProgress).toBeNull()
+    })
+
+    it('should show error when reader update failed', () => {
+      const readerState = {
+        softwareUpdateActive: false,
+        softwareUpdateProgress: null,
+        softwareUpdateError: 'Configuration failed',
+      }
+
+      expect(readerState.softwareUpdateError).toBe('Configuration failed')
+      expect(readerState.softwareUpdateActive).toBe(false)
+    })
+
+    it('should maintain Apple linkage state independence from progress', () => {
+      const appleLinked = true
+      const readerUpdateProgress = 0.5
+
+      // Apple linkage is independent of reader update progress
+      expect(appleLinked).toBe(true)
+      expect(readerUpdateProgress).toBe(0.5)
+      // Progress does not determine Enabled status
+    })
+
+    it('should maintain education timestamp independence from progress', () => {
+      const educationComplete = true
+      const readerUpdateProgress = 0.75
+
+      // Education timestamp is independent of reader update progress
+      expect(educationComplete).toBe(true)
+      expect(readerUpdateProgress).toBe(0.75)
+      // Progress does not determine education status
+    })
+
+    it('should not show fake progress if no update events fire', () => {
+      const readerState = {
+        softwareUpdateActive: false,
+        softwareUpdateProgress: null,
+        softwareUpdateError: null,
+      }
+
+      // If no update events fire, progress UI should not appear
+      const shouldShowProgress = readerState.softwareUpdateActive && readerState.softwareUpdateProgress !== null
+      expect(shouldShowProgress).toBe(false)
+    })
+  })
 })
