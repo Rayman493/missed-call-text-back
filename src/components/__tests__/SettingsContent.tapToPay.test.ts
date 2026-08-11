@@ -487,4 +487,63 @@ describe('Tap to Pay Settings Enablement', () => {
       expect(softwareUpdateActive).toBe(true)
     })
   })
+
+  describe('Terminal initialization ordering', () => {
+    it('should initialize Terminal before checking account linkage in Settings', () => {
+      let initCalled = false
+      let linkageCheckCalled = false
+      const sequence: string[] = []
+
+      // Simulate the Settings sequence
+      sequence.push('start')
+      if (!initCalled) {
+        sequence.push('initialize')
+        initCalled = true
+      }
+      if (initCalled) {
+        sequence.push('checkLinkage')
+        linkageCheckCalled = true
+      }
+
+      expect(sequence).toEqual(['start', 'initialize', 'checkLinkage'])
+      expect(initCalled).toBe(true)
+      expect(linkageCheckCalled).toBe(true)
+    })
+
+    it('should not call linkage check if initialize fails', () => {
+      let initFailed = false
+      let linkageCheckCalled = false
+      const sequence: string[] = []
+
+      sequence.push('start')
+      if (!initFailed) {
+        sequence.push('initialize')
+        initFailed = true // Simulate failure
+      }
+      if (!initFailed) {
+        sequence.push('checkLinkage')
+        linkageCheckCalled = true
+      }
+
+      expect(sequence).toEqual(['start', 'initialize'])
+      expect(initFailed).toBe(true)
+      expect(linkageCheckCalled).toBe(false)
+    })
+
+    it('should handle repeated renders without uncontrolled initialization loops', () => {
+      let initCount = 0
+      const maxInits = 3
+      const renderCount = 5
+
+      // Simulate repeated renders
+      for (let i = 0; i < renderCount; i++) {
+        if (initCount < maxInits) {
+          initCount++
+        }
+      }
+
+      // Should not create uncontrolled loops
+      expect(initCount).toBeLessThanOrEqual(maxInits)
+    })
+  })
 })

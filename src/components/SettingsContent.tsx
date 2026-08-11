@@ -324,7 +324,7 @@ export default function SettingsContent() {
   }
 
   // Check Apple Tap to Pay account linkage status (authoritative Apple/Stripe state)
-  // This is safe to call standalone - no PaymentIntent, reader connection, or Terminal initialization required
+  // Requires Terminal initialization first (Stripe Terminal 5.7.0 requirement)
   useEffect(() => {
     const checkAppleAccountLinkage = async () => {
       // Only check on native iOS with supported Tap to Pay environment
@@ -347,6 +347,8 @@ export default function SettingsContent() {
           setAppleAccountLinkageState({ status: 'unavailable', isLoading: false })
           return
         }
+        // Initialize Terminal SDK before checking account linkage (required by Stripe Terminal 5.7.0)
+        await terminalService.initialize()
         const result = await terminalService.isTapToPayAccountLinked()
         setAppleAccountLinkageState({
           status: result.isLinked ? 'linked' : 'not_linked',
