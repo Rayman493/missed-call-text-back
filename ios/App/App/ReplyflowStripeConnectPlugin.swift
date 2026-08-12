@@ -5,6 +5,10 @@ import Capacitor
 import UIKit
 #endif
 
+#if canImport(AuthenticationServices)
+import AuthenticationServices
+#endif
+
 @objc(ReplyflowStripeConnectPlugin)
 public class ReplyflowStripeConnectPlugin: CAPPlugin, CAPBridgedPlugin {
   private let eventNameDiagnostics = "connectDiagnostics"
@@ -16,7 +20,7 @@ public class ReplyflowStripeConnectPlugin: CAPPlugin, CAPBridgedPlugin {
   #endif
   public let identifier = "ReplyflowStripeConnectPlugin"
   public let jsName = "ReplyflowStripeConnect"
-  public let pluginMethods: [
+  public let pluginMethods: [CAPPluginMethod] = [
     CAPPluginMethod(name: "openConnectOnboarding", returnType: CAPPluginReturnPromise)
   ]
 
