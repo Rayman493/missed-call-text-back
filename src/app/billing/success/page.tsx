@@ -47,7 +47,6 @@ export default function BillingSuccessPage() {
   // IMMEDIATE RECOVERY CHECK - Execute before any other logic or UI rendering
   // This ensures native iOS return-to-app handoff happens immediately, not after session retries
   const [showNativeReturn, setShowNativeReturn] = useState(false)
-  const [returnButtonState, setReturnButtonState] = useState<'idle' | 'opening'>('idle')
 
   useEffect(() => {
     if (!sessionId) return
@@ -67,27 +66,11 @@ export default function BillingSuccessPage() {
 
     if (shouldRecover) {
       console.log('[BILLING RETURN] Native app checkout detected, showing return button')
-      // SFSafariViewController does NOT permit programmatic custom-scheme navigation
-      // Show a user-tappable button instead
+      // Show a user-tappable Universal Link button for cross-host return
       setShowNativeReturn(true)
       return
     }
   }, [sessionId])
-
-  const handleReturnButtonTap = () => {
-    if (!sessionId) return
-
-    // Show opening state briefly
-    setReturnButtonState('opening')
-
-    // Reset to idle after a bounded interval if page remains visible
-    // This timeout is only for UI state reset, NOT for inferring payment success
-    const resetTimeout = setTimeout(() => {
-      setReturnButtonState('idle')
-    }, 3000)
-
-    return () => clearTimeout(resetTimeout)
-  }
 
   // Log execution context for diagnostics
   useEffect(() => {
@@ -314,16 +297,15 @@ export default function BillingSuccessPage() {
             {/* Success Message */}
             <h1 className="text-3xl font-bold text-foreground mb-3">Payment successful!</h1>
             <p className="text-muted-foreground text-lg mb-8">
-              Your ReplyFlow account is ready.
+              Your payment was successful. Return to ReplyFlow to finish setup.
             </p>
 
-            {/* Return Button - uses true user-gesture anchor */}
+            {/* Return Button - uses cross-host HTTPS Universal Link for reliable iOS return */}
             <a
-              href={`replyflow://billing/success?session_id=${sessionId}&recovery=1`}
-              onClick={handleReturnButtonTap}
+              href={`https://links.replyflowhq.com/billing/success?session_id=${sessionId}&return_to_app=1&user_return=1`}
               className="inline-flex items-center justify-center rounded-lg bg-amber-600 hover:bg-amber-700 px-8 py-4 text-sm font-semibold text-white shadow-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 w-full transition-colors"
             >
-              {returnButtonState === 'opening' ? 'Opening ReplyFlow...' : 'Return to ReplyFlow'}
+              Open ReplyFlow
             </a>
 
             <p className="text-muted-foreground text-sm mt-4">

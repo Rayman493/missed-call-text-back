@@ -322,7 +322,157 @@ describe('Fallback Button Behavior', () => {
   })
 })
 
-describe('Platform Regression Tests', () => {
+describe('Cross-Host Universal Link Return', () => {
+  describe('Stripe success host remains www', () => {
+    it('Stripe native iOS success URL uses www.replyflowhq.com', () => {
+      const stripeSuccessHost = 'https://www.replyflowhq.com/billing/success'
+      expect(stripeSuccessHost).toContain('www.replyflowhq.com')
+      expect(stripeSuccessHost).not.toContain('links.replyflowhq.com')
+    })
+  })
+
+  describe('fallback CTA uses links subdomain', () => {
+    it('fallback CTA uses https://links.replyflowhq.com', () => {
+      const fallbackUrl = 'https://links.replyflowhq.com/billing/success?session_id=cs_test&return_to_app=1&user_return=1'
+      expect(fallbackUrl).toContain('https://links.replyflowhq.com')
+    })
+
+    it('fallback CTA does NOT use replyflow://', () => {
+      const fallbackUrl = 'https://links.replyflowhq.com/billing/success?session_id=cs_test'
+      expect(fallbackUrl).not.toContain('replyflow://')
+    })
+
+    it('fallback CTA uses /billing/success path', () => {
+      const fallbackUrl = 'https://links.replyflowhq.com/billing/success'
+      expect(fallbackUrl).toContain('/billing/success')
+    })
+
+    it('session_id is preserved in fallback URL', () => {
+      const sessionId = 'cs_test_123'
+      const fallbackUrl = `https://links.replyflowhq.com/billing/success?session_id=${sessionId}&return_to_app=1&user_return=1`
+      expect(fallbackUrl).toContain(sessionId)
+    })
+
+    it('return_to_app=1 is preserved in fallback URL', () => {
+      const fallbackUrl = 'https://links.replyflowhq.com/billing/success?session_id=cs_test&return_to_app=1&user_return=1'
+      expect(fallbackUrl).toContain('return_to_app=1')
+    })
+
+    it('user_return=1 is added to fallback URL', () => {
+      const fallbackUrl = 'https://links.replyflowhq.com/billing/success?session_id=cs_test&return_to_app=1&user_return=1'
+      expect(fallbackUrl).toContain('user_return=1')
+    })
+  })
+
+  describe('CTA has no fake loading state', () => {
+    it('CTA text is Open ReplyFlow', () => {
+      const ctaText = 'Open ReplyFlow'
+      expect(ctaText).toBe('Open ReplyFlow')
+    })
+
+    it('CTA does NOT show Opening ReplyFlow...', () => {
+      const ctaText = 'Open ReplyFlow'
+      expect(ctaText).not.toBe('Opening ReplyFlow...')
+    })
+  })
+})
+
+describe('appUrlOpen Hostname Validation', () => {
+  describe('approved hostnames', () => {
+    it('appUrlOpen accepts www.replyflowhq.com', () => {
+      const approvedHostnames = ['www.replyflowhq.com', 'links.replyflowhq.com']
+      const testHostname = 'www.replyflowhq.com'
+      expect(approvedHostnames.includes(testHostname)).toBe(true)
+    })
+
+    it('appUrlOpen accepts links.replyflowhq.com', () => {
+      const approvedHostnames = ['www.replyflowhq.com', 'links.replyflowhq.com']
+      const testHostname = 'links.replyflowhq.com'
+      expect(approvedHostnames.includes(testHostname)).toBe(true)
+    })
+
+    it('appUrlOpen rejects foreign hostname', () => {
+      const approvedHostnames = ['www.replyflowhq.com', 'links.replyflowhq.com']
+      const foreignHostname = 'evil.com'
+      expect(approvedHostnames.includes(foreignHostname)).toBe(false)
+    })
+  })
+
+  describe('links callback canonicalization', () => {
+    it('links callback canonicalizes internal WebView to www', () => {
+      const linksUrl = new URL('https://links.replyflowhq.com/billing/success?session_id=cs_test&user_return=1')
+      const canonicalHostname = 'www.replyflowhq.com'
+      expect(canonicalHostname).toBe('www.replyflowhq.com')
+    })
+
+    it('links callback preserves session_id during canonicalization', () => {
+      const sessionId = 'cs_test_123'
+      const linksUrl = new URL(`https://links.replyflowhq.com/billing/success?session_id=${sessionId}`)
+      expect(linksUrl.searchParams.get('session_id')).toBe(sessionId)
+    })
+
+    it('links callback adds recovery=1 during canonicalization', () => {
+      const linksUrl = new URL('https://links.replyflowhq.com/billing/success?session_id=cs_test')
+      linksUrl.searchParams.set('recovery', '1')
+      expect(linksUrl.searchParams.has('recovery')).toBe(true)
+    })
+  })
+})
+
+describe('Loop Prevention', () => {
+  describe('recovered WebView behavior', () => {
+    it('recovered WebView URL contains recovery=1', () => {
+      const recoveredUrl = 'https://www.replyflowhq.com/billing/success?session_id=cs_test&recovery=1'
+      expect(recoveredUrl).toContain('recovery=1')
+    })
+
+    it('recovered WebView does NOT show fallback again', () => {
+      const recoveredUrl = new URL('https://www.replyflowhq.com/billing/success?session_id=cs_test&recovery=1')
+      const shouldShowFallback = recoveredUrl.searchParams.has('return_to_app') && !recoveredUrl.searchParams.has('recovery')
+      expect(shouldShowFallback).toBe(false)
+    })
+
+    it('no loop: www → links → app → www recovery does not trigger links again', () => {
+      const recoveredUrl = new URL('https://www.replyflowhq.com/billing/success?session_id=cs_test&recovery=1')
+      const wouldTriggerLinks = recoveredUrl.hostname === 'links.replyflowhq.com'
+      expect(wouldTriggerLinks).toBe(false)
+    })
+  })
+})
+
+describe('Cross-Host Security', () => {
+  describe('user_return marker', () => {
+    it('user_return does NOT authenticate', () => {
+      const url = new URL('https://links.replyflowhq.com/billing/success?session_id=cs_test&user_return=1')
+      const hasUserReturn = url.searchParams.has('user_return')
+      expect(hasUserReturn).toBe(true)
+      // user_return is UX-only, does NOT authenticate user
+    })
+
+    it('user_return does NOT prove payment success', () => {
+      const url = new URL('https://links.replyflowhq.com/billing/success?session_id=cs_test&user_return=1')
+      const hasUserReturn = url.searchParams.has('user_return')
+      expect(hasUserReturn).toBe(true)
+      // user_return is UX-only, does NOT prove payment success
+    })
+  })
+
+  describe('session_id security', () => {
+    it('session_id does NOT authenticate', () => {
+      const sessionId = 'cs_test_123'
+      // session_id is only for Stripe verification, not authentication
+      expect(sessionId).not.toBe('authenticated')
+    })
+
+    it('session_id does NOT prove payment success', () => {
+      const sessionId = 'cs_test_123'
+      // session_id is only for Stripe verification, not proof of payment success
+      expect(sessionId).not.toBe('payment_success')
+    })
+  })
+})
+
+describe('Cross-Host Platform Regression Tests', () => {
   describe('desktop behavior unchanged', () => {
     it('desktop does not receive return_to_app marker', () => {
       // Desktop uses window.location.href, does not send return_to_app

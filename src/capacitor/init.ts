@@ -229,24 +229,33 @@ function handleDeepLink(url: string) {
       return;
     }
 
-    // Handle universal/app links (https://www.replyflowhq.com/*)
-    // SECURITY: Only accept exact approved hostname to prevent open redirects
-    const approvedHostname = 'www.replyflowhq.com'
-    if (urlObj.protocol === 'https:' && urlObj.hostname === approvedHostname) {
-      console.log('[UNIVERSAL LINK] Approved hostname detected:', approvedHostname)
+    // Handle universal/app links (https://www.replyflowhq.com/* or https://links.replyflowhq.com/*)
+    // SECURITY: Only accept exact approved hostnames to prevent open redirects
+    const approvedHostnames = ['www.replyflowhq.com', 'links.replyflowhq.com']
+    if (urlObj.protocol === 'https:' && approvedHostnames.includes(urlObj.hostname)) {
+      console.log('[UNIVERSAL LINK] Approved hostname detected:', urlObj.hostname)
 
       // Special handling for billing/success Universal Link (iOS Stripe checkout return)
       if (urlObj.pathname === '/billing/success' || urlObj.pathname.startsWith('/billing/success')) {
         const urlParams = urlObj.searchParams
         const sessionId = urlParams.get('session_id')
+        const isFromLinksHost = urlObj.hostname === 'links.replyflowhq.com'
 
-        console.log('[UNIVERSAL LINK] Stripe billing/success detected, has session_id:', !!sessionId)
+        console.log('[UNIVERSAL LINK] Stripe billing/success detected', {
+          hostname: urlObj.hostname,
+          hasSessionId: !!sessionId,
+          isFromLinksHost
+        })
 
         // Add recovery marker to prevent duplicate recovery attempts
         urlParams.set('recovery', '1')
 
-        const recoveredPath = `/billing/success?${urlParams.toString()}`
-        console.log('[UNIVERSAL LINK] Navigating to recovered billing/success with recovery marker')
+        // Canonicalize to www.replyflowhq.com for internal WebView
+        // This ensures the internal WebView always runs on the canonical host
+        const canonicalHostname = 'www.replyflowhq.com'
+        const recoveredPath = `https://${canonicalHostname}/billing/success?${urlParams.toString()}`
+
+        console.log('[UNIVERSAL LINK] Canonicalizing internal WebView to:', canonicalHostname)
 
         window.location.href = recoveredPath
         return
