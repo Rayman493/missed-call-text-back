@@ -78,6 +78,12 @@ function AuthContent() {
   const [redirecting, setRedirecting] = useState(false)
   const [isCreatingCheckout, setIsCreatingCheckout] = useState(false)
   const isCreatingCheckoutRef = React.useRef(false)
+
+  // Track if account was created in this session to prevent re-submission
+  const accountCreatedRef = React.useRef(false)
+
+  // Track if checkout failed after account creation to offer retry
+  const [checkoutFailedAfterAccountCreation, setCheckoutFailedAfterAccountCreation] = useState(false)
   
   // Handle Stripe cancel message
   const checkoutCancelled = searchParams?.get('checkout') === 'cancelled'
@@ -282,8 +288,9 @@ function AuthContent() {
       return
     }
 
-    // Hard submit lock
-    if (isSubmitting || isSubmittingRef.current) {
+    // Hard submit lock - prevent duplicate submissions
+    if (isSubmitting || isSubmittingRef.current || accountCreatedRef.current) {
+      console.log('[Auth] Submission in progress or account already created, ignoring')
       return
     }
     setIsSubmitting(true)
@@ -324,15 +331,26 @@ function AuthContent() {
 
       if (!response.ok) {
         if (data.step === 'user_exists') {
-          setExistingAccount(true)
-          setError(data.error || 'This email already has an account.')
+          // If the user_exists error comes from a known successful local creation, ignore it
+          // This can happen if the user double-taps after account creation succeeds
+          if (accountCreatedRef.current) {
+            console.log('[Auth] user_exists after known successful local creation - ignoring, continuing to checkout')
+            // Continue to checkout since we know the account was just created
+          } else {
+            setExistingAccount(true)
+            setError(data.error || 'This email already has an account.')
+            setLoading(false)
+            setIsSubmitting(false)
+            isSubmittingRef.current = false
+            return
+          }
         } else {
           setError(data.error || 'Failed to create account')
+          setLoading(false)
+          setIsSubmitting(false)
+          isSubmittingRef.current = false
+          return
         }
-        setLoading(false)
-        setIsSubmitting(false)
-        isSubmittingRef.current = false
-        return
       }
 
       // Hard guard: complete-signup must return business_id
@@ -348,6 +366,9 @@ function AuthContent() {
       }
 
       console.log('[Auth] complete-signup returned business_id:', businessIdFromCompleteSignup)
+
+      // Mark account as created to prevent re-submission
+      accountCreatedRef.current = true
 
       // Account created successfully - now sign in the client
       console.log('[Auth] Account created, signing in client...')
@@ -446,11 +467,13 @@ function AuthContent() {
             return
           }
           
-          setError('Account created! Please sign in to complete your trial setup.')
-          setIsSignIn(true)
+          // Account created but checkout failed - offer retry option
+          console.log('[Auth] Account created but checkout failed - user can retry')
+          setError('Account created successfully. Click "Retry Checkout" to continue to Stripe.')
+          setCheckoutFailedAfterAccountCreation(true)
           setLoading(false)
-          setIsSubmitting(false)
-          isSubmittingRef.current = false
+          // Keep isSubmitting and accountCreatedRef true to prevent re-submission
+          // Reset checkout states to allow retry
           setIsCreatingCheckout(false)
           isCreatingCheckoutRef.current = false
           return
@@ -459,19 +482,21 @@ function AuthContent() {
         // Redirect to Stripe Checkout
         console.log('[Auth] Redirecting to Stripe Checkout...')
         setLoading(false)
-        setIsSubmitting(false)
-        isSubmittingRef.current = false
+        // Keep isSubmitting and accountCreatedRef true to prevent re-submission while checkout opens
+        // Only reset checkout states
         setIsCreatingCheckout(false)
         isCreatingCheckoutRef.current = false
 
         await openStripeCheckout(checkoutData.url)
       } catch (checkoutError: any) {
         console.error('[Auth] Error creating checkout session:', checkoutError)
-        setError('Account created! Please sign in to complete your trial setup.')
-        setIsSignIn(true)
+        // Account created but checkout failed - offer retry option
+        console.log('[Auth] Account created but checkout failed due to error - user can retry')
+        setError('Account created successfully. Click "Retry Checkout" to continue to Stripe.')
+        setCheckoutFailedAfterAccountCreation(true)
         setLoading(false)
-        setIsSubmitting(false)
-        isSubmittingRef.current = false
+        // Keep isSubmitting and accountCreatedRef true to prevent re-submission
+        // Reset checkout states to allow retry
         setIsCreatingCheckout(false)
         isCreatingCheckoutRef.current = false
       }
@@ -480,6 +505,8 @@ function AuthContent() {
       setLoading(false)
       setIsSubmitting(false)
       isSubmittingRef.current = false
+      // Reset accountCreatedRef on actual error (not checkout failure)
+      accountCreatedRef.current = false
     }
   }
 
@@ -497,6 +524,58 @@ function AuthContent() {
   const handleBackToStep1 = () => {
     setSignupStep(1)
     setError('')
+  }
+
+  const handleRetryCheckout = async () => {
+    if (!accountCreatedRef.current) {
+      console.error('[Auth] Retry checkout called without account creation')
+      return
+    }
+
+    console.log('[Auth] Retrying checkout after account creation')
+    setLoading(true)
+    setError('')
+    setCheckoutFailedAfterAccountCreation(false)
+
+    try {
+      // Determine if checkout originated from native iOS app for proper return handling
+      const isNativeIOS = isCapacitorNative() && getCapacitorPlatform() === 'ios'
+
+      const checkoutResponse = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          checkout_mode: 'trial',
+          checkout_source: 'auth-signup',
+          return_to_app: checkNativeIOS,
+        }),
+      })
+
+      const checkoutData = await checkoutResponse.json()
+      console.log('[Auth] Checkout session response:', checkoutData)
+
+      if (!checkoutResponse.ok || !checkoutData.url) {
+        console.error('[Auth] Failed to create checkout session on retry:', checkoutData)
+        setError('Failed to create checkout session. Please try again or contact support.')
+        setCheckoutFailedAfterAccountCreation(true)
+        setLoading(false)
+        return
+      }
+
+      // Redirect to Stripe Checkout
+      console.log('[Auth] Redirecting to Stripe Checkout...')
+      setLoading(false)
+      setCheckoutFailedAfterAccountCreation(false)
+
+      await openStripeCheckout(checkoutData.url)
+    } catch (checkoutError: any) {
+      console.error('[Auth] Error retrying checkout session:', checkoutError)
+      setError('Failed to create checkout session. Please try again or contact support.')
+      setCheckoutFailedAfterAccountCreation(true)
+      setLoading(false)
+    }
   }
 
   const handleBackToHomepage = () => {
@@ -597,6 +676,35 @@ function AuthContent() {
                   <p className="text-xs text-red-300/80">
                     {errorDisplay.body}
                   </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {checkoutFailedAfterAccountCreation && (
+            <div
+              className="bg-amber-950/30 border border-amber-900/50 rounded-lg p-3 mb-4"
+              role="alert"
+              aria-live="polite"
+            >
+              <div className="flex items-start gap-2">
+                <svg className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-amber-200 mb-0.5">
+                    Account Created Successfully
+                  </p>
+                  <p className="text-xs text-amber-300/80 mb-2">
+                    {error || 'Your account has been created. Click below to continue to Stripe Checkout.'}
+                  </p>
+                  <button
+                    onClick={handleRetryCheckout}
+                    disabled={loading}
+                    className="text-xs bg-blue-600 text-white py-1.5 px-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Retry Checkout
+                  </button>
                 </div>
               </div>
             </div>
@@ -893,7 +1001,7 @@ function AuthContent() {
 
             <button
               type="submit"
-              disabled={loading || isSubmitting || redirecting}
+              disabled={loading || isSubmitting || redirecting || accountCreatedRef.current}
               className="w-full h-12 bg-blue-600 text-white py-2 px-4 rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transition-all hover:-translate-y-[1px] font-semibold flex items-center justify-center gap-2"
             >
               {redirecting ? (

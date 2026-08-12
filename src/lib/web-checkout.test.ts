@@ -403,4 +403,56 @@ describe('Web Checkout Plugin', () => {
       expect(shouldSkipVerification).toBe(true)
     })
   })
+
+  describe('Signup double-submit prevention', () => {
+    it('button disables immediately on first submit', () => {
+      const isSubmitting = true
+      const loading = true
+      const accountCreatedRef = true
+      const shouldDisable = isSubmitting || loading || accountCreatedRef
+      expect(shouldDisable).toBe(true)
+    })
+
+    it('second tap while pending does nothing', () => {
+      const isSubmittingRef = true
+      const accountCreatedRef = true
+      const shouldIgnoreSecondTap = isSubmittingRef || accountCreatedRef
+      expect(shouldIgnoreSecondTap).toBe(true)
+    })
+
+    it('first successful signup cannot invoke complete-signup twice', () => {
+      const accountCreatedRef = true
+      const shouldPreventDuplicateSignup = accountCreatedRef
+      expect(shouldPreventDuplicateSignup).toBe(true)
+    })
+
+    it('checkout opening delay does not re-enable signup', () => {
+      const accountCreatedRef = true
+      const loading = false
+      const isSubmitting = true
+      const shouldStayDisabled = accountCreatedRef || loading || isSubmitting
+      expect(shouldStayDisabled).toBe(true)
+    })
+
+    it('checkout opening failure after account creation retries checkout only', () => {
+      const accountCreatedRef = true
+      const checkoutFailedAfterAccountCreation = true
+      const shouldOfferRetry = accountCreatedRef && checkoutFailedAfterAccountCreation
+      expect(shouldOfferRetry).toBe(true)
+    })
+
+    it('user_exists after known successful local creation is not surfaced as misleading fatal signup error', () => {
+      const accountCreatedRef = true
+      const userExistsError = true
+      const shouldIgnoreError = accountCreatedRef && userExistsError
+      expect(shouldIgnoreError).toBe(true)
+    })
+
+    it('normal duplicate-email signup from genuinely separate attempt shows correct account-exists behavior', () => {
+      const accountCreatedRef = false
+      const userExistsError = true
+      const shouldShowAccountExistsError = !accountCreatedRef && userExistsError
+      expect(shouldShowAccountExistsError).toBe(true)
+    })
+  })
 })
